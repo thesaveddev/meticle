@@ -1,0 +1,2129 @@
+import { useState, useEffect, useRef } from 'react'
+import {
+  Box, Typography, Paper, TextField, Button, Stack, Alert,
+  Avatar, Grid, Dialog, DialogTitle, DialogContent, DialogActions,
+  Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead,
+  TableRow,   IconButton, FormControl, InputLabel, Select, MenuItem,
+  Chip, Switch, FormControlLabel, Card, CardContent, Autocomplete,
+  TablePagination, CircularProgress,
+} from '@mui/material'
+import {
+  PhotoCamera as CameraIcon, Add as AddIcon, Edit as EditIcon,
+  Delete as DeleteIcon, Check as CheckIcon, Close as CloseIcon,
+  PersonAdd as DelegateIcon, Calculate as CalculateIcon,
+  Business as BuildingIcon, Settings as SettingsIcon,
+  AccountCircle as ProfileIcon, Assignment as ComplianceIcon,
+  BeachAccess as LeaveIcon, Group as GroupIcon,
+  Save as SaveIcon, UploadFile as UploadFileIcon,
+  Link as LinkIcon, Schedule as ScheduleIcon, Notifications as NotificationsIcon,
+  Lock as SecurityIcon, Palette as PaletteIcon,
+  SmartToy as SmartToyIcon, History as HistoryIcon,
+  Warning as WarningIcon,
+} from '@mui/icons-material'
+import { useMutation } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import api from '../../services/api'
+import { useSnackbar } from '../../context/SnackbarContext'
+
+export default function SettingsPage() {
+  const navigate = useNavigate()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const { showSnackbar } = useSnackbar()
+  const [tab, setTab] = useState(0)
+  const [profile, setProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [deactDialogOpen, setDeactDialogOpen] = useState(false)
+  const [deactError, setDeactError] = useState('')
+  const [error, setError] = useState('')
+
+  const userStr = localStorage.getItem('user')
+  let user: any = null
+  try { user = userStr ? JSON.parse(userStr) : null } catch { user = null }
+  const orgId = user?.organizationId || user?.organization_id || ''
+  const isOrgAdmin = user?.role === 'ORG_ADMIN'
+
+  // Org settings
+  const [orgSettings, setOrgSettings] = useState<any>({})
+  const [locations, setLocations] = useState<any[]>([])
+  const [staffList, setStaffList] = useState<any[]>([])
+  const [complianceConfigs, setComplianceConfigs] = useState<any[]>([])
+  const [complianceRecords, setComplianceRecords] = useState<any[]>([])
+  const [complianceProfiles, setComplianceProfiles] = useState<any[]>([])
+  const [delegations, setDelegations] = useState<any[]>([])
+
+  // Dialog states
+  const [locDialog, setLocDialog] = useState(false)
+  const [editLoc, setEditLoc] = useState<any>({ name: '', address: '', manager_id: '' })
+  const [compDialog, setCompDialog] = useState(false)
+  const [editComp, setEditComp] = useState<any>({ name: '', description: '', category: 'document', is_mandatory: true, days_warning: 30 })
+  const [compRecordDialog, setCompRecordDialog] = useState(false)
+  const [editCompRecord, setEditCompRecord] = useState<any>({})
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const fileUploadRef = useRef<HTMLInputElement>(null)
+  const [actionLoading, setActionLoading] = useState('')
+  const [brandingSaving, setBrandingSaving] = useState(false)
+  const [compProfileDialog, setCompProfileDialog] = useState(false)
+  const [editCompProfile, setEditCompProfile] = useState<any>({ name: '', description: '', role_name: '', requirement_ids: [] })
+  const [delDialog, setDelDialog] = useState(false)
+  const [editDel, setEditDel] = useState<any>({ primary_manager_id: '', delegate_manager_id: '', ends_at: '' })
+  const [upgradeDialog, setUpgradeDialog] = useState<{ open: boolean; userId: string; name: string }>({ open: false, userId: '', name: '' })
+  const [delAuditDialog, setDelAuditDialog] = useState(false)
+  const [delAuditLogs, setDelAuditLogs] = useState<any[]>([])
+  const [delAuditLoading, setDelAuditLoading] = useState(false)
+
+  // AI state
+  const [aiConfig, setAIConfig] = useState<any>(null)
+  const [aiSaving, setAISaving] = useState(false)
+  const [aiUsageStats, setAIUsageStats] = useState<any>(null)
+  const [aiAnalysisResult, setAIAnalysisResult] = useState<any>(null)
+  const [aiAnalyzing, setAIAnalyzing] = useState(false)
+
+  const AI_FEATURES = [
+    { key: 'compliance_gap_analysis', label: 'Compliance Gap Analysis', desc: 'Analyze compliance data and generate prioritized recommendations' },
+    { key: 'incident_severity_triage', label: 'Incident Severity Triage', desc: 'Classify incident reports by severity with recommended actions' },
+    { key: 'rota_optimization', label: 'Rota Optimization', desc: 'AI-powered rota analysis with coverage warnings and staffing suggestions' },
+  ]
+
+  // Certificate state
+  const [certDialog, setCertDialog] = useState(false)
+  const [certLocationId, setCertLocationId] = useState('')
+  const [certificates, setCertificates] = useState<any[]>([])
+  const [editCert, setEditCert] = useState<any>(null)
+  const [certForm, setCertForm] = useState({ name: '', certificate_type: '', issuing_body: '', certificate_number: '', issue_date: '', expiry_date: '', status: 'valid', notes: '' })
+
+  // Pagination state
+  const [locPage, setLocPage] = useState(0)
+  const [compConfigPage, setCompConfigPage] = useState(0)
+  const [compProfilePage, setCompProfilePage] = useState(0)
+  const [compRecordPage, setCompRecordPage] = useState(0)
+  const [delPage, setDelPage] = useState(0)
+  const rowsPerPage = 10
+
+  useEffect(() => {
+    if (!user?.id) { setLoading(false); return }
+    const load = async () => {
+      try {
+        const res = await api.get(`/staff/${user.id}`)
+        setProfile(res.data)
+      } catch {
+        setProfile({ first_name: user.first_name || '', last_name: user.last_name || '', birth_date: '', phone: '', address: '', city: '', country: '', postal_code: '', profile_picture_url: user.profile_picture_url || '' })
+      }
+      if (isOrgAdmin) {
+        try {
+          const [orgRes, locRes, staffRes, compRes, delRes, compRecordRes, compProfileRes, orgDetRes] = await Promise.all([
+            api.get('/settings/org'),
+            api.get('/settings/locations'),
+            api.get('/settings/staff'),
+            api.get('/settings/compliance-config'),
+            api.get('/settings/delegations'),
+            api.get('/settings/compliance-records'),
+            api.get('/settings/compliance-profiles'),
+            api.get(`/organizations/${orgId}`),
+          ])
+          setOrgSettings(orgRes.data)
+          setLocations(locRes.data)
+          setStaffList(staffRes.data)
+          setComplianceConfigs(compRes.data)
+          setDelegations(delRes.data)
+          setComplianceRecords(compRecordRes.data)
+          setComplianceProfiles(compProfileRes.data)
+          setOrgDetails(orgDetRes.data)
+          setBrandingColors({
+            primary_color: orgDetRes.data.primary_color || '#0F4C81',
+            secondary_color: orgDetRes.data.secondary_color || '#6B7280',
+            accent_color: orgDetRes.data.accent_color || '#F8FAFC',
+          })
+          setBrandingLogo(orgDetRes.data.logo_url || '')
+          // Load AI config
+          try {
+            const aiRes = await api.get('/ai/config')
+            setAIConfig(aiRes.data.config)
+          } catch { /* ai not yet configured */ }
+        } catch { /* silent */ }
+      }
+      // Check MFA status
+      try {
+        const mfaRes = await api.get('/mfa/status')
+        setMfaEnabled(mfaRes.data.mfaEnabled)
+      } catch {}
+      setLoading(false)
+    }
+    load()
+  }, [user?.id, isOrgAdmin, user?.first_name, user?.last_name, user?.profile_picture_url])
+
+  const updateMutation = useMutation({
+    mutationFn: (data: any) => api.patch(`/staff/${user.id}/profile`, data),
+    onSuccess: (res) => {
+      setProfile(res.data)
+      let stored: any = {}
+      try { stored = JSON.parse(localStorage.getItem('user') || '{}') } catch { stored = {} }
+      stored.first_name = res.data.first_name || stored.first_name
+      stored.last_name = res.data.last_name || stored.last_name
+      stored.profile_picture_url = res.data.profile_picture_url || stored.profile_picture_url
+      localStorage.setItem('user', JSON.stringify(stored))
+      showSnackbar("Settings saved.", "success")
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.message || 'Failed to save profile.')
+    },
+  })
+
+  const handleFieldChange = (field: string, value: string) => {
+    setProfile((prev: any) => ({ ...prev, [field]: value }))
+  }
+
+  const handlePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      setProfile((prev: any) => ({ ...prev, profile_picture_url: dataUrl }))
+      updateMutation.mutate({ ...profile, profile_picture_url: dataUrl })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleSaveProfile = () => {
+    setError('')
+    updateMutation.mutate(profile)
+  }
+
+  const deactivateMutation = useMutation({
+    mutationFn: () => api.post('/staff/self-deactivate'),
+    onSuccess: () => { localStorage.clear(); navigate('/') },
+    onError: (err: any) => { setDeactError(err.response?.data?.message || 'Failed to deactivate account.') },
+  })
+
+  // Org settings handlers
+  const saveOrgSettings = async () => {
+    try {
+      const res = await api.patch('/settings/org', orgSettings)
+      setOrgSettings(res.data)
+      showSnackbar("Settings saved.", "success")
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to save settings')
+    }
+  }
+
+  const saveLocation = async () => {
+    try {
+      const payload = { ...editLoc }
+      if (payload.manager_id === '' || payload.manager_id === null || payload.manager_id === undefined) payload.manager_id = null
+      delete payload.id
+      if (editLoc.id) {
+        await api.put(`/settings/locations/${editLoc.id}`, payload)
+      } else {
+        await api.post('/settings/locations', payload)
+      }
+      setLocDialog(false)
+      setEditLoc({ name: '', address: '', manager_id: '' })
+      const res = await api.get('/settings/locations')
+      setLocations(res.data)
+    } catch (err: any) {
+      if (err.response?.status === 400 && err.response?.data?.message?.includes('manager')) {
+        setUpgradeDialog({ open: true, userId: editLoc.manager_id, name: staffList.find(s => s.id === editLoc.manager_id)?.first_name || '' })
+      }
+      setError(err.response?.data?.message || 'Failed to save location')
+    }
+  }
+
+  const upgradeToManager = async () => {
+    try {
+      await api.patch(`/staff/${upgradeDialog.userId}/role`, { role: 'MANAGER' })
+      setUpgradeDialog({ open: false, userId: '', name: '' })
+      saveLocation()
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to upgrade role')
+    }
+  }
+
+  const deleteLocation = async (id: string) => {
+    try {
+      await api.delete(`/settings/locations/${id}`)
+      setLocations(prev => prev.filter(l => l.id !== id))
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete location')
+    }
+  }
+
+  const openCertificates = async (locId: string) => {
+    setCertLocationId(locId)
+    setEditCert(null)
+    setCertForm({ name: '', certificate_type: '', issuing_body: '', certificate_number: '', issue_date: '', expiry_date: '', status: 'valid', notes: '' })
+    try {
+      const res = await api.get(`/settings/locations/${locId}/certificates`)
+      setCertificates(res.data)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to load certificates')
+    }
+    setCertDialog(true)
+  }
+
+  const saveCertificate = async () => {
+    try {
+      if (editCert) {
+        await api.put(`/settings/locations/${certLocationId}/certificates/${editCert.id}`, certForm)
+      } else {
+        await api.post(`/settings/locations/${certLocationId}/certificates`, certForm)
+      }
+      const res = await api.get(`/settings/locations/${certLocationId}/certificates`)
+      setCertificates(res.data)
+      setEditCert(null)
+      setCertForm({ name: '', certificate_type: '', issuing_body: '', certificate_number: '', issue_date: '', expiry_date: '', status: 'valid', notes: '' })
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to save certificate')
+    }
+  }
+
+  const deleteCertificate = async (certId: string) => {
+    try {
+      await api.delete(`/settings/locations/${certLocationId}/certificates/${certId}`)
+      setCertificates(prev => prev.filter(c => c.id !== certId))
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete certificate')
+    }
+  }
+
+  const saveComplianceConfig = async () => {
+    setActionLoading('compliance-config')
+    try {
+      if (editComp.id) {
+        await api.put(`/settings/compliance-config/${editComp.id}`, editComp)
+      } else {
+        await api.post('/settings/compliance-config', editComp)
+      }
+      setCompDialog(false)
+      setEditComp({ name: '', description: '', category: 'document', is_mandatory: true, days_warning: 30 })
+      const res = await api.get('/settings/compliance-config')
+      setComplianceConfigs(res.data)
+    } catch (err: any) { setError(err.response?.data?.message || 'Failed') }
+    finally { setActionLoading('') }
+  }
+
+  const deleteComplianceConfig = async (id: string) => {
+    setActionLoading('delete-config-' + id)
+    try {
+      await api.delete(`/settings/compliance-config/${id}`)
+      setComplianceConfigs(prev => prev.filter(c => c.id !== id))
+    } catch { }
+    finally { setActionLoading('') }
+  }
+
+  const seedComplianceRecords = async () => {
+    setActionLoading('seed-records')
+    try {
+      const res = await api.post('/settings/compliance-records/seed')
+      setComplianceRecords(res.data.records)
+      showSnackbar("Settings saved.", "success")
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to seed records')
+    }
+    finally { setActionLoading('') }
+  }
+
+  const saveComplianceProfile = async () => {
+    setActionLoading('compliance-profile')
+    try {
+      if (editCompProfile.id) {
+        const res = await api.put(`/settings/compliance-profiles/${editCompProfile.id}`, editCompProfile)
+        setComplianceProfiles(prev => prev.map(p => p.id === res.data.id ? res.data : p))
+      } else {
+        const res = await api.post('/settings/compliance-profiles', editCompProfile)
+        setComplianceProfiles(prev => [...prev, res.data])
+      }
+      setCompProfileDialog(false)
+      setEditCompProfile({ name: '', description: '', role_name: '', requirement_ids: [] })
+      const pres = await api.get('/settings/compliance-profiles')
+      setComplianceProfiles(pres.data)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to save profile')
+    }
+    finally { setActionLoading('') }
+  }
+
+  const deleteComplianceProfile = async (id: string) => {
+    setActionLoading('delete-profile-' + id)
+    try {
+      await api.delete(`/settings/compliance-profiles/${id}`)
+      setComplianceProfiles(prev => prev.filter(p => p.id !== id))
+    } catch { }
+    finally { setActionLoading('') }
+  }
+
+  const autoAssignProfiles = async () => {
+    setActionLoading('auto-assign')
+    try {
+      await api.post('/settings/auto-assign-profiles')
+      showSnackbar("Settings saved.", "success")
+    } catch {}
+    finally { setActionLoading('') }
+  }
+
+  const updateComplianceRecord = async () => {
+    setActionLoading('compliance-record')
+    try {
+      const res = await api.patch(`/settings/compliance-records/${editCompRecord.id}`, {
+        status: editCompRecord.status,
+        issued_at: editCompRecord.issued_at || null,
+        expires_at: editCompRecord.expires_at || null,
+        notes: editCompRecord.notes || '',
+      })
+      setComplianceRecords(prev => prev.map(r => r.id === res.data.id ? { ...r, ...res.data } : r))
+      setCompRecordDialog(false)
+      showSnackbar("Settings saved.", "success")
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to update record')
+    }
+    finally { setActionLoading('') }
+  }
+
+  const saveDelegation = async () => {
+    setActionLoading('delegation')
+    try {
+      if (editDel.id) {
+        await api.patch(`/settings/delegations/${editDel.id}`, editDel)
+      } else {
+        await api.post('/settings/delegations', editDel)
+      }
+      setDelDialog(false)
+      setEditDel({ primary_manager_id: '', delegate_manager_id: '', ends_at: '' })
+      const res = await api.get('/settings/delegations')
+      setDelegations(res.data)
+    }
+    finally { setActionLoading('') }
+  }
+
+  const deleteDelegation = async (id: string) => {
+    setActionLoading('delete-del-' + id)
+    try {
+      await api.delete(`/settings/delegations/${id}`)
+      setDelegations(prev => prev.filter(d => d.id !== id))
+    } catch {}
+    finally { setActionLoading('') }
+  }
+
+  const loadDelAudit = async (delegationId: string) => {
+    setDelAuditLoading(true)
+    setDelAuditLogs([])
+    setDelAuditDialog(true)
+    try {
+      const res = await api.get(`/delegations/delegation-audit/${delegationId}`)
+      setDelAuditLogs(res.data.logs || [])
+    } catch {}
+    finally { setDelAuditLoading(false) }
+  }
+
+  // MFA state
+  const [mfaEnabled, setMfaEnabled] = useState(false)
+  const [mfaQrCode, setMfaQrCode] = useState('')
+  const [mfaSetupSecret, setMfaSetupSecret] = useState('')
+  const [mfaVerifyToken, setMfaVerifyToken] = useState('')
+  const [mfaSetupDialog, setMfaSetupDialog] = useState(false)
+  const [mfaDisableDialog, setMfaDisableDialog] = useState(false)
+  const [mfaError, setMfaError] = useState('')
+  const [mfaDisableError, setMfaDisableError] = useState('')
+  const [mfaDisableToken, setMfaDisableToken] = useState('')
+  const [mfaDisabling, setMfaDisabling] = useState(false)
+  const [mfaVerifying, setMfaVerifying] = useState(false)
+  const [mfaBackupCodes, setMfaBackupCodes] = useState<string[]>([])
+  const [mfaBackupDialog, setMfaBackupDialog] = useState(false)
+
+  const setupMfa = async () => {
+    try {
+      const res = await api.post('/mfa/setup')
+      setMfaQrCode(res.data.qrCode)
+      setMfaSetupSecret(res.data.secret)
+      setMfaVerifyToken('')
+      setMfaSetupDialog(true)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to setup MFA')
+    }
+  }
+
+  const verifyMfaSetup = async () => {
+    setMfaError('')
+    setMfaVerifying(true)
+    try {
+      const res = await api.post('/mfa/verify', { token: mfaVerifyToken })
+      setMfaEnabled(true)
+      setMfaSetupDialog(false)
+      if (res.data.backupCodes?.length) {
+        setMfaBackupCodes(res.data.backupCodes)
+        setMfaBackupDialog(true)
+      } else {
+        showSnackbar("Settings saved.", "success")
+      }
+    } catch (err: any) {
+      setMfaError(err.response?.data?.error?.message || err.response?.data?.message || 'Invalid token. Try again.')
+    }
+    setMfaVerifying(false)
+  }
+
+  const disableMfa = async () => {
+    setMfaDisableError('')
+    setMfaDisabling(true)
+    try {
+      await api.post('/mfa/disable', { token: mfaDisableToken })
+      setMfaEnabled(false)
+      setMfaDisableDialog(false)
+      setMfaDisableToken('')
+      showSnackbar("Settings saved.", "success")
+    } catch (err: any) {
+      setMfaDisableError(err.response?.data?.error?.message || err.response?.data?.message || 'Failed to disable MFA')
+    }
+    setMfaDisabling(false)
+  }
+
+  // Org details editing state
+  const [orgDetails, setOrgDetails] = useState<any>(null)
+  const [logoUploading, setLogoUploading] = useState(false)
+
+  // Branding state
+  const [brandingColors, setBrandingColors] = useState({
+    primary_color: '#0F4C81',
+    secondary_color: '#6B7280',
+    accent_color: '#F8FAFC',
+  })
+  const [brandingLogo, setBrandingLogo] = useState('')
+
+  const saveOrgDetails = async () => {
+    try {
+      if (!orgId) return
+      const res = await api.patch(`/organizations/${orgId}`, {
+        name: orgDetails.name,
+        status: orgDetails.status,
+        plan: orgDetails.plan,
+        regulator: orgDetails.regulator,
+        auto_approve_documents: orgDetails.auto_approve_documents,
+      })
+      setOrgDetails(res.data)
+      showSnackbar("Settings saved.", "success")
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to save organization details')
+    }
+  }
+
+  const saveBranding = async () => {
+    try {
+      if (!orgId) return
+      setBrandingSaving(true)
+      await api.patch(`/organizations/${orgId}/branding`, {
+        logo_url: brandingLogo,
+        ...brandingColors,
+      })
+      showSnackbar("Settings saved.", "success")
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to save branding')
+    } finally {
+      setBrandingSaving(false)
+    }
+  }
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await api.post('/settings/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setBrandingLogo(res.data.url)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to upload logo')
+    }
+    setLogoUploading(false)
+  }
+
+  const calculateEntitlements = async () => {
+    try {
+      await api.post('/settings/calculate-entitlements')
+      showSnackbar("Settings saved.", "success")
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to calculate entitlements')
+    }
+  }
+
+  if (loading) {
+    return <Box><Typography variant="h4" sx={{ mb: 4 }}>Settings</Typography><Paper sx={{ p: 4 }}>Loading...</Paper></Box>
+  }
+
+  const renderProfileTab = () => (
+    <Stack spacing={4}>
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><ProfileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Profile Picture</Typography>
+        <Stack direction="row" alignItems="center" spacing={3}>
+          <Avatar src={profile?.profile_picture_url || user?.profile_picture_url || ''} sx={{ width: 100, height: 100, bgcolor: '#0F4C81', fontSize: '2.5rem' }}>
+            {(profile?.first_name?.[0] || user?.email?.[0] || '?').toUpperCase()}
+          </Avatar>
+          <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={handlePictureUpload} />
+          <Button variant="outlined" startIcon={<CameraIcon />} onClick={() => fileInputRef.current?.click()}>Upload Photo</Button>
+        </Stack>
+      </Paper>
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Personal Information</Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6}>
+            <TextField label="First Name" fullWidth size="small" autoFocus value={profile?.first_name || ''} onChange={(e) => handleFieldChange('first_name', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField label="Last Name" fullWidth size="small" value={profile?.last_name || ''} onChange={(e) => handleFieldChange('last_name', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField label="Email" fullWidth size="small" value={user?.email || ''} disabled helperText="Email cannot be changed." />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField label="Date of Birth" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }}
+              value={profile?.birth_date ? new Date(profile.birth_date).toISOString().split('T')[0] : ''}
+              onChange={(e) => handleFieldChange('birth_date', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField label="Phone" fullWidth size="small" value={profile?.phone || ''} onChange={(e) => handleFieldChange('phone', e.target.value)} />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField label="Address" fullWidth size="small" value={profile?.address || ''} onChange={(e) => handleFieldChange('address', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField label="City" fullWidth size="small" value={profile?.city || ''} onChange={(e) => handleFieldChange('city', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField label="Country" fullWidth size="small" value={profile?.country || ''} onChange={(e) => handleFieldChange('country', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField label="Postal Code" fullWidth size="small" value={profile?.postal_code || ''} onChange={(e) => handleFieldChange('postal_code', e.target.value)} />
+          </Grid>
+        </Grid>
+        <Button variant="contained" onClick={handleSaveProfile} disabled={updateMutation.isPending}
+          sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+        </Button>
+      </Paper>
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><ProfileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Account</Typography>
+        <Stack spacing={2}>
+          <Box>
+            <Typography variant="body2" fontWeight={700}>Role</Typography>
+            <Typography variant="body2" color="text.secondary">{user?.role || '—'}</Typography>
+          </Box>
+          <Box>
+            <Typography variant="body2" fontWeight={700}>Member Since</Typography>
+            <Typography variant="body2" color="text.secondary">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</Typography>
+          </Box>
+        </Stack>
+      </Paper>
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#DC2626' }}>Danger Zone</Typography>
+        <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>Once you deactivate your account, you will not be able to log in again unless an administrator reactivates it.</Typography>
+        <Button variant="outlined" color="error" onClick={() => setDeactDialogOpen(true)}>Deactivate Account</Button>
+        {deactError && <Alert severity="error" sx={{ mt: 2 }} onClose={() => setDeactError('')}>{deactError}</Alert>}
+      </Paper>
+      <Dialog open={deactDialogOpen} onClose={() => setDeactDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ color: '#DC2626' }}>Deactivate Account?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="#6B7280">This will immediately deactivate your account and log you out. You will need an administrator to reactivate it. Are you sure?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeactDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => deactivateMutation.mutate()} color="error" variant="contained" disabled={deactivateMutation.isPending}>
+            {deactivateMutation.isPending ? 'Deactivating...' : 'Yes, Deactivate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Stack>
+  )
+
+  const renderSecurityTab = () => (
+    <Stack spacing={4}>
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><SecurityIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Multi-Factor Authentication</Typography>
+        <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>
+          {mfaEnabled
+            ? 'MFA is currently enabled on your account. Each time you sign in, you will be prompted for an authentication code.'
+            : 'Add an extra layer of security to your account by enabling multi-factor authentication (MFA).'}
+        </Typography>
+        {mfaEnabled ? (
+          <Stack direction="row" spacing={2}>
+            <Button variant="outlined" color="error" onClick={() => setMfaDisableDialog(true)}>Disable MFA</Button>
+          </Stack>
+        ) : (
+          <Button variant="contained" onClick={setupMfa} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Enable MFA</Button>
+        )}
+      </Paper>
+      <Dialog open={mfaSetupDialog} onClose={() => setMfaSetupDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Set Up MFA</DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 2 }}>
+            <Typography variant="body2" color="#6B7280">
+              Scan this QR code with your authenticator app (e.g. Google Authenticator, Authy, or Microsoft Authenticator).
+            </Typography>
+            {mfaQrCode && (
+              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                <img src={mfaQrCode} alt="MFA QR Code" style={{ width: 200, height: 200 }} />
+              </Box>
+            )}
+            {mfaSetupSecret && (
+              <TextField label="Secret Key" fullWidth size="small" value={mfaSetupSecret}
+                InputProps={{ readOnly: true }}
+                helperText="If you cannot scan the QR code, manually enter this key." />
+            )}
+            <TextField label="Authentication Code" fullWidth size="small" value={mfaVerifyToken}
+              onChange={e => { setMfaVerifyToken(e.target.value); setMfaError('') }}
+              placeholder="Enter the 6-digit code from your app" />
+            {mfaError && <Alert severity="error" onClose={() => setMfaError('')}>{mfaError}</Alert>}
+            <Button variant="contained" disabled={mfaVerifying || !mfaVerifyToken} onClick={verifyMfaSetup}
+              sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+              {mfaVerifying ? 'Verifying...' : 'Verify & Enable'}
+            </Button>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMfaSetupDialog(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={mfaDisableDialog} onClose={() => { setMfaDisableDialog(false); setMfaDisableToken('') }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ color: '#DC2626', fontWeight: 700 }}>Disable MFA</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <Typography variant="body2" color="#6B7280">Enter your authenticator code or a backup code to confirm.</Typography>
+            <TextField label="Code" fullWidth size="small" value={mfaDisableToken}
+              onChange={e => { setMfaDisableToken(e.target.value); setMfaDisableError('') }}
+              placeholder="6-digit code or backup code" />
+            {mfaDisableError && <Alert severity="error" onClose={() => setMfaDisableError('')}>{mfaDisableError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setMfaDisableDialog(false); setMfaDisableToken('') }}>Cancel</Button>
+          <Button onClick={disableMfa} color="error" variant="contained" disabled={mfaDisabling || !mfaDisableToken}>
+            {mfaDisabling ? 'Disabling...' : 'Disable'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={mfaBackupDialog} onClose={() => setMfaBackupDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Save Your Backup Codes</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <Alert severity="warning" sx={{ fontWeight: 600 }}>
+              Store these codes in a safe place. Each code can be used <strong>once</strong> to log in if you lose access to your authenticator app.
+            </Alert>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: '#F8FAFC' }}>
+              <Stack spacing={1}>
+                {mfaBackupCodes.map((code, i) => (
+                  <Typography key={i} variant="body2" sx={{ fontFamily: 'monospace', fontSize: '1rem', letterSpacing: '0.1rem', fontWeight: 700 }}>
+                    {code}
+                  </Typography>
+                ))}
+              </Stack>
+            </Paper>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button variant="contained" onClick={() => { setMfaBackupDialog(false); showSnackbar("Settings saved.", "success") }}
+            sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>I've Saved Them</Button>
+        </DialogActions>
+      </Dialog>
+    </Stack>
+  )
+
+  const renderOrgSettingsTab = () => (
+    <Stack spacing={4}>
+      {/* Organization Details */}
+      {orgDetails && (
+        <Paper sx={{ p: 4 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><SettingsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Organization Details</Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <TextField label="Organization Name" fullWidth size="small"
+                value={orgDetails.name || ''}
+                onChange={e => setOrgDetails((p: any) => ({ ...p, name: e.target.value }))} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Status</InputLabel>
+                <Select value={orgDetails.status || 'active'} label="Status"
+                  onChange={e => setOrgDetails((p: any) => ({ ...p, status: e.target.value }))}>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                  <MenuItem value="suspended">Suspended</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Plan</InputLabel>
+                <Select value={orgDetails.plan || 'starter'} label="Plan"
+                  onChange={e => setOrgDetails((p: any) => ({ ...p, plan: e.target.value }))}>
+                  <MenuItem value="starter">Starter</MenuItem>
+                  <MenuItem value="professional">Professional</MenuItem>
+                  <MenuItem value="enterprise">Enterprise</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Regulatory Framework</InputLabel>
+                <Select value={orgDetails.regulator || 'cqc'} label="Regulatory Framework"
+                  onChange={e => setOrgDetails((p: any) => ({ ...p, regulator: e.target.value }))}>
+                  <MenuItem value="cqc">CQC — England</MenuItem>
+                  <MenuItem value="ciw">CIW — Wales</MenuItem>
+                  <MenuItem value="care-inspectorate">Care Inspectorate — Scotland</MenuItem>
+                  <MenuItem value="rqia">RQIA — Northern Ireland</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField label="Created" fullWidth size="small"
+                value={orgDetails.created_at ? new Date(orgDetails.created_at).toLocaleDateString() : ''}
+                InputProps={{ readOnly: true }} helperText="Date organization was created" />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={<Switch checked={orgDetails.auto_approve_documents === true}
+                  onChange={e => setOrgDetails((p: any) => ({ ...p, auto_approve_documents: e.target.checked }))} />}
+                label="Auto-approve uploaded documents"
+              />
+              <Typography variant="caption" display="block" color="#6B7280" sx={{ ml: 4 }}>
+                When enabled, documents uploaded by staff are automatically approved without manual review. Use with caution.
+              </Typography>
+            </Grid>
+          </Grid>
+          <Button variant="contained" onClick={saveOrgDetails} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+            <SaveIcon sx={{ mr: 1 }} /> Save Organization Details
+          </Button>
+        </Paper>
+      )}
+
+      {/* Branding */}
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><PaletteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Branding</Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Logo</Typography>
+            <Stack direction="row" spacing={2} alignItems="center">
+              {brandingLogo && (
+                <Box component="img" src={brandingLogo} sx={{ width: 60, height: 60, objectFit: 'contain', border: '1px solid #E5E7EB', borderRadius: 1 }} />
+              )}
+              <input type="file" accept="image/*" hidden ref={logoInputRef} onChange={handleLogoUpload} />
+              <Button variant="outlined" size="small" disabled={logoUploading} onClick={() => logoInputRef.current?.click()}>
+                {logoUploading ? 'Uploading...' : 'Upload Logo'}
+              </Button>
+              <TextField label="Or enter logo URL" fullWidth size="small" value={brandingLogo}
+                onChange={e => setBrandingLogo(e.target.value)} sx={{ maxWidth: 300 }} />
+            </Stack>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Colors</Typography>
+            <Stack spacing={2}>
+              {(['primary_color', 'secondary_color', 'accent_color'] as const).map(field => (
+                <Box key={field}>
+                  <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
+                    <Box sx={{ position: 'relative', width: 44, height: 44 }}>
+                      <input type="color" value={brandingColors[field]}
+                        onChange={e => setBrandingColors((p: any) => ({ ...p, [field]: e.target.value }))}
+                        style={{ width: 44, height: 44, border: '1px solid #E5E7EB', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none' }} />
+                    </Box>
+                    <TextField size="small" value={brandingColors[field]}
+                      onChange={e => setBrandingColors((p: any) => ({ ...p, [field]: e.target.value }))}
+                      sx={{ width: 120 }}
+                      InputProps={{ sx: { fontSize: '0.85rem', fontFamily: 'monospace' } }} />
+                    <Typography variant="caption" sx={{ textTransform: 'capitalize', color: '#6B7280', minWidth: 80 }}>
+                      {field.replace('_color', '')}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={0.5}>
+                    {['#0F4C81', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0891B2', '#6B7280', '#F8FAFC', '#111827', '#FFFFFF'].map(c => (
+                      <Box key={c} onClick={() => setBrandingColors((p: any) => ({ ...p, [field]: c }))}
+                        sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: c, border: brandingColors[field] === c ? '2px solid #0F4C81' : '1px solid #E5E7EB', cursor: 'pointer', '&:hover': { transform: 'scale(1.2)' }, transition: 'transform 0.1s' }} />
+                    ))}
+                  </Stack>
+                </Box>
+              ))}
+            </Stack>
+          </Grid>
+        </Grid>
+        <Button variant="contained" onClick={saveBranding} disabled={brandingSaving} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <SaveIcon sx={{ mr: 1 }} /> {brandingSaving ? 'Saving...' : 'Save Branding'}
+        </Button>
+      </Paper>
+
+      {/* Leave Entitlements Summary */}
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><CalculateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Leave Entitlements Summary</Typography>
+        <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>
+          Staff leave entitlements are calculated proportionally based on their contracted weekly hours.
+          For example, a staff member working 20h/week will receive half the leave of a 40h/week full-time employee.
+          Configure the baseline values below, then run the calculation.
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+          <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
+            <CardContent>
+              <Typography variant="caption" color="#6B7280">Base Leave Hours</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>{orgSettings.base_leave_hours || 240}h</Typography>
+              <Typography variant="caption" color="#9CA3AF">For {orgSettings.base_contracted_hours || 40}h/week</Typography>
+            </CardContent>
+          </Card>
+          <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
+            <CardContent>
+              <Typography variant="caption" color="#6B7280">Staff Count</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>{staffList.length}</Typography>
+              <Typography variant="caption" color="#9CA3AF">Active staff to calculate</Typography>
+            </CardContent>
+          </Card>
+        </Box>
+        <Button variant="contained" startIcon={<CalculateIcon />} onClick={calculateEntitlements}
+          sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          Calculate & Update All Entitlements
+        </Button>
+      </Paper>
+
+      {/* Leave Calendar Settings */}
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><LeaveIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Leave Calendar Settings</Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Leave Year Start Month</InputLabel>
+              <Select value={orgSettings.leave_start_month || 1} label="Leave Year Start Month"
+                onChange={e => setOrgSettings((p: any) => ({ ...p, leave_start_month: Number(e.target.value) }))}>
+                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((name, i) => (
+                  <MenuItem key={i + 1} value={i + 1}>{name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField label="Default Hours per Leave Day" type="number" fullWidth size="small"
+              value={orgSettings.default_hours_per_leave_day || 7.5}
+              onChange={e => setOrgSettings((p: any) => ({ ...p, default_hours_per_leave_day: Number(e.target.value) }))} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField label="Base Leave Hours (full-time)" type="number" fullWidth size="small"
+              value={orgSettings.base_leave_hours || 240}
+              onChange={e => setOrgSettings((p: any) => ({ ...p, base_leave_hours: Number(e.target.value) }))}
+              helperText="Total leave hours for a full-time (40h/week) staff member" />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField label="Base Contracted Hours/Week" type="number" fullWidth size="small"
+              value={orgSettings.base_contracted_hours || 40}
+              onChange={e => setOrgSettings((p: any) => ({ ...p, base_contracted_hours: Number(e.target.value) }))}
+              helperText="Full-time weekly hours used as baseline for proportional calculation" />
+          </Grid>
+        </Grid>
+        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <SaveIcon sx={{ mr: 1 }} /> Save Organization Settings
+        </Button>
+      </Paper>
+
+      <Paper sx={{ p: 4, mt: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+          <SecurityIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Security Policies
+        </Typography>
+        <Stack spacing={3}>
+          <FormControlLabel
+            control={<Switch checked={orgSettings.force_mfa === true}
+              onChange={e => setOrgSettings((p: any) => ({ ...p, force_mfa: e.target.checked }))} />}
+            label="Force all staff to set up MFA"
+          />
+          <Typography variant="caption" color="#6B7280">
+            When enabled, staff who have not set up multi-factor authentication will be required to set it up before they can log in. Existing MFA users are unaffected.
+          </Typography>
+        </Stack>
+        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <SaveIcon sx={{ mr: 1 }} /> Save Security Settings
+        </Button>
+      </Paper>
+
+      <Paper sx={{ p: 4, mt: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+          <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Staffing Rules for Rota Planner
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6}>
+            <TextField label="Minimum Compliance % for Shifts" type="number" fullWidth size="small"
+              value={orgSettings.minimum_compliance_percent ?? 100}
+              onChange={e => setOrgSettings((p: any) => ({ ...p, minimum_compliance_percent: Math.min(100, Number(e.target.value)) }))}
+              inputProps={{ min: 0, max: 100 }}
+              helperText="Staff below this compliance % cannot be assigned to shifts in the rota planner (max 100)" />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <FormControlLabel
+              control={<Switch checked={orgSettings.overtime_requires_approval !== false}
+                onChange={e => setOrgSettings((p: any) => ({ ...p, overtime_requires_approval: e.target.checked }))} />}
+              label="Overtime claims require manager approval"
+            />
+            <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0 }}>
+              When enabled, staff overtime claims need a manager to approve before the shift is assigned.
+              When disabled, claims are auto-assigned immediately.
+            </Typography>
+          </Grid>
+        </Grid>
+        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <SaveIcon sx={{ mr: 1 }} /> Save Staffing Rules
+        </Button>
+      </Paper>
+
+      <Paper sx={{ p: 4, mt: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+          <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Compliance Notifications
+        </Typography>
+        <FormControlLabel
+          control={<Switch checked={orgSettings.compliance_digest_enabled === true}
+            onChange={e => setOrgSettings((p: any) => ({ ...p, compliance_digest_enabled: e.target.checked }))} />}
+          label="Daily compliance digest emails to location managers"
+        />
+        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+          When enabled, location managers receive a daily email listing staff with incomplete compliance requirements and what they need to do.
+        </Typography>
+        <FormControlLabel
+          control={<Switch checked={orgSettings.predictive_alerts_enabled !== false}
+            onChange={e => setOrgSettings((p: any) => ({ ...p, predictive_alerts_enabled: e.target.checked }))} />}
+          label="Predictive compliance alerts"
+          sx={{ mt: 1 }}
+        />
+        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+           When enabled, the system analyses compliance trends over 60 days and alerts administrators if scores are declining toward your alert threshold.
+        </Typography>
+        <FormControlLabel
+          control={<Switch checked={orgSettings.auto_evidence_pack_enabled === true}
+            onChange={e => setOrgSettings((p: any) => ({ ...p, auto_evidence_pack_enabled: e.target.checked }))} />}
+          label="Auto-generate evidence packs"
+          sx={{ mt: 1 }}
+        />
+        {orgSettings.auto_evidence_pack_enabled && (
+          <FormControl size="small" sx={{ mt: 1, minWidth: 200 }}>
+            <Select value={orgSettings.auto_evidence_pack_frequency || 'monthly'}
+              onChange={e => setOrgSettings((p: any) => ({ ...p, auto_evidence_pack_frequency: e.target.value }))}>
+              <MenuItem value="weekly">Weekly (Mondays)</MenuItem>
+              <MenuItem value="monthly">Monthly (1st of month)</MenuItem>
+            </Select>
+          </FormControl>
+        )}
+        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+          When enabled, evidence packs will be automatically generated and emailed to all org administrators on the selected schedule.
+        </Typography>
+        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <SaveIcon sx={{ mr: 1 }} /> Save Compliance Notification Settings
+        </Button>
+      </Paper>
+
+      <NotificationPreferencesSection />
+    </Stack>
+  )
+
+  const renderLocationsTab = () => (
+    <Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}><BuildingIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Locations</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditLoc({ name: '', address: '', manager_id: '', minimum_staff_per_day: 1 }); setLocDialog(true) }}
+          sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Location</Button>
+      </Stack>
+      <Paper>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Address</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Min Staff/Day</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Manager</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Certificates</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {locations.length === 0 ? (
+                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No locations created yet</TableCell></TableRow>
+              ) : locations.slice(locPage * rowsPerPage, locPage * rowsPerPage + rowsPerPage).map(loc => (
+                <TableRow key={loc.id} hover>
+                  <TableCell sx={{ fontWeight: 600 }}>{loc.name}</TableCell>
+                  <TableCell>{loc.address || '—'}</TableCell>
+                  <TableCell>{loc.minimum_staff_per_day ?? 1}</TableCell>
+                  <TableCell>{loc.manager_first_name ? `${loc.manager_first_name} ${loc.manager_last_name}` : '—'}</TableCell>
+                  <TableCell>
+                    <Button size="small" variant="outlined" onClick={() => openCertificates(loc.id)}>
+                      Certificates
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    <IconButton size="small" onClick={() => { setEditLoc(loc); setLocDialog(true) }}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => deleteLocation(loc.id)}><DeleteIcon fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {locations.length > rowsPerPage && (
+          <TablePagination component="div" count={locations.length} page={locPage} onPageChange={(_, p) => setLocPage(p)}
+            rowsPerPage={rowsPerPage} rowsPerPageOptions={[rowsPerPage]} />
+        )}
+      </Paper>
+      <Dialog open={locDialog} onClose={() => setLocDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>{editLoc.id ? 'Edit Location' : 'Add Location'}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Name" fullWidth size="small" value={editLoc.name} onChange={e => setEditLoc((p: any) => ({ ...p, name: e.target.value }))} />
+            <TextField label="Address" fullWidth size="small" value={editLoc.address || ''} onChange={e => setEditLoc((p: any) => ({ ...p, address: e.target.value }))} />
+            <TextField label="Minimum Staff Required Per Day" type="number" fullWidth size="small"
+              value={editLoc.minimum_staff_per_day ?? 1}
+              onChange={e => setEditLoc((p: any) => ({ ...p, minimum_staff_per_day: Number(e.target.value) }))}
+              helperText="Minimum safe staffing level for this location each day" />
+            <Autocomplete
+              options={staffList.filter((s: any) => s.role === 'MANAGER' || s.role === 'ORG_ADMIN')}
+              value={staffList.find(s => s.id === editLoc.manager_id) || null}
+              onChange={(_, v) => setEditLoc((p: any) => ({ ...p, manager_id: v?.id || null }))}
+              getOptionLabel={(o) => `${o.first_name} ${o.last_name} (${o.role})`}
+              renderInput={(params) => <TextField {...params} label="Manager" size="small" />}
+              isOptionEqualToValue={(o, v) => o.id === v.id}
+              fullWidth
+              size="small"
+              noOptionsText="No staff found"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setLocDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={saveLocation} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Save</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={upgradeDialog.open} onClose={() => setUpgradeDialog({ open: false, userId: '', name: '' })} maxWidth="xs" fullWidth>
+        <DialogTitle>Upgrade to Manager?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="#6B7280">
+            {upgradeDialog.name} needs to be a MANAGER to be a location manager. Upgrade their role now?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUpgradeDialog({ open: false, userId: '', name: '' })}>Cancel</Button>
+          <Button variant="contained" onClick={upgradeToManager} sx={{ bgcolor: '#0F4C81' }}>Upgrade to Manager</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Certificates Dialog */}
+      <Dialog open={certDialog} onClose={() => setCertDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Certificates — {locations.find(l => l.id === certLocationId)?.name || ''}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <Button variant="outlined" size="small" sx={{ alignSelf: 'flex-end' }}
+              onClick={() => { setEditCert(null); setCertForm({ name: '', certificate_type: 'gas_safety', issuing_body: '', certificate_number: '', issue_date: '', expiry_date: '', status: 'valid', notes: '' }) }}>
+              Add Certificate
+            </Button>
+            {certificates.length === 0 ? (
+              <Typography variant="body2" color="#9CA3AF" sx={{ textAlign: 'center', py: 3 }}>No certificates for this location</Typography>
+            ) : (
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Issuing Body</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Certificate #</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Issue Date</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Expiry Date</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {certificates.map(cert => (
+                      <TableRow key={cert.id} hover>
+                        <TableCell>{cert.name}</TableCell>
+                        <TableCell>{cert.certificate_type}</TableCell>
+                        <TableCell>{cert.issuing_body || '—'}</TableCell>
+                        <TableCell>{cert.certificate_number || '—'}</TableCell>
+                        <TableCell>{cert.issue_date || '—'}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{
+                            color: cert.expiry_date && new Date(cert.expiry_date) < new Date() ? '#DC2626' :
+                              cert.expiry_date && new Date(cert.expiry_date) < new Date(Date.now() + 30 * 86400000) ? '#D97706' : 'inherit',
+                            fontWeight: cert.expiry_date && new Date(cert.expiry_date) < new Date() ? 700 : 400
+                          }}>
+                            {cert.expiry_date || '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={cert.status.replace('_', ' ')}
+                            size="small"
+                            color={cert.status === 'valid' ? 'success' : cert.status === 'expiring_soon' ? 'warning' : cert.status === 'expired' ? 'error' : 'default'}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <IconButton size="small" onClick={() => { setEditCert(cert); setCertForm({ name: cert.name, certificate_type: cert.certificate_type, issuing_body: cert.issuing_body || '', certificate_number: cert.certificate_number || '', issue_date: cert.issue_date || '', expiry_date: cert.expiry_date || '', status: cert.status, notes: cert.notes || '' }) }}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" color="error" onClick={() => deleteCertificate(cert.id)}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+
+            {/* Certificate Form */}
+            {(editCert !== undefined) && (
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>{editCert ? 'Edit Certificate' : 'New Certificate'}</Typography>
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={2}>
+                    <TextField label="Name" size="small" fullWidth value={certForm.name}
+                      onChange={e => setCertForm(p => ({ ...p, name: e.target.value }))} />
+                    <TextField label="Type" size="small" fullWidth value={certForm.certificate_type}
+                      onChange={e => setCertForm(p => ({ ...p, certificate_type: e.target.value }))}
+                      placeholder="e.g. gas_safety, food_hygiene, fire_safety" />
+                  </Stack>
+                  <Stack direction="row" spacing={2}>
+                    <TextField label="Issuing Body" size="small" fullWidth value={certForm.issuing_body}
+                      onChange={e => setCertForm(p => ({ ...p, issuing_body: e.target.value }))} />
+                    <TextField label="Certificate #" size="small" fullWidth value={certForm.certificate_number}
+                      onChange={e => setCertForm(p => ({ ...p, certificate_number: e.target.value }))} />
+                  </Stack>
+                  <Stack direction="row" spacing={2}>
+                    <TextField label="Issue Date" type="date" size="small" fullWidth
+                      value={certForm.issue_date}
+                      onChange={e => setCertForm(p => ({ ...p, issue_date: e.target.value }))}
+                      InputLabelProps={{ shrink: true }} />
+                    <TextField label="Expiry Date" type="date" size="small" fullWidth
+                      value={certForm.expiry_date}
+                      onChange={e => setCertForm(p => ({ ...p, expiry_date: e.target.value }))}
+                      InputLabelProps={{ shrink: true }} />
+                  </Stack>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <FormControl size="small" sx={{ minWidth: 180 }}>
+                      <InputLabel>Status</InputLabel>
+                      <Select value={certForm.status} label="Status" onChange={e => setCertForm(p => ({ ...p, status: e.target.value }))}>
+                        <MenuItem value="valid">Valid</MenuItem>
+                        <MenuItem value="expiring_soon">Expiring Soon</MenuItem>
+                        <MenuItem value="expired">Expired</MenuItem>
+                        <MenuItem value="pending_renewal">Pending Renewal</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <TextField label="Notes" size="small" fullWidth value={certForm.notes}
+                      onChange={e => setCertForm(p => ({ ...p, notes: e.target.value }))} />
+                  </Stack>
+                  <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <Button size="small" onClick={() => { setEditCert(null); setCertForm({ name: '', certificate_type: '', issuing_body: '', certificate_number: '', issue_date: '', expiry_date: '', status: 'valid', notes: '' }) }}>Cancel</Button>
+                    <Button size="small" variant="contained" onClick={saveCertificate} sx={{ bgcolor: '#0F4C81' }}>Save</Button>
+                  </Stack>
+                </Stack>
+              </Paper>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCertDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  )
+
+  const renderComplianceTab = () => (
+    <Box>
+      <Stack spacing={4}>
+        <Paper sx={{ p: 3 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}><ComplianceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Compliance Configuration</Typography>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditComp({ name: '', description: '', category: 'document', is_mandatory: true, days_warning: 30 }); setCompDialog(true) }}
+              sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Requirement</Button>
+          </Stack>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Mandatory</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Warning (days)</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {complianceConfigs.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No compliance requirements configured. Add requirements above, then seed records below.</TableCell></TableRow>
+                ) : complianceConfigs.slice(compConfigPage * rowsPerPage, compConfigPage * rowsPerPage + rowsPerPage).map(c => (
+                  <TableRow key={c.id} hover>
+                    <TableCell sx={{ fontWeight: 600 }}>{c.name}
+                      {c.description && <Typography variant="caption" display="block" color="#6B7280">{c.description}</Typography>}
+                    </TableCell>
+                    <TableCell><Chip label={c.category} size="small" /></TableCell>
+                    <TableCell>{c.is_mandatory ? <CheckIcon color="success" fontSize="small" /> : <CloseIcon color="disabled" fontSize="small" />}</TableCell>
+                    <TableCell>{c.days_warning}d</TableCell>
+                    <TableCell>
+                      <IconButton size="small" onClick={() => { setEditComp(c); setCompDialog(true) }}><EditIcon fontSize="small" /></IconButton>
+                      <IconButton size="small" color="error" disabled={actionLoading === 'delete-config-' + c.id} onClick={() => deleteComplianceConfig(c.id)}><DeleteIcon fontSize="small" /></IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          {complianceConfigs.length > rowsPerPage && (
+            <TablePagination component="div" count={complianceConfigs.length} page={compConfigPage} onPageChange={(_, p) => setCompConfigPage(p)}
+              rowsPerPage={rowsPerPage} rowsPerPageOptions={[rowsPerPage]} />
+          )}
+        </Paper>
+
+        <Paper sx={{ p: 3 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>Compliance Profiles</Typography>
+            <Stack direction="row" spacing={1}>
+              <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { setEditCompProfile({ name: '', description: '', role_name: '', requirement_ids: [] }); setCompProfileDialog(true) }}>
+                Add Profile
+              </Button>
+              <Button variant="outlined" size="small" disabled={actionLoading === 'auto-assign'} onClick={autoAssignProfiles}>{actionLoading === 'auto-assign' ? 'Assigning...' : 'Auto-Assign'}</Button>
+            </Stack>
+          </Stack>
+          {complianceProfiles.length === 0 ? (
+            <Typography variant="body2" color="#9CA3AF" sx={{ py: 2, textAlign: 'center' }}>No compliance profiles yet. Create profiles linked to roles (e.g., 'Carer Profile' for CARE_WORKER role).</Typography>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Requirements</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {complianceProfiles.slice(compProfilePage * rowsPerPage, compProfilePage * rowsPerPage + rowsPerPage).map(p => (
+                    <TableRow key={p.id} hover>
+                      <TableCell sx={{ fontWeight: 600 }}>{p.name}{p.description ? <Typography variant="caption" display="block" color="#6B7280">{p.description}</Typography> : null}</TableCell>
+                      <TableCell><Chip label={p.role_name} size="small" /></TableCell>
+                      <TableCell>{p.requirements?.length || 0} requirements</TableCell>
+                      <TableCell>
+                        <IconButton size="small" onClick={() => { setEditCompProfile(p); setCompProfileDialog(true) }}><EditIcon fontSize="small" /></IconButton>
+                        <IconButton size="small" color="error" disabled={actionLoading === 'delete-profile-' + p.id} onClick={() => deleteComplianceProfile(p.id)}><DeleteIcon fontSize="small" /></IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+          {complianceProfiles.length > rowsPerPage && (
+            <TablePagination component="div" count={complianceProfiles.length} page={compProfilePage} onPageChange={(_, p) => setCompProfilePage(p)}
+              rowsPerPage={rowsPerPage} rowsPerPageOptions={[rowsPerPage]} />
+          )}
+        </Paper>
+
+        <Paper sx={{ p: 3 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>Staff Compliance Records</Typography>
+            <Button variant="outlined" startIcon={<AddIcon />} onClick={seedComplianceRecords}
+              disabled={complianceConfigs.length === 0 || actionLoading === 'seed-records'}>
+              {actionLoading === 'seed-records' ? 'Seeding...' : 'Seed Records from Config'}
+            </Button>
+          </Stack>
+          {complianceConfigs.length === 0 ? (
+            <Alert severity="info">Add compliance requirements first, then seed records for all staff.</Alert>
+          ) : complianceRecords.length === 0 ? (
+            <Typography variant="body2" color="#9CA3AF" sx={{ py: 2, textAlign: 'center' }}>No records yet. Click "Seed Records from Config" to generate them.</Typography>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Requirement</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Expires</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Document</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                  {complianceRecords.slice(compRecordPage * rowsPerPage, compRecordPage * rowsPerPage + rowsPerPage).map(r => (
+                    <TableRow key={r.id} hover>
+                      <TableCell sx={{ fontWeight: 600 }}>{r.first_name} {r.last_name}</TableCell>
+                      <TableCell>{r.requirement_name}</TableCell>
+                      <TableCell>
+                        <Chip label={r.status?.replace('_', ' ')} size="small"
+                          color={r.status === 'complete' ? 'success' : r.status === 'expired' ? 'error' : r.status === 'pending_review' ? 'warning' : 'default'} />
+                      </TableCell>
+                      <TableCell>{r.expires_at ? new Date(r.expires_at).toLocaleDateString() : '—'}</TableCell>
+                      <TableCell>
+                        {r.file_url ? (
+                          <IconButton size="small" component="a" href={r.file_url} target="_blank" rel="noopener noreferrer" color="primary">
+                            <LinkIcon fontSize="small" />
+                          </IconButton>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        <IconButton size="small" onClick={() => { setEditCompRecord(r); setCompRecordDialog(true) }}><EditIcon fontSize="small" /></IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+          {complianceRecords.length > rowsPerPage && (
+            <TablePagination component="div" count={complianceRecords.length} page={compRecordPage} onPageChange={(_, p) => setCompRecordPage(p)}
+              rowsPerPage={rowsPerPage} rowsPerPageOptions={[rowsPerPage]} />
+          )}
+        </Paper>
+      </Stack>
+
+      <Dialog open={compDialog} onClose={() => setCompDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>{editComp.id ? 'Edit Requirement' : 'Add Compliance Requirement'}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Name" fullWidth size="small" value={editComp.name} onChange={e => setEditComp((p: any) => ({ ...p, name: e.target.value }))} />
+            <TextField label="Description" fullWidth size="small" multiline rows={2} value={editComp.description || ''} onChange={e => setEditComp((p: any) => ({ ...p, description: e.target.value }))} />
+            <FormControl fullWidth size="small">
+              <InputLabel>Category</InputLabel>
+              <Select value={editComp.category || 'document'} label="Category" onChange={e => setEditComp((p: any) => ({ ...p, category: e.target.value }))}>
+                <MenuItem value="document">Document</MenuItem>
+                <MenuItem value="training">Training</MenuItem>
+                <MenuItem value="certification">Certification</MenuItem>
+                <MenuItem value="health">Health & Safety</MenuItem>
+                <MenuItem value="other">Other</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControlLabel control={<Switch checked={editComp.is_mandatory !== false} onChange={e => setEditComp((p: any) => ({ ...p, is_mandatory: e.target.checked }))} />} label="Mandatory" />
+            <TextField label="Warning Period (days before expiry)" type="number" fullWidth size="small" value={editComp.days_warning || 30} onChange={e => setEditComp((p: any) => ({ ...p, days_warning: e.target.value }))} />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setCompDialog(false)}>Cancel</Button>
+          <Button variant="contained" disabled={actionLoading === 'compliance-config'} onClick={saveComplianceConfig} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>{actionLoading === 'compliance-config' ? 'Saving...' : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={compRecordDialog} onClose={() => setCompRecordDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Update Compliance Record</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2"><strong>Staff:</strong> {editCompRecord.first_name} {editCompRecord.last_name}</Typography>
+            <Typography variant="body2"><strong>Requirement:</strong> {editCompRecord.requirement_name}</Typography>
+            <FormControl fullWidth size="small">
+              <InputLabel>Status</InputLabel>
+              <Select value={editCompRecord.status || 'incomplete'} label="Status"
+                onChange={e => setEditCompRecord((p: any) => ({ ...p, status: e.target.value }))}>
+                <MenuItem value="incomplete">Incomplete</MenuItem>
+                <MenuItem value="complete">Complete</MenuItem>
+                <MenuItem value="expired">Expired</MenuItem>
+                <MenuItem value="pending_review">Pending Review</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField label="Issued Date" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }}
+              value={editCompRecord.issued_at ? new Date(editCompRecord.issued_at).toISOString().split('T')[0] : ''}
+              onChange={e => setEditCompRecord((p: any) => ({ ...p, issued_at: e.target.value }))} />
+            <TextField label="Expiry Date" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }}
+              value={editCompRecord.expires_at ? new Date(editCompRecord.expires_at).toISOString().split('T')[0] : ''}
+              onChange={e => setEditCompRecord((p: any) => ({ ...p, expires_at: e.target.value }))} />
+            <TextField label="Notes" multiline rows={3} fullWidth size="small"
+              value={editCompRecord.notes || ''} onChange={e => setEditCompRecord((p: any) => ({ ...p, notes: e.target.value }))} />
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>Uploaded Document</Typography>
+              {editCompRecord.file_url ? (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <LinkIcon fontSize="small" />
+                  <a href={editCompRecord.file_url} target="_blank" rel="noopener noreferrer" style={{ color: '#0F4C81' }}>
+                    {editCompRecord.file_url.split('/').pop()}
+                  </a>
+                  <IconButton size="small" color="error" onClick={async () => {
+                    await api.patch(`/settings/compliance-records/${editCompRecord.id}`, { file_url: null })
+                    setEditCompRecord((p: any) => ({ ...p, file_url: null }))
+                    showSnackbar("Settings saved.", "success")
+                  }}><CloseIcon fontSize="small" /></IconButton>
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="#9CA3AF">No file uploaded</Typography>
+              )}
+              <Button component="label" variant="outlined" size="small" startIcon={<UploadFileIcon />} sx={{ mt: 1 }} disabled={uploadingFile}>
+                {uploadingFile ? 'Uploading...' : 'Upload File'}
+                <input type="file" hidden ref={fileUploadRef} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setUploadingFile(true)
+                    try {
+                      const formData = new FormData()
+                      formData.append('file', file)
+                      const res = await api.post(`/settings/compliance-records/${editCompRecord.id}/upload`, formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' },
+                      })
+                      setEditCompRecord((p: any) => ({ ...p, file_url: res.data.file_url }))
+                      setComplianceRecords(prev => prev.map(r => r.id === res.data.id ? { ...r, file_url: res.data.file_url } : r))
+                      showSnackbar("Settings saved.", "success")
+                    } catch (err: any) {
+                      setError(err.response?.data?.message || 'Failed to upload file')
+                    } finally {
+                      setUploadingFile(false)
+                      if (fileUploadRef.current) fileUploadRef.current.value = ''
+                    }
+                  }} />
+              </Button>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setCompRecordDialog(false)}>Cancel</Button>
+          <Button variant="contained" disabled={actionLoading === 'compliance-record'} onClick={updateComplianceRecord} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>{actionLoading === 'compliance-record' ? 'Saving...' : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={compProfileDialog} onClose={() => setCompProfileDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>{editCompProfile.id ? 'Edit Profile' : 'Add Compliance Profile'}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Profile Name" fullWidth size="small" value={editCompProfile.name}
+              onChange={e => setEditCompProfile((p: any) => ({ ...p, name: e.target.value }))} />
+            <TextField label="Description" fullWidth size="small" multiline rows={2} value={editCompProfile.description || ''}
+              onChange={e => setEditCompProfile((p: any) => ({ ...p, description: e.target.value }))} />
+            <FormControl fullWidth size="small">
+              <InputLabel>Role</InputLabel>
+              <Select value={editCompProfile.role_name} label="Role"
+                onChange={e => setEditCompProfile((p: any) => ({ ...p, role_name: e.target.value }))}>
+                <MenuItem value="CARE_WORKER">Care Worker</MenuItem>
+                <MenuItem value="MANAGER">Manager</MenuItem>
+                <MenuItem value="ORG_ADMIN">Org Admin</MenuItem>
+                <MenuItem value="COMPLIANCE_OFFICER">Compliance Officer</MenuItem>
+              </Select>
+            </FormControl>
+            <Typography variant="body2" sx={{ fontWeight: 700, mt: 1 }}>Requirements</Typography>
+            {complianceConfigs.length === 0 ? (
+              <Typography variant="body2" color="#9CA3AF">No compliance requirements configured yet.</Typography>
+            ) : (
+              complianceConfigs.map(c => {
+                const checked = (editCompProfile.requirement_ids || []).includes(c.id)
+                return (
+                  <FormControlLabel key={c.id}
+                    control={<Switch checked={checked}
+                      onChange={() => setEditCompProfile((p: any) => ({
+                        ...p,
+                        requirement_ids: checked
+                          ? (p.requirement_ids || []).filter((id: string) => id !== c.id)
+                          : [...(p.requirement_ids || []), c.id]
+                      }))} />}
+                    label={`${c.name} (${c.category})`}
+                  />
+                )
+              })
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setCompProfileDialog(false)}>Cancel</Button>
+          <Button variant="contained" disabled={actionLoading === 'compliance-profile'} onClick={saveComplianceProfile} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>{actionLoading === 'compliance-profile' ? 'Saving...' : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  )
+
+  const loadAIConfig = async () => {
+    try {
+      const [configRes, statsRes] = await Promise.all([
+        api.get('/ai/config'),
+        api.get('/ai/usage-stats'),
+      ])
+      setAIConfig(configRes.data.config)
+      setAIUsageStats(statsRes.data.stats)
+    } catch { /* ignore */ }
+  }
+
+  const saveAIConfig = async () => {
+    if (!aiConfig) return
+    setAISaving(true)
+    try {
+      const body: Record<string, any> = {}
+      if (aiConfig.enabled !== undefined) body.enabled = aiConfig.enabled
+      if (aiConfig.provider !== undefined) body.provider = aiConfig.provider
+      if (aiConfig.apiKey !== undefined && !aiConfig.apiKey.startsWith('••')) {
+        body.apiKey = aiConfig.apiKey
+      }
+      if (aiConfig.model !== undefined) body.model = aiConfig.model
+      if (aiConfig.enabledFeatures !== undefined) body.enabledFeatures = aiConfig.enabledFeatures
+      const res = await api.put('/ai/config', body)
+      setAIConfig(res.data.config)
+      showSnackbar("Settings saved.", "success")
+    } catch (e: any) {
+      setError(e.response?.data?.error?.message || 'Failed to save AI config')
+    } finally {
+      setAISaving(false)
+    }
+  }
+
+  const runGapAnalysis = async () => {
+    setAIAnalyzing(true)
+    setAIAnalysisResult(null)
+    try {
+      const res = await api.post('/ai/analyze/compliance', {
+        regulator: orgSettings?.regulator || 'CQC',
+        overallRate: 65,
+        domainScores: 'Safe: 70%, Effective: 60%, Caring: 75%, Responsive: 55%, Well-led: 65%',
+        keyIssues: 'Training compliance below target, incident reporting incomplete',
+      })
+      setAIAnalysisResult(res.data.analysis)
+      loadAIConfig()
+    } catch (e: any) {
+      console.error('AI analysis failed:', e)
+      const msg = e.response?.data?.error?.message || e.response?.data?.message || e.message || 'Analysis failed'
+      setError(msg)
+    } finally {
+      setAIAnalyzing(false)
+    }
+  }
+
+  const renderAITab = () => (
+    <Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}><SmartToyIcon sx={{ mr: 1, verticalAlign: 'middle' }} />AI Integration</Typography>
+        <Button variant="contained" onClick={saveAIConfig} disabled={aiSaving}
+          startIcon={aiSaving ? undefined : <SaveIcon />}
+          sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          {aiSaving ? 'Saving...' : 'Save AI Settings'}
+        </Button>
+      </Stack>
+
+      <Grid container spacing={3}>
+        {/* Left: Configuration */}
+        <Grid item xs={12} md={7}>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Provider Configuration</Typography>
+            <Stack spacing={2.5}>
+              <FormControlLabel control={<Switch checked={aiConfig?.enabled || false} onChange={e => setAIConfig((p: any) => ({ ...p, enabled: e.target.checked }))} />} label="Enable AI Features" />
+              <FormControl fullWidth size="small">
+                <InputLabel>AI Provider</InputLabel>
+                <Select value={aiConfig?.provider || 'openai'} label="AI Provider" onChange={e => setAIConfig((p: any) => ({ ...p, provider: e.target.value }))}>
+                  <MenuItem value="openai">OpenAI</MenuItem>
+                  <MenuItem value="anthropic">Anthropic</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField label="API Key" type="password" fullWidth size="small"
+                value={aiConfig?.apiKey || ''}
+                onChange={e => setAIConfig((p: any) => ({ ...p, apiKey: e.target.value }))}
+                helperText="Your API key is stored encrypted and never shared" />
+              <TextField label="Model" fullWidth size="small"
+                value={aiConfig?.model || ''}
+                onChange={e => setAIConfig((p: any) => ({ ...p, model: e.target.value }))}
+                helperText="e.g. gpt-4o-mini, claude-sonnet-4-20250514" />
+            </Stack>
+          </Paper>
+
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Enabled Features</Typography>
+            <Stack spacing={1.5}>
+              {AI_FEATURES.map(f => (
+                <Box key={f.key} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Switch
+                    size="small"
+                    checked={aiConfig?.enabledFeatures?.includes(f.key) || false}
+                    onChange={e => {
+                      const current = aiConfig?.enabledFeatures || []
+                      setAIConfig((p: any) => ({
+                        ...p,
+                        enabledFeatures: e.target.checked
+                          ? [...current, f.key]
+                          : current.filter((k: string) => k !== f.key),
+                      }))
+                    }}
+                  />
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{f.label}</Typography>
+                    <Typography variant="caption" color="text.secondary">{f.desc}</Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Stack>
+          </Paper>
+
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Compliance Gap Analysis</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Run an AI-powered analysis of your compliance data to identify gaps and get prioritized recommendations.
+            </Typography>
+            <Button variant="outlined" onClick={runGapAnalysis} disabled={aiAnalyzing || !aiConfig?.enabled}>
+              {aiAnalyzing ? 'Analyzing...' : 'Run Analysis'}
+            </Button>
+            {aiAnalysisResult && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: '#F8FAFC', borderRadius: 1, border: '1px solid #E2E8F0' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Assessment</Typography>
+                <Typography variant="body2" sx={{ mb: 1.5 }}>{aiAnalysisResult.overall_assessment}</Typography>
+                {aiAnalysisResult.estimated_timeline && (
+                  <Typography variant="caption" color="text.secondary">Estimated timeline: {aiAnalysisResult.estimated_timeline}</Typography>
+                )}
+                {aiAnalysisResult.critical_gaps?.length > 0 && (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600 }}>Critical Gaps:</Typography>
+                    {aiAnalysisResult.critical_gaps.slice(0, 3).map((g: any, i: number) => (
+                      <Typography key={i} variant="caption" display="block" sx={{ color: g.priority === 'critical' ? '#DC2626' : '#D97706', mt: 0.5 }}>
+                        • {g.area}: {g.recommended_action}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Right: Usage Stats & Audit Logs */}
+        <Grid item xs={12} md={5}>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Usage</Typography>
+            {aiUsageStats ? (
+              <Stack spacing={1}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Total Requests</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{aiUsageStats.total_requests || 0}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Successful</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#16A34A' }}>{aiUsageStats.successful_requests || 0}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Failed</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#DC2626' }}>{aiUsageStats.failed_requests || 0}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Total Tokens</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{(aiUsageStats.total_tokens || 0).toLocaleString()}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Features Used</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{aiUsageStats.features_used || 0}</Typography>
+                </Box>
+              </Stack>
+            ) : (
+              <Typography variant="body2" color="text.secondary">Enable AI features to see usage data</Typography>
+            )}
+          </Paper>
+
+          {aiConfig?.enabled && (
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>How It Works</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                1. Bring your own API key from <strong>OpenAI</strong> or <strong>Anthropic</strong>
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                2. Select the features you want to enable
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                3. AI runs on your data with minimum-necessary context
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                4. All actions are audited — full prompt + response logs
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                5. Results are decision support only — humans always decide
+              </Typography>
+            </Paper>
+          )}
+        </Grid>
+      </Grid>
+    </Box>
+  )
+
+  const renderDelegationsTab = () => (
+    <Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}><DelegateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Manager Delegations</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditDel({ id: '', primary_manager_id: '', delegate_manager_id: '', ends_at: '' }); setDelDialog(true) }}
+          sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Delegation</Button>
+      </Stack>
+      <Paper>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>Primary Manager</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Delegate</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Expires</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {delegations.length === 0 ? (
+                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No delegations set up</TableCell></TableRow>
+              ) : delegations.slice(delPage * rowsPerPage, delPage * rowsPerPage + rowsPerPage).map(d => (
+                <TableRow key={d.id} hover>
+                  <TableCell sx={{ fontWeight: 600 }}>{d.primary_first_name} {d.primary_last_name}</TableCell>
+                  <TableCell>{d.delegate_first_name} {d.delegate_last_name}</TableCell>
+                  <TableCell><Chip label={d.is_active ? 'Active' : 'Inactive'} size="small" color={d.is_active ? 'success' : 'default'} /></TableCell>
+                  <TableCell>{d.ends_at ? new Date(d.ends_at).toLocaleDateString() : 'No expiry'}</TableCell>
+                  <TableCell>
+                    <IconButton size="small" onClick={() => {
+                      setEditDel({ id: d.id, primary_manager_id: d.primary_manager_id, delegate_manager_id: d.delegate_manager_id, ends_at: d.ends_at ? d.ends_at.split('T')[0] : '' })
+                      setDelDialog(true)
+                    }}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" disabled={actionLoading === 'delete-del-' + d.id} onClick={() => deleteDelegation(d.id)}><DeleteIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" title="View Audit" onClick={() => loadDelAudit(d.id)}><HistoryIcon fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {delegations.length > rowsPerPage && (
+          <TablePagination component="div" count={delegations.length} page={delPage} onPageChange={(_, p) => setDelPage(p)}
+            rowsPerPage={rowsPerPage} rowsPerPageOptions={[rowsPerPage]} />
+        )}
+      </Paper>
+      <Dialog open={delDialog} onClose={() => setDelDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>{editDel.id ? 'Edit Delegation' : 'Add Delegation'}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Primary Manager</InputLabel>
+              <Select value={editDel.primary_manager_id} label="Primary Manager" onChange={e => setEditDel((p: any) => ({ ...p, primary_manager_id: e.target.value }))}>
+                {staffList.filter(s => s.role === 'MANAGER' || s.role === 'ORG_ADMIN').map(s => (
+                  <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth size="small">
+              <InputLabel>Delegate Manager</InputLabel>
+              <Select value={editDel.delegate_manager_id} label="Delegate Manager" onChange={e => setEditDel((p: any) => ({ ...p, delegate_manager_id: e.target.value }))}>
+                {staffList.filter(s => (s.role === 'MANAGER' || s.role === 'ORG_ADMIN') && s.id !== editDel.primary_manager_id).map(s => (
+                  <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField label="End Date (optional)" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }}
+              value={editDel.ends_at || ''} onChange={e => setEditDel((p: any) => ({ ...p, ends_at: e.target.value }))} />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setDelDialog(false)}>Cancel</Button>
+          <Button variant="contained" disabled={actionLoading === 'delegation'} onClick={saveDelegation} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>{actionLoading === 'delegation' ? 'Saving...' : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={delAuditDialog} onClose={() => setDelAuditDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delegation Audit Log</DialogTitle>
+        <DialogContent>
+          {delAuditLoading ? (
+            <Typography sx={{ py: 2 }}>Loading...</Typography>
+          ) : delAuditLogs.length === 0 ? (
+            <Typography sx={{ py: 2, color: '#9CA3AF' }}>No audit entries found.</Typography>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Date & Time</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Performed By</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {delAuditLogs.map((log: any) => (
+                    <TableRow key={log.id} hover>
+                      <TableCell>{new Date(log.created_at).toLocaleString()}</TableCell>
+                      <TableCell><Chip label={log.action} size="small" color="primary" variant="outlined" /></TableCell>
+                      <TableCell>{log.description}</TableCell>
+                      <TableCell>{log.performed_by_name || log.performed_by}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setDelAuditDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  )
+
+  return (
+    <Box>
+      <Typography variant="h4" sx={{ fontWeight: 800, mb: 3 }}>Settings</Typography>
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      <Paper sx={{ mb: 3 }}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto"
+          sx={{ '& .MuiTab-root': { fontWeight: 700, textTransform: 'none', minHeight: 48 } }}>
+          <Tab icon={<ProfileIcon />} iconPosition="start" label="My Profile" />
+          {user && <Tab icon={<SecurityIcon />} iconPosition="start" label="Security" />}
+          {isOrgAdmin && <Tab icon={<SettingsIcon />} iconPosition="start" label="Organization" />}
+          {isOrgAdmin && <Tab icon={<BuildingIcon />} iconPosition="start" label="Locations" />}
+          {isOrgAdmin && <Tab icon={<ComplianceIcon />} iconPosition="start" label="Compliance" />}
+          {isOrgAdmin && <Tab icon={<GroupIcon />} iconPosition="start" label="Delegations" />}
+          {isOrgAdmin && <Tab icon={<SmartToyIcon />} iconPosition="start" label="AI" />}
+          {isOrgAdmin && <Tab icon={<LeaveIcon />} iconPosition="start" label="Leave Types" />}
+          {isOrgAdmin && <Tab icon={<WarningIcon />} iconPosition="start" label="Incident Categories" />}
+        </Tabs>
+      </Paper>
+      {tab === 0 && renderProfileTab()}
+      {user && tab === 1 && renderSecurityTab()}
+      {isOrgAdmin && tab === 2 && renderOrgSettingsTab()}
+      {isOrgAdmin && tab === 3 && renderLocationsTab()}
+      {isOrgAdmin && tab === 4 && renderComplianceTab()}
+      {isOrgAdmin && tab === 5 && renderDelegationsTab()}
+      {isOrgAdmin && tab === 6 && renderAITab()}
+      {isOrgAdmin && tab === 7 && <LeaveTypesSettings />}
+      {isOrgAdmin && tab === 8 && <IncidentCategoriesSettings />}
+    </Box>
+  )
+}
+
+function LeaveTypesSettings() {
+  const [types, setTypes] = useState<any[]>([])
+  const [typeDialog, setTypeDialog] = useState(false)
+  const [editingType, setEditingType] = useState<any>({ name: '', color: '#0F4C81', duration_type: 'days', days_allowed: 0, hours_allowed: 0 })
+  const [typePage, setTypePage] = useState(0)
+  const [tlLoading, setTlLoading] = useState('')
+  const [ltError, setLtError] = useState('')
+
+  const loadTypes = async () => {
+    try { const r = await api.get('/leave/types'); setTypes(r.data) } catch { }
+  }
+  useEffect(() => { loadTypes() }, [])
+
+  const saveType = async () => {
+    setTlLoading('save')
+    try {
+      if (editingType.id) {
+        await api.put(`/leave/types/${editingType.id}`, editingType)
+      } else {
+        await api.post('/leave/types', editingType)
+      }
+      setTypeDialog(false); setEditingType({ name: '', color: '#0F4C81', duration_type: 'days', days_allowed: 0, hours_allowed: 0 }); loadTypes()
+    } catch (e: any) { setLtError(e.response?.data?.message || 'Error saving leave type') }
+    finally { setTlLoading('') }
+  }
+
+  const deleteType = async (id: string) => {
+    setTlLoading(id)
+    try { await api.delete(`/leave/types/${id}`); loadTypes() }
+    catch (e: any) { setLtError(e.response?.data?.message || 'Error deleting leave type') }
+    finally { setTlLoading('') }
+  }
+
+  return (
+    <Box>
+      {ltError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setLtError('')}>{ltError}</Alert>}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Typography variant="h6" fontWeight={700}>Leave Types</Typography>
+          <Button variant="contained" size="small" startIcon={<AddIcon />}
+            onClick={() => { setEditingType({ name: '', color: '#0F4C81', duration_type: 'days', days_allowed: 0, hours_allowed: 0 }); setTypeDialog(true) }}
+            sx={{ bgcolor: '#0F4C81' }}>Add Leave Type</Button>
+        </Stack>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Color</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Duration</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Days Allowed</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Hours Allowed</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {types.slice(typePage * 10, typePage * 10 + 10).map(t => (
+                <TableRow key={t.id}>
+                  <TableCell><Typography fontWeight={600}>{t.name}</Typography></TableCell>
+                  <TableCell><Chip label={t.color} size="small" sx={{ bgcolor: t.color, color: '#fff', fontWeight: 700 }} /></TableCell>
+                  <TableCell><Chip label={t.duration_type} size="small" variant="outlined" /></TableCell>
+                  <TableCell>{t.days_allowed}</TableCell>
+                  <TableCell>{t.hours_allowed}</TableCell>
+                  <TableCell align="right">
+                    <IconButton size="small" onClick={() => { setEditingType(t); setTypeDialog(true) }}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" onClick={() => deleteType(t.id)} disabled={tlLoading === t.id}>
+                      {tlLoading === t.id ? <CircularProgress size={16} /> : <DeleteIcon fontSize="small" />}
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {types.length > 10 && <TablePagination component="div" count={types.length} page={typePage} onPageChange={(_ev: any, p: number) => setTypePage(p)} rowsPerPage={10} rowsPerPageOptions={[10]} />}
+      </Paper>
+
+      <Dialog open={typeDialog} onClose={() => setTypeDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingType.id ? 'Edit Leave Type' : 'Add Leave Type'}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Name" fullWidth value={editingType.name}
+              onChange={e => setEditingType({ ...editingType, name: e.target.value })} />
+            <TextField label="Color" fullWidth value={editingType.color}
+              onChange={e => setEditingType({ ...editingType, color: e.target.value })}
+              InputProps={{ startAdornment: <Box sx={{ width: 20, height: 20, bgcolor: editingType.color, borderRadius: 0.5, mr: 1 }} /> }} />
+            <TextField select label="Duration Type" fullWidth value={editingType.duration_type}
+              onChange={e => setEditingType({ ...editingType, duration_type: e.target.value })}>
+              <MenuItem value="days">Days</MenuItem>
+              <MenuItem value="hours">Hours</MenuItem>
+            </TextField>
+            <TextField label="Days Allowed" type="number" fullWidth value={editingType.days_allowed}
+              onChange={e => setEditingType({ ...editingType, days_allowed: parseInt(e.target.value) || 0 })} />
+            <TextField label="Hours Allowed" type="number" fullWidth value={editingType.hours_allowed}
+              onChange={e => setEditingType({ ...editingType, hours_allowed: parseFloat(e.target.value) || 0 })} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTypeDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={saveType} disabled={tlLoading === 'save'}
+            sx={{ bgcolor: '#0F4C81' }}>{tlLoading === 'save' ? <CircularProgress size={20} /> : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  )
+}
+
+function IncidentCategoriesSettings() {
+  const [cats, setCats] = useState<any[]>([])
+  const [catDialog, setCatDialog] = useState(false)
+  const [editingCat, setEditingCat] = useState<any>({ name: '', severity: 'medium', is_cqc_reportable: false })
+  const [catPage, setCatPage] = useState(0)
+  const [catLoading, setCatLoading] = useState('')
+  const [icError, setIcError] = useState('')
+
+  const loadCats = async () => {
+    try { const r = await api.get('/incidents/categories'); setCats(r.data) } catch { }
+  }
+  useEffect(() => { loadCats() }, [])
+
+  const saveCat = async () => {
+    setCatLoading('save')
+    try {
+      if (editingCat.id) {
+        await api.put(`/incidents/categories/${editingCat.id}`, editingCat)
+      } else {
+        await api.post('/incidents/categories', editingCat)
+      }
+      setCatDialog(false); setEditingCat({ name: '', severity: 'medium', is_cqc_reportable: false }); loadCats()
+    } catch (e: any) { setIcError(e.response?.data?.message || 'Error saving category') }
+    finally { setCatLoading('') }
+  }
+
+  const deleteCat = async (id: string) => {
+    setCatLoading(id)
+    try { await api.delete(`/incidents/categories/${id}`); loadCats() }
+    catch (e: any) { setIcError(e.response?.data?.message || 'Error deleting category') }
+    finally { setCatLoading('') }
+  }
+
+  return (
+    <Box>
+      {icError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setIcError('')}>{icError}</Alert>}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Typography variant="h6" fontWeight={700}>Incident Categories</Typography>
+          <Button variant="contained" size="small" startIcon={<AddIcon />}
+            onClick={() => { setEditingCat({ name: '', severity: 'medium', is_cqc_reportable: false }); setCatDialog(true) }}
+            sx={{ bgcolor: '#0F4C81' }}>Add Category</Button>
+        </Stack>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Severity</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>CQC Reportable</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {cats.slice(catPage * 10, catPage * 10 + 10).map(c => (
+                <TableRow key={c.id}>
+                  <TableCell><Typography fontWeight={600}>{c.name}</Typography></TableCell>
+                  <TableCell>
+                    <Chip label={c.severity} size="small" color={c.severity === 'critical' ? 'error' : c.severity === 'high' ? 'warning' : c.severity === 'medium' ? 'info' : 'default'} />
+                  </TableCell>
+                  <TableCell>{c.is_cqc_reportable ? <Chip label="Reportable" size="small" color="error" /> : <Chip label="Not Reportable" size="small" variant="outlined" />}</TableCell>
+                  <TableCell align="right">
+                    <IconButton size="small" onClick={() => { setEditingCat(c); setCatDialog(true) }}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" onClick={() => deleteCat(c.id)} disabled={catLoading === c.id}>
+                      {catLoading === c.id ? <CircularProgress size={16} /> : <DeleteIcon fontSize="small" />}
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {cats.length > 10 && <TablePagination component="div" count={cats.length} page={catPage} onPageChange={(_ev: any, p: number) => setCatPage(p)} rowsPerPage={10} rowsPerPageOptions={[10]} />}
+      </Paper>
+
+      <Dialog open={catDialog} onClose={() => setCatDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingCat.id ? 'Edit Category' : 'Add Category'}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Name" fullWidth value={editingCat.name}
+              onChange={e => setEditingCat({ ...editingCat, name: e.target.value })} />
+            <TextField select label="Default Severity" fullWidth value={editingCat.severity}
+              onChange={e => setEditingCat({ ...editingCat, severity: e.target.value })}>
+              <MenuItem value="low">Low</MenuItem>
+              <MenuItem value="medium">Medium</MenuItem>
+              <MenuItem value="high">High</MenuItem>
+              <MenuItem value="critical">Critical</MenuItem>
+            </TextField>
+            <FormControlLabel control={<Switch checked={editingCat.is_cqc_reportable}
+              onChange={e => setEditingCat({ ...editingCat, is_cqc_reportable: e.target.checked })} />}
+              label="CQC Reportable" />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCatDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={saveCat} disabled={catLoading === 'save'}
+            sx={{ bgcolor: '#0F4C81' }}>{catLoading === 'save' ? <CircularProgress size={20} /> : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  )
+}
+
+function NotificationPreferencesSection() {
+  const [prefs, setPrefs] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    api.get('/notifications/preferences').then(r => setPrefs(r.data)).catch(() => {})
+  }, [])
+
+  const toggle = async (type: string, enabled: boolean) => {
+    try {
+      setLoading(true)
+      await api.patch('/notifications/preferences', { notification_type: type, enabled })
+      setPrefs(p => p.map(pt => pt.notification_type === type ? { ...pt, enabled } : pt))
+    } catch { /* ignore */ }
+    finally { setLoading(false) }
+  }
+
+  const labels: Record<string, string> = {
+    compliance: 'Compliance alerts', training: 'Training reminders', documents: 'Document expiry',
+    leave: 'Leave requests', shift: 'Shift assignments', swap: 'Shift swaps',
+    overtime: 'Overtime claims', survey: 'Surveys & feedback', delegation: 'Delegation changes',
+    general: 'General announcements',
+  }
+
+  return (
+    <Paper sx={{ p: 4, mt: 4 }}>
+      <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+        <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />My Notification Preferences
+      </Typography>
+      <Typography variant="caption" color="#6B7280" sx={{ display: 'block', mb: 2 }}>
+        Choose which notifications you want to receive. Disabled types will not generate push or in-app alerts.
+      </Typography>
+      <Grid container spacing={1}>
+        {prefs.map(p => (
+          <Grid item xs={12} sm={6} key={p.notification_type}>
+            <FormControlLabel
+              control={<Switch checked={p.enabled} disabled={loading}
+                onChange={e => toggle(p.notification_type, e.target.checked)} />}
+              label={labels[p.notification_type] || p.notification_type}
+            />
+          </Grid>
+        ))}
+      </Grid>
+    </Paper>
+  )
+}

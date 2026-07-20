@@ -1,0 +1,326 @@
+import { useState, useEffect } from 'react'
+import { TextField, Button, Box, Typography, Container, Stack, Link, Alert, CircularProgress, MenuItem, InputAdornment, IconButton } from '@mui/material'
+import { useForm } from 'react-hook-form'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { UserRole } from '@caredesk/shared'
+import api from '../../services/api'
+import { CheckCircle as CheckIcon, Security as SecurityIcon, Visibility, VisibilityOff } from '@mui/icons-material'
+
+const REGISTER_ILLUSTRATION = '/caredesk_login_illustration.jpg';
+
+const PASSWORD_RULES = [
+  { key: 'min', label: 'At least 8 characters', test: (v: string) => v.length >= 8 },
+  { key: 'upper', label: 'One uppercase letter', test: (v: string) => /[A-Z]/.test(v) },
+  { key: 'lower', label: 'One lowercase letter', test: (v: string) => /[a-z]/.test(v) },
+  { key: 'number', label: 'One number', test: (v: string) => /[0-9]/.test(v) },
+  { key: 'special', label: 'One special character', test: (v: string) => /[^A-Za-z0-9]/.test(v) },
+]
+
+export default function RegisterPage() {
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [invitation, setInvitation] = useState<{ email: string; role: string; organizationName: string } | null>(null)
+  const [invitationLoading, setInvitationLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get('token')
+  const password = watch('password', '')
+
+  useEffect(() => {
+    if (token) {
+      setInvitationLoading(true)
+      api.get(`/organizations/invitation/validate?token=${token}`)
+        .then((res) => {
+          setInvitation(res.data)
+          setValue('email', res.data.email)
+        })
+        .catch(() => setError('This invitation link is invalid or has expired.'))
+        .finally(() => setInvitationLoading(false))
+    }
+  }, [token, setValue])
+
+  const onSubmit = async (data: any) => {
+    setLoading(true)
+    setError('')
+    if (data.password !== data.confirmPassword) {
+      setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+    const fullName = `${data.firstName} ${data.lastName}`.trim()
+    try {
+      let res;
+
+      if (token && invitation) {
+        res = await api.post('/auth/register-with-invitation', {
+          token,
+          name: fullName,
+          password: data.password,
+        })
+      } else {
+        res = await api.post('/auth/register', {
+          ...data,
+          name: fullName,
+          role: data.role || UserRole.ORG_ADMIN,
+        })
+      }
+
+      // Ensure first_name is set in stored user
+      const storedUser = res.data.user
+      storedUser.first_name = data.firstName
+      localStorage.setItem('accessToken', res.data.accessToken)
+      localStorage.setItem('refreshToken', res.data.refreshToken)
+      localStorage.setItem('user', JSON.stringify(storedUser))
+
+      if (token) {
+        navigate('/dashboard')
+      } else {
+        navigate('/onboarding')
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message
+      if (msg) {
+        setError(msg)
+      } else if (err.code === 'ERR_NETWORK') {
+        setError('Unable to connect to the server. Please check your internet connection and try again.')
+      } else {
+        setError('Something went wrong. Please try again later.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (invitationLoading) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'white' }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  return (
+    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'white' }}>
+       <Box sx={{ 
+        flex: { xs: 0, md: 1 }, 
+        display: { xs: 'none', md: 'flex' }, 
+        flexDirection: 'column',
+        bgcolor: '#F8FAFC', 
+        p: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRight: '1px solid #E5E7EB'
+      }}>
+        <Box sx={{ maxWidth: '500px' }}>
+          <Typography variant="h3" sx={{ fontWeight: 800, color: '#111827', mb: 3 }}>
+            {invitation ? `Join ${invitation.organizationName}` : 'Scale your care operations with confidence.'}
+          </Typography>
+          {invitation ? (
+            <Typography sx={{ color: '#6B7280', mb: 4, fontSize: '1.1rem' }}>
+              You've been invited to join <strong>{invitation.organizationName}</strong> as a{' '}
+              {invitation.role === 'MANAGER' ? 'Manager' : 'Staff Member'}. Create your account to get started.
+            </Typography>
+          ) : (
+            <Stack spacing={4} sx={{ mb: 6 }}>
+              {[
+                { t: 'Automated Compliance', d: 'Never miss a training or DBS renewal again.' },
+                { t: 'Smart Scheduling', d: 'Reduce agency spend by up to 40%.' },
+                { t: 'Real-time Visibility', d: 'Audit your entire workforce in one click.' }
+              ].map((v, i) => (
+                <Stack key={i} direction="row" spacing={2}>
+                  <CheckIcon sx={{ color: '#16A34A', mt: 0.5 }} />
+                  <Box>
+                    <Typography sx={{ fontWeight: 700, color: '#111827' }}>{v.t}</Typography>
+                    <Typography variant="body2" sx={{ color: '#6B7280' }}>{v.d}</Typography>
+                  </Box>
+                </Stack>
+              ))}
+            </Stack>
+          )}
+          <img src={REGISTER_ILLUSTRATION} alt="Trust Illustration" style={{ width: '100%', opacity: 0.5 }} />
+        </Box>
+      </Box>
+
+      <Box sx={{ flex: { xs: 1, md: 0.8 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
+        <Container maxWidth="xs" sx={{ mx: 'auto' }}>
+          <Box sx={{ mb: 6 }}>
+            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
+              CareDesk
+            </Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
+              {invitation ? 'Complete Your Registration' : 'Create Your Account'}
+            </Typography>
+            <Typography sx={{ color: '#6B7280' }}>
+              {invitation
+                ? 'Set your password to join your organization.'
+                : 'Join modern care providers in 2 minutes. Start your free 14-day trial — no credit card required.'}
+            </Typography>
+          </Box>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+            <Stack spacing={2.5}>
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Full Name</Typography>
+                <Stack direction="row" spacing={1}>
+                  <TextField
+                    fullWidth
+                    placeholder="First name"
+                    {...register('firstName', { required: 'First name is required' })}
+                    error={!!errors.firstName}
+                    helperText={errors.firstName?.message as string}
+                  />
+                  <TextField
+                    fullWidth
+                    placeholder="Last name"
+                    {...register('lastName', { required: 'Last name is required' })}
+                    error={!!errors.lastName}
+                    helperText={errors.lastName?.message as string}
+                  />
+                </Stack>
+              </Box>
+
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Work Email</Typography>
+                <TextField
+                  fullWidth
+                  placeholder="john@carehome.com"
+                  disabled={!!invitation}
+                  {...register('email', { 
+                    required: 'Email is required',
+                    pattern: { value: /^\S+@\S+$/i, message: 'Invalid email' }
+                  })}
+                  error={!!errors.email}
+                  helperText={errors.email?.message as string}
+                />
+              </Box>
+
+              {!invitation && (
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Account Type</Typography>
+                  <TextField
+                    select
+                    fullWidth
+                    defaultValue={UserRole.ORG_ADMIN}
+                    {...register('role')}
+                  >
+                    <MenuItem value={UserRole.ORG_ADMIN}>Care Organization / Manager</MenuItem>
+                    <MenuItem value={UserRole.CARE_WORKER}>Independent Healthcare Professional</MenuItem>
+                  </TextField>
+                </Box>
+              )}
+
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Create Password</Typography>
+                <TextField
+                  fullWidth
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  {...register('password', { 
+                    required: 'Password is required',
+                    minLength: { value: 8, message: 'Minimum 8 characters' },
+                    validate: (v: string) => {
+                      if (!/[A-Z]/.test(v)) return 'Must contain an uppercase letter'
+                      if (!/[a-z]/.test(v)) return 'Must contain a lowercase letter'
+                      if (!/[0-9]/.test(v)) return 'Must contain a number'
+                      if (!/[^A-Za-z0-9]/.test(v)) return 'Must contain a special character'
+                      return true
+                    }
+                  })}
+                  error={!!errors.password}
+                  helperText={errors.password?.message as string}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
+                />
+              </Box>
+
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Confirm Password</Typography>
+                <TextField
+                  fullWidth
+                  type={showConfirm ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  {...register('confirmPassword', { 
+                    required: 'Please confirm your password',
+                    validate: (v: string) => v === password || 'Passwords do not match'
+                  })}
+                  error={!!errors.confirmPassword}
+                  helperText={errors.confirmPassword?.message as string}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowConfirm(!showConfirm)} edge="end" size="small">
+                          {showConfirm ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
+                />
+              </Box>
+
+              {password && (
+                <Box sx={{ bgcolor: '#F9FAFB', borderRadius: 2, p: 2 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', mb: 1, display: 'block' }}>
+                    Password requirements:
+                  </Typography>
+                  <Stack spacing={0.5}>
+                    {PASSWORD_RULES.map((rule) => {
+                      const passed = rule.test(password)
+                      return (
+                        <Stack key={rule.key} direction="row" spacing={1} alignItems="center">
+                          <Typography sx={{ color: passed ? '#16A34A' : '#9CA3AF', fontSize: '0.75rem' }}>
+                            {passed ? '✓' : '○'}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: passed ? '#16A34A' : '#9CA3AF', fontWeight: passed ? 600 : 400 }}>
+                            {rule.label}
+                          </Typography>
+                        </Stack>
+                      )
+                    })}
+                  </Stack>
+                </Box>
+              )}
+
+              <Button
+                fullWidth
+                type="submit"
+                variant="contained"
+                size="large"
+                disabled={loading}
+                sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 800, borderRadius: 2, fontSize: '1rem', textTransform: 'none', mt: 2 }}
+              >
+                {loading ? <CircularProgress size={24} color="inherit" /> : (invitation ? 'Join Organization' : 'Start Free Trial')}
+              </Button>
+
+              <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
+                <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                  Already have an account? <Link onClick={() => navigate('/login')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>Sign In</Link>
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+          
+           <Box sx={{ mt: 6, display: 'flex', alignItems: 'center', gap: 1, color: '#9CA3AF', justifyContent: 'center' }}>
+            <SecurityIcon sx={{ fontSize: 16 }} />
+            <Typography variant="caption" sx={{ fontWeight: 600 }}>By signing up, you agree to our Terms and Privacy Policy.</Typography>
+          </Box>
+        </Container>
+      </Box>
+    </Box>
+  )
+}

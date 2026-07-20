@@ -1,0 +1,25 @@
+{
+  "name": "caredesk",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w apps/api\" \"npm run dev -w apps/web\"",
+    "test": "npm test --workspaces",
+    "test:api": "npm test -w apps/api",
+    "test:web": "npm test -w apps/web"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.1",
+    "concurrently": "^10.0.3",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "nodemailer": "^9.0.3",
+    "xlsx": "^0.18.5"
+  }
+}

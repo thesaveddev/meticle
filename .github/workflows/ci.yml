@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: caredesk_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/caredesk_test
+      JWT_SECRET: ci-test-secret
+      JWT_REFRESH_SECRET: ci-test-refresh-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --workspace=@caredesk/shared
+      - name: Type check API
+        run: npx tsc --noEmit
+        working-directory: apps/api
+      - name: Lint web
+        run: npm run lint
+        working-directory: apps/web
+        continue-on-error: true
+      - name: Setup test database
+        run: npx ts-node src/shared/database/setup.ts
+        working-directory: apps/api
+      - name: Run API tests
+        run: npm test
+        working-directory: apps/api
+      - name: Type check web
+        run: npx tsc --noEmit
+        working-directory: apps/web
+
+  build:
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - name: Build shared
+        run: npm run build --workspace=@caredesk/shared
+      - name: Build API
+        run: npm run build -w apps/api
+      - name: Build web
+        run: npm run build -w apps/web
