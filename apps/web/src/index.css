@@ -1,0 +1,208 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* Brand Colors */
+  --primary: #0F4C81;
+  --primary-dark: #0A3A63;
+  --primary-light: #E7EEF4;
+  
+  /* Backgrounds */
+  --bg-white: #FFFFFF;
+  --bg-secondary: #F8FAFC;
+  
+  /* Status Colors */
+  --success: #16A34A;
+  --warning: #D97706;
+  --error: #DC2626;
+  
+  /* Text Colors */
+  --text-main: #111827;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+  
+  /* Borders & Dividers */
+  --border-light: #E5E7EB;
+  --border-medium: #D1D5DB;
+  
+  /* Transitions */
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-white);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+/* Enterprise Design Utilities */
+
+.enterprise-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.enterprise-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: var(--transition-base);
+}
+
+.enterprise-card:hover {
+  border-color: var(--border-medium);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+.enterprise-button-primary {
+  background-color: var(--primary);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.enterprise-button-primary:hover {
+  background-color: var(--primary-dark);
+}
+
+.enterprise-button-secondary {
+  background-color: white;
+  color: var(--text-main);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.enterprise-button-secondary:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-medium);
+}
+
+/* Section Stylings */
+.section-white {
+  background-color: var(--bg-white);
+  padding: 6rem 0;
+}
+
+.section-grey {
+  background-color: var(--bg-secondary);
+  padding: 6rem 0;
+}
+
+.pill-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* Typography Scale */
+.text-display-1 { font-size: 3.75rem; line-height: 1.1; font-weight: 800; }
+@media (max-width: 600px) { .text-display-1 { font-size: 2rem; } }
+.text-display-2 { font-size: 3rem; line-height: 1.2; font-weight: 800; }
+.text-h1 { font-size: 2.25rem; line-height: 1.3; font-weight: 700; }
+.text-body-large { font-size: 1.125rem; line-height: 1.6; color: var(--text-secondary); }
+
+/* Common UI Elements */
+.divider {
+  height: 1px;
+  background-color: var(--border-light);
+  width: 100%;
+  margin: 2rem 0;
+}
+
+/* Feature Pain Card */
+.pain-card {
+  padding: 2rem;
+  background: white;
+  border-left: 4px solid var(--error);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* Pricing Card */
+.pricing-card {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  transition: var(--transition-base);
+}
+
+.pricing-card.popular {
+  border: 2px solid var(--primary) !important;
+  position: relative;
+  overflow: visible;
+}
+
+.pricing-card.popular::before {
+  content: 'Most Popular';
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary);
+  color: white;
+  padding: 4px 16px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  z-index: 10;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(15, 76, 129, 0.3);
+}
+
+/* Feature Card */
+.feature-card {
+  text-align: center;
+  padding: 2rem;
+  height: 100%;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  transition: var(--transition-base);
+}
+
+.feature-card:hover {
+  border-color: var(--border-medium);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}

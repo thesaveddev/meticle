@@ -1,0 +1,303 @@
+process.noDeprecation = true;
+import express, { Request, Response } from 'express';
+import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
+import { createServer } from 'http';
+import { createServer as createHttpsServer } from 'https';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import pinoHttp from 'pino-http';
+import logger from './shared/utils/logger';
+import dotenv from 'dotenv';
+import { rateLimit } from './shared/middleware/rateLimit.middleware';
+import { correlationId } from './shared/middleware/correlationId';
+import { getHttpsOptions } from './shared/https';
+
+import { setupDatabase } from './shared/database/setup';
+import authRoutes from './modules/auth/auth.routes';
+import orgRoutes from './modules/orgs/org.routes';
+import staffRoutes from './modules/staff/staff.routes';
+import complianceRoutes from './modules/compliance/compliance.routes';
+import schedulingRoutes from './modules/scheduling/scheduling.routes';
+import marketplaceRoutes from './modules/marketplace/marketplace.routes';
+import reportingRoutes from './modules/reporting/reporting.routes';
+import insightsRoutes from './modules/insights/insights.routes';
+import serviceUserRoutes from './modules/service-users/service-users.routes';
+import incidentRoutes from './modules/incidents/incidents.routes';
+import invitationRoutes from './modules/organization/organization.routes';
+import mfaRoutes from './modules/mfa/mfa.routes';
+import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import notificationRoutes from './modules/notifications/notifications.routes';
+import permissionRoutes from './modules/permissions/permissions.routes';
+import leaveRoutes from './modules/leave/leave.routes';
+import chatRoutes from './modules/chat/chat.routes';
+import settingsRoutes from './modules/settings/settings.routes';
+import billingRoutes from './modules/billing/billing.routes';
+import auditRoutes from './modules/audit/audit.routes';
+import trainingRoutes from './modules/training/training.routes';
+import competencyRoutes from './modules/competency/competency.routes';
+import cqcRoutes from './modules/cqc/cqc.routes';
+import surveysRoutes, { publicRouter as surveyPublicRoutes } from './modules/surveys/surveys.routes';
+import appointmentRoutes from './modules/appointments/appointments.routes';
+import policyRoutes from './modules/policies/policies.routes';
+import taskRoutes from './modules/tasks/tasks.routes';
+import roomCheckRoutes from './modules/room-checks/room-checks.routes';
+import mobileRoutes from './modules/mobile/mobile.routes';
+import goalRoutes from './modules/goals/goals.routes';
+import healthRoutes from './modules/health/health.routes';
+import familyPortalRoutes, { publicRouter as familyPortalPublicRoutes } from './modules/family-portal/familyPortal.routes';
+import emedicationRoutes from './modules/emedication/emedication.routes';
+import aiRoutes from './modules/ai/ai.routes';
+import delegationRoutes from './modules/delegations/delegation.routes';
+import agencyRoutes from './modules/agencies/agencies.routes';
+import dsptRoutes from './modules/dspt/dspt.routes';
+import { BillingController } from './modules/billing/billing.controller';
+import { ComplianceController } from './modules/compliance/compliance.controller';
+import { ComplianceNotificationService } from './modules/compliance/compliance.notifications';
+import { SettingsController } from './modules/settings/settings.controller';
+import { errorHandler, notFoundHandler } from './shared/middleware/error.middleware';
+import { authenticate } from './shared/middleware/auth.middleware';
+import { asyncHandler } from './shared/middleware/asyncHandler';
+import { uploadDir } from './shared/middleware/upload.middleware';
+import { initSocketServer } from './shared/socket';
+import { setupSwagger } from './shared/swagger';
+import { healthCheck } from './shared/database';
+import { metricsMiddleware, getMetrics } from './shared/metrics';
+
+dotenv.config();
+
+// Validate critical env vars at startup
+const REQUIRED_ENV_VARS = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+for (const varName of REQUIRED_ENV_VARS) {
+  if (!process.env[varName]) {
+    logger.error({ varName }, `Missing required environment variable`);
+    process.exit(1);
+  }
+}
+
+// Process-level error handlers
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error({ reason }, 'Unhandled Rejection');
+});
+process.on('uncaughtException', (err) => {
+  logger.fatal(err, 'Uncaught Exception');
+  setTimeout(() => process.exit(1), 1000);
+});
+
+const app = express();
+const httpsOptions = getHttpsOptions();
+const httpServer = httpsOptions ? createHttpsServer(httpsOptions, app) : createServer(app);
+const port = process.env.PORT || 3001;
+
+// Initialize database
+setupDatabase().catch((err) => {
+  logger.error(err, 'Failed to setup database');
+});
+
+// Middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      fontSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      frameAncestors: ["'none'"],
+      formAction: ["'self'"],
+      baseUri: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(compression());
+app.use(correlationId);
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : undefined;
+
+app.use(cors({
+  origin: allowedOrigins
+    ? (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      }
+    : process.env.NODE_ENV === 'production'
+      ? false // reject all in production if not configured
+      : true, // allow all in development
+  credentials: true,
+}));
+app.use(pinoHttp({
+  logger,
+  autoLogging: process.env.NODE_ENV === 'production' ? { ignore: (req) => req.url === '/health' } : false,
+  genReqId: (req) => (req as any).requestId || (req.headers['x-request-id'] as string) || crypto.randomUUID(),
+  customSuccessMessage: (req, res) => `${req.method} ${req.url} ${res.statusCode}`,
+  customErrorMessage: (req, res, err) => `${req.method} ${req.url} ${res.statusCode} - ${err.message}`,
+}));
+
+// Global rate limit for API (auth endpoints have their own per-route limits)
+app.use('/api', rateLimit(200, 60_000));
+app.use(metricsMiddleware);
+
+app.post('/billing/webhook', express.raw({ type: 'application/json' }), (req, res) => BillingController.handleWebhook(req, res));
+app.use(express.json({ limit: '15mb' }));
+app.use('/uploads', express.static('uploads'));
+app.get('/files/private/:filename', authenticate, asyncHandler(ComplianceController.servePrivateFile));
+app.get('/files/:id', authenticate, asyncHandler(ComplianceController.serveFile));
+
+// Routes
+app.use('/auth', authRoutes);
+app.use('/mfa', mfaRoutes);
+app.use('/organizations', orgRoutes);
+app.use('/organizations', invitationRoutes);
+app.use('/staff', staffRoutes);
+app.use('/compliance', complianceRoutes);
+app.use('/shifts', schedulingRoutes);
+app.use('/marketplace', marketplaceRoutes);
+app.use('/reporting', reportingRoutes);
+app.use('/insights', insightsRoutes);
+app.use('/service-users', serviceUserRoutes);
+app.use('/incidents', incidentRoutes);
+app.use('/dashboard', dashboardRoutes);
+app.use('/notifications', notificationRoutes);
+app.use('/permissions', permissionRoutes);
+app.use('/training', trainingRoutes);
+app.use('/competency', competencyRoutes);
+app.use('/cqc', cqcRoutes);
+app.use('/surveys', surveysRoutes);
+app.use('/api/surveys', surveyPublicRoutes);
+app.use('/dspt', dsptRoutes); // no auth — public survey form submission
+app.use('/leave', leaveRoutes);
+app.use('/settings', settingsRoutes);
+app.use('/chat', chatRoutes);
+app.use('/billing', billingRoutes);
+app.use('/audit', auditRoutes);
+app.use('/appointments', appointmentRoutes);
+app.use('/policies', policyRoutes);
+app.use('/emedication', emedicationRoutes);
+app.use('/goals', goalRoutes);
+app.use('/ai', aiRoutes);
+app.use('/family-portal', familyPortalRoutes);
+app.use('/api/family-portal', familyPortalPublicRoutes);
+app.use('/delegations', delegationRoutes);
+app.use('/agencies', agencyRoutes);
+// Health checks — must be BEFORE /health routes to avoid auth middleware clash
+app.get('/health/live', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+app.get('/health/ready', async (req: Request, res: Response) => {
+  const dbOk = await healthCheck();
+  res.status(dbOk ? 200 : 503).json({
+    status: dbOk ? 'ok' : 'degraded',
+    database: dbOk ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.use('/health', healthRoutes);
+app.use('/tasks', taskRoutes);
+app.use('/room-checks', roomCheckRoutes);
+app.use('/mobile', mobileRoutes);
+
+// Prometheus metrics — restricted to localhost/internal IPs in production
+app.get('/metrics', async (_req: Request, res: Response) => {
+  res.set('Content-Type', 'text/plain');
+  res.end(await getMetrics());
+});
+
+// Swagger docs
+setupSwagger(app);
+
+// Socket.io
+initSocketServer(httpServer);
+
+// Error handling
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+httpServer.listen(port, () => {
+  logger.info({ port, nodeEnv: process.env.NODE_ENV }, `CareDesk API running on port ${port}`);
+});
+
+// Graceful shutdown
+function shutdown(signal: string) {
+  logger.warn({ signal }, 'Shutting down gracefully...');
+  httpServer.close(() => {
+    logger.info('HTTP server closed');
+    import('./shared/database').then(({ default: pool }) => {
+      pool.end().then(() => {
+        logger.info('Database pool closed');
+        import('./shared/redis').then(({ closeRedis }) => {
+          closeRedis();
+          process.exit(0);
+        }).catch(() => process.exit(0));
+      });
+    });
+  });
+  // Force exit after 10s
+  setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Check for expired delegations every 10 minutes
+setInterval(() => SettingsController.expireDelegations(), 600_000);
+SettingsController.expireDelegations();
+
+// Run compliance expiry checks every 6 hours (delayed on startup to avoid deadlock with migrations)
+const COMPLIANCE_CHECK_INTERVAL = 6 * 60 * 60 * 1000;
+setTimeout(() => {
+  ComplianceNotificationService.runAllChecksForAllOrgs().catch(err => logger.error(err, 'Compliance startup check failed'));
+  setInterval(() => ComplianceNotificationService.runAllChecksForAllOrgs(), COMPLIANCE_CHECK_INTERVAL);
+}, 10_000);
+
+// Run shift-start notifications every 5 minutes
+import { SchedulingNotificationService } from './modules/scheduling/scheduling.notifications';
+const SHIFT_START_NOTIFICATION_INTERVAL = 5 * 60 * 1000; // 5 minutes
+setInterval(() => {
+  SchedulingNotificationService.sendShiftStartNotifications()
+    .then(result => { if (result.sent > 0) logger.info({ sent: result.sent, shifts: result.shifts }, 'Shift-start notifications sent') })
+    .catch(err => logger.error(err, 'Shift-start notifications failed'));
+}, SHIFT_START_NOTIFICATION_INTERVAL);
+
+// Check for unclaimed shifts every 15 minutes
+setInterval(() => {
+  SchedulingNotificationService.checkUnclaimedShifts()
+    .then(result => { if (result.notified > 0) logger.info({ notified: result.notified }, 'Unclaimed shift reminders sent') })
+    .catch(err => logger.error(err, 'Unclaimed shift check failed'));
+}, 15 * 60 * 1000);
+
+// Send daily compliance digests to location managers (every hour; in-memory tracker enforces 24h)
+setInterval(() => {
+  ComplianceNotificationService.sendComplianceDigests()
+    .then(count => { if (count > 0) logger.info({ orgs: count }, 'Compliance digest check complete') })
+    .catch(err => logger.error(err, 'Compliance digest check failed'));
+}, 60 * 60 * 1000);
+
+// Scheduled evidence pack generation (every 6 hours; checks day-of-week/month per org)
+setInterval(() => {
+  ComplianceNotificationService.sendScheduledEvidencePacks()
+    .catch(err => logger.error(err, 'Scheduled evidence pack generation failed'));
+}, 6 * 60 * 60 * 1000);
+
+// Trial reminder check (every 6 hours — sends at 7d, 3d, 1d, and expiry milestones)
+import { checkTrialExpirations } from './shared/utils/trial-reminders';
+setTimeout(() => {
+  checkTrialExpirations().catch(err => logger.error(err, 'Trial reminder check failed'));
+  setInterval(() => checkTrialExpirations().catch(err => logger.error(err, 'Trial reminder check failed')), 12 * 60 * 60 * 1000);
+}, 15_000);
+
+// Start email queue processor
+import { EmailQueue } from './shared/utils/email.queue';
+EmailQueue.startProcessor();
+
+export default app;

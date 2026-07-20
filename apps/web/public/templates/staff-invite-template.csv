@@ -1,0 +1,6 @@
+Email,First Name,Last Name,Role,Location
+john.doe@example.com,John,Doe,CARE_WORKER,Headquarters
+jane.smith@example.com,Jane,Smith,CARE_WORKER,Headquarters
+manager@example.com,Sarah,Manager,MANAGER,Headquarters
+compliance@example.com,Paul,Officer,COMPLIANCE_OFFICER,Headquarters
+admin@example.com,Alice,Admin,ORG_ADMIN,Headquarters
