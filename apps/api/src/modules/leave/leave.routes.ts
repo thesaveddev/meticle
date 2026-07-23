@@ -25,7 +25,7 @@ router.post('/types', requireRole(UserRole.ORG_ADMIN), validate(createLeaveTypeS
 router.put('/types/:id', requireRole(UserRole.ORG_ADMIN), validate(updateLeaveTypeSchema), asyncHandler(LeaveController.updateLeaveType));
 router.delete('/types/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(LeaveController.deleteLeaveType));
 router.get('/requests', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(LeaveController.getAllLeaveRequests));
-router.patch('/requests/:id/review', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(reviewLeaveRequestSchema), asyncHandler(LeaveController.reviewLeaveRequest));
+router.patch('/requests/:id/review', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(reviewLeaveRequestSchema), asyncHandler(LeaveController.reviewLeaveRequest));
 router.get('/balances/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(LeaveController.getStaffLeaveBalances));
 router.get('/staff-requests/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(LeaveController.getStaffLeaveRequests));
 router.put('/entitlement/:staffId', requireRole(UserRole.ORG_ADMIN), validate(updateStaffEntitlementSchema), asyncHandler(LeaveController.updateStaffEntitlement));

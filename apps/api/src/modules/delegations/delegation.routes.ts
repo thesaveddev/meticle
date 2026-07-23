@@ -3,6 +3,7 @@ import { authenticate } from '../../shared/middleware/auth.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { query } from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
+import { UserRole } from '@caredesk/shared';
 
 const router = Router();
 router.use(authenticate);
@@ -19,7 +20,7 @@ router.get('/delegation-audit/:delegationId', asyncHandler(async (req, res) => {
      WHERE dal.delegation_id = $1
        AND (dal.primary_manager_id = $2 OR dal.delegate_user_id = $2 OR $3 = true)
      ORDER BY dal.created_at DESC`,
-    [delegationId, user.userId, user.role === 'ORG_ADMIN']
+    [delegationId, user.userId, user.role === UserRole.ORG_ADMIN]
   );
   res.json(result.rows);
 }));

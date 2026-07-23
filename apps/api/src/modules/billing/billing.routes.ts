@@ -23,6 +23,7 @@ router.post('/payment-methods', requireRole(UserRole.ORG_ADMIN), validate(addPay
 router.patch('/payment-methods/:id/default', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.setDefaultPaymentMethod));
 router.delete('/payment-methods/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.deletePaymentMethod));
 router.post('/seed-invoices', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.seedInvoices));
+router.post('/retry-payment', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.retryPayment));
 
 // Add-ons
 router.get('/addons', asyncHandler(BillingController.getAddons));

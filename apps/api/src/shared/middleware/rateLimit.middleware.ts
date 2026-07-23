@@ -37,7 +37,7 @@ export const rateLimit = (maxRequests: number, windowMs: number) => {
     if (redisResult === 'ok') return next();
     if (redisResult === 'reject') {
       return res.status(429).json({
-        error: { message: 'Too many requests, please try again later', status: 429 }
+        statusCode: 429, message: 'Too many requests, please try again later',
       });
     }
 
@@ -48,7 +48,7 @@ export const rateLimit = (maxRequests: number, windowMs: number) => {
     }
     if (record.count >= maxRequests) {
       return res.status(429).json({
-        error: { message: 'Too many requests, please try again later', status: 429 }
+        statusCode: 429, message: 'Too many requests, please try again later',
       });
     }
     record.count++;

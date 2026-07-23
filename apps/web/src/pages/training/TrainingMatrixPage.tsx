@@ -4,6 +4,7 @@ import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ArrowBack as Ar
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import EmptyState from '../../components/EmptyState'
 import { BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, Cell, LabelList } from 'recharts'
 
 const CATEGORIES = ['Mandatory', 'Clinical', 'Safeguarding', 'Health & Safety', 'Fire Safety', 'Infection Control', 'Manual Handling', 'Food Hygiene', 'Medication', 'First Aid', 'Dementia', 'Autism', 'Mental Health', 'Other']
@@ -87,7 +88,9 @@ function GridView() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {data?.staff?.slice(gridPage * gridRowsPerPage, gridPage * gridRowsPerPage + gridRowsPerPage).map((s: any) => {
+            {!data?.staff?.length ? (
+              <TableRow><TableCell colSpan={data?.modules?.length ? data.modules.length + 2 : 3}><EmptyState message="No staff data" description="Assign staff profiles to view the compliance grid." /></TableCell></TableRow>
+            ) : data?.staff?.slice(gridPage * gridRowsPerPage, gridPage * gridRowsPerPage + gridRowsPerPage).map((s: any) => {
               const total = data.modules.length
               const done = data.modules.filter((m: any) => {
                 const r = getRecord(s.id, m.id)
@@ -226,6 +229,8 @@ function ModulesView() {
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={7}>Loading...</TableCell></TableRow>
+            ) : !modules?.length ? (
+              <TableRow><TableCell colSpan={7}><EmptyState message="No training modules" description="Create your first training module to get started." /></TableCell></TableRow>
             ) : modules?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((m: any) => (
               <TableRow key={m.id} hover>
                 <TableCell sx={{ fontWeight: 600 }}>{m.name}</TableCell>

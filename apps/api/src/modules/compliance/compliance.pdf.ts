@@ -1,56 +1,4 @@
-import puppeteer, { Browser } from 'puppeteer-core'
-import path from 'path'
-import fs from 'fs'
-
-let browser: Browser | null = null
-
-function getChromePath(): string {
-  if (process.env.CHROME_PATH) return process.env.CHROME_PATH
-  const candidates = [
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-    path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe'),
-    '/usr/bin/google-chrome',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/chromium',
-    '/snap/bin/chromium',
-  ]
-  for (const c of candidates) {
-    if (fs.existsSync(c)) return c
-  }
-  return 'google-chrome'
-}
-
-async function getBrowser(): Promise<Browser> {
-  if (browser && browser.connected) return browser
-  const executablePath = getChromePath()
-  browser = await puppeteer.launch({
-    executablePath,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-    headless: true,
-  })
-  return browser
-}
-
-export async function generatePdf(html: string, options?: { margin?: { top?: string; right?: string; bottom?: string; left?: string }; landscape?: boolean }): Promise<Buffer> {
-  const b = await getBrowser()
-  const page = await b.newPage()
-  try {
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 })
-    const pdf = await page.pdf({
-      format: 'a4',
-      margin: options?.margin || { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
-      landscape: options?.landscape || false,
-      printBackground: true,
-      displayHeaderFooter: true,
-      headerTemplate: '<div style="font-size:9px;color:#9CA3AF;width:100%;text-align:center;padding:5px 15mm">CareDesk Evidence Pack</div>',
-      footerTemplate: '<div style="font-size:9px;color:#9CA3AF;width:100%;text-align:center;padding:5px 15mm">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>',
-    })
-    return Buffer.from(pdf)
-  } finally {
-    await page.close()
-  }
-}
+import { generatePdf as sharedGeneratePdf } from '../../shared/pdf/pdf.service'
 
 export function buildEvidencePackHtml(data: any, orgName?: string): string {
   const frameworkName = 'CQC'
@@ -180,3 +128,5 @@ export function buildEvidencePackHtml(data: any, orgName?: string): string {
   </div>
 </body></html>`
 }
+
+export { sharedGeneratePdf as generatePdf }

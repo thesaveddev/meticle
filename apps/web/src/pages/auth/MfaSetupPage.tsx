@@ -69,7 +69,11 @@ export default function MfaSetupPage() {
                 </Paper>
               ))}
             </Stack>
-            <Button fullWidth variant="contained" onClick={() => navigate('/dashboard')}
+            <Button fullWidth variant="contained" onClick={() => {
+              const raw = localStorage.getItem('user')
+              const u = raw ? JSON.parse(raw) : null
+              navigate(u?.role === 'SUPER_ADMIN' ? '/platform-admin' : '/dashboard')
+            }}
               sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' }, py: 1.5, fontWeight: 700 }}>
               Go to Dashboard
             </Button>

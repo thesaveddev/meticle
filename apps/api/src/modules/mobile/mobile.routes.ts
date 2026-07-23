@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/auth.middleware';
+import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
+import { UserRole } from '@caredesk/shared';
 import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 
@@ -8,7 +10,7 @@ const router = Router();
 router.use(authenticate);
 
 // Check-in
-router.post('/check-in', asyncHandler(async (req: any, res: any) => {
+router.post('/check-in', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(async (req: any, res: any) => {
   const user = req.user!;
   const { latitude, longitude, accuracy } = req.body;
   if (!latitude || !longitude) throw new AppError(400, 'Location required');
@@ -50,7 +52,7 @@ router.get('/my-roster', asyncHandler(async (req: any, res: any) => {
 }));
 
 // Voice notes via daily notes endpoint
-router.post('/notes', asyncHandler(async (req: any, res: any) => {
+router.post('/notes', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(async (req: any, res: any) => {
   const user = req.user!;
   const { service_user_id, content, shift, category, note_date } = req.body;
   if (!service_user_id || !content) throw new AppError(400, 'Resident and note content required');

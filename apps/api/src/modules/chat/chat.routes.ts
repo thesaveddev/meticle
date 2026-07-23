@@ -37,7 +37,7 @@ router.post('/channels/:channelId/read', asyncHandler(ChatController.markRead));
 
 // Groups
 router.post('/groups', validate(createGroupSchema), asyncHandler(ChatController.createGroup));
-router.post('/channels/:channelId/members', validate(addMemberSchema), asyncHandler(ChatController.addMember));
+router.post('/channels/:channelId/members', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(addMemberSchema), asyncHandler(ChatController.addMember));
 router.delete('/channels/:channelId/members/:userId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ChatController.removeMember));
 
 // DMs

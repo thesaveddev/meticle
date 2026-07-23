@@ -16,7 +16,7 @@ router.get('/org-members', asyncHandler(StaffController.getOrgMembers));
 router.patch('/:userId/role', requireRole(UserRole.ORG_ADMIN), validate(updateStaffRoleSchema), asyncHandler(StaffController.updateUserRole));
 router.patch('/:userId/status', requireRole(UserRole.ORG_ADMIN), validate(updateStaffStatusSchema), asyncHandler(StaffController.updateUserStatus));
 router.delete('/:userId', requireRole(UserRole.ORG_ADMIN), asyncHandler(StaffController.deleteUser));
-router.patch('/:userId/profile', validate(updateStaffProfileSchema), asyncHandler(StaffController.updateStaffProfile));
+router.patch('/:userId/profile', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateStaffProfileSchema), asyncHandler(StaffController.updateStaffProfile));
 router.post('/self-deactivate', asyncHandler(StaffController.selfDeactivate));
 router.get('/:userId', asyncHandler(StaffController.getProfile));
 router.post('/preferences', validate(savePreferencesSchema), asyncHandler(StaffController.savePreferences));

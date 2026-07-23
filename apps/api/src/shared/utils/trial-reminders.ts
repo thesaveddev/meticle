@@ -41,7 +41,7 @@ export async function checkTrialExpirations() {
         .catch(() => {});
     }
 
-    // The day after expiry — send expired notice
+    // The day after expiry — send expired notice and transition status
     if (daysLeft < 0) {
       const existing = await pool.query(
         'SELECT id FROM trial_reminders WHERE organization_id = $1 AND reminder_days = -1',
@@ -52,6 +52,11 @@ export async function checkTrialExpirations() {
       await pool.query(
         'INSERT INTO trial_reminders (organization_id, reminder_days) VALUES ($1, $2)',
         [org.id, -1]
+      );
+
+      await pool.query(
+        `UPDATE organizations SET subscription_status = 'expired' WHERE id = $1 AND subscription_status = 'trial'`,
+        [org.id]
       );
 
       EmailService.sendTrialExpiredEmail(org.email, org.name, org.org_name, hasCard)

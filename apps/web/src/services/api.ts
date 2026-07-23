@@ -91,7 +91,7 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status && error.response.status >= 400 && error.response.status < 500 && originalRequest?.url) {
-      const skipPaths = ['/auth/me', '/auth/login', '/auth/register']
+      const skipPaths = ['/auth/me', '/auth/login', '/auth/register', '/billing']
       if (!skipPaths.some(p => originalRequest.url.includes(p))) {
         onApiError?.(getErrorMessage(error))
       }

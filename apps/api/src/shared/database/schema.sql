@@ -395,6 +395,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     issued_at DATE,
     due_at DATE,
     paid_at TIMESTAMP WITH TIME ZONE,
+    stripe_invoice_id TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(organization_id, invoice_number)
 );
@@ -405,6 +406,7 @@ CREATE TABLE IF NOT EXISTS payment_methods (
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     card_last_four VARCHAR(4),
     card_brand VARCHAR(20),
+    cardholder_name VARCHAR(255),
     expiry_month INTEGER,
     expiry_year INTEGER,
     is_default BOOLEAN DEFAULT FALSE,
@@ -927,3 +929,74 @@ CREATE TABLE IF NOT EXISTS emedication_daily_count_items (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_emed_dci_count ON emedication_daily_count_items(daily_count_id);
+
+-- DBS API integration
+CREATE TABLE IF NOT EXISTS dbs_checks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    staff_id UUID NOT NULL REFERENCES staff_profiles(id) ON DELETE CASCADE,
+    level VARCHAR(30) NOT NULL DEFAULT 'enhanced' CHECK (level IN ('standard','enhanced','enhanced_with_barred')),
+    workforce VARCHAR(10) NOT NULL DEFAULT 'adult' CHECK (workforce IN ('adult','child','both')),
+    status VARCHAR(30) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','submitted','in_progress','awaiting_identity','clear','disclosure','cancelled','error')),
+    application_reference VARCHAR(100),
+    provider_reference VARCHAR(100),
+    certificate_number VARCHAR(100),
+    disclosure_date DATE,
+    cost_pence INTEGER,
+    notes TEXT,
+    submitted_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    requested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_dbs_checks_org ON dbs_checks(organization_id);
+CREATE INDEX IF NOT EXISTS idx_dbs_checks_staff ON dbs_checks(staff_id);
+
+-- Expense tracking (service user spending ledger)
+CREATE TABLE IF NOT EXISTS service_user_expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    location_id UUID REFERENCES locations(id) ON DELETE SET NULL,
+    category VARCHAR(30) NOT NULL CHECK (category IN ('food','clothing','activities','transport','personal','health','other')),
+    amount_pence INTEGER NOT NULL CHECK (amount_pence > 0),
+    description TEXT,
+    receipt_url TEXT,
+    incurred_date DATE NOT NULL,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_expenses_org ON service_user_expenses(organization_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_su ON service_user_expenses(service_user_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_date ON service_user_expenses(organization_id, incurred_date);
+
+-- Petty cash per location
+CREATE TABLE IF NOT EXISTS petty_cash_balances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    location_id UUID NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    current_balance_pence INTEGER NOT NULL DEFAULT 0 CHECK (current_balance_pence >= 0),
+    last_reconciled_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(location_id)
+);
+CREATE INDEX IF NOT EXISTS idx_pcb_org ON petty_cash_balances(organization_id);
+
+-- Petty cash transaction log
+CREATE TABLE IF NOT EXISTS petty_cash_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    location_id UUID NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('top_up','reconciliation','adjustment')),
+    amount_pence INTEGER NOT NULL,
+    previous_balance_pence INTEGER NOT NULL,
+    new_balance_pence INTEGER NOT NULL,
+    notes TEXT,
+    performed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_pct_org ON petty_cash_transactions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_pct_location ON petty_cash_transactions(location_id);

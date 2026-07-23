@@ -248,7 +248,7 @@ export default function BillingPage() {
       await api.delete(`/billing/payment-methods/${id}`)
       loadBillingData()
       setMessage('Card removed.')
-    } catch { setMessage('Failed to remove card.') }
+    } catch (err: any) { setMessage(err.response?.data?.message || 'Failed to remove card.') }
     setRemoveCardDialog('')
   }
 
@@ -266,10 +266,23 @@ export default function BillingPage() {
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
 
-  const isTrial = subscription && (subscription.subscriptionStatus === 'trial' || (subscription.trialEndsAt && new Date(subscription.trialEndsAt) > new Date()))
-  const daysRemaining = subscription?.trialEndsAt ? Math.max(0, Math.ceil((new Date(subscription.trialEndsAt).getTime() - Date.now()) / 86400000)) : 0
-  const statusLabel = isTrial ? `Trial (${daysRemaining}d left)` : subscription?.subscriptionStatus === 'active' ? 'Active' : subscription?.subscriptionStatus || '—'
-  const statusColor = isTrial ? 'warning' : subscription?.subscriptionStatus === 'active' ? 'success' : 'error'
+  const redirectReason = localStorage.getItem('redirectReason')
+  if (redirectReason === 'subscription_expired') {
+    localStorage.removeItem('redirectReason')
+  }
+
+  const subStatus = subscription?.subscriptionStatus
+  const trialEndsAt = subscription?.trialEndsAt ? new Date(subscription.trialEndsAt) : null
+  const daysRemaining = trialEndsAt ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / 86400000)) : 0
+  const isTrialActive = subStatus === 'trial' && trialEndsAt && trialEndsAt > new Date()
+  const isActive = subStatus === 'active' || !!isTrialActive
+
+  let statusLabel: string
+  let statusColor: 'success' | 'warning' | 'error' | 'default' = 'default'
+  if (subStatus === 'active') { statusLabel = 'Active'; statusColor = 'success' }
+  else if (isTrialActive) { statusLabel = `Trial (${daysRemaining}d left)`; statusColor = 'warning' }
+  else if (subStatus === 'trial') { statusLabel = 'Trial Expired'; statusColor = 'error' }
+  else { statusLabel = subStatus ? subStatus.charAt(0).toUpperCase() + subStatus.slice(1) : 'Inactive'; statusColor = 'error' }
 
   const AddCardWrapper = ({ children }: { children: React.ReactNode }) => {
     if (!stripePromise) return <>{children}</>
@@ -283,6 +296,32 @@ export default function BillingPage() {
       {message && (
         <Alert severity={message.includes('Failed') ? 'error' : 'success'} sx={{ mb: 4, borderRadius: 2 }} onClose={() => setMessage('')}>
           {message}
+        </Alert>
+      )}
+
+      {!isActive && (
+        <Alert severity="warning" sx={{ mb: 4, borderRadius: 2 }}>
+          <Typography variant="subtitle2" fontWeight={700}>Your subscription is no longer active</Typography>
+          <Typography variant="body2">Add a payment card to restore access to the platform.</Typography>
+          {subStatus === 'past_due' && (
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ mt: 1.5, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, textTransform: 'none' }}
+              onClick={async () => {
+                try {
+                  await api.post('/billing/retry-payment')
+                  setMessage('Payment successful!')
+                  loadBillingData()
+                  window.dispatchEvent(new Event('subscriptionUpdated'))
+                } catch {
+                  setMessage('Retry failed — check your payment method.')
+                }
+              }}
+            >
+              Retry Payment
+            </Button>
+          )}
         </Alert>
       )}
 

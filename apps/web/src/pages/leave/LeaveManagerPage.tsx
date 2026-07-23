@@ -304,7 +304,7 @@ export default function LeaveManagerPage() {
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Leave Manager</Typography>
         </Stack>
         <Stack direction="row" spacing={1.5} alignItems="center">
-          {balances.length > 0 && (() => {
+          {balances.length > 0 ? (() => {
             const hoursPerDay = 7.5
             const dayBalances = balances.filter(b => b.duration_type === 'days')
             const hourBalances = balances.filter(b => b.duration_type === 'hours')
@@ -367,7 +367,9 @@ export default function LeaveManagerPage() {
                 </Box>
               </>
             )
-          })()}
+          })() : (
+            <Typography variant="body2" color="#9CA3AF">No leave balances configured.</Typography>
+          )}
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)}
             sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' }, ml: 1 }}>
             Request Leave
@@ -379,35 +381,39 @@ export default function LeaveManagerPage() {
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
       {fetchError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFetchError('')}>{fetchError}</Alert>}
 
-      {isAdminOrManager && activeDelegations.length > 0 && (
+      {isAdminOrManager && (
         <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #DBEAFE', bgcolor: '#F8FAFC' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F4C81', mb: 1 }}>
             Active Delegations
           </Typography>
-          <Stack spacing={1}>
-            {activeDelegations.map((d: any) => (
-              <Stack key={d.id} direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    {d.delegate_first_name || 'Delegate'} {d.delegate_last_name || ''}
-                  </Typography>
-                  <Typography variant="caption" color="#6B7280">
-                    {d.ends_at ? `Ends ${new Date(d.ends_at).toLocaleDateString()}` : 'No end date'}
-                  </Typography>
-                </Box>
-                <Button
-                  size="small"
-                  color="error"
-                  variant="outlined"
-                  startIcon={delegationDeleting === d.id ? <CircularProgress size={14} color="inherit" /> : <DeleteIcon />}
-                  disabled={delegationDeleting === d.id}
-                  onClick={() => handleRemoveDelegation(d.id)}
-                >
-                  Remove
-                </Button>
-              </Stack>
-            ))}
-          </Stack>
+          {activeDelegations.length > 0 ? (
+            <Stack spacing={1}>
+              {activeDelegations.map((d: any) => (
+                <Stack key={d.id} direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      {d.delegate_first_name || 'Delegate'} {d.delegate_last_name || ''}
+                    </Typography>
+                    <Typography variant="caption" color="#6B7280">
+                      {d.ends_at ? `Ends ${new Date(d.ends_at).toLocaleDateString()}` : 'No end date'}
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    color="error"
+                    variant="outlined"
+                    startIcon={delegationDeleting === d.id ? <CircularProgress size={14} color="inherit" /> : <DeleteIcon />}
+                    disabled={delegationDeleting === d.id}
+                    onClick={() => handleRemoveDelegation(d.id)}
+                  >
+                    Remove
+                  </Button>
+                </Stack>
+              ))}
+            </Stack>
+          ) : (
+            <Typography variant="body2" color="#9CA3AF">No active delegations.</Typography>
+          )}
         </Paper>
       )}
 

@@ -3,7 +3,7 @@ import path from 'path';
 import { query } from './index';
 import logger from '../utils/logger';
 
-const MIGRATIONS = [
+export const MIGRATIONS = [
   // Missing updated_at for organizations (exists in CREATE TABLE but never had ALTER TABLE migration)
   `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP`,
   // Original onboarding columns (added to CREATE TABLE after DB was created)
@@ -57,6 +57,8 @@ const MIGRATIONS = [
   `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS currency VARCHAR(3) DEFAULT 'GBP'`,
   `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP WITH TIME ZONE`,
   `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS due_at DATE`,
+  `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS stripe_invoice_id TEXT`,
+  `ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS cardholder_name VARCHAR(255)`,
   // Payment methods
   `ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS stripe_payment_method_id TEXT`,
   // Compliance profile columns
@@ -1265,6 +1267,78 @@ const MIGRATIONS = [
   `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS support_level VARCHAR(50) DEFAULT NULL`,
   `ALTER TABLE memory_book_entries ADD COLUMN IF NOT EXISTS support_level VARCHAR(50) DEFAULT NULL`,
   `ALTER TABLE memory_book_entries ADD COLUMN IF NOT EXISTS image_urls JSONB DEFAULT '[]'::jsonb`,
+
+  // DBS API integration — dedicated table
+  `CREATE TABLE IF NOT EXISTS dbs_checks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    staff_id UUID NOT NULL REFERENCES staff_profiles(id) ON DELETE CASCADE,
+    level VARCHAR(30) NOT NULL DEFAULT 'enhanced' CHECK (level IN ('standard','enhanced','enhanced_with_barred')),
+    workforce VARCHAR(10) NOT NULL DEFAULT 'adult' CHECK (workforce IN ('adult','child','both')),
+    status VARCHAR(30) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','submitted','in_progress','awaiting_identity','clear','disclosure','cancelled','error')),
+    application_reference VARCHAR(100),
+    provider_reference VARCHAR(100),
+    certificate_number VARCHAR(100),
+    disclosure_date DATE,
+    cost_pence INTEGER,
+    notes TEXT,
+    submitted_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    requested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_dbs_checks_org ON dbs_checks(organization_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_dbs_checks_staff ON dbs_checks(staff_id)`,
+  // Expense tracking tables
+  `CREATE TABLE IF NOT EXISTS service_user_expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    location_id UUID REFERENCES locations(id) ON DELETE SET NULL,
+    category VARCHAR(30) NOT NULL CHECK (category IN ('food','clothing','activities','transport','personal','health','other')),
+    amount_pence INTEGER NOT NULL CHECK (amount_pence > 0),
+    description TEXT, receipt_url TEXT,
+    incurred_date DATE NOT NULL,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_expenses_org ON service_user_expenses(organization_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_expenses_su ON service_user_expenses(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_expenses_date ON service_user_expenses(organization_id, incurred_date)`,
+  `CREATE TABLE IF NOT EXISTS petty_cash_balances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    location_id UUID NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    current_balance_pence INTEGER NOT NULL DEFAULT 0 CHECK (current_balance_pence >= 0),
+    last_reconciled_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(location_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_pcb_org ON petty_cash_balances(organization_id)`,
+  `CREATE TABLE IF NOT EXISTS petty_cash_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    location_id UUID NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('top_up','reconciliation','adjustment')),
+    amount_pence INTEGER NOT NULL,
+    previous_balance_pence INTEGER NOT NULL,
+    new_balance_pence INTEGER NOT NULL,
+    notes TEXT,
+    performed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_pct_org ON petty_cash_transactions(organization_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_pct_location ON petty_cash_transactions(location_id)`,
+  // Billing: card fingerprint for duplicate detection
+  `ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS stripe_fingerprint TEXT`,
+  // Billing: payment failure tracking
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS failed_payment_count INTEGER DEFAULT 0`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS last_payment_failed_at TIMESTAMP WITH TIME ZONE`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS first_payment_failed_at TIMESTAMP WITH TIME ZONE`,
+  `CREATE INDEX IF NOT EXISTS idx_pm_fingerprint ON payment_methods(organization_id, stripe_fingerprint)`,
 ];
 
 export const setupDatabase = async () => {

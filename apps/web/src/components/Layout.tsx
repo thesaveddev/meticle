@@ -23,6 +23,10 @@ import {
   Storefront as MarketplaceIcon,
   Business as BusinessIcon,
   Checklist as TaskIcon,
+  BarChart as ReportsIcon,
+  Verified as VerifiedIcon,
+  Receipt as ReceiptIcon,
+  AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { UserRole } from '@caredesk/shared'
@@ -30,6 +34,7 @@ import api from '../services/api'
 import { connectSocket, disconnectSocket } from '../services/socket'
 import OfflineBanner from './OfflineBanner'
 import RouteLoadingIndicator from './RouteLoadingIndicator'
+import { useSubscriptionStatus } from './SubscriptionGuard'
 
 const drawerWidth = 260
 
@@ -42,6 +47,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const [notifications, setNotifications] = useState<any[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [chatUnreadCount, setChatUnreadCount] = useState(0)
+  const { isActive, loading: subLoading, status: subStatus } = useSubscriptionStatus()
 
   const [rawUser, setRawUser] = useState<any>(() => {
     const s = localStorage.getItem('user'); try { return s ? JSON.parse(s) : {} } catch { return {} }
@@ -57,31 +63,41 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const userInitial = rawUser.first_name?.[0] || rawUser.email?.[0] || '?'
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', module: 'dashboard', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Staff Directory', icon: <PeopleIcon />, path: '/staff', module: 'staff_directory', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER] },
-    { text: 'Compliance', icon: <ComplianceIcon />, path: '/compliance', module: 'compliance', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Rota Planner', icon: <ScheduleIcon />, path: '/scheduling', module: 'scheduling', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+    { text: 'Staff Directory', icon: <PeopleIcon />, path: '/staff', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+    { text: 'Compliance', icon: <ComplianceIcon />, path: '/compliance', module: 'compliance', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
+    { text: 'Rota Planner', icon: <ScheduleIcon />, path: '/scheduling', module: 'scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+    { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
     { text: 'Agencies', icon: <BusinessIcon />, path: '/agencies', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-    { text: 'Leave Manager', icon: <LeaveIcon />, path: '/leave', module: 'leave', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Service Users', icon: <PeopleIcon />, path: '/service-users', module: 'staff_directory', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'staff_directory', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER] },
-    { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'dashboard', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Communication', icon: <ChatIcon />, path: '/chat', module: 'dashboard', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'dashboard', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Policies', icon: <PolicyIcon />, path: '/policies', module: 'dashboard', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Goals', icon: <FlagIcon />, path: '/goals', module: 'dashboard', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'dashboard', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+    { text: 'DBS Checks', icon: <VerifiedIcon />, path: '/dbs', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+    { text: 'Leave Manager', icon: <LeaveIcon />, path: '/leave', module: 'leave', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+    { text: 'Service Users', icon: <PeopleIcon />, path: '/service-users', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+    { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+    { text: 'Reports', icon: <ReportsIcon />, path: '/reporting', module: 'reporting', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+    { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+    { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+    { text: 'Communication', icon: <ChatIcon />, path: '/chat', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+    { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+    { text: 'Policies', icon: <PolicyIcon />, path: '/policies', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+    { text: 'Goals', icon: <FlagIcon />, path: '/goals', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+    { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
   ]
 
   const bottomItems = [
     { text: 'Billing', icon: <BillingIcon />, path: '/billing', module: 'settings', roles: [UserRole.ORG_ADMIN] },
-    { text: 'Settings', icon: <SettingsIcon />, path: '/settings', module: 'settings', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Learn', icon: <SchoolIcon />, path: '/learn', module: 'dashboard', roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+    { text: 'Settings', icon: <SettingsIcon />, path: '/settings', module: 'settings', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+    { text: 'Learn', icon: <SchoolIcon />, path: '/learn', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
   ]
 
-  const filteredMenu = menuItems.filter(item => item.roles.includes(userRole) && (modulePermissions[item.module] || 'view') !== 'none')
-  const filteredBottomItems = bottomItems.filter(item => item.roles.includes(userRole) && (modulePermissions[item.module] || 'view') !== 'none')
+  const sidebarDisabled = !subLoading && !isActive
+  const filteredMenu = menuItems.filter(item =>
+    item.roles.includes(userRole) &&
+    (modulePermissions[item.module] || 'view') !== 'none'
+  )
+  const filteredBottomItems = bottomItems.filter(item =>
+    item.roles.includes(userRole) &&
+    (modulePermissions[item.module] || 'view') !== 'none'
+  )
 
   useEffect(() => {
     if (!rawUser.id) return
@@ -176,6 +192,16 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     return () => { clearInterval(interval); window.removeEventListener('focus', refreshUser) }
   }, [refreshUser])
 
+  // Redirect away from restricted pages when subscription is inactive
+  useEffect(() => {
+    if (subLoading || isActive) return
+    if (userRole === UserRole.SUPER_ADMIN) return
+    const path = location.pathname
+    if (path === '/billing' || path === '/learn' || path.startsWith('/platform-admin')) return
+    const target = userRole === UserRole.ORG_ADMIN ? '/billing' : '/learn'
+    navigate(target, { replace: true })
+  }, [subLoading, isActive, location.pathname, navigate, userRole])
+
   const navigateAndClose = (path: string) => {
     setAnchorEl(null)
     navigate(path)
@@ -211,11 +237,35 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       </Toolbar>
       <Divider sx={{ mb: 2 }} />
       <List sx={{ px: 2, flexGrow: 1 }}>
-        {filteredMenu.map((item) => (
+        {userRole === UserRole.SUPER_ADMIN && (
+          <ListItem disablePadding sx={{ mb: 0.5 }}>
+            <ListItemButton
+              onClick={() => navigate('/platform-admin')}
+              selected={location.pathname === '/platform-admin'}
+              disabled={sidebarDisabled}
+              sx={{
+                borderRadius: 2,
+                bgcolor: '#FEF3C7',
+                border: '1px solid #FCD34D',
+                mb: 1,
+                '&.Mui-selected': { bgcolor: '#FDE68A', '& .MuiListItemIcon-root': { color: '#92400E' } },
+                '&:hover': { bgcolor: '#FDE68A' },
+                '&.Mui-disabled': { opacity: 0.45 },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 40, color: '#92400E' }}><AdminIcon /></ListItemIcon>
+              <ListItemText primary="Platform Admin" primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 700, color: '#92400E' }} />
+            </ListItemButton>
+          </ListItem>
+        )}
+        {filteredMenu.map((item) => {
+          const disabled = sidebarDisabled && item.text !== 'Learn'
+          return (
           <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton 
-              onClick={() => navigate(item.path)}
-              selected={location.pathname === item.path}
+              onClick={disabled ? undefined : () => navigate(item.path)}
+              selected={!disabled && location.pathname === item.path}
+              disabled={disabled}
               sx={{ 
                 borderRadius: 2,
                 '&.Mui-selected': {
@@ -224,7 +274,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                   '& .MuiListItemIcon-root': { color: '#0F4C81' },
                   '&:hover': { bgcolor: '#E7EEF4' }
                 },
-                '&:hover': { bgcolor: '#F8FAFC' }
+                '&:hover': { bgcolor: '#F8FAFC' },
+                '&.Mui-disabled': { opacity: 0.45 },
               }}
             >
               <ListItemIcon sx={{ minWidth: 40, color: '#6B7280' }}>
@@ -236,18 +287,32 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               )}
             </ListItemButton>
           </ListItem>
-        ))}
+          )
+        })}
       </List>
       <Divider />
       <List sx={{ p: 2 }}>
-        {filteredBottomItems.map((item) => (
+        {userRole === UserRole.SUPER_ADMIN && (
+          <ListItem disablePadding>
+            <ListItemButton sx={{ borderRadius: 2 }}
+              onClick={() => navigate('/learn')} selected={location.pathname === '/learn'}>
+              <ListItemIcon sx={{ minWidth: 40, color: location.pathname === '/learn' ? '#0F4C81' : '#6B7280' }}><SchoolIcon /></ListItemIcon>
+              <ListItemText primary="Learn" primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
+            </ListItemButton>
+          </ListItem>
+        )}
+        {filteredBottomItems.map((item) => {
+          const disabled = sidebarDisabled && item.text !== 'Billing' && item.text !== 'Learn'
+          return (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton sx={{ borderRadius: 2 }} onClick={() => navigate(item.path)} selected={location.pathname === item.path}>
-              <ListItemIcon sx={{ minWidth: 40, color: location.pathname === item.path ? '#0F4C81' : '#6B7280' }}>{item.icon}</ListItemIcon>
+            <ListItemButton disabled={disabled} sx={{ borderRadius: 2, '&.Mui-disabled': { opacity: 0.45 } }}
+              onClick={disabled ? undefined : () => navigate(item.path)} selected={!disabled && location.pathname === item.path}>
+              <ListItemIcon sx={{ minWidth: 40, color: !disabled && location.pathname === item.path ? '#0F4C81' : '#6B7280' }}>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
             </ListItemButton>
           </ListItem>
-        ))}
+          )
+        })}
       </List>
     </Box>
   )
@@ -276,7 +341,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           </IconButton>
           
           <Typography variant="subtitle1" sx={{ fontWeight: 700, display: { xs: 'none', sm: 'block' } }}>
-            {filteredMenu.find(m => m.path === location.pathname)?.text || 'Overview'}
+            {userRole === UserRole.SUPER_ADMIN ? 'Platform Admin' : filteredMenu.find(m => m.path === location.pathname)?.text || 'Overview'}
           </Typography>
 
           <Stack direction="row" spacing={2} alignItems="center">
@@ -291,7 +356,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               </Avatar>
               <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
                 <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1 }}>{userName}</Typography>
-                <Typography variant="caption" sx={{ color: '#6B7280' }}>{userRole === UserRole.ORG_ADMIN ? 'Admin' : userRole === UserRole.MANAGER ? 'Manager' : 'Staff'}</Typography>
+                <Typography variant="caption" sx={{ color: '#6B7280' }}>{userRole === UserRole.SUPER_ADMIN ? 'Platform Admin' : userRole === UserRole.ORG_ADMIN ? 'Admin' : userRole === UserRole.MANAGER ? 'Manager' : 'Staff'}</Typography>
               </Box>
             </Box>
           </Stack>
@@ -332,6 +397,44 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       >
         <RouteLoadingIndicator />
         <OfflineBanner />
+        {!subLoading && !isActive && rawUser.role !== UserRole.SUPER_ADMIN && (
+          <Paper
+            elevation={0}
+            sx={{
+              bgcolor: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderLeft: 4,
+              borderLeftColor: '#DC2626',
+              p: 2,
+              mb: 3,
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#991B1B' }}>
+                Subscription {subStatus === 'past_due' ? 'Past Due' : subStatus === 'canceled' ? 'Canceled' : subStatus === 'expired' ? 'Expired' : 'Inactive'}
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#B91C1C', mt: 0.5 }}>
+                Your subscription is {subStatus === 'past_due' ? 'past due' : subStatus === 'canceled' ? 'has been canceled' : subStatus === 'expired' ? 'has expired' : 'inactive'}. 
+                {rawUser.role === UserRole.ORG_ADMIN ? ' Please update your billing information to restore access.' : ' Please contact your organization admin to restore access.'}
+              </Typography>
+            </Box>
+            {rawUser.role === UserRole.ORG_ADMIN && (
+              <Button
+                variant="contained"
+                size="small"
+                sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, whiteSpace: 'nowrap', flexShrink: 0 }}
+                onClick={() => navigate('/billing')}
+              >
+                Update Billing
+              </Button>
+            )}
+          </Paper>
+        )}
         {children || <Outlet />}
       </Box>
 

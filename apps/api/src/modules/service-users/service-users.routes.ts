@@ -43,7 +43,7 @@ router.post('/:serviceUserId/memory-book', requireRole(UserRole.ORG_ADMIN, UserR
 router.patch('/memory-book/:entryId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateMemoryBookEntrySchema), asyncHandler(ServiceUserController.updateMemoryBookEntry));
 router.delete('/memory-book/:entryId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ServiceUserController.deleteMemoryBookEntry));
 
-router.post('/:serviceUserId/daily-notes', validate(createDailyNoteSchema), asyncHandler(ServiceUserController.createDailyNote));
+router.post('/:serviceUserId/daily-notes', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createDailyNoteSchema), asyncHandler(ServiceUserController.createDailyNote));
 router.patch('/daily-notes/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateDailyNoteSchema), asyncHandler(ServiceUserController.updateDailyNote));
 router.post('/:serviceUserId/risk-assessments', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createRiskAssessmentSchema), asyncHandler(ServiceUserController.createRiskAssessment));
 router.patch('/risk-assessments/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateRiskAssessmentSchema), asyncHandler(ServiceUserController.updateRiskAssessment));

@@ -25,6 +25,7 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
 
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
+      statusCode: err.statusCode,
       message: err.message,
       ...(requestId && { requestId }),
     });
@@ -33,6 +34,7 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
   if (err instanceof ZodError) {
     const firstError = err.errors[0];
     return res.status(400).json({
+      statusCode: 400,
       message: firstError?.message || 'Validation failed',
       errors: err.errors.map(e => ({
         field: e.path.join('.'),
@@ -43,18 +45,20 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
   }
 
   if (err instanceof multer.MulterError) {
+    const statusCode = 400;
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ message: 'File too large. Maximum size is 10MB.' });
+      return res.status(statusCode).json({ statusCode, message: 'File too large. Maximum size is 10MB.' });
     }
-    return res.status(400).json({ message: err.message });
+    return res.status(statusCode).json({ statusCode, message: err.message });
   }
 
   if (err.message?.startsWith('File type') || err.message?.startsWith('File extension')) {
-    return res.status(400).json({ message: err.message });
+    return res.status(400).json({ statusCode: 400, message: err.message });
   }
 
   logger.error({ err, requestId, url: req.originalUrl, method: req.method }, 'Unhandled error');
   res.status(500).json({
+    statusCode: 500,
     message: 'Internal Server Error',
   });
 };
@@ -62,6 +66,7 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
 export const notFoundHandler = (req: Request, res: Response) => {
   addRequestId(req, res);
   res.status(404).json({
+    statusCode: 404,
     message: process.env.NODE_ENV === 'production' ? 'Not Found' : `Route ${req.method} ${req.originalUrl} not found`,
   });
 };
