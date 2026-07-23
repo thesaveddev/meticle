@@ -34,12 +34,14 @@ import CqcReadinessPage from './pages/compliance/CqcReadinessPage'
 import SatisfactionSurveysPage from './pages/compliance/SatisfactionSurveysPage'
 import StaffEngagementPage from './pages/compliance/StaffEngagementPage'
 import DSPTPage from './pages/dspt/DSPTPage'
+import DbsDashboardPage from './pages/dbs/DbsDashboardPage'
 import OrganizationPage from './pages/organization/OrganizationPage'
 import SettingsPage from './pages/settings/SettingsPage'
 import BillingPage from './pages/billing/BillingPage'
 import LeaveManagerPage from './pages/leave/LeaveManagerPage'
 import ShiftMarketplacePage from './pages/shift-marketplace/ShiftMarketplacePage'
 import AgenciesPage from './pages/agencies/AgenciesPage'
+import ExpensesPage from './pages/expenses/ExpensesPage'
 import ServiceUserDirectoryPage from './pages/service-users/ServiceUserDirectoryPage'
 import ServiceUserProfilePage from './pages/service-users/ServiceUserProfilePage'
 import IncidentDirectoryPage from './pages/incidents/IncidentDirectoryPage'
@@ -65,42 +67,44 @@ import EMedicationPage from './pages/emedication/EMedicationPage'
 import ArchivedMarPage from './pages/emedication/ArchivedMarPage'
 import UnauthorizedPage from './pages/errors/UnauthorizedPage'
 import NotFoundPage from './pages/errors/NotFoundPage'
+import PlatformAdminPage from './pages/admin/PlatformAdminPage'
+import AdminOrganizationDetailPage from './pages/admin/AdminOrganizationDetailPage'
 import { UserRole } from '@caredesk/shared'
 import ErrorBoundary from './components/ErrorBoundary'
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/features" element={<FeaturesPage />} />
-      <Route path="/how-it-works" element={<HowItWorksPage />} />
-      <Route path="/pricing" element={<PricingPage />} />
-      <Route path="/about" element={<AboutPage />} />
-      <Route path="/case-studies" element={<CaseStudiesPage />} />
-      <Route path="/contact" element={<ContactPage />} />
-      <Route path="/blog" element={<BlogPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
-       <Route path="/mfa-challenge" element={<MfaChallengePage />} />
-       <Route path="/mfa-setup" element={<MfaSetupPage />} />
-       <Route path="/survey/satisfaction/:token" element={<SurveyFormPage />} />
-        <Route path="/survey/engagement/:token" element={<SurveyFormPage />} />
-        <Route path="/family-portal/:token" element={<FamilyPortalPage />} />
-        <Route path="/learn" element={<LearningCenterPage />} />
-        <Route path="/privacy" element={<PrivacyPolicyPage />} />
-        <Route path="/terms" element={<TermsOfUsePage />} />
-        <Route path="/cookies" element={<CookiePolicyPage />} />
+      <Route path="/" element={<ErrorBoundary><LandingPage /></ErrorBoundary>} />
+      <Route path="/features" element={<ErrorBoundary><FeaturesPage /></ErrorBoundary>} />
+      <Route path="/how-it-works" element={<ErrorBoundary><HowItWorksPage /></ErrorBoundary>} />
+      <Route path="/pricing" element={<ErrorBoundary><PricingPage /></ErrorBoundary>} />
+      <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
+      <Route path="/case-studies" element={<ErrorBoundary><CaseStudiesPage /></ErrorBoundary>} />
+      <Route path="/contact" element={<ErrorBoundary><ContactPage /></ErrorBoundary>} />
+      <Route path="/blog" element={<ErrorBoundary><BlogPage /></ErrorBoundary>} />
+      <Route path="/login" element={<ErrorBoundary><LoginPage /></ErrorBoundary>} />
+      <Route path="/register" element={<ErrorBoundary><RegisterPage /></ErrorBoundary>} />
+      <Route path="/forgot-password" element={<ErrorBoundary><ForgotPasswordPage /></ErrorBoundary>} />
+      <Route path="/reset-password" element={<ErrorBoundary><ResetPasswordPage /></ErrorBoundary>} />
+      <Route path="/verify-email" element={<ErrorBoundary><VerifyEmailPage /></ErrorBoundary>} />
+      <Route path="/mfa-challenge" element={<ErrorBoundary><MfaChallengePage /></ErrorBoundary>} />
+      <Route path="/mfa-setup" element={<ErrorBoundary><MfaSetupPage /></ErrorBoundary>} />
+      <Route path="/survey/satisfaction/:token" element={<ErrorBoundary><SurveyFormPage /></ErrorBoundary>} />
+      <Route path="/survey/engagement/:token" element={<ErrorBoundary><SurveyFormPage /></ErrorBoundary>} />
+      <Route path="/family-portal/:token" element={<ErrorBoundary><FamilyPortalPage /></ErrorBoundary>} />
+      <Route path="/learn" element={<ErrorBoundary><LearningCenterPage /></ErrorBoundary>} />
+      <Route path="/privacy" element={<ErrorBoundary><PrivacyPolicyPage /></ErrorBoundary>} />
+      <Route path="/terms" element={<ErrorBoundary><TermsOfUsePage /></ErrorBoundary>} />
+      <Route path="/cookies" element={<ErrorBoundary><CookiePolicyPage /></ErrorBoundary>} />
 
       {/* Protected Internal Routes */}
       <Route element={<AuthGuard />}>
         <Route path="/onboarding" element={<OnboardingFlow />} />
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<ModuleGuard module="dashboard"><DashboardPage /></ModuleGuard>} />
-            <Route path="/staff" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><StaffDirectoryPage /></ModuleGuard></AuthGuard>} />
-            <Route path="/staff/:userId" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><StaffProfilePage /></ModuleGuard></AuthGuard>} />
+        <Route element={<ErrorBoundary><Layout /></ErrorBoundary>}>
+          <Route path="/dashboard" element={<ModuleGuard module="dashboard"><DashboardPage /></ModuleGuard>} />
+          <Route path="/staff" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><StaffDirectoryPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/staff/:userId" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><StaffProfilePage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><CompliancePage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/identity" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><IdentityMonitoringPage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/competency" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><CompetencyAssessmentsPage /></ModuleGuard></AuthGuard>} />
@@ -121,9 +125,11 @@ function App() {
           <Route path="/organizations" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN]}><OrganizationPage /></AuthGuard>} />
           <Route path="/settings" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="settings"><SettingsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/billing" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN]}><BillingPage /></AuthGuard>} />
-          <Route path="/leave" element={<ErrorBoundary><ModuleGuard module="leave"><LeaveManagerPage /></ModuleGuard></ErrorBoundary>} />
+          <Route path="/leave" element={<ModuleGuard module="leave"><LeaveManagerPage /></ModuleGuard>} />
           <Route path="/shift-marketplace" element={<ModuleGuard module="marketplace"><ShiftMarketplacePage /></ModuleGuard>} />
           <Route path="/agencies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><AgenciesPage /></AuthGuard>} />
+          <Route path="/expenses" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ExpensesPage /></AuthGuard>} />
+          <Route path="/dbs" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><DbsDashboardPage /></AuthGuard>} />
           <Route path="/service-users" element={<ModuleGuard module="staff_directory"><ServiceUserDirectoryPage /></ModuleGuard>} />
           <Route path="/service-users/:id" element={<ModuleGuard module="staff_directory"><ServiceUserProfilePage /></ModuleGuard>} />
           <Route path="/incidents" element={<ModuleGuard module="staff_directory"><IncidentDirectoryPage /></ModuleGuard>} />
@@ -134,12 +140,15 @@ function App() {
           <Route path="/policies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><PoliciesPage /></ModuleGuard></AuthGuard>} />
           <Route path="/goals" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="staff_directory"><GoalsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/care-assessments" element={<ModuleGuard module="staff_directory"><CareAssessmentsPage /></ModuleGuard>} />
-          <Route path="/emedication" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ErrorBoundary><EMedicationPage /></ErrorBoundary></AuthGuard>} />
-          <Route path="/emedication/archived" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ErrorBoundary><ArchivedMarPage /></ErrorBoundary></AuthGuard>} />
-          <Route path="/tasks" element={<ModuleGuard module="dashboard"><TasksPage /></ModuleGuard>} />
-          <Route path="/room-checks" element={<ModuleGuard module="dashboard"><RoomChecksPage /></ModuleGuard>} />
-          <Route path="/check-in" element={<ModuleGuard module="dashboard"><CheckInPage /></ModuleGuard>} />
-          <Route path="/voice-notes" element={<ModuleGuard module="dashboard"><VoiceNotesPage /></ModuleGuard>} />
+          <Route path="/room-checks" element={<ModuleGuard module="staff_directory"><RoomChecksPage /></ModuleGuard>} />
+          <Route path="/mobile/check-in" element={<CheckInPage />} />
+          <Route path="/mobile/voice-notes" element={<VoiceNotesPage />} />
+          <Route path="/medications" element={<ModuleGuard module="staff_directory"><EMedicationPage /></ModuleGuard>} />
+          <Route path="/emedication" element={<ModuleGuard module="staff_directory"><EMedicationPage /></ModuleGuard>} />
+          <Route path="/emedication/archived" element={<ModuleGuard module="staff_directory"><ArchivedMarPage /></ModuleGuard>} />
+          <Route path="/tasks" element={<ModuleGuard module="staff_directory"><TasksPage /></ModuleGuard>} />
+          <Route path="/platform-admin" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><PlatformAdminPage /></AuthGuard>} />
+          <Route path="/platform-admin/organizations/:id" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><AdminOrganizationDetailPage /></AuthGuard>} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

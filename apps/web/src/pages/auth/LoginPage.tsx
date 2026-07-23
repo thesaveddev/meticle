@@ -43,7 +43,8 @@ export default function LoginPage() {
       localStorage.setItem('accessToken', response.data.accessToken)
       localStorage.setItem('refreshToken', response.data.refreshToken)
       localStorage.setItem('user', JSON.stringify(response.data.user))
-      navigate('/dashboard')
+      const role = response.data.user?.role
+      navigate(role === 'SUPER_ADMIN' ? '/platform-admin' : '/dashboard')
     } catch (err: any) {
       const msg = err.response?.data?.message
       if (msg) {

@@ -670,6 +670,7 @@ export const addPaymentMethodSchema = z.object({
   payment_method_id: z.string().optional(),
   card_last_four: z.string().length(4).optional(),
   card_brand: z.string().optional(),
+  cardholder_name: z.string().max(255).optional(),
   expiry_month: z.number().int().min(1).max(12).optional(),
   expiry_year: z.number().int().optional(),
 });

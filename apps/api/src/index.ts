@@ -52,6 +52,9 @@ import emedicationRoutes from './modules/emedication/emedication.routes';
 import aiRoutes from './modules/ai/ai.routes';
 import delegationRoutes from './modules/delegations/delegation.routes';
 import agencyRoutes from './modules/agencies/agencies.routes';
+import dbsRoutes from './modules/dbs/dbs.routes';
+import expensesRoutes from './modules/expenses/expenses.routes';
+import platformAdminRoutes from './modules/platform-admin/platform-admin.routes';
 import dsptRoutes from './modules/dspt/dspt.routes';
 import { BillingController } from './modules/billing/billing.controller';
 import { ComplianceController } from './modules/compliance/compliance.controller';
@@ -78,11 +81,12 @@ for (const varName of REQUIRED_ENV_VARS) {
 }
 
 // Process-level error handlers
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error({ reason }, 'Unhandled Rejection');
+process.on('unhandledRejection', (reason) => {
+  logger.fatal({ reason }, 'Unhandled Rejection — exiting');
+  setTimeout(() => process.exit(1), 1000);
 });
 process.on('uncaughtException', (err) => {
-  logger.fatal(err, 'Uncaught Exception');
+  logger.fatal(err, 'Uncaught Exception — exiting');
   setTimeout(() => process.exit(1), 1000);
 });
 
@@ -145,7 +149,7 @@ app.use(pinoHttp({
 app.use('/api', rateLimit(200, 60_000));
 app.use(metricsMiddleware);
 
-app.post('/billing/webhook', express.raw({ type: 'application/json' }), (req, res) => BillingController.handleWebhook(req, res));
+app.post('/billing/webhook', express.raw({ type: 'application/json' }), asyncHandler(BillingController.handleWebhook));
 app.use(express.json({ limit: '15mb' }));
 app.use('/uploads', express.static('uploads'));
 app.get('/files/private/:filename', authenticate, asyncHandler(ComplianceController.servePrivateFile));
@@ -187,18 +191,21 @@ app.use('/family-portal', familyPortalRoutes);
 app.use('/api/family-portal', familyPortalPublicRoutes);
 app.use('/delegations', delegationRoutes);
 app.use('/agencies', agencyRoutes);
+app.use('/dbs', dbsRoutes);
+app.use('/expenses', expensesRoutes);
+app.use('/platform-admin', platformAdminRoutes);
 // Health checks — must be BEFORE /health routes to avoid auth middleware clash
 app.get('/health/live', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-app.get('/health/ready', async (req: Request, res: Response) => {
+app.get('/health/ready', asyncHandler(async (req: Request, res: Response) => {
   const dbOk = await healthCheck();
   res.status(dbOk ? 200 : 503).json({
     status: dbOk ? 'ok' : 'degraded',
     database: dbOk ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString(),
   });
-});
+}));
 
 app.use('/health', healthRoutes);
 app.use('/tasks', taskRoutes);
@@ -206,10 +213,10 @@ app.use('/room-checks', roomCheckRoutes);
 app.use('/mobile', mobileRoutes);
 
 // Prometheus metrics — restricted to localhost/internal IPs in production
-app.get('/metrics', async (_req: Request, res: Response) => {
+app.get('/metrics', asyncHandler(async (_req: Request, res: Response) => {
   res.set('Content-Type', 'text/plain');
   res.end(await getMetrics());
-});
+}));
 
 // Swagger docs
 setupSwagger(app);

@@ -4,6 +4,9 @@ import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { getStripe, getOrCreateCustomer, getOrCreatePrice } from '../../shared/services/stripe.service';
 import { AuditRepository } from '../audit/audit.repository';
+import { NotificationsController } from '../notifications/notifications.controller';
+import { EmailService } from '../../shared/utils/email.service';
+import { buildEmailHtml } from '../../shared/utils/email.template';
 import { logWarn } from '../../shared/utils/logger';
 
 export class BillingController {
@@ -34,6 +37,25 @@ export class BillingController {
           currentPeriodEnd: (sub as any).current_period_end ? new Date((sub as any).current_period_end).toISOString() : null,
           cancelAtPeriodEnd: sub.cancel_at_period_end,
         };
+
+        // Reconcile Stripe status into DB — handles missed webhooks
+        const stripeMapped = sub.status === 'active' ? 'active' : sub.status === 'past_due' ? 'past_due' : sub.status === 'canceled' ? 'canceled' : sub.status === 'incomplete' ? 'trial' : null;
+        if (stripeMapped && stripeMapped !== org.subscription_status) {
+          await pool.query(
+            `UPDATE organizations SET subscription_status = $1 WHERE id = $2`,
+            [stripeMapped, orgId]
+          );
+          org.subscription_status = stripeMapped;
+        }
+      } else {
+        // No Stripe subscription found but DB thinks it's active — mark expired
+        if (org.subscription_status === 'active' || org.subscription_status === 'past_due') {
+          await pool.query(
+            `UPDATE organizations SET subscription_status = 'canceled' WHERE id = $1`,
+            [orgId]
+          );
+          org.subscription_status = 'canceled';
+        }
       }
     }
 
@@ -129,15 +151,16 @@ export class BillingController {
 
   static async addPaymentMethod(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    let { payment_method_id, card_last_four, card_brand, expiry_month, expiry_year } = req.body;
+    let { payment_method_id, card_last_four, card_brand, cardholder_name, expiry_month, expiry_year } = req.body;
 
     const stripe = getStripe();
+    let stripeFingerprint: string | null = null;
+
     if (stripe && payment_method_id) {
       const org = await pool.query('SELECT stripe_customer_id FROM organizations WHERE id = $1', [orgId]);
       if (org.rows[0]?.stripe_customer_id) {
         await stripe.paymentMethods.attach(payment_method_id, { customer: org.rows[0].stripe_customer_id });
       }
-      // Retrieve card details from Stripe
       try {
         const pm = await stripe.paymentMethods.retrieve(payment_method_id);
         if (pm.card) {
@@ -145,8 +168,24 @@ export class BillingController {
           card_brand = pm.card.brand || card_brand;
           expiry_month = pm.card.exp_month || expiry_month;
           expiry_year = pm.card.exp_year || expiry_year;
+          stripeFingerprint = pm.card.fingerprint || null;
         }
       } catch { /* use provided values */ }
+    }
+
+    // Check for duplicate card by fingerprint or last4+brand+expiry
+    if (stripeFingerprint) {
+      const dup = await pool.query(
+        'SELECT id FROM payment_methods WHERE organization_id = $1 AND stripe_fingerprint = $2',
+        [orgId, stripeFingerprint]
+      );
+      if (dup.rows.length > 0) throw new AppError(409, 'This card has already been added');
+    } else if (card_last_four && card_brand) {
+      const dup = await pool.query(
+        'SELECT id FROM payment_methods WHERE organization_id = $1 AND card_last_four = $2 AND card_brand = $3 AND expiry_month = $4 AND expiry_year = $5',
+        [orgId, card_last_four, card_brand, expiry_month || 0, expiry_year || 0]
+      );
+      if (dup.rows.length > 0) throw new AppError(409, 'This card has already been added');
     }
 
     const existing = await pool.query(
@@ -154,9 +193,9 @@ export class BillingController {
     );
     const isDefault = existing.rows.length === 0;
     const result = await pool.query(
-      `INSERT INTO payment_methods (organization_id, card_last_four, card_brand, expiry_month, expiry_year, is_default, stripe_payment_method_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [orgId, card_last_four || '', card_brand || '', expiry_month || 0, expiry_year || 0, isDefault, payment_method_id || null]
+      `INSERT INTO payment_methods (organization_id, card_last_four, card_brand, cardholder_name, expiry_month, expiry_year, is_default, stripe_payment_method_id, stripe_fingerprint)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [orgId, card_last_four || '', card_brand || '', cardholder_name || null, expiry_month || 0, expiry_year || 0, isDefault, payment_method_id || null, stripeFingerprint]
     );
     res.status(201).json(result.rows[0]);
   }
@@ -180,6 +219,12 @@ export class BillingController {
     const pm = await pool.query('SELECT organization_id, stripe_payment_method_id, is_default FROM payment_methods WHERE id = $1', [id]);
     if (pm.rows.length === 0) throw new AppError(404, 'Payment method not found');
     if (pm.rows[0].organization_id !== orgId) throw new AppError(403, 'Access denied');
+
+    // Block removal of default card — user must set another card as default first
+    if (pm.rows[0]?.is_default) {
+      throw new AppError(400, 'Set another card as default before removing this one');
+    }
+
     const stripe = getStripe();
     if (stripe && pm.rows[0]?.stripe_payment_method_id) {
       try {
@@ -188,16 +233,7 @@ export class BillingController {
     }
 
     await pool.query('DELETE FROM payment_methods WHERE id = $1', [id]);
-    // If the deleted card was default, auto-set next card as default
-    if (pm.rows[0]?.is_default) {
-      const next = await pool.query(
-        'SELECT id FROM payment_methods WHERE organization_id = $1 ORDER BY created_at DESC LIMIT 1',
-        [orgId]
-      );
-      if (next.rows.length > 0) {
-        await pool.query('UPDATE payment_methods SET is_default = TRUE WHERE id = $1', [next.rows[0].id]);
-      }
-    }
+    // If the deleted card was default and it was the last one, nothing to promote
     res.json({ message: 'Deleted' });
   }
 
@@ -221,16 +257,143 @@ export class BillingController {
       return;
     }
 
+    const notifyAdmins = async (orgId: string, title: string, msg: string, sendEmail?: { subject: string; html: string }) => {
+      const admins = await pool.query(
+        "SELECT id, email, COALESCE(first_name, '') as first_name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN'",
+        [orgId]
+      );
+      for (const admin of admins.rows) {
+        NotificationsController.createNotification(admin.id, title, msg, 'billing').catch(logWarn('billing notification'));
+        if (sendEmail) {
+          EmailService.sendQueued(admin.email, sendEmail.subject, sendEmail.html).catch(logWarn('billing email'));
+        }
+      }
+    };
+
     switch (event.type) {
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
         const customer = await stripe.customers.retrieve(invoice.customer as string) as Stripe.Customer;
         const orgId = invoice.metadata?.orgId || customer.metadata?.orgId;
         if (orgId && invoice.id) {
-          await pool.query(
-            `UPDATE invoices SET status = 'paid', paid_at = NOW() WHERE organization_id = $1 AND stripe_invoice_id = $2`,
+          const existing = await pool.query(
+            'SELECT id FROM invoices WHERE organization_id = $1 AND stripe_invoice_id = $2',
             [orgId, invoice.id]
           );
+          if (existing.rows.length > 0) {
+            await pool.query(
+              `UPDATE invoices SET status = 'paid', paid_at = NOW() WHERE id = $1`,
+              [existing.rows[0].id]
+            );
+          } else {
+            await pool.query(
+              `INSERT INTO invoices (organization_id, invoice_number, description, amount, currency, status, stripe_invoice_id, issued_at, paid_at)
+               VALUES ($1, $2, $3, $4, $5, 'paid', $6, to_timestamp($7), NOW())`,
+              [orgId, `STRIPE-${invoice.number || Date.now()}`, `Stripe invoice ${invoice.id}`, (invoice.amount_paid || 0) / 100, invoice.currency?.toUpperCase() || 'GBP', invoice.id, invoice.created]
+            );
+          }
+          // Payment succeeded after failures — reset tracking and reactivate
+          await pool.query(
+            `UPDATE organizations SET failed_payment_count = 0, first_payment_failed_at = NULL, last_payment_failed_at = NULL, subscription_status = 'active' WHERE id = $1 AND subscription_status = 'past_due'`,
+            [orgId]
+          );
+        }
+        break;
+      }
+      case 'invoice.payment_failed': {
+        const failedInvoice = event.data.object as Stripe.Invoice;
+        const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer as string) as Stripe.Customer;
+        const orgIdFailed = failedInvoice.metadata?.orgId || failedCustomer.metadata?.orgId;
+        if (orgIdFailed) {
+          // Track failure
+          await pool.query(
+            `UPDATE organizations SET
+              failed_payment_count = COALESCE(failed_payment_count, 0) + 1,
+              last_payment_failed_at = NOW(),
+              first_payment_failed_at = COALESCE(first_payment_failed_at, NOW())
+            WHERE id = $1`,
+            [orgIdFailed]
+          );
+
+          const orgRow = await pool.query(
+            'SELECT failed_payment_count, first_payment_failed_at FROM organizations WHERE id = $1',
+            [orgIdFailed]
+          );
+          const attemptCount = failedInvoice.attempt_count || 0;
+          const firstFailedAt = orgRow.rows[0]?.first_payment_failed_at;
+          const daysSinceFirstFailure = firstFailedAt
+            ? Math.floor((Date.now() - new Date(firstFailedAt).getTime()) / 86400000)
+            : 0;
+
+          const amount = (failedInvoice.amount_due || 0) / 100;
+          const currency = (failedInvoice.currency || 'gbp').toUpperCase();
+          const payErr = (failedInvoice as any).last_payment_error?.payment_method_details?.card;
+          const lastFour = payErr?.last4;
+          const brand = payErr?.brand;
+          const cardInfo = lastFour ? `${brand || 'Card'} ending in ${lastFour}` : 'your card';
+
+          // Next retry time from Stripe's Smart Retries
+          const nextAttempt = failedInvoice.next_payment_attempt
+            ? new Date(failedInvoice.next_payment_attempt * 1000)
+            : null;
+          const disableDate = firstFailedAt
+            ? new Date(new Date(firstFailedAt).getTime() + 3 * 86400000)
+            : null;
+
+          // In-app notification
+          notifyAdmins(
+            orgIdFailed,
+            'Payment Failed',
+            `Payment for ${amount} ${currency} failed using ${cardInfo}. We'll retry automatically. Update your payment method to avoid service interruption.`
+          );
+
+          // Email notification with retry schedule + disable warning
+          if (daysSinceFirstFailure < 3) {
+            const nextRetryStr = nextAttempt
+              ? nextAttempt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+              : 'soon';
+            const disableStr = disableDate
+              ? disableDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+              : 'within 3 days';
+
+            const emailHtml = buildEmailHtml(
+              'Payment Failed - CareDesk',
+              'Payment Failed',
+              `<p>We attempted to charge <strong>${currency} ${amount.toFixed(2)}</strong> to <strong>${cardInfo}</strong> for your CareDesk subscription but the payment was declined.</p>
+<p><strong>Next retry:</strong> ${nextRetryStr}</p>
+<p><strong>Account will be disabled:</strong> ${disableStr}</p>
+<p>To avoid service interruption, please update your billing method or contact your bank.</p>`,
+              { label: 'Update Billing Method', url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/billing` }
+            );
+            notifyAdmins(
+              orgIdFailed,
+              'Payment Failed',
+              `Payment for ${amount} ${currency} failed using ${cardInfo}. We'll retry automatically.`,
+              { subject: `Payment Failed — ${currency} ${amount.toFixed(2)} — CareDesk`, html: emailHtml }
+            );
+          }
+
+          // After 5 failed attempts or 3 days since first failure, suspend the account
+          if (attemptCount >= 5 || daysSinceFirstFailure >= 3) {
+            await pool.query(
+              `UPDATE organizations SET subscription_status = 'past_due' WHERE id = $1`,
+              [orgIdFailed]
+            );
+            const suspendHtml = buildEmailHtml(
+              'Subscription Suspended - CareDesk',
+              'Subscription Suspended',
+              `<p>After repeated failed payment attempts, your CareDesk subscription has been <strong>suspended</strong>.</p>
+<p>All staff access has been restricted to billing and learning resources only.</p>
+<p>Please update your billing information immediately to restore full access.</p>`,
+              { label: 'Restore Access', url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/billing` }
+            );
+            notifyAdmins(
+              orgIdFailed,
+              'Subscription Suspended',
+              'Your subscription has been suspended due to repeated payment failures. Please update your billing information to restore access.',
+              { subject: 'Subscription Suspended — CareDesk', html: suspendHtml }
+            );
+          }
         }
         break;
       }
@@ -246,9 +409,55 @@ export class BillingController {
         }
         break;
       }
+      case 'customer.subscription.deleted': {
+        const deletedSub = event.data.object as Stripe.Subscription;
+        const orgIdDel = deletedSub.metadata?.organizationId;
+        if (orgIdDel) {
+          await pool.query(
+            `UPDATE organizations SET subscription_status = 'canceled' WHERE id = $1`,
+            [orgIdDel]
+          );
+        }
+        break;
+      }
     }
 
     res.json({ received: true });
+  }
+
+  static async retryPayment(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    const stripe = getStripe();
+    if (!stripe) throw new AppError(400, 'Stripe not configured');
+
+    const org = await pool.query(
+      'SELECT stripe_customer_id FROM organizations WHERE id = $1',
+      [orgId]
+    );
+    const customerId = org.rows[0]?.stripe_customer_id;
+    if (!customerId) throw new AppError(400, 'No Stripe customer found');
+
+    // Find the latest open/unpaid invoice
+    const invoices = await stripe.invoices.list({
+      customer: customerId,
+      status: 'open',
+      limit: 1,
+    });
+
+    if (invoices.data.length === 0) throw new AppError(400, 'No unpaid invoices found');
+
+    const invoice = invoices.data[0];
+    try {
+      const paid = await stripe.invoices.pay(invoice.id);
+      // Sync DB immediately — don't wait for webhook
+      await pool.query(
+        `UPDATE organizations SET subscription_status = 'active', failed_payment_count = 0, first_payment_failed_at = NULL, last_payment_failed_at = NULL WHERE id = $1`,
+        [orgId]
+      );
+      res.json({ message: 'Payment successful', status: paid.status });
+    } catch (err: any) {
+      throw new AppError(402, err.message || 'Payment failed');
+    }
   }
 
   static async getAddons(req: Request, res: Response) {

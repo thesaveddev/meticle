@@ -36,7 +36,7 @@ router.get('/overdue/count', asyncHandler(EMedicationController.getOverdueCount)
 
 // ── Administration — CARE_WORKER can log ──
 router.post('/administrations', validate(logAdministrationSchema), asyncHandler(EMedicationController.logAdministration));
-router.patch('/administrations/:adminId', validate(updateAdministrationSchema), asyncHandler(EMedicationController.updateAdministration));
+router.patch('/administrations/:adminId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateAdministrationSchema), asyncHandler(EMedicationController.updateAdministration));
 
 // ── Management — ORG_ADMIN / MANAGER only ──
 router.post('/records', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createMedicationRecordSchema), asyncHandler(EMedicationController.createRecord));
@@ -47,7 +47,7 @@ router.post('/records/:recordId/items', requireRole(UserRole.ORG_ADMIN, UserRole
 router.patch('/items/:itemId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateMedicationItemSchema), asyncHandler(EMedicationController.updateItem));
 router.delete('/items/:itemId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(EMedicationController.deleteItem));
 
-router.post('/ensure-monthly-mar', validate(ensureMonthlyMarSchema), asyncHandler(EMedicationController.ensureMonthlyMar));
+router.post('/ensure-monthly-mar', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(ensureMonthlyMarSchema), asyncHandler(EMedicationController.ensureMonthlyMar));
 router.post('/archive-previous', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(EMedicationController.archivePreviousMars));
 
 router.post('/records/:recordId/import-from-previous', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(EMedicationController.importFromPreviousMonth));
