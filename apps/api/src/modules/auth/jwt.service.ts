@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 interface TokenPayload {
   userId: string;

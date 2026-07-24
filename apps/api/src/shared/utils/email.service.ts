@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { buildEmailHtml, buildStatusEmailHtml } from './email.template';
+import { buildEmailHtml, buildCodeEmailHtml, buildStatusEmailHtml } from './email.template';
 import logger from './logger';
 
 let transporter: nodemailer.Transporter | null = null;
@@ -32,7 +32,7 @@ async function sendMail(to: string, subject: string, html: string) {
   const t = getTransporter();
   if (!t) { logger.warn('No email transporter available'); return; }
   try {
-    const from = process.env.SMTP_FROM || 'hello@caredesk.app';
+    const from = process.env.SMTP_FROM || 'hello@meticlecare.com';
     await t.sendMail({ from, to, subject, html });
     logger.info({ to, subject }, 'Email sent');
   } catch (err) { logger.error(err, 'Email send failed'); }
@@ -43,15 +43,19 @@ const baseUrl = () => process.env.FRONTEND_URL || 'http://localhost:3000';
 export class EmailService {
   static async sendVerificationEmail(email: string, token: string) {
     const url = `${baseUrl()}/verify-email?token=${token}`;
-    await sendMail(email, 'Verify your CareDesk account',
+    await sendMail(email, 'Verify your Meticle account',
       buildEmailHtml('Verify Email', 'Verify your email address',
         `<p>Click the button below to verify your email address and activate your account.</p>`,
         { label: 'Verify Email', url }));
   }
 
+  static async sendVerificationCode(email: string, code: string) {
+    await sendMail(email, 'Your Meticle Verification Code', buildCodeEmailHtml(code));
+  }
+
   static async sendPasswordResetEmail(email: string, token: string) {
     const url = `${baseUrl()}/reset-password?token=${token}`;
-    await sendMail(email, 'Reset your CareDesk password',
+    await sendMail(email, 'Reset your Meticle password',
       buildEmailHtml('Reset Password', 'Reset your password',
         `<p>Click the button below to reset your password. This link expires in 1 hour.</p>`,
         { label: 'Reset Password', url }));
@@ -59,20 +63,20 @@ export class EmailService {
 
   static async sendInviteEmail(email: string, orgName: string, token: string) {
     const url = `${baseUrl()}/register?token=${token}`;
-    await sendMail(email, `You've been invited to join ${orgName} on CareDesk`,
+    await sendMail(email, `You've been invited to join ${orgName} on Meticle`,
       buildEmailHtml('Invitation', `You've been invited to ${orgName}`,
-        `<p>Click below to create your account and join ${orgName} on CareDesk.</p>`,
+        `<p>Click below to create your account and join ${orgName} on Meticle.</p>`,
         { label: 'Accept Invitation', url }));
   }
 
   static async sendWelcomeEmail(email: string, name: string, orgName?: string) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/dashboard`;
-    await sendMail(email, `Welcome to CareDesk, ${org}!`,
+    await sendMail(email, `Welcome to Meticle, ${org}!`,
       buildEmailHtml('Welcome',
-        `Welcome to CareDesk, ${org}`,
+        `Welcome to Meticle, ${org}`,
         `<p style="margin:0 0 12px 0">Hi ${name},</p>` +
-        `<p style="margin:0 0 12px 0">Thank you for choosing CareDesk. I built this platform because I believe every care provider deserves to walk into a CQC inspection knowing exactly what their score will be.</p>` +
+        `<p style="margin:0 0 12px 0">Thank you for choosing Meticle. I built this platform because I believe every care provider deserves to walk into a CQC inspection knowing exactly what their score will be.</p>` +
         `<p style="margin:0 0 16px 0">Here's what I suggest you do first:</p>` +
         `<p style="margin:0 0 4px 0"><strong>1. Add your staff</strong> — invite your team from the Staff Directory</p>` +
         `<p style="margin:0 0 4px 0"><strong>2. Set up compliance profiles</strong> — staff are auto-assigned by role</p>` +
@@ -80,8 +84,8 @@ export class EmailService {
         `<p style="margin:0 0 12px 0"><strong>4. Generate an evidence pack</strong> — one click, inspector-ready</p>` +
         `<p style="margin:0 0 12px 0">You're on a <strong>14-day free trial</strong>. Take it for a proper spin.</p>` +
         `<p style="margin:0;font-size:13px;color:#9CA3AF">If you have any questions, just reply to this email.</p>` +
-        `<p style="margin:0;font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, CareDesk</p>`,
-        { label: 'Go to CareDesk', url }));
+        `<p style="margin:0;font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
+        { label: 'Go to Meticle', url }));
   }
 
   // ── Leave ──
@@ -171,7 +175,7 @@ export class EmailService {
     await sendMail(email, 'Manager Delegation Assigned',
       buildEmailHtml('Delegation', `Hi ${delegateName},`,
         `<p>You have been assigned as a delegate for ${primaryName}.${endsAt ? ` This delegation ends on ${new Date(endsAt).toLocaleDateString()}.` : ''}</p>`,
-        { label: 'Open CareDesk', url: `${baseUrl()}/leave` }));
+        { label: 'Open Meticle', url: `${baseUrl()}/leave` }));
   }
 
   // ── Shifts ──
@@ -255,7 +259,7 @@ export class EmailService {
     await sendMail(email, `${orgName} — Access to ${serviceUserName}'s care information`,
       buildEmailHtml('Family Portal', `You've been invited to stay connected`,
         `<p>Hi ${memberName},</p>` +
-        `<p><strong>${orgName}</strong> has invited you to view care information for <strong>${serviceUserName}</strong> through the CareDesk Family Portal.</p>` +
+        `<p><strong>${orgName}</strong> has invited you to view care information for <strong>${serviceUserName}</strong> through the Meticle Family Portal.</p>` +
         `<p>Through this secure portal you can see:</p>` +
         `<ul><li>Daily care notes</li><li>Care plans</li><li>Goals and progress</li><li>Health observations</li></ul>` +
         `<p style="margin-top:16px">This link expires in <strong>90 days</strong> and is unique to you. Do not share it.</p>`,
@@ -292,7 +296,7 @@ export class EmailService {
           `<p>Hi ${name},</p>` +
           `<p>Your 14-day trial for <strong>${org}</strong> ${daysLeft > 1 ? `ends in <strong>${daysLeft} days</strong>` : '<strong>ends tomorrow</strong>'}. We'll charge the card on file on the expiry date.</p>` +
           `<p>You can view or update your payment method at any time.</p>` +
-          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, CareDesk</p>`,
+          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
           { label: 'View Billing', url }));
     } else {
       await sendMail(email,
@@ -302,7 +306,7 @@ export class EmailService {
           `<p>Hi ${name},</p>` +
           `<p>Your 14-day trial for <strong>${org}</strong> ${daysLeft > 1 ? `ends in <strong>${daysLeft} days</strong>` : '<strong>ends tomorrow</strong>'}. You'll lose access to CQC scoring, evidence packs, rota planning, eMAR, and all compliance records.</p>` +
           `<p>Adding a payment card takes 30 seconds. <strong>You won't be charged until your trial ends.</strong></p>` +
-          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, CareDesk</p>`,
+          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
           { label: 'Add Payment Card', url }));
     }
   }
@@ -311,20 +315,20 @@ export class EmailService {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
     if (hasCard) {
-      await sendMail(email, 'Your CareDesk trial has ended — your card has been charged',
+      await sendMail(email, 'Your Meticle trial has ended — your card has been charged',
         buildEmailHtml('Trial Ended', `Your trial for ${org} has ended`,
           `<p>Hi ${name},</p>` +
           `<p>Your 14-day trial has ended. Your card on file has been charged and your subscription is now active.</p>` +
           `<p>You can manage your plan and billing from the Billing page.</p>` +
-          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, CareDesk</p>`,
+          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
           { label: 'Manage Billing', url }));
     } else {
-      await sendMail(email, 'Your CareDesk trial has ended — add a card to restore access',
+      await sendMail(email, 'Your Meticle trial has ended — add a card to restore access',
         buildEmailHtml('Trial Expired', `Your trial for ${org} has ended`,
           `<p>Hi ${name},</p>` +
-          `<p>Your 14-day free trial has ended. Your data is safe — nothing has been deleted. Add a card to continue using CareDesk.</p>` +
+          `<p>Your 14-day free trial has ended. Your data is safe — nothing has been deleted. Add a card to continue using Meticle.</p>` +
           `<p><strong>No card = no charges.</strong> You control when to resume.</p>` +
-          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, CareDesk</p>`,
+          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
           { label: 'Reactivate Now', url }));
     }
   }

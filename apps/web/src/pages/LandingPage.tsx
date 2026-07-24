@@ -10,7 +10,7 @@ import {
 } from '@mui/icons-material'
 import MarketingLayout from '../components/marketing/MarketingLayout'
 
-const HERO_IMAGE = '/caredesk_dashboard_hero.jpg'
+const HERO_IMAGE = '/meticle_dashboard_hero.jpg'
 
 export default function LandingPage() {
   const navigate = useNavigate()
@@ -74,7 +74,7 @@ export default function LandingPage() {
 
             <Grid item xs={12} lg={6}>
               <Box sx={{ position: 'relative' }}>
-                <img src={HERO_IMAGE} alt="CareDesk Dashboard" style={{ width: '100%', borderRadius: 12, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)', border: '1px solid #E5E7EB' }} />
+                <img src={HERO_IMAGE} alt="Meticle Dashboard" style={{ width: '100%', borderRadius: 12, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)', border: '1px solid #E5E7EB' }} />
                 <Box sx={{ position: 'absolute', top: -12, right: -12, bgcolor: '#16A34A', color: 'white', px: 2, py: 0.5, borderRadius: 2, fontWeight: 800, fontSize: '0.8rem' }}>
                   Live Readiness Score
                 </Box>
@@ -460,7 +460,7 @@ export default function LandingPage() {
           <Typography variant="h2" align="center" sx={{ mb: 8 }}>Frequently Asked Questions</Typography>
           <Stack spacing={2}>
             {[
-              { q: 'What regulators does CareDesk support?', a: 'All four UK regulators: CQC (England), CIW/RISCA (Wales), Care Inspectorate (Scotland), and RQIA (Northern Ireland). Your compliance scoring and evidence packs automatically adjust based on your organisation\'s selected regulator.' },
+              { q: 'What regulators does Meticle support?', a: 'All four UK regulators: CQC (England), CIW/RISCA (Wales), Care Inspectorate (Scotland), and RQIA (Northern Ireland). Your compliance scoring and evidence packs automatically adjust based on your organisation\'s selected regulator.' },
               { q: 'How does compliance scoring work?', a: 'Each CQC domain is scored from real records — training completion feeds Effective, competency mapping feeds Safe, satisfaction surveys feed Caring, staff engagement feeds Well-led, and incidents feed Responsive. No manual entry, no proxies.' },
               { q: 'Is my data secure?', a: 'AES-256 encryption at rest, TLS 1.3 in transit. Hosted in UK-based ISO 27001-certified data centres. Role-based access controls, full audit logging, regular penetration testing. UK GDPR and DPA 2018 compliant. ICO registered.' },
               { q: 'Do you offer a free trial?', a: 'Yes. 14-day free trial with full platform access. No credit card required. Setup takes minutes.' },

@@ -23,16 +23,16 @@ export default function PrivacyPolicyPage() {
       </Section>
 
       <Section title="2. How We Use Your Information">
-        <ul><li>To provide, maintain, and improve CareDesk services</li><li>To process payments and manage subscriptions</li><li>To send service-related notifications</li><li>To generate compliance reports and evidence packs for regulatory inspections</li><li>To comply with legal obligations (UK GDPR, CQC requirements)</li><li>To detect and prevent fraud, abuse, and security incidents</li></ul>
+        <ul><li>To provide, maintain, and improve Meticle services</li><li>To process payments and manage subscriptions</li><li>To send service-related notifications</li><li>To generate compliance reports and evidence packs for regulatory inspections</li><li>To comply with legal obligations (UK GDPR, CQC requirements)</li><li>To detect and prevent fraud, abuse, and security incidents</li></ul>
         <p>We do not sell your data. We do not share your data with third parties except as necessary to provide the service.</p>
       </Section>
 
       <Section title="3. Legal Basis for Processing (UK GDPR)">
-        <ul><li><strong>Contractual necessity</strong> — providing the CareDesk service</li><li><strong>Legal obligation</strong> — compliance with CQC regulations, UK employment law</li><li><strong>Legitimate interest</strong> — improving our service, preventing fraud</li><li><strong>Consent</strong> — where you've explicitly agreed (marketing, optional features)</li></ul>
+        <ul><li><strong>Contractual necessity</strong> — providing the Meticle service</li><li><strong>Legal obligation</strong> — compliance with CQC regulations, UK employment law</li><li><strong>Legitimate interest</strong> — improving our service, preventing fraud</li><li><strong>Consent</strong> — where you've explicitly agreed (marketing, optional features)</li></ul>
       </Section>
 
       <Section title="4. Special Category Data">
-        <p>CareDesk processes special category data (health information, DBS checks) as a data processor on behalf of care providers. Our customers are the data controllers. We rely on UK GDPR Article 9(2)(h) — processing necessary for health or social care.</p>
+        <p>Meticle processes special category data (health information, DBS checks) as a data processor on behalf of care providers. Our customers are the data controllers. We rely on UK GDPR Article 9(2)(h) — processing necessary for health or social care.</p>
       </Section>
 
       <Section title="5. Data Storage and Security">
@@ -44,7 +44,7 @@ export default function PrivacyPolicyPage() {
       </Section>
 
       <Section title="7. Your Rights">
-        <p>Under UK GDPR, you have the right to access, rectify, erase, restrict, port, and object to processing of your data. Contact privacy@caredesk.app to exercise any right. We respond within 30 days.</p>
+        <p>Under UK GDPR, you have the right to access, rectify, erase, restrict, port, and object to processing of your data. Contact privacy@meticlecare.com to exercise any right. We respond within 30 days.</p>
       </Section>
 
       <Section title="8. Cookies">
@@ -52,7 +52,7 @@ export default function PrivacyPolicyPage() {
       </Section>
 
       <Section title="9. Contact">
-        <p>Data Protection Officer: dpo@caredesk.app<br/>Privacy concerns: privacy@caredesk.app<br/>ICO registered. Registration available on request.</p>
+        <p>Data Protection Officer: dpo@meticlecare.com<br/>Privacy concerns: privacy@meticlecare.com<br/>ICO registered. Registration available on request.</p>
       </Section>
     </Container>
   )

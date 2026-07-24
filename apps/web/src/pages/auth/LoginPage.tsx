@@ -8,7 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { Security as SecurityIcon, Visibility, VisibilityOff } from '@mui/icons-material'
 
-const LOGIN_ILLUSTRATION = '/caredesk_login_illustration.jpg';
+const LOGIN_ILLUSTRATION = '/meticle_login_illustration.jpg';
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
@@ -65,7 +65,7 @@ export default function LoginPage() {
         <Container maxWidth="xs" sx={{ mx: 'auto' }}>
           <Box sx={{ mb: 6 }}>
             <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
-              CareDesk
+              Meticle
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>Welcome back</Typography>
             <Typography sx={{ color: '#6B7280' }}>Staffing and compliance management, unified.</Typography>
@@ -149,7 +149,7 @@ export default function LoginPage() {
         <Box sx={{ maxWidth: '600px', textAlign: 'center' }}>
           <img src={LOGIN_ILLUSTRATION} alt="Trust Illustration" style={{ width: '90%', marginBottom: '40px' }} />
           <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 2 }}>"The gold standard for care operations."</Typography>
-          <Typography color="#6B7280">Join 1,000+ care providers running on CareDesk.</Typography>
+          <Typography color="#6B7280">Join 1,000+ care providers running on Meticle.</Typography>
           <Stack direction="row" spacing={3} sx={{ mt: 6, justifyContent: 'center' }}>
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F4C81' }}>100%</Typography>

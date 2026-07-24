@@ -38,7 +38,7 @@ export class MFAController {
       return res.status(400).json({ error: { message: 'MFA is already enabled. Disable it first to set up a new one.' } });
     }
 
-    const secret = speakeasy.generateSecret({ name: `CareDesk (${req.user!.email})` });
+    const secret = speakeasy.generateSecret({ name: `Meticle (${req.user!.email})` });
 
     await pool.query('UPDATE users SET mfa_secret = $1 WHERE id = $2', [secret.base32, userId]);
 

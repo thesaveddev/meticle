@@ -8,7 +8,7 @@ const blogPosts = [
     title: 'CQC Single Assessment Framework: What It Means for Supported Living Providers in 2026',
     excerpt: 'The CQC\'s Single Assessment Framework replaced the old KLOE system with 34 Quality Statements across 5 domains. Here\'s what supported living providers need to know to stay ahead.',
     category: 'CQC Compliance',
-    author: 'CareDesk Team',
+    author: 'Meticle Team',
     date: 'July 2026',
     tags: ['CQC', 'SAF', 'Compliance'],
     featured: true,
@@ -17,7 +17,7 @@ const blogPosts = [
     title: 'How to Evidence All 5 CQC Domains From Real Care Data',
     excerpt: 'Stop using proxies and estimates. Learn how training completion, competency assessments, satisfaction surveys, staff engagement, and incident tracking map to each CQC domain.',
     category: 'CQC Compliance',
-    author: 'CareDesk Team',
+    author: 'Meticle Team',
     date: 'June 2026',
     tags: ['CQC', 'Evidence', 'Scoring'],
   },
@@ -25,7 +25,7 @@ const blogPosts = [
     title: 'Multi-Regulator Compliance: Operating Across CQC, CIW, Care Inspectorate, and RQIA',
     excerpt: 'If your organisation operates across UK nations, you need a platform that speaks all four regulatory languages. Here\'s how multi-regulator support works in practice.',
     category: 'Multi-Regulator',
-    author: 'CareDesk Team',
+    author: 'Meticle Team',
     date: 'June 2026',
     tags: ['CQC', 'CIW', 'Care Inspectorate', 'RQIA'],
   },
@@ -33,7 +33,7 @@ const blogPosts = [
     title: 'Training Compliance Matrix: CQC-Mandated Training per Role Explained',
     excerpt: 'Which training modules does CQC mandate for care workers vs managers? How to track, tag, and evidence mandatory training with digital sign-off.',
     category: 'Training',
-    author: 'CareDesk Team',
+    author: 'Meticle Team',
     date: 'May 2026',
     tags: ['Training', 'CQC', 'Compliance'],
   },
@@ -41,7 +41,7 @@ const blogPosts = [
     title: 'Staff Engagement Surveys: The Missing Piece in Your Well-Led Evidence',
     excerpt: 'CQC\'s Well-led domain requires evidence of staff feedback and engagement. Here\'s how to build a survey programme that generates real evidence for your next inspection.',
     category: 'Staff Engagement',
-    author: 'CareDesk Team',
+    author: 'Meticle Team',
     date: 'May 2026',
     tags: ['Engagement', 'Well-led', 'Surveys'],
   },
@@ -49,7 +49,7 @@ const blogPosts = [
     title: 'Competency Assessments With CQC Statement Mapping: A Practical Guide',
     excerpt: 'Every competency assessment should map to a CQC Quality Statement. Here\'s how to design assessments that generate evidence for the Safe domain while verifying staff competence.',
     category: 'Competency',
-    author: 'CareDesk Team',
+    author: 'Meticle Team',
     date: 'April 2026',
     tags: ['Competency', 'Safe', 'Assessments'],
   },
@@ -57,7 +57,7 @@ const blogPosts = [
     title: 'Satisfaction Surveys for CQC: Building Your Caring Domain Evidence',
     excerpt: 'The Caring domain requires evidence of service user and family feedback. Learn how to implement an email-invited satisfaction survey programme with token-based access.',
     category: 'Surveys',
-    author: 'CareDesk Team',
+    author: 'Meticle Team',
     date: 'April 2026',
     tags: ['Satisfaction', 'Caring', 'Surveys'],
   },
@@ -65,7 +65,7 @@ const blogPosts = [
     title: 'Evidence Packs for CQC Inspection: A Step-by-Step Guide',
     excerpt: 'How to prepare inspection-ready evidence packs organised by CQC domain. From daily notes to KLOE-mapped exports, everything you need for inspection day.',
     category: 'Evidence',
-    author: 'CareDesk Team',
+    author: 'Meticle Team',
     date: 'March 2026',
     tags: ['Evidence', 'Inspection', 'CQC'],
   },
@@ -73,7 +73,7 @@ const blogPosts = [
     title: 'The 34 Quality Statements: A Complete Reference for Care Providers',
     excerpt: 'Every CQC Quality Statement explained with examples of what evidence looks like in practice. Your complete reference guide to the Single Assessment Framework.',
     category: 'CQC Compliance',
-    author: 'CareDesk Team',
+    author: 'Meticle Team',
     date: 'March 2026',
     tags: ['CQC', 'Quality Statements', 'SAF'],
   },
@@ -166,7 +166,7 @@ export default function BlogPage() {
       <Box sx={{ py: 10, bgcolor: '#0F4C81', textAlign: 'center', color: 'white' }}>
         <Container maxWidth="md">
           <Typography variant="h4" sx={{ mb: 2, fontWeight: 900 }}>Want to See It in Action?</Typography>
-          <Typography sx={{ mb: 5, opacity: 0.9 }}>Start your free trial and see how CareDesk transforms compliance across all four UK regulators.</Typography>
+          <Typography sx={{ mb: 5, opacity: 0.9 }}>Start your free trial and see how Meticle transforms compliance across all four UK regulators.</Typography>
           <Button variant="contained" size="large" onClick={() => navigate('/register')} sx={{ bgcolor: 'white', color: '#0F4C81', py: 2, px: 6, fontWeight: 800, '&:hover': { bgcolor: '#F8FAFC' } }}>
             Start Free Trial
           </Button>

@@ -1,8 +1,8 @@
 {
-  "name": "caredesk-marketing",
+  "name": "meticle-marketing",
   "version": "1.0.0",
   "private": true,
-  "description": "CareDesk internal marketing automation & lead generation tool",
+  "description": "Meticle internal marketing automation & lead generation tool",
   "main": "src/index.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",

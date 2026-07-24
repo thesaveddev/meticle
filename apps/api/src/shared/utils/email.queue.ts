@@ -34,7 +34,7 @@ export class EmailQueue {
     for (const email of batch.rows) {
       try {
         if (transporter) {
-          const from = process.env.SMTP_FROM || 'noreply@caredesk.com';
+          const from = process.env.SMTP_FROM || 'noreply@meticlecare.com';
           await transporter.sendMail({ from, to: email.to_email, subject: email.subject, html: email.html_body });
         } else {
           logger.info({ to: email.to_email, subject: email.subject, bodyLength: email.html_body.length }, 'Email (queued)');

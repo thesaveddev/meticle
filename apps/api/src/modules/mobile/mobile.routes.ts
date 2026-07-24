@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 

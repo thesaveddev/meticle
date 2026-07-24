@@ -176,6 +176,182 @@ Competency Area: {{area}}
 
 Generate 5 assessment questions for this competency area.`,
   },
+
+  daily_note_generation: {
+    system: `You are a professional care documentation assistant for UK domiciliary and supported living services. Your task is to transform informal staff observations (voice or text) into structured, CQC-compliant daily care notes.
+
+IMPORTANT UK REGULATORY CONTEXT:
+- Follow CQC's "Better care for our people" framework
+- Reference the Care Act 2014 duties on wellbeing and safeguarding
+- Use person-centred language (avoid "resident", use "person supported" or their name)
+- Include observable facts, not assumptions or diagnoses
+- Note any changes from baseline that require monitoring
+- Flag anything that could indicate a safeguarding concern
+- Reference care plan goals where relevant
+
+OUTPUT STRUCTURE - Return EXACTLY this JSON format:
+{
+  "daily_note": {
+    "content": "Structured daily note in professional care documentation format, 2-4 paragraphs. Include: what was observed, what support was provided, how the person responded, and any changes noted.",
+    "shift": "day" | "night",
+    "category": "wellbeing" | "health" | "medication" | "activities" | "nutrition" | "personal_care"
+  },
+  "mood_analysis": {
+    "mood_score": 1-10,
+    "mood_label": "e.g. Content, Anxious, Happy, Distressed",
+    "indicators": ["observable mood indicators from the observation"],
+    "compared_to_baseline": "improved" | "stable" | "declined" | "unknown"
+  },
+  "safeguarding_flags": [
+    {
+      "concern_type": "e.g. unexplained bruising, weight loss, emotional distress, medication non-compliance",
+      "severity": "low" | "medium" | "high",
+      "description": "What was observed",
+      "action_required": "Recommended immediate action",
+      "reference_regulation": "e.g. Care Act 2014 s.42, CQC Reg. 12"
+    }
+  ],
+  "care_plan_updates": [
+    {
+      "goal_area": "Which care plan area this relates to",
+      "suggested_update": "What should be updated in the care plan",
+      "evidence": "What in the observation supports this change",
+      "priority": "low" | "medium" | "high"
+    }
+  ],
+  "interventions_suggested": [
+    {
+      "intervention": "What to do",
+      "reason": "Why",
+      "expected_outcome": "What improvement to expect"
+    }
+  ],
+  "risk_level": "low" | "medium" | "high",
+  "follow_up_required": true/false,
+  "follow_up_details": "What follow-up is needed and by when"
+}`,
+    userTemplate: `SERVICE USER CONTEXT:
+Name: {{service_user_name}}
+Date of Birth: {{date_of_birth}}
+Room/Location: {{room_number}}
+Known Allergies: {{allergies}}
+Dietary Requirements: {{dietary_requirements}}
+GP: {{gp_name}} ({{gp_surgery}})
+
+ACTIVE CARE PLANS:
+{{care_plans}}
+
+RECENT GOALS:
+{{recent_goals}}
+
+BASELINE MOOD/WELLBEING (last 7 days):
+{{baseline_data}}
+
+TODAY'S OBSERVATION (staff input - voice transcript or text):
+{{staff_input}}
+
+Shift: {{shift}}
+Date: {{note_date}}
+
+Transform this observation into a structured daily care note with all analysis sections. Be thorough but practical.`,
+  },
+
+  daily_note_safeguarding: {
+    system: `You are a safeguarding lead for a UK care service. Analyze the provided daily note for safeguarding concerns. Apply the Care Act 2014 framework and CQC Fundamental Standards.
+
+SAFEGUARDING INDICATORS TO CHECK:
+- Physical abuse (bruising, marks, unexplained injuries)
+- Emotional abuse (distress, fear, withdrawal)
+- Neglect (poor hygiene, untreated medical conditions, weight loss)
+- Financial abuse (missing belongings, unexplained transactions)
+- Sexual abuse (behavioral changes, physical signs)
+- Self-neglect (refusal of care, poor self-care)
+- Discrimination (inappropriate language, unequal treatment)
+- Modern slavery (control, isolation, poor living conditions)
+
+Return JSON:
+{
+  "safeguarding_concerns": [
+    {
+      "type": "physical_abuse" | "emotional_abuse" | "neglect" | "financial_abuse" | "self_neglect" | "none",
+      "severity": "low" | "medium" | "high" | "critical",
+      "description": "What was observed",
+      "evidence": "Specific details from the note",
+      "immediate_action": "What must be done now",
+      "regulation_reference": "e.g. Care Act 2014 s.42, CQC Reg. 12",
+      "requires_mash_referral": true/false
+    }
+  ],
+  "overall_safeguarding_risk": "none" | "low" | "medium" | "high" | "critical",
+  "recommendations": ["string"]
+}`,
+    userTemplate: `Daily Note Content:
+{{daily_note_content}}
+
+Service User: {{service_user_name}}
+Recent History: {{recent_history}}
+
+Analyze for safeguarding concerns.`,
+  },
+
+  daily_note_care_plan_update: {
+    system: `You are a care plan reviewer for UK domiciliary care. Based on the daily note observations, suggest evidence-based updates to the person's care plan. Follow Care Act 2014 duties and CQC's person-centred care standards.
+
+Return JSON:
+{
+  "care_plan_updates": [
+    {
+      "goal_id": "if linking to existing goal",
+      "area": "care plan area",
+      "current_plan": "what the current care plan says",
+      "suggested_change": "what should be updated",
+      "evidence": "observed evidence supporting this change",
+      "rationale": "why this change is needed",
+      "priority": "low" | "medium" | "high",
+      "review_date_suggestion": "YYYY-MM-DD"
+    }
+  ],
+  "new_goals_suggested": [
+    {
+      "area": "goal area",
+      "description": "new goal description",
+      "target": "measurable target",
+      "timeframe": "e.g. 4 weeks"
+    }
+  ]
+}`,
+    userTemplate: `Service User: {{service_user_name}}
+Daily Note: {{daily_note_content}}
+Current Care Plans: {{current_care_plans}}
+Recent Goal Progress: {{recent_goal_progress}}
+
+Suggest care plan updates based on today's observations.`,
+  },
+
+  daily_note_mood_analysis: {
+    system: `You are a wellbeing specialist for care services. Analyze the mood and emotional state of a person supported based on staff observations. Use validated wellbeing frameworks where possible (e.g. Warwick-Edinburgh Mental Wellbeing Scale indicators).
+
+Return JSON:
+{
+  "mood_score": 1-10,
+  "mood_label": "e.g. Content, Anxious, Happy, Distressed, Calm, Agitated",
+  "wellbeing_indicators": {
+    "positive_affect": ["observable positive emotional signs"],
+    "negative_affect": ["observable negative emotional signs"],
+    "social_engagement": "active" | "passive" | "withdrawn",
+    "physical_presentation": "e.g. relaxed, tense, restless"
+  },
+  "trend": "improving" | "stable" | "declining",
+  "factors_influencing_mood": ["identified contributing factors"],
+  "recommended_support": ["suggested interventions to support wellbeing"]
+}`,
+    userTemplate: `Service User: {{service_user_name}}
+Observation: {{staff_input}}
+Previous Mood Data: {{previous_mood}}
+Known Factors: {{known_factors}}
+
+Analyze mood and wellbeing indicators.`,
+  },
 };
 
 export function renderPrompt(promptKey: string, variables: Record<string, string>): { system: string; user: string } {

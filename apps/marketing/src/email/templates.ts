@@ -12,14 +12,14 @@ export function seedTemplates() {
 <p>I noticed {{provider_name}} has a CQC rating of <strong>{{cqc_rating}}</strong>{{#last_inspection}} (last inspected {{last_inspection}}){{/last_inspection}}. What would your score look like today?</p>
 <p>I can show you in a free 15-minute demo. You'll see your actual compliance gaps and get a sample evidence pack.</p>
 <p>Reply to this email or book a time here: <a href="{{tracking_link}}?action=book">{{tracking_link_display}}</a></p>
-<p>Best,<br/>CareDesk</p>`
+<p>Best,<br/>Meticle</p>`
     },
     {
       name: 'follow_up',
       subject: 'Re: Your CQC evidence pack — {{provider_name}}',
       body_html: `<p>Hi {{contact_name}},</p>
 <p>Just following up on my previous email. I know how overwhelming CQC inspections can be — especially with the new Single Assessment Framework.</p>
-<p>CareDesk gives you:</p>
+<p>Meticle gives you:</p>
 <ul>
   <li>Your CQC score across all 5 domains — calculated from real data, not estimates</li>
   <li>AI gap analysis showing exactly what to fix</li>
@@ -28,7 +28,7 @@ export function seedTemplates() {
 </ul>
 <p>{{provider_name}} currently holds a <strong>{{cqc_rating}}</strong> rating. Let me show you where the gaps are — no commitment.</p>
 <p>Reply or book here: <a href="{{tracking_link}}?action=book">{{tracking_link_display}}</a></p>
-<p>Best,<br/>CareDesk</p>`
+<p>Best,<br/>Meticle</p>`
     },
     {
       name: 'evidence_pack',
@@ -43,10 +43,10 @@ export function seedTemplates() {
   <li>Service user care plan coverage</li>
   <li>Incident log with severity classification</li>
 </ul>
-<p>All organised by CQC's 5 Key Lines of Enquiry. This is what inspectors expect — and what CareDesk generates automatically.</p>
+<p>All organised by CQC's 5 Key Lines of Enquiry. This is what inspectors expect — and what Meticle generates automatically.</p>
 <p><strong>Want to see your real data in this format?</strong> Let's do a 15-minute call.</p>
 <p><a href="{{tracking_link}}?action=book">Book a demo →</a></p>
-<p>Best,<br/>CareDesk</p>`
+<p>Best,<br/>Meticle</p>`
     },
   ]
 

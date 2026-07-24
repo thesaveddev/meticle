@@ -33,4 +33,9 @@ export class InsightsController {
     const data = await InsightsRepository.getRota(InsightsController.getOrgId(req));
     res.json(data);
   }
+
+  static async getOutcomes(req: Request, res: Response) {
+    const data = await InsightsRepository.getOutcomes(InsightsController.getOrgId(req));
+    res.json(data);
+  }
 }

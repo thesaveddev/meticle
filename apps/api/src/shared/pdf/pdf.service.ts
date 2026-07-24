@@ -46,7 +46,7 @@ export async function generatePdf(
       landscape: options?.landscape || false,
       printBackground: true,
       displayHeaderFooter: true,
-      headerTemplate: options?.headerTemplate || '<div style="font-size:9px;color:#9CA3AF;width:100%;text-align:center;padding:5px 15mm">CareDesk Report</div>',
+      headerTemplate: options?.headerTemplate || '<div style="font-size:9px;color:#9CA3AF;width:100%;text-align:center;padding:5px 15mm">Meticle Report</div>',
       footerTemplate: options?.footerTemplate || '<div style="font-size:9px;color:#9CA3AF;width:100%;text-align:center;padding:5px 15mm">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>',
     })
     return Buffer.from(pdf)

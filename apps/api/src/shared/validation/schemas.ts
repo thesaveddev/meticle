@@ -41,6 +41,15 @@ export const verifyEmailSchema = z.object({
   token: z.string().min(1),
 });
 
+export const sendEmailCodeSchema = z.object({
+  email: z.string().email(),
+});
+
+export const verifyEmailCodeSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6, 'Code must be 6 digits'),
+});
+
 export const mfaVerifyLoginSchema = z.object({
   mfaToken: z.string().min(1),
   token: z.string().min(1),
@@ -96,6 +105,52 @@ export const aiRotaGenerateSchema = z.object({
   contractedHours: z.string(),
   mandatoryStartTimes: z.string().optional(),
   minEndTime: z.string().optional(),
+});
+
+export const aiDailyNoteGenerateSchema = z.object({
+  serviceUserId: z.string().uuid(),
+  staffInput: z.string().min(1, 'Staff observation is required'),
+  shift: z.enum(['day', 'night']).optional().default('day'),
+  noteDate: z.string().optional(),
+});
+
+export const aiDailyNoteApproveSchema = z.object({
+  serviceUserId: z.string().uuid(),
+  dailyNote: z.object({
+    content: z.string(),
+    shift: z.enum(['day', 'night']),
+    category: z.string(),
+    support_level: z.string().optional(),
+  }),
+  moodAnalysis: z.object({
+    mood_score: z.number().min(1).max(10),
+    mood_label: z.string(),
+    indicators: z.array(z.string()).optional(),
+    compared_to_baseline: z.enum(['improved', 'stable', 'declined', 'unknown']).optional(),
+  }).optional(),
+  safeguardingFlags: z.array(z.object({
+    concern_type: z.string(),
+    severity: z.enum(['low', 'medium', 'high']),
+    description: z.string(),
+    action_required: z.string(),
+    reference_regulation: z.string().optional(),
+  })).optional(),
+  carePlanUpdates: z.array(z.object({
+    goal_area: z.string(),
+    suggested_update: z.string(),
+    evidence: z.string(),
+    priority: z.enum(['low', 'medium', 'high']),
+  })).optional(),
+  interventionsSuggested: z.array(z.object({
+    intervention: z.string(),
+    reason: z.string(),
+    expected_outcome: z.string(),
+  })).optional(),
+  riskLevel: z.enum(['low', 'medium', 'high']).optional(),
+  followUpRequired: z.boolean().optional(),
+  followUpDetails: z.string().optional(),
+  linkedGoalId: z.string().uuid().optional(),
+  noteDate: z.string().optional(),
 });
 
 export const mfaCompleteSetupSchema = z.object({
@@ -1115,6 +1170,10 @@ export const createGoalSchema = z.object({
   cqc_domain: z.enum(['safe', 'effective', 'caring', 'responsive', 'well-led']).optional(),
   frequency: z.string().max(100).optional(),
   goal_category: z.string().max(100).optional(),
+  care_plan_id: z.string().uuid().optional().nullable(),
+  baseline_value: z.number().optional().nullable(),
+  target_value: z.number().optional().nullable(),
+  value_unit: z.string().max(50).optional().nullable(),
 });
 
 export const updateGoalSchema = z.object({
@@ -1128,6 +1187,10 @@ export const updateGoalSchema = z.object({
   cqc_domain: z.enum(['safe', 'effective', 'caring', 'responsive', 'well-led']).optional().nullable(),
   frequency: z.string().max(100).optional(),
   goal_category: z.string().max(100).optional(),
+  care_plan_id: z.string().uuid().optional().nullable(),
+  baseline_value: z.number().optional().nullable(),
+  target_value: z.number().optional().nullable(),
+  value_unit: z.string().max(50).optional().nullable(),
 });
 
 // === Body Map ===
@@ -1227,4 +1290,43 @@ export const updateFamilyMemberSchema = z.object({
   email: z.string().email().max(255).optional(),
   relationship: z.string().max(100).optional(),
   phone: z.string().max(50).optional(),
+});
+
+// === Goal Milestones ===
+export const createMilestoneSchema = z.object({
+  title: z.string().min(1).max(255),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+export const updateMilestoneSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  is_completed: z.boolean().optional(),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+// === Goal Progress ===
+export const recordProgressSchema = z.object({
+  progress: z.number().int().min(0).max(100),
+  notes: z.string().max(2000).optional(),
+});
+
+// === Outcome Scales ===
+export const createScaleSchema = z.object({
+  name: z.string().min(1).max(255),
+  shortcode: z.string().min(1).max(20),
+  description: z.string().max(2000).optional(),
+  min_score: z.number(),
+  max_score: z.number(),
+  questions: z.array(z.object({ text: z.string().min(1), order: z.number().int().min(0) })).min(1),
+  score_bands: z.array(z.object({ min: z.number(), max: z.number(), label: z.string(), color: z.string() })).min(1),
+});
+
+export const updateScaleSchema = createScaleSchema.partial();
+
+export const recordAssessmentSchema = z.object({
+  service_user_id: z.string().uuid(),
+  scores: z.record(z.string(), z.number()),
+  total_score: z.number(),
+  band_label: z.string().optional(),
+  notes: z.string().max(2000).optional(),
 });

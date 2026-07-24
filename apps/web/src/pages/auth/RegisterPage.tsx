@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import { TextField, Button, Box, Typography, Container, Stack, Link, Alert, CircularProgress, MenuItem, InputAdornment, IconButton } from '@mui/material'
 import { useForm } from 'react-hook-form'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { UserRole } from '@caredesk/shared'
+import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
-import { CheckCircle as CheckIcon, Security as SecurityIcon, Visibility, VisibilityOff } from '@mui/icons-material'
+import { CheckCircle as CheckIcon, Security as SecurityIcon, Visibility, VisibilityOff, MarkEmailRead as VerifiedIcon } from '@mui/icons-material'
 
-const REGISTER_ILLUSTRATION = '/caredesk_login_illustration.jpg';
+const REGISTER_ILLUSTRATION = '/meticle_login_illustration.jpg';
 
 const PASSWORD_RULES = [
   { key: 'min', label: 'At least 8 characters', test: (v: string) => v.length >= 8 },
@@ -28,6 +28,17 @@ export default function RegisterPage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
   const password = watch('password', '')
+  const confirmPassword = watch('confirmPassword', '')
+  const email = watch('email', '')
+  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword
+
+  // Email verification state
+  const [emailVerified, setEmailVerified] = useState(false)
+  const [codeSent, setCodeSent] = useState(false)
+  const [verificationCode, setVerificationCode] = useState('')
+  const [sendingCode, setSendingCode] = useState(false)
+  const [verifyingCode, setVerifyingCode] = useState(false)
+  const [codeCooldown, setCodeCooldown] = useState(0)
 
   useEffect(() => {
     if (token) {
@@ -36,17 +47,68 @@ export default function RegisterPage() {
         .then((res) => {
           setInvitation(res.data)
           setValue('email', res.data.email)
+          setEmailVerified(true) // Invitations don't need email verification
         })
         .catch(() => setError('This invitation link is invalid or has expired.'))
         .finally(() => setInvitationLoading(false))
     }
   }, [token, setValue])
 
+  // Cooldown timer for code resend
+  useEffect(() => {
+    if (codeCooldown <= 0) return
+    const timer = setTimeout(() => setCodeCooldown(codeCooldown - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [codeCooldown])
+
+  // Reset verification when email changes
+  useEffect(() => {
+    if (emailVerified && !invitation) {
+      setEmailVerified(false)
+      setCodeSent(false)
+      setVerificationCode('')
+    }
+  }, [email])
+
+  const handleSendCode = async () => {
+    if (!email || errors.email) return
+    setSendingCode(true)
+    setError('')
+    try {
+      await api.post('/auth/send-email-code', { email: email.trim() })
+      setCodeSent(true)
+      setCodeCooldown(60)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to send verification code')
+    } finally {
+      setSendingCode(false)
+    }
+  }
+
+  const handleVerifyCode = async () => {
+    if (!verificationCode || verificationCode.length !== 6) return
+    setVerifyingCode(true)
+    setError('')
+    try {
+      await api.post('/auth/verify-email-code', { email: email.trim(), code: verificationCode.trim() })
+      setEmailVerified(true)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Invalid verification code')
+    } finally {
+      setVerifyingCode(false)
+    }
+  }
+
   const onSubmit = async (data: any) => {
     setLoading(true)
     setError('')
     if (data.password !== data.confirmPassword) {
       setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+    if (!emailVerified && !invitation) {
+      setError('Please verify your email address before continuing')
       setLoading(false)
       return
     }
@@ -68,7 +130,6 @@ export default function RegisterPage() {
         })
       }
 
-      // Ensure first_name is set in stored user
       const storedUser = res.data.user
       storedUser.first_name = data.firstName
       localStorage.setItem('accessToken', res.data.accessToken)
@@ -148,7 +209,7 @@ export default function RegisterPage() {
         <Container maxWidth="xs" sx={{ mx: 'auto' }}>
           <Box sx={{ mb: 6 }}>
             <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
-              CareDesk
+              Meticle
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
               {invitation ? 'Complete Your Registration' : 'Create Your Account'}
@@ -161,7 +222,7 @@ export default function RegisterPage() {
           </Box>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }}>
+            <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }} onClose={() => setError('')}>
               {error}
             </Alert>
           )}
@@ -193,15 +254,88 @@ export default function RegisterPage() {
                 <TextField
                   fullWidth
                   placeholder="john@carehome.com"
-                  disabled={!!invitation}
+                  disabled={!!invitation || emailVerified}
                   {...register('email', { 
                     required: 'Email is required',
                     pattern: { value: /^\S+@\S+$/i, message: 'Invalid email' }
                   })}
                   error={!!errors.email}
                   helperText={errors.email?.message as string}
+                  InputProps={{
+                    endAdornment: emailVerified && !invitation ? (
+                      <InputAdornment position="end">
+                        <VerifiedIcon sx={{ color: '#16A34A' }} />
+                      </InputAdornment>
+                    ) : undefined
+                  }}
                 />
               </Box>
+
+              {/* Email verification section */}
+              {!invitation && !emailVerified && (
+                <Box sx={{ bgcolor: '#F9FAFB', borderRadius: 2, p: 2, border: '1px solid #E5E7EB' }}>
+                  {!codeSent ? (
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={handleSendCode}
+                        disabled={sendingCode || !email || !!errors.email}
+                        sx={{ textTransform: 'none', borderColor: '#0F4C81', color: '#0F4C81', whiteSpace: 'nowrap' }}
+                      >
+                        {sendingCode ? <CircularProgress size={16} /> : 'Send Verification Code'}
+                      </Button>
+                      <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                        We'll send a 6-digit code to verify your email
+                      </Typography>
+                    </Stack>
+                  ) : (
+                    <Stack spacing={1.5}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <VerifiedIcon sx={{ color: '#0F4C81', fontSize: 18 }} />
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151' }}>
+                          Enter the 6-digit code sent to {email}
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <TextField
+                          size="small"
+                          placeholder="000000"
+                          value={verificationCode}
+                          onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          sx={{ fontFamily: 'monospace', '& input': { fontFamily: 'monospace', letterSpacing: 4, textAlign: 'center' } }}
+                          inputProps={{ maxLength: 6 }}
+                        />
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={handleVerifyCode}
+                          disabled={verifyingCode || verificationCode.length !== 6}
+                          sx={{ textTransform: 'none', bgcolor: '#0F4C81', whiteSpace: 'nowrap' }}
+                        >
+                          {verifyingCode ? <CircularProgress size={16} color="inherit" /> : 'Verify'}
+                        </Button>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Button
+                          size="small"
+                          onClick={handleSendCode}
+                          disabled={codeCooldown > 0 || sendingCode}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem', p: 0, minWidth: 0 }}
+                        >
+                          {codeCooldown > 0 ? `Resend in ${codeCooldown}s` : 'Resend code'}
+                        </Button>
+                      </Stack>
+                    </Stack>
+                  )}
+                </Box>
+              )}
+
+              {emailVerified && !invitation && (
+                <Alert severity="success" sx={{ borderRadius: 2, py: 0 }}>
+                  Email verified successfully
+                </Alert>
+              )}
 
               {!invitation && (
                 <Box>
@@ -257,10 +391,9 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   {...register('confirmPassword', { 
                     required: 'Please confirm your password',
-                    validate: (v: string) => v === password || 'Passwords do not match'
                   })}
-                  error={!!errors.confirmPassword}
-                  helperText={errors.confirmPassword?.message as string}
+                  error={!!errors.confirmPassword || passwordsMismatch}
+                  helperText={errors.confirmPassword?.message as string || (passwordsMismatch ? 'Passwords do not match' : '')}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -301,7 +434,7 @@ export default function RegisterPage() {
                 type="submit"
                 variant="contained"
                 size="large"
-                disabled={loading}
+                disabled={loading || (!emailVerified && !invitation)}
                 sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 800, borderRadius: 2, fontSize: '1rem', textTransform: 'none', mt: 2 }}
               >
                 {loading ? <CircularProgress size={24} color="inherit" /> : (invitation ? 'Join Organization' : 'Start Free Trial')}

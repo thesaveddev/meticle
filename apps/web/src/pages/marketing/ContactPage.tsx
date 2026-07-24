@@ -5,7 +5,7 @@ import MarketingLayout from '../../components/marketing/MarketingLayout'
 import api from '../../services/api'
 
 const contactMethods = [
-  { icon: <Email sx={{ color: '#0F4C81' }} />, title: 'Email', detail: 'hello@caredesk.app', sub: 'We reply within 4 hours' },
+  { icon: <Email sx={{ color: '#0F4C81' }} />, title: 'Email', detail: 'hello@meticlecare.com', sub: 'We reply within 4 hours' },
   { icon: <Phone sx={{ color: '#0F4C81' }} />, title: 'Phone', detail: '+44 20 1234 5678', sub: 'Mon-Fri, 9am-5:30pm' },
   { icon: <LocationOn sx={{ color: '#0F4C81' }} />, title: 'Office', detail: '71-75 Shelton Street, London, WC2H 9JQ', sub: 'By appointment only' },
   { icon: <AccessTime sx={{ color: '#0F4C81' }} />, title: 'Support Hours', detail: '8:00am - 6:00pm GMT', sub: '24/7 emergency support for Enterprise plans' },
@@ -86,7 +86,7 @@ export default function ContactPage() {
         <Container maxWidth="md">
           <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>Enterprise Sales</Typography>
           <Typography sx={{ color: '#6B7280', mb: 1 }}>For organisations with 100+ staff requiring custom deployment, dedicated support, or BAA agreements.</Typography>
-          <Typography sx={{ color: '#0F4C81', fontWeight: 700 }}>enterprise@caredesk.app</Typography>
+          <Typography sx={{ color: '#0F4C81', fontWeight: 700 }}>enterprise@meticlecare.com</Typography>
         </Container>
       </Box>
     </MarketingLayout>

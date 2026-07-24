@@ -83,7 +83,7 @@ export default function NavHeader() {
         <Container maxWidth="lg">
           <Toolbar sx={{ justifyContent: 'space-between', px: '0 !important' }}>
             <Typography variant="h5" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer' }} onClick={() => navigate('/')}>
-              CareDesk
+              Meticle
             </Typography>
 
             {/* Desktop Nav */}
@@ -165,7 +165,7 @@ export default function NavHeader() {
       <Drawer anchor="right" open={mobileOpen} onClose={() => setMobileOpen(false)}>
         <Box sx={{ width: 300, pt: 2 }}>
           <Typography variant="h5" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', px: 2, mb: 2 }} onClick={() => { navigate('/'); setMobileOpen(false) }}>
-            CareDesk
+            Meticle
           </Typography>
           <Divider />
           <List>

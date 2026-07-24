@@ -3,7 +3,7 @@ import { authenticate } from '../../shared/middleware/auth.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { query } from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 const router = Router();
 router.use(authenticate);

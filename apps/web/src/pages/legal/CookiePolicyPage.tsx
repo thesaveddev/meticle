@@ -20,7 +20,7 @@ export default function CookiePolicyPage() {
       </S>
 
       <S title="2. Cookies We Use">
-        <p>CareDesk uses only <strong>essential cookies</strong>:</p>
+        <p>Meticle uses only <strong>essential cookies</strong>:</p>
         <ul>
           <li><strong>Authentication token</strong> — stored in your browser to keep you logged in. Required for the Service to function.</li>
           <li><strong>CSRF token</strong> — prevents cross-site request forgery attacks.</li>
@@ -40,7 +40,7 @@ export default function CookiePolicyPage() {
       </S>
 
       <S title="4. Managing Cookies">
-        <p>Most browsers allow you to block or delete cookies. However, CareDesk requires essential cookies to function — blocking them will prevent you from logging in.</p>
+        <p>Most browsers allow you to block or delete cookies. However, Meticle requires essential cookies to function — blocking them will prevent you from logging in.</p>
       </S>
 
       <S title="5. Changes">

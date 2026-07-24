@@ -4,7 +4,7 @@ import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { rateLimit } from '../../shared/middleware/rateLimit.middleware';
 import { authenticate } from '../../shared/middleware/auth.middleware';
-import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, refreshTokenSchema, mfaVerifyLoginSchema, mfaCompleteSetupSchema, mfaSendBackupCodesSchema, registerWithInvitationSchema, verifyEmailSchema } from '../../shared/validation/schemas';
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, refreshTokenSchema, mfaVerifyLoginSchema, mfaCompleteSetupSchema, mfaSendBackupCodesSchema, registerWithInvitationSchema, verifyEmailSchema, sendEmailCodeSchema, verifyEmailCodeSchema } from '../../shared/validation/schemas';
 
 const router = Router();
 
@@ -16,6 +16,8 @@ router.post('/mfa/complete-setup', rateLimit(5, 60 * 1000), validate(mfaComplete
 router.post('/mfa/send-backup-codes', rateLimit(3, 60 * 1000), validate(mfaSendBackupCodesSchema), asyncHandler(AuthController.sendBackupCodes));
 router.post('/refresh', rateLimit(10, 60 * 1000), validate(refreshTokenSchema), asyncHandler(AuthController.refresh));
 router.post('/verify-email', rateLimit(5, 60 * 1000), validate(verifyEmailSchema), asyncHandler(AuthController.verifyEmail));
+router.post('/send-email-code', rateLimit(5, 60 * 1000), validate(sendEmailCodeSchema), asyncHandler(AuthController.sendEmailCode));
+router.post('/verify-email-code', rateLimit(5, 60 * 1000), validate(verifyEmailCodeSchema), asyncHandler(AuthController.verifyEmailCode));
 router.post('/forgot-password', rateLimit(5, 60 * 60 * 1000), validate(forgotPasswordSchema), asyncHandler(AuthController.forgotPassword));
 router.post('/reset-password', rateLimit(5, 60 * 1000), validate(resetPasswordSchema), asyncHandler(AuthController.resetPassword));
 router.get('/me', authenticate, asyncHandler(AuthController.getCurrentUser));

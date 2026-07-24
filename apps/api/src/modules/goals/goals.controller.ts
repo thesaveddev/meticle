@@ -21,7 +21,8 @@ export class GoalController {
     const orgId = GoalController.getOrgId(req);
     const goal = await GoalRepository.findById(req.params.id, orgId);
     if (!goal) throw new AppError(404, 'Goal not found');
-    res.json(goal);
+    const milestones = await GoalRepository.findMilestones(req.params.id);
+    res.json({ ...goal, milestones });
   }
 
   static async create(req: Request, res: Response) {
@@ -51,5 +52,56 @@ export class GoalController {
     const { serviceUserId } = req.params;
     const stats = await GoalRepository.getServiceUserStats(orgId, serviceUserId);
     res.json(stats);
+  }
+
+  // ─── Milestones ───
+
+  static async listMilestones(req: Request, res: Response) {
+    const orgId = GoalController.getOrgId(req);
+    const goal = await GoalRepository.findById(req.params.id, orgId);
+    if (!goal) throw new AppError(404, 'Goal not found');
+    const milestones = await GoalRepository.findMilestones(req.params.id);
+    res.json(milestones);
+  }
+
+  static async createMilestone(req: Request, res: Response) {
+    const orgId = GoalController.getOrgId(req);
+    const goal = await GoalRepository.findById(req.params.id, orgId);
+    if (!goal) throw new AppError(404, 'Goal not found');
+    const milestone = await GoalRepository.createMilestone(req.params.id, req.body);
+    AuditRepository.log({ user_id: req.user!.userId, action: 'create', entity_type: 'goal_milestone', entity_id: milestone.id, ip_address: req.ip }).catch(() => {});
+    res.status(201).json(milestone);
+  }
+
+  static async updateMilestone(req: Request, res: Response) {
+    const milestone = await GoalRepository.updateMilestone(req.params.milestoneId, req.body);
+    if (!milestone) throw new AppError(404, 'Milestone not found');
+    AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'goal_milestone', entity_id: req.params.milestoneId, ip_address: req.ip }).catch(() => {});
+    res.json(milestone);
+  }
+
+  static async deleteMilestone(req: Request, res: Response) {
+    await GoalRepository.deleteMilestone(req.params.milestoneId);
+    AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'goal_milestone', entity_id: req.params.milestoneId, ip_address: req.ip }).catch(() => {});
+    res.json({ message: 'Milestone deleted' });
+  }
+
+  // ─── Progress History ───
+
+  static async getProgressHistory(req: Request, res: Response) {
+    const orgId = GoalController.getOrgId(req);
+    const goal = await GoalRepository.findById(req.params.id, orgId);
+    if (!goal) throw new AppError(404, 'Goal not found');
+    const history = await GoalRepository.getProgressHistory(req.params.id);
+    res.json(history);
+  }
+
+  static async recordProgress(req: Request, res: Response) {
+    const orgId = GoalController.getOrgId(req);
+    const goal = await GoalRepository.findById(req.params.id, orgId);
+    if (!goal) throw new AppError(404, 'Goal not found');
+    const updated = await GoalRepository.recordProgress(req.params.id, req.body.progress, req.body.notes, req.user!.userId);
+    AuditRepository.log({ user_id: req.user!.userId, action: 'update_progress', entity_type: 'service_user_goal', entity_id: req.params.id, new_data: { progress: req.body.progress, notes: req.body.notes }, ip_address: req.ip }).catch(() => {});
+    res.json(updated);
   }
 }

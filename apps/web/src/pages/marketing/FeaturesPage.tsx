@@ -332,7 +332,7 @@ export default function FeaturesPage() {
               Everything You Need to Run Your Service
             </Typography>
             <Typography sx={{ color: '#6B7280', fontSize: '1.15rem', lineHeight: 1.7 }}>
-              CareDesk brings together care management, staff operations, and compliance reporting in one platform. Every feature is designed to produce inspection-ready evidence as a byproduct of daily work.
+              Meticle brings together care management, staff operations, and compliance reporting in one platform. Every feature is designed to produce inspection-ready evidence as a byproduct of daily work.
             </Typography>
           </Box>
         </Container>
@@ -403,7 +403,7 @@ export default function FeaturesPage() {
       <Box sx={{ py: 12, bgcolor: '#0F4C81', textAlign: 'center', color: 'white' }}>
         <Container maxWidth="md">
           <Typography variant="h3" sx={{ mb: 3, fontWeight: 900 }}>Ready to See It in Action?</Typography>
-          <Typography sx={{ mb: 6, opacity: 0.9, fontSize: '1.1rem' }}>Start your free trial or book a demo to see how CareDesk transforms compliance across all four UK regulators.</Typography>
+          <Typography sx={{ mb: 6, opacity: 0.9, fontSize: '1.1rem' }}>Start your free trial or book a demo to see how Meticle transforms compliance across all four UK regulators.</Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button variant="contained" size="large" onClick={() => navigate('/register')} sx={{ bgcolor: 'white', color: '#0F4C81', py: 2, px: 6, fontWeight: 800, '&:hover': { bgcolor: '#F8FAFC' } }}>
               Start Free Trial

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 import { isTokenBlacklisted } from './tokenBlacklist';
 import { query } from '../database';
 

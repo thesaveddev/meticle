@@ -1,5 +1,5 @@
 {
-  "name": "@caredesk/shared",
+  "name": "@meticle/shared",
   "version": "1.0.0",
   "private": true,
   "main": "dist/index.js",

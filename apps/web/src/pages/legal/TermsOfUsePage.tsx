@@ -18,11 +18,11 @@ export default function TermsOfUsePage() {
       <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: July 2026</Typography>
 
       <Section title="1. Agreement">
-        <p>By accessing or using CareDesk ("the Service"), you agree to be bound by these Terms of Use. If you are using the Service on behalf of an organisation, you represent that you have authority to bind that organisation.</p>
+        <p>By accessing or using Meticle ("the Service"), you agree to be bound by these Terms of Use. If you are using the Service on behalf of an organisation, you represent that you have authority to bind that organisation.</p>
       </Section>
 
       <Section title="2. Definitions">
-        <ul><li><strong>"We", "Us", "CareDesk"</strong> — the Service provider</li><li><strong>"You", "Customer"</strong> — the organisation or individual using the Service</li><li><strong>"Service User"</strong> — a resident or client receiving care, whose data is stored in the Service</li><li><strong>"Staff"</strong> — employees or contractors of the Customer who access the Service</li></ul>
+        <ul><li><strong>"We", "Us", "Meticle"</strong> — the Service provider</li><li><strong>"You", "Customer"</strong> — the organisation or individual using the Service</li><li><strong>"Service User"</strong> — a resident or client receiving care, whose data is stored in the Service</li><li><strong>"Staff"</strong> — employees or contractors of the Customer who access the Service</li></ul>
       </Section>
 
       <Section title="3. Your Account">
@@ -35,7 +35,7 @@ export default function TermsOfUsePage() {
       </Section>
 
       <Section title="5. Data Processing">
-        <p>You are the data controller for all personal data you upload to CareDesk. We act as a data processor. This relationship is governed by our Data Processing Agreement, incorporated by reference into these Terms. You are responsible for:</p>
+        <p>You are the data controller for all personal data you upload to Meticle. We act as a data processor. This relationship is governed by our Data Processing Agreement, incorporated by reference into these Terms. You are responsible for:</p>
         <ul><li>Obtaining necessary consents from staff and service users</li><li>Ensuring data is accurate and up to date</li><li>Complying with Subject Access Requests from your staff and service users</li><li>Notifying us of any data breaches involving Service data</li></ul>
       </Section>
 
@@ -48,11 +48,11 @@ export default function TermsOfUsePage() {
       </Section>
 
       <Section title="8. Limitation of Liability">
-        <p>CareDesk is a compliance support tool, not a substitute for professional legal or regulatory advice. We are not liable for CQC inspection outcomes, regulatory fines, or penalties. Our total liability is limited to the fees paid by you in the 12 months preceding the claim. We are not liable for indirect, consequential, or special damages.</p>
+        <p>Meticle is a compliance support tool, not a substitute for professional legal or regulatory advice. We are not liable for CQC inspection outcomes, regulatory fines, or penalties. Our total liability is limited to the fees paid by you in the 12 months preceding the claim. We are not liable for indirect, consequential, or special damages.</p>
       </Section>
 
       <Section title="9. Intellectual Property">
-        <p>CareDesk and all associated code, design, and documentation are protected by copyright and intellectual property laws. You retain ownership of all data you upload. We retain ownership of the Service, its code, and its algorithms.</p>
+        <p>Meticle and all associated code, design, and documentation are protected by copyright and intellectual property laws. You retain ownership of all data you upload. We retain ownership of the Service, its code, and its algorithms.</p>
       </Section>
 
       <Section title="10. Termination">
@@ -68,7 +68,7 @@ export default function TermsOfUsePage() {
       </Section>
 
       <Section title="13. Contact">
-        <p>Legal enquiries: legal@caredesk.app<br/>General enquiries: hello@caredesk.app</p>
+        <p>Legal enquiries: legal@meticlecare.com<br/>General enquiries: hello@meticlecare.com</p>
       </Section>
     </Container>
   )

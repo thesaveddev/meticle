@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { requireRole } from './requireRole';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 function mockRequest(role?: string) {
   return {

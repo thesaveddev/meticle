@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { Box, Button, Container, Typography, TextField, Stack, Chip, Alert, CircularProgress } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
-import { UserRole } from '@caredesk/shared'
+import { UserRole } from '@meticle/shared'
 import { CloudUpload as UploadIcon } from '@mui/icons-material'
 import api from '../../services/api'
 
@@ -69,7 +69,7 @@ export default function OnboardingFlow() {
     <Box sx={{ minHeight: '100vh', bgcolor: '#020617', display: 'flex', alignItems: 'center' }}>
       <Container maxWidth="sm">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 900, color: 'white', mb: 1 }}>Welcome to CareDesk</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 900, color: 'white', mb: 1 }}>Welcome to Meticle</Typography>
           <Typography sx={{ color: '#94a3b8' }}>Let's get you started in one step.</Typography>
         </Box>
 

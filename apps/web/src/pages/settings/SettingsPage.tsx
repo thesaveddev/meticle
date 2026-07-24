@@ -83,6 +83,7 @@ export default function SettingsPage() {
     { key: 'compliance_gap_analysis', label: 'Compliance Gap Analysis', desc: 'Analyze compliance data and generate prioritized recommendations' },
     { key: 'incident_severity_triage', label: 'Incident Severity Triage', desc: 'Classify incident reports by severity with recommended actions' },
     { key: 'rota_optimization', label: 'Rota Optimization', desc: 'AI-powered rota analysis with coverage warnings and staffing suggestions' },
+    { key: 'daily_note_generation', label: 'AI Daily Notes', desc: 'Transform voice/text observations into structured, CQC-compliant care notes with mood analysis and safeguarding flags' },
   ]
 
   // Certificate state

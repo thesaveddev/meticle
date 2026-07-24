@@ -93,7 +93,7 @@ export class ComplianceNotificationService {
           if (admin.email) {
             EmailService.sendEmail(
               admin.email,
-              `CareDesk — Compliance Alert: Threshold Breached (${org.name})`,
+              `Meticle — Compliance Alert: Threshold Breached (${org.name})`,
               `<p>Hi ${admin.name},</p><p>The overall compliance rate for <strong>${org.name}</strong> has fallen below your organisation's alert threshold.</p><table style="width:100%;border-collapse:collapse;margin:16px 0"><tr><td style="padding:12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px"><strong style="color:#DC2626;font-size:24px">${Math.round(rate)}%</strong><br/><span style="color:#6B7280;font-size:13px">Current compliance rate</span></td><td style="padding:12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px"><strong style="font-size:24px">${threshold}%</strong><br/><span style="color:#6B7280;font-size:13px">Alert threshold</span></td></tr></table><p style="color:#DC2626;font-weight:700">Immediate attention required.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance" style="display:inline-block;padding:10px 24px;background:#0F4C81;color:#fff;text-decoration:none;border-radius:6px">View Compliance Dashboard →</a></p>`
             ).catch(logWarn('complianceThresholdEmail'));
           }
@@ -157,7 +157,7 @@ export class ComplianceNotificationService {
           if (admin.email) {
             EmailService.sendEmail(
               admin.email,
-              `CareDesk — Predictive Alert: Compliance Declining (${org.name})`,
+              `Meticle — Predictive Alert: Compliance Declining (${org.name})`,
               `<p>Hi ${admin.name},</p><p>Compliance for <strong>${org.name}</strong> is on a declining trend.</p><p>${trendMsg}</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance" style="display:inline-block;padding:10px 24px;background:#0F4C81;color:#fff;text-decoration:none;border-radius:6px">View Compliance Dashboard →</a></p>`
             ).catch(logWarn('predictiveAlertEmail'));
           }
@@ -545,8 +545,8 @@ export class ComplianceNotificationService {
           if (admin.email) {
             EmailService.sendEmail(
               admin.email,
-              `CareDesk Evidence Pack — ${org.name} (${new Date().toLocaleDateString('en-GB')})`,
-              `<p>Hi ${admin.name},</p><p>Your ${freq} evidence pack for <strong>${org.name}</strong> has been generated.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance/evidence-packs" style="color:#0F4C81">View in CareDesk →</a></p><p style="color:#6B7280;font-size:12px">Staff: ${pack.summary?.total_staff || 0} · Service Users: ${pack.summary?.total_service_users || 0} · Training: ${pack.summary?.training_records || 0}</p>`
+              `Meticle Evidence Pack — ${org.name} (${new Date().toLocaleDateString('en-GB')})`,
+              `<p>Hi ${admin.name},</p><p>Your ${freq} evidence pack for <strong>${org.name}</strong> has been generated.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance/evidence-packs" style="color:#0F4C81">View in Meticle →</a></p><p style="color:#6B7280;font-size:12px">Staff: ${pack.summary?.total_staff || 0} · Service Users: ${pack.summary?.total_service_users || 0} · Training: ${pack.summary?.training_records || 0}</p>`
             ).catch(logWarn('scheduledPackEmail'));
           }
         }

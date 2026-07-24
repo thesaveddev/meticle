@@ -5,7 +5,7 @@ import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { validate } from '../../shared/middleware/validate.middleware';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 import { DbsLevel, DbsWorkforce } from './dbs.types';
 
 const createDbsSchema = z.object({

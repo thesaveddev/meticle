@@ -8,7 +8,7 @@ import { UserRepository } from './user.repository';
 import { hashPassword, comparePassword } from './password.util';
 import speakeasy from 'speakeasy';
 import { generateAccessToken, generateRefreshToken, generateMfaChallengeToken, verifyRefreshToken, verifyMfaChallengeToken } from './jwt.service';
-import { UserRole, Plan } from '@caredesk/shared';
+import { UserRole, Plan } from '@meticle/shared';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { OrgRepository } from '../orgs/org.repository';
 import { PermissionsController } from '../permissions/permissions.controller';
@@ -306,6 +306,59 @@ export class AuthController {
     await pool.query('DELETE FROM verification_tokens WHERE id = $1', [result.rows[0].id]);
 
     res.json({ message: 'Email verified successfully' });
+  }
+
+  static async sendEmailCode(req: Request, res: Response) {
+    const { email } = req.body;
+    if (!email) throw new AppError(400, 'Email is required');
+
+    // Check if email is already registered
+    const existing = await UserRepository.findByEmail(email);
+    if (existing) throw new AppError(409, 'An account with this email already exists');
+
+    // Rate limit: max 3 codes per email per 15 minutes
+    const recent = await pool.query(
+      `SELECT COUNT(*)::int as cnt FROM email_verification_codes
+       WHERE email = $1 AND created_at > NOW() - INTERVAL '15 minutes'`,
+      [email]
+    );
+    if (recent.rows[0].cnt >= 3) {
+      throw new AppError(429, 'Too many verification codes requested. Please wait 15 minutes.');
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await pool.query(
+      `INSERT INTO email_verification_codes (email, code, expires_at) VALUES ($1, $2, $3)`,
+      [email, code, expiresAt]
+    );
+
+    await EmailService.sendVerificationCode(email, code);
+    res.json({ message: 'Verification code sent' });
+  }
+
+  static async verifyEmailCode(req: Request, res: Response) {
+    const { email, code } = req.body;
+    if (!email || !code) throw new AppError(400, 'Email and code are required');
+
+    const result = await pool.query(
+      `SELECT id FROM email_verification_codes
+       WHERE email = $1 AND code = $2 AND expires_at > NOW() AND verified = FALSE
+       ORDER BY created_at DESC LIMIT 1`,
+      [email, code]
+    );
+
+    if (result.rows.length === 0) {
+      throw new AppError(400, 'Invalid or expired verification code');
+    }
+
+    await pool.query(
+      `UPDATE email_verification_codes SET verified = TRUE WHERE id = $1`,
+      [result.rows[0].id]
+    );
+
+    res.json({ message: 'Email verified successfully', verified: true });
   }
 
   static async forgotPassword(req: Request, res: Response) {

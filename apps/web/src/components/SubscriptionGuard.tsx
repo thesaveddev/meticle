@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { UserRole } from '@caredesk/shared'
+import { UserRole } from '@meticle/shared'
 import api from '../services/api'
 
 export interface SubscriptionStatus {

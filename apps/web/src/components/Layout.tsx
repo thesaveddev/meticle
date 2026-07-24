@@ -27,9 +27,12 @@ import {
   Verified as VerifiedIcon,
   Receipt as ReceiptIcon,
   AdminPanelSettings as AdminIcon,
+  Psychology as OutcomeIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
-import { UserRole } from '@caredesk/shared'
+import { UserRole } from '@meticle/shared'
 import api from '../services/api'
 import { connectSocket, disconnectSocket } from '../services/socket'
 import OfflineBanner from './OfflineBanner'
@@ -57,30 +60,71 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   })
   const [locationName, setLocationName] = useState('')
   const [modulePermissions, setModulePermissions] = useState<Record<string, string>>({})
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const userName = rawUser.first_name || rawUser.email?.split('@')[0] || 'Admin'
   const userRole = rawUser.role || UserRole.ORG_ADMIN
   const profilePic = rawUser.profile_picture_url || ''
   const userInitial = rawUser.first_name?.[0] || rawUser.email?.[0] || '?'
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Staff Directory', icon: <PeopleIcon />, path: '/staff', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-    { text: 'Compliance', icon: <ComplianceIcon />, path: '/compliance', module: 'compliance', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Rota Planner', icon: <ScheduleIcon />, path: '/scheduling', module: 'scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Agencies', icon: <BusinessIcon />, path: '/agencies', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-    { text: 'DBS Checks', icon: <VerifiedIcon />, path: '/dbs', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-    { text: 'Leave Manager', icon: <LeaveIcon />, path: '/leave', module: 'leave', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Service Users', icon: <PeopleIcon />, path: '/service-users', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-    { text: 'Reports', icon: <ReportsIcon />, path: '/reporting', module: 'reporting', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-    { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Communication', icon: <ChatIcon />, path: '/chat', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Policies', icon: <PolicyIcon />, path: '/policies', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Goals', icon: <FlagIcon />, path: '/goals', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-    { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+  interface NavItem { text: string; icon: JSX.Element; path: string; module: string; roles: UserRole[] }
+  interface NavGroup { label: string; items: NavItem[] }
+
+  const menuGroups: NavGroup[] = [
+    {
+      label: 'Overview',
+      items: [
+        { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+      ],
+    },
+    {
+      label: 'Care Management',
+      items: [
+        { text: 'Service Users', icon: <PeopleIcon />, path: '/service-users', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Goals', icon: <FlagIcon />, path: '/goals', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Care Assessments', icon: <EventIcon />, path: '/care-assessments', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+      ],
+    },
+    {
+      label: 'Scheduling',
+      items: [
+        { text: 'Rota Planner', icon: <ScheduleIcon />, path: '/scheduling', module: 'scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Agencies', icon: <BusinessIcon />, path: '/agencies', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+        { text: 'Leave Manager', icon: <LeaveIcon />, path: '/leave', module: 'leave', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+      ],
+    },
+    {
+      label: 'Compliance & Safety',
+      items: [
+        { text: 'Compliance', icon: <ComplianceIcon />, path: '/compliance', module: 'compliance', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
+        { text: 'Policies', icon: <PolicyIcon />, path: '/policies', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+        { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+        { text: 'DBS Checks', icon: <VerifiedIcon />, path: '/dbs', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+      ],
+    },
+    {
+      label: 'Staff',
+      items: [
+        { text: 'Staff Directory', icon: <PeopleIcon />, path: '/staff', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+      ],
+    },
+    {
+      label: 'Analytics',
+      items: [
+        { text: 'Reports', icon: <ReportsIcon />, path: '/reporting', module: 'reporting', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+        { text: 'Outcomes', icon: <OutcomeIcon />, path: '/outcomes', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+      ],
+    },
+    {
+      label: 'Communication',
+      items: [
+        { text: 'Communication', icon: <ChatIcon />, path: '/chat', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+        { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+        { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+      ],
+    },
   ]
 
   const bottomItems = [
@@ -90,10 +134,13 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   ]
 
   const sidebarDisabled = !subLoading && !isActive
-  const filteredMenu = menuItems.filter(item =>
-    item.roles.includes(userRole) &&
-    (modulePermissions[item.module] || 'view') !== 'none'
-  )
+  const filteredGroups = menuGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item =>
+      item.roles.includes(userRole) &&
+      (modulePermissions[item.module] || 'view') !== 'none'
+    ),
+  })).filter(group => group.items.length > 0)
   const filteredBottomItems = bottomItems.filter(item =>
     item.roles.includes(userRole) &&
     (modulePermissions[item.module] || 'view') !== 'none'
@@ -134,7 +181,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       // Show browser notification when tab is not focused
       if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
         try {
-          new Notification(notif.title || 'CareDesk', {
+          new Notification(notif.title || 'Meticle', {
             body: notif.message || '',
             icon: '/favicon.ico',
           })
@@ -227,7 +274,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'white' }}>
       <Toolbar sx={{ px: 3, flexDirection: 'column', alignItems: 'flex-start', pt: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px' }}>
-          CareDesk
+          Meticle
         </Typography>
         {orgName && (
           <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 600, mt: 0.5 }}>
@@ -258,35 +305,62 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             </ListItemButton>
           </ListItem>
         )}
-        {filteredMenu.map((item) => {
-          const disabled = sidebarDisabled && item.text !== 'Learn'
+        {filteredGroups.map((group) => {
+          const isCollapsed = collapsedGroups.has(group.label)
+          const hasActiveChild = group.items.some(item => location.pathname === item.path)
+          const toggleGroup = () => setCollapsedGroups(prev => {
+            const next = new Set(prev)
+            if (next.has(group.label)) next.delete(group.label)
+            else next.add(group.label)
+            return next
+          })
           return (
-          <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-            <ListItemButton 
-              onClick={disabled ? undefined : () => navigate(item.path)}
-              selected={!disabled && location.pathname === item.path}
-              disabled={disabled}
-              sx={{ 
-                borderRadius: 2,
-                '&.Mui-selected': {
-                  bgcolor: '#E7EEF4',
-                  color: '#0F4C81',
-                  '& .MuiListItemIcon-root': { color: '#0F4C81' },
-                  '&:hover': { bgcolor: '#E7EEF4' }
-                },
-                '&:hover': { bgcolor: '#F8FAFC' },
-                '&.Mui-disabled': { opacity: 0.45 },
+          <Box key={group.label} sx={{ mb: 0.5 }}>
+            <ListItemButton
+              onClick={toggleGroup}
+              sx={{
+                borderRadius: 1.5, py: 0.5, px: 1.5, mb: 0.25, minHeight: 32,
+                '&:hover': { bgcolor: '#F1F5F9' },
               }}
             >
-              <ListItemIcon sx={{ minWidth: 40, color: '#6B7280' }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
-              {item.text === 'Communication' && chatUnreadCount > 0 && (
-                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#EF4444', mr: 1, flexShrink: 0 }} />
-              )}
+              <ListItemText
+                primary={group.label}
+                primaryTypographyProps={{ fontSize: '0.65rem', fontWeight: 700, color: hasActiveChild ? '#0F4C81' : '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1 }}
+              />
+              {isCollapsed ? <ExpandMoreIcon sx={{ fontSize: 16, color: '#9CA3AF' }} /> : <ExpandLessIcon sx={{ fontSize: 16, color: '#9CA3AF' }} />}
             </ListItemButton>
-          </ListItem>
+            {!isCollapsed && group.items.map((item) => {
+              const disabled = sidebarDisabled && item.text !== 'Learn'
+              return (
+              <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton 
+                  onClick={disabled ? undefined : () => navigate(item.path)}
+                  selected={!disabled && location.pathname === item.path}
+                  disabled={disabled}
+                  sx={{ 
+                    borderRadius: 2,
+                    '&.Mui-selected': {
+                      bgcolor: '#E7EEF4',
+                      color: '#0F4C81',
+                      '& .MuiListItemIcon-root': { color: '#0F4C81' },
+                      '&:hover': { bgcolor: '#E7EEF4' }
+                    },
+                    '&:hover': { bgcolor: '#F8FAFC' },
+                    '&.Mui-disabled': { opacity: 0.45 },
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 40, color: '#6B7280' }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
+                  {item.text === 'Communication' && chatUnreadCount > 0 && (
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#EF4444', mr: 1, flexShrink: 0 }} />
+                  )}
+                </ListItemButton>
+              </ListItem>
+              )
+            })}
+          </Box>
           )
         })}
       </List>
@@ -341,7 +415,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           </IconButton>
           
           <Typography variant="subtitle1" sx={{ fontWeight: 700, display: { xs: 'none', sm: 'block' } }}>
-            {userRole === UserRole.SUPER_ADMIN ? 'Platform Admin' : filteredMenu.find(m => m.path === location.pathname)?.text || 'Overview'}
+            {userRole === UserRole.SUPER_ADMIN ? 'Platform Admin' : filteredGroups.flatMap(g => g.items).find(m => m.path === location.pathname)?.text || 'Overview'}
           </Typography>
 
           <Stack direction="row" spacing={2} alignItems="center">

@@ -5,7 +5,7 @@ services:
     image: postgres:15-alpine
     restart: always
     environment:
-      POSTGRES_DB: caredesk
+      POSTGRES_DB: meticle
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
@@ -40,7 +40,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3002
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/caredesk
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/meticle
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-dev-secret}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret}

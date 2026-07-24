@@ -18,7 +18,7 @@ import {
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { UserRole } from '@caredesk/shared'
+import { UserRole } from '@meticle/shared'
 import * as XLSX from 'xlsx'
 import api from '../../services/api'
 

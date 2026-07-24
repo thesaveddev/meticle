@@ -23,7 +23,7 @@ import {
   ReportProblem as IncidentIcon,
   TrendingDown as ComplianceDownIcon,
 } from '@mui/icons-material'
-import { UserRole } from '@caredesk/shared'
+import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
 
 interface DashboardStats {
@@ -192,7 +192,7 @@ export default function DashboardPage() {
             <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Set up your account</Typography>
             <Button size="small" sx={{ color: '#6B7280', fontWeight: 600 }} onClick={() => setHideOnboarding(true)}>I'm all set, hide this</Button>
           </Stack>
-          <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>Follow these steps to get CareDesk ready for your team.</Typography>
+          <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>Follow these steps to get Meticle ready for your team.</Typography>
           <Grid container spacing={2}>
             {ONBOARDING_STEPS.map((step, i) => (
               <Grid item xs={12} sm={6} md={3} key={i}>

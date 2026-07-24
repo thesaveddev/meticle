@@ -4,7 +4,7 @@ import { requireRole } from '../../shared/middleware/requireRole';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { PermissionsController } from './permissions.controller';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 import { updatePermissionsSchema } from '../../shared/validation/schemas';
 
 const router = Router();

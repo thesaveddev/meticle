@@ -357,9 +357,9 @@ export class BillingController {
               : 'within 3 days';
 
             const emailHtml = buildEmailHtml(
-              'Payment Failed - CareDesk',
+              'Payment Failed - Meticle',
               'Payment Failed',
-              `<p>We attempted to charge <strong>${currency} ${amount.toFixed(2)}</strong> to <strong>${cardInfo}</strong> for your CareDesk subscription but the payment was declined.</p>
+              `<p>We attempted to charge <strong>${currency} ${amount.toFixed(2)}</strong> to <strong>${cardInfo}</strong> for your Meticle subscription but the payment was declined.</p>
 <p><strong>Next retry:</strong> ${nextRetryStr}</p>
 <p><strong>Account will be disabled:</strong> ${disableStr}</p>
 <p>To avoid service interruption, please update your billing method or contact your bank.</p>`,
@@ -369,7 +369,7 @@ export class BillingController {
               orgIdFailed,
               'Payment Failed',
               `Payment for ${amount} ${currency} failed using ${cardInfo}. We'll retry automatically.`,
-              { subject: `Payment Failed — ${currency} ${amount.toFixed(2)} — CareDesk`, html: emailHtml }
+              { subject: `Payment Failed — ${currency} ${amount.toFixed(2)} — Meticle`, html: emailHtml }
             );
           }
 
@@ -380,9 +380,9 @@ export class BillingController {
               [orgIdFailed]
             );
             const suspendHtml = buildEmailHtml(
-              'Subscription Suspended - CareDesk',
+              'Subscription Suspended - Meticle',
               'Subscription Suspended',
-              `<p>After repeated failed payment attempts, your CareDesk subscription has been <strong>suspended</strong>.</p>
+              `<p>After repeated failed payment attempts, your Meticle subscription has been <strong>suspended</strong>.</p>
 <p>All staff access has been restricted to billing and learning resources only.</p>
 <p>Please update your billing information immediately to restore full access.</p>`,
               { label: 'Restore Access', url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/billing` }
@@ -391,7 +391,7 @@ export class BillingController {
               orgIdFailed,
               'Subscription Suspended',
               'Your subscription has been suspended due to repeated payment failures. Please update your billing information to restore access.',
-              { subject: 'Subscription Suspended — CareDesk', html: suspendHtml }
+              { subject: 'Subscription Suspended — Meticle', html: suspendHtml }
             );
           }
         }

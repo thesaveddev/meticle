@@ -13,7 +13,7 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_DB: caredesk_test
+          POSTGRES_DB: meticle_test
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports:
@@ -24,7 +24,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/caredesk_test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/meticle_test
       JWT_SECRET: ci-test-secret
       JWT_REFRESH_SECRET: ci-test-refresh-secret
     steps:
@@ -34,7 +34,7 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
-      - run: npm run build --workspace=@caredesk/shared
+      - run: npm run build --workspace=@meticle/shared
       - name: Type check API
         run: npx tsc --noEmit
         working-directory: apps/api
@@ -63,7 +63,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Build shared
-        run: npm run build --workspace=@caredesk/shared
+        run: npm run build --workspace=@meticle/shared
       - name: Build API
         run: npm run build -w apps/api
       - name: Build web

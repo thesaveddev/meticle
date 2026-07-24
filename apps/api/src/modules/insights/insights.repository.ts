@@ -186,4 +186,61 @@ export class InsightsRepository {
 
     return { byStatus: byStatus.rows, fillRateByLocation: fillRateByLocation.rows, upcoming: upcoming.rows };
   }
+
+  static async getOutcomes(orgId: string) {
+    const goalCompletionByDomain = await query(`
+      SELECT cqc_domain,
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE status = 'completed')::int AS completed,
+        ROUND(AVG(progress) FILTER (WHERE status = 'active'))::int AS avg_progress
+      FROM service_user_goals
+      WHERE organization_id = $1 AND cqc_domain IS NOT NULL
+      GROUP BY cqc_domain ORDER BY cqc_domain
+    `, [orgId]);
+
+    const wellbeingByDomain = await query(`
+      SELECT w.domain,
+        ROUND(AVG(w.score), 1)::numeric AS avg_score,
+        COUNT(*)::int AS entries,
+        MIN(w.score) AS min_score,
+        MAX(w.score) AS max_score
+      FROM su_wellbeing w
+      JOIN service_users su ON w.service_user_id = su.id
+      WHERE su.organization_id = $1 AND w.recorded_date >= CURRENT_DATE - 30
+      GROUP BY w.domain ORDER BY w.domain
+    `, [orgId]);
+
+    const scaleDistribution = await query(`
+      SELECT osr.band_label, COUNT(*)::int AS count
+      FROM outcome_scale_results osr
+      JOIN outcome_scales os ON osr.scale_id = os.id
+      WHERE os.organization_id = $1 AND osr.band_label IS NOT NULL
+      GROUP BY osr.band_label ORDER BY count DESC
+    `, [orgId]);
+
+    const overdueReviews = await query(`
+      SELECT COUNT(*)::int AS count
+      FROM service_user_goals
+      WHERE organization_id = $1 AND status = 'active' AND review_date < CURRENT_DATE
+    `, [orgId]);
+
+    const goalProgressTrend = await query(`
+      SELECT DATE_TRUNC('week', gph.recorded_at)::date AS week,
+        ROUND(AVG(gph.progress))::int AS avg_progress,
+        COUNT(*)::int AS updates
+      FROM goal_progress_history gph
+      JOIN service_user_goals g ON gph.goal_id = g.id
+      WHERE g.organization_id = $1 AND gph.recorded_at >= NOW() - INTERVAL '6 months'
+      GROUP BY DATE_TRUNC('week', gph.recorded_at)
+      ORDER BY week
+    `, [orgId]);
+
+    return {
+      goal_completion_by_domain: goalCompletionByDomain.rows,
+      wellbeing_by_domain: wellbeingByDomain.rows,
+      scale_distribution: scaleDistribution.rows,
+      overdue_reviews: overdueReviews.rows[0]?.count ?? 0,
+      goal_progress_trend: goalProgressTrend.rows,
+    };
+  }
 }

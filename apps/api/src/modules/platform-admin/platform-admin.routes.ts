@@ -3,7 +3,7 @@ import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { PlatformAdminController } from './platform-admin.controller';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 const router = Router();
 
