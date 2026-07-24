@@ -4,7 +4,7 @@ import { requireRole } from '../../shared/middleware/requireRole';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { LeaveController } from './leave.controller';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 import { createLeaveRequestSchema, reviewLeaveRequestSchema, createLeaveTypeSchema, updateLeaveTypeSchema, updateStaffEntitlementSchema } from '../../shared/validation/schemas';
 
 const router = Router();

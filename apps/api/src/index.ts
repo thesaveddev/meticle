@@ -46,6 +46,7 @@ import taskRoutes from './modules/tasks/tasks.routes';
 import roomCheckRoutes from './modules/room-checks/room-checks.routes';
 import mobileRoutes from './modules/mobile/mobile.routes';
 import goalRoutes from './modules/goals/goals.routes';
+import outcomesRoutes from './modules/outcomes/outcomes.routes';
 import healthRoutes from './modules/health/health.routes';
 import familyPortalRoutes, { publicRouter as familyPortalPublicRoutes } from './modules/family-portal/familyPortal.routes';
 import emedicationRoutes from './modules/emedication/emedication.routes';
@@ -186,6 +187,7 @@ app.use('/appointments', appointmentRoutes);
 app.use('/policies', policyRoutes);
 app.use('/emedication', emedicationRoutes);
 app.use('/goals', goalRoutes);
+app.use('/outcomes', outcomesRoutes);
 app.use('/ai', aiRoutes);
 app.use('/family-portal', familyPortalRoutes);
 app.use('/api/family-portal', familyPortalPublicRoutes);
@@ -229,7 +231,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 httpServer.listen(port, () => {
-  logger.info({ port, nodeEnv: process.env.NODE_ENV }, `CareDesk API running on port ${port}`);
+  logger.info({ port, nodeEnv: process.env.NODE_ENV }, `Meticle API running on port ${port}`);
 });
 
 // Graceful shutdown

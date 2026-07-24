@@ -40,7 +40,7 @@ export async function sendEmail(leadId: number, templateName: string, extraVars:
   try {
     const transport = getTransporter()
     await transport.sendMail({
-      from: process.env.SMTP_FROM || 'hello@caredesk.app',
+      from: process.env.SMTP_FROM || 'hello@meticlecare.com',
       to: lead.contact_email,
       subject,
       html,

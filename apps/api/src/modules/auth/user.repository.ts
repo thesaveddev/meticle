@@ -1,5 +1,5 @@
 import { query } from '../../shared/database';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 export interface UserRow {
   id: string;

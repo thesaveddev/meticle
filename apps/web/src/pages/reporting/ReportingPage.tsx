@@ -7,6 +7,8 @@ import {
   BeachAccess as BeachAccessIcon,
   People as PeopleIcon,
   Medication as MedIcon,
+  Psychology as OutcomeIcon,
+  TrendingUp as OrgOutcomeIcon,
   PictureAsPdf as PdfIcon,
   TableChart as CsvIcon,
 } from '@mui/icons-material'
@@ -27,6 +29,8 @@ const REPORTS: ReportTemplate[] = [
   { id: 'leave-overview', title: 'Leave Overview', description: 'Staff leave balances, usage, and pending requests', icon: <BeachAccessIcon />, color: '#0EA5E9' },
   { id: 'service-user-roster', title: 'Service User Roster', description: 'Active service users by location with status overview', icon: <PeopleIcon />, color: '#8B5CF6' },
   { id: 'medication-admin', title: 'Medication Administration', description: 'MAR compliance rates and medication administration records', icon: <MedIcon />, color: '#EC4899' },
+  { id: 'service-user-outcomes', title: 'Service User Outcomes', description: 'Goal progress, wellbeing scores, and outcome scale assessments per service user', icon: <OutcomeIcon />, color: '#0891B2' },
+  { id: 'org-outcomes-summary', title: 'Organisation Outcomes Summary', description: 'Aggregate goal completion rates, CQC domain coverage, and wellbeing averages', icon: <OrgOutcomeIcon />, color: '#7C3AED' },
 ]
 
 function downloadBlob(blob: Blob, filename: string) {

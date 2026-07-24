@@ -1339,6 +1339,113 @@ export const MIGRATIONS = [
   `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS last_payment_failed_at TIMESTAMP WITH TIME ZONE`,
   `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS first_payment_failed_at TIMESTAMP WITH TIME ZONE`,
   `CREATE INDEX IF NOT EXISTS idx_pm_fingerprint ON payment_methods(organization_id, stripe_fingerprint)`,
+  // Email verification codes for signup flow
+  `CREATE TABLE IF NOT EXISTS email_verification_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) NOT NULL,
+    code VARCHAR(6) NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_evc_email ON email_verification_codes(email)`,
+
+  // ═══════════════════════════════════════════════════
+  // OUTCOME MANAGEMENT SYSTEM
+  // ═══════════════════════════════════════════════════
+
+  // Goal Milestones
+  `CREATE TABLE IF NOT EXISTS goal_milestones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    goal_id UUID NOT NULL REFERENCES service_user_goals(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    is_completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMPTZ,
+    completed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_goal_milestones_goal ON goal_milestones(goal_id)`,
+
+  // Goal Progress History (immutable log)
+  `CREATE TABLE IF NOT EXISTS goal_progress_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    goal_id UUID NOT NULL REFERENCES service_user_goals(id) ON DELETE CASCADE,
+    progress INTEGER NOT NULL CHECK (progress >= 0 AND progress <= 100),
+    notes TEXT,
+    recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    recorded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_goal_progress_goal ON goal_progress_history(goal_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_goal_progress_date ON goal_progress_history(recorded_at)`,
+
+  // Goal columns: care_plan link, baseline, target, unit
+  `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS care_plan_id UUID REFERENCES care_plans(id) ON DELETE SET NULL`,
+  `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS baseline_value NUMERIC`,
+  `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS target_value NUMERIC`,
+  `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS value_unit VARCHAR(50)`,
+
+  // Daily notes: link to goals
+  `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS linked_goal_id UUID REFERENCES service_user_goals(id) ON DELETE SET NULL`,
+
+  // Outcome Scale Templates
+  `CREATE TABLE IF NOT EXISTS outcome_scales (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    shortcode VARCHAR(20) NOT NULL,
+    description TEXT,
+    min_score NUMERIC NOT NULL DEFAULT 0,
+    max_score NUMERIC NOT NULL DEFAULT 100,
+    questions JSONB NOT NULL DEFAULT '[]',
+    score_bands JSONB NOT NULL DEFAULT '[]',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(organization_id, shortcode)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_outcome_scales_org ON outcome_scales(organization_id)`,
+
+  // Outcome Scale Results (individual assessments)
+  `CREATE TABLE IF NOT EXISTS outcome_scale_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    scale_id UUID NOT NULL REFERENCES outcome_scales(id) ON DELETE CASCADE,
+    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    scores JSONB NOT NULL DEFAULT '{}',
+    total_score NUMERIC NOT NULL,
+    band_label VARCHAR(100),
+    assessed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    assessed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_outcome_results_scale ON outcome_scale_results(scale_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_outcome_results_su ON outcome_scale_results(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_outcome_results_date ON outcome_scale_results(assessed_at)`,
+
+  // Evidence mappings: expand source_type to include goals/wellbeing/outcomes
+  `DO $$ BEGIN
+    ALTER TABLE evidence_mappings DROP CONSTRAINT IF EXISTS evidence_mappings_source_type_check;
+  EXCEPTION WHEN undefined_object THEN null; END $$`,
+  `ALTER TABLE evidence_mappings ADD CONSTRAINT evidence_mappings_source_type_check
+    CHECK (source_type IN ('training','documents','competency','care_plans','incidents','satisfaction','goals','wellbeing','outcomes'))`,
+
+  // Clinical scores: expand score_type to include standardized scales
+  `DO $$ BEGIN
+    ALTER TABLE clinical_scores DROP CONSTRAINT IF EXISTS clinical_scores_score_type_check;
+  EXCEPTION WHEN undefined_object THEN null; END $$`,
+  `ALTER TABLE clinical_scores ADD CONSTRAINT clinical_scores_score_type_check
+    CHECK (score_type IN ('waterlow','must','bmi','wemwbs','phq9','gad7','eq5d','outcome_star'))`,
+  // Daily notes: add generated_by_ai flag
+  `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS generated_by_ai BOOLEAN NOT NULL DEFAULT FALSE`,
+  // Daily notes: add AI analysis metadata columns
+  `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS ai_mood_analysis JSONB`,
+  `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS ai_safeguarding_flags JSONB`,
+  `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS ai_care_plan_updates JSONB`,
+  `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS ai_interventions JSONB`,
+  `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS ai_risk_level VARCHAR(20)`,
+  `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS ai_follow_up_required BOOLEAN DEFAULT FALSE`,
+  `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS ai_follow_up_details TEXT`,
 ];
 
 export const setupDatabase = async () => {
@@ -1359,6 +1466,31 @@ export const setupDatabase = async () => {
       }
     }
     logger.info('Migrations completed.');
+
+    // Auto-seed standard outcome scales for orgs that have none
+    try {
+      const orgsRes = await query(`SELECT id FROM organizations`);
+      const standardScales = [
+        { name: 'Warwick-Edinburgh Mental Wellbeing Scale', shortcode: 'WEMWBS', desc: '14-item scale measuring positive mental wellbeing', min: 14, max: 70, bands: '[{"min":14,"max":27,"label":"Low Wellbeing","color":"#DC2626"},{"min":28,"max":41,"label":"Below Average","color":"#D97706"},{"min":42,"max":56,"label":"Average","color":"0F4C81"},{"min":57,"max":70,"label":"High Wellbeing","color":"#16A34A"}]' },
+        { name: 'Patient Health Questionnaire', shortcode: 'PHQ-9', desc: '9-item depression screening and severity measure', min: 0, max: 27, bands: '[{"min":0,"max":4,"label":"Minimal Depression","color":"#16A34A"},{"min":5,"max":9,"label":"Mild Depression","color":"#D97706"},{"min":10,"max":14,"label":"Moderate Depression","color":"#EA580C"},{"min":15,"max":19,"label":"Moderately Severe","color":"#DC2626"},{"min":20,"max":27,"label":"Severe Depression","color":"#991B1B"}]' },
+        { name: 'Generalised Anxiety Disorder Scale', shortcode: 'GAD-7', desc: '7-item anxiety screening and severity measure', min: 0, max: 21, bands: '[{"min":0,"max":4,"label":"Minimal Anxiety","color":"#16A34A"},{"min":5,"max":9,"label":"Mild Anxiety","color":"#D97706"},{"min":10,"max":14,"label":"Moderate Anxiety","color":"#EA580C"},{"min":15,"max":21,"label":"Severe Anxiety","color":"#DC2626"}]' },
+        { name: 'EQ-5D-5L', shortcode: 'EQ5D', desc: '5-dimensional quality of life measure', min: 0, max: 100, bands: '[{"min":0,"max":25,"label":"Severe Problems","color":"#DC2626"},{"min":26,"max":50,"label":"Moderate Problems","color":"#D97706"},{"min":51,"max":75,"label":"Mild Problems","color":"#0F4C81"},{"min":76,"max":100,"label":"No Problems","color":"#16A34A"}]' },
+        { name: 'Outcome Star', shortcode: 'OSTAR', desc: '5-domain personal outcome measure', min: 0, max: 50, bands: '[{"min":0,"max":10,"label":"Low Outcome","color":"#DC2626"},{"min":11,"max":25,"label":"Developing","color":"#D97706"},{"min":26,"max":40,"label":"Good Outcome","color":"#0F4C81"},{"min":41,"max":50,"label":"Excellent Outcome","color":"#16A34A"}]' },
+      ];
+      for (const org of orgsRes.rows) {
+        const existing = await query(`SELECT COUNT(*)::int AS cnt FROM outcome_scales WHERE organization_id = $1`, [org.id]);
+        if (existing.rows[0].cnt > 0) continue;
+        for (const s of standardScales) {
+          await query(
+            `INSERT INTO outcome_scales (organization_id, name, shortcode, description, min_score, max_score, score_bands) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`,
+            [org.id, s.name, s.shortcode, s.desc, s.min, s.max, s.bands]
+          );
+        }
+      }
+      logger.info('Standard outcome scales seeded.');
+    } catch {
+      // silent — table may not exist yet on fresh DB
+    }
   } catch (error) {
     logger.error(error, 'Error setting up database schema');
     throw error;

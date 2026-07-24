@@ -654,6 +654,14 @@ CREATE TABLE IF NOT EXISTS daily_notes (
     category VARCHAR(50) NOT NULL,
     content TEXT NOT NULL,
     support_level VARCHAR(50),
+    generated_by_ai BOOLEAN NOT NULL DEFAULT FALSE,
+    ai_mood_analysis JSONB,
+    ai_safeguarding_flags JSONB,
+    ai_care_plan_updates JSONB,
+    ai_interventions JSONB,
+    ai_risk_level VARCHAR(20),
+    ai_follow_up_required BOOLEAN DEFAULT FALSE,
+    ai_follow_up_details TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

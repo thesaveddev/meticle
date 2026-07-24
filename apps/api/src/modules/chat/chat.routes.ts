@@ -6,7 +6,7 @@ import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { z } from 'zod';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { upload } from '../../shared/middleware/upload.middleware';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 const createGroupSchema = z.object({
   name: z.string().min(1),

@@ -78,7 +78,7 @@ async function purgeAndRecreate() {
        VALUES ($1, $2, 'SUPER_ADMIN', 'active', true)
        ON CONFLICT (email) DO UPDATE SET role = 'SUPER_ADMIN', status = 'active'
        RETURNING id, email, role`,
-      ['admin@caredesk.app', hash]
+      ['admin@meticlecare.com', hash]
     );
     console.log(`SUPER_ADMIN: ${result.rows[0].email} (id: ${result.rows[0].id})`);
     console.log('Password: AdminPass123!');

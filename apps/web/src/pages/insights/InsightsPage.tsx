@@ -6,7 +6,8 @@ import {
 } from '@mui/material'
 import {
   People as PeopleIcon, CheckCircle as CheckIcon, EventBusy as LeaveIcon,
-  Schedule as ShiftIcon, TrendingUp as TrendIcon,
+  Schedule as ShiftIcon, TrendingUp as TrendIcon, Psychology as OutcomeIcon,
+  WarningAmber as WarningAmberIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
 
@@ -30,6 +31,18 @@ interface OnLeaveStaff { first_name: string; last_name: string; leave_type: stri
 interface ShiftStatus { status: string; count: number }
 interface LocationFill { name: string; total_shifts: number; filled: number }
 interface UpcomingShift { id: string; start_time: string; end_time: string; location: string; assigned_staff: number; minimum_staff_per_day: number }
+
+interface OutcomeGoalsByDomain { cqc_domain: string; total: number; completed: number; avg_progress: number }
+interface OutcomeWellbeing { domain: string; avg_score: number; entries: number; min_score: number; max_score: number }
+interface OutcomeScaleBand { band_label: string; count: number }
+interface OutcomeGoalProgressTrend { week: string; avg_progress: number; updates: number }
+interface OutcomesData {
+  goal_completion_by_domain: OutcomeGoalsByDomain[]
+  wellbeing_by_domain: OutcomeWellbeing[]
+  scale_distribution: OutcomeScaleBand[]
+  overdue_reviews: number
+  goal_progress_trend: OutcomeGoalProgressTrend[]
+}
 
 const statusColors: Record<string, string> = {
   open: '#D97706', filled: '#16A34A', completed: '#0F4C81', cancelled: '#DC2626', pending: '#D97706',
@@ -55,6 +68,7 @@ export default function InsightsPage() {
   const [shiftStatuses, setShiftStatuses] = useState<ShiftStatus[]>([])
   const [fillRate, setFillRate] = useState<LocationFill[]>([])
   const [upcomingShifts, setUpcomingShifts] = useState<UpcomingShift[]>([])
+  const [outcomes, setOutcomes] = useState<OutcomesData | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -63,12 +77,13 @@ export default function InsightsPage() {
       setLoading(true)
       setError('')
       try {
-        const [ov, st, co, lv, ro] = await Promise.all([
+        const [ov, st, co, lv, ro, oc] = await Promise.all([
           api.get('/insights/overview'),
           api.get('/insights/staffing'),
           api.get('/insights/compliance'),
           api.get('/insights/leave'),
           api.get('/insights/rota'),
+          api.get('/insights/outcomes'),
         ])
         setOverview(ov.data)
         setStaffingByRole(st.data.byRole)
@@ -84,6 +99,7 @@ export default function InsightsPage() {
         setShiftStatuses(ro.data.byStatus)
         setFillRate(ro.data.fillRateByLocation)
         setUpcomingShifts(ro.data.upcoming)
+        setOutcomes(oc.data)
       } catch (err: any) {
         setError(err.response?.data?.message || 'Failed to load insights')
       } finally {
@@ -434,6 +450,84 @@ export default function InsightsPage() {
                   </TableBody>
                 </Table>
               </TableContainer>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Outcomes */}
+        <Grid item xs={12} lg={6}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+              <OutcomeIcon sx={{ color: '#7C3AED' }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Outcomes</Typography>
+            </Stack>
+            {outcomes ? (
+              <>
+                {outcomes.goal_completion_by_domain.length > 0 && (
+                  <>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Goal Completion by CQC Domain</Typography>
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead><TableRow>
+                          <TableCell sx={{ fontWeight: 700 }}>Domain</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }} align="right">Completed</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }} align="right">Total</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }} align="right">Avg Progress</TableCell>
+                        </TableRow></TableHead>
+                        <TableBody>
+                          {outcomes.goal_completion_by_domain.map(d => (
+                            <TableRow key={d.cqc_domain}>
+                              <TableCell><Chip label={d.cqc_domain} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /></TableCell>
+                              <TableCell align="right"><Chip label={d.completed} size="small" sx={{ bgcolor: '#DCFCE7', color: '#16A34A', fontWeight: 700 }} /></TableCell>
+                              <TableCell align="right">{d.total}</TableCell>
+                              <TableCell align="right">
+                                <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
+                                  <LinearProgress variant="determinate" value={d.avg_progress || 0} sx={{ width: 60, height: 5, borderRadius: 3, bgcolor: '#F1F5F9', '& .MuiLinearProgress-bar': { bgcolor: d.avg_progress >= 60 ? '#16A34A' : '#D97706' } }} />
+                                  <Typography variant="caption" sx={{ fontWeight: 700, minWidth: 30 }}>{d.avg_progress || 0}%</Typography>
+                                </Stack>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                    <Divider sx={{ my: 2 }} />
+                  </>
+                )}
+                {outcomes.overdue_reviews > 0 && (
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2, p: 1.5, bgcolor: '#FFF7ED', borderRadius: 1.5 }}>
+                    <WarningAmberIcon sx={{ color: '#DC2626', fontSize: 18 }} />
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#DC2626' }}>{outcomes.overdue_reviews} overdue goal reviews</Typography>
+                  </Stack>
+                )}
+                {outcomes.wellbeing_by_domain.length > 0 && (
+                  <>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Wellbeing Averages (30d)</Typography>
+                    <Stack spacing={1}>
+                      {outcomes.wellbeing_by_domain.map(w => (
+                        <Stack key={w.domain} direction="row" alignItems="center" spacing={1}>
+                          <Typography variant="body2" sx={{ minWidth: 80, textTransform: 'capitalize', fontSize: '0.8rem' }}>{w.domain}</Typography>
+                          <LinearProgress variant="determinate" value={(w.avg_score || 0) * 10} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: '#F1F5F9', '& .MuiLinearProgress-bar': { bgcolor: (w.avg_score || 0) >= 8 ? '#16A34A' : (w.avg_score || 0) >= 5 ? '#D97706' : '#DC2626' } }} />
+                          <Typography variant="caption" sx={{ fontWeight: 700, minWidth: 35 }}>{w.avg_score}/10</Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                    <Divider sx={{ my: 2 }} />
+                  </>
+                )}
+                {outcomes.scale_distribution.length > 0 && (
+                  <>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Scale Assessment Bands</Typography>
+                    <Stack direction="row" spacing={1}>
+                      {outcomes.scale_distribution.map(b => (
+                        <Chip key={b.band_label} label={`${b.band_label}: ${b.count}`} size="small" sx={{ fontWeight: 700, bgcolor: '#EEF2FF', color: '#3730A3' }} />
+                      ))}
+                    </Stack>
+                  </>
+                )}
+              </>
+            ) : (
+              <Typography variant="body2" color="#9CA3AF">No outcomes data</Typography>
             )}
           </Paper>
         </Grid>

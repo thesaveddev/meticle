@@ -11,14 +11,14 @@ function emailLayout(title: string, body: string) {
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
 <tr><td style="padding:0 0 24px 0">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-<td align="left" style="font-size:22px;font-weight:800;color:#0F4C81;letter-spacing:-0.5px">CareDesk</td>
+<td align="left" style="font-size:22px;font-weight:800;color:#0F4C81;letter-spacing:-0.5px">Meticle</td>
 </tr></table>
 </td></tr>
 <tr><td style="background:#ffffff;border-radius:12px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
 ${body}
 </td></tr>
 <tr><td style="padding:24px 0 0 0;text-align:center;font-size:12px;color:#9CA3AF;line-height:1.6">
-CareDesk &mdash; Care Home Management Platform<br>
+Meticle &mdash; Care Home Management Platform<br>
 <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" style="color:#0F4C81;text-decoration:none">${process.env.FRONTEND_URL || 'http://localhost:3000'}</a>
 </td></tr>
 </table>
@@ -43,6 +43,26 @@ ${ctaHtml}
 <tr><td style="padding:20px 0 0 0;border-top:1px solid #F3F4F6;margin-top:20px;font-size:12px;color:#9CA3AF;line-height:1.5">
 If the button above doesn't work, copy and paste this link into your browser:<br>
 <a href="${(cta?.url) || ''}" style="color:#0F4C81;word-break:break-all">${(cta?.url) || ''}</a>
+</td></tr>
+</table>`
+  )
+}
+
+export function buildCodeEmailHtml(code: string) {
+  return emailLayout(
+    'Your Verification Code',
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="font-size:20px;font-weight:700;color:#1F2937;padding:0 0 16px 0">Verify your email address</td></tr>
+<tr><td style="font-size:14px;color:#4B5563;line-height:1.7">Use the code below to verify your email and complete your Meticle registration. This code expires in 10 minutes.</td></tr>
+<tr><td style="padding:24px 0;text-align:center">
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr>
+<td style="background-color:#F3F4F6;border-radius:12px;padding:16px 32px;text-align:center">
+<span style="font-size:32px;font-weight:800;color:#0F4C81;letter-spacing:8px;font-family:'Courier New',monospace">${code}</span>
+</td>
+</tr></table>
+</td></tr>
+<tr><td style="padding:12px 0 0 0;border-top:1px solid #F3F4F6;font-size:12px;color:#9CA3AF;line-height:1.5">
+If you didn't request this code, you can safely ignore this email.
 </td></tr>
 </table>`
   )

@@ -41,7 +41,7 @@ export class ReportingController {
 
     const html = builder.html(data, req.user!.email);
     const pdf = await generatePdf(html, {
-      headerTemplate: `<div style="font-size:9px;color:#9CA3AF;width:100%;text-align:center;padding:5px 15mm">CareDesk Report — ${type.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</div>`,
+      headerTemplate: `<div style="font-size:9px;color:#9CA3AF;width:100%;text-align:center;padding:5px 15mm">Meticle Report — ${type.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</div>`,
     });
     const filename = `${type}-${new Date().toISOString().split('T')[0]}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');

@@ -17,19 +17,19 @@ const s: LearnSection[] = [
 
 // ═══════════ 1. GETTING STARTED ═══════════
 { id:'getting-started', category:'Introduction', title:'Getting Started', icon:'🚀', subsections:[
-{ id:'welcome', title:'Welcome to CareDesk',
+{ id:'welcome', title:'Welcome to Meticle',
   content:
-    p('CareDesk is a compliance-first care management platform for supported living and domiciliary care providers across all four UK nations. It combines staff management, scheduling, medication administration (eMAR), service user care planning, and regulatory compliance into one integrated system.') +
+    p('Meticle is a compliance-first care management platform for supported living and domiciliary care providers across all four UK nations. It combines staff management, scheduling, medication administration (eMAR), service user care planning, and regulatory compliance into one integrated system.') +
     p('This Learning Center will walk you through every feature, button, and workflow step by step. Use the sidebar to navigate between modules and the search bar to find specific topics.') +
     h3('Who is this for?') +
     ul(['Registered Managers overseeing supported living or domiciliary care services','Care Coordinators managing rotas and appointments','Compliance Officers preparing for CQC/regulatory inspections','Care Workers documenting daily notes and administering medication','Administrators handling billing and staff onboarding']) +
     h3('Key Concepts') +
-    ul(['<strong>Organisation:</strong> Your care provider entity. Everything in CareDesk is scoped to your organisation — data from other orgs is never visible.','<strong>Roles:</strong> ORG_ADMIN (full access), MANAGER (location management), CARE_WORKER (frontline staff), COMPLIANCE_OFFICER (audit and compliance), NURSE, SUPPORT_WORKER.','<strong>Locations:</strong> Physical care settings (supported living houses, offices, etc.). Each has its own minimum staffing rules.','<strong>Service Users:</strong> The residents or clients receiving care. Formerly called "residents" — the terms are interchangeable.','<strong>Regulator:</strong> Your governing body — CQC (England), CIW (Wales), Care Inspectorate (Scotland), or RQIA (Northern Ireland). This setting affects how compliance is scored.'])
+    ul(['<strong>Organisation:</strong> Your care provider entity. Everything in Meticle is scoped to your organisation — data from other orgs is never visible.','<strong>Roles:</strong> ORG_ADMIN (full access), MANAGER (location management), CARE_WORKER (frontline staff), COMPLIANCE_OFFICER (audit and compliance), NURSE, SUPPORT_WORKER.','<strong>Locations:</strong> Physical care settings (supported living houses, offices, etc.). Each has its own minimum staffing rules.','<strong>Service Users:</strong> The residents or clients receiving care. Formerly called "residents" — the terms are interchangeable.','<strong>Regulator:</strong> Your governing body — CQC (England), CIW (Wales), Care Inspectorate (Scotland), or RQIA (Northern Ireland). This setting affects how compliance is scored.'])
 },
 { id:'login', title:'Login, MFA & Account Security',
   content:
     h2('How to Log In') +
-    step(1,'Navigate to your organisation\'s CareDesk URL (e.g., <code>yourorg.caredesk.app</code> or the self-hosted URL provided by your administrator).') +
+    step(1,'Navigate to your organisation\'s Meticle URL (e.g., <code>yourorg.meticlecare.com</code> or the self-hosted URL provided by your administrator).') +
     step(2,'Enter your <strong>email address</strong> and <strong>password</strong>.') +
     step(3,'If MFA is enabled (see below), you will be prompted for a 6-digit code from your authenticator app.') +
     step(4,'Upon successful login, you land on the <strong>Dashboard</strong>.') +
@@ -39,7 +39,7 @@ const s: LearnSection[] = [
     h3('Setting Up MFA for the First Time') +
     step(1,'After your first login, you will see the MFA setup screen automatically.') +
     step(2,'A <strong>QR code</strong> is displayed. Open your authenticator app (Google Authenticator, Microsoft Authenticator, Authy, etc.).') +
-    step(3,'Scan the QR code. The app will add "CareDesk" as an account and start displaying 6-digit codes that refresh every 30 seconds.') +
+    step(3,'Scan the QR code. The app will add "Meticle" as an account and start displaying 6-digit codes that refresh every 30 seconds.') +
     step(4,'Enter the current 6-digit code in the "Verification Code" field and click <strong>Verify</strong>.') +
     step(5,'If successful, you will see a confirmation message. <strong>Save your backup codes</strong> — these are one-time use codes for when you cannot access your authenticator app.') +
     p('If the verification fails, an error message will appear inside the dialog telling you why. Common issues: code expired (codes refresh every 30 seconds), incorrect code entered, or QR code rescanned.') +
@@ -49,12 +49,12 @@ const s: LearnSection[] = [
     h2('Forgot Password Flow') +
     step(1,'On the login page, click <strong>Forgot Password</strong>.') +
     step(2,'Enter your email address and click <strong>Send Reset Link</strong>.') +
-    step(3,'Check your email for a message from CareDesk containing a reset link.') +
+    step(3,'Check your email for a message from Meticle containing a reset link.') +
     step(4,'Click the link to open the reset password page.') +
     step(5,'Enter your new password (min 12 chars, uppercase + lowercase + digit + special char) and confirm.') +
     step(6,'You will be redirected to the login page to sign in with your new password.') +
     h2('Role-Based Access Control') +
-    p('Your role determines what you can see and do in CareDesk. Roles are assigned by an ORG_ADMIN during staff creation and can be changed at any time from the Staff Directory.') +
+    p('Your role determines what you can see and do in Meticle. Roles are assigned by an ORG_ADMIN during staff creation and can be changed at any time from the Staff Directory.') +
     ul(['<strong>ORG_ADMIN:</strong> Full access to all modules. Can manage billing, change any user\'s role, configure organisation settings, promote other users to ORG_ADMIN.','<strong>MANAGER:</strong> Can manage staff, service users, scheduling, leave, and compliance. Cannot change their own role or access billing. Cannot approve their own leave.','<strong>CARE_WORKER:</strong> Sees simplified dashboard (own shifts only, no compliance snapshot). Can view service user profiles, record daily notes, administer medication, claim shifts. Cannot create/edit shifts or access settings.','<strong>COMPLIANCE_OFFICER:</strong> Access to compliance modules — training matrix, identity monitoring, competency, evidence packs, CQC readiness, surveys.','<strong>NURSE:</strong> Clinical access — health observations, eMAR administration, care assessments.','<strong>SUPPORT_WORKER:</strong> Basic access — view rota, service users, daily notes.']) +
     tip('Role changes take effect immediately without requiring logout. The system re-checks user roles on every page focus and periodically.')
 },
@@ -203,7 +203,7 @@ const s: LearnSection[] = [
     h3('Inviting a New Staff Member') +
     step(1,'Click <strong>Add Staff Member</strong> at the top right.') +
     step(2,'A dialog opens with these fields:') +
-    ul(['<strong>Email:</strong> The email address the invitation will be sent to. This email must be unique across the entire CareDesk platform.','<strong>First Name:</strong> Required','<strong>Last Name:</strong> Required','<strong>Role:</strong> Select from dropdown','<strong>Location:</strong> Optionally assign to a location']) +
+    ul(['<strong>Email:</strong> The email address the invitation will be sent to. This email must be unique across the entire Meticle platform.','<strong>First Name:</strong> Required','<strong>Last Name:</strong> Required','<strong>Role:</strong> Select from dropdown','<strong>Location:</strong> Optionally assign to a location']) +
     step(3,'Click <strong>Send Invitation</strong>.') +
     step(4,'The staff member receives an email with a registration link. They click the link, set their password, set up MFA, and are added to your organisation.') +
     p('Invited staff who have not yet registered show with a "Pending" badge in the directory.') +
@@ -517,7 +517,7 @@ const s: LearnSection[] = [
 { id:'cqc-readiness', title:'CQC Readiness Scoring',
   content:
     h2('CQC Readiness — Your Inspection Dashboard') +
-    p('The CQC Readiness page is CareDesk\'s most powerful compliance tool. It scores your organisation against your regulator\'s framework using real data from your database.') +
+    p('The CQC Readiness page is Meticle\'s most powerful compliance tool. It scores your organisation against your regulator\'s framework using real data from your database.') +
     h3('Framework Selection') +
     p('Your regulator is set in Settings → Organisation. The readiness page automatically uses the correct framework:') +
     ul(['<strong>CQC (England):</strong> 5 domains, 34 Quality Statements, 4 ratings (Outstanding ≥85%, Good ≥70%, Requires Improvement ≥50%, Inadequate <50%)','<strong>CIW (Wales):</strong> Same domain structure, 4 ratings (Excellent, Good, Adequate, Poor)','<strong>Care Inspectorate (Scotland):</strong> 4 domains, 12 statements, 6-point scale (6=Excellent to 1=Unsatisfactory)','<strong>RQIA (Northern Ireland):</strong> 5 domains, 14 statements, 3 ratings (Mostly Compliant, Partially Compliant, Not Compliant)']) +
@@ -575,7 +575,7 @@ const s: LearnSection[] = [
 { id:'dspt', title:'NHS DSPT Self-Assessment',
   content:
     h2('Data Security and Protection Toolkit') +
-    p('CareDesk includes an internal DSPT self-assessment tool based on the NHS DSP Toolkit standards. This is an <strong>internal tool</strong> — formal NHS submission requires registration on dsptoolkit.nhs.uk (opens October).') +
+    p('Meticle includes an internal DSPT self-assessment tool based on the NHS DSP Toolkit standards. This is an <strong>internal tool</strong> — formal NHS submission requires registration on dsptoolkit.nhs.uk (opens October).') +
     h3('Assessment Structure') +
     ul(['<strong>11 standards</strong> across 4 themes','<strong>Theme 1:</strong> Managing Data Protection — policies, training, roles','<strong>Theme 2:</strong> Confidentiality & Data Security — access controls, encryption, audit','<strong>Theme 3:</strong> Protecting & Sharing Information — data sharing agreements, IG','<strong>Theme 4:</strong> Minimising Impact — breach response, business continuity']) +
     h3('Per-Standard Assessment') +
@@ -814,7 +814,7 @@ const s: LearnSection[] = [
     h2('AI Tab') +
     p('(ORG_ADMIN only) Configure AI features for your organisation.') +
     h3('Provider Setup') +
-    ul(['<strong>Provider:</strong> OpenAI or Anthropic','<strong>API Key:</strong> Your organisation\'s key. Costs are borne by you, not CareDesk. No data leaves your tenant.','<strong>Model:</strong> e.g., gpt-4o, claude-3-5-sonnet']) +
+    ul(['<strong>Provider:</strong> OpenAI or Anthropic','<strong>API Key:</strong> Your organisation\'s key. Costs are borne by you, not Meticle. No data leaves your tenant.','<strong>Model:</strong> e.g., gpt-4o, claude-3-5-sonnet']) +
     h3('Feature Toggles') +
     p('Enable/disable individual AI features: Compliance Gap Analysis, AI Rota Generator, Visit Note Analysis, Competency Assessment Assistant.') +
     h3('Usage Stats') +
@@ -831,7 +831,7 @@ const s: LearnSection[] = [
     h3('Invoice History') +
     p('View past invoices with download capability.') +
     h3('Stripe Integration') +
-    p('CareDesk uses Stripe for payment processing. Products and prices are auto-provisioned on first use. Webhook can be tested locally using <code>stripe listen --forward-to localhost:3002/billing/webhook</code>.') +
+    p('Meticle uses Stripe for payment processing. Products and prices are auto-provisioned on first use. Webhook can be tested locally using <code>stripe listen --forward-to localhost:3002/billing/webhook</code>.') +
     warn('Phase 2 add-ons (eMAR, Mobile PWA, Shift Marketplace, etc.) are not yet available for purchase. They will appear in billing when launched.')
 }
 ]},
@@ -841,7 +841,7 @@ const s: LearnSection[] = [
 { id:'billing-full', title:'Managing Your Subscription',
   content:
     h2('Billing Page') +
-    p('Manage your CareDesk subscription, payment methods, and invoices. Accessible from the sidebar (ORG_ADMIN only).') +
+    p('Manage your Meticle subscription, payment methods, and invoices. Accessible from the sidebar (ORG_ADMIN only).') +
     h3('Subscription') +
     ul(['View current plan, price, and renewal date','Upgrade or downgrade plan tier','View included features']) +
     h3('Card Management') +

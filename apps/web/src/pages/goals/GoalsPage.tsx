@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react'
-import { Box, Typography, Paper, Grid, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, IconButton, LinearProgress, CircularProgress, Autocomplete, Alert } from '@mui/material'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material'
+import { Box, Typography, Paper, Grid, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, IconButton, LinearProgress, CircularProgress, Autocomplete, Alert, Collapse, Divider, Tooltip } from '@mui/material'
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ExpandMore as ExpandIcon, Warning as WarningIcon, CheckCircle as CheckIcon } from '@mui/icons-material'
 import { useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
+
+interface Milestone { id: string; title: string; description?: string; is_completed: boolean; completed_at?: string; sort_order: number }
+interface ProgressEntry { id: string; progress: number; note?: string; recorded_at: string; recorded_by_name?: string }
 
 interface Goal {
   id: string; title: string; description?: string; service_user_name?: string
   service_user_id: string; target_date?: string; review_date?: string
   status: string; progress: number; cqc_domain?: string
   frequency: string; goal_category?: string
+  care_plan_id?: string; care_plan_title?: string
+  baseline_value?: number; target_value?: number; value_unit?: string
+  milestones_count?: number; completed_milestones?: number
+  overdue_review?: boolean
 }
 
 interface ServiceUser { id: string; first_name: string; last_name: string }
@@ -18,7 +25,11 @@ const STATUS_OPTIONS = ['active', 'completed', 'cancelled', 'on_hold']
 const FREQUENCIES = ['one_time', 'daily', 'weekly', 'monthly', 'quarterly']
 const GOAL_CATEGORIES = ['Wellbeing', 'Health', 'Social', 'Education', 'Employment', 'Independence', 'Behavioural', 'Communication', 'Mobility', 'Other']
 
-const initialForm = { title: '', description: '', service_user_id: '', target_date: '', review_date: '', status: 'active', progress: 0, cqc_domain: '', frequency: 'one_time', goal_category: '' }
+const initialForm = {
+  title: '', description: '', service_user_id: '', target_date: '', review_date: '',
+  status: 'active', progress: 0, cqc_domain: '', frequency: 'one_time', goal_category: '',
+  care_plan_id: '', baseline_value: '', target_value: '', value_unit: '',
+}
 
 function freqLabel(f: string) {
   const m: Record<string, string> = { one_time: 'One-Time', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly' }
@@ -39,6 +50,16 @@ export default function GoalsPage() {
   const [fetchError, setFetchError] = useState('')
   const [serviceUsers, setServiceUsers] = useState<ServiceUser[]>([])
   const [statusFilter, setStatusFilter] = useState('')
+  const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null)
+  const [milestones, setMilestones] = useState<Record<string, Milestone[]>>({})
+  const [progressHistory, setProgressHistory] = useState<Record<string, ProgressEntry[]>>({})
+  const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false)
+  const [milestoneGoalId, setMilestoneGoalId] = useState('')
+  const [milestoneTitle, setMilestoneTitle] = useState('')
+  const [progressDialogOpen, setProgressDialogOpen] = useState(false)
+  const [progressGoalId, setProgressGoalId] = useState('')
+  const [progressValue, setProgressValue] = useState(50)
+  const [progressNote, setProgressNote] = useState('')
 
   const fetchGoals = async () => {
     setFetchError('')
@@ -67,7 +88,11 @@ export default function GoalsPage() {
       title: g.title, description: g.description || '', service_user_id: g.service_user_id,
       target_date: g.target_date?.slice(0, 10) || '', review_date: g.review_date?.slice(0, 10) || '',
       status: g.status, progress: g.progress, cqc_domain: g.cqc_domain || '',
-      frequency: g.frequency || 'one_time', goal_category: g.goal_category || ''
+      frequency: g.frequency || 'one_time', goal_category: g.goal_category || '',
+      care_plan_id: g.care_plan_id || '',
+      baseline_value: g.baseline_value != null ? String(g.baseline_value) : '',
+      target_value: g.target_value != null ? String(g.target_value) : '',
+      value_unit: g.value_unit || '',
     })
     setDialogOpen(true)
   }
@@ -75,7 +100,17 @@ export default function GoalsPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const payload = { ...form, cqc_domain: form.cqc_domain || null, target_date: form.target_date || null, review_date: form.review_date || null, goal_category: form.goal_category || null }
+      const payload: any = {
+        ...form,
+        cqc_domain: form.cqc_domain || null,
+        target_date: form.target_date || null,
+        review_date: form.review_date || null,
+        goal_category: form.goal_category || null,
+        care_plan_id: form.care_plan_id || null,
+        baseline_value: form.baseline_value ? Number(form.baseline_value) : null,
+        target_value: form.target_value ? Number(form.target_value) : null,
+        value_unit: form.value_unit || null,
+      }
       if (editing) { await api.patch(`/goals/${editing.id}`, payload) }
       else { await api.post('/goals', payload) }
       setDialogOpen(false); fetchGoals()
@@ -87,18 +122,65 @@ export default function GoalsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this goal?')) return
-    try {
-      await api.delete(`/goals/${id}`)
-      fetchGoals()
-    } catch (e: any) {
-      setFetchError(e?.response?.data?.message || 'Failed to delete goal')
+    try { await api.delete(`/goals/${id}`); fetchGoals() }
+    catch (e: any) { setFetchError(e?.response?.data?.message || 'Failed to delete goal') }
+  }
+
+  const toggleExpand = async (goalId: string) => {
+    if (expandedGoalId === goalId) { setExpandedGoalId(null); return }
+    setExpandedGoalId(goalId)
+    if (!milestones[goalId]) {
+      try {
+        const [mRes, pRes] = await Promise.all([
+          api.get(`/goals/${goalId}/milestones`),
+          api.get(`/goals/${goalId}/progress`),
+        ])
+        setMilestones(prev => ({ ...prev, [goalId]: mRes.data }))
+        setProgressHistory(prev => ({ ...prev, [goalId]: pRes.data }))
+      } catch { /* silently fail */ }
     }
+  }
+
+  const handleAddMilestone = async () => {
+    if (!milestoneTitle || !milestoneGoalId) return
+    try {
+      await api.post(`/goals/${milestoneGoalId}/milestones`, { title: milestoneTitle })
+      const res = await api.get(`/goals/${milestoneGoalId}/milestones`)
+      setMilestones(prev => ({ ...prev, [milestoneGoalId]: res.data }))
+      setMilestoneDialogOpen(false); setMilestoneTitle(''); fetchGoals()
+    } catch (e: any) { setFetchError(e?.response?.data?.message || 'Failed to add milestone') }
+  }
+
+  const handleToggleMilestone = async (goalId: string, milestone: Milestone) => {
+    try {
+      await api.patch(`/goals/${goalId}/milestones/${milestone.id}`, { is_completed: !milestone.is_completed })
+      const res = await api.get(`/goals/${goalId}/milestones`)
+      setMilestones(prev => ({ ...prev, [goalId]: res.data }))
+      fetchGoals()
+    } catch (e: any) { setFetchError(e?.response?.data?.message || 'Failed to update milestone') }
+  }
+
+  const handleRecordProgress = async () => {
+    if (!progressGoalId) return
+    try {
+      await api.post(`/goals/${progressGoalId}/progress`, { progress: progressValue, note: progressNote || undefined })
+      const [pRes, gRes] = await Promise.all([
+        api.get(`/goals/${progressGoalId}/progress`),
+        api.get(`/goals?${preselectedSu ? 'service_user_id=' + preselectedSu : ''}`),
+      ])
+      setProgressHistory(prev => ({ ...prev, [progressGoalId]: pRes.data }))
+      setGoals(gRes.data)
+      setProgressDialogOpen(false); setProgressNote('')
+    } catch (e: any) { setFetchError(e?.response?.data?.message || 'Failed to record progress') }
   }
 
   const progressColor = (p: number) => p >= 80 ? '#16A34A' : p >= 40 ? '#D97706' : '#DC2626'
 
   const statusChip = (s: string) => {
-    const m: Record<string, { color: string; bg: string }> = { active: { color: '#0F4C81', bg: '#E7EEF4' }, completed: { color: '#16A34A', bg: '#DCFCE7' }, cancelled: { color: '#DC2626', bg: '#FEE2E2' }, on_hold: { color: '#D97706', bg: '#FEF3C7' } }
+    const m: Record<string, { color: string; bg: string }> = {
+      active: { color: '#0F4C81', bg: '#E7EEF4' }, completed: { color: '#16A34A', bg: '#DCFCE7' },
+      cancelled: { color: '#DC2626', bg: '#FEE2E2' }, on_hold: { color: '#D97706', bg: '#FEF3C7' },
+    }
     const c = m[s] || { color: '#6B7280', bg: '#F1F5F9' }
     return <Chip label={s.replace('_', ' ')} size="small" sx={{ bgcolor: c.bg, color: c.color, fontWeight: 700, fontSize: '0.7rem' }} />
   }
@@ -107,6 +189,7 @@ export default function GoalsPage() {
 
   const activeGoals = goals.filter(g => g.status === 'active')
   const completedGoals = goals.filter(g => g.status === 'completed')
+  const overdueGoals = goals.filter(g => g.overdue_review)
 
   return (
     <Box>
@@ -114,7 +197,7 @@ export default function GoalsPage() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800 }}>Service User Goals</Typography>
-          <Typography color="#6B7280">{preselectedSu ? 'Filtered by service user' : 'Track goals and progress per service user.'}</Typography>
+          <Typography color="#6B7280">{preselectedSu ? 'Filtered by service user' : 'Track goals, milestones, and progress per service user.'}</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: '#0F4C81' }}>Add Goal</Button>
       </Stack>
@@ -124,7 +207,7 @@ export default function GoalsPage() {
           { label: 'Total Goals', value: goals.length, color: '#0F4C81' },
           { label: 'Active', value: activeGoals.length, color: '#D97706' },
           { label: 'Completed', value: completedGoals.length, color: '#16A34A' },
-          { label: 'Avg Progress', value: goals.length > 0 ? Math.round(goals.reduce((s, g) => s + g.progress, 0) / goals.length) + '%' : '0%', color: '#7C3AED' },
+          { label: 'Overdue Reviews', value: overdueGoals.length, color: '#DC2626' },
         ].map((s, i) => (
           <Grid item xs={6} md={3} key={i}>
             <Paper elevation={0} sx={{ p: 3, border: '1px solid #E5E7EB', borderRadius: 3 }}>
@@ -146,48 +229,119 @@ export default function GoalsPage() {
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
         <Table>
           <TableHead><TableRow sx={{ bgcolor: '#F8FAFC' }}>
+            <TableCell sx={{ fontWeight: 800 }} width={40}></TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Title</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Service User</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Frequency</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Category</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Progress</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Status</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>CQC Domain</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Target Date</TableCell>
+            <TableCell sx={{ fontWeight: 800 }}>Care Plan</TableCell>
+            <TableCell sx={{ fontWeight: 800 }}>Target</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Actions</TableCell>
           </TableRow></TableHead>
           <TableBody>
             {goals.length === 0 ? (
-              <TableRow><TableCell colSpan={9} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No goals yet. Create your first goal.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No goals yet. Create your first goal.</TableCell></TableRow>
             ) : goals.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((g) => (
-              <TableRow key={g.id} hover>
-                <TableCell sx={{ fontWeight: 700 }}>{g.title}</TableCell>
-                <TableCell>{g.service_user_name || '-'}</TableCell>
-                <TableCell>
-                  <Chip label={freqLabel(g.frequency)} size="small"
-                    color={g.frequency === 'daily' ? 'error' : g.frequency === 'weekly' ? 'warning' : g.frequency === 'monthly' ? 'info' : g.frequency === 'quarterly' ? 'success' : 'default'} />
-                </TableCell>
-                <TableCell>{g.goal_category ? <Chip label={g.goal_category} size="small" variant="outlined" /> : '-'}</TableCell>
-                <TableCell sx={{ minWidth: 150 }}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <LinearProgress variant="determinate" value={g.progress} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: '#F1F5F9', '& .MuiLinearProgress-bar': { bgcolor: progressColor(g.progress) } }} />
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: progressColor(g.progress), minWidth: 35 }}>{g.progress}%</Typography>
-                  </Stack>
-                </TableCell>
-                <TableCell>{statusChip(g.status)}</TableCell>
-                <TableCell>{g.cqc_domain ? <Chip label={g.cqc_domain} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /> : '-'}</TableCell>
-                <TableCell>{g.target_date ? new Date(g.target_date).toLocaleDateString() : '-'}</TableCell>
-                <TableCell>
-                  <IconButton size="small" onClick={() => openEdit(g)}><EditIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" onClick={() => handleDelete(g.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
-                </TableCell>
-              </TableRow>
+              <>
+                <TableRow key={g.id} hover sx={{ bgcolor: g.overdue_review ? '#FFF7ED' : undefined }}>
+                  <TableCell>
+                    <IconButton size="small" onClick={() => toggleExpand(g.id)}>
+                      <ExpandIcon fontSize="small" sx={{ transform: expandedGoalId === g.id ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
+                    </IconButton>
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Typography sx={{ fontWeight: 700 }}>{g.title}</Typography>
+                      {g.overdue_review && <Tooltip title="Review overdue"><WarningIcon sx={{ color: '#DC2626', fontSize: 16 }} /></Tooltip>}
+                    </Stack>
+                  </TableCell>
+                  <TableCell>{g.service_user_name || '-'}</TableCell>
+                  <TableCell>
+                    <Chip label={freqLabel(g.frequency)} size="small"
+                      color={g.frequency === 'daily' ? 'error' : g.frequency === 'weekly' ? 'warning' : g.frequency === 'monthly' ? 'info' : g.frequency === 'quarterly' ? 'success' : 'default'} />
+                  </TableCell>
+                  <TableCell sx={{ minWidth: 150 }}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <LinearProgress variant="determinate" value={g.progress} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: '#F1F5F9', '& .MuiLinearProgress-bar': { bgcolor: progressColor(g.progress) } }} />
+                      <Typography variant="caption" sx={{ fontWeight: 800, color: progressColor(g.progress), minWidth: 35 }}>{g.progress}%</Typography>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>{statusChip(g.status)}</TableCell>
+                  <TableCell>{g.cqc_domain ? <Chip label={g.cqc_domain} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /> : '-'}</TableCell>
+                  <TableCell>{g.care_plan_title ? <Chip label={g.care_plan_title} size="small" sx={{ bgcolor: '#EEF2FF', color: '#3730A3', fontSize: '0.7rem' }} /> : '-'}</TableCell>
+                  <TableCell>{g.target_date ? new Date(g.target_date).toLocaleDateString() : '-'}</TableCell>
+                  <TableCell>
+                    <IconButton size="small" onClick={() => { setProgressGoalId(g.id); setProgressValue(g.progress); setProgressDialogOpen(true) }}><CheckIcon fontSize="small" sx={{ color: '#0F4C81' }} /></IconButton>
+                    <IconButton size="small" onClick={() => openEdit(g)}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" onClick={() => handleDelete(g.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+                <TableRow key={`${g.id}-expand`}>
+                  <TableCell style={{ padding: 0 }} colSpan={10}>
+                    <Collapse in={expandedGoalId === g.id} timeout="auto" unmountOnExit>
+                      <Box sx={{ p: 3, bgcolor: '#F8FAFC' }}>
+                        <Grid container spacing={3}>
+                          <Grid item xs={12} md={6}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Milestones ({milestones[g.id]?.length || 0})</Typography>
+                              <Button size="small" startIcon={<AddIcon />} onClick={() => { setMilestoneGoalId(g.id); setMilestoneDialogOpen(true) }}>Add</Button>
+                            </Stack>
+                            {(milestones[g.id] || []).length === 0 ? (
+                              <Typography variant="body2" color="#9CA3AF">No milestones yet</Typography>
+                            ) : (
+                              <Stack spacing={0.5}>
+                                {(milestones[g.id] || []).map(m => (
+                                  <Stack key={m.id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
+                                    <IconButton size="small" onClick={() => handleToggleMilestone(g.id, m)}>
+                                      {m.is_completed ? <CheckIcon sx={{ color: '#16A34A', fontSize: 18 }} /> : <Box sx={{ width: 18, height: 18, border: '2px solid #D1D5DB', borderRadius: '50%' }} />}
+                                    </IconButton>
+                                    <Typography variant="body2" sx={{ textDecoration: m.is_completed ? 'line-through' : 'none', color: m.is_completed ? '#9CA3AF' : '#111827' }}>{m.title}</Typography>
+                                  </Stack>
+                                ))}
+                              </Stack>
+                            )}
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>Progress History</Typography>
+                            {(progressHistory[g.id] || []).length === 0 ? (
+                              <Typography variant="body2" color="#9CA3AF">No progress entries yet</Typography>
+                            ) : (
+                              <Stack spacing={0.5}>
+                                {(progressHistory[g.id] || []).slice(0, 10).map(p => (
+                                  <Stack key={p.id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
+                                    <Chip label={`${p.progress}%`} size="small" sx={{ bgcolor: progressColor(p.progress), color: '#fff', fontWeight: 700, minWidth: 50 }} />
+                                    <Typography variant="body2" sx={{ flex: 1 }}>{p.note || '-'}</Typography>
+                                    <Typography variant="caption" color="#9CA3AF">{new Date(p.recorded_at).toLocaleDateString()}</Typography>
+                                  </Stack>
+                                ))}
+                              </Stack>
+                            )}
+                          </Grid>
+                          {(g.baseline_value != null || g.target_value != null) && (
+                            <Grid item xs={12}>
+                              <Divider sx={{ my: 1 }} />
+                              <Stack direction="row" spacing={3} sx={{ mt: 1 }}>
+                                {g.baseline_value != null && <Typography variant="body2"><strong>Baseline:</strong> {g.baseline_value} {g.value_unit || ''}</Typography>}
+                                {g.target_value != null && <Typography variant="body2"><strong>Target:</strong> {g.target_value} {g.value_unit || ''}</Typography>}
+                                {g.review_date && <Typography variant="body2"><strong>Review Due:</strong> {new Date(g.review_date).toLocaleDateString()}</Typography>}
+                              </Stack>
+                            </Grid>
+                          )}
+                        </Grid>
+                      </Box>
+                    </Collapse>
+                  </TableCell>
+                </TableRow>
+              </>
             ))}
           </TableBody>
         </Table>
         <TablePagination component="div" count={goals.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }} rowsPerPageOptions={[5, 10, 25]} />
       </TableContainer>
 
+      {/* Goal Create/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'Edit Goal' : 'New Goal'}</DialogTitle>
         <DialogContent>
@@ -235,11 +389,45 @@ export default function GoalsPage() {
                 {CQC_DOMAINS.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
               </Select>
             </FormControl>
+            <Divider />
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Outcome Tracking (optional)</Typography>
+            <Stack direction="row" spacing={2}>
+              <TextField label="Baseline Value" type="number" fullWidth value={form.baseline_value} onChange={e => setForm(f => ({ ...f, baseline_value: e.target.value }))} />
+              <TextField label="Target Value" type="number" fullWidth value={form.target_value} onChange={e => setForm(f => ({ ...f, target_value: e.target.value }))} />
+            </Stack>
+            <TextField label="Unit (e.g. score, minutes, %)" fullWidth value={form.value_unit} onChange={e => setForm(f => ({ ...f, value_unit: e.target.value }))} />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSave} disabled={saving || !form.title || !form.service_user_id}>{saving ? <CircularProgress size={20} /> : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Milestone Add Dialog */}
+      <Dialog open={milestoneDialogOpen} onClose={() => setMilestoneDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Add Milestone</DialogTitle>
+        <DialogContent>
+          <TextField label="Milestone Title" fullWidth value={milestoneTitle} onChange={e => setMilestoneTitle(e.target.value)} sx={{ mt: 1 }} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMilestoneDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAddMilestone} disabled={!milestoneTitle}>Add</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Progress Record Dialog */}
+      <Dialog open={progressDialogOpen} onClose={() => setProgressDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Record Progress</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Progress (%)" type="number" fullWidth inputProps={{ min: 0, max: 100 }} value={progressValue} onChange={e => setProgressValue(parseInt(e.target.value) || 0)} />
+            <TextField label="Note (optional)" fullWidth multiline rows={2} value={progressNote} onChange={e => setProgressNote(e.target.value)} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProgressDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleRecordProgress}>Record</Button>
         </DialogActions>
       </Dialog>
     </Box>

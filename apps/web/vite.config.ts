@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['icons/icon-192.svg', 'icons/icon-512.svg'],
       manifest: {
-        name: 'CareDesk Mobile',
-        short_name: 'CareDesk',
-        description: 'CareDesk — Compliance-first care management for supported living',
+        name: 'Meticle',
+        short_name: 'Meticle',
+        description: 'Meticle — Compliance-first care management for supported living',
         theme_color: '#0F4C81',
         background_color: '#FFFFFF',
         display: 'standalone',
@@ -44,7 +44,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@caredesk/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),
+      '@meticle/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),
     },
   },
   server: {

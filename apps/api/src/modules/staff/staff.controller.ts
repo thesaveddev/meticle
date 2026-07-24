@@ -7,7 +7,7 @@ import { NotificationsController } from '../notifications/notifications.controll
 import { PermissionsController } from '../permissions/permissions.controller';
 import { requireSameOrgForStaff, requireDepartmentInOrg } from '../../shared/database/tenant';
 import { AuditRepository } from '../audit/audit.repository';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 import crypto from 'crypto';
 import { logWarn } from '../../shared/utils/logger';
 

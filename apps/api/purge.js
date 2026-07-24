@@ -1,5 +1,5 @@
 const { Client } = require('pg');
-const client = new Client({ connectionString: 'postgres://postgres:admin@localhost:5432/caredesk' });
+const client = new Client({ connectionString: 'postgres://postgres:admin@localhost:5432/meticle' });
 (async () => {
   await client.connect();
   const res = await client.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");

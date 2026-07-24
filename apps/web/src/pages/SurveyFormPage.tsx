@@ -94,7 +94,7 @@ export default function SurveyFormPage() {
       <Paper sx={{ p: 4, textAlign: 'center' }}>
         <Typography variant="h5" sx={{ color: '#16A34A', mb: 2 }}>Thank You!</Typography>
         <Typography color="text.secondary">Your feedback has been submitted successfully.</Typography>
-        <Button variant="outlined" onClick={() => navigate('/')} sx={{ mt: 3 }}>Go to CareDesk</Button>
+        <Button variant="outlined" onClick={() => navigate('/')} sx={{ mt: 3 }}>Go to Meticle</Button>
       </Paper>
     </Box>
   )

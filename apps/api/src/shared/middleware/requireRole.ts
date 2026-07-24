@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from './error.middleware';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 export const requireRole = (...roles: UserRole[]) => {
   return (req: Request, _res: Response, next: NextFunction) => {

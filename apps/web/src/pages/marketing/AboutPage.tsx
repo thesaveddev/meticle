@@ -21,7 +21,7 @@ export default function AboutPage() {
               <Typography variant="overline" sx={{ fontWeight: 800, color: '#0F4C81' }}>OUR STORY</Typography>
               <Typography variant="h2" sx={{ mt: 2, mb: 3 }}>Modernising Care Workforce Management</Typography>
               <Typography sx={{ color: '#6B7280', fontSize: '1.15rem', lineHeight: 1.8, mb: 3 }}>
-                CareDesk was founded by a team of care operators and software engineers who saw first-hand how fragmented 
+                Meticle was founded by a team of care operators and software engineers who saw first-hand how fragmented 
                 tools were hurting care quality. Spreadsheets for rotas, WhatsApp for communication, paper for compliance — 
                 it was time for a unified platform built specifically for supported living and domiciliary care.
               </Typography>
@@ -68,7 +68,7 @@ export default function AboutPage() {
       <Box sx={{ py: 15, bgcolor: '#0F4C81', color: 'white', textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography variant="h3" sx={{ mb: 3 }}>Ready to Transform Your Care Operations?</Typography>
-          <Typography sx={{ mb: 6, fontSize: '1.25rem', opacity: 0.9 }}>Join hundreds of care providers already using CareDesk.</Typography>
+          <Typography sx={{ mb: 6, fontSize: '1.25rem', opacity: 0.9 }}>Join hundreds of care providers already using Meticle.</Typography>
           <Stack direction="row" spacing={2} justifyContent="center">
             <Button variant="contained" size="large" onClick={() => navigate('/register')} sx={{ bgcolor: 'white', color: '#0F4C81', py: 2, px: 6, fontWeight: 800 }}>Sign Up Now</Button>
             <Button variant="outlined" size="large" onClick={() => navigate('/contact')} sx={{ borderColor: 'rgba(255,255,255,0.5)', color: 'white', py: 2, px: 6, fontWeight: 800 }}>Contact Us</Button>

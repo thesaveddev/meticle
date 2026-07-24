@@ -9,7 +9,7 @@ if (!existsSync(resolve(certsDir, 'key.pem'))) {
   execSync(
     `openssl req -x509 -nodes -days 365 -newkey rsa:2048 ` +
     `-keyout ${certsDir}/key.pem -out ${certsDir}/cert.pem ` +
-    `-subj "/C=GB/ST=London/L=London/O=CareDesk/OU=Dev/CN=localhost"`,
+    `-subj "/C=GB/ST=London/L=London/O=Meticle/OU=Dev/CN=localhost"`,
     { stdio: 'inherit' }
   );
   console.log('Self-signed certs generated in', certsDir);

@@ -6,7 +6,7 @@ import { rateLimit } from '../../shared/middleware/rateLimit.middleware';
 import { createOrganizationSchema, updateOrganizationSchema, createLocationSchema, createDepartmentSchema, updateDepartmentSchema, createTeamSchema, updateTeamSchema, addTeamMemberSchema, updateBrandingSchema } from '../../shared/validation/schemas';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 const router = Router();
 

@@ -40,7 +40,7 @@ export class InvitationController {
     );
 
     const orgResult = await pool.query('SELECT name FROM organizations WHERE id = $1', [organizationId]);
-    const orgName = orgResult.rows[0]?.name || 'CareDesk Organization';
+    const orgName = orgResult.rows[0]?.name || 'Meticle Organization';
 
     await EmailService.sendInviteEmail(email, orgName, token);
 
@@ -139,7 +139,7 @@ export class InvitationController {
     );
 
     const orgResult = await pool.query('SELECT name FROM organizations WHERE id = $1', [organizationId]);
-    const orgName = orgResult.rows[0]?.name || 'CareDesk Organization';
+    const orgName = orgResult.rows[0]?.name || 'Meticle Organization';
 
     await EmailService.sendInviteEmail(invitation.email, orgName, newToken);
 

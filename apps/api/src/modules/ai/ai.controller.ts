@@ -339,4 +339,332 @@ export class AIController {
     const stats = await AIRepository.getUsageStats(orgId);
     res.json({ stats });
   }
+
+  static async generateDailyNote(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
+
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
+    }
+    if (!config.enabledFeatures?.includes('daily_note_generation')) {
+      return res.status(403).json({ error: { message: 'Daily Note Generation is not enabled for your organization.' } });
+    }
+
+    const { serviceUserId, staffInput, shift, noteDate } = req.body;
+
+    // Fetch service user context
+    const pool = (await import('../../shared/database')).default;
+    const suResult = await pool.query(
+      `SELECT su.*, 
+              json_agg(DISTINCT jsonb_build_object('title', cp.title, 'category', cp.category, 'description', cp.description)) FILTER (WHERE cp.id IS NOT NULL) as care_plans,
+              json_agg(DISTINCT jsonb_build_object('title', sg.title, 'description', sg.description, 'status', sg.status, 'target_value', sg.target_value, 'value_unit', sg.value_unit)) FILTER (WHERE sg.id IS NOT NULL) as recent_goals
+       FROM service_users su
+       LEFT JOIN care_plans cp ON cp.service_user_id = su.id AND cp.status = 'active'
+       LEFT JOIN service_user_goals sg ON sg.service_user_id = su.id AND sg.status != 'completed'
+       WHERE su.id = $1 AND su.organization_id = $2
+       GROUP BY su.id`,
+      [serviceUserId, orgId]
+    );
+
+    if (suResult.rows.length === 0) {
+      return res.status(404).json({ error: { message: 'Service user not found' } });
+    }
+
+    const su = suResult.rows[0];
+
+    // Fetch recent mood/baseline data
+    const baselineResult = await pool.query(
+      `SELECT content, category, note_date FROM daily_notes 
+       WHERE service_user_id = $1 AND note_date >= CURRENT_DATE - INTERVAL '7 days'
+       ORDER BY note_date DESC LIMIT 5`,
+      [serviceUserId]
+    );
+
+    const carePlans = (su.care_plans || []).filter((cp: any) => cp.title).map((cp: any) => 
+      `- ${cp.title} (${cp.category}): ${cp.description || 'No description'}`
+    ).join('\n') || 'No active care plans';
+
+    const recentGoals = (su.recent_goals || []).filter((g: any) => g.title).map((g: any) => 
+      `- ${g.title}: ${g.description || 'No description'} (Status: ${g.status}${g.target_value ? `, Target: ${g.target_value}${g.value_unit || ''}` : ''})`
+    ).join('\n') || 'No active goals';
+
+    const baselineData = baselineResult.rows.map((r: any) => 
+      `[${r.note_date}] (${r.category}): ${r.content.slice(0, 150)}...`
+    ).join('\n') || 'No recent notes';
+
+    const { system, user } = renderPrompt('daily_note_generation', {
+      service_user_name: `${su.first_name} ${su.last_name}`,
+      date_of_birth: su.date_of_birth || 'Unknown',
+      room_number: su.room_number || 'N/A',
+      allergies: Array.isArray(su.allergies) ? su.allergies.join(', ') || 'None known' : 'None known',
+      dietary_requirements: su.dietary_requirements || 'None noted',
+      gp_name: su.gp_name || 'Unknown',
+      gp_surgery: su.gp_surgery || 'Unknown',
+      care_plans: carePlans,
+      recent_goals: recentGoals,
+      baseline_data: baselineData,
+      staff_input: staffInput,
+      shift: shift || 'day',
+      note_date: noteDate || new Date().toISOString().split('T')[0],
+    });
+
+    const start = Date.now();
+    try {
+      const provider = getProvider(config);
+      const result = await provider.chatCompletion(
+        [{ role: 'system', content: system }, { role: 'user', content: user }],
+        { model: config.model, temperature: 0.3 }
+      );
+
+      let parsed;
+      try { parsed = JSON.parse(result.content); }
+      catch { parsed = { raw: result.content }; }
+
+      try {
+        await AIRepository.logAudit({
+          organizationId: orgId,
+          feature: 'daily_note_generation',
+          promptKey: 'daily_note_generation',
+          promptTokens: result.promptTokens,
+          completionTokens: result.completionTokens,
+          totalTokens: result.totalTokens,
+          model: config.model,
+          provider: provider.name,
+          durationMs: Date.now() - start,
+          createdBy: req.user?.userId,
+          requestData: { serviceUserId, shift, noteDate },
+          responseSummary: typeof parsed === 'object' ? `Risk: ${parsed.risk_level || 'unknown'}, Safeguarding flags: ${parsed.safeguarding_flags?.length || 0}` : result.content.slice(0, 200),
+        });
+      } catch { /* audit logging non-critical */ }
+
+      res.json({ 
+        result: parsed, 
+        serviceUser: { id: su.id, name: `${su.first_name} ${su.last_name}` },
+        usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } 
+      });
+    } catch (err: any) {
+      try {
+        await AIRepository.logAudit({
+          organizationId: orgId,
+          feature: 'daily_note_generation',
+          promptKey: 'daily_note_generation',
+          success: false,
+          errorMessage: err.message,
+          durationMs: Date.now() - start,
+          createdBy: req.user?.userId,
+        });
+      } catch { /* audit logging non-critical */ }
+      logger.error(err, 'Daily note generation failed');
+      res.status(500).json({ error: { message: err.message || 'AI daily note generation failed' } });
+    }
+  }
+
+  static async approveDailyNote(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    if (!orgId || !userId) return res.status(400).json({ error: { message: 'Organization and user required' } });
+
+    const pool = (await import('../../shared/database')).default;
+    const { serviceUserId, dailyNote, moodAnalysis, safeguardingFlags, carePlanUpdates, interventionsSuggested, riskLevel, followUpRequired, followUpDetails, linkedGoalId, noteDate } = req.body;
+
+    // Verify service user belongs to org
+    const suCheck = await pool.query('SELECT id FROM service_users WHERE id = $1 AND organization_id = $2', [serviceUserId, orgId]);
+    if (suCheck.rows.length === 0) {
+      return res.status(404).json({ error: { message: 'Service user not found' } });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Insert the daily note with AI analysis metadata
+      const noteResult = await client.query(
+        `INSERT INTO daily_notes (service_user_id, author_id, note_date, shift, category, content, support_level, generated_by_ai,
+         ai_mood_analysis, ai_safeguarding_flags, ai_care_plan_updates, ai_interventions, ai_risk_level, ai_follow_up_required, ai_follow_up_details)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+        [
+          serviceUserId, userId, noteDate || new Date().toISOString().split('T')[0],
+          dailyNote.shift, dailyNote.category, dailyNote.content, dailyNote.support_level || null,
+          moodAnalysis ? JSON.stringify(moodAnalysis) : null,
+          safeguardingFlags && safeguardingFlags.length > 0 ? JSON.stringify(safeguardingFlags) : null,
+          carePlanUpdates && carePlanUpdates.length > 0 ? JSON.stringify(carePlanUpdates) : null,
+          interventionsSuggested && interventionsSuggested.length > 0 ? JSON.stringify(interventionsSuggested) : null,
+          riskLevel || null,
+          followUpRequired || false,
+          followUpDetails || null,
+        ]
+      );
+
+      // 2. Create safeguarding alerts if flagged
+      if (safeguardingFlags && safeguardingFlags.length > 0) {
+        for (const flag of safeguardingFlags) {
+          if (flag.severity !== 'low') {
+            await client.query(
+              `INSERT INTO notifications (user_id, title, message, type)
+               SELECT u.id, $1, $2, 'warning'
+               FROM users u WHERE u.organization_id = $3 AND u.role IN ('ORG_ADMIN', 'MANAGER')
+               LIMIT 5`,
+              [
+                `Safeguarding Alert: ${flag.concern_type}`,
+                `${flag.description}. Action: ${flag.action_required}. Severity: ${flag.severity.toUpperCase()}`,
+                orgId,
+              ]
+            );
+          }
+        }
+      }
+
+      // 4. Log AI usage in audit trail
+      await client.query(
+        `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, new_data)
+         VALUES ($1, $2, 'daily_note', $3, $4)`,
+        [
+          userId,
+          'ai_daily_note_approved',
+          noteResult.rows[0].id,
+          JSON.stringify({
+            mood_score: moodAnalysis?.mood_score,
+            safeguarding_flags: safeguardingFlags?.length || 0,
+            care_plan_updates: carePlanUpdates?.length || 0,
+            risk_level: riskLevel,
+            follow_up_required: followUpRequired,
+          })
+        ]
+      );
+
+      await client.query('COMMIT');
+
+      res.status(201).json({
+        dailyNote: noteResult.rows[0],
+        message: 'Daily note saved successfully',
+        safeguardingAlerts: safeguardingFlags?.filter((f: any) => f.severity !== 'low').length || 0,
+      });
+    } catch (err: any) {
+      await client.query('ROLLBACK');
+      logger.error(err, 'Failed to approve daily note');
+      res.status(500).json({ error: { message: 'Failed to save daily note' } });
+    } finally {
+      client.release();
+    }
+  }
+
+  static async analyzeExistingNote(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    if (!orgId) return res.status(400).json({ error: { message: 'Organization required' } });
+
+    const pool = (await import('../../shared/database')).default;
+    const { noteId } = req.params;
+
+    const noteResult = await pool.query(
+      'SELECT n.*, su.first_name, su.last_name FROM daily_notes n JOIN service_users su ON su.id = n.service_user_id WHERE n.id = $1 AND su.organization_id = $2',
+      [noteId, orgId]
+    );
+    if (noteResult.rows.length === 0) {
+      return res.status(404).json({ error: { message: 'Note not found' } });
+    }
+
+    const note = noteResult.rows[0];
+    const config = await AIRepository.getConfig(orgId);
+    if (!config) {
+      return res.status(400).json({ error: { message: 'AI not configured. Add API keys in Settings > AI.' } });
+    }
+
+    const provider = getProvider(config);
+    const { system, user: userTemplate } = renderPrompt('daily_note_generation', {});
+    const staffInput = note.content;
+
+    const start = Date.now();
+    try {
+      const serviceUserRes = await pool.query(
+        'SELECT first_name, last_name, date_of_birth, room_number FROM service_users WHERE id = $1',
+        [note.service_user_id]
+      );
+      const su = serviceUserRes.rows[0];
+
+      const carePlansRes = await pool.query(
+        'SELECT title, goals, interventions FROM care_plans WHERE service_user_id = $1 AND status = $2',
+        [note.service_user_id, 'active']
+      );
+
+      const goalsRes = await pool.query(
+        'SELECT title, target_date, status FROM goals WHERE service_user_id = $1',
+        [note.service_user_id]
+      );
+
+      const userPrompt = userTemplate
+        .replace('{{service_user_name}}', `${su.first_name} ${su.last_name}`)
+        .replace('{{date_of_birth}}', su.date_of_birth ? new Date(su.date_of_birth).toLocaleDateString('en-GB') : 'Unknown')
+        .replace('{{room_number}}', su.room_number || 'Unknown')
+        .replace('{{allergies}}', 'None on file')
+        .replace('{{dietary_requirements}}', 'None on file')
+        .replace('{{gp_name}}', 'Unknown')
+        .replace('{{gp_surgery}}', 'Unknown')
+        .replace('{{care_plans}}', carePlansRes.rows.map(cp => `${cp.title}: Goals - ${JSON.stringify(cp.goals || [])}, Interventions - ${JSON.stringify(cp.interventions || [])}`).join('\n') || 'No active care plans')
+        .replace('{{recent_goals}}', goalsRes.rows.map(g => `${g.title} (${g.status}, due ${g.target_date || 'no date'})`).join('\n') || 'No goals set')
+        .replace('{{staff_observations}}', staffInput)
+        .replace('{{shift}}', note.shift)
+        .replace('{{date}}', note.note_date);
+
+      const result = await provider.chatCompletion(
+        [{ role: 'system', content: system }, { role: 'user', content: userPrompt }],
+        { model: config.model, temperature: 0.3, maxTokens: 1500 }
+      );
+
+      let parsed: any;
+      try {
+        const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { daily_note: { content: result.content } };
+      } catch {
+        parsed = { daily_note: { content: result.content } };
+      }
+
+      await pool.query(
+        `UPDATE daily_notes SET
+          generated_by_ai = TRUE,
+          ai_mood_analysis = $1,
+          ai_safeguarding_flags = $2,
+          ai_care_plan_updates = $3,
+          ai_interventions = $4,
+          ai_risk_level = $5,
+          ai_follow_up_required = $6,
+          ai_follow_up_details = $7
+         WHERE id = $8`,
+        [
+          parsed.mood_analysis ? JSON.stringify(parsed.mood_analysis) : null,
+          parsed.safeguarding_flags?.length > 0 ? JSON.stringify(parsed.safeguarding_flags) : null,
+          parsed.care_plan_updates?.length > 0 ? JSON.stringify(parsed.care_plan_updates) : null,
+          parsed.interventions_suggested?.length > 0 ? JSON.stringify(parsed.interventions_suggested) : null,
+          parsed.risk_level || null,
+          parsed.follow_up_required || false,
+          parsed.follow_up_details || null,
+          noteId,
+        ]
+      );
+
+      try {
+        await AIRepository.logAudit({
+          organizationId: orgId,
+          feature: 'daily_note_generation',
+          promptKey: 'daily_note_generation',
+          success: true,
+          promptTokens: result.promptTokens,
+          completionTokens: result.completionTokens,
+          totalTokens: result.totalTokens,
+          model: config.model,
+          provider: provider.name,
+          durationMs: Date.now() - start,
+          createdBy: req.user?.userId,
+          requestData: { noteId, serviceUserId: note.service_user_id },
+          responseSummary: `Risk: ${parsed.risk_level || 'unknown'}, Safeguarding flags: ${parsed.safeguarding_flags?.length || 0}`,
+        });
+      } catch { /* audit non-critical */ }
+
+      res.json({ result: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
+    } catch (err: any) {
+      logger.error(err, 'Note analysis failed');
+      res.status(500).json({ error: { message: err.message || 'Analysis failed' } });
+    }
+  }
 }

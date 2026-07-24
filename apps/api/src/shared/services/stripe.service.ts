@@ -43,9 +43,9 @@ export async function getOrCreatePrice(plan: string): Promise<string | null> {
   const amount = plan === 'starter' ? 9900 : 29900; // £99.00 / £299.00 in pence
 
   const products = await s.products.list({ active: true, limit: 100 });
-  let product = products.data.find(p => p.name === `CareDesk ${name}`);
+  let product = products.data.find(p => p.name === `Meticle ${name}`);
   if (!product) {
-    product = await s.products.create({ name: `CareDesk ${name}`, description: `${name} plan monthly subscription` });
+    product = await s.products.create({ name: `Meticle ${name}`, description: `${name} plan monthly subscription` });
   }
 
   const prices = await s.prices.list({ product: product.id, active: true, limit: 1, type: 'recurring' });

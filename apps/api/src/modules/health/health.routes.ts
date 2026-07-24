@@ -4,7 +4,7 @@ import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { validate } from '../../shared/middleware/validate.middleware';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 import { createObservationSchema, createBowelMovementSchema, createDentalRecordSchema, createFluidIntakeSchema, updateObservationSchema, updateBowelMovementSchema, updateDentalRecordSchema, updateFluidIntakeSchema } from '../../shared/validation/schemas';
 
 const router = Router();

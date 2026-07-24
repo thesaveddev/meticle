@@ -5,7 +5,7 @@ import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { inviteStaffSchema, acceptInvitationSchema } from '../../shared/validation/schemas';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 const router = Router();
 

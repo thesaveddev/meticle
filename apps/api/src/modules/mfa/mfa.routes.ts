@@ -4,7 +4,7 @@ import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 import { mfaSetupSchema, mfaVerifySchema, mfaDisableSchema, mfaAdminDisableSchema } from '../../shared/validation/schemas';
 
 const router = Router();

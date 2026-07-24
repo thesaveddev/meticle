@@ -66,7 +66,7 @@ export default function MfaChallengePage() {
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
         <Container maxWidth="xs">
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>CareDesk</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle</Typography>
             <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>Backup Codes Sent</Typography>
           </Box>
 
@@ -107,7 +107,7 @@ export default function MfaChallengePage() {
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
       <Container maxWidth="xs">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>CareDesk</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle</Typography>
           <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>Two-Factor Authentication</Typography>
           <Typography sx={{ color: '#6B7280', mt: 1 }}>
             {useBackupCode

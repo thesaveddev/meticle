@@ -8,7 +8,7 @@ const pool = require('../src/shared/database').default;
 
 async function createSuperAdmin() {
   const bcrypt = await import('bcryptjs');
-  const email = process.argv[2] || 'admin@caredesk.app';
+  const email = process.argv[2] || 'admin@meticlecare.com';
   const password = process.argv[3] || 'AdminPass123!';
 
   try {

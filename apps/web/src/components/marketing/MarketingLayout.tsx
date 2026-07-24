@@ -53,7 +53,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           <Grid container spacing={6}>
             <Grid item xs={12} md={4}>
               <Typography variant="h5" sx={{ fontWeight: 900, color: '#111827', mb: 2, cursor: 'pointer' }} onClick={() => navigate('/')}>
-                CareDesk
+                Meticle
               </Typography>
               <Typography variant="body2" sx={{ color: '#6B7280', mb: 3, maxWidth: 300 }}>
                 The compliance-first platform for UK care providers. Built for CQC, CIW, Care Inspectorate, and RQIA.
@@ -83,7 +83,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           </Grid>
           <Divider sx={{ my: 6 }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-            <Typography variant="body2" color="#9CA3AF">© 2026 CareDesk Technologies. All rights reserved.</Typography>
+            <Typography variant="body2" color="#9CA3AF">© 2026 Meticle Technologies. All rights reserved.</Typography>
             <Stack direction="row" spacing={3}>
               <Typography variant="caption" color="#9CA3AF" sx={{ cursor: 'pointer', '&:hover': { color: '#0F4C81' } }} onClick={() => navigate('/privacy')}>Privacy Policy</Typography>
               <Typography variant="caption" color="#9CA3AF" sx={{ cursor: 'pointer', '&:hover': { color: '#0F4C81' } }} onClick={() => navigate('/terms')}>Terms of Use</Typography>

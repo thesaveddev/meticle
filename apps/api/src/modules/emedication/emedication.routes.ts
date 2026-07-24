@@ -5,7 +5,7 @@ import { validate } from '../../shared/middleware/validate.middleware';
 import { EMedicationController } from './emedication.controller';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 import {
   createMedicationRecordSchema,
   updateMedicationRecordSchema,

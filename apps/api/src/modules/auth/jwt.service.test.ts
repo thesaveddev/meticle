@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { generateAccessToken, generateRefreshToken, verifyAccessToken, verifyRefreshToken } from './jwt.service';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 const testPayload = {
   userId: '123e4567-e89b-12d3-a456-426614174000',

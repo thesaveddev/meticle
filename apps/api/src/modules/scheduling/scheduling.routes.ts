@@ -6,7 +6,7 @@ import { requirePermission } from '../../shared/middleware/requirePermission';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { createShiftSchema, updateShiftSchema, assignStaffSchema, createTemplateSchema } from '../../shared/validation/schemas';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 const router = Router();
 router.use(authenticate);

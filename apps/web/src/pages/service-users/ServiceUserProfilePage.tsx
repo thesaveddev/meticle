@@ -14,7 +14,9 @@ import {
   Event as EventIcon, Note as NoteIcon, Assignment as AssignmentIcon,
   HealthAndSafety as HealthIcon, Person as PersonIcon, Upload as UploadIcon,
   CheckCircle as CheckCircleIcon, RadioButtonUnchecked as UncheckedIcon,
-  People as PeopleIcon,
+  People as PeopleIcon, AutoAwesome as AiIcon, Mic as MicIcon, Stop as StopIcon,
+  Psychology as PsychologyIcon, Flag as FlagIcon, TrendingUp as TrendIcon,
+  Lightbulb as LightbulbIcon, Save as SaveIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -24,6 +26,7 @@ import HealthTab from './HealthTab'
 import BodyMapTab from './BodyMapTab'
 import MemoryBookTab from './MemoryBookTab'
 import { LinearProgress, Rating } from '@mui/material'
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer as RechartsResponsiveContainer, BarChart, Bar, XAxis as RechartsXAxis, YAxis as RechartsYAxis, CartesianGrid as RechartsCartesianGrid, Tooltip as RechartsTooltip, Cell } from 'recharts'
 
 const RISK_COLORS: Record<string, string> = { low: '#16A34A', medium: '#D97706', high: '#DC2626', critical: '#7C3AED' }
 const CATEGORY_OPTIONS = ['personal_care', 'medication', 'mobility', 'nutrition', 'mental_health', 'behaviour', 'social', 'other']
@@ -88,6 +91,16 @@ export default function ServiceUserProfilePage() {
   const [error, setError] = useState('')
   const planFileInputRef = useRef<HTMLInputElement>(null)
   const [planUploading, setPlanUploading] = useState(false)
+
+  // AI Daily Notes state
+  const [aiMode, setAiMode] = useState(false)
+  const [aiTranscript, setAiTranscript] = useState('')
+  const [aiRecording, setAiRecording] = useState(false)
+  const [aiResult, setAiResult] = useState<any>(null)
+  const [aiEditedContent, setAiEditedContent] = useState('')
+  const [aiShowResults, setAiShowResults] = useState(false)
+  const [aiError, setAiError] = useState('')
+  const aiRecognitionRef = useRef<any>(null)
 
   const CATEGORY_FIELDS: Record<string, string[]> = {
     mobility: ['mobility_level', 'mobility_aids', 'communication_needs'],
@@ -202,6 +215,52 @@ export default function ServiceUserProfilePage() {
     onError: (err: any) => setError(err?.response?.data?.error?.message || 'Failed to cancel invite'),
   })
 
+  // AI Daily Notes mutations
+  const aiGenerateMutation = useMutation({
+    mutationFn: (data: any) => api.post('/ai/daily-notes/generate', data),
+    onSuccess: (res) => {
+      setAiResult(res.data.result)
+      setAiEditedContent(res.data.result?.daily_note?.content || '')
+      setAiShowResults(true)
+    },
+    onError: (e: any) => setAiError(e.response?.data?.error?.message || 'AI generation failed'),
+  })
+
+  const aiApproveMutation = useMutation({
+    mutationFn: (data: any) => api.post('/ai/daily-notes/approve', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-user', id] })
+      setAddNoteOpen(false)
+      setAiMode(false)
+      setAiResult(null)
+      setAiTranscript('')
+      setAiEditedContent('')
+      setAiShowResults(false)
+      showSnackbar('Daily note saved successfully')
+    },
+    onError: (e: any) => setAiError(e.response?.data?.error?.message || 'Failed to save'),
+  })
+
+  const aiAnalyzeNoteMutation = useMutation({
+    mutationFn: (noteId: string) => api.post(`/ai/daily-notes/${noteId}/analyze`),
+    onSuccess: (res) => {
+      const r = res.data.result
+      setViewNote((prev: any) => prev ? { ...prev,
+        generated_by_ai: true,
+        ai_risk_level: r.risk_level,
+        ai_mood_analysis: r.mood_analysis,
+        ai_safeguarding_flags: r.safeguarding_flags,
+        ai_care_plan_updates: r.care_plan_updates,
+        ai_interventions: r.interventions_suggested,
+        ai_follow_up_required: r.follow_up_required,
+        ai_follow_up_details: r.follow_up_details,
+      } : null)
+      queryClient.invalidateQueries({ queryKey: ['service-user', id] })
+      showSnackbar('AI analysis complete')
+    },
+    onError: (e: any) => setAiError(e.response?.data?.error?.message || 'Analysis failed'),
+  })
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoError, setPhotoError] = useState('')
@@ -240,6 +299,85 @@ export default function ServiceUserProfilePage() {
     }
     return () => { if (photoUrl) URL.revokeObjectURL(photoUrl) }
   }, [user?.photo_url])
+
+  // AI Daily Notes helper functions
+  const startAiRecording = () => {
+    setAiError('')
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) { setAiError('Voice input not supported on this browser. Try Chrome.'); return }
+    const rec = new SpeechRecognition()
+    rec.continuous = true
+    rec.interimResults = true
+    rec.lang = 'en-GB'
+    rec.onresult = (e: any) => {
+      let full = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) full += e.results[i][0].transcript
+      setAiTranscript(full)
+    }
+    rec.onerror = (e: any) => { setAiError(`Voice error: ${e.error}`); setAiRecording(false) }
+    rec.onend = () => setAiRecording(false)
+    aiRecognitionRef.current = rec
+    rec.start()
+    setAiRecording(true)
+  }
+
+  const stopAiRecording = () => {
+    aiRecognitionRef.current?.stop()
+    setAiRecording(false)
+  }
+
+  const handleAiGenerate = () => {
+    if (!aiTranscript.trim() || !id) { setAiError('Please enter your observations'); return }
+    setAiError('')
+    setAiResult(null)
+    aiGenerateMutation.mutate({
+      serviceUserId: id,
+      staffInput: aiTranscript.trim(),
+      shift: noteForm.shift,
+      noteDate: noteForm.note_date,
+    })
+  }
+
+  const handleAiApprove = () => {
+    if (!aiResult || !id) return
+    aiApproveMutation.mutate({
+      serviceUserId: id,
+      dailyNote: {
+        content: aiEditedContent || aiResult.daily_note?.content || '',
+        shift: aiResult.daily_note?.shift || noteForm.shift,
+        category: aiResult.daily_note?.category || noteForm.category || 'wellbeing',
+        support_level: noteForm.support_level || '',
+      },
+      moodAnalysis: aiResult.mood_analysis,
+      safeguardingFlags: aiResult.safeguarding_flags,
+      carePlanUpdates: aiResult.care_plan_updates,
+      interventionsSuggested: aiResult.interventions_suggested,
+      riskLevel: aiResult.risk_level,
+      followUpRequired: aiResult.follow_up_required,
+      followUpDetails: aiResult.follow_up_details,
+      noteDate: noteForm.note_date,
+    })
+  }
+
+  const getMoodEmoji = (score?: number) => {
+    if (!score) return '😐'
+    if (score >= 8) return '😊'
+    if (score >= 6) return '🙂'
+    if (score >= 4) return '😐'
+    if (score >= 2) return '😟'
+    return '😢'
+  }
+
+  const resetAiMode = () => {
+    setAiMode(false)
+    setAiTranscript('')
+    setAiResult(null)
+    setAiEditedContent('')
+    setAiShowResults(false)
+    setAiError('')
+    setAiRecording(false)
+    aiRecognitionRef.current?.stop()
+  }
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 8 }}><CircularProgress /></Box>
   if (!user) return <Alert severity="error">Resident not found</Alert>
@@ -657,8 +795,16 @@ export default function ServiceUserProfilePage() {
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Daily Notes</Typography>
-            <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
-              sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Add Note</Button>
+            <Stack direction="row" spacing={1}>
+              <Tooltip title="Write with AI">
+                <IconButton size="small" onClick={() => { resetAiMode(); setAiMode(true); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
+                  sx={{ bgcolor: '#7C3AED', color: '#fff', borderRadius: 1.5, width: 32, height: 32, '&:hover': { bgcolor: '#6D28D9' } }}>
+                  <AiIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetAiMode(); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' }); setEditNoteId(null); setAddNoteOpen(true) }}
+                sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Add Note</Button>
+            </Stack>
           </Stack>
           {(!user.recent_notes || user.recent_notes.length === 0) ? (
             <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
@@ -679,11 +825,24 @@ export default function ServiceUserProfilePage() {
                         <Chip label={SUPPORT_LEVEL_LABELS[n.support_level]} size="small" color={SUPPORT_LEVEL_COLORS[n.support_level] || 'default'}
                           sx={{ height: 20, fontSize: 10 }} />
                       )}
+                      {n.generated_by_ai && (
+                        <Chip icon={<AiIcon sx={{ fontSize: 12 }} />} label="AI" size="small"
+                          sx={{ height: 20, fontSize: 10, bgcolor: '#F3E8FF', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
+                      )}
                       <Typography variant="caption" color="#6B7280">{n.note_date ? new Date(n.note_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</Typography>
                     </Stack>
                     <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 500 }}>{n.author_name || ''}</Typography>
                   </Stack>
                   <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: '#374151', lineHeight: 1.6 }}>{n.content}</Typography>
+                  {n.generated_by_ai && n.ai_risk_level && (
+                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.75 }}>
+                      {n.ai_mood_analysis && <Typography variant="caption" color="#7C3AED">{getMoodEmoji(n.ai_mood_analysis.mood_score)} Mood {n.ai_mood_analysis.mood_score}/10</Typography>}
+                      <Chip label={`${n.ai_risk_level} risk`} size="small" color={n.ai_risk_level === 'high' || n.ai_risk_level === 'critical' ? 'error' : n.ai_risk_level === 'medium' ? 'warning' : 'success'}
+                        sx={{ height: 18, fontSize: 10 }} />
+                      {n.ai_safeguarding_flags?.length > 0 && <Chip label={`${n.ai_safeguarding_flags.length} safeguarding`} size="small" color="error" variant="outlined" sx={{ height: 18, fontSize: 10 }} />}
+                      {n.ai_follow_up_required && <Chip label="follow-up" size="small" color="warning" variant="outlined" sx={{ height: 18, fontSize: 10 }} />}
+                    </Stack>
+                  )}
                 </Paper>
               ))}
             </Stack>
@@ -1170,38 +1329,180 @@ export default function ServiceUserProfilePage() {
       </Dialog>
 
       {/* Add Daily Note Dialog */}
-      <Dialog open={addNoteOpen} onClose={() => { setAddNoteOpen(false); setEditNoteId(null) }} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); if (editNoteId) updateNoteMutation.mutate({ noteId: editNoteId, data: noteForm }); else addNoteMutation.mutate(noteForm) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editNoteId ? 'Edit Daily Note' : 'Add Daily Note'}</DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ mt: 1 }}>
-              <Stack direction="row" spacing={1}>
-                <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={noteForm.note_date} onChange={e => setNoteForm({ ...noteForm, note_date: e.target.value })} />
-                <TextField select label="Shift" fullWidth value={noteForm.shift} onChange={e => setNoteForm({ ...noteForm, shift: e.target.value })}>
-                  <MenuItem value="day">Day</MenuItem>
-                  <MenuItem value="night">Night</MenuItem>
+      <Dialog open={addNoteOpen} onClose={() => { setAddNoteOpen(false); setEditNoteId(null); resetAiMode() }} maxWidth="sm" fullWidth>
+        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); if (!aiMode) { if (editNoteId) updateNoteMutation.mutate({ noteId: editNoteId, data: noteForm }); else addNoteMutation.mutate(noteForm) } }}>
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+          {aiMode ? <><AiIcon sx={{ color: '#7C3AED' }} /> Write with AI</> : (editNoteId ? 'Edit Daily Note' : 'Add Daily Note')}
+          {!editNoteId && !aiShowResults && (
+            <Tooltip title={aiMode ? 'Switch to manual typing' : 'Write with AI'}>
+              <IconButton size="small" onClick={() => setAiMode(!aiMode)}
+                sx={{ ml: 'auto', bgcolor: aiMode ? '#7C3AED' : '#E5E7EB', color: aiMode ? '#fff' : '#6B7280', '&:hover': { bgcolor: aiMode ? '#6D28D9' : '#D1D5DB' } }}>
+                <AiIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            {/* AI Error */}
+            {aiError && <Alert severity="error" onClose={() => setAiError('')}>{aiError}</Alert>}
+
+            {/* Manual mode form */}
+            {!aiMode && (
+              <>
+                <Stack direction="row" spacing={1}>
+                  <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={noteForm.note_date} onChange={e => setNoteForm({ ...noteForm, note_date: e.target.value })} />
+                  <TextField select label="Shift" fullWidth value={noteForm.shift} onChange={e => setNoteForm({ ...noteForm, shift: e.target.value })}>
+                    <MenuItem value="day">Day</MenuItem>
+                    <MenuItem value="night">Night</MenuItem>
+                  </TextField>
+                </Stack>
+                <TextField select label="Category" fullWidth required value={noteForm.category} onChange={e => setNoteForm({ ...noteForm, category: e.target.value })}>
+                  {NOTE_CATEGORIES.map(c => <MenuItem key={c} value={c} sx={{ textTransform: 'capitalize' }}>{c.replace(/_/g, ' ')}</MenuItem>)}
                 </TextField>
-              </Stack>
-              <TextField select label="Category" fullWidth required value={noteForm.category} onChange={e => setNoteForm({ ...noteForm, category: e.target.value })}>
-                {NOTE_CATEGORIES.map(c => <MenuItem key={c} value={c} sx={{ textTransform: 'capitalize' }}>{c.replace(/_/g, ' ')}</MenuItem>)}
-              </TextField>
-              <TextField select label="Level of Support" fullWidth value={noteForm.support_level} onChange={e => setNoteForm({ ...noteForm, support_level: e.target.value })}>
-                {SUPPORT_LEVELS.map(sl => (
-                  <MenuItem key={sl.value} value={sl.value}>{sl.label}</MenuItem>
-                ))}
-              </TextField>
-              <TextField label="Notes" fullWidth multiline rows={4} required value={noteForm.content} onChange={e => setNoteForm({ ...noteForm, content: e.target.value })} />
-            </Stack>
-          </DialogContent>
-          <DialogActions sx={{ p: 3 }}>
-            <Button onClick={() => { setAddNoteOpen(false); setEditNoteId(null) }}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addNoteMutation.isPending || updateNoteMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>{(addNoteMutation.isPending || updateNoteMutation.isPending) ? <CircularProgress size={20} /> : (editNoteId ? 'Save' : 'Add Note')}</Button>
-          </DialogActions>
+                <TextField select label="Level of Support" fullWidth value={noteForm.support_level} onChange={e => setNoteForm({ ...noteForm, support_level: e.target.value })}>
+                  {SUPPORT_LEVELS.map(sl => (
+                    <MenuItem key={sl.value} value={sl.value}>{sl.label}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField label="Notes" fullWidth multiline rows={4} required value={noteForm.content} onChange={e => setNoteForm({ ...noteForm, content: e.target.value })} />
+              </>
+            )}
+
+            {/* AI mode form */}
+            {aiMode && !aiShowResults && (
+              <>
+                <Stack direction="row" spacing={1}>
+                  <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={noteForm.note_date} onChange={e => setNoteForm({ ...noteForm, note_date: e.target.value })} />
+                  <TextField select label="Shift" fullWidth value={noteForm.shift} onChange={e => setNoteForm({ ...noteForm, shift: e.target.value })}>
+                    <MenuItem value="day">Day</MenuItem>
+                    <MenuItem value="night">Night</MenuItem>
+                  </TextField>
+                </Stack>
+                <TextField select label="Level of Support" fullWidth value={noteForm.support_level} onChange={e => setNoteForm({ ...noteForm, support_level: e.target.value })}>
+                  <MenuItem value="">Not specified</MenuItem>
+                  {SUPPORT_LEVELS.map(sl => (
+                    <MenuItem key={sl.value} value={sl.value}>{sl.label}</MenuItem>
+                  ))}
+                </TextField>
+
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: '#FAF5FF', borderColor: '#C4B5FD' }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                    <MicIcon sx={{ color: '#7C3AED' }} />
+                    <Typography variant="subtitle2" sx={{ color: '#7C3AED' }}>Voice Input</Typography>
+                    <Typography variant="caption" color="#6B7280">Speak or type your observations</Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                    {!aiRecording ? (
+                      <Button size="small" variant="contained" startIcon={<MicIcon />} onClick={startAiRecording}
+                        sx={{ bgcolor: '#7C3AED', textTransform: 'none', '&:hover': { bgcolor: '#6D28D9' } }}>Start Recording</Button>
+                    ) : (
+                      <Button size="small" variant="contained" color="error" startIcon={<StopIcon />} onClick={stopAiRecording}
+                        sx={{ textTransform: 'none', animation: 'pulse 1.5s infinite' }}>Stop Recording</Button>
+                    )}
+                    {aiRecording && <Chip label="Recording..." size="small" color="error" variant="outlined" sx={{ animation: 'blink 1s infinite' }} />}
+                  </Stack>
+                  <TextField placeholder="Type your observations here, or use voice input above..." fullWidth multiline rows={3} value={aiTranscript} onChange={e => setAiTranscript(e.target.value)}
+                    sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#fff' } }} />
+                </Paper>
+
+                <Button variant="contained" fullWidth onClick={handleAiGenerate} disabled={!aiTranscript.trim() || aiGenerateMutation.isPending}
+                  startIcon={aiGenerateMutation.isPending ? <CircularProgress size={18} color="inherit" /> : <PsychologyIcon />}
+                  sx={{ bgcolor: '#7C3AED', textTransform: 'none', py: 1.5, fontWeight: 700, '&:hover': { bgcolor: '#6D28D9' } }}>
+                  {aiGenerateMutation.isPending ? 'Analyzing...' : 'Analyze & Generate Note'}
+                </Button>
+              </>
+            )}
+
+            {/* AI Results */}
+            {aiMode && aiShowResults && aiResult && (
+              <>
+                <Alert severity={aiResult.risk_level === 'high' || aiResult.risk_level === 'critical' ? 'error' : aiResult.risk_level === 'medium' ? 'warning' : 'success'} icon={<CheckCircleIcon />}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    {aiResult.risk_level?.toUpperCase()} Risk Level {getMoodEmoji(aiResult.mood_analysis?.mood_score)}
+                  </Typography>
+                  {aiResult.follow_up_required && <Typography variant="caption" color="error">Follow-up required: {aiResult.follow_up_details}</Typography>}
+                </Alert>
+
+                {aiResult.safeguarding_flags?.length > 0 && (
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#EF4444', bgcolor: '#FEF2F2' }}>
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                      <FlagIcon sx={{ color: '#EF4444', fontSize: 20 }} />
+                      <Typography variant="subtitle2" sx={{ color: '#EF4444', fontWeight: 700 }}>Safeguarding Alerts ({aiResult.safeguarding_flags.length})</Typography>
+                    </Stack>
+                    {aiResult.safeguarding_flags.map((flag: any, i: number) => (
+                      <Box key={i} sx={{ mb: 0.5 }}>
+                        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
+                          <Chip label={flag.severity} size="small" color={flag.severity === 'high' ? 'error' : 'warning'} sx={{ height: 18, fontSize: 10 }} />
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#EF4444' }}>{flag.concern_type}</Typography>
+                        </Stack>
+                        <Typography variant="caption" display="block" color="#374151">{flag.description}</Typography>
+                        {flag.action_required && <Typography variant="caption" display="block" color="#6B7280">Action: {flag.action_required}</Typography>}
+                      </Box>
+                    ))}
+                  </Paper>
+                )}
+
+                <TextField label="Generated Daily Note" fullWidth multiline rows={4} value={aiEditedContent} onChange={e => setAiEditedContent(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F0FDF4' } }} />
+
+                {aiResult.care_plan_updates?.length > 0 && (
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#0F4C81' }}>
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                      <LightbulbIcon sx={{ color: '#0F4C81', fontSize: 20 }} />
+                      <Typography variant="subtitle2" sx={{ color: '#0F4C81', fontWeight: 700 }}>Care Plan Suggestions</Typography>
+                    </Stack>
+                    {aiResult.care_plan_updates.map((u: any, i: number) => (
+                      <Box key={i} sx={{ mb: 0.5 }}>
+                        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
+                          <Chip label={u.priority || 'medium'} size="small" color={u.priority === 'high' ? 'error' : u.priority === 'medium' ? 'warning' : 'info'} sx={{ height: 18, fontSize: 10 }} />
+                          <Typography variant="caption" sx={{ fontWeight: 700 }}>{u.goal_area || 'Care Plan'}</Typography>
+                        </Stack>
+                        <Typography variant="caption" display="block" color="#374151">{u.suggested_update}</Typography>
+                        {u.evidence && <Typography variant="caption" display="block" color="#6B7280" fontStyle="italic">Evidence: {u.evidence}</Typography>}
+                      </Box>
+                    ))}
+                  </Paper>
+                )}
+
+                {aiResult.interventions_suggested?.length > 0 && (
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#059669' }}>
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                      <TrendIcon sx={{ color: '#059669', fontSize: 20 }} />
+                      <Typography variant="subtitle2" sx={{ color: '#059669', fontWeight: 700 }}>Suggested Interventions</Typography>
+                    </Stack>
+                    {aiResult.interventions_suggested.map((s: any, i: number) => (
+                      <Box key={i} sx={{ mb: 0.5 }}>
+                        <Typography variant="caption" display="block" color="#374151" sx={{ fontWeight: 700 }}>• {s.intervention || s}</Typography>
+                        {s.reason && <Typography variant="caption" display="block" color="#6B7280">Reason: {s.reason}</Typography>}
+                        {s.expected_outcome && <Typography variant="caption" display="block" color="#059669">Expected: {s.expected_outcome}</Typography>}
+                      </Box>
+                    ))}
+                  </Paper>
+                )}
+
+                <Button variant="outlined" fullWidth onClick={() => { setAiShowResults(false); setAiResult(null); setAiEditedContent('') }} sx={{ textTransform: 'none', borderColor: '#7C3AED', color: '#7C3AED' }}>Back</Button>
+              </>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => { setAddNoteOpen(false); setEditNoteId(null); resetAiMode() }}>Cancel</Button>
+          {aiMode && aiShowResults && (
+            <Button variant="contained" onClick={handleAiApprove} disabled={aiApproveMutation.isPending}
+              startIcon={aiApproveMutation.isPending ? <CircularProgress size={18} color="inherit" /> : <SaveIcon />}
+              sx={{ bgcolor: '#7C3AED', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#6D28D9' } }}>
+              {aiApproveMutation.isPending ? 'Saving...' : 'Approve & Save Note'}
+            </Button>
+          )}
+          {!aiMode && (
+            <Button type="submit" variant="contained" disabled={addNoteMutation.isPending || updateNoteMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
+              {(addNoteMutation.isPending || updateNoteMutation.isPending) ? <CircularProgress size={20} /> : (editNoteId ? 'Save' : 'Add Note')}
+            </Button>
+          )}
+        </DialogActions>
         </Box>
       </Dialog>
-
-      {/* View Note Dialog */}
-      <Dialog open={!!viewNote} onClose={() => setViewNote(null)} maxWidth="sm" fullWidth>
+      <Dialog open={!!viewNote} onClose={() => { setViewNote(null); setAiError('') }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 800 }}>Daily Note</DialogTitle>
         <DialogContent>
           {viewNote && (
@@ -1212,15 +1513,112 @@ export default function ServiceUserProfilePage() {
                 {viewNote.support_level && SUPPORT_LEVEL_LABELS[viewNote.support_level] && (
                   <Chip label={SUPPORT_LEVEL_LABELS[viewNote.support_level]} size="small" color={SUPPORT_LEVEL_COLORS[viewNote.support_level] || 'default'} />
                 )}
+                {viewNote.generated_by_ai && (
+                  <Chip icon={<AiIcon sx={{ fontSize: 14 }} />} label="AI Generated" size="small"
+                    sx={{ bgcolor: '#F3E8FF', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
+                )}
                 <Typography variant="caption" color="#6B7280">{new Date(viewNote.note_date).toLocaleDateString('en-GB')}</Typography>
                 <Typography variant="caption" color="#9CA3AF">{viewNote.author_name ? `by ${viewNote.author_name}` : ''}</Typography>
               </Stack>
               <Divider />
               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewNote.content}</Typography>
+
+              {/* Saved AI Analysis */}
+              {viewNote.ai_risk_level && (
+                <>
+                  <Divider />
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#C4B5FD', bgcolor: '#FAF5FF' }}>
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                      <AiIcon sx={{ color: '#7C3AED', fontSize: 20 }} />
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#7C3AED' }}>AI Analysis</Typography>
+                      <Chip label={`${viewNote.ai_risk_level} risk`} size="small" color={viewNote.ai_risk_level === 'high' || viewNote.ai_risk_level === 'critical' ? 'error' : viewNote.ai_risk_level === 'medium' ? 'warning' : 'success'} sx={{ height: 20, fontSize: 10 }} />
+                      {viewNote.ai_follow_up_required && <Chip label="Follow-up needed" size="small" color="warning" sx={{ height: 20, fontSize: 10 }} />}
+                    </Stack>
+
+                    {viewNote.ai_follow_up_details && (
+                      <Alert severity="warning" sx={{ mb: 1.5, py: 0 }}>
+                        <Typography variant="caption" fontWeight={700}>Follow-up:</Typography> {viewNote.ai_follow_up_details}
+                      </Alert>
+                    )}
+
+                    {viewNote.ai_mood_analysis && (
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151' }}>Mood: {getMoodEmoji(viewNote.ai_mood_analysis.mood_score)} {viewNote.ai_mood_analysis.mood_label} ({viewNote.ai_mood_analysis.mood_score}/10)</Typography>
+                        {viewNote.ai_mood_analysis.indicators?.length > 0 && (
+                          <Typography variant="caption" display="block" color="#6B7280">{viewNote.ai_mood_analysis.indicators.join(', ')}</Typography>
+                        )}
+                      </Box>
+                    )}
+
+                    {Array.isArray(viewNote.ai_safeguarding_flags) && viewNote.ai_safeguarding_flags.length > 0 && (
+                      <Box sx={{ mb: 1.5 }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5 }}>
+                          <FlagIcon sx={{ fontSize: 14, color: '#EF4444' }} />
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#EF4444' }}>Safeguarding ({viewNote.ai_safeguarding_flags.length})</Typography>
+                        </Stack>
+                        {viewNote.ai_safeguarding_flags.map((f: any, i: number) => (
+                          <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: '#FCA5A5', bgcolor: '#FEF2F2' }}>
+                            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
+                              <Chip label={f.severity} size="small" color={f.severity === 'high' ? 'error' : 'warning'} sx={{ height: 16, fontSize: 9 }} />
+                              <Typography variant="caption" fontWeight={700}>{f.concern_type}</Typography>
+                            </Stack>
+                            <Typography variant="caption" display="block" color="#374151">{f.description}</Typography>
+                            {f.action_required && <Typography variant="caption" display="block" color="#6B7280" fontStyle="italic">Action: {f.action_required}</Typography>}
+                          </Paper>
+                        ))}
+                      </Box>
+                    )}
+
+                    {Array.isArray(viewNote.ai_care_plan_updates) && viewNote.ai_care_plan_updates.length > 0 && (
+                      <Box sx={{ mb: 1.5 }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5 }}>
+                          <LightbulbIcon sx={{ fontSize: 14, color: '#0F4C81' }} />
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#0F4C81' }}>Care Plan Suggestions</Typography>
+                        </Stack>
+                        {viewNote.ai_care_plan_updates.map((u: any, i: number) => (
+                          <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: '#93C5FD' }}>
+                            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
+                              <Chip label={u.priority || 'medium'} size="small" color={u.priority === 'high' ? 'error' : u.priority === 'medium' ? 'warning' : 'info'} sx={{ height: 16, fontSize: 9 }} />
+                              <Typography variant="caption" fontWeight={700}>{u.goal_area}</Typography>
+                            </Stack>
+                            <Typography variant="caption" display="block" color="#374151">{u.suggested_update}</Typography>
+                            {u.evidence && <Typography variant="caption" display="block" color="#6B7280" fontStyle="italic">Evidence: {u.evidence}</Typography>}
+                          </Paper>
+                        ))}
+                      </Box>
+                    )}
+
+                    {Array.isArray(viewNote.ai_interventions) && viewNote.ai_interventions.length > 0 && (
+                      <Box>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5 }}>
+                          <TrendIcon sx={{ fontSize: 14, color: '#059669' }} />
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#059669' }}>Suggested Interventions</Typography>
+                        </Stack>
+                        {viewNote.ai_interventions.map((s: any, i: number) => (
+                          <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: '#A7F3D0' }}>
+                            <Typography variant="caption" display="block" fontWeight={700} color="#374151">• {s.intervention}</Typography>
+                            {s.reason && <Typography variant="caption" display="block" color="#6B7280">Reason: {s.reason}</Typography>}
+                            {s.expected_outcome && <Typography variant="caption" display="block" color="#059669">Expected: {s.expected_outcome}</Typography>}
+                          </Paper>
+                        ))}
+                      </Box>
+                    )}
+                  </Paper>
+                </>
+              )}
             </Stack>
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
+          {viewNote && !viewNote.ai_risk_level && (
+            <Button startIcon={aiAnalyzeNoteMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <AiIcon />}
+              onClick={() => aiAnalyzeNoteMutation.mutate(viewNote.id)}
+              disabled={aiAnalyzeNoteMutation.isPending}
+              sx={{ textTransform: 'none', color: '#7C3AED', borderColor: '#C4B5FD', '&:hover': { borderColor: '#7C3AED', bgcolor: '#FAF5FF' } }}
+              variant="outlined">
+              {aiAnalyzeNoteMutation.isPending ? 'Analyzing...' : 'Analyze with AI'}
+            </Button>
+          )}
           <Button onClick={() => setViewNote(null)}>Close</Button>
         </DialogActions>
       </Dialog>
@@ -1883,6 +2281,10 @@ function WellbeingTabInline({ serviceUserId }: { serviceUserId: string }) {
   const grouped: Record<string, any[]> = {}
   entries.forEach((e: any) => { if (!grouped[e.domain]) grouped[e.domain] = []; grouped[e.domain].push(e) })
 
+  const latestByDomain: Record<string, number> = {}
+  entries.forEach((e: any) => { if (!latestByDomain[e.domain] || new Date(e.recorded_date) > new Date(latestByDomain[e.domain + '_date'])) { latestByDomain[e.domain] = e.score; latestByDomain[e.domain + '_date'] = e.recorded_date } })
+  const radarData = WELLBEING_DOMAINS.filter(d => latestByDomain[d] != null).map(d => ({ domain: d.charAt(0).toUpperCase() + d.slice(1), score: latestByDomain[d], fullMark: 10 }))
+
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
@@ -1890,6 +2292,19 @@ function WellbeingTabInline({ serviceUserId }: { serviceUserId: string }) {
         <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
           sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Record Entry</Button>
       </Stack>
+      {radarData.length >= 3 && (
+        <Paper sx={{ p: 3, mb: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, color: '#6B7280', mb: 1, display: 'block' }}>Latest Wellbeing Snapshot</Typography>
+          <RechartsResponsiveContainer width="100%" height={280}>
+            <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
+              <PolarGrid stroke="#E5E7EB" />
+              <PolarAngleAxis dataKey="domain" tick={{ fontSize: 11, fill: '#6B7280' }} />
+              <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fontSize: 10, fill: '#9CA3AF' }} />
+              <Radar name="Score" dataKey="score" stroke="#0F4C81" fill="#0F4C81" fillOpacity={0.25} strokeWidth={2} />
+            </RadarChart>
+          </RechartsResponsiveContainer>
+        </Paper>
+      )}
       {entries.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
           <Typography color="#9CA3AF">No wellbeing entries recorded</Typography>
@@ -2515,30 +2930,40 @@ function MoodChartTabInline({ serviceUserId }: { serviceUserId: string }) {
           <Typography color="#9CA3AF">No entries in the last 30 days</Typography>
         </Paper>
       ) : (
-        <Stack spacing={2}>
-          {Object.entries(grouped).map(([domain, items]) => (
-            <Paper key={domain} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                <Chip label={domain} size="small" sx={{ bgcolor: DOMAIN_COLORS[domain] || '#6B7280', color: 'white', fontWeight: 700 }} />
-                <Typography variant="caption" color="#6B7280">{items.length} entries</Typography>
-              </Stack>
-              <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'flex-end', height: 80 }}>
-                {items.sort((a: any, b: any) => new Date(a.recorded_date).getTime() - new Date(b.recorded_date).getTime()).map((e: any) => (
-                  <Tooltip key={e.id} title={`${e.score}/10 — ${new Date(e.recorded_date).toLocaleDateString('en-GB')}${e.notes ? `: ${e.notes}` : ''}`}>
-                    <Box sx={{ width: 14, height: `${(e.score / 10) * 100}%`, minHeight: 4, bgcolor: scoreColor(e.score), borderRadius: 0.75, cursor: 'pointer', transition: 'opacity 0.15s', '&:hover': { opacity: 0.7 } }} />
-                  </Tooltip>
-                ))}
-              </Box>
-              <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.5 }}>
-                <Typography variant="caption" color="#9CA3AF">
-                  {items.length > 0 ? new Date(items[0].recorded_date).toLocaleDateString('en-GB') : ''}
-                </Typography>
-                <Typography variant="caption" color="#9CA3AF">
-                  {items.length > 0 ? new Date(items[items.length - 1].recorded_date).toLocaleDateString('en-GB') : ''}
-                </Typography>
-              </Stack>
-            </Paper>
-          ))}
+        <Stack spacing={3}>
+          {Object.entries(grouped).map(([domain, items]) => {
+            const chartData = items
+              .sort((a: any, b: any) => new Date(a.recorded_date).getTime() - new Date(b.recorded_date).getTime())
+              .map((e: any) => ({
+                date: new Date(e.recorded_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                score: e.score,
+                notes: e.notes || '',
+              }))
+            return (
+              <Paper key={domain} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Chip label={domain} size="small" sx={{ bgcolor: DOMAIN_COLORS[domain] || '#6B7280', color: 'white', fontWeight: 700 }} />
+                  <Typography variant="caption" color="#6B7280">{items.length} entries</Typography>
+                </Stack>
+                <RechartsResponsiveContainer width="100%" height={180}>
+                  <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                    <RechartsCartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <RechartsXAxis dataKey="date" tick={{ fontSize: 10, fill: '#9CA3AF' }} />
+                    <RechartsYAxis domain={[0, 10]} tick={{ fontSize: 10, fill: '#9CA3AF' }} />
+                    <RechartsTooltip
+                      contentStyle={{ borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12 }}
+                      formatter={(value: any) => [`${value}/10`, 'Score']}
+                    />
+                    <Bar dataKey="score" radius={[4, 4, 0, 0]} maxBarSize={32}>
+                      {chartData.map((entry: any, idx: number) => (
+                        <Cell key={idx} fill={scoreColor(entry.score)} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </RechartsResponsiveContainer>
+              </Paper>
+            )
+          })}
         </Stack>
       )}
 
@@ -2581,7 +3006,7 @@ function MoodChartTabInline({ serviceUserId }: { serviceUserId: string }) {
 function AuditTrailTabInline({ serviceUserId }: { serviceUserId: string }) {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['audit-trail', serviceUserId],
-    queryFn: () => api.get('/audit/logs', { params: { entity_type: 'service_user', entity_id: serviceUserId } }).then(r => r.data),
+    queryFn: () => api.get('/audit/logs', { params: { service_user_id: serviceUserId } }).then(r => r.data),
   })
   if (isLoading) return <CircularProgress size={24} sx={{ display: 'block', mx: 'auto', mt: 4 }} />
   if (!logs.length) return <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}><Typography color="#9CA3AF">No audit trail entries</Typography></Paper>

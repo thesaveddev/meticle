@@ -69,7 +69,7 @@ export default function HowItWorksPage() {
               </Typography>
             </Stack>
             <Typography variant="h2" sx={{ mb: 3, fontSize: { xs: '2rem', md: '2.8rem' } }}>
-              How CareDesk Works
+              How Meticle Works
             </Typography>
             <Typography sx={{ color: '#6B7280', fontSize: '1.15rem', lineHeight: 1.7 }}>
               Get started in minutes with a simple three-step process. No long contracts, no complex software, no painful onboarding.
@@ -136,10 +136,10 @@ export default function HowItWorksPage() {
         </Box>
       ))}
 
-      {/* Why CareDesk */}
+      {/* Why Meticle */}
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#0F4C81', color: 'white' }}>
         <Container maxWidth="lg">
-          <Typography variant="h3" sx={{ textAlign: 'center', mb: 8, fontWeight: 900 }}>Why CareDesk?</Typography>
+          <Typography variant="h3" sx={{ textAlign: 'center', mb: 8, fontWeight: 900 }}>Why Meticle?</Typography>
           <Grid container spacing={4}>
             {[
               { icon: <QuickIcon />, title: 'Setup in Minutes', desc: 'No lengthy onboarding. Configure your service, invite your team, and start recording care in under an hour.' },

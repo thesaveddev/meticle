@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
-import { UserRole } from '@caredesk/shared'
+import { UserRole } from '@meticle/shared'
 
 interface AuthGuardProps {
   allowedRoles?: UserRole[]

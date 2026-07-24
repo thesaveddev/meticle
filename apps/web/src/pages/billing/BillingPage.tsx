@@ -7,7 +7,7 @@ import {
 } from '@mui/material'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import { Plan } from '@caredesk/shared'
+import { Plan } from '@meticle/shared'
 import {
   CreditCard, Add as AddIcon, Star as StarIcon,
   Info as InfoIcon, DeleteOutline as DeleteIcon,

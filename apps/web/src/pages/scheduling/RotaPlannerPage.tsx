@@ -17,7 +17,7 @@ import {
   SwapHoriz as SwapHorizIcon, ArrowBack as ArrowBackIcon,
   AutoAwesome as AutoAwesomeIcon,
 } from '@mui/icons-material'
-import { UserRole } from '@caredesk/shared'
+import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
 import { fetchUserPermissions } from '../../utils/permissions'
 

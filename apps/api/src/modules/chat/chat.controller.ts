@@ -78,8 +78,8 @@ export class ChatController {
         if (memberUser?.email) {
           await EmailService.sendEmail(
             memberUser.email,
-            `You've been added to "${name}" on CareDesk`,
-            `Hello,<br><br>${creatorName} has added you to the group "<strong>${name}</strong>" on CareDesk.<br><br>Start chatting now!`,
+            `You've been added to "${name}" on Meticle`,
+            `Hello,<br><br>${creatorName} has added you to the group "<strong>${name}</strong>" on Meticle.<br><br>Start chatting now!`,
           );
         }
       } catch { /* silent */ }
@@ -358,7 +358,7 @@ export class ChatController {
       const response = await axios.get(url, {
         timeout: 5000,
         maxContentLength: 5 * 1024 * 1024, // 5MB response limit
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CareDeskBot/1.0)' },
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MeticleBot/1.0)' },
       });
       const html = response.data as string;
       const og: Record<string, string> = {};

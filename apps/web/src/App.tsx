@@ -62,6 +62,7 @@ import ComplianceRecordsPage from './pages/compliance/ComplianceRecordsPage'
 import AppointmentsPage from './pages/appointments/AppointmentsPage'
 import PoliciesPage from './pages/policies/PoliciesPage'
 import GoalsPage from './pages/goals/GoalsPage'
+import OutcomesPage from './pages/outcomes/OutcomesPage'
 import CareAssessmentsPage from './pages/care-assessments/CareAssessmentsPage'
 import EMedicationPage from './pages/emedication/EMedicationPage'
 import ArchivedMarPage from './pages/emedication/ArchivedMarPage'
@@ -69,7 +70,7 @@ import UnauthorizedPage from './pages/errors/UnauthorizedPage'
 import NotFoundPage from './pages/errors/NotFoundPage'
 import PlatformAdminPage from './pages/admin/PlatformAdminPage'
 import AdminOrganizationDetailPage from './pages/admin/AdminOrganizationDetailPage'
-import { UserRole } from '@caredesk/shared'
+import { UserRole } from '@meticle/shared'
 import ErrorBoundary from './components/ErrorBoundary'
 
 function App() {
@@ -139,6 +140,7 @@ function App() {
           <Route path="/appointments" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="staff_directory"><AppointmentsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/policies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><PoliciesPage /></ModuleGuard></AuthGuard>} />
           <Route path="/goals" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="staff_directory"><GoalsPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/outcomes" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><OutcomesPage /></ModuleGuard></AuthGuard>} />
           <Route path="/care-assessments" element={<ModuleGuard module="staff_directory"><CareAssessmentsPage /></ModuleGuard>} />
           <Route path="/room-checks" element={<ModuleGuard module="staff_directory"><RoomChecksPage /></ModuleGuard>} />
           <Route path="/mobile/check-in" element={<CheckInPage />} />

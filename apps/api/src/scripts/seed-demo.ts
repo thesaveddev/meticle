@@ -1,4 +1,4 @@
-// Demo data seed for CareDesk. Creates a realistic demo org with 72% compliance.
+// Demo data seed for Meticle. Creates a realistic demo org with 72% compliance.
 // Run: npx tsx src/scripts/seed-demo.ts
 
 import pool from '../shared/database'

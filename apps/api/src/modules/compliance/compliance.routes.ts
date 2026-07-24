@@ -6,7 +6,7 @@ import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { uploadDocumentSchema, updateDocumentStatusSchema } from '../../shared/validation/schemas';
 import { upload } from '../../shared/middleware/upload.middleware';
-import { UserRole } from '@caredesk/shared';
+import { UserRole } from '@meticle/shared';
 
 const router = Router();
 

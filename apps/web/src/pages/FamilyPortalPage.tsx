@@ -213,7 +213,7 @@ export default function FamilyPortalPage() {
 
       {/* Footer */}
       <Box sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>
-        <Typography variant="caption">Powered by CareDesk — Secure Family Portal</Typography>
+        <Typography variant="caption">Powered by Meticle — Secure Family Portal</Typography>
       </Box>
     </Box>
   )

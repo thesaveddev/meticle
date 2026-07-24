@@ -4,7 +4,7 @@ COPY package*.json ./
 COPY apps/web/package*.json ./apps/web/
 RUN npm ci
 COPY . .
-RUN npm run build --workspace=@caredesk/web
+RUN npm run build --workspace=@meticle/web
 
 FROM nginx:alpine
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
