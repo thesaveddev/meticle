@@ -15,6 +15,25 @@ CREATE TABLE IF NOT EXISTS organizations (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Users
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('SUPER_ADMIN', 'ORG_ADMIN', 'MANAGER', 'CARE_WORKER', 'COMPLIANCE_OFFICER');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role user_role NOT NULL,
+    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    status VARCHAR(50) DEFAULT 'active',
+    email_verified BOOLEAN DEFAULT FALSE,
+    force_password_reset BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Locations
 CREATE TABLE IF NOT EXISTS locations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -34,25 +53,6 @@ CREATE TABLE IF NOT EXISTS departments (
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Users
-DO $$ BEGIN
-    CREATE TYPE user_role AS ENUM ('SUPER_ADMIN', 'ORG_ADMIN', 'MANAGER', 'CARE_WORKER', 'COMPLIANCE_OFFICER');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role user_role NOT NULL,
-    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
-    status VARCHAR(50) DEFAULT 'active',
-    email_verified BOOLEAN DEFAULT FALSE,
-    force_password_reset BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Staff Profiles
@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS shifts (
     published_at TIMESTAMP WITH TIME ZONE,
     start_notification_sent_at TIMESTAMP WITH TIME ZONE,
     unclaimed_notified_at TIMESTAMP WITH TIME ZONE,
-    service_user_id UUID REFERENCES service_users(id) ON DELETE SET NULL,
+    service_user_id UUID,
     shift_type VARCHAR(20) DEFAULT 'day' NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -1008,3 +1008,10 @@ CREATE TABLE IF NOT EXISTS petty_cash_transactions (
 );
 CREATE INDEX IF NOT EXISTS idx_pct_org ON petty_cash_transactions(organization_id);
 CREATE INDEX IF NOT EXISTS idx_pct_location ON petty_cash_transactions(location_id);
+
+-- Deferred FK: shifts.service_user_id (service_users defined after shifts)
+DO $$ BEGIN
+    ALTER TABLE shifts ADD CONSTRAINT shifts_service_user_id_fkey
+        FOREIGN KEY (service_user_id) REFERENCES service_users(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
