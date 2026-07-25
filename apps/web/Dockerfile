@@ -5,6 +5,7 @@ COPY apps/web/package*.json ./apps/web/
 COPY packages/shared/package*.json ./packages/shared/
 RUN npm install
 COPY . .
+RUN npm run build --workspace=@meticle/shared
 RUN npm run build --workspace=@meticle/web
 
 FROM nginx:alpine
