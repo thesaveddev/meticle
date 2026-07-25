@@ -28,7 +28,7 @@ describe('rateLimit middleware', () => {
     await handler(req, res, next);
     expect(res.status).toHaveBeenCalledWith(429);
     expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ error: expect.objectContaining({ status: 429 }) })
+      expect.objectContaining({ message: expect.any(String), statusCode: 429 })
     );
   });
 });
