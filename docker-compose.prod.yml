@@ -1,32 +1,81 @@
-version: '3.8'
-
 services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - meticle
+
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile.prod
+    restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3002:3002"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://user:password@db:5432/meticle
+      - PORT=3002
+      - DATABASE_URL=postgresql://meticle:${POSTGRES_PASSWORD}@db:5432/meticle
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - FRONTEND_URL=https://meticlecare.com
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - meticle
 
   db:
     image: postgres:15-alpine
+    restart: unless-stopped
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=meticle
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=meticle
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meticle"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - meticle
 
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - meticle
 
 volumes:
   postgres_data:
+
+networks:
+  meticle:
