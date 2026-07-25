@@ -925,6 +925,19 @@ CREATE TABLE IF NOT EXISTS memory_book_entries (
 CREATE INDEX IF NOT EXISTS idx_memory_book_su ON memory_book_entries(service_user_id);
 CREATE INDEX IF NOT EXISTS idx_memory_book_date ON memory_book_entries(service_user_id, recorded_date);
 
+CREATE TABLE IF NOT EXISTS emedication_daily_counts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    count_date DATE NOT NULL,
+    staff_name TEXT NOT NULL,
+    matches_physical BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(service_user_id, count_date)
+);
+CREATE INDEX IF NOT EXISTS idx_emed_daily_counts_su ON emedication_daily_counts(service_user_id);
+
 CREATE TABLE IF NOT EXISTS emedication_daily_count_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     daily_count_id UUID NOT NULL REFERENCES emedication_daily_counts(id) ON DELETE CASCADE,
