@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Autocomplete, Grid, Alert, TablePagination, CircularProgress, LinearProgress, Collapse, IconButton, InputAdornment } from '@mui/material'
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Autocomplete, Grid, Alert, TablePagination, CircularProgress, LinearProgress, Collapse, IconButton, InputAdornment, Tooltip } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
-import { Assignment as CompetencyIcon, Description as DocIcon, Assessment as ReadinessIcon, Verified as ComplianceIcon, People as PeopleIcon, Warning as WarningIcon, School as TrainingIcon, History as AuditIcon, TrendingUp as TrendIcon, Favorite as FavoriteIcon, Group as EngagementIcon, Search as SearchIcon, ExpandMore as ExpandMoreIcon, CheckCircle, Error as ErrorIcon, Security as ShieldIcon } from '@mui/icons-material'
+import { Assignment as CompetencyIcon, Description as DocIcon, Assessment as ReadinessIcon, Verified as ComplianceIcon, People as PeopleIcon, Warning as WarningIcon, School as TrainingIcon, History as AuditIcon, TrendingUp as TrendIcon, Favorite as FavoriteIcon, Group as EngagementIcon, Search as SearchIcon, ExpandMore as ExpandMoreIcon, CheckCircle, Error as ErrorIcon, Security as ShieldIcon, VerifiedUser as DbsIcon, Refresh as PollIcon, Send as SubmitIcon, Add as AddIcon } from '@mui/icons-material'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
 import api from '../../services/api'
 
@@ -262,6 +262,12 @@ export default function CompliancePage() {
       <DocumentsSectionWithCollapse
         expanded={expandedSection === 'documents'}
         onToggle={() => setExpandedSection(expandedSection === 'documents' ? '' : 'documents')}
+      />
+
+      {/* Collapsible DBS Checks Section */}
+      <DbsSectionWithCollapse
+        expanded={expandedSection === 'dbs'}
+        onToggle={() => setExpandedSection(expandedSection === 'dbs' ? '' : 'dbs')}
       />
 
       {/* Collapsible Trend Section */}
@@ -559,6 +565,180 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
             <DialogActions>
               <Button onClick={() => setOpen(false)}>Cancel</Button>
               <Button onClick={handleFormSubmit} variant="contained" disabled={uploadMutation.isPending}>{uploadMutation.isPending ? 'Uploading...' : 'Upload'}</Button>
+            </DialogActions>
+          </Dialog>
+        </Box>
+      </Collapse>
+    </Paper>
+  )
+}
+
+const DBS_LEVELS = ['standard', 'enhanced', 'enhanced_with_barred']
+const DBS_WORKFORCE = ['adult', 'child', 'both']
+const DBS_STATUS_COLORS: Record<string, string> = {
+  draft: '#9CA3AF',
+  submitted: '#3B82F6',
+  in_progress: '#F59E0B',
+  awaiting_identity: '#F97316',
+  clear: '#16A34A',
+  disclosure: '#8B5CF6',
+  cancelled: '#6B7280',
+  error: '#DC2626',
+}
+
+function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
+  const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState({ staffId: '', level: 'enhanced', workforce: 'adult', costPence: '' })
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const { data: checks, isLoading } = useQuery({
+    queryKey: ['dbs-checks'],
+    queryFn: async () => { const res = await api.get('/dbs/checks'); return res.data as any[] },
+  })
+
+  const { data: stats } = useQuery({
+    queryKey: ['dbs-stats'],
+    queryFn: async () => { const res = await api.get('/dbs/checks/stats'); return res.data as any },
+  })
+
+  const { data: membersData } = useQuery({
+    queryKey: ['org-members'],
+    queryFn: async () => { const res = await api.get('/staff/org-members'); return res.data as any },
+  })
+  const members: any[] = [
+    ...(membersData?.admin ? [membersData.admin] : []),
+    ...(membersData?.staff || [])
+  ].filter((m: any) => m.staff_id && m.status === 'active')
+
+  const invalidate = () => { queryClient.invalidateQueries({ queryKey: ['dbs-checks'] }); queryClient.invalidateQueries({ queryKey: ['dbs-stats'] }) }
+
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => api.post('/dbs/checks', data),
+    onSuccess: () => { invalidate(); setOpen(false); setForm({ staffId: '', level: 'enhanced', workforce: 'adult', costPence: '' }); setSuccess('DBS check created') },
+    onError: (err: any) => setError(err.response?.data?.message || 'Failed to create check'),
+  })
+
+  const submitMutation = useMutation({
+    mutationFn: async (id: string) => api.post(`/dbs/checks/${id}/submit`),
+    onSuccess: () => { invalidate(); setSuccess('DBS check submitted to provider') },
+    onError: (err: any) => setError(err.response?.data?.message || 'Failed to submit'),
+  })
+
+  const pollMutation = useMutation({
+    mutationFn: async (id: string) => api.post(`/dbs/checks/${id}/poll`),
+    onSuccess: (data) => { invalidate(); setSuccess(`Status updated: ${data.data.status}`) },
+    onError: (err: any) => setError(err.response?.data?.message || 'Failed to poll'),
+  })
+
+  const handleCreate = () => {
+    if (!form.staffId) { setError('Please select a staff member'); return }
+    createMutation.mutate({ staffId: form.staffId, level: form.level, workforce: form.workforce, costPence: form.costPence ? parseInt(form.costPence) : undefined })
+  }
+
+  return (
+    <Paper sx={{ mb: 2, overflow: 'hidden' }}>
+      <Box sx={{ px: 3 }}>
+        <SectionHeader label="DBS Checks" count={stats?.total} expanded={expanded} onToggle={onToggle} icon={<DbsIcon />} />
+      </Box>
+      <Collapse in={expanded}>
+        <Box sx={{ px: 3, pb: 3 }}>
+          {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
+
+          <Stack direction="row" spacing={1.5} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+            {[
+              { label: 'Clear', value: stats?.clear || 0, color: '#16A34A' },
+              { label: 'In Progress', value: stats?.in_progress || 0, color: '#F59E0B' },
+              { label: 'Awaiting ID', value: stats?.awaiting_identity || 0, color: '#F97316' },
+              { label: 'Expiring Soon', value: stats?.expiring_soon || 0, color: '#DC2626' },
+            ].map(s => (
+              <Chip key={s.label} label={`${s.label}: ${s.value}`} size="small" sx={{ bgcolor: `${s.color}18`, color: s.color, fontWeight: 700 }} />
+            ))}
+            <Box sx={{ flex: 1 }} />
+            <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setOpen(true)} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' }, textTransform: 'none' }}>
+              New DBS Check
+            </Button>
+          </Stack>
+
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Level</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Workforce</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Reference</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Certificate</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Requested</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}><CircularProgress size={24} /></TableCell></TableRow>
+                ) : !checks?.length ? (
+                  <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>No DBS checks yet. Click "New DBS Check" to start one.</TableCell></TableRow>
+                ) : checks.map((c: any) => (
+                  <TableRow key={c.id} hover>
+                    <TableCell sx={{ fontWeight: 600 }}>{c.staff_name}</TableCell>
+                    <TableCell>{c.level.replace(/_/g, ' ')}</TableCell>
+                    <TableCell>{c.workforce}</TableCell>
+                    <TableCell>
+                      <Chip label={c.status.replace(/_/g, ' ')} size="small" sx={{ bgcolor: `${DBS_STATUS_COLORS[c.status]}20`, color: DBS_STATUS_COLORS[c.status], fontWeight: 700, fontSize: '0.7rem' }} />
+                    </TableCell>
+                    <TableCell><Typography variant="caption" sx={{ fontFamily: 'monospace' }}>{c.application_reference || c.provider_reference || '—'}</Typography></TableCell>
+                    <TableCell>{c.certificate_number || '—'}</TableCell>
+                    <TableCell><Typography variant="caption">{new Date(c.created_at).toLocaleDateString()}</Typography></TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                        {c.status === 'draft' && (
+                          <Tooltip title="Submit to DBS provider">
+                            <IconButton size="small" color="primary" onClick={() => submitMutation.mutate(c.id)} disabled={submitMutation.isPending}>
+                              {submitMutation.isPending ? <CircularProgress size={16} /> : <SubmitIcon fontSize="small" />}
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {['submitted', 'in_progress', 'awaiting_identity'].includes(c.status) && (
+                          <Tooltip title="Poll provider for status update">
+                            <IconButton size="small" onClick={() => pollMutation.mutate(c.id)} disabled={pollMutation.isPending}>
+                              {pollMutation.isPending ? <CircularProgress size={16} /> : <PollIcon fontSize="small" />}
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+            <DialogTitle>New DBS Check</DialogTitle>
+            <DialogContent>
+              <Stack spacing={2} sx={{ mt: 1 }}>
+                <TextField select label="Staff Member" value={form.staffId} onChange={(e) => setForm({ ...form, staffId: e.target.value })} fullWidth required>
+                  {members.map((m: any) => (
+                    <MenuItem key={m.staff_id} value={m.staff_id}>{`${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField select label="DBS Level" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} fullWidth>
+                  {DBS_LEVELS.map(l => <MenuItem key={l} value={l}>{l.replace(/_/g, ' ')}</MenuItem>)}
+                </TextField>
+                <TextField select label="Workforce" value={form.workforce} onChange={(e) => setForm({ ...form, workforce: e.target.value })} fullWidth>
+                  {DBS_WORKFORCE.map(w => <MenuItem key={w} value={w}>{w.charAt(0).toUpperCase() + w.slice(1)}</MenuItem>)}
+                </TextField>
+                <TextField label="Cost (pence, optional)" type="number" value={form.costPence} onChange={(e) => setForm({ ...form, costPence: e.target.value })} fullWidth helperText="Leave blank if unknown" />
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={() => setOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+              <Button variant="contained" onClick={handleCreate} disabled={createMutation.isPending} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' }, textTransform: 'none' }}>
+                {createMutation.isPending ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Create Check'}
+              </Button>
             </DialogActions>
           </Dialog>
         </Box>

@@ -34,7 +34,6 @@ import CqcReadinessPage from './pages/compliance/CqcReadinessPage'
 import SatisfactionSurveysPage from './pages/compliance/SatisfactionSurveysPage'
 import StaffEngagementPage from './pages/compliance/StaffEngagementPage'
 import DSPTPage from './pages/dspt/DSPTPage'
-import DbsDashboardPage from './pages/dbs/DbsDashboardPage'
 import OrganizationPage from './pages/organization/OrganizationPage'
 import SettingsPage from './pages/settings/SettingsPage'
 import BillingPage from './pages/billing/BillingPage'
@@ -130,7 +129,6 @@ function App() {
           <Route path="/shift-marketplace" element={<ModuleGuard module="marketplace"><ShiftMarketplacePage /></ModuleGuard>} />
           <Route path="/agencies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><AgenciesPage /></AuthGuard>} />
           <Route path="/expenses" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ExpensesPage /></AuthGuard>} />
-          <Route path="/dbs" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><DbsDashboardPage /></AuthGuard>} />
           <Route path="/service-users" element={<ModuleGuard module="staff_directory"><ServiceUserDirectoryPage /></ModuleGuard>} />
           <Route path="/service-users/:id" element={<ModuleGuard module="staff_directory"><ServiceUserProfilePage /></ModuleGuard>} />
           <Route path="/incidents" element={<ModuleGuard module="staff_directory"><IncidentDirectoryPage /></ModuleGuard>} />
