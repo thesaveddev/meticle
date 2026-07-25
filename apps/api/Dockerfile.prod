@@ -20,4 +20,4 @@ COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.
 COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 3002
-CMD ["npm", "run", "start", "-w", "apps/api"]
+CMD ["node", "apps/api/dist/index.js"]
