@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node -r scripts/no-deprecation.js dist/index.js",
     "setup-db": "ts-node -r scripts/no-deprecation.js src/shared/database/setup.ts",
     "certs:generate": "ts-node scripts/generate-certs.ts",
