@@ -17,5 +17,5 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/node_modules ./node_modules
 
-EXPOSE 3001
+EXPOSE 3002
 CMD ["npm", "run", "start", "-w", "apps/api"]
