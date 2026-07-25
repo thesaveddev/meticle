@@ -24,7 +24,6 @@ import {
   Business as BusinessIcon,
   Checklist as TaskIcon,
   BarChart as ReportsIcon,
-  Verified as VerifiedIcon,
   Receipt as ReceiptIcon,
   AdminPanelSettings as AdminIcon,
   Psychology as OutcomeIcon,
@@ -100,7 +99,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         { text: 'Compliance', icon: <ComplianceIcon />, path: '/compliance', module: 'compliance', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Policies', icon: <PolicyIcon />, path: '/policies', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-        { text: 'DBS Checks', icon: <VerifiedIcon />, path: '/dbs', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
       ],
     },
     {
