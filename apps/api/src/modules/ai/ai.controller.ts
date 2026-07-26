@@ -260,7 +260,7 @@ export class AIController {
       return res.status(403).json({ error: { message: 'Rota Optimization is not enabled for your organization.' } });
     }
 
-    const { generatePeriod, locationName, minStaffPerDay, minDayStaff, minNightStaff, minSleepStaff, staffRoster, existingShifts, staffOnLeave, serviceUsers, contractedHours, mandatoryStartTimes, minEndTime } = req.body;
+    const { generatePeriod, locationName, minStaffPerDay, minDayStaff, minNightStaff, minSleepStaff, staffRoster, existingShifts, staffOnLeave, serviceUsers, contractedHours, mandatoryStartTimes, minEndTime, allSameEnd } = req.body;
     const { system, user } = renderPrompt('rota_generation', {
       generate_period: generatePeriod || 'This week',
       location_name: locationName || 'Unknown',
@@ -275,6 +275,7 @@ export class AIController {
       contracted_hours: contractedHours || 'No contracted hours data',
       mandatory_start_times: mandatoryStartTimes || '07:00, 10:00, 14:00, 21:00',
       min_end_time: minEndTime || '22:00',
+      all_same_end: allSameEnd || 'false',
     });
 
     const start = Date.now();

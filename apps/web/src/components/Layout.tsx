@@ -181,7 +181,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         try {
           new Notification(notif.title || 'Meticle', {
             body: notif.message || '',
-            icon: '/favicon.ico',
+            icon: '/icons/icon-192.svg',
           })
         } catch { /* fallback */ }
       }

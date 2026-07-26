@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { isDisposableEmail } from '../utils/disposableEmail';
 
 // === Auth ===
 export const registerSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().refine(v => !isDisposableEmail(v), 'Temporary email addresses are not allowed'),
   password: z.string()
     .min(12, 'Password must be at least 12 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
@@ -105,6 +106,7 @@ export const aiRotaGenerateSchema = z.object({
   contractedHours: z.string(),
   mandatoryStartTimes: z.string().optional(),
   minEndTime: z.string().optional(),
+  allSameEnd: z.string().optional(),
 });
 
 export const aiDailyNoteGenerateSchema = z.object({

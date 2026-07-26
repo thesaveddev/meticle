@@ -195,6 +195,7 @@ export default function RotaPlannerPage() {
   const [genApplying, setGenApplying] = useState(false)
   const [genMandatoryStartTimes, setGenMandatoryStartTimes] = useState<string[]>(['07:00', '10:00', '14:00', '21:00'])
   const [genAllSameStart, setGenAllSameStart] = useState(false)
+  const [genAllSameEnd, setGenAllSameEnd] = useState(false)
   const [genMinEndTime, setGenMinEndTime] = useState('22:00')
 
   const runGenerateRota = async () => {
@@ -256,6 +257,7 @@ export default function RotaPlannerPage() {
         contractedHours,
         mandatoryStartTimes: mandatoryStartTimesStr,
         minEndTime: minEndTimeStr,
+        allSameEnd: genAllSameEnd ? 'true' : 'false',
       })
       const rota = res.data.rota
       setGenResult(rota)
@@ -1514,10 +1516,15 @@ export default function RotaPlannerPage() {
                     })()}
 
                     <Box sx={{ mt: 2 }}>
+                      <FormControlLabel
+                        control={<Checkbox checked={genAllSameEnd} onChange={e => setGenAllSameEnd(e.target.checked)} size="small" />}
+                        label={<Typography variant="caption">All shifts end at same time</Typography>}
+                        sx={{ mb: 1 }}
+                      />
                       <TextField
                         type="time"
                         size="small"
-                        label="Minimum End Time (shifts should end no earlier than)"
+                        label={genAllSameEnd ? 'End Time (all shifts)' : 'Minimum End Time (shifts should end no earlier than)'}
                         value={genMinEndTime}
                         onChange={e => setGenMinEndTime(e.target.value)}
                         sx={{ '& .MuiInputBase-root': { fontSize: '0.75rem', minHeight: 32 }, '& .MuiInputLabel-root': { fontSize: '0.65rem' } }}

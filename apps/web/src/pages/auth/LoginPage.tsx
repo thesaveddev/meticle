@@ -8,7 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { Security as SecurityIcon, Visibility, VisibilityOff } from '@mui/icons-material'
 
-const LOGIN_ILLUSTRATION = '/meticle_login_illustration.jpg';
+const LOGIN_ILLUSTRATION = '/meticle-login-illustration.svg';
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
@@ -68,7 +68,7 @@ export default function LoginPage() {
               Meticle
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>Welcome back</Typography>
-            <Typography sx={{ color: '#6B7280' }}>Staffing and compliance management, unified.</Typography>
+            <Typography sx={{ color: '#6B7280' }}>Care operations, unified.</Typography>
           </Box>
 
           {justRegistered && (
