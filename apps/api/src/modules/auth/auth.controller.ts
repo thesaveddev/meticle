@@ -14,6 +14,7 @@ import { OrgRepository } from '../orgs/org.repository';
 import { PermissionsController } from '../permissions/permissions.controller';
 import { blacklistToken } from '../../shared/middleware/tokenBlacklist';
 import { logWarn } from '../../shared/utils/logger';
+import { isDisposableEmail } from '../../shared/utils/disposableEmail';
 
 const PASSWORD_HISTORY_LIMIT = 5;
 
@@ -38,7 +39,7 @@ function sanitizeUser(user: any) {
 }
 
 const registrationSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().refine(v => !isDisposableEmail(v), 'Temporary email addresses are not allowed'),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
