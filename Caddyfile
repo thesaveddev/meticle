@@ -1,7 +1,0 @@
-meticlecare.com {
-    reverse_proxy web:80
-}
-
-status.meticlecare.com {
-    reverse_proxy uptime:3001
-}

@@ -589,7 +589,7 @@ export class SchedulingRepository {
 
   /** Verify staff compliance meets the organization's minimum compliance threshold. */
   private static async checkStaffCompliance(orgId: string, staffId: string, client?: any) {
-    const exec = client || query;
+    const exec = client ? (sql: string, params: any[]) => client.query(sql, params) : query;
     const orgResult = await exec(
       'SELECT minimum_compliance_percent FROM organizations WHERE id = $1',
       [orgId]

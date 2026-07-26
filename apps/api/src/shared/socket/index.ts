@@ -5,11 +5,13 @@ import { isTokenBlacklisted } from '../middleware/tokenBlacklist';
 import pool from '../database';
 import logger from '../utils/logger';
 import { checkConnectionLimit, checkEventLimit } from './rateLimiter';
+import { getRedisClient } from '../redis';
+import { createAdapter } from '@socket.io/redis-adapter';
 
 let io: Server | null = null;
 const onlineUsers = new Set<string>();
 
-export function initSocketServer(httpServer: HTTPServer) {
+export async function initSocketServer(httpServer: HTTPServer) {
   io = new Server(httpServer, {
     cors: {
       origin: (origin, callback) => {
@@ -22,6 +24,19 @@ export function initSocketServer(httpServer: HTTPServer) {
     pingInterval: 25000,
     pingTimeout: 20000,
   });
+
+  // Use Redis adapter if Redis is available (enables horizontal scaling)
+  try {
+    const redisClient = await getRedisClient();
+    if (redisClient) {
+      const subClient = redisClient.duplicate();
+      await subClient.connect();
+      io.adapter(createAdapter(redisClient, subClient));
+      logger.info('Socket.IO using Redis adapter for horizontal scaling');
+    }
+  } catch {
+    logger.warn('Redis unavailable for Socket.IO adapter, using in-memory (single-process mode)');
+  }
 
   io.use(async (socket: Socket, next) => {
     const ip = socket.handshake.address;

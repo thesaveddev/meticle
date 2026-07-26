@@ -69,7 +69,7 @@ export class IncidentsRepository {
   static async create(orgId: string, data: any, reportedBy: string) {
     const result = await query(
       `INSERT INTO incidents (organization_id, category_id, title, description, incident_date, incident_time, location, severity, status, is_cqc_reportable, reported_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'reported', $9, $10) RETURNING *`,
+       VALUES ($1, $2, $3, $4, COALESCE($5, CURRENT_DATE), $6, $7, $8, 'reported', $9, $10) RETURNING *`,
       [orgId, data.category_id, data.title, data.description, data.incident_date, data.incident_time, data.location, data.severity || 'medium', data.is_cqc_reportable || false, reportedBy]
     );
     return result.rows[0];

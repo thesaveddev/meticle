@@ -2,8 +2,21 @@ import fs from 'fs';
 import path from 'path';
 import { query } from './index';
 import logger from '../utils/logger';
+import { runMigrations, Migration } from './migrate';
 
-export const MIGRATIONS = [
+const RLS_MIGRATION: Migration = {
+  name: '002_enable_rls',
+  strict: false,
+  statements: (() => {
+    const p = path.join(__dirname, 'migrations', '002_enable_rls.sql');
+    return [fs.readFileSync(p, 'utf8')];
+  })(),
+};
+
+const INITIAL_MIGRATION: Migration = {
+  name: '001_initial',
+  strict: false,
+  statements: [
   // Missing updated_at for organizations (exists in CREATE TABLE but never had ALTER TABLE migration)
   `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP`,
   // Original onboarding columns (added to CREATE TABLE after DB was created)
@@ -1446,7 +1459,8 @@ export const MIGRATIONS = [
   `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS ai_risk_level VARCHAR(20)`,
   `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS ai_follow_up_required BOOLEAN DEFAULT FALSE`,
   `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS ai_follow_up_details TEXT`,
-];
+  ],
+};
 
 export const setupDatabase = async () => {
   try {
@@ -1457,14 +1471,8 @@ export const setupDatabase = async () => {
     await query(schema);
     logger.info('Database schema setup completed.');
 
-    // Run any missing migrations for existing databases
-    for (const migration of MIGRATIONS) {
-      try {
-        await query(migration);
-      } catch {
-        // ignore if column already exists or other transient errors
-      }
-    }
+    // Run versioned migrations (tracks applied ones in _migrations table)
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION]);
     logger.info('Migrations completed.');
 
     // Auto-seed standard outcome scales for orgs that have none
