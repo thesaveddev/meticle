@@ -73,8 +73,8 @@ jobs:
             # Build images on the VPS
             docker compose -f docker-compose.prod.yml build api web
 
-            # Ensure infrastructure services are running
-            docker compose -f docker-compose.prod.yml up -d db redis caddy uptime
+            # Ensure db and redis are running (don't force-recreate — would lose data)
+            docker compose -f docker-compose.prod.yml up -d db redis uptime
 
             # Run database migrations
             docker compose -f docker-compose.prod.yml run --rm api node apps/api/dist/shared/database/setup.js

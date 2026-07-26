@@ -1,24 +1,11 @@
 services:
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    networks:
-      - meticle
-
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
     restart: unless-stopped
-    expose:
-      - 80
+    ports:
+      - "127.0.0.1:8080:80"
     depends_on:
       api:
         condition: service_healthy
@@ -37,6 +24,8 @@ services:
     restart: unless-stopped
     expose:
       - 3002
+    ports:
+      - "127.0.0.1:3002:3002"
     environment:
       - NODE_ENV=production
       - PORT=3002
@@ -126,8 +115,8 @@ services:
   uptime:
     image: louislam/uptime-kuma:latest
     restart: unless-stopped
-    expose:
-      - 3001
+    ports:
+      - "127.0.0.1:3001:3001"
     volumes:
       - uptime_data:/app/data
     networks:
@@ -139,8 +128,6 @@ volumes:
   uploads_data:
   backup_data:
   uptime_data:
-  caddy_data:
-  caddy_config:
 
 networks:
   meticle:

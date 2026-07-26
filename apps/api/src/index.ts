@@ -65,6 +65,7 @@ import { errorHandler, notFoundHandler } from './shared/middleware/error.middlew
 import { authenticate } from './shared/middleware/auth.middleware';
 import { asyncHandler } from './shared/middleware/asyncHandler';
 import { uploadDir } from './shared/middleware/upload.middleware';
+import { rlsMiddleware } from './shared/middleware/rls.middleware';
 import { initSocketServer } from './shared/socket';
 import { setupSwagger } from './shared/swagger';
 import { healthCheck } from './shared/database';
@@ -150,6 +151,9 @@ app.use(pinoHttp({
 app.use('/api', rateLimit(200, 60_000));
 app.use(metricsMiddleware);
 
+// RLS middleware: sets Postgres session variables for Row-Level Security
+app.use(rlsMiddleware);
+
 app.post('/billing/webhook', express.raw({ type: 'application/json' }), asyncHandler(BillingController.handleWebhook));
 app.use(express.json({ limit: '15mb' }));
 app.use('/uploads', express.static('uploads'));
@@ -224,7 +228,9 @@ app.get('/metrics', asyncHandler(async (_req: Request, res: Response) => {
 setupSwagger(app);
 
 // Socket.io
-initSocketServer(httpServer);
+initSocketServer(httpServer).catch((err) => {
+  logger.warn({ err }, 'Socket.io init (non-fatal)');
+});
 
 // Error handling
 app.use(notFoundHandler);
