@@ -1,21 +1,22 @@
 services:
   web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+    image: ghcr.io/meticlecare/caredesk/web:${TAG:-latest}
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:80"
     depends_on:
       api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - meticle
 
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile.prod
+    image: ghcr.io/meticlecare/caredesk/api:${TAG:-latest}
     restart: unless-stopped
     ports:
       - "127.0.0.1:3002:3002"
@@ -40,6 +41,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3002/health/live"]
       interval: 10s
@@ -68,6 +71,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -76,8 +81,36 @@ services:
     networks:
       - meticle
 
+  backup:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=meticle
+      - DB_USER=meticle
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - backup_data:/backups
+      - ./apps/api/scripts/backup.sh:/usr/local/bin/backup.sh:ro
+    entrypoint: |
+      sh -c '
+        apk add --no-cache bash > /dev/null 2>&1
+        echo "0 2 * * * /usr/local/bin/backup.sh" > /etc/crontabs/root
+        echo "[$$] Backup service ready. Runs daily at 2am."
+        crond -f -l 2
+      '
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - meticle
+
 volumes:
   postgres_data:
+  redis_data:
+  uploads_data:
+  backup_data:
 
 networks:
   meticle:
