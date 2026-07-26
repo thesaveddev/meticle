@@ -1,6 +1,8 @@
 services:
   web:
-    image: ghcr.io/meticlecare/caredesk/web:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:80"
@@ -16,7 +18,9 @@ services:
       - meticle
 
   api:
-    image: ghcr.io/meticlecare/caredesk/api:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.prod
     restart: unless-stopped
     ports:
       - "127.0.0.1:3002:3002"
@@ -106,11 +110,22 @@ services:
     networks:
       - meticle
 
+  uptime:
+    image: louislam/uptime-kuma:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - uptime_data:/app/data
+    networks:
+      - meticle
+
 volumes:
   postgres_data:
   redis_data:
   uploads_data:
   backup_data:
+  uptime_data:
 
 networks:
   meticle:
