@@ -8,7 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { Security as SecurityIcon, Visibility, VisibilityOff } from '@mui/icons-material'
 
-const LOGIN_ILLUSTRATION = '/meticle-login-illustration.svg';
+const LOGIN_ILLUSTRATION = '/login-page.jpg';
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
