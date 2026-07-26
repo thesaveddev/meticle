@@ -32,7 +32,7 @@
   <!-- Logo text in header -->
   <text x="96" y="96" font-family="system-ui,-apple-system,sans-serif" font-weight="800" font-size="20" fill="white" letter-spacing="-0.5">Meticle</text>
 
-  <!-- Dashboard content -- three cards -->
+  <!-- Dashboard content three cards -->
   <rect x="84" y="136" width="130" height="90" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
   <rect x="84" y="136" width="130" height="4" rx="2" fill="url(#accent)"/>
   <circle cx="108" cy="168" r="14" fill="#DBEAFE"/>

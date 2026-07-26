@@ -6,7 +6,7 @@ import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
 import { CheckCircle as CheckIcon, Security as SecurityIcon, Visibility, VisibilityOff, MarkEmailRead as VerifiedIcon } from '@mui/icons-material'
 
-const REGISTER_ILLUSTRATION = '/meticle_login_illustration.jpg';
+const REGISTER_ILLUSTRATION = '/signup-page.jpg';
 
 const PASSWORD_RULES = [
   { key: 'min', label: 'At least 8 characters', test: (v: string) => v.length >= 8 },
