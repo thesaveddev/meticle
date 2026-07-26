@@ -38,7 +38,7 @@ async function sendMail(to: string, subject: string, html: string) {
   } catch (err) { logger.error(err, 'Email send failed'); }
 }
 
-const baseUrl = () => process.env.FRONTEND_URL || 'http://localhost:3000';
+const baseUrl = () => process.env.FRONTEND_URL || 'https://meticlecare.com';
 
 export class EmailService {
   static async sendVerificationEmail(email: string, token: string) {

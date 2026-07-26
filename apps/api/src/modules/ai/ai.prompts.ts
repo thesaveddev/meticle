@@ -52,11 +52,12 @@ Provide a comprehensive rota optimization analysis with specific recommendations
 
 Mandatory Start Times: {{mandatory_start_times}}
 Minimum End Time: {{min_end_time}}
+All Shifts Same End: {{all_same_end}}
 
 Rules you MUST follow:
 1. **Minimum staffing by shift type**: Day shifts require {{min_day_staff}} staff, Night shifts require {{min_night_staff}} staff, Sleep-in shifts require {{min_sleep_staff}} staff
 2. **Mandatory start times**: Each shift MUST start at one of the provided mandatory start times ({{mandatory_start_times}}). If "All" is specified, all shifts start at that single time.
-3. **Minimum end time**: No shift should end before {{min_end_time}} unless it is a sleep-in shift. Day shifts must end at or after {{min_end_time}}.
+3. **Minimum end time**: No shift should end before {{min_end_time}} unless it is a sleep-in shift. Day shifts must end at or after {{min_end_time}}. If "All Shifts Same End" is "true", ALL shifts must end exactly at {{min_end_time}}.
 4. **Shift types**: Day (07:00-14:00, 08:00-16:00, 09:00-17:00, 10:00-18:00, 14:00-22:00), Sleep-in (22:00-07:00), Wake Night (21:00-07:00) — use the mandatory start times as the only allowed start times; vary end times between the minimum and typical duration to provide coverage overlap
 5. **Staff allocation**: Assign staff to their HOME location (primary_location) first; only cross-location if absolutely necessary
 6. **Compliance priority**: Staff with higher compliance % should be prioritized for assignment
@@ -100,6 +101,7 @@ Minimum Night Staff Required: {{min_night_staff}}
 Minimum Sleep-in Staff Required: {{min_sleep_staff}}
 Mandatory Start Times: {{mandatory_start_times}}
 Minimum End Time: {{min_end_time}}
+All Shifts Same End: {{all_same_end}}
 
 Staff Available (includes primary location, contracted hours, max visa hours, compliance%):
 {{staff_roster}}
@@ -117,7 +119,7 @@ Contracted Hours & Visa Limits: {{contracted_hours}}
 
 Preferences:
 - All shifts MUST start at one of the mandatory start times: {{mandatory_start_times}}
-- Day shifts must end no earlier than {{min_end_time}}
+- Day shifts must end no earlier than {{min_end_time}}. If "All Shifts Same End" is "true", ALL shifts must end exactly at {{min_end_time}}.
 - Prefer 8-hour day shifts covering 07:00-22:00 with overlap
 - Use sleep-in staff for overnight coverage
 - Rotate weekends fairly among staff

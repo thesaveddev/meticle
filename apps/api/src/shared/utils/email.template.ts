@@ -18,8 +18,8 @@ function emailLayout(title: string, body: string) {
 ${body}
 </td></tr>
 <tr><td style="padding:24px 0 0 0;text-align:center;font-size:12px;color:#9CA3AF;line-height:1.6">
-Meticle &mdash; Care Home Management Platform<br>
-<a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" style="color:#0F4C81;text-decoration:none">${process.env.FRONTEND_URL || 'http://localhost:3000'}</a>
+Meticle &mdash; Care operations, unified.<br>
+<a href="${process.env.FRONTEND_URL || 'https://meticlecare.com'}" style="color:#0F4C81;text-decoration:none">${process.env.FRONTEND_URL || 'https://meticlecare.com'}</a>
 </td></tr>
 </table>
 </td></tr></table>
