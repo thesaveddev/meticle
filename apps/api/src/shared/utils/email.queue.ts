@@ -37,14 +37,14 @@ export class EmailQueue {
           const from = process.env.SMTP_FROM || 'noreply@meticlecare.com';
           await transporter.sendMail({ from, to: email.to_email, subject: email.subject, html: email.html_body });
         } else {
-          logger.info({ to: email.to_email, subject: email.subject, bodyLength: email.html_body.length }, 'Email (queued)');
+          logger.debug('Email (queued)');
         }
         await query(
           `UPDATE email_queue SET status = 'sent', sent_at = CURRENT_TIMESTAMP WHERE id = $1`,
           [email.id]
         );
       } catch (err: any) {
-        logger.error({ err: err.message, to: email.to_email, subject: email.subject }, 'Email queue send failed');
+        logger.error({ err: err.message, queueId: email.id }, 'Email queue send failed');
         await query(
           `UPDATE email_queue SET status = 'failed', error_message = $1 WHERE id = $2`,
           [err.message || 'Unknown error', email.id]

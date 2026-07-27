@@ -1,6 +1,36 @@
 import { query } from '../../shared/database';
 import logger from '../../shared/utils/logger';
 
+const SENSITIVE_FIELDS = new Set([
+  'password', 'password_hash', 'newPassword', 'confirmPassword',
+  'nhs_number', 'nhsNumber', 'ni_number', 'niNumber',
+  'date_of_birth', 'dateOfBirth',
+  'phone', 'telephone', 'mobile',
+  'address_line1', 'addressLine1', 'address_line2', 'addressLine2',
+  'city', 'postcode', 'address',
+  'bank_account', 'bankAccount', 'sort_code', 'sortCode',
+  'national_insurance', 'nationalInsurance',
+  'mfa_secret', 'mfaSecret', 'backup_codes', 'backupCodes',
+  'token', 'refreshToken', 'mfaToken', 'secret',
+]);
+
+function redactAuditData(data: any): any {
+  if (!data || typeof data !== 'object') return data;
+  if (Array.isArray(data)) return data.map(redactAuditData);
+
+  const redacted: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (SENSITIVE_FIELDS.has(key)) {
+      redacted[key] = '[REDACTED]';
+    } else if (typeof value === 'object' && value !== null) {
+      redacted[key] = redactAuditData(value);
+    } else {
+      redacted[key] = value;
+    }
+  }
+  return redacted;
+}
+
 export class AuditRepository {
   static async log(data: {
     user_id?: string;
@@ -15,7 +45,7 @@ export class AuditRepository {
       const { user_id, action, entity_type, entity_id, old_data, new_data, ip_address } = data;
       await query(
         'INSERT INTO audit_logs (user_id, action, entity_type, entity_id, old_data, new_data, ip_address) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [user_id, action, entity_type, entity_id, old_data, new_data, ip_address]
+        [user_id, action, entity_type, entity_id, redactAuditData(old_data), redactAuditData(new_data), ip_address]
       );
     } catch (err) {
       logger.error({ err }, 'Audit log failed');

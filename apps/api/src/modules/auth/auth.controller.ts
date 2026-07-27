@@ -13,7 +13,7 @@ import { AppError } from '../../shared/middleware/error.middleware';
 import { OrgRepository } from '../orgs/org.repository';
 import { PermissionsController } from '../permissions/permissions.controller';
 import { blacklistToken } from '../../shared/middleware/tokenBlacklist';
-import { logWarn } from '../../shared/utils/logger';
+import { logWarn, default as logger } from '../../shared/utils/logger';
 import { isDisposableEmail } from '../../shared/utils/disposableEmail';
 
 const PASSWORD_HISTORY_LIMIT = 5;
@@ -41,11 +41,19 @@ const mfaLockoutMap = new Map<string, { count: number; lockedUntil: number }>();
 const MFA_MAX_ATTEMPTS = 3;
 const MFA_LOCKOUT_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
+// Progressive login lockout: 5 failed attempts → 15min block
+const loginLockoutMap = new Map<string, { count: number; lockedUntil: number }>();
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
 // Periodic cleanup
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of mfaLockoutMap) {
     if (now > entry.lockedUntil) mfaLockoutMap.delete(key);
+  }
+  for (const [key, entry] of loginLockoutMap) {
+    if (now > entry.lockedUntil) loginLockoutMap.delete(key);
   }
 }, 120_000);
 
@@ -239,11 +247,37 @@ export class AuthController {
     const validated = loginSchema.parse(req.body);
     const { email, password } = validated;
 
+    // Check login lockout
+    const lockoutKey = email.toLowerCase();
+    const lockout = loginLockoutMap.get(lockoutKey);
+    if (lockout) {
+      if (Date.now() < lockout.lockedUntil) {
+        const remainingMin = Math.ceil((lockout.lockedUntil - Date.now()) / 60000);
+        throw new AppError(429, `Too many failed login attempts. Try again in ${remainingMin} minute${remainingMin > 1 ? 's' : ''}.`);
+      }
+      loginLockoutMap.delete(lockoutKey);
+    }
+
     const user = await UserRepository.findByEmail(email);
     if (!user) throw new AppError(401, 'Invalid email or password');
 
     const isPasswordValid = await comparePassword(password, user.password_hash);
-    if (!isPasswordValid) throw new AppError(401, 'Invalid email or password');
+    if (!isPasswordValid) {
+      // Track failed attempt
+      const entry = loginLockoutMap.get(lockoutKey) || { count: 0, lockedUntil: 0 };
+      entry.count++;
+      if (entry.count >= LOGIN_MAX_ATTEMPTS) {
+        entry.lockedUntil = Date.now() + LOGIN_LOCKOUT_DURATION_MS;
+        entry.count = 0;
+        logger.warn({ email }, 'Login lockout triggered');
+      }
+      loginLockoutMap.set(lockoutKey, entry);
+      throw new AppError(401, 'Invalid email or password');
+    }
+
+    // Successful login — clear lockout
+    loginLockoutMap.delete(lockoutKey);
+
     if (user.status === 'deactivated') throw new AppError(403, 'Your account has been deactivated. Please contact your organization administrator.');
     if (user.force_password_reset) {
       res.json({ forcePasswordReset: true, message: 'A password reset has been requested for this account. Check your email to reset your password before logging in.' });

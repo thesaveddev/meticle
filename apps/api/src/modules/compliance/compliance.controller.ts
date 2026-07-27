@@ -344,17 +344,23 @@ export class ComplianceController {
 
   // ---- Evidence Mappings ----
   static async getEvidenceMappings(req: Request, res: Response) {
-    const mappings = await ComplianceRepository.getEvidenceMappings(req.user!.organizationId!);
+    const orgId = req.user!.organizationId;
+    if (!orgId) throw new AppError(400, 'Organization ID is required');
+    const mappings = await ComplianceRepository.getEvidenceMappings(orgId);
     res.json(mappings);
   }
 
   static async upsertEvidenceMapping(req: Request, res: Response) {
-    const mapping = await ComplianceRepository.upsertEvidenceMapping(req.user!.organizationId!, req.body);
+    const orgId = req.user!.organizationId;
+    if (!orgId) throw new AppError(400, 'Organization ID is required');
+    const mapping = await ComplianceRepository.upsertEvidenceMapping(orgId, req.body);
     res.status(201).json(mapping);
   }
 
   static async deleteEvidenceMapping(req: Request, res: Response) {
-    const deleted = await ComplianceRepository.deleteEvidenceMapping(req.params.id, req.user!.organizationId!);
+    const orgId = req.user!.organizationId;
+    if (!orgId) throw new AppError(400, 'Organization ID is required');
+    const deleted = await ComplianceRepository.deleteEvidenceMapping(req.params.id, orgId);
     if (!deleted) throw new AppError(404, 'Evidence mapping not found');
     res.json({ message: 'Mapping deleted' });
   }
