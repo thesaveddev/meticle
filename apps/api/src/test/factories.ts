@@ -1,4 +1,4 @@
-import { query } from '../shared/database'
+import { migrateQuery as query } from '../shared/database'
 import { hashPassword } from '../modules/auth/password.util'
 import { v4 as uuidv4 } from 'uuid'
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import pool, { query } from './index';
+import pool, { query, migrateQuery, migratePool } from './index';
 import { v4 as uuidv4 } from 'uuid';
 import { hashPassword } from '../../modules/auth/password.util';
 import { PoolClient } from 'pg';
@@ -20,7 +20,7 @@ const locationIdB = uuidv4();
 const TEST_ROLE = 'rls_test_role';
 
 async function setupOrg(orgId: string, orgName: string) {
-  await query(
+  await migrateQuery(
     `INSERT INTO organizations (id, name, status, plan, subscription_status, onboarding_step, onboarding_completed, minimum_compliance_percent, overtime_requires_approval, force_mfa)
      VALUES ($1, $2, 'active', 'starter', 'active', 1, true, 100, true, false)
      ON CONFLICT (id) DO NOTHING`,
@@ -30,7 +30,7 @@ async function setupOrg(orgId: string, orgName: string) {
 
 async function setupUser(userId: string, orgId: string, email: string) {
   const hash = await hashPassword('TestPass123!');
-  await query(
+  await migrateQuery(
     `INSERT INTO users (id, email, password_hash, role, status, organization_id)
      VALUES ($1, $2, $3, 'CARE_WORKER', 'active', $4)
      ON CONFLICT (id) DO NOTHING`,
@@ -39,7 +39,7 @@ async function setupUser(userId: string, orgId: string, email: string) {
 }
 
 async function setupStaffProfile(id: string, userId: string) {
-  await query(
+  await migrateQuery(
     `INSERT INTO staff_profiles (id, user_id, first_name, last_name, phone, employment_type, contracted_hours_weekly)
      VALUES ($1, $2, 'Test', 'Staff', '07700000000', 'full_time', 37.5)
      ON CONFLICT (id) DO NOTHING`,
@@ -48,7 +48,7 @@ async function setupStaffProfile(id: string, userId: string) {
 }
 
 async function setupServiceUser(id: string, orgId: string, firstName: string) {
-  await query(
+  await migrateQuery(
     `INSERT INTO service_users (id, organization_id, first_name, last_name, date_of_birth, status)
      VALUES ($1, $2, $3, 'TestUser', '1990-01-01', 'active')
      ON CONFLICT (id) DO NOTHING`,
@@ -57,7 +57,7 @@ async function setupServiceUser(id: string, orgId: string, firstName: string) {
 }
 
 async function setupLocation(id: string, orgId: string, name: string) {
-  await query(
+  await migrateQuery(
     `INSERT INTO locations (id, organization_id, name, address, minimum_staff_per_day)
      VALUES ($1, $2, $3, '123 Test St', 1)
      ON CONFLICT (id) DO NOTHING`,
@@ -67,11 +67,11 @@ async function setupLocation(id: string, orgId: string, name: string) {
 
 /**
  * Get a dedicated client with RLS session variables set.
- * Uses SET ROLE to a non-superuser so RLS is enforced.
- * Caller MUST call client.release() when done.
+ * Uses the superuser migrate pool so we can SET ROLE to a non-superuser,
+ * then RLS is enforced.  Caller MUST call client.release() when done.
  */
 async function getRlsClient(orgId: string, userId: string, role = 'CARE_WORKER'): Promise<PoolClient> {
-  const client = await pool.connect();
+  const client = await migratePool.connect();
   await client.query(`SELECT set_config('app.current_org_id', $1, false)`, [orgId]);
   await client.query(`SELECT set_config('app.current_user_id', $1, false)`, [userId]);
   await client.query(`SELECT set_config('app.current_user_role', $1, false)`, [role]);
@@ -91,26 +91,24 @@ async function releaseClient(client: PoolClient) {
 beforeAll(async () => {
   // Ensure RLS is applied and FORCE RLS is enabled
   const migrationFiles = ['002_enable_rls.sql', '003_add_missing_rls.sql'];
-  const setupClient = await pool.connect();
   try {
     for (const file of migrationFiles) {
       const p = path.join(__dirname, 'migrations', file);
       if (fs.existsSync(p)) {
         const sql = fs.readFileSync(p, 'utf8');
-        try { await setupClient.query(sql); } catch { /* already applied */ }
+        try { await migrateQuery(sql); } catch { /* already applied */ }
       }
     }
 
-    // Ensure test role exists (non-superuser, non-login)
-    try { await setupClient.query(`CREATE ROLE ${TEST_ROLE} NOLOGIN`); } catch { /* exists */ }
+    // Ensure test role exists (non-superuser, non-login) — uses migrateQuery (superuser)
+    try { await migrateQuery(`CREATE ROLE ${TEST_ROLE} NOLOGIN`); } catch { /* exists */ }
     // Grant basic permissions needed for queries
-    await setupClient.query(`GRANT CONNECT ON DATABASE ${getDatabaseName()} TO ${TEST_ROLE}`);
-    await setupClient.query(`GRANT USAGE ON SCHEMA public TO ${TEST_ROLE}`);
-    await setupClient.query(`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${TEST_ROLE}`);
-    await setupClient.query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ${TEST_ROLE}`);
-  } finally {
-    setupClient.release();
-  }
+    await migrateQuery(`GRANT CONNECT ON DATABASE ${getDatabaseName()} TO ${TEST_ROLE}`);
+    await migrateQuery(`GRANT USAGE ON SCHEMA public TO ${TEST_ROLE}`);
+    await migrateQuery(`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${TEST_ROLE}`);
+    await migrateQuery(`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${TEST_ROLE}`);
+    await migrateQuery(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ${TEST_ROLE}`);
+  } catch { /* partial failure is OK — role may already exist */ }
 
   await setupOrg(orgAId, 'RLS Test Org A');
   await setupOrg(orgBId, 'RLS Test Org B');
@@ -138,16 +136,16 @@ afterAll(async () => {
     'compliance_profile_requirements',
   ];
   for (const table of tables) {
-    try { await query(`DELETE FROM ${table}`); } catch { /* skip */ }
+    try { await migrateQuery(`DELETE FROM ${table}`); } catch { /* skip */ }
   }
   // Delete service_users, staff_profiles, locations by org ID
   for (const orgId of [orgAId, orgBId]) {
-    try { await query(`DELETE FROM service_users WHERE organization_id = $1`, [orgId]); } catch { /* skip */ }
-    try { await query(`DELETE FROM locations WHERE organization_id = $1`, [orgId]); } catch { /* skip */ }
+    try { await migrateQuery(`DELETE FROM service_users WHERE organization_id = $1`, [orgId]); } catch { /* skip */ }
+    try { await migrateQuery(`DELETE FROM locations WHERE organization_id = $1`, [orgId]); } catch { /* skip */ }
   }
-  try { await query(`DELETE FROM staff_profiles WHERE user_id IN ($1, $2)`, [userIdA, userIdB]); } catch { /* skip */ }
-  try { await query(`DELETE FROM users WHERE id IN ($1, $2)`, [userIdA, userIdB]); } catch { /* skip */ }
-  try { await query(`DELETE FROM organizations WHERE id IN ($1, $2)`, [orgAId, orgBId]); } catch { /* skip */ }
+  try { await migrateQuery(`DELETE FROM staff_profiles WHERE user_id IN ($1, $2)`, [userIdA, userIdB]); } catch { /* skip */ }
+  try { await migrateQuery(`DELETE FROM users WHERE id IN ($1, $2)`, [userIdA, userIdB]); } catch { /* skip */ }
+  try { await migrateQuery(`DELETE FROM organizations WHERE id IN ($1, $2)`, [orgAId, orgBId]); } catch { /* skip */ }
 });
 
 describe('RLS — Policy existence verification', () => {
@@ -218,7 +216,7 @@ describe('RLS — Cross-org isolation', () => {
     });
 
     it('should return nothing when no org context is set', async () => {
-      const client = await pool.connect();
+      const client = await migratePool.connect();
       try {
         await client.query(`SELECT set_config('app.current_org_id', '', false)`);
         await client.query(`SELECT set_config('app.current_user_role', '', false)`);
@@ -275,11 +273,11 @@ describe('RLS — Cross-org isolation', () => {
 
   describe('qualifications (FK traversal via staff_profiles -> users)', () => {
     beforeAll(async () => {
-      await query(
+      await migrateQuery(
         `INSERT INTO qualifications (id, staff_id, name, issue_date) VALUES ($1, $2, 'RN Qualification', '2024-01-15') ON CONFLICT (id) DO NOTHING`,
         [uuidv4(), staffProfileIdA]
       );
-      await query(
+      await migrateQuery(
         `INSERT INTO qualifications (id, staff_id, name, issue_date) VALUES ($1, $2, 'BLS Cert', '2024-06-01') ON CONFLICT (id) DO NOTHING`,
         [uuidv4(), staffProfileIdB]
       );
@@ -300,8 +298,8 @@ describe('RLS — Cross-org isolation', () => {
 
   describe('skills (FK traversal via staff_profiles -> users)', () => {
     beforeAll(async () => {
-      await query(`INSERT INTO skills (id, staff_id, name) VALUES ($1, $2, 'Wound Care') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdA]);
-      await query(`INSERT INTO skills (id, staff_id, name) VALUES ($1, $2, 'Catheter Care') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdB]);
+      await migrateQuery(`INSERT INTO skills (id, staff_id, name) VALUES ($1, $2, 'Wound Care') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdA]);
+      await migrateQuery(`INSERT INTO skills (id, staff_id, name) VALUES ($1, $2, 'Catheter Care') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdB]);
     });
 
     it('should only return skills from the current org', async () => {
@@ -319,8 +317,8 @@ describe('RLS — Cross-org isolation', () => {
 
   describe('emergency_contacts (FK traversal via staff_profiles -> users)', () => {
     beforeAll(async () => {
-      await query(`INSERT INTO emergency_contacts (id, staff_id, name, relationship, phone) VALUES ($1, $2, 'John Doe', 'Spouse', '07700111111') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdA]);
-      await query(`INSERT INTO emergency_contacts (id, staff_id, name, relationship, phone) VALUES ($1, $2, 'Jane Smith', 'Parent', '07700222222') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdB]);
+      await migrateQuery(`INSERT INTO emergency_contacts (id, staff_id, name, relationship, phone) VALUES ($1, $2, 'John Doe', 'Spouse', '07700111111') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdA]);
+      await migrateQuery(`INSERT INTO emergency_contacts (id, staff_id, name, relationship, phone) VALUES ($1, $2, 'Jane Smith', 'Parent', '07700222222') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdB]);
     });
 
     it('should only return emergency contacts from the current org', async () => {
@@ -338,8 +336,8 @@ describe('RLS — Cross-org isolation', () => {
 
   describe('health_observations (FK traversal via service_users)', () => {
     beforeAll(async () => {
-      await query(`INSERT INTO health_observations (id, service_user_id, category, notes, severity) VALUES ($1, $2, 'general', 'Org A observation', 'normal') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
-      await query(`INSERT INTO health_observations (id, service_user_id, category, notes, severity) VALUES ($1, $2, 'pain', 'Org B observation', 'mild') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
+      await migrateQuery(`INSERT INTO health_observations (id, service_user_id, category, notes, severity) VALUES ($1, $2, 'general', 'Org A observation', 'normal') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
+      await migrateQuery(`INSERT INTO health_observations (id, service_user_id, category, notes, severity) VALUES ($1, $2, 'pain', 'Org B observation', 'mild') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
     });
 
     it('should only return health observations from the current org', async () => {
@@ -357,8 +355,8 @@ describe('RLS — Cross-org isolation', () => {
 
   describe('bowel_movements (FK traversal via service_users)', () => {
     beforeAll(async () => {
-      await query(`INSERT INTO bowel_movements (id, service_user_id, bristol_type, notes) VALUES ($1, $2, 4, 'Org A bowel') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
-      await query(`INSERT INTO bowel_movements (id, service_user_id, bristol_type, notes) VALUES ($1, $2, 6, 'Org B bowel') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
+      await migrateQuery(`INSERT INTO bowel_movements (id, service_user_id, bristol_type, notes) VALUES ($1, $2, 4, 'Org A bowel') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
+      await migrateQuery(`INSERT INTO bowel_movements (id, service_user_id, bristol_type, notes) VALUES ($1, $2, 6, 'Org B bowel') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
     });
 
     it('should only return bowel movements from the current org', async () => {
@@ -376,8 +374,8 @@ describe('RLS — Cross-org isolation', () => {
 
   describe('dental_records (FK traversal via service_users)', () => {
     beforeAll(async () => {
-      await query(`INSERT INTO dental_records (id, service_user_id, checkup_date, findings) VALUES ($1, $2, '2025-01-01', 'Org A dental') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
-      await query(`INSERT INTO dental_records (id, service_user_id, checkup_date, findings) VALUES ($1, $2, '2025-06-01', 'Org B dental') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
+      await migrateQuery(`INSERT INTO dental_records (id, service_user_id, checkup_date, findings) VALUES ($1, $2, '2025-01-01', 'Org A dental') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
+      await migrateQuery(`INSERT INTO dental_records (id, service_user_id, checkup_date, findings) VALUES ($1, $2, '2025-06-01', 'Org B dental') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
     });
 
     it('should only return dental records from the current org', async () => {
@@ -395,8 +393,8 @@ describe('RLS — Cross-org isolation', () => {
 
   describe('fluid_intake (FK traversal via service_users)', () => {
     beforeAll(async () => {
-      await query(`INSERT INTO fluid_intake (id, service_user_id, amount_ml, fluid_type, notes) VALUES ($1, $2, 250, 'Water', 'Org A fluid') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
-      await query(`INSERT INTO fluid_intake (id, service_user_id, amount_ml, fluid_type, notes) VALUES ($1, $2, 150, 'Tea', 'Org B fluid') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
+      await migrateQuery(`INSERT INTO fluid_intake (id, service_user_id, amount_ml, fluid_type, notes) VALUES ($1, $2, 250, 'Water', 'Org A fluid') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
+      await migrateQuery(`INSERT INTO fluid_intake (id, service_user_id, amount_ml, fluid_type, notes) VALUES ($1, $2, 150, 'Tea', 'Org B fluid') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
     });
 
     it('should only return fluid intake from the current org', async () => {
@@ -416,10 +414,10 @@ describe('RLS — Cross-org isolation', () => {
     beforeAll(async () => {
       const ltA = uuidv4();
       const ltB = uuidv4();
-      await query(`INSERT INTO leave_types (id, organization_id, name, color, days_allowed, duration_type) VALUES ($1, $2, 'Annual A', '#000', 28, 'days') ON CONFLICT (id) DO NOTHING`, [ltA, orgAId]);
-      await query(`INSERT INTO leave_types (id, organization_id, name, color, days_allowed, duration_type) VALUES ($1, $2, 'Annual B', '#111', 28, 'days') ON CONFLICT (id) DO NOTHING`, [ltB, orgBId]);
-      await query(`INSERT INTO leave_requests (id, staff_id, leave_type_id, start_date, end_date, status, duration_type, reason) VALUES ($1, $2, $3, '2026-09-01', '2026-09-05', 'pending', 'days', 'Org A leave') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdA, ltA]);
-      await query(`INSERT INTO leave_requests (id, staff_id, leave_type_id, start_date, end_date, status, duration_type, reason) VALUES ($1, $2, $3, '2026-10-01', '2026-10-05', 'pending', 'days', 'Org B leave') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdB, ltB]);
+      await migrateQuery(`INSERT INTO leave_types (id, organization_id, name, color, days_allowed, duration_type) VALUES ($1, $2, 'Annual A', '#000', 28, 'days') ON CONFLICT (id) DO NOTHING`, [ltA, orgAId]);
+      await migrateQuery(`INSERT INTO leave_types (id, organization_id, name, color, days_allowed, duration_type) VALUES ($1, $2, 'Annual B', '#111', 28, 'days') ON CONFLICT (id) DO NOTHING`, [ltB, orgBId]);
+      await migrateQuery(`INSERT INTO leave_requests (id, staff_id, leave_type_id, start_date, end_date, status, duration_type, reason) VALUES ($1, $2, $3, '2026-09-01', '2026-09-05', 'pending', 'days', 'Org A leave') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdA, ltA]);
+      await migrateQuery(`INSERT INTO leave_requests (id, staff_id, leave_type_id, start_date, end_date, status, duration_type, reason) VALUES ($1, $2, $3, '2026-10-01', '2026-10-05', 'pending', 'days', 'Org B leave') ON CONFLICT (id) DO NOTHING`, [uuidv4(), staffProfileIdB, ltB]);
     });
 
     it('should only return leave requests from the current org', async () => {
@@ -437,8 +435,8 @@ describe('RLS — Cross-org isolation', () => {
 
   describe('incidents table (direct org_id)', () => {
     beforeAll(async () => {
-      await query(`INSERT INTO incidents (id, organization_id, title, description, severity, status, incident_date, location) VALUES ($1, $2, 'Org A Incident', 'Test', 'low', 'reported', CURRENT_DATE, 'Wing A') ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgAId]);
-      await query(`INSERT INTO incidents (id, organization_id, title, description, severity, status, incident_date, location) VALUES ($1, $2, 'Org B Incident', 'Test', 'low', 'reported', CURRENT_DATE, 'Wing B') ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgBId]);
+      await migrateQuery(`INSERT INTO incidents (id, organization_id, title, description, severity, status, incident_date, location) VALUES ($1, $2, 'Org A Incident', 'Test', 'low', 'reported', CURRENT_DATE, 'Wing A') ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgAId]);
+      await migrateQuery(`INSERT INTO incidents (id, organization_id, title, description, severity, status, incident_date, location) VALUES ($1, $2, 'Org B Incident', 'Test', 'low', 'reported', CURRENT_DATE, 'Wing B') ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgBId]);
     });
 
     it('should only return incidents from the current org', async () => {
@@ -458,8 +456,8 @@ describe('RLS — Cross-org isolation', () => {
     beforeAll(async () => {
       const tomorrow = new Date(Date.now() + 86400000).toISOString();
       const end = new Date(Date.now() + 90000000).toISOString();
-      await query(`INSERT INTO shifts (id, location_id, start_time, end_time, shift_type, status) VALUES ($1, $2, $3, $4, 'day', 'open') ON CONFLICT (id) DO NOTHING`, [uuidv4(), locationIdA, tomorrow, end]);
-      await query(`INSERT INTO shifts (id, location_id, start_time, end_time, shift_type, status) VALUES ($1, $2, $3, $4, 'wake_night', 'open') ON CONFLICT (id) DO NOTHING`, [uuidv4(), locationIdB, tomorrow, end]);
+      await migrateQuery(`INSERT INTO shifts (id, location_id, start_time, end_time, shift_type, status) VALUES ($1, $2, $3, $4, 'day', 'open') ON CONFLICT (id) DO NOTHING`, [uuidv4(), locationIdA, tomorrow, end]);
+      await migrateQuery(`INSERT INTO shifts (id, location_id, start_time, end_time, shift_type, status) VALUES ($1, $2, $3, $4, 'wake_night', 'open') ON CONFLICT (id) DO NOTHING`, [uuidv4(), locationIdB, tomorrow, end]);
     });
 
     it('should only return shifts from the current org', async () => {
@@ -477,8 +475,8 @@ describe('RLS — Cross-org isolation', () => {
 
   describe('tasks table (direct org_id)', () => {
     beforeAll(async () => {
-      await query(`INSERT INTO tasks (id, organization_id, title, status, priority, created_by) VALUES ($1, $2, 'Org A Task', 'pending', 'medium', $3) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgAId, userIdA]);
-      await query(`INSERT INTO tasks (id, organization_id, title, status, priority, created_by) VALUES ($1, $2, 'Org B Task', 'pending', 'low', $3) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgBId, userIdB]);
+      await migrateQuery(`INSERT INTO tasks (id, organization_id, title, status, priority, created_by) VALUES ($1, $2, 'Org A Task', 'pending', 'medium', $3) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgAId, userIdA]);
+      await migrateQuery(`INSERT INTO tasks (id, organization_id, title, status, priority, created_by) VALUES ($1, $2, 'Org B Task', 'pending', 'low', $3) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgBId, userIdB]);
     });
 
     it('should only return tasks from the current org', async () => {
@@ -496,8 +494,8 @@ describe('RLS — Cross-org isolation', () => {
 
   describe('appointments table (direct org_id)', () => {
     beforeAll(async () => {
-      await query(`INSERT INTO appointments (id, organization_id, title, start_time, end_time, status, created_by) VALUES ($1, $2, 'Org A Appt', NOW(), NOW() + INTERVAL '1 hour', 'scheduled', $3) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgAId, userIdA]);
-      await query(`INSERT INTO appointments (id, organization_id, title, start_time, end_time, status, created_by) VALUES ($1, $2, 'Org B Appt', NOW() + INTERVAL '2 hours', NOW() + INTERVAL '3 hours', 'scheduled', $3) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgBId, userIdB]);
+      await migrateQuery(`INSERT INTO appointments (id, organization_id, title, start_time, end_time, status, created_by) VALUES ($1, $2, 'Org A Appt', NOW(), NOW() + INTERVAL '1 hour', 'scheduled', $3) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgAId, userIdA]);
+      await migrateQuery(`INSERT INTO appointments (id, organization_id, title, start_time, end_time, status, created_by) VALUES ($1, $2, 'Org B Appt', NOW() + INTERVAL '2 hours', NOW() + INTERVAL '3 hours', 'scheduled', $3) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgBId, userIdB]);
     });
 
     it('should only return appointments from the current org', async () => {
@@ -515,8 +513,8 @@ describe('RLS — Cross-org isolation', () => {
 
   describe('policies table (direct org_id)', () => {
     beforeAll(async () => {
-      await query(`INSERT INTO policies (id, organization_id, title, content, category, status, version) VALUES ($1, $2, 'Org A Policy', 'Content A', 'safeguarding', 'active', 1) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgAId]);
-      await query(`INSERT INTO policies (id, organization_id, title, content, category, status, version) VALUES ($1, $2, 'Org B Policy', 'Content B', 'safeguarding', 'active', 1) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgBId]);
+      await migrateQuery(`INSERT INTO policies (id, organization_id, title, content, category, status, version) VALUES ($1, $2, 'Org A Policy', 'Content A', 'safeguarding', 'active', 1) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgAId]);
+      await migrateQuery(`INSERT INTO policies (id, organization_id, title, content, category, status, version) VALUES ($1, $2, 'Org B Policy', 'Content B', 'safeguarding', 'active', 1) ON CONFLICT (id) DO NOTHING`, [uuidv4(), orgBId]);
     });
 
     it('should only return policies from the current org', async () => {
@@ -535,7 +533,7 @@ describe('RLS — Cross-org isolation', () => {
 
 describe('RLS — SUPER_ADMIN bypass', () => {
   it('should allow SUPER_ADMIN to see all orgs data', async () => {
-    const client = await pool.connect();
+    const client = await migratePool.connect();
     try {
       await client.query(`SELECT set_config('app.current_org_id', '', false)`);
       await client.query(`SELECT set_config('app.current_user_id', '00000000-0000-0000-0000-000000000000', false)`);

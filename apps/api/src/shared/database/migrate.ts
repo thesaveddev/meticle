@@ -1,4 +1,4 @@
-import pool, { query } from './index';
+import { migrateQuery as query } from './index';
 import logger from '../utils/logger';
 import crypto from 'crypto';
 

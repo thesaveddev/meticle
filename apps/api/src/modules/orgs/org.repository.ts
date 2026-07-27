@@ -1,6 +1,11 @@
-import { query } from '../../shared/database';
+import { query as appQuery, migrateQuery } from '../../shared/database';
 import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
+
+/** Default query function — ALS-aware app query. */
+const query = appQuery;
+/** Query function type — defaults to the ALS-aware app query. */
+type QFn = typeof appQuery;
 
 export interface OrganizationRow {
   id: string;
@@ -31,16 +36,21 @@ export interface DepartmentRow {
 }
 
 export class OrgRepository {
-  static async createOrg(name: string): Promise<OrganizationRow> {
+  /**
+   * Create a new organization.  The optional `qFn` parameter allows callers
+   * (e.g. the auth controller) to pass `migrateQuery` for cross-tenant
+   * operations that bypass RLS.
+   */
+  static async createOrg(name: string, qFn: QFn = appQuery): Promise<OrganizationRow> {
     const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     try {
-      const result = await query(
+      const result = await qFn(
         `INSERT INTO organizations (name, plan, subscription_status, trial_ends_at, onboarding_step, onboarding_completed)
          VALUES ($1, 'starter', 'trial', $2, 0, false) RETURNING *`,
         [name, trialEndsAt]
       );
       const orgId = result.rows[0].id;
-      await this.seedDefaultLeaveTypes(orgId);
+      await this.seedDefaultLeaveTypes(orgId, qFn);
       return result.rows[0];
     } catch (err: any) {
       if (err?.code === '23505' || (err?.message && err.message.includes('uq_organizations_name'))) {
@@ -50,7 +60,7 @@ export class OrgRepository {
     }
   }
 
-  static async seedDefaultLeaveTypes(orgId: string) {
+  static async seedDefaultLeaveTypes(orgId: string, qFn: QFn = appQuery) {
     const defaults = [
       { name: 'Annual Leave', color: '#0F4C81', days_allowed: 28, hours_allowed: 210, duration_type: 'days' },
       { name: 'Sick Leave', color: '#DC2626', days_allowed: 10, hours_allowed: 75, duration_type: 'days' },
@@ -59,7 +69,7 @@ export class OrgRepository {
       { name: 'Emergency Leave', color: '#EF4444', days_allowed: 3, hours_allowed: 22.5, duration_type: 'days' },
     ];
     for (const lt of defaults) {
-      await query(
+      await qFn(
         `INSERT INTO leave_types (organization_id, name, color, days_allowed, hours_allowed, duration_type)
          VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`,
         [orgId, lt.name, lt.color, lt.days_allowed, lt.hours_allowed, lt.duration_type]
@@ -67,8 +77,8 @@ export class OrgRepository {
     }
   }
 
-  static async createLocation(orgId: string, name: string, address?: string): Promise<LocationRow> {
-    const result = await query(
+  static async createLocation(orgId: string, name: string, address?: string, qFn: QFn = appQuery): Promise<LocationRow> {
+    const result = await qFn(
       'INSERT INTO locations (organization_id, name, address) VALUES ($1, $2, $3) RETURNING *',
       [orgId, name, address]
     );
@@ -102,8 +112,8 @@ export class OrgRepository {
     await query('DELETE FROM departments WHERE id = $1', [id]);
   }
 
-  static async getOrgById(id: string): Promise<OrganizationRow | null> {
-    const result = await query('SELECT * FROM organizations WHERE id = $1', [id]);
+  static async getOrgById(id: string, qFn: QFn = appQuery): Promise<OrganizationRow | null> {
+    const result = await qFn('SELECT * FROM organizations WHERE id = $1', [id]);
     return result.rows[0] || null;
   }
 

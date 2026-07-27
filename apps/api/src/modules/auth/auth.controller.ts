@@ -3,7 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { EmailService } from '../../shared/utils/email.service';
-import pool from '../../shared/database';
+import pool, { migrateQuery } from '../../shared/database';
 import { UserRepository } from './user.repository';
 import { hashPassword, comparePassword } from './password.util';
 import speakeasy from 'speakeasy';
@@ -149,12 +149,12 @@ export class AuthController {
       const orgName = userRole === UserRole.ORG_ADMIN
         ? `${name}'s Organization`
         : `${name}'s Profile`;
-      const org = await OrgRepository.createOrg(orgName);
+      const org = await OrgRepository.createOrg(orgName, migrateQuery);
       orgId = org.id;
 
       // Auto-create Headquarters location for ORG_ADMIN
       if (userRole === UserRole.ORG_ADMIN) {
-        await OrgRepository.createLocation(orgId, 'Headquarters');
+        await OrgRepository.createLocation(orgId, 'Headquarters', undefined, migrateQuery);
       }
     }
 
@@ -169,14 +169,14 @@ export class AuthController {
     const nameParts = name.trim().split(/\s+/);
     let locationId: string | null = null;
     if (userRole === UserRole.ORG_ADMIN) {
-      const locResult = await pool.query(
+      const locResult = await migrateQuery(
         'SELECT id FROM locations WHERE organization_id = $1 AND name = $2 LIMIT 1',
         [orgId, 'Headquarters']
       );
       locationId = locResult.rows[0]?.id || null;
     }
     try {
-      await pool.query(
+      await migrateQuery(
         'INSERT INTO staff_profiles (user_id, first_name, last_name, location_id) VALUES ($1, $2, $3, $4) ON CONFLICT (user_id) DO NOTHING',
         [user.id, nameParts[0], nameParts.slice(1).join(' ') || '', locationId]
       );
@@ -185,13 +185,13 @@ export class AuthController {
     }
 
     // Auto-verify on registration
-    await pool.query('UPDATE users SET email_verified = TRUE WHERE id = $1', [user.id]);
+    await migrateQuery('UPDATE users SET email_verified = TRUE WHERE id = $1', [user.id]);
 
     // Set default permissions for the new user's role
     PermissionsController.setDefaultPermissions(user.id, user.role).catch(logWarn('setDefaultPermissions'));
 
     // Store initial password in history
-    await pool.query(
+    await migrateQuery(
       'INSERT INTO password_history (user_id, password_hash) VALUES ($1, $2)',
       [user.id, hashedPassword]
     ).catch(logWarn('storeInitialPasswordHistory'));
@@ -295,7 +295,7 @@ export class AuthController {
 
     // Check if organization requires MFA
     if (user.organization_id) {
-      const org = await OrgRepository.getOrgById(user.organization_id);
+      const org = await OrgRepository.getOrgById(user.organization_id, migrateQuery);
       if (org?.force_mfa) {
         const setupToken = generateMfaChallengeToken(tokenPayload);
         res.json({ mfaSetupRequired: true, mfaSetupToken: setupToken, message: 'Your organization requires MFA. Please set up MFA to continue.' });
@@ -307,10 +307,10 @@ export class AuthController {
     const refreshToken = generateRefreshToken(tokenPayload);
 
     let organization = null;
-    if (user.organization_id) organization = await OrgRepository.getOrgById(user.organization_id);
+    if (user.organization_id) organization = await OrgRepository.getOrgById(user.organization_id, migrateQuery);
 
     let profile = null;
-    const profileResult = await pool.query('SELECT first_name, last_name, profile_picture_url FROM staff_profiles WHERE user_id = $1', [user.id]);
+    const profileResult = await migrateQuery('SELECT first_name, last_name, profile_picture_url FROM staff_profiles WHERE user_id = $1', [user.id]);
     if (profileResult.rows.length > 0) profile = profileResult.rows[0];
 
     setTokenCookies(res, accessToken, refreshToken);
@@ -351,7 +351,7 @@ export class AuthController {
 
   static async verifyEmail(req: Request, res: Response) {
     const { token } = req.query;
-    const result = await pool.query(
+    const result = await migrateQuery(
       'SELECT * FROM verification_tokens WHERE token = $1 AND type = $2 AND expires_at > NOW()',
       [token, 'email_verification']
     );
@@ -361,8 +361,8 @@ export class AuthController {
     }
 
     const userId = result.rows[0].user_id;
-    await pool.query('UPDATE users SET email_verified = TRUE WHERE id = $1', [userId]);
-    await pool.query('DELETE FROM verification_tokens WHERE id = $1', [result.rows[0].id]);
+    await migrateQuery('UPDATE users SET email_verified = TRUE WHERE id = $1', [userId]);
+    await migrateQuery('DELETE FROM verification_tokens WHERE id = $1', [result.rows[0].id]);
 
     res.json({ message: 'Email verified successfully' });
   }
@@ -376,7 +376,7 @@ export class AuthController {
     if (existing) throw new AppError(409, 'An account with this email already exists');
 
     // Rate limit: max 3 codes per email per 15 minutes
-    const recent = await pool.query(
+    const recent = await migrateQuery(
       `SELECT COUNT(*)::int as cnt FROM email_verification_codes
        WHERE email = $1 AND created_at > NOW() - INTERVAL '15 minutes'`,
       [email]
@@ -388,7 +388,7 @@ export class AuthController {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO email_verification_codes (email, code, expires_at) VALUES ($1, $2, $3)`,
       [email, code, expiresAt]
     );
@@ -401,7 +401,7 @@ export class AuthController {
     const { email, code } = req.body;
     if (!email || !code) throw new AppError(400, 'Email and code are required');
 
-    const result = await pool.query(
+    const result = await migrateQuery(
       `SELECT id FROM email_verification_codes
        WHERE email = $1 AND code = $2 AND expires_at > NOW() AND verified = FALSE
        ORDER BY created_at DESC LIMIT 1`,
@@ -412,7 +412,7 @@ export class AuthController {
       throw new AppError(400, 'Invalid or expired verification code');
     }
 
-    await pool.query(
+    await migrateQuery(
       `UPDATE email_verification_codes SET verified = TRUE WHERE id = $1`,
       [result.rows[0].id]
     );
@@ -428,7 +428,7 @@ export class AuthController {
     if (!user) return res.json({ message: 'If that email exists, a reset link has been sent.' });
 
     const token = crypto.randomBytes(32).toString('hex');
-    await pool.query(
+    await migrateQuery(
       'INSERT INTO verification_tokens (user_id, token, type, expires_at) VALUES ($1, $2, $3, $4)',
       [user.id, token, 'password_reset', new Date(Date.now() + 60 * 60 * 1000)]
     );
@@ -440,7 +440,7 @@ export class AuthController {
     const validated = resetPasswordSchema.parse(req.body);
     const { token, newPassword } = validated;
 
-    const result = await pool.query(
+    const result = await migrateQuery(
       'SELECT * FROM verification_tokens WHERE token = $1 AND type = $2 AND expires_at > NOW()',
       [token, 'password_reset']
     );
@@ -453,7 +453,7 @@ export class AuthController {
     const hashedPassword = await hashPassword(newPassword);
 
     // Check password history to prevent reuse
-    const historyResult = await pool.query(
+    const historyResult = await migrateQuery(
       'SELECT password_hash FROM password_history WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2',
       [userId, PASSWORD_HISTORY_LIMIT]
     );
@@ -465,16 +465,16 @@ export class AuthController {
     }
 
     // Store current password in history before updating
-    const currentUser = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
+    const currentUser = await migrateQuery('SELECT password_hash FROM users WHERE id = $1', [userId]);
     if (currentUser.rows.length > 0) {
-      await pool.query(
+      await migrateQuery(
         'INSERT INTO password_history (user_id, password_hash) VALUES ($1, $2)',
         [userId, currentUser.rows[0].password_hash]
       );
     }
 
-    await pool.query('UPDATE users SET password_hash = $1, force_password_reset = FALSE WHERE id = $2', [hashedPassword, userId]);
-    await pool.query('DELETE FROM verification_tokens WHERE id = $1', [result.rows[0].id]);
+    await migrateQuery('UPDATE users SET password_hash = $1, force_password_reset = FALSE WHERE id = $2', [hashedPassword, userId]);
+    await migrateQuery('DELETE FROM verification_tokens WHERE id = $1', [result.rows[0].id]);
 
     res.json({ message: 'Password reset successfully' });
   }
@@ -488,7 +488,7 @@ export class AuthController {
     }
 
     // Validate invitation
-    const inviteResult = await pool.query(
+    const inviteResult = await migrateQuery(
       'SELECT * FROM invitations WHERE token = $1 AND status = $2 AND expires_at > NOW()',
       [token, 'pending']
     );
@@ -504,11 +504,11 @@ export class AuthController {
     if (existingUser) {
       if (existingUser.organization_id === invitation.organization_id) {
         // Same org — link them and log in
-        await pool.query('UPDATE invitations SET status = $1 WHERE id = $2', ['accepted', invitation.id]);
+        await migrateQuery('UPDATE invitations SET status = $1 WHERE id = $2', ['accepted', invitation.id]);
 
         const nameParts = name.trim().split(/\s+/);
         try {
-          await pool.query(
+          await migrateQuery(
             'INSERT INTO staff_profiles (user_id, first_name, last_name, location_id) VALUES ($1, $2, $3, $4) ON CONFLICT (user_id) DO UPDATE SET location_id = COALESCE(NULLIF($4, NULL::uuid), staff_profiles.location_id)',
             [existingUser.id, nameParts[0], nameParts.slice(1).join(' ') || '', invitation.location_id]
           );
@@ -550,7 +550,7 @@ export class AuthController {
     PermissionsController.setDefaultPermissions(user.id, user.role).catch(logWarn('setDefaultPermissions'));
 
     // Store initial password in history
-    await pool.query(
+    await migrateQuery(
       'INSERT INTO password_history (user_id, password_hash) VALUES ($1, $2)',
       [user.id, hashedPassword]
     ).catch(logWarn('storeInitialPasswordHistory'));
@@ -558,7 +558,7 @@ export class AuthController {
     // Create staff profile with the user's name
     const nameParts = name.trim().split(/\s+/);
     try {
-      await pool.query(
+      await migrateQuery(
         'INSERT INTO staff_profiles (user_id, first_name, last_name, location_id) VALUES ($1, $2, $3, $4) ON CONFLICT (user_id) DO NOTHING',
         [user.id, nameParts[0], nameParts.slice(1).join(' ') || '', invitation.location_id]
       );
@@ -567,7 +567,7 @@ export class AuthController {
     }
 
     // Mark invitation as accepted
-    await pool.query(
+    await migrateQuery(
       'UPDATE invitations SET status = $1 WHERE id = $2',
       ['accepted', invitation.id]
     );
@@ -665,7 +665,7 @@ export class AuthController {
       }
       // Remove used backup code
       codes.splice(matchIndex, 1);
-      await pool.query('UPDATE users SET backup_codes = $1 WHERE id = $2', [codes, user.id]);
+      await migrateQuery('UPDATE users SET backup_codes = $1 WHERE id = $2', [codes, user.id]);
     }
 
     // Clear lockout on success
@@ -676,10 +676,10 @@ export class AuthController {
     const refreshToken = generateRefreshToken(tokenPayload);
 
     let organization = null;
-    if (user.organization_id) organization = await OrgRepository.getOrgById(user.organization_id);
+    if (user.organization_id) organization = await OrgRepository.getOrgById(user.organization_id, migrateQuery);
 
     let profile = null;
-    const profileResult = await pool.query('SELECT first_name, last_name, profile_picture_url FROM staff_profiles WHERE user_id = $1', [user.id]);
+    const profileResult = await migrateQuery('SELECT first_name, last_name, profile_picture_url FROM staff_profiles WHERE user_id = $1', [user.id]);
     if (profileResult.rows.length > 0) profile = profileResult.rows[0];
 
     // If used a backup code, include that info in response
@@ -714,9 +714,9 @@ export class AuthController {
       newCodes.push(`${part1}-${part2}`);
     }
     const hashed = newCodes.map(c => crypto.createHash('sha256').update(c).digest('hex'));
-    await pool.query('UPDATE users SET backup_codes = $1 WHERE id = $2', [hashed, user.id]);
+    await migrateQuery('UPDATE users SET backup_codes = $1 WHERE id = $2', [hashed, user.id]);
 
-    const profileResult = await pool.query(
+    const profileResult = await migrateQuery(
       'SELECT first_name, last_name FROM staff_profiles WHERE user_id = $1', [user.id]
     );
     const profile = profileResult.rows[0] || {};
@@ -745,7 +745,7 @@ export class AuthController {
     const user = await UserRepository.findById(userId);
     if (!user) throw new AppError(404, 'User not found');
 
-    const profileResult = await pool.query(
+    const profileResult = await migrateQuery(
       'SELECT first_name, last_name, profile_picture_url, employment_type, contracted_hours_weekly, location_id, is_on_leave, on_leave_until FROM staff_profiles WHERE user_id = $1',
       [userId]
     );
@@ -754,13 +754,13 @@ export class AuthController {
     // Fetch location name
     let locationName = '';
     if (profile.location_id) {
-      const locRes = await pool.query('SELECT name FROM locations WHERE id = $1', [profile.location_id]);
+      const locRes = await migrateQuery('SELECT name FROM locations WHERE id = $1', [profile.location_id]);
       locationName = locRes.rows[0]?.name || '';
     }
 
     let organization = null;
     if (user.organization_id) {
-      organization = (await pool.query('SELECT id, name, plan, subscription_status FROM organizations WHERE id = $1', [user.organization_id])).rows[0] || null;
+      organization = (await migrateQuery('SELECT id, name, plan, subscription_status FROM organizations WHERE id = $1', [user.organization_id])).rows[0] || null;
     }
 
     res.json({
@@ -787,7 +787,7 @@ export class AuthController {
     const user = await UserRepository.findById(userId);
     if (!user) throw new AppError(404, 'User not found');
 
-    const secretResult = await pool.query('SELECT mfa_secret FROM users WHERE id = $1', [userId]);
+    const secretResult = await migrateQuery('SELECT mfa_secret FROM users WHERE id = $1', [userId]);
     const secret = secretResult.rows[0]?.mfa_secret;
     if (!secret) {
       throw new AppError(400, 'MFA not set up. Generate a secret first.');
@@ -809,12 +809,12 @@ export class AuthController {
       return { plain: codes, hashed };
     })();
 
-    await pool.query(
+    await migrateQuery(
       'UPDATE users SET mfa_enabled = TRUE, backup_codes = $1 WHERE id = $2',
       [hashed, userId]
     );
 
-    const profileResult = await pool.query(
+    const profileResult = await migrateQuery(
       'SELECT first_name, last_name, profile_picture_url FROM staff_profiles WHERE user_id = $1', [userId]
     );
     const profile = profileResult.rows[0] || {};

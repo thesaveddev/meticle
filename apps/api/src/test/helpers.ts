@@ -9,6 +9,7 @@ import { asyncHandler } from '../shared/middleware/asyncHandler'
 import { rateLimit } from '../shared/middleware/rateLimit.middleware'
 import { metricsMiddleware } from '../shared/metrics'
 import { correlationId } from '../shared/middleware/correlationId'
+import { rlsMiddleware } from '../shared/middleware/rls.middleware'
 
 import pool from '../shared/database'
 
@@ -61,6 +62,7 @@ export function createTestApp(): Express {
   app.use(pinoHttp({ logger, autoLogging: false, genReqId: (req) => (req as any).requestId || crypto.randomUUID() }))
   app.use('/api', rateLimit(1000, 60_000))
   app.use(metricsMiddleware)
+  app.use(rlsMiddleware)
   app.use(express.json({ limit: '15mb' }))
 
   app.use('/auth', authRoutes)
@@ -112,5 +114,5 @@ export function createTestApp(): Express {
 }
 
 export function getTestDbUrl(): string {
-  return process.env.DATABASE_URL || 'postgres://postgres:admin@localhost:5432/meticle'
+  return process.env.DATABASE_URL || 'postgres://meticle_app:meticle_app_dev@localhost:5432/meticle'
 }
