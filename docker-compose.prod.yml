@@ -116,7 +116,7 @@ services:
     image: louislam/uptime-kuma:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3001:3001"
+      - "127.0.0.1:3099:3001"
     volumes:
       - uptime_data:/app/data
     networks:
