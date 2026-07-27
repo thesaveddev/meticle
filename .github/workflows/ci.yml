@@ -45,7 +45,7 @@ jobs:
         working-directory: apps/web
         continue-on-error: true
       - name: Create app role for RLS-enforced tests
-        run: psql -U postgres -d meticle_test -c "CREATE ROLE meticle_app WITH LOGIN PASSWORD 'ci_test_password';"
+        run: psql -h localhost -U postgres -d meticle_test -c "CREATE ROLE meticle_app WITH LOGIN PASSWORD 'ci_test_password';"
       - name: Setup test database
         run: npx ts-node src/shared/database/setup.ts
         working-directory: apps/api

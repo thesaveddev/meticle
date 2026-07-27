@@ -36,18 +36,26 @@ export class EmailQueue {
         if (transporter) {
           const from = process.env.SMTP_FROM || 'noreply@meticlecare.com';
           await transporter.sendMail({ from, to: email.to_email, subject: email.subject, html: email.html_body });
+          logger.info({ queueId: email.id, to: email.to_email }, 'Email sent via queue');
         } else {
-          logger.debug('Email (queued)');
+          logger.warn({ queueId: email.id }, 'No transporter — email queued but not sent');
+          await query(
+            `UPDATE email_queue SET status = 'pending' WHERE id = $1`,
+            [email.id]
+          );
+          continue;
         }
         await query(
           `UPDATE email_queue SET status = 'sent', sent_at = CURRENT_TIMESTAMP WHERE id = $1`,
           [email.id]
         );
       } catch (err: any) {
-        logger.error({ err: err.message, queueId: email.id }, 'Email queue send failed');
+        const retryable = err.code === 'ECONNECTION' || err.code === 'ETIMEDOUT' || err.code === 'EENVELOPE' || (err.responseCode >= 400 && err.responseCode < 500);
+        const nextStatus = (email.retry_count + 1) >= email.max_retries ? 'failed' : 'pending';
+        logger.error({ err: err.message, code: err.code, command: err.command, smtpCode: err.responseCode, queueId: email.id, retryCount: email.retry_count + 1, nextStatus }, 'Email queue send failed');
         await query(
-          `UPDATE email_queue SET status = 'failed', error_message = $1 WHERE id = $2`,
-          [err.message || 'Unknown error', email.id]
+          `UPDATE email_queue SET status = $1, error_message = $2 WHERE id = $3`,
+          [nextStatus, `${err.code ? err.code + ': ' : ''}${err.message || 'Unknown error'}`, email.id]
         );
       }
     }

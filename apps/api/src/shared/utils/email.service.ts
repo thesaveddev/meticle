@@ -29,13 +29,13 @@ export function getTransporter() {
 }
 
 async function sendMail(to: string, subject: string, html: string) {
-  const t = getTransporter();
-  if (!t) { logger.warn('No email transporter available'); return; }
   try {
-    const from = process.env.SMTP_FROM || 'hello@meticlecare.com';
-    await t.sendMail({ from, to, subject, html });
-    logger.debug('Email sent');
-  } catch (err) { logger.error(err, 'Email send failed'); }
+    const { EmailQueue } = await import('./email.queue');
+    await EmailQueue.enqueue(to, subject, html);
+    logger.info({ to, subject }, 'Email queued');
+  } catch (err: any) {
+    logger.error({ err: err.message, to, subject }, 'Email enqueue failed');
+  }
 }
 
 const baseUrl = () => process.env.FRONTEND_URL || 'https://meticlecare.com';
@@ -280,8 +280,7 @@ export class EmailService {
 
   static async sendQueued(to: string, subject: string, htmlBody: string) {
     const html = buildEmailHtml(subject, subject, htmlBody);
-    const { EmailQueue } = await import('./email.queue');
-    await EmailQueue.enqueue(to, subject, html);
+    await sendMail(to, subject, html);
   }
 
   // ── Trial Reminders ──
