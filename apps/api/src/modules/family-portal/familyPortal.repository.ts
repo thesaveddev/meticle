@@ -1,6 +1,7 @@
 import pool from '../../shared/database';
 
 export class FamilyPortalRepository {
+  private static readonly MEMBER_UPDATE_COLUMNS = new Set(['name', 'email', 'relationship', 'phone']);
   static async listMembers(serviceUserId: string, organizationId: string) {
     const result = await pool.query(
       `SELECT fm.*, su.first_name as su_first_name, su.last_name as su_last_name
@@ -40,6 +41,7 @@ export class FamilyPortalRepository {
     const values: any[] = [];
     let idx = 1;
     for (const [key, val] of Object.entries(data)) {
+      if (!FamilyPortalRepository.MEMBER_UPDATE_COLUMNS.has(key)) continue;
       if (val !== undefined) { fields.push(`${key} = $${idx}`); values.push(val); idx++; }
     }
     if (fields.length === 0) return null;

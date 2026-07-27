@@ -1,6 +1,7 @@
 import { query } from '../../shared/database';
 
 export class RoomCheckRepository {
+  private static readonly ROOM_CHECK_UPDATE_COLUMNS = new Set(['location_id', 'room_number', 'checked_by', 'check_date', 'status', 'cleanliness_rating', 'safety_rating', 'notes', 'photo_url']);
   static async findAll(orgId: string, filters?: { location_id?: string; status?: string; date?: string; room_number?: string }) {
     let sql = `SELECT rc.*, l.name as location_name,
                COALESCE(sp.first_name || ' ' || sp.last_name, '') as checked_by_name
@@ -31,7 +32,7 @@ export class RoomCheckRepository {
   static async update(id: string, orgId: string, data: any) {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
-      if (k === 'id' || k === 'organization_id' || k === 'created_at') continue;
+      if (!RoomCheckRepository.ROOM_CHECK_UPDATE_COLUMNS.has(k)) continue;
       fields.push(`${k} = $${idx++}`); params.push(v);
     }
     if (fields.length === 0) return null;

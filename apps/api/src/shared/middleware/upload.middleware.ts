@@ -14,7 +14,7 @@ const ALLOWED_MIMES = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.ms-powerpoint',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/plain', 'text/csv', 'text/html', 'text/markdown',
+  'text/plain', 'text/csv', 'text/markdown',
   'application/json', 'application/xml',
   'application/rtf',
 ]);

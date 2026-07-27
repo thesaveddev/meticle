@@ -44,6 +44,7 @@ export interface EMedicationAdministration {
 }
 
 export class EMedicationRepository {
+  private static readonly STOCK_UPDATE_COLUMNS = new Set(['medication_name', 'dosage', 'unit', 'batch_number', 'expiry_date', 'quantity', 'quantity_unit', 'reorder_level', 'location', 'service_user_id', 'status']);
   // ── Records ──
   static async findRecords(orgId: string, serviceUserId?: string) {
     let sql = `
@@ -455,6 +456,7 @@ export class EMedicationRepository {
   static async updateStock(id: string, orgId: string, data: any) {
     const fields: string[] = []; const values: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
+      if (!EMedicationRepository.STOCK_UPDATE_COLUMNS.has(k)) continue;
       if (v !== undefined) { fields.push(`${k} = $${idx++}`); values.push(v); }
     }
     if (fields.length === 0) return null;
