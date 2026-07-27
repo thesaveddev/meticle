@@ -68,6 +68,7 @@ jobs:
           script: |
             cd /opt/meticle
             export GIT_SSH_COMMAND="ssh -i /root/.ssh/github_deploy_key -o StrictHostKeyChecking=no"
+            git stash --include-untracked
             git pull origin master
 
             # Build images on the VPS
