@@ -17,6 +17,7 @@ export interface AppointmentRow {
 }
 
 export class AppointmentRepository {
+  private static readonly APPOINTMENT_UPDATE_COLUMNS = new Set(['service_user_id', 'staff_id', 'title', 'description', 'start_time', 'end_time', 'status', 'location_id', 'created_by']);
   static async findAll(orgId: string, date?: string) {
     let sql = `
       SELECT a.*,
@@ -62,7 +63,7 @@ export class AppointmentRepository {
   static async update(id: string, data: Partial<AppointmentRow>, orgId: string) {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
-      if (k === 'id' || k === 'organization_id' || k === 'created_at') continue;
+      if (!AppointmentRepository.APPOINTMENT_UPDATE_COLUMNS.has(k)) continue;
       fields.push(`${k} = $${idx++}`);
       params.push(v);
     }

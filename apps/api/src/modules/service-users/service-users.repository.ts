@@ -127,6 +127,15 @@ export interface CareAssessmentRow {
 }
 
 export class ServiceUserRepository {
+  private static readonly DAILY_NOTE_UPDATE_COLUMNS = new Set(['note_date', 'shift', 'category', 'content', 'support_level']);
+  private static readonly CLINICAL_SCORE_UPDATE_COLUMNS = new Set(['score_type', 'score', 'risk_level', 'recorded_date', 'notes']);
+  private static readonly RISK_ASSESSMENT_UPDATE_COLUMNS = new Set(['type', 'risk_level', 'details', 'mitigation_actions', 'review_date', 'reviewed_by', 'reviewed_at']);
+  private static readonly FAMILY_CONTACT_UPDATE_COLUMNS = new Set(['name', 'relationship', 'phone', 'email', 'is_emergency_contact']);
+  private static readonly ASSESSMENT_UPDATE_COLUMNS = new Set(['assessment_type', 'assessment_date', 'assessor_name', 'findings', 'recommendations', 'status', 'next_review_date', 'updated_at']);
+  private static readonly BODY_MAP_UPDATE_COLUMNS = new Set(['body_view', 'body_zone', 'zone_x', 'zone_y', 'condition_type', 'description', 'severity', 'recorded_date']);
+  private static readonly MEMORY_BOOK_UPDATE_COLUMNS = new Set(['title', 'description', 'image_urls', 'recorded_date', 'support_level']);
+  private static readonly CAPACITY_ASSESSMENT_UPDATE_COLUMNS = new Set(['assessment_date', 'decision_to_be_made', 'capacity_found', 'capacity_status', 'best_interest_decision', 'best_interest_meeting_date', 'independent_advocate', 'relevant_people_informed', 'review_date', 'updated_at']);
+  private static readonly CARE_PATHWAY_UPDATE_COLUMNS = new Set(['pathway_type', 'title', 'start_date', 'end_date', 'location_name', 'referral_reason', 'discharge_notes', 'status', 'updated_at']);
   // ---- Service Users ----
   static async findAll(orgId: string, filters?: { status?: string; search?: string }) {
     let sql = `SELECT su.*, 
@@ -262,6 +271,7 @@ export class ServiceUserRepository {
   static async updateDailyNote(id: string, data: any) {
     const fields: string[] = []; const values: any[] = []; let idx = 1;
     for (const [key, val] of Object.entries(data)) {
+      if (!ServiceUserRepository.DAILY_NOTE_UPDATE_COLUMNS.has(key)) continue;
       if (val !== undefined) { fields.push(`${key} = $${idx}`); values.push(val); idx++; }
     }
     if (fields.length === 0) return null;
@@ -293,7 +303,7 @@ export class ServiceUserRepository {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     const dateFields = new Set(['review_date', 'reassessment_date']);
     for (const [k, v] of Object.entries(data)) {
-      if (k === 'id' || k === 'service_user_id' || k === 'created_at') continue;
+      if (!ServiceUserRepository.RISK_ASSESSMENT_UPDATE_COLUMNS.has(k)) continue;
       const val = dateFields.has(k) && v === '' ? null : v;
       fields.push(`${k} = $${idx++}`); params.push(val);
     }
@@ -315,7 +325,7 @@ export class ServiceUserRepository {
   static async updateFamilyContact(id: string, data: Partial<FamilyContactRow>) {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
-      if (k === 'id' || k === 'service_user_id' || k === 'created_at') continue;
+      if (!ServiceUserRepository.FAMILY_CONTACT_UPDATE_COLUMNS.has(k)) continue;
       fields.push(`${k} = $${idx++}`);
       params.push(v);
     }
@@ -356,7 +366,7 @@ export class ServiceUserRepository {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     const dateFields = new Set(['assessment_date', 'next_review_date', 'review_date']);
     for (const [k, v] of Object.entries(data)) {
-      if (k === 'id' || k === 'service_user_id' || k === 'organization_id' || k === 'created_at') continue;
+      if (!ServiceUserRepository.ASSESSMENT_UPDATE_COLUMNS.has(k)) continue;
       const val = dateFields.has(k) && v === '' ? null : v;
       fields.push(`${k} = $${idx++}`);
       params.push(val);
@@ -404,7 +414,7 @@ export class ServiceUserRepository {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     const dateFields = new Set(['recorded_date', 'resolved_date']);
     for (const [k, v] of Object.entries(data)) {
-      if (k === 'id' || k === 'service_user_id' || k === 'created_at') continue;
+      if (!ServiceUserRepository.BODY_MAP_UPDATE_COLUMNS.has(k)) continue;
       const val = dateFields.has(k) && v === '' ? null : v;
       fields.push(`${k} = $${idx++}`); params.push(val);
     }
@@ -447,7 +457,7 @@ export class ServiceUserRepository {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     const dateFields = new Set(['recorded_date']);
     for (const [k, v] of Object.entries(data)) {
-      if (k === 'id' || k === 'service_user_id' || k === 'created_at' || k === 'image_url') continue;
+      if (!ServiceUserRepository.MEMORY_BOOK_UPDATE_COLUMNS.has(k)) continue;
       const val = dateFields.has(k) && v === '' ? null : v;
       if (k === 'image_urls') {
         fields.push(`${k} = $${idx++}::jsonb`); params.push(JSON.stringify(v));
@@ -645,6 +655,7 @@ export class ServiceUserRepository {
   static async updateClinicalScore(id: string, data: any) {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
+      if (!ServiceUserRepository.CLINICAL_SCORE_UPDATE_COLUMNS.has(k)) continue;
       if (v === undefined) continue;
       fields.push(`${k} = $${idx++}`); params.push(v);
     }
@@ -729,7 +740,7 @@ export class ServiceUserRepository {
   static async updateCapacityAssessment(id: string, data: any) {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
-      if (k === 'id' || k === 'service_user_id' || k === 'created_at') continue;
+      if (!ServiceUserRepository.CAPACITY_ASSESSMENT_UPDATE_COLUMNS.has(k)) continue;
       const val = v === '' ? null : v;
       fields.push(`${k} = $${idx++}`); params.push(val);
     }
@@ -768,7 +779,7 @@ export class ServiceUserRepository {
   static async updateCarePathway(id: string, data: any) {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
-      if (k === 'id' || k === 'service_user_id' || k === 'created_at') continue;
+      if (!ServiceUserRepository.CARE_PATHWAY_UPDATE_COLUMNS.has(k)) continue;
       const val = v === '' ? null : v;
       fields.push(`${k} = $${idx++}`); params.push(val);
     }

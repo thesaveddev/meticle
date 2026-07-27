@@ -102,7 +102,7 @@ export class AIController {
         });
       } catch { /* audit logging non-critical */ }
       logger.error(err, 'Compliance gap analysis failed');
-      res.status(500).json({ error: { message: err.message || 'AI analysis failed' } });
+      res.status(500).json({ error: { message: 'AI analysis failed' } });
     }
   }
 
@@ -170,7 +170,7 @@ export class AIController {
         });
       } catch { /* audit logging non-critical */ }
       logger.error(err, 'Incident triage failed');
-      res.status(500).json({ error: { message: err.message || 'AI triage failed' } });
+      res.status(500).json({ error: { message: 'AI triage failed' } });
     }
   }
 
@@ -244,7 +244,7 @@ export class AIController {
         });
       } catch { /* audit logging non-critical */ }
       logger.error(err, 'Rota analysis failed');
-      res.status(500).json({ error: { message: err.message || 'AI rota analysis failed' } });
+      res.status(500).json({ error: { message: 'AI rota analysis failed' } });
     }
   }
 
@@ -321,7 +321,7 @@ export class AIController {
         });
       } catch { /* audit logging non-critical */ }
       logger.error(err, 'Rota generation failed');
-      res.status(500).json({ error: { message: err.message || 'AI rota generation failed' } });
+      res.status(500).json({ error: { message: 'AI rota generation failed' } });
     }
   }
 
@@ -458,7 +458,7 @@ export class AIController {
         });
       } catch { /* audit logging non-critical */ }
       logger.error(err, 'Daily note generation failed');
-      res.status(500).json({ error: { message: err.message || 'AI daily note generation failed' } });
+      res.status(500).json({ error: { message: 'AI daily note generation failed' } });
     }
   }
 
@@ -665,7 +665,7 @@ export class AIController {
       res.json({ result: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
     } catch (err: any) {
       logger.error(err, 'Note analysis failed');
-      res.status(500).json({ error: { message: err.message || 'Analysis failed' } });
+      res.status(500).json({ error: { message: 'Analysis failed' } });
     }
   }
 }

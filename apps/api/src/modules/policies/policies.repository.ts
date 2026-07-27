@@ -30,6 +30,7 @@ export const STANDARD_POLICIES = [
 ];
 
 export class PolicyRepository {
+  private static readonly POLICY_UPDATE_COLUMNS = new Set(['title', 'category', 'content', 'version', 'status', 'updated_by']);
   static async findAll(orgId: string, category?: string, search?: string) {
     let sql = `SELECT p.*, u.email as updated_by_name FROM policies p LEFT JOIN users u ON p.updated_by = u.id WHERE p.organization_id = $1`;
     const params: any[] = [orgId];
@@ -59,7 +60,7 @@ export class PolicyRepository {
   static async update(id: string, data: Partial<PolicyRow>, orgId: string) {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
-      if (k === 'id' || k === 'organization_id' || k === 'created_at') continue;
+      if (!PolicyRepository.POLICY_UPDATE_COLUMNS.has(k)) continue;
       fields.push(`${k} = $${idx++}`);
       params.push(v);
     }

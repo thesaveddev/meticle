@@ -44,6 +44,8 @@ export interface ProgressHistoryRow {
 }
 
 export class GoalRepository {
+  private static readonly GOAL_UPDATE_COLUMNS = new Set(['service_user_id', 'title', 'description', 'target_date', 'review_date', 'status', 'progress', 'cqc_domain', 'frequency', 'goal_category', 'created_by', 'care_plan_id', 'baseline_value', 'target_value', 'value_unit']);
+  private static readonly MILESTONE_UPDATE_COLUMNS = new Set(['title', 'is_completed', 'sort_order']);
   static async findAll(orgId: string, serviceUserId?: string, status?: string) {
     let sql = `
       SELECT g.*,
@@ -86,7 +88,7 @@ export class GoalRepository {
   static async update(id: string, data: Partial<GoalRow>, orgId: string) {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
-      if (k === 'id' || k === 'organization_id' || k === 'created_at') continue;
+      if (!GoalRepository.GOAL_UPDATE_COLUMNS.has(k)) continue;
       fields.push(`${k} = $${idx++}`);
       params.push(v);
     }
@@ -141,6 +143,7 @@ export class GoalRepository {
   static async updateMilestone(milestoneId: string, data: { title?: string; is_completed?: boolean; sort_order?: number }) {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
+      if (!GoalRepository.MILESTONE_UPDATE_COLUMNS.has(k)) continue;
       if (v === undefined) continue;
       fields.push(`${k} = $${idx++}`);
       params.push(v);

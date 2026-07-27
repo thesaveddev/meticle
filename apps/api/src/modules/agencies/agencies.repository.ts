@@ -1,6 +1,8 @@
 import { query } from '../../shared/database';
 
 export class AgenciesRepository {
+  private static readonly AGENCY_UPDATE_COLUMNS = new Set(['name', 'contact_name', 'contact_phone', 'contact_email', 'address', 'notes', 'status', 'contract_start_date', 'contract_end_date']);
+  private static readonly WORKER_UPDATE_COLUMNS = new Set(['first_name', 'last_name', 'role', 'phone', 'email', 'dbs_check_date', 'dbs_expiry_date', 'mandatory_training_completed', 'status', 'rating', 'notes']);
   // ── Agencies ──
   static async getAll(orgId: string) {
     const result = await query(
@@ -46,6 +48,7 @@ export class AgenciesRepository {
     const params: any[] = [];
     let idx = 1;
     for (const [key, value] of Object.entries(data)) {
+      if (!AgenciesRepository.AGENCY_UPDATE_COLUMNS.has(key)) continue;
       if (value !== undefined) {
         fields.push(`${key} = $${idx++}`);
         params.push(value);
@@ -125,6 +128,7 @@ export class AgenciesRepository {
     const params: any[] = [];
     let idx = 1;
     for (const [key, value] of Object.entries(data)) {
+      if (!AgenciesRepository.WORKER_UPDATE_COLUMNS.has(key)) continue;
       if (value !== undefined) {
         fields.push(`${key} = $${idx++}`);
         params.push(value);

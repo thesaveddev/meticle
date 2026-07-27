@@ -1,6 +1,11 @@
 import { query } from '../../shared/database';
 
 export class HealthRepository {
+  private static readonly OBSERVATION_UPDATE_COLUMNS = new Set(['observation_date', 'category', 'notes', 'severity']);
+  private static readonly BOWEL_UPDATE_COLUMNS = new Set(['recorded_date', 'recorded_time', 'bristol_type', 'color', 'frequency', 'consistency', 'notes']);
+  private static readonly DENTAL_UPDATE_COLUMNS = new Set(['checkup_date', 'dentist_name', 'findings', 'actions_taken', 'next_checkup_date', 'notes']);
+  private static readonly FLUID_UPDATE_COLUMNS = new Set(['recorded_date', 'recorded_time', 'amount_ml', 'fluid_type', 'notes']);
+
   // === Health Observations ===
   static async findObservations(serviceUserId: string, limit = 50) {
     const result = await query(`
@@ -30,6 +35,7 @@ export class HealthRepository {
   static async updateObservation(id: string, serviceUserId: string, data: any) {
     const fields: string[] = []; const values: any[] = []; let idx = 1;
     for (const [key, val] of Object.entries(data)) {
+      if (!HealthRepository.OBSERVATION_UPDATE_COLUMNS.has(key)) continue;
       if (val !== undefined) { fields.push(`${key} = $${idx}`); values.push(val); idx++; }
     }
     if (fields.length === 0) return null;
@@ -68,6 +74,7 @@ export class HealthRepository {
   static async updateBowelMovement(id: string, serviceUserId: string, data: any) {
     const fields: string[] = []; const values: any[] = []; let idx = 1;
     for (const [key, val] of Object.entries(data)) {
+      if (!HealthRepository.BOWEL_UPDATE_COLUMNS.has(key)) continue;
       if (val !== undefined) { fields.push(`${key} = $${idx}`); values.push(val); idx++; }
     }
     if (fields.length === 0) return null;
@@ -103,6 +110,7 @@ export class HealthRepository {
   static async updateDentalRecord(id: string, serviceUserId: string, data: any) {
     const fields: string[] = []; const values: any[] = []; let idx = 1;
     for (const [key, val] of Object.entries(data)) {
+      if (!HealthRepository.DENTAL_UPDATE_COLUMNS.has(key)) continue;
       if (val !== undefined) { fields.push(`${key} = $${idx}`); values.push(val); idx++; }
     }
     if (fields.length === 0) return null;
@@ -148,6 +156,7 @@ export class HealthRepository {
   static async updateFluidIntake(id: string, serviceUserId: string, data: any) {
     const fields: string[] = []; const values: any[] = []; let idx = 1;
     for (const [key, val] of Object.entries(data)) {
+      if (!HealthRepository.FLUID_UPDATE_COLUMNS.has(key)) continue;
       if (val !== undefined) { fields.push(`${key} = $${idx}`); values.push(val); idx++; }
     }
     if (fields.length === 0) return null;
