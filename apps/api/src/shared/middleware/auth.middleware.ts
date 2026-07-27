@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserRole } from '@meticle/shared';
 import { isTokenBlacklisted } from './tokenBlacklist';
-import { query } from '../database';
+import { query, requestDBStorage } from '../database';
 
 export interface AuthUser {
   userId: string;
@@ -27,6 +27,29 @@ const getJwtSecret = (): string => {
   return secret;
 };
 
+/**
+ * Set RLS session variables on the request-scoped client (from ALS).
+ * Must be called after the JWT is decoded and before any tenant-scoped queries.
+ */
+async function setRlsSessionVars(
+  client: { query: (text: string, params?: any[]) => Promise<any> },
+  decoded: AuthUser
+) {
+  const promises: Promise<any>[] = [];
+  if (decoded.organizationId) {
+    promises.push(
+      client.query(`SELECT set_config('app.current_org_id', $1, false)`, [decoded.organizationId])
+    );
+  }
+  promises.push(
+    client.query(`SELECT set_config('app.current_user_id', $1, false)`, [decoded.userId])
+  );
+  promises.push(
+    client.query(`SELECT set_config('app.current_user_role', $1, false)`, [decoded.role])
+  );
+  await Promise.all(promises);
+}
+
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -40,6 +63,13 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return res.status(401).json({ statusCode: 401, message: 'Token has been revoked. Please log in again.' });
     }
     const decoded = jwt.verify(token, getJwtSecret()) as AuthUser;
+
+    // Set RLS session variables on the request-scoped client so that all
+    // subsequent queries in this request are scoped to the user's org.
+    const ctx = requestDBStorage.getStore();
+    if (ctx) {
+      await setRlsSessionVars(ctx.client, decoded);
+    }
 
     // Verify user still exists, is active, and role hasn't changed
     const result = await query(

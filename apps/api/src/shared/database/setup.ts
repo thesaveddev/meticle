@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { query } from './index';
+import { migrateQuery as query } from './index';
 import logger from '../utils/logger';
 import { runMigrations, Migration } from './migrate';
 
@@ -18,6 +18,15 @@ const MIGRATION_003: Migration = {
   strict: false,
   statements: (() => {
     const p = path.join(__dirname, 'migrations', '003_add_missing_rls.sql');
+    return [fs.readFileSync(p, 'utf8')];
+  })(),
+};
+
+const APP_ROLE_MIGRATION: Migration = {
+  name: '004_create_app_role',
+  strict: false,
+  statements: (() => {
+    const p = path.join(__dirname, 'migrations', '004_create_app_role.sql');
     return [fs.readFileSync(p, 'utf8')];
   })(),
 };
@@ -1494,8 +1503,17 @@ export const setupDatabase = async () => {
     logger.info('Database schema setup completed.');
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION]);
     logger.info('Migrations completed.');
+
+    // Ensure meticle_app role has correct password (init script only runs on first DB init)
+    const appRolePassword = process.env.APP_ROLE_PASSWORD;
+    if (appRolePassword) {
+      // ALTER ROLE doesn't support parameterized queries in pg — escape single quotes
+      const escaped = appRolePassword.replace(/'/g, "''");
+      await query(`ALTER ROLE meticle_app WITH PASSWORD '${escaped}'`);
+      logger.info('App role password updated.');
+    }
 
     // Auto-seed standard outcome scales for orgs that have none
     try {

@@ -1,49 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
-import pool from '../database';
+import pool, { requestDBStorage } from '../database';
 import logger from '../utils/logger';
 
+/**
+ * Per-request DB client middleware.
+ *
+ * Acquires a dedicated pg client from the pool for the lifetime of the
+ * request and stores it in AsyncLocalStorage so that every `query()` call
+ * within the same request uses the same connection.  This guarantees that
+ * session-level PostgreSQL settings (set by `set_config`) — in particular
+ * the RLS session variables `app.current_org_id`, `app.current_user_id`,
+ * and `app.current_user_role` — persist across all queries in the request.
+ *
+ * The actual RLS variables are set by the `authenticate` middleware after
+ * it decodes the JWT.  For public routes (no authenticate), the client is
+ * still acquired so that downstream code can optionally set vars, and the
+ * connection is released when the response finishes.
+ */
 export function rlsMiddleware(req: Request, res: Response, next: NextFunction) {
-  const user = (req as any).user;
-  if (!user) {
+  pool.connect().then(client => {
+    // Ensure the client is always released when the response is complete
+    const releaseClient = () => {
+      try { client.release(); } catch { /* already released */ }
+    };
+    res.on('finish', releaseClient);
+    res.on('close', releaseClient);
+
+    // Store the client in AsyncLocalStorage so query() uses it
+    requestDBStorage.run({ client }, () => {
+      next();
+    });
+  }).catch(err => {
+    logger.error({ err }, 'Failed to acquire DB client for request — falling back to pool');
+    // Fallback: proceed without request-scoped client (queries will use the pool directly)
     next();
-    return;
-  }
-
-  const queries: string[] = [];
-  const params: any[] = [];
-
-  if (user.organizationId) {
-    queries.push(`SELECT set_config('app.current_org_id', $1, false)`);
-    params.push(user.organizationId);
-  }
-  if (user.userId) {
-    queries.push(`SELECT set_config('app.current_user_id', $1, false)`);
-    params.push(user.userId);
-  }
-  if (user.role) {
-    queries.push(`SELECT set_config('app.current_user_role', $1, false)`);
-    params.push(user.role);
-  }
-
-  if (queries.length === 0) {
-    next();
-    return;
-  }
-
-  const sql = queries.join('; ');
-  pool.query(sql, params).then(() => {
-    next();
-  }).catch((err) => {
-    logger.warn({ err }, 'Failed to set RLS session variables');
-    next();
-  });
-
-  // Reset session variables after response
-  res.on('finish', () => {
-    pool.query(
-      `SELECT set_config('app.current_org_id', '', false);
-       SELECT set_config('app.current_user_id', '', false);
-       SELECT set_config('app.current_user_role', '', false);`
-    ).catch(() => {});
   });
 }
