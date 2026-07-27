@@ -441,6 +441,17 @@ const INITIAL_MIGRATION: Migration = {
   )`,
   `CREATE INDEX IF NOT EXISTS idx_satisfaction_surveys_org ON satisfaction_surveys(organization_id)`,
   `CREATE INDEX IF NOT EXISTS idx_satisfaction_surveys_service_user ON satisfaction_surveys(service_user_id)`,
+  // Engagement survey templates (must be created before references below)
+  `CREATE TABLE IF NOT EXISTS engagement_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    questions JSONB NOT NULL DEFAULT '[]',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_engagement_templates_org ON engagement_templates(organization_id)`,
   // Staff engagement surveys for CQC Well-led domain
   `CREATE TABLE IF NOT EXISTS staff_engagement_surveys (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -585,7 +596,7 @@ const INITIAL_MIGRATION: Migration = {
   )`,
   `CREATE INDEX IF NOT EXISTS idx_email_queue_status ON email_queue(status)`,
   // Unique organization name (case-insensitive) — remove duplicates first
-  `DELETE FROM organizations WHERE id NOT IN (SELECT MIN(id) FROM organizations GROUP BY LOWER(name))`,
+  `DELETE FROM organizations WHERE id NOT IN (SELECT DISTINCT ON (LOWER(name)) id FROM organizations ORDER BY LOWER(name), created_at ASC)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS uq_organizations_name ON organizations(LOWER(name))`,
   // Health monitoring tables for service users
   `CREATE TABLE IF NOT EXISTS health_observations (
@@ -882,9 +893,9 @@ const INITIAL_MIGRATION: Migration = {
     source_type VARCHAR(50) NOT NULL CHECK (source_type IN ('training','documents','competency','care_plans','incidents','satisfaction')),
     source_category VARCHAR(100),
     target_domain VARCHAR(20) NOT NULL CHECK (target_domain IN ('safe','effective','caring','responsive','well-led')),
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(organization_id, source_type, COALESCE(source_category, ''))
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_evidence_mappings_unique ON evidence_mappings(organization_id, source_type, COALESCE(source_category, ''))`,
   // eMAR: link stock to service user
   `ALTER TABLE emedication_stock ADD COLUMN IF NOT EXISTS service_user_id UUID REFERENCES service_users(id) ON DELETE SET NULL`,
   // eMAR: item period dates and stock linkage
@@ -1440,8 +1451,10 @@ const INITIAL_MIGRATION: Migration = {
   `DO $$ BEGIN
     ALTER TABLE evidence_mappings DROP CONSTRAINT IF EXISTS evidence_mappings_source_type_check;
   EXCEPTION WHEN undefined_object THEN null; END $$`,
-  `ALTER TABLE evidence_mappings ADD CONSTRAINT evidence_mappings_source_type_check
-    CHECK (source_type IN ('training','documents','competency','care_plans','incidents','satisfaction','goals','wellbeing','outcomes'))`,
+  `DO $$ BEGIN
+    ALTER TABLE evidence_mappings ADD CONSTRAINT evidence_mappings_source_type_check
+      CHECK (source_type IN ('training','documents','competency','care_plans','incidents','satisfaction','goals','wellbeing','outcomes'));
+  EXCEPTION WHEN undefined_object THEN null; END $$`,
 
   // Clinical scores: expand score_type to include standardized scales
   `DO $$ BEGIN
