@@ -34,7 +34,7 @@ async function sendMail(to: string, subject: string, html: string) {
   try {
     const from = process.env.SMTP_FROM || 'hello@meticlecare.com';
     await t.sendMail({ from, to, subject, html });
-    logger.info({ to, subject }, 'Email sent');
+    logger.debug('Email sent');
   } catch (err) { logger.error(err, 'Email send failed'); }
 }
 
