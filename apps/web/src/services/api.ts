@@ -2,6 +2,7 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: '/api',
+  withCredentials: true,
 })
 
 type ErrorHandler = (message: string) => void
@@ -72,7 +73,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const { data } = await axios.post('/api/auth/refresh', { refreshToken })
+        const { data } = await axios.post('/api/auth/refresh', { refreshToken }, { withCredentials: true })
         localStorage.setItem('accessToken', data.accessToken)
         if (data.refreshToken) {
           localStorage.setItem('refreshToken', data.refreshToken)

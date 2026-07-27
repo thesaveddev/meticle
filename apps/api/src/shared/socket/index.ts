@@ -17,7 +17,7 @@ export async function initSocketServer(httpServer: HTTPServer) {
       origin: (origin, callback) => {
         const allowed = process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:5173'];
         if (!origin || allowed.includes(origin)) return callback(null, true);
-        callback(null, true);
+        callback(new Error('Not allowed by CORS'));
       },
       credentials: true,
     },
