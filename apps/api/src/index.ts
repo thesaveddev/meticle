@@ -8,6 +8,7 @@ import { createServer as createHttpsServer } from 'https';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import logger from './shared/utils/logger';
 import dotenv from 'dotenv';
@@ -92,6 +93,25 @@ process.on('uncaughtException', (err) => {
   setTimeout(() => process.exit(1), 1000);
 });
 
+// Validate critical secrets before starting
+(function validateSecrets() {
+  const jwtSecret = process.env.JWT_SECRET;
+  const refreshSecret = process.env.JWT_REFRESH_SECRET;
+
+  if (!jwtSecret || jwtSecret.length < 32) {
+    logger.fatal('JWT_SECRET must be set and at least 32 characters');
+    process.exit(1);
+  }
+  if (!refreshSecret || refreshSecret.length < 32) {
+    logger.fatal('JWT_REFRESH_SECRET must be set and at least 32 characters');
+    process.exit(1);
+  }
+
+  if (!process.env.FIELD_ENCRYPTION_KEY) {
+    logger.warn('FIELD_ENCRYPTION_KEY not set — PII fields (NHS numbers, addresses) stored in plaintext. Required for UK GDPR compliance.');
+  }
+})();
+
 const app = express();
 const httpsOptions = getHttpsOptions();
 const httpServer = httpsOptions ? createHttpsServer(httpsOptions, app) : createServer(app);
@@ -120,6 +140,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 app.use(compression());
+app.use(cookieParser());
 app.use(correlationId);
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
@@ -219,7 +240,15 @@ app.use('/room-checks', roomCheckRoutes);
 app.use('/mobile', mobileRoutes);
 
 // Prometheus metrics — restricted to localhost/internal IPs in production
-app.get('/metrics', asyncHandler(async (_req: Request, res: Response) => {
+app.get('/metrics', asyncHandler(async (req: Request, res: Response) => {
+  const metricsSecret = process.env.METRICS_SECRET;
+  if (metricsSecret) {
+    const token = req.query.token || req.headers['x-metrics-token'];
+    if (token !== metricsSecret) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+  }
   res.set('Content-Type', 'text/plain');
   res.end(await getMetrics());
 }));

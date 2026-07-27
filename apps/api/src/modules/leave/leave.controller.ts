@@ -275,6 +275,14 @@ export class LeaveController {
     }
 
     const result = await transaction(async (client) => {
+      // Lock the row to prevent concurrent approvals of the same request
+      const locked = await client.query(
+        `SELECT * FROM leave_requests WHERE id = $1 FOR UPDATE`,
+        [id]
+      );
+      if (locked.rows.length === 0) throw new AppError(404, 'Leave request not found');
+      if (locked.rows[0].status !== 'pending') throw new AppError(409, `Leave request already ${locked.rows[0].status}`);
+
       const updateResult = await client.query(
         `UPDATE leave_requests SET status = $1, notes = COALESCE($2, notes),
          reviewed_by = $3, reviewed_at = CURRENT_TIMESTAMP

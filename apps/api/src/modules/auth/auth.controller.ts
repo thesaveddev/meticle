@@ -18,6 +18,24 @@ import { isDisposableEmail } from '../../shared/utils/disposableEmail';
 
 const PASSWORD_HISTORY_LIMIT = 5;
 
+function setTokenCookies(res: Response, accessToken: string, refreshToken: string) {
+  const isProd = process.env.NODE_ENV === 'production';
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'strict' : 'lax',
+    maxAge: 15 * 60 * 1000, // 15 minutes
+    path: '/',
+  });
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'strict' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/auth',
+  });
+}
+
 // Progressive MFA lockout: 3 failed attempts → 1hr block
 const mfaLockoutMap = new Map<string, { count: number; lockedUntil: number }>();
 const MFA_MAX_ATTEMPTS = 3;
@@ -261,6 +279,7 @@ export class AuthController {
     const profileResult = await pool.query('SELECT first_name, last_name, profile_picture_url FROM staff_profiles WHERE user_id = $1', [user.id]);
     if (profileResult.rows.length > 0) profile = profileResult.rows[0];
 
+    setTokenCookies(res, accessToken, refreshToken);
     res.json({ user: { ...sanitizeUser(user), ...(profile || {}) }, accessToken, refreshToken, organization });
   }
 
@@ -272,6 +291,10 @@ export class AuthController {
     } catch {
       throw new AppError(401, 'Invalid or expired refresh token');
     }
+
+    // Blacklist the old refresh token to prevent reuse
+    const remaining = decoded?.exp ? Math.max(0, decoded.exp * 1000 - Date.now()) : 7 * 24 * 60 * 60 * 1000;
+    await blacklistToken(validated.refreshToken, remaining);
 
     const user = await UserRepository.findById(decoded.userId);
     if (!user) {
@@ -288,6 +311,7 @@ export class AuthController {
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
+    setTokenCookies(res, accessToken, refreshToken);
     res.json({ accessToken, refreshToken });
   }
 
@@ -541,6 +565,14 @@ export class AuthController {
       const decoded = jwt.decode(token) as any;
       const remaining = decoded?.exp ? Math.max(0, decoded.exp * 1000 - Date.now()) : 15 * 60 * 1000;
       await blacklistToken(token, remaining);
+
+      // Also blacklist refresh token if provided in cookie
+      const refreshToken = req.cookies?.refreshToken;
+      if (refreshToken) {
+        const refreshDecoded = jwt.decode(refreshToken) as any;
+        const refreshRemaining = refreshDecoded?.exp ? Math.max(0, refreshDecoded.exp * 1000 - Date.now()) : 7 * 24 * 60 * 60 * 1000;
+        await blacklistToken(refreshToken, refreshRemaining);
+      }
     }
     res.json({ message: 'Logged out successfully' });
   }
@@ -618,6 +650,7 @@ export class AuthController {
 
     // If used a backup code, include that info in response
     const usedBackup = !verified;
+    setTokenCookies(res, accessToken, refreshToken);
     res.json({ user: { ...sanitizeUser(user), ...(profile || {}) }, accessToken, refreshToken, organization, usedBackup });
   }
 
