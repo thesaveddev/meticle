@@ -14,7 +14,7 @@ const logger = pino({
         },
       }),
   redact: {
-    paths: ['req.headers.authorization', 'req.headers.cookie', 'body.password', 'body.newPassword', 'body.confirmPassword', 'body.token', 'body.secret', 'body.backupCode', 'body.mfaCode'],
+    paths: ['req.headers.authorization', 'req.headers.cookie', 'req.body.password', 'req.body.newPassword', 'req.body.confirmPassword', 'req.body.token', 'req.body.secret', 'req.body.backupCode', 'req.body.mfaCode', 'req.body.mfaToken', 'req.body.refreshToken'],
     censor: '[REDACTED]',
   },
 });

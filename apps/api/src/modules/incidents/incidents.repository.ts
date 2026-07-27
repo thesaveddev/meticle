@@ -140,12 +140,14 @@ export class IncidentsRepository {
     return result.rows[0];
   }
 
+  private static readonly ACTION_UPDATE_COLUMNS = ['action', 'assigned_to', 'due_date', 'completed_at', 'status'] as const;
+
   static async updateAction(id: string, data: any) {
     const fields: string[] = [];
     const params: any[] = [];
     let idx = 1;
     for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined) {
+      if (value !== undefined && (IncidentsRepository.ACTION_UPDATE_COLUMNS as readonly string[]).includes(key)) {
         fields.push(`${key} = $${idx}`);
         params.push(value);
         idx++;

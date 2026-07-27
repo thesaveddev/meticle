@@ -14,6 +14,11 @@ import { generatePdf, buildEvidencePackHtml } from './compliance.pdf';
 async function streamDocumentToResponse(user: any, docUrl: string, res: Response) {
   const filename = docUrl.replace('/files/private/', '').replace('/files/', '');
   const actualPath = path.join(uploadDir, filename);
+  const resolvedPath = path.resolve(actualPath);
+  const resolvedUploadDir = path.resolve(uploadDir);
+  if (!resolvedPath.startsWith(resolvedUploadDir + path.sep) && resolvedPath !== resolvedUploadDir) {
+    throw new AppError(403, 'Access denied');
+  }
   if (!fs.existsSync(actualPath)) throw new AppError(404, 'File not found on disk');
 
   const ext = path.extname(actualPath).toLowerCase();
