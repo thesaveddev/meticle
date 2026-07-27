@@ -345,9 +345,29 @@ export class ChatController {
         /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
         /^192\.168\./.test(hostname) ||
         /^169\.254\./.test(hostname) ||
-        /^100\.(6[4-9]|7\d|8\d|9\d|1[01]\d|12[0-7])\./.test(hostname)
+        /^100\.(6[4-9]|7\d|8\d|9\d|1[01]\d|12[0-7])\./.test(hostname) ||
+        hostname.startsWith('[::ffff:') ||
+        hostname.startsWith('[fc') ||
+        hostname.startsWith('[fd') ||
+        /^0:/i.test(hostname)
       ) {
         throw new AppError(400, 'URL points to a private or reserved network address');
+      }
+
+      // DNS resolution check: resolve hostname and verify resolved IPs are not private
+      const dns = await import('dns/promises');
+      const { address: resolvedIp } = await dns.lookup(hostname, { family: 4, all: false });
+      if (
+        resolvedIp === '127.0.0.1' ||
+        resolvedIp === '0.0.0.0' ||
+        resolvedIp.startsWith('10.') ||
+        resolvedIp.startsWith('172.') ||
+        resolvedIp.startsWith('192.168.') ||
+        resolvedIp.startsWith('169.254.') ||
+        resolvedIp.startsWith('100.') ||
+        resolvedIp === '::1'
+      ) {
+        throw new AppError(400, 'URL resolves to a private or reserved network address');
       }
     } catch (e: any) {
       if (e instanceof AppError) throw e;
