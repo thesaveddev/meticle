@@ -338,3 +338,79 @@ DROP POLICY IF EXISTS tenant_isolation ON audit_logs;
 CREATE POLICY tenant_isolation ON audit_logs FOR ALL USING (
   org_check((SELECT organization_id FROM users WHERE users.id = audit_logs.user_id))
 );
+
+-- ══════════════════════════════════════════════════════════
+-- USERS table (foundation for all FK-traversal policies)
+-- ══════════════════════════════════════════════════════════
+
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON users;
+CREATE POLICY tenant_isolation ON users FOR ALL USING (
+  app_is_super_admin() OR organization_id = app_current_org_id()
+);
+
+-- ══════════════════════════════════════════════════════════
+-- Staff sub-tables: staff_id -> staff_profiles -> users -> org
+-- ══════════════════════════════════════════════════════════
+
+ALTER TABLE qualifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON qualifications;
+CREATE POLICY tenant_isolation ON qualifications FOR ALL USING (
+  org_check((SELECT u.organization_id FROM staff_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.id = qualifications.staff_id))
+);
+
+ALTER TABLE skills ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON skills;
+CREATE POLICY tenant_isolation ON skills FOR ALL USING (
+  org_check((SELECT u.organization_id FROM staff_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.id = skills.staff_id))
+);
+
+ALTER TABLE emergency_contacts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON emergency_contacts;
+CREATE POLICY tenant_isolation ON emergency_contacts FOR ALL USING (
+  org_check((SELECT u.organization_id FROM staff_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.id = emergency_contacts.staff_id))
+);
+
+ALTER TABLE staff_availability ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON staff_availability;
+CREATE POLICY tenant_isolation ON staff_availability FOR ALL USING (
+  org_check((SELECT u.organization_id FROM staff_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.id = staff_availability.staff_id))
+);
+
+-- ══════════════════════════════════════════════════════════
+-- Health tables: service_user_id -> service_users -> org
+-- ══════════════════════════════════════════════════════════
+
+ALTER TABLE health_observations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON health_observations;
+CREATE POLICY tenant_isolation ON health_observations FOR ALL USING (
+  org_check((SELECT organization_id FROM service_users WHERE service_users.id = health_observations.service_user_id))
+);
+
+ALTER TABLE bowel_movements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON bowel_movements;
+CREATE POLICY tenant_isolation ON bowel_movements FOR ALL USING (
+  org_check((SELECT organization_id FROM service_users WHERE service_users.id = bowel_movements.service_user_id))
+);
+
+ALTER TABLE dental_records ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON dental_records;
+CREATE POLICY tenant_isolation ON dental_records FOR ALL USING (
+  org_check((SELECT organization_id FROM service_users WHERE service_users.id = dental_records.service_user_id))
+);
+
+ALTER TABLE fluid_intake ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON fluid_intake;
+CREATE POLICY tenant_isolation ON fluid_intake FOR ALL USING (
+  org_check((SELECT organization_id FROM service_users WHERE service_users.id = fluid_intake.service_user_id))
+);
+
+-- ══════════════════════════════════════════════════════════
+-- Compliance junction: profile_id -> compliance_profiles -> org
+-- ══════════════════════════════════════════════════════════
+
+ALTER TABLE compliance_profile_requirements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON compliance_profile_requirements;
+CREATE POLICY tenant_isolation ON compliance_profile_requirements FOR ALL USING (
+  org_check((SELECT organization_id FROM compliance_profiles WHERE compliance_profiles.id = compliance_profile_requirements.profile_id))
+);

@@ -13,6 +13,15 @@ const RLS_MIGRATION: Migration = {
   })(),
 };
 
+const MIGRATION_003: Migration = {
+  name: '003_add_missing_rls',
+  strict: false,
+  statements: (() => {
+    const p = path.join(__dirname, 'migrations', '003_add_missing_rls.sql');
+    return [fs.readFileSync(p, 'utf8')];
+  })(),
+};
+
 const INITIAL_MIGRATION: Migration = {
   name: '001_initial',
   strict: false,
@@ -1485,7 +1494,7 @@ export const setupDatabase = async () => {
     logger.info('Database schema setup completed.');
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003]);
     logger.info('Migrations completed.');
 
     // Auto-seed standard outcome scales for orgs that have none
