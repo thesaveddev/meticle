@@ -9,8 +9,8 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/compliance-audit', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ReportingController.getComplianceAudit));
-router.get('/staffing-stats', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ReportingController.getStaffingStats));
-router.get('/export/:type', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ReportingController.exportReport));
+router.get('/reports', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ReportingController.listReports));
+router.get('/data/:reportId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ReportingController.getReportData));
+router.get('/export/:reportId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ReportingController.exportReport));
 
 export default router;

@@ -6,6 +6,7 @@ import RotaPlannerPage from './pages/scheduling/RotaPlannerPage'
 import OvertimeClaimsPage from './pages/scheduling/OvertimeClaimsPage'
 import MarketplacePage from './pages/marketplace/MarketplacePage'
 import ReportingPage from './pages/reporting/ReportingPage'
+import ReportBuilder from './pages/reporting/ReportBuilder'
 import InsightsPage from './pages/insights/InsightsPage'
 import Layout from './components/Layout'
 import LandingPage from './pages/LandingPage'
@@ -120,6 +121,7 @@ function App() {
           <Route path="/scheduling/overtime-claims" element={<ModuleGuard module="scheduling"><OvertimeClaimsPage /></ModuleGuard>} />
           <Route path="/marketplace" element={<ModuleGuard module="marketplace"><MarketplacePage /></ModuleGuard>} />
           <Route path="/reports" element={<ModuleGuard module="reporting"><ReportingPage /></ModuleGuard>} />
+          <Route path="/reports/:reportId" element={<ModuleGuard module="reporting"><ReportBuilder /></ModuleGuard>} />
           <Route path="/reporting" element={<ModuleGuard module="reporting"><ReportingPage /></ModuleGuard>} />
           <Route path="/insights" element={<ModuleGuard module="reporting"><InsightsPage /></ModuleGuard>} />
           <Route path="/organizations" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN]}><OrganizationPage /></AuthGuard>} />

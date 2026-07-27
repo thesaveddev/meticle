@@ -20,7 +20,7 @@ Supported living + domiciliary care platform. Build is substantially complete �
 - **Monorepo**: npm workspaces (`apps/api`, `apps/web`, `apps/marketing`, `packages/shared`)
 - **Backend**: Express modular monolith, 37 module dirs, raw SQL (no ORM), Zod validation (80+ schemas)
 - **Frontend**: React 18 + TypeScript + MUI 5 + TanStack React Query + React Router 6
-- **Database**: PostgreSQL 15 (pg pool), flat migration array (no versioning), tenant isolation helpers
+- **Database**: PostgreSQL 15 (pg pool), dual-pool (app role + superuser), AsyncLocalStorage request-scoped clients, RLS enforcement
 - **Cache**: Redis with in-memory fallback (rate limiter, token blacklist)
 - **Realtime**: Socket.IO v4 with JWT auth + DB validation + rate limiting
 - **Auth**: JWT access + refresh tokens, MFA (TOTP/speakeasy), RBAC + permission checks per request
@@ -40,7 +40,7 @@ Supported living + domiciliary care platform. Build is substantially complete �
 | compliance | 16 | Docs, evidence packs (KLOE), identity dashboard, trends, mappings, records, PDF |
 | scheduling | 30+ | Shifts CRUD, assign/claim/swap/approve/reject, templates, min-staff, OT |
 | marketplace | 3 | Open shifts, apply, publish |
-| reporting | 2 | Compliance audit, staffing stats |
+| reporting | 2 | Compliance audit, staffing stats — **expanding to 35+ reports with filters** |
 | insights | 5 | Overview, staffing, compliance, leave, rota analytics (Recharts on frontend) |
 | service-users | 50+ | Full CRUD + care plans, daily notes, risk assessments, family contacts, assessments, clinical scores, body map, memory book, wellbeing, communication log, capacity, care pathways, discharge checklist, timeline, documents, photo upload |
 | incidents | 17 | CRUD, categories, involved residents, action items |
@@ -134,11 +134,12 @@ Creates a fresh demo org with random name each run (~1,550 rows total):
 | **PrintNode printing** | Physical document delivery |
 | **Expense tracking (standalone)** | Petty cash ledger for service users (funded by agencies module but no standalone) |
 | **Document Drive** | File management UI for evidence packs |
-| **Full Reporting Suite** | Live data PDF exports from all modules |
+| **Full Reporting Suite** | ✅ Building — 35 reports, filters, charts, CSV export |
 | **Family Portal Finances** | Tab placeholder |
-| **Docker prod polish** | Missing web service, ports, health checks |
-| **Test coverage** | Integration + controller + e2e tests |
-| **Deployment pipeline** | Docker push + deploy |
-| **Migration versioning** | Flat array is fragile |
-| **Socket.io Redis adapter** | Needed for horizontal scaling |
-| **Postgres RLS** | Row-level security for tenant isolation |
+| **Docker prod polish** | ✅ Done |
+| **Socket.io Redis adapter** | ✅ Done |
+| **Postgres RLS** | ✅ Done — AsyncLocalStorage + dual-pool + RLS policies on all tables |
+| **Test coverage** | ⚠️ 148 tests (5 modules) — expand to all 37 modules |
+| **Deployment pipeline** | ⚠️ Manual SSH deploy — needs CI/CD Docker push + auto-deploy |
+| **Migration versioning** | ⚠️ Flat array is fragile — needs schema_migrations table |
+| **Monitoring** | ⚠️ No alerting, no dashboards, no uptime checks |
