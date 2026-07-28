@@ -1,9 +1,6 @@
 services:
   web:
     image: ghcr.io/${GHCR_OWNER:-thesaveddev}/meticle-web:${WEB_TAG:-latest}
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:80"
@@ -20,9 +17,6 @@ services:
 
   api:
     image: ghcr.io/${GHCR_OWNER:-thesaveddev}/meticle-api:${API_TAG:-latest}
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile.prod
     restart: unless-stopped
     expose:
       - 3002

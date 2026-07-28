@@ -66,6 +66,7 @@ jobs:
 
             GHCR_owner="${{ github.repository_owner }}"
             IMAGE_TAG="${{ github.sha }}"
+            export GHCR_OWNER="$GHCR_owner"
 
             echo "=== Pre-deploy checks ==="
             df -h / | awk 'NR==2 {printf "Disk: %s used of %s (%s)\n", $3, $2, $5}'
@@ -80,21 +81,25 @@ jobs:
               exit 1
             fi
 
+            echo "=== Sync source on VPS ==="
+            git fetch origin master
+            git reset --hard origin/master
+
             echo "=== Pull new images ==="
             docker pull "ghcr.io/${GHCR_owner}/meticle-api:${IMAGE_TAG}"
             docker pull "ghcr.io/${GHCR_owner}/meticle-web:${IMAGE_TAG}"
 
-            echo "=== Save current tags for rollback ==="
-            PREV_API=$(docker compose -f docker-compose.prod.yml images -q api 2>/dev/null | head -1 || echo "")
-            PREV_WEB=$(docker compose -f docker-compose.prod.yml images -q web 2>/dev/null | head -1 || echo "")
-            echo "Previous API image: $PREV_API"
-            echo "Previous Web image: $PREV_WEB"
+            echo "=== Save current running tags for rollback ==="
+            PREV_API_TAG=$(docker inspect meticle-api-1 --format='{{.Config.Image}}' 2>/dev/null | sed 's/.*://;s/.*@//' || echo "latest")
+            PREV_WEB_TAG=$(docker inspect meticle-web-1 --format='{{.Config.Image}}' 2>/dev/null | sed 's/.*://;s/.*@//' || echo "latest")
+            echo "Previous API tag: $PREV_API_TAG"
+            echo "Previous Web tag: $PREV_WEB_TAG"
 
             echo "=== Ensure infrastructure running ==="
             docker compose -f docker-compose.prod.yml up -d db redis uptime
 
             echo "=== Run migrations ==="
-            docker compose -f docker-compose.prod.yml run --rm api sh -c "node apps/api/dist/shared/database/setup.js"
+            API_TAG="${IMAGE_TAG}" docker compose -f docker-compose.prod.yml run --rm api sh -c "node apps/api/dist/shared/database/setup.js"
 
             echo "=== Wait for DB migration ==="
             sleep 3
@@ -112,7 +117,7 @@ jobs:
             done
             if [ "$API_HEALTHY" = false ]; then
               echo "API health check failed — rolling back"
-              docker compose -f docker-compose.prod.yml up -d --force-recreate api
+              API_TAG="$PREV_API_TAG" docker compose -f docker-compose.prod.yml up -d --force-recreate api
               exit 1
             fi
 
@@ -129,7 +134,7 @@ jobs:
             done
             if [ "$WEB_HEALTHY" = false ]; then
               echo "Web health check failed — rolling back"
-              docker compose -f docker-compose.prod.yml up -d --force-recreate web
+              WEB_TAG="$PREV_WEB_TAG" docker compose -f docker-compose.prod.yml up -d --force-recreate web
               exit 1
             fi
 
