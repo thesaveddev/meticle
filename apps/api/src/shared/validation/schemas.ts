@@ -642,6 +642,7 @@ export const updateOrgSettingsSchema = z.object({
   predictive_alerts_enabled: z.boolean().optional(),
   auto_evidence_pack_enabled: z.boolean().optional(),
   auto_evidence_pack_frequency: z.enum(['weekly', 'monthly']).optional(),
+  daily_shift_audit_enabled: z.boolean().optional(),
 });
 
 export const createComplianceConfigSchema = z.object({

@@ -1,6 +1,7 @@
 import { ShiftAuditRepository } from './shift-audit.repository';
 import { EmailService } from '../../shared/utils/email.service';
 import logger from '../../shared/utils/logger';
+import pool from '../../shared/database';
 
 interface ShiftAssignment {
   staff_id: string;
@@ -168,6 +169,9 @@ export class ShiftAuditService {
     let emailsSent = 0;
 
     for (const orgId of orgResult) {
+      const setting = await pool.query('SELECT daily_shift_audit_enabled FROM organizations WHERE id = $1', [orgId]);
+      if (!setting.rows[0]?.daily_shift_audit_enabled) continue;
+
       const audit = await this.generateDailyAudit(orgId, auditDate);
       if (!audit) continue;
 

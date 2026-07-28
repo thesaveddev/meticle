@@ -1009,6 +1009,24 @@ export default function SettingsPage() {
         </Button>
       </Paper>
 
+      <Paper sx={{ p: 4, mt: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+          <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Daily Shift Audit
+        </Typography>
+        <FormControlLabel
+          control={<Switch checked={orgSettings.daily_shift_audit_enabled !== false}
+            onChange={e => setOrgSettings((p: any) => ({ ...p, daily_shift_audit_enabled: e.target.checked }))} />}
+          label="Send daily shift audit emails to location managers"
+        />
+        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+          When enabled, location managers receive a daily email at 7pm summarizing shift coverage,
+          staffing levels, and medication administration for the day.
+        </Typography>
+        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <SaveIcon sx={{ mr: 1 }} /> Save Shift Audit Settings
+        </Button>
+      </Paper>
+
       <NotificationPreferencesSection />
     </Stack>
   )

@@ -15,7 +15,8 @@ export class SettingsController {
                 base_leave_hours, base_contracted_hours, minimum_compliance_percent,
                 overtime_requires_approval, force_mfa, regulator,
                 compliance_digest_enabled, predictive_alerts_enabled,
-                auto_evidence_pack_enabled, auto_evidence_pack_frequency
+                auto_evidence_pack_enabled, auto_evidence_pack_frequency,
+                daily_shift_audit_enabled
        FROM organizations WHERE id = $1`,
       [orgId]
     );
@@ -34,7 +35,7 @@ export class SettingsController {
 
   static async updateOrgSettings(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
-    const { leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency } = req.body;
+    const { leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled } = req.body;
     const result = await pool.query(
       `UPDATE organizations SET
         leave_start_month = COALESCE($1, leave_start_month),
@@ -49,9 +50,10 @@ export class SettingsController {
         compliance_digest_enabled = COALESCE($10, compliance_digest_enabled),
         predictive_alerts_enabled = COALESCE($11, predictive_alerts_enabled),
         auto_evidence_pack_enabled = COALESCE($12, auto_evidence_pack_enabled),
-        auto_evidence_pack_frequency = COALESCE($13, auto_evidence_pack_frequency)
-       WHERE id = $14 RETURNING *`,
-      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, orgId]
+        auto_evidence_pack_frequency = COALESCE($13, auto_evidence_pack_frequency),
+        daily_shift_audit_enabled = COALESCE($14, daily_shift_audit_enabled)
+       WHERE id = $15 RETURNING *`,
+      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, orgId]
     );
 
     AuditRepository.log({

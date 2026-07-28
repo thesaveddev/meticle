@@ -1380,6 +1380,8 @@ const INITIAL_MIGRATION: Migration = {
   `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS failed_payment_count INTEGER DEFAULT 0`,
   `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS last_payment_failed_at TIMESTAMP WITH TIME ZONE`,
   `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS first_payment_failed_at TIMESTAMP WITH TIME ZONE`,
+  // Daily shift audit toggle
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS daily_shift_audit_enabled BOOLEAN DEFAULT true`,
   `CREATE INDEX IF NOT EXISTS idx_pm_fingerprint ON payment_methods(organization_id, stripe_fingerprint)`,
   // Email verification codes for signup flow
   `CREATE TABLE IF NOT EXISTS email_verification_codes (
