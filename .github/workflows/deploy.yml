@@ -117,8 +117,16 @@ jobs:
 
             echo "=== Deploy Web (with rollback) ==="
             WEB_TAG="${IMAGE_TAG}" docker compose -f docker-compose.prod.yml up -d --force-recreate web
-            sleep 5
-            if ! docker compose -f docker-compose.prod.yml exec -T web wget -qO- http://localhost:80/ >/dev/null 2>&1; then
+            WEB_HEALTHY=false
+            for i in $(seq 1 30); do
+              if docker compose -f docker-compose.prod.yml exec -T web wget -qO- http://localhost:80/ >/dev/null 2>&1; then
+                echo "Web healthy"
+                WEB_HEALTHY=true
+                break
+              fi
+              sleep 2
+            done
+            if [ "$WEB_HEALTHY" = false ]; then
               echo "Web health check failed — rolling back"
               docker compose -f docker-compose.prod.yml up -d --force-recreate web
               exit 1
