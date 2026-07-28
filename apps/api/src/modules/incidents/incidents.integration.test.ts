@@ -3,6 +3,7 @@ import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import { createOrg, createUser, createStaffProfile, createIncidentCategory, createIncident, generateToken } from '../../test/factories'
+import { migrateQuery } from '../../shared/database'
 
 vi.mock('../../shared/middleware/rateLimit.middleware', () => ({
   rateLimit: () => (_req: any, _res: any, next: any) => next(),
@@ -135,7 +136,7 @@ describe('Incidents Integration — POST /incidents/:id/involved', () => {
     // Create a service user reference
     const suId = '00000000-0000-0000-0000-000000000001'
     try {
-      await (await import('../../shared/database')).query(
+      await migrateQuery(
         'INSERT INTO service_users (id, organization_id, first_name, last_name) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
         [suId, org.id, 'Test', 'Resident']
       )
