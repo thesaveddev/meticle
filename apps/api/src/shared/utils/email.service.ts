@@ -331,4 +331,142 @@ export class EmailService {
           { label: 'Reactivate Now', url }));
     }
   }
+
+  // -- Daily Shift Audit --
+  static async sendShiftAuditEmail(
+    email: string,
+    managerName: string,
+    date: string,
+    loc: {
+      location_name: string;
+      total_shifts: number;
+      staff_deployed: number;
+      minimum_staff: number;
+      staffing_ok: boolean;
+      shifts: {
+        shift_type: string;
+        start_time: string;
+        end_time: string;
+        status: string;
+        su_name: string | null;
+        staff: { first_name: string; last_name: string; is_overtime: boolean }[];
+      }[];
+      emar: {
+        service_user_name: string;
+        required: number;
+        given: number;
+        missed: number;
+        refused: number;
+      }[];
+    }
+  ) {
+    const staffingBadge = loc.staffing_ok
+      ? '<span style="color:#065F46;background:#D1FAE5;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">STAFFED</span>'
+      : '<span style="color:#991B1B;background:#FEE2E2;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">UNDERSTAFFED</span>';
+
+    const shiftRows = loc.shifts.map(s => {
+      const staffNames = s.staff.map(st =>
+        `<span style="margin-right:8px">${st.first_name} ${st.last_name}${st.is_overtime ? ' <em>(OT)</em>' : ''}</span>`
+      ).join('') || '<em>Unassigned</em>';
+
+      const suLabel = s.su_name
+        ? `<span style="color:#6B7280">Service user: ${s.su_name}</span>`
+        : '';
+
+      const start = new Date(s.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const end = new Date(s.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+      return `<tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6">
+          <strong style="text-transform:capitalize">${s.shift_type}</strong><br>
+          <span style="color:#6B7280;font-size:13px">${start} – ${end}</span>
+        </td>
+        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${staffNames}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${suLabel}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;font-size:12px;text-transform:capitalize;color:${s.status === 'completed' ? '#065F46' : '#92400E'}">${s.status}</td>
+      </tr>`;
+    }).join('');
+
+    const emarRows = loc.emar.map(e => {
+      const missedTotal = e.missed + e.refused;
+      const color = missedTotal > 0 ? '#991B1B' : '#065F46';
+      const bg = missedTotal > 0 ? '#FEE2E2' : '#D1FAE5';
+      return `<tr>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${e.service_user_name}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">${e.required}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">${e.given}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">
+          <span style="color:${color};background:${bg};padding:2px 8px;border-radius:10px;font-weight:600">${missedTotal}</span>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const emarSection = loc.emar.length > 0
+      ? `<tr><td style="padding:20px 0 0 0">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="font-size:16px;font-weight:700;color:#1F2937;padding:0 0 12px 0">eMAR Medication Status</td></tr>
+<tr><td>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
+<tr style="background:#F9FAFB">
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Service User</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Required</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Given</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Missed/Refused</td>
+</tr>
+${emarRows}
+</table>
+</td></tr></table>
+</td></tr>`
+      : '';
+
+    const dateFormatted = new Date(date + 'T12:00:00').toLocaleDateString('en-GB', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    await sendMail(email,
+      `Daily Shift Audit — ${loc.location_name} — ${dateFormatted}`,
+      buildEmailHtml(
+        'Daily Shift Audit',
+        `Shift Report — ${loc.location_name}`,
+        `<p>Hi ${managerName},</p>
+<p>Here's your shift summary for <strong>${dateFormatted}</strong>.</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0">
+<tr>
+  <td style="padding:12px 16px;background:#F9FAFB;border-radius:8px;text-align:center">
+    <div style="font-size:24px;font-weight:800;color:#0F4C81">${loc.total_shifts}</div>
+    <div style="font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px">Shifts</div>
+  </td>
+  <td style="padding:12px 16px;background:#F9FAFB;border-radius:8px;text-align:center">
+    <div style="font-size:24px;font-weight:800;color:#0F4C81">${loc.staff_deployed}</div>
+    <div style="font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px">Staff Deployed</div>
+  </td>
+  <td style="padding:12px 16px;background:#F9FAFB;border-radius:8px;text-align:center">
+    <div style="font-size:24px;font-weight:800;color:${loc.staffing_ok ? '#065F46' : '#991B1B'}">${loc.minimum_staff}</div>
+    <div style="font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px">Min Required</div>
+  </td>
+  <td style="padding:12px 16px;background:#F9FAFB;border-radius:8px;text-align:center">
+    ${staffingBadge}
+  </td>
+</tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="font-size:16px;font-weight:700;color:#1F2937;padding:0 0 12px 0">Shifts Today</td></tr>
+<tr><td>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
+<tr style="background:#F9FAFB">
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Shift</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Staff</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Service User</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Status</td>
+</tr>
+${shiftRows}
+</table>
+</td></tr></table>
+${emarSection}`,
+        { label: 'View Rota', url: `${baseUrl()}/scheduling` }
+      )
+    );
+  }
 }

@@ -58,6 +58,7 @@ import dbsRoutes from './modules/dbs/dbs.routes';
 import expensesRoutes from './modules/expenses/expenses.routes';
 import platformAdminRoutes from './modules/platform-admin/platform-admin.routes';
 import dsptRoutes from './modules/dspt/dspt.routes';
+import shiftAuditRoutes from './modules/shift-audit/shift-audit.routes';
 import { BillingController } from './modules/billing/billing.controller';
 import { ComplianceController } from './modules/compliance/compliance.controller';
 import { ComplianceNotificationService } from './modules/compliance/compliance.notifications';
@@ -238,6 +239,7 @@ app.use('/health', healthRoutes);
 app.use('/tasks', taskRoutes);
 app.use('/room-checks', roomCheckRoutes);
 app.use('/mobile', mobileRoutes);
+app.use('/shift-audit', shiftAuditRoutes);
 
 // Prometheus metrics — restricted to localhost/internal IPs in production
 app.get('/metrics', asyncHandler(async (req: Request, res: Response) => {
@@ -339,6 +341,23 @@ setTimeout(() => {
   checkTrialExpirations().catch(err => logger.error(err, 'Trial reminder check failed'));
   setInterval(() => checkTrialExpirations().catch(err => logger.error(err, 'Trial reminder check failed')), 12 * 60 * 60 * 1000);
 }, 15_000);
+
+// Daily shift audit — send location managers a summary email at 7pm (19:00)
+import { ShiftAuditService } from './modules/shift-audit/shift-audit.service';
+let lastShiftAuditDate = '';
+function checkShiftAudit() {
+  const now = new Date();
+  if (now.getHours() === 19) {
+    const today = now.toISOString().slice(0, 10);
+    if (lastShiftAuditDate !== today) {
+      lastShiftAuditDate = today;
+      ShiftAuditService.sendDailyAuditEmails(today)
+        .then(count => { if (count > 0) logger.info({ count, date: today }, 'Daily shift audit emails sent'); })
+        .catch(err => logger.error(err, 'Daily shift audit failed'));
+    }
+  }
+}
+setInterval(checkShiftAudit, 5 * 60 * 1000);
 
 // Start email queue processor
 import { EmailQueue } from './shared/utils/email.queue';
