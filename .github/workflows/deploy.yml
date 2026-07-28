@@ -39,11 +39,13 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
+          platforms: linux/amd64
+          provenance: false
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max
 
   deploy:
     runs-on: ubuntu-latest
