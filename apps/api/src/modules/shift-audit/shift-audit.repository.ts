@@ -120,9 +120,10 @@ export class ShiftAuditRepository {
 
   static async getAllOrgIds(): Promise<string[]> {
     const result = await query(
-      `SELECT DISTINCT organization_id
-       FROM shifts
-       WHERE start_time::date = CURRENT_DATE`
+      `SELECT DISTINCT l.organization_id
+       FROM shifts s
+       JOIN locations l ON s.location_id = l.id
+       WHERE s.start_time::date = CURRENT_DATE`
     );
     return result.rows.map((r: any) => r.organization_id).filter(Boolean);
   }

@@ -38,7 +38,7 @@ async function sendMail(to: string, subject: string, html: string) {
   }
 }
 
-const baseUrl = () => 'https://meticle.com';
+const baseUrl = () => 'https://meticlecare.com';
 
 export class EmailService {
   static async sendVerificationEmail(email: string, token: string) {

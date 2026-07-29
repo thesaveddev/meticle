@@ -12,7 +12,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/modules', asyncHandler(PermissionsController.getModules));
-router.get('/:userId', requireRole(UserRole.ORG_ADMIN), asyncHandler(PermissionsController.getUserPermissions));
+router.get('/:userId', asyncHandler(PermissionsController.getUserPermissions));
 router.put('/:userId', requireRole(UserRole.ORG_ADMIN), validate(updatePermissionsSchema), asyncHandler(PermissionsController.updateUserPermissions));
 
 export default router;

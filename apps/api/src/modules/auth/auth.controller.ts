@@ -490,7 +490,10 @@ export class AuthController {
 
     // Validate invitation
     const inviteResult = await migrateQuery(
-      'SELECT * FROM invitations WHERE token = $1 AND status = $2 AND expires_at > NOW()',
+      `SELECT i.*, o.name AS organization_name
+       FROM invitations i
+       JOIN organizations o ON o.id = i.organization_id
+       WHERE i.token = $1 AND i.status = $2 AND i.expires_at > NOW()`,
       [token, 'pending']
     );
 
@@ -524,7 +527,7 @@ export class AuthController {
         const accessToken = generateAccessToken(tokenPayload);
         const refreshToken = generateRefreshToken(tokenPayload);
 
-        EmailService.sendWelcomeEmail(invitation.email, name, '', false).catch(logWarn('sendWelcomeEmail'));
+        EmailService.sendWelcomeEmail(invitation.email, name, invitation.organization_name, false).catch(logWarn('sendWelcomeEmail'));
 
         res.status(200).json({
           user: sanitizeUser(existingUser),
@@ -583,7 +586,7 @@ export class AuthController {
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
-    EmailService.sendWelcomeEmail(invitation.email, name, '', false).catch(logWarn('sendWelcomeEmail'));
+    EmailService.sendWelcomeEmail(invitation.email, name, invitation.organization_name, false).catch(logWarn('sendWelcomeEmail'));
 
     res.status(201).json({
       user: sanitizeUser(user),
