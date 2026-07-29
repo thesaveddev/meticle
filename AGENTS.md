@@ -136,6 +136,8 @@ Creates a fresh demo org with random name each run (~1,550 rows total):
 | **Document Drive** | File management UI for evidence packs |
 | **Full Reporting Suite** | ✅ Building — 35 reports, filters, charts, CSV export |
 | **Family Portal Finances** | Tab placeholder |
+| **Staff 1-2-1s** | One-to-one meeting records, action tracking, review scheduling |
+| **Payroll & Timesheets** | Timesheet submission, approval workflow, payroll export/integration |
 | **Docker prod polish** | ✅ Done |
 | **Socket.io Redis adapter** | ✅ Done |
 | **Postgres RLS** | ✅ Done — AsyncLocalStorage + dual-pool + RLS policies on all tables |

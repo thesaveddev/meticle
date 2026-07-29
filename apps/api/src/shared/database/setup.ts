@@ -31,6 +31,14 @@ const APP_ROLE_MIGRATION: Migration = {
   })(),
 };
 
+const MIGRATION_005: Migration = {
+  name: '005_daily_shift_audit_toggle',
+  strict: false,
+  statements: [
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS daily_shift_audit_enabled BOOLEAN DEFAULT true`,
+  ],
+};
+
 const INITIAL_MIGRATION: Migration = {
   name: '001_initial',
   strict: false,
@@ -1380,8 +1388,6 @@ const INITIAL_MIGRATION: Migration = {
   `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS failed_payment_count INTEGER DEFAULT 0`,
   `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS last_payment_failed_at TIMESTAMP WITH TIME ZONE`,
   `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS first_payment_failed_at TIMESTAMP WITH TIME ZONE`,
-  // Daily shift audit toggle
-  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS daily_shift_audit_enabled BOOLEAN DEFAULT true`,
   `CREATE INDEX IF NOT EXISTS idx_pm_fingerprint ON payment_methods(organization_id, stripe_fingerprint)`,
   // Email verification codes for signup flow
   `CREATE TABLE IF NOT EXISTS email_verification_codes (
@@ -1505,7 +1511,7 @@ export const setupDatabase = async () => {
     logger.info('Database schema setup completed.');
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)
