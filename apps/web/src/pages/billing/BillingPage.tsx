@@ -24,13 +24,16 @@ const PLANS = [
   { id: Plan.PROFESSIONAL, name: 'Professional', price: '299', description: 'Complete compliance suite', popular: true, features: ['Up to 100 staff', 'All Starter features', 'Automated rota', 'DBS monitoring', 'Full compliance', 'Priority support'] },
 ]
 
-function AddCardModal({ open, onClose, onAdded }: { open: boolean; onClose: () => void; onAdded: () => void }) {
+function StripeCardForm({ manual, setManual, onSuccess, onShowManual }: {
+  manual: { number: string; expiry: string; cvc: string; name: string }
+  setManual: React.Dispatch<React.SetStateAction<{ number: string; expiry: string; cvc: string; name: string }>>
+  onSuccess: () => void
+  onShowManual: () => void
+}) {
   const stripe = useStripe()
   const elements = useElements()
   const [error, setError] = useState('')
   const [processing, setProcessing] = useState(false)
-  const [showManual, setShowManual] = useState(false)
-  const [manual, setManual] = useState({ number: '', expiry: '', cvc: '', name: '' })
 
   const handleStripeSubmit = async () => {
     if (!stripe || !elements) return
@@ -38,7 +41,7 @@ function AddCardModal({ open, onClose, onAdded }: { open: boolean; onClose: () =
     try {
       const { data } = await api.post('/billing/create-setup-intent')
       if (!data.clientSecret) {
-        setShowManual(true)
+        onShowManual()
         setProcessing(false)
         return
       }
@@ -48,10 +51,78 @@ function AddCardModal({ open, onClose, onAdded }: { open: boolean; onClose: () =
       if (result.error) { setError(result.error.message || 'Failed'); setProcessing(false) }
       else {
         await api.post('/billing/payment-methods', { payment_method_id: result.setupIntent?.payment_method })
-        onAdded()
+        onSuccess()
       }
     } catch (err: any) { setError(err.response?.data?.message || 'Failed'); setProcessing(false) }
   }
+
+  return (
+    <Box>
+      <Box sx={{ p: 2, mb: 2, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E5E7EB' }}>
+        <CardElement options={{
+          style: { base: { fontSize: '16px', color: '#374151', '::placeholder': { color: '#9CA3AF' } } },
+          hidePostalCode: true,
+        }} />
+      </Box>
+      <TextField fullWidth size="small" label="Cardholder Name (optional)" value={manual.name}
+        onChange={e => setManual(m => ({ ...m, name: e.target.value }))} sx={{ mb: 1.5 }} />
+      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
+      <Stack direction="row" spacing={1}>
+        <Button variant="contained" onClick={handleStripeSubmit} disabled={processing || !stripe}
+          sx={{ bgcolor: '#0F4C81', textTransform: 'none', flex: 1 }}>
+          {processing ? <CircularProgress size={20} /> : 'Save Card'}
+        </Button>
+        <Button variant="text" size="small" onClick={onShowManual} sx={{ color: '#6B7280', textTransform: 'none' }}>
+          Enter manually
+        </Button>
+      </Stack>
+    </Box>
+  )
+}
+
+function ManualCardForm({ manual, setManual, error, processing, onSubmit, hasStripe }: {
+  manual: { number: string; expiry: string; cvc: string; name: string }
+  setManual: React.Dispatch<React.SetStateAction<{ number: string; expiry: string; cvc: string; name: string }>>
+  error: string
+  processing: boolean
+  onSubmit: () => void
+  hasStripe: boolean
+}) {
+  return (
+    <Box>
+      <Stack spacing={1.5}>
+        <TextField fullWidth size="small" label="Card Number" placeholder="4242 4242 4242 4242" value={manual.number}
+          onChange={e => setManual(m => ({ ...m, number: e.target.value }))} />
+        <Stack direction="row" spacing={1}>
+          <TextField size="small" label="Expiry (MM/YY)" placeholder="12/28" value={manual.expiry}
+            onChange={e => setManual(m => ({ ...m, expiry: e.target.value }))} sx={{ flex: 1 }} />
+          <TextField size="small" label="CVC" placeholder="123" value={manual.cvc}
+            onChange={e => setManual(m => ({ ...m, cvc: e.target.value }))} sx={{ width: 100 }} />
+        </Stack>
+        <TextField fullWidth size="small" label="Cardholder Name" value={manual.name}
+          onChange={e => setManual(m => ({ ...m, name: e.target.value }))} />
+        {error && <Alert severity="error">{error}</Alert>}
+        <Stack direction="row" spacing={1}>
+          <Button variant="contained" onClick={onSubmit} disabled={processing}
+            sx={{ bgcolor: '#0F4C81', textTransform: 'none', flex: 1 }}>
+            {processing ? <CircularProgress size={20} /> : 'Save Card'}
+          </Button>
+          {hasStripe && (
+            <Button variant="text" size="small" onClick={() => setManual(m => ({ ...m, expiry: m.expiry }))} sx={{ color: '#6B7280', textTransform: 'none' }}>
+              Back
+            </Button>
+          )}
+        </Stack>
+      </Stack>
+    </Box>
+  )
+}
+
+function AddCardModal({ open, onClose, onAdded, stripeAvailable }: { open: boolean; onClose: () => void; onAdded: () => void; stripeAvailable: boolean }) {
+  const [error, setError] = useState('')
+  const [processing, setProcessing] = useState(false)
+  const [showManual, setShowManual] = useState(false)
+  const [manual, setManual] = useState({ number: '', expiry: '', cvc: '', name: '' })
 
   const handleManualSubmit = async () => {
     if (!manual.number || !manual.expiry) { setError('Card number and expiry required'); return }
@@ -69,54 +140,15 @@ function AddCardModal({ open, onClose, onAdded }: { open: boolean; onClose: () =
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 800, fontSize: '1.1rem' }}>Add Payment Card</DialogTitle>
       <DialogContent sx={{ pt: '8px !important' }}>
-        {!showManual && stripePromise ? (
-          <Box>
-            <Box sx={{ p: 2, mb: 2, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-              <CardElement options={{
-                style: { base: { fontSize: '16px', color: '#374151', '::placeholder': { color: '#9CA3AF' } } },
-                hidePostalCode: true,
-              }} />
-            </Box>
-            <TextField fullWidth size="small" label="Cardholder Name (optional)" value={manual.name}
-              onChange={e => setManual(m => ({ ...m, name: e.target.value }))} sx={{ mb: 1.5 }} />
-            {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
-            <Stack direction="row" spacing={1}>
-              <Button variant="contained" onClick={handleStripeSubmit} disabled={processing || !stripe}
-                sx={{ bgcolor: '#0F4C81', textTransform: 'none', flex: 1 }}>
-                {processing ? <CircularProgress size={20} /> : 'Save Card'}
-              </Button>
-              <Button variant="text" size="small" onClick={() => setShowManual(true)} sx={{ color: '#6B7280', textTransform: 'none' }}>
-                Enter manually
-              </Button>
-            </Stack>
-          </Box>
+        {!showManual && stripeAvailable ? (
+          <Elements stripe={stripePromise!}>
+            <StripeCardForm manual={manual} setManual={setManual} onSuccess={onAdded} onShowManual={() => setShowManual(true)} />
+          </Elements>
         ) : (
-          <Box>
-            <Stack spacing={1.5}>
-              <TextField fullWidth size="small" label="Card Number" placeholder="4242 4242 4242 4242" value={manual.number}
-                onChange={e => setManual(m => ({ ...m, number: e.target.value }))} />
-              <Stack direction="row" spacing={1}>
-                <TextField size="small" label="Expiry (MM/YY)" placeholder="12/28" value={manual.expiry}
-                  onChange={e => setManual(m => ({ ...m, expiry: e.target.value }))} sx={{ flex: 1 }} />
-                <TextField size="small" label="CVC" placeholder="123" value={manual.cvc}
-                  onChange={e => setManual(m => ({ ...m, cvc: e.target.value }))} sx={{ width: 100 }} />
-              </Stack>
-              <TextField fullWidth size="small" label="Cardholder Name" value={manual.name}
-                onChange={e => setManual(m => ({ ...m, name: e.target.value }))} />
-              {error && <Alert severity="error">{error}</Alert>}
-              <Stack direction="row" spacing={1}>
-                <Button variant="contained" onClick={handleManualSubmit} disabled={processing}
-                  sx={{ bgcolor: '#0F4C81', textTransform: 'none', flex: 1 }}>
-                  {processing ? <CircularProgress size={20} /> : 'Save Card'}
-                </Button>
-                {stripePromise && (
-                  <Button variant="text" size="small" onClick={() => setShowManual(false)} sx={{ color: '#6B7280', textTransform: 'none' }}>
-                    Back
-                  </Button>
-                )}
-              </Stack>
-            </Stack>
-          </Box>
+          <ManualCardForm
+            manual={manual} setManual={setManual} error={error} processing={processing}
+            onSubmit={handleManualSubmit} hasStripe={stripeAvailable}
+          />
         )}
         <Box sx={{ mt: 2, p: 1.5, bgcolor: '#F0F9FF', borderRadius: 2, border: '1px solid #BAE6FD' }}>
           <Typography variant="caption" sx={{ fontWeight: 700, color: '#0284C7', display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -284,11 +316,6 @@ export default function BillingPage() {
   else if (subStatus === 'trial') { statusLabel = 'Trial Expired'; statusColor = 'error' }
   else { statusLabel = subStatus ? subStatus.charAt(0).toUpperCase() + subStatus.slice(1) : 'Inactive'; statusColor = 'error' }
 
-  const AddCardWrapper = ({ children }: { children: React.ReactNode }) => {
-    if (!stripePromise) return <>{children}</>
-    return <Elements stripe={stripePromise}>{children}</Elements>
-  }
-
   return (
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 800, mb: 4 }}>Billing</Typography>
@@ -352,13 +379,11 @@ export default function BillingPage() {
       <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>Payment Methods</Typography>
-          <AddCardWrapper>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddCardOpen(true)}
-              sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 2 }}>
-              Add Card
-            </Button>
-            <AddCardModal open={addCardOpen} onClose={() => setAddCardOpen(false)} onAdded={handleCardAdded} />
-          </AddCardWrapper>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddCardOpen(true)}
+            sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 2 }}>
+            Add Card
+          </Button>
+          <AddCardModal open={addCardOpen} onClose={() => setAddCardOpen(false)} onAdded={handleCardAdded} stripeAvailable={!!stripePromise} />
         </Stack>
 
         {paymentMethods.length === 0 ? (
