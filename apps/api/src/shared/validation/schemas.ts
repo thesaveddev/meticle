@@ -5,12 +5,12 @@ import { isDisposableEmail } from '../utils/disposableEmail';
 export const registerSchema = z.object({
   email: z.string().email().refine(v => !isDisposableEmail(v), 'Temporary email addresses are not allowed'),
   password: z.string()
-    .min(12, 'Password must be at least 12 characters')
+    .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number')
     .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
-  role: z.literal('CARE_WORKER', { errorMap: () => ({ message: 'Self-registration is only allowed for CARE_WORKER role' }) }),
+  role: z.enum(['CARE_WORKER', 'ORG_ADMIN'], { errorMap: () => ({ message: 'Role must be CARE_WORKER or ORG_ADMIN' }) }),
   name: z.string().min(1),
   organizationId: z.string().uuid().optional(),
 });
