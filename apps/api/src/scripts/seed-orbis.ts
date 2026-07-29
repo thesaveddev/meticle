@@ -100,9 +100,10 @@ async function seed() {
     { first: 'Charlotte', last: 'Reed', role: 'CARE_WORKER', locIdx: 1, deptIdx: 1, teamIdx: 1 },
   ]
   const staff: StaffRef[] = []
-  for (const s of staffData) {
+  for (let idx = 0; idx < staffData.length; idx++) {
+    const s = staffData[idx]
     const uid = uuid(), spId = uuid()
-    const email = i === 0 ? `caredesk@reydesk.com` : `${s.first.toLowerCase()}.${s.last.toLowerCase()}@${domain}`
+    const email = idx === 0 ? `caredesk@reydesk.com` : `${s.first.toLowerCase()}.${s.last.toLowerCase()}@${domain}`
     await pool.query(`INSERT INTO users (id,organization_id,email,role,status,password_hash) VALUES ($1,$2,$3,$4,'active',$5)`,
       [uid, orgId, email, s.role, PWH])
     await pool.query(`INSERT INTO staff_profiles (id,user_id,first_name,last_name,location_id) VALUES ($1,$2,$3,$4,$5)`,
