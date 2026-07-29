@@ -47,14 +47,18 @@ describe('Auth Integration — POST /auth/register', () => {
     expect(res.body.refreshToken).toBeDefined()
   }, 30_000)
 
-  it('should reject ORG_ADMIN self-registration (only CARE_WORKER allowed)', async () => {
+  it('should register a new ORG_ADMIN user', async () => {
     const email = `admin-${Date.now()}@test.com`
     const res = await request(app)
       .post('/auth/register')
       .send({ email, password: 'TestPass123!', role: 'ORG_ADMIN', name: 'Test Admin' })
 
-    expect(res.status).toBe(400)
-    expect(res.body.message).toBe('Validation failed')
+    expect(res.status).toBe(201)
+    expect(res.body.user).toBeDefined()
+    expect(res.body.user.email).toBe(email)
+    expect(res.body.user.role).toBe('ORG_ADMIN')
+    expect(res.body.accessToken).toBeDefined()
+    expect(res.body.refreshToken).toBeDefined()
   })
 
   it('should reject registration with existing email', async () => {
