@@ -141,9 +141,7 @@ function AddCardModal({ open, onClose, onAdded, stripeAvailable }: { open: boole
       <DialogTitle sx={{ fontWeight: 800, fontSize: '1.1rem' }}>Add Payment Card</DialogTitle>
       <DialogContent sx={{ pt: '8px !important' }}>
         {!showManual && stripeAvailable ? (
-          <Elements stripe={stripePromise!}>
-            <StripeCardForm manual={manual} setManual={setManual} onSuccess={onAdded} onShowManual={() => setShowManual(true)} />
-          </Elements>
+          <StripeCardForm manual={manual} setManual={setManual} onSuccess={onAdded} onShowManual={() => setShowManual(true)} />
         ) : (
           <ManualCardForm
             manual={manual} setManual={setManual} error={error} processing={processing}
@@ -222,7 +220,7 @@ function CardDisplay({ pm, onSetDefault, onRemove }: { pm: any; onSetDefault: ()
   )
 }
 
-export default function BillingPage() {
+function BillingPageInner() {
   const [subscription, setSubscription] = useState<{ plan: string; subscriptionStatus: string; trialEndsAt: string; daysRemaining: number } | null>(null)
   const [invoices, setInvoices] = useState<any[]>([])
   const [paymentMethods, setPaymentMethods] = useState<any[]>([])
@@ -491,4 +489,9 @@ export default function BillingPage() {
       </Dialog>
     </Box>
   )
+}
+
+export default function BillingPage() {
+  if (!stripePromise) return <BillingPageInner />
+  return <Elements stripe={stripePromise}><BillingPageInner /></Elements>
 }
