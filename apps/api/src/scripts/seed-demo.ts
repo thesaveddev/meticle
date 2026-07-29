@@ -125,7 +125,7 @@ async function seed() {
   const incidents = [
     { title:'Fall in bathroom', severity:'medium', status:'resolved', daysAgo:45 },
     { title:'Medication error — wrong dose', severity:'high', status:'investigating', daysAgo:3 },
-    { title:'Resident altercation', severity:'low', status:'resolved', daysAgo:20 },
+    { title:'Altercation', severity:'low', status:'resolved', daysAgo:20 },
     { title:'Pressure sore discovered', severity:'medium', status:'reported', daysAgo:7 },
     { title:'Slip in corridor', severity:'low', status:'resolved', daysAgo:60 },
     { title:'Aggressive behaviour incident', severity:'high', status:'investigating', daysAgo:5 },
@@ -210,7 +210,7 @@ async function seed() {
   // 16. Tasks (8)
   for (let i = 0; i < 8; i++) {
     await pool.query(`INSERT INTO tasks (organization_id, title, description, assigned_to, service_user_id, priority, status, due_date) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [orgId, ['Review care plans','Order medication supplies','Fire safety check','Update risk assessments','Staff supervisions','Window repair Room 204','Garden maintenance check','New resident assessment'][i],
+      [orgId, ['Review care plans','Order medication supplies','Fire safety check','Update risk assessments','Staff supervisions','Window repair Room 204','Garden maintenance check','New person assessment'][i],
         '', staffProfiles[10 + i % 3].id, serviceUsers[i % serviceUsers.length].id,
         ['medium','high','low','medium','high','urgent','low','medium'][i],
         i < 3 ? 'completed' : i < 6 ? 'pending' : 'in_progress',

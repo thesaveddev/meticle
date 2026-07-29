@@ -24,7 +24,7 @@ export class DashboardRepository {
          CROSS JOIN organizations o2
          WHERE l4.organization_id = $1 AND sh.agency_id IS NOT NULL AND sh.agency_covered = true
            AND o2.id = $1) as agency_saved,
-        (SELECT COUNT(*)::int FROM service_users WHERE organization_id = $1 AND status = 'active') as active_residents,
+        (SELECT COUNT(*)::int FROM service_users WHERE organization_id = $1 AND status = 'active') as active_service_users,
         (SELECT COUNT(DISTINCT sa.staff_id)::int FROM shift_assignments sa
          JOIN shifts sh2 ON sa.shift_id = sh2.id
          JOIN locations l2 ON l2.id = sh2.location_id

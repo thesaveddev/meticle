@@ -22,7 +22,7 @@ export default function TermsOfUsePage() {
       </Section>
 
       <Section title="2. Definitions">
-        <ul><li><strong>"We", "Us", "Meticle"</strong> — the Service provider</li><li><strong>"You", "Customer"</strong> — the organisation or individual using the Service</li><li><strong>"Service User"</strong> — a resident or client receiving care, whose data is stored in the Service</li><li><strong>"Staff"</strong> — employees or contractors of the Customer who access the Service</li></ul>
+        <ul><li><strong>"We", "Us", "Meticle"</strong> — the Service provider</li><li><strong>"You", "Customer"</strong> — the organisation or individual using the Service</li><li><strong>"Service User"</strong> — a person receiving care, whose data is stored in the Service</li><li><strong>"Staff"</strong> — employees or contractors of the Customer who access the Service</li></ul>
       </Section>
 
       <Section title="3. Your Account">

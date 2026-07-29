@@ -380,7 +380,7 @@ export default function ServiceUserProfilePage() {
   }
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 8 }}><CircularProgress /></Box>
-  if (!user) return <Alert severity="error">Resident not found</Alert>
+  if (!user) return <Alert severity="error">Person not found</Alert>
 
   const CATEGORIES = [
     { label: 'Overview', tabs: [0] },
@@ -402,7 +402,7 @@ export default function ServiceUserProfilePage() {
     <Box>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/service-users')} sx={{ color: '#6B7280', textTransform: 'none', fontWeight: 600 }}>
-          Back to Residents
+          Back to People
         </Button>
       </Stack>
 
@@ -1047,7 +1047,7 @@ export default function ServiceUserProfilePage() {
       {/* Edit Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); updateMutation.mutate(editForm) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Edit Resident</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 800 }}>Edit Person</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1935,7 +1935,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
 
   if (!roomNumber) return (
     <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-      <Typography color="#9CA3AF">No room number assigned to this resident. Room checks cannot be displayed.</Typography>
+      <Typography color="#9CA3AF">No room number assigned to this person. Room checks cannot be displayed.</Typography>
     </Paper>
   )
 

@@ -127,6 +127,7 @@ Creates a fresh demo org with random name each run (~1,550 rows total):
 ### ❌ Phase 2 — Still to Build
 | Feature | Notes |
 |---|---|
+| **Drag & Drop Rota** | Interactive drag-and-drop shift scheduling on the rota grid |
 | **E-learning (SCORM/xAPI)** | No LMS integration |
 | **Digital signatures** | No DocuSign/Adobe Sign |
 | **DBS API integration** | No GBG/uCheck partnership |

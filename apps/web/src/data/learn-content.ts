@@ -24,7 +24,7 @@ const s: LearnSection[] = [
     h3('Who is this for?') +
     ul(['Registered Managers overseeing supported living or domiciliary care services','Care Coordinators managing rotas and appointments','Compliance Officers preparing for CQC/regulatory inspections','Care Workers documenting daily notes and administering medication','Administrators handling billing and staff onboarding']) +
     h3('Key Concepts') +
-    ul(['<strong>Organisation:</strong> Your care provider entity. Everything in Meticle is scoped to your organisation — data from other orgs is never visible.','<strong>Roles:</strong> ORG_ADMIN (full access), MANAGER (location management), CARE_WORKER (frontline staff), COMPLIANCE_OFFICER (audit and compliance), NURSE, SUPPORT_WORKER.','<strong>Locations:</strong> Physical care settings (supported living houses, offices, etc.). Each has its own minimum staffing rules.','<strong>Service Users:</strong> The residents or clients receiving care. Formerly called "residents" — the terms are interchangeable.','<strong>Regulator:</strong> Your governing body — CQC (England), CIW (Wales), Care Inspectorate (Scotland), or RQIA (Northern Ireland). This setting affects how compliance is scored.'])
+    ul(['<strong>Organisation:</strong> Your care provider entity. Everything in Meticle is scoped to your organisation — data from other orgs is never visible.','<strong>Roles:</strong> ORG_ADMIN (full access), MANAGER (location management), CARE_WORKER (frontline staff), COMPLIANCE_OFFICER (audit and compliance), NURSE, SUPPORT_WORKER.','<strong>Locations:</strong> Physical care settings (supported living houses, offices, etc.). Each has its own minimum staffing rules.','<strong>Service Users:</strong> The people receiving care. Each person has a full profile with care plans, daily notes, health records, and more.','<strong>Regulator:</strong> Your governing body — CQC (England), CIW (Wales), Care Inspectorate (Scotland), or RQIA (Northern Ireland). This setting affects how compliance is scored.'])
 },
 { id:'login', title:'Login, MFA & Account Security',
   content:
@@ -64,7 +64,7 @@ const s: LearnSection[] = [
     p('The Dashboard is your landing page after login and provides an at-a-glance overview of your organisation\'s key metrics. It is divided into several sections, each described below.') +
     h3('Top Row: Key Performance Indicators (KPIs)') +
     p('Seven KPI cards span the top of the dashboard:') +
-    ul(['<strong>Total Staff:</strong> Number of active staff members in your organisation. Click to navigate to the <em>Staff Directory</em>.','<strong>Active Residents:</strong> Count of service users with status "active". Click to navigate to <em>Service Users</em>.','<strong>Staff on Duty:</strong> Number of staff with assigned shifts for today (counts shifts with status "assigned" or "accepted" that start today).','<strong>Compliance Rate:</strong> Your organisation\'s overall compliance percentage (completed compliance records ÷ total records). Click the card or the "View Full Report" button to navigate to the <em>Compliance Dashboard</em>.','<strong>Open Shifts:</strong> Number of unassigned shifts across all locations.','<strong>Alerts:</strong> Count of open incidents (status "reported" or "investigating").','<strong>Agency Saved:</strong> Placeholder for cost savings from filling shifts internally vs. using agencies (Phase 2 feature).']) +
+    ul(['<strong>Total Staff:</strong> Number of active staff members in your organisation. Click to navigate to the <em>Staff Directory</em>.','<strong>Active People:</strong> Count of service users with status "active". Click to navigate to <em>Service Users</em>.','<strong>Staff on Duty:</strong> Number of staff with assigned shifts for today (counts shifts with status "assigned" or "accepted" that start today).','<strong>Compliance Rate:</strong> Your organisation\'s overall compliance percentage (completed compliance records ÷ total records). Click the card or the "View Full Report" button to navigate to the <em>Compliance Dashboard</em>.','<strong>Open Shifts:</strong> Number of unassigned shifts across all locations.','<strong>Alerts:</strong> Count of open incidents (status "reported" or "investigating").','<strong>Agency Saved:</strong> Placeholder for cost savings from filling shifts internally vs. using agencies (Phase 2 feature).']) +
     h3('Onboarding Checklist') +
     p('New organisations see a checklist guiding initial setup. Each item links to the relevant page:') +
     ul(['Add staff members → Staff Directory','Configure locations → Settings → Locations','Set minimum staffing rules → Settings → Organisation','Upload branding/logo → Settings → Branding','Set compliance profiles → Settings → Compliance','Invite your team → Staff Directory → Invite button']) +
@@ -83,37 +83,37 @@ const s: LearnSection[] = [
 
 // ═══════════ 2. SERVICE USERS ═══════════
 { id:'service-users', category:'Service Users', title:'Service Users Manager', icon:'👤', subsections:[
-{ id:'su-directory', title:'Directory — Finding, Adding & Managing Residents',
+{ id:'su-directory', title:'Directory — Finding, Adding & Managing People',
   content:
     h2('Service User Directory Page') +
-    p('The Service Users page (accessible from the sidebar) is your central hub for managing all residents/clients. It shows a paginated table of every service user in your organisation.') +
+    p('The Service Users page (accessible from the sidebar) is your central hub for managing all people supported. It shows a paginated table of every service user in your organisation.') +
     h3('Table Columns') +
-    ul(['<strong>Name:</strong> First and last name with a person icon. Click any row to open that resident\'s profile.','<strong>Room:</strong> The resident\'s room or bed number. Shows "—" if not set.','<strong>NHS Number:</strong> The resident\'s NHS number. Shows "—" if not set.','<strong>DOB:</strong> Date of birth in DD/MM/YYYY format.','<strong>Status:</strong> Color-coded chip — Active (green), Discharged (grey), Deceased (red).','<strong>Care Plans:</strong> Number of active care plans for this resident.','<strong>Open Risks:</strong> Number of high/critical risk assessments. Shows a red warning icon if greater than zero.']) +
+    ul(['<strong>Name:</strong> First and last name with a person icon. Click any row to open that person\'s profile.','<strong>Room:</strong> The person\'s room or bed number. Shows "—" if not set.','<strong>NHS Number:</strong> The person\'s NHS number. Shows "—" if not set.','<strong>DOB:</strong> Date of birth in DD/MM/YYYY format.','<strong>Status:</strong> Color-coded chip — Active (green), Discharged (grey), Deceased (red).','<strong>Care Plans:</strong> Number of active care plans for this person.','<strong>Open Risks:</strong> Number of high/critical risk assessments. Shows a red warning icon if greater than zero.']) +
     h3('Search & Filter') +
-    step(1,'Use the <strong>search bar</strong> at the top to find residents by first name, last name, or room number. The search is case-insensitive.') +
+    step(1,'Use the <strong>search bar</strong> at the top to find people by first name, last name, or room number. The search is case-insensitive.') +
     step(2,'Use the <strong>Status dropdown</strong> to filter by All, Active, Discharged, or Deceased.') +
     p('Both filters can be used together — e.g., search for "John" with status "Active".') +
-    h3('Adding a New Resident') +
-    step(1,'Click the <strong>Add Resident</strong> button at the top right.') +
+    h3('Adding a New Person') +
+    step(1,'Click the <strong>Add Person</strong> button at the top right.') +
     step(2,'A dialog opens with the following fields:') +
     ul(['<strong>First Name</strong> (required)','<strong>Last Name</strong> (required)','<strong>Date of Birth</strong> — click the calendar picker or type in YYYY-MM-DD format','<strong>Status</strong> — dropdown: Active, Discharged, Deceased (defaults to Active)','<strong>NHS Number</strong> — free text, typically 10 digits','<strong>Room / Bed</strong> — free text, e.g., "Room 3" or "Bed A"','<strong>Allergies</strong> — enter as comma-separated values, e.g., "Penicillin, Latex, Peanuts". These will be stored as a list and displayed as red chips on the profile.']) +
-    step(3,'Click <strong>Create Resident</strong>. The button shows a loading spinner while saving.') +
-    step(4,'On success, the dialog closes, the table refreshes, and the new resident appears.') +
-    p('Upon creation, an automatic Monthly Medication Administration Record (MAR) is generated for the new resident — you don\'t need to create one manually.') +
+    step(3,'Click <strong>Create Person</strong>. The button shows a loading spinner while saving.') +
+    step(4,'On success, the dialog closes, the table refreshes, and the new person appears.') +
+    p('Upon creation, an automatic Monthly Medication Administration Record (MAR) is generated for the new person — you don\'t need to create one manually.') +
     h3('Pagination') +
     p('The directory table is paginated. Use the controls at the bottom to:') +
-    ul(['Change rows per page (5, 10, 25, 50)','Navigate to next/previous pages','See the total count of residents matching your filters']) +
-    h3('Deleting a Resident') +
-    p('Residents cannot be deleted from the directory page. To "remove" a resident, change their status to "Discharged" or "Deceased" from their profile page. Only ORG_ADMIN can hard-delete a service user via the API.') +
-    tip('When creating a resident, you can also set extended fields like GP details, pharmacy, and social worker information after creation by editing the profile. These fields are available in the "Edit Resident" dialog on the profile page.')
+    ul(['Change rows per page (5, 10, 25, 50)','Navigate to next/previous pages','See the total count of people matching your filters']) +
+    h3('Removing a Person') +
+    p('People cannot be deleted from the directory page. To "remove" a person, change their status to "Discharged" or "Deceased" from their profile page. Only ORG_ADMIN can hard-delete a service user via the API.') +
+    tip('When creating a person, you can also set extended fields like GP details, pharmacy, and social worker information after creation by editing the profile. These fields are available in the "Edit Person" dialog on the profile page.')
 },
 { id:'su-profile', title:'Profile Page — All 9 Tabs Explained',
   content:
     h2('Service User Profile Overview') +
-    p('Clicking any resident in the directory opens their profile page. The page has a header section with key info and photo upload, followed by 9 tabs for different aspects of care documentation.') +
+    p('Clicking any person in the directory opens their profile page. The page has a header section with key info and photo upload, followed by 9 tabs for different aspects of care documentation.') +
     h3('Header Section') +
-    ul(['<strong>Photo:</strong> Shows the resident\'s photo if uploaded, otherwise shows initials. Click the camera icon overlay to upload a photo (JPEG, PNG, GIF, WebP). Photos are loaded securely via authenticated fetch. A loading spinner appears during upload.','<strong>Name:</strong> Full name in large text.','<strong>Room Chip:</strong> Shows room number if assigned, otherwise "No room assigned".','<strong>Status Chip:</strong> Green for Active, grey otherwise.','<strong>NHS Number:</strong> Displayed if set.','<strong>Edit Button:</strong> Opens the full edit dialog with all resident fields (see below).']) +
-    h2('Edit Resident Dialog') +
+    ul(['<strong>Photo:</strong> Shows the person\'s photo if uploaded, otherwise shows initials. Click the camera icon overlay to upload a photo (JPEG, PNG, GIF, WebP). Photos are loaded securely via authenticated fetch. A loading spinner appears during upload.','<strong>Name:</strong> Full name in large text.','<strong>Room Chip:</strong> Shows room number if assigned, otherwise "No room assigned".','<strong>Status Chip:</strong> Green for Active, grey otherwise.','<strong>NHS Number:</strong> Displayed if set.','<strong>Edit Button:</strong> Opens the full edit dialog with all person fields (see below).']) +
+    h2('Edit Person Dialog') +
     p('Clicking "Edit" in the header opens a comprehensive edit form with all fields organised into sections:') +
     ul(['<strong>Personal:</strong> First Name, Last Name, Date of Birth, NHS Number, Room, Status dropdown','<strong>GP Details:</strong> GP Name, GP Surgery, GP Phone, GP Email, GP Address, Dietary Requirements (multiline)','<strong>Pharmacy:</strong> Pharmacy Name, Pharmacy Phone, Pharmacy Address (multiline)','<strong>Social Worker:</strong> Name, Phone, Email']) +
     p('Changes are saved by clicking "Save" at the bottom of the dialog. The button shows a loading spinner while saving.') +
@@ -122,7 +122,7 @@ const s: LearnSection[] = [
     ul(['<strong>Personal Details:</strong> DOB, calculated Age, NHS Number, Room','<strong>Medical & GP:</strong> GP Name, Surgery, Phone, Email, Address, Dietary Requirements','<strong>Pharmacy:</strong> Pharmacy Name, Phone, Address','<strong>Social Worker:</strong> Name, Phone, Email']) +
     p('If allergies are recorded, a red-bordered card appears below showing allergy chips.') +
     h2('Tab 1 — Care Plans') +
-    p('Lists all care plans for this resident as cards in a 2-column grid.') +
+    p('Lists all care plans for this person as cards in a 2-column grid.') +
     p('<strong>Add Care Plan:</strong> Click "Add Care Plan" button. Fill in: Title (required), Category (dropdown: personal_care, medication, mobility, nutrition, mental_health, behaviour, social, other), Description (multiline), Risk Assessment (multiline text), Review Date (date picker).') +
     p('Each care plan card shows: Title, Category chip, Status chip (active/paused/archived), Description (if present), Review Date.') +
     h2('Tab 2 — Daily Notes') +
@@ -186,7 +186,7 @@ const s: LearnSection[] = [
     p('Click <strong>Delete</strong> (trash icon) and confirm to remove a memory.') +
     h3('Security & Privacy') +
     p('Photos are stored securely on the server and loaded via authenticated requests. They are not publicly accessible. Only staff with access to this service user\'s profile can view the Memory Book.') +
-    tip('The Memory Book is great for CQC evidence of person-centred care and meaningful activity. Regular entries show inspectors that residents are engaged and their wellbeing is prioritised.')
+    tip('The Memory Book is great for CQC evidence of person-centred care and meaningful activity. Regular entries show inspectors that people are engaged and their wellbeing is prioritised.')
 }
 ]},
 
@@ -265,7 +265,7 @@ const s: LearnSection[] = [
     h3('Adding a Shift') +
     step(1,'Click the <strong>+</strong> icon on any day header or hour cell in the calendar.') +
     step(2,'A shift creation dialog opens with:') +
-    ul(['<strong>Shift Type:</strong> Day, Night (wake_night), Sleep (sleep)','<strong>Start Time:</strong> Time picker','<strong>End Time:</strong> Time picker','<strong>Staff Member:</strong> Autocomplete dropdown of active staff at this location','<strong>Service User:</strong> Optional — assign the shift to a specific resident']) +
+    ul(['<strong>Shift Type:</strong> Day, Night (wake_night), Sleep (sleep)','<strong>Start Time:</strong> Time picker','<strong>End Time:</strong> Time picker','<strong>Staff Member:</strong> Autocomplete dropdown of active staff at this location','<strong>Service User:</strong> Optional — assign the shift to a specific person']) +
     step(3,'Click <strong>Save</strong>. The shift appears on the calendar.') +
     p('<strong>Permission required:</strong> The <em>scheduling:edit</em> permission is needed to add, edit, or delete shifts. Staff without this permission see a read-only view.') +
     h3('Assigning Staff to Shifts') +
@@ -338,7 +338,7 @@ const s: LearnSection[] = [
     p('Today\'s appointments appear on the main Dashboard as a list. Each shows the service user name, appointment title, time, and status chip.') +
     h3('Shift-Start Notifications') +
     p('Staff assigned to shifts receive an automated "Today\'s Plan" email approximately 15 minutes before their first shift starts, listing their appointments for the day.') +
-    tip('Use the appointment status to track whether a resident actually attended. Completed appointments are good evidence for CQC\'s Effective and Responsive domains.')
+    tip('Use the appointment status to track whether a person actually attended. Completed appointments are good evidence for CQC\'s Effective and Responsive domains.')
 }
 ]},
 
@@ -507,7 +507,7 @@ const s: LearnSection[] = [
     h3('Download Options') +
     ul(['<strong>Download PDF:</strong> Uses Puppeteer with real Chrome to generate a professional A4 PDF with cover page, executive summary, staff table, training records, documents, competency, service users, care plans, incidents, and satisfaction overview. Includes page numbers, headers, and footers.','<strong>Download HTML:</strong> Downloads as an HTML file with embedded CSS for browser viewing.','<strong>Print:</strong> Opens the pack in a print-friendly browser window with @media print CSS for page breaks, avoiding splitting tables across pages.']) +
     h3('What\'s in the Evidence Pack') +
-    ul(['<strong>Cover Page:</strong> Organisation name, regulator framework, generation date, summary counts','<strong>Executive Summary:</strong> Stat cards for staff, service users, training, documents, competency, satisfaction','<strong>Staff Table:</strong> All active staff with compliance rates','<strong>Service Users Table:</strong> Residents with care plan counts, open risks, goals','<strong>Training Records:</strong> Staff, module, category, status, completion date','<strong>Identity Documents:</strong> Staff, type, status, expiry date','<strong>Competency Records:</strong> Staff, template, result, assessor, date','<strong>Care Plans:</strong> Per service user with categories and statuses','<strong>Incidents:</strong> Recent incidents with involved residents and severity','<strong>Satisfaction Overview:</strong> Average rating, total responses, positive count']) +
+    ul(['<strong>Cover Page:</strong> Organisation name, regulator framework, generation date, summary counts','<strong>Executive Summary:</strong> Stat cards for staff, service users, training, documents, competency, satisfaction','<strong>Staff Table:</strong> All active staff with compliance rates','<strong>Service Users Table:</strong> People with care plan counts, open risks, goals','<strong>Training Records:</strong> Staff, module, category, status, completion date','<strong>Identity Documents:</strong> Staff, type, status, expiry date','<strong>Competency Records:</strong> Staff, template, result, assessor, date','<strong>Care Plans:</strong> Per service user with categories and statuses','<strong>Incidents:</strong> Recent incidents with involved people and severity','<strong>Satisfaction Overview:</strong> Average rating, total responses, positive count']) +
     h3('Scheduled Auto-Generation') +
     p('In Settings → Organisation → Compliance Notifications, you can enable <strong>Auto-generate evidence packs</strong> and choose a frequency (Weekly on Mondays, or Monthly on the 1st). When enabled, evidence packs are automatically generated and emailed to all ORG_ADMINs with summary stats.') +
     h3('Configurable Evidence Mappings') +
@@ -544,7 +544,7 @@ const s: LearnSection[] = [
     p('Collect feedback from service users, families, and stakeholders.') +
     h3('Manual Entry') +
     step(1,'Click <strong>Add Feedback</strong>.') +
-    step(2,'Fill in: Service User (optional), Respondent Name, Relationship to resident (family, friend, social worker, etc.), Rating (1-5 stars), Comments.') +
+    step(2,'Fill in: Service User (optional), Respondent Name, Relationship to person (family, friend, social worker, etc.), Rating (1-5 stars), Comments.') +
     step(3,'Click <strong>Submit</strong>. The source is recorded as "Manual".') +
     h3('Email Invitation') +
     step(1,'Click <strong>Send Invitation</strong>.') +
@@ -638,7 +638,7 @@ const s: LearnSection[] = [
     step(3,'Click <strong>Submit</strong>.') +
     h3('Managing an Incident') +
     p('Click any incident row to open its detail page:') +
-    ul(['View full details, timeline, and involved residents','Add more involved residents (Autocomplete search)','Update status: Reported → Investigating → Resolved → Closed','Add investigation notes (append-only timeline)']) +
+    ul(['View full details, timeline, and involved people','Add more involved people (Autocomplete search)','Update status: Reported → Investigating → Resolved → Closed','Add investigation notes (append-only timeline)']) +
     h3('Severity Classification') +
     p('Incident severity feeds into CQC scoring:') +
     ul(['<strong>Responsive domain:</strong> All incidents contribute to the score','<strong>Safe domain:</strong> High and critical open incidents negatively impact the score (-15 per incident)']) +
@@ -703,7 +703,7 @@ const s: LearnSection[] = [
   content:
     h2('Reports Page') +
     p('Six report card templates for common reporting needs. Each card has a description and a "Download Sample CSV" button.') +
-    ul(['<strong>Staff Compliance Report:</strong> Staff names, roles, compliance rates, missing requirements','<strong>Training Matrix Report:</strong> Staff vs modules matrix with completion statuses','<strong>Incident Log Report:</strong> Incident title, severity, date, status, involved residents','<strong>Leave Overview Report:</strong> Staff leave balances, used, pending, remaining','<strong>Service User Roster Report:</strong> Active residents with room numbers, care plans, risk counts','<strong>Medication Administration Report:</strong> MAR administration records with staff, times, statuses']) +
+    ul(['<strong>Staff Compliance Report:</strong> Staff names, roles, compliance rates, missing requirements','<strong>Training Matrix Report:</strong> Staff vs modules matrix with completion statuses','<strong>Incident Log Report:</strong> Incident title, severity, date, status, involved people','<strong>Leave Overview Report:</strong> Staff leave balances, used, pending, remaining','<strong>Service User Roster Report:</strong> Active people with room numbers, care plans, risk counts','<strong>Medication Administration Report:</strong> MAR administration records with staff, times, statuses']) +
     p('Note: These are Phase 1 templates. Full live-data reporting is planned for Phase 2.') +
     tip('Use the sample CSVs to understand the report structure. Phase 2 will replace samples with live data and add PDF export.')
 }
