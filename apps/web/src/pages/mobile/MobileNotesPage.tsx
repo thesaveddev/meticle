@@ -52,7 +52,7 @@ export default function MobileNotesPage() {
   }
 
   const saveNote = () => {
-    if (!transcript.trim() || !serviceUserId) { setError('Please speak a note and select a resident'); return }
+    if (!transcript.trim() || !serviceUserId) { setError('Please speak a note and select a person'); return }
     saveNoteMutation.mutate({
       service_user_id: serviceUserId,
       content: transcript.trim(),
@@ -75,7 +75,7 @@ export default function MobileNotesPage() {
         <Autocomplete options={serviceUsers || []} getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}${o.room_number ? ` (${o.room_number})` : ''}`}
           value={serviceUsers?.find((s: any) => s.id === serviceUserId) || null}
           onChange={(_, v) => setServiceUserId(v?.id || '')}
-          renderInput={p => <TextField {...p} label="Select Resident" size="small" />} />
+          renderInput={p => <TextField {...p} label="Select Person" size="small" />} />
 
         <Stack direction="row" spacing={1}>
           <Chip label="Day" color={shift === 'day' ? 'primary' : 'default'} onClick={() => setShift('day')} size="small" />

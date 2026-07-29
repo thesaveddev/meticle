@@ -348,9 +348,9 @@ export const createTemplateSchema = z.object({
 
 // === Service Users ===
 export const createServiceUserSchema = z.object({
-  first_name: z.string().min(1),
-  last_name: z.string().min(1),
-  date_of_birth: z.string().optional(),
+  first_name: z.string().min(1, 'First name is required'),
+  last_name: z.string().min(1, 'Last name is required'),
+  date_of_birth: z.string().min(1, 'Date of birth is required'),
   nhs_number: z.string().optional(),
   room_number: z.string().optional(),
   status: z.enum(['active', 'discharged', 'deceased']).optional(),
@@ -360,7 +360,7 @@ export const createServiceUserSchema = z.object({
   gp_email: z.string().optional(),
   gp_address: z.string().optional(),
   dietary_requirements: z.string().optional(),
-  allergies: z.union([z.string(), z.array(z.any())]).optional(),
+  allergies: z.union([z.string(), z.array(z.any())]).transform(v => typeof v === 'string' ? [v] : v).optional(),
   pharmacy_name: z.string().optional(),
   pharmacy_phone: z.string().optional(),
   pharmacy_address: z.string().optional(),
@@ -407,7 +407,7 @@ export const updateServiceUserSchema = z.object({
   gp_email: z.string().optional(),
   gp_address: z.string().optional(),
   dietary_requirements: z.string().optional(),
-  allergies: z.union([z.string(), z.array(z.any())]).optional(),
+  allergies: z.union([z.string(), z.array(z.any())]).transform(v => typeof v === 'string' ? [v] : v).optional(),
   pharmacy_name: z.string().optional(),
   pharmacy_phone: z.string().optional(),
   pharmacy_address: z.string().optional(),

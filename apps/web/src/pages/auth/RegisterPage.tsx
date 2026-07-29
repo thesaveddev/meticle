@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { TextField, Button, Box, Typography, Container, Stack, Link, Alert, CircularProgress, MenuItem, InputAdornment, IconButton } from '@mui/material'
+import { TextField, Button, Box, Typography, Container, Stack, Link, Alert, CircularProgress, MenuItem, InputAdornment, IconButton, Checkbox, FormControlLabel } from '@mui/material'
 import { useForm } from 'react-hook-form'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
@@ -30,6 +30,7 @@ export default function RegisterPage() {
   const password = watch('password', '')
   const confirmPassword = watch('confirmPassword', '')
   const email = watch('email', '')
+  const termsAccepted = watch('termsAccepted', false)
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword
 
   // Email verification state
@@ -109,6 +110,11 @@ export default function RegisterPage() {
     }
     if (!emailVerified && !invitation) {
       setError('Please verify your email address before continuing')
+      setLoading(false)
+      return
+    }
+    if (!data.termsAccepted) {
+      setError('You must agree to the Terms and Conditions to create an account')
       setLoading(false)
       return
     }
@@ -229,9 +235,9 @@ export default function RegisterPage() {
 
           <Box component="form" onSubmit={handleSubmit(onSubmit)}>
             <Stack spacing={2.5}>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Full Name</Typography>
-                <Stack direction="row" spacing={1}>
+              <Stack direction="row" spacing={1}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>First Name</Typography>
                   <TextField
                     fullWidth
                     placeholder="First name"
@@ -239,6 +245,9 @@ export default function RegisterPage() {
                     error={!!errors.firstName}
                     helperText={errors.firstName?.message as string}
                   />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Last Name</Typography>
                   <TextField
                     fullWidth
                     placeholder="Last name"
@@ -246,8 +255,8 @@ export default function RegisterPage() {
                     error={!!errors.lastName}
                     helperText={errors.lastName?.message as string}
                   />
-                </Stack>
-              </Box>
+                </Box>
+              </Stack>
 
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Work Email</Typography>
@@ -429,12 +438,34 @@ export default function RegisterPage() {
                 </Box>
               )}
 
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    {...register('termsAccepted')}
+                    sx={{ '&.Mui-checked': { color: '#0F4C81' } }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ color: '#374151' }}>
+                    I agree to the{' '}
+                    <Link onClick={() => navigate('/terms')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
+                      Terms and Conditions
+                    </Link>{' '}
+                    and{' '}
+                    <Link onClick={() => navigate('/privacy')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
+                      Privacy Policy
+                    </Link>
+                  </Typography>
+                }
+                sx={{ mt: 1 }}
+              />
+
               <Button
                 fullWidth
                 type="submit"
                 variant="contained"
                 size="large"
-                disabled={loading || (!emailVerified && !invitation)}
+                disabled={loading || (!emailVerified && !invitation) || !termsAccepted}
                 sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 800, borderRadius: 2, fontSize: '1rem', textTransform: 'none', mt: 2 }}
               >
                 {loading ? <CircularProgress size={24} color="inherit" /> : (invitation ? 'Join Organization' : 'Start Free Trial')}
@@ -450,7 +481,16 @@ export default function RegisterPage() {
           
            <Box sx={{ mt: 6, display: 'flex', alignItems: 'center', gap: 1, color: '#9CA3AF', justifyContent: 'center' }}>
             <SecurityIcon sx={{ fontSize: 16 }} />
-            <Typography variant="caption" sx={{ fontWeight: 600 }}>By signing up, you agree to our Terms and Privacy Policy.</Typography>
+            <Typography variant="caption" sx={{ fontWeight: 600 }}>
+              By signing up, you agree to our{' '}
+              <Link onClick={() => navigate('/terms')} sx={{ color: '#9CA3AF', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}>
+                Terms
+              </Link>{' '}
+              and{' '}
+              <Link onClick={() => navigate('/privacy')} sx={{ color: '#9CA3AF', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}>
+                Privacy Policy
+              </Link>.
+            </Typography>
           </Box>
         </Container>
       </Box>

@@ -183,7 +183,7 @@ export class ComplianceRepository {
 
     const incidents = await query(
       `SELECT i.id, i.title, i.severity, i.status, i.incident_date,
-               string_agg(su.first_name || ' ' || su.last_name, ', ') as involved_residents
+               string_agg(su.first_name || ' ' || su.last_name, ', ') as involved_people
         FROM incidents i
         LEFT JOIN incident_involved_residents iir ON i.id = iir.incident_id
         LEFT JOIN service_users su ON iir.service_user_id = su.id

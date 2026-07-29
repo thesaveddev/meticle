@@ -93,7 +93,7 @@ export default function EvidencePacksPage() {
     if (data?.incidents) {
       for (const i of data.incidents) {
         const domain = mapSource('incidents', i.severity, 'responsive')
-        result[domain].evidence.push(`Incident: "${i.title}" — ${i.involved_residents || 'N/A'} (${i.severity})`)
+        result[domain].evidence.push(`Incident: "${i.title}" — ${i.involved_people || 'N/A'} (${i.severity})`)
       }
     }
     if (data?.satisfaction?.total > 0) {
@@ -427,7 +427,7 @@ export default function EvidencePacksPage() {
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Involved Residents</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Involved People</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Severity</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
@@ -437,7 +437,7 @@ export default function EvidencePacksPage() {
                   {data.incidents.slice(0, 25).map((inc: any) => (
                     <TableRow key={inc.id} hover>
                       <TableCell>{inc.title}</TableCell>
-                      <TableCell>{inc.involved_residents || 'N/A'}</TableCell>
+                      <TableCell>{inc.involved_people || 'N/A'}</TableCell>
                       <TableCell><Chip label={inc.severity} size="small" color={inc.severity === 'critical' || inc.severity === 'high' ? 'error' : inc.severity === 'medium' ? 'warning' : 'success'} /></TableCell>
                       <TableCell><Chip label={inc.status} size="small" variant="outlined" /></TableCell>
                       <TableCell>{inc.occurred_at ? new Date(inc.occurred_at).toLocaleDateString() : '—'}</TableCell>

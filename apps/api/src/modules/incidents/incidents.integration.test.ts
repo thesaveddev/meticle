@@ -26,7 +26,7 @@ describe('Incidents Integration — POST /incidents', () => {
     const res = await request(app)
       .post('/incidents')
       .set('Authorization', `Bearer ${token}`)
-      .send({ title: 'Slip and Fall', description: 'Resident slipped in hallway', severity: 'medium', category_id: cat.id, location: 'Wing B' })
+      .send({ title: 'Slip and Fall', description: 'Person slipped in hallway', severity: 'medium', category_id: cat.id, location: 'Wing B' })
 
     expect(res.status).toBe(201)
     expect(res.body.title).toBe('Slip and Fall')
@@ -76,7 +76,7 @@ describe('Incidents Integration — GET /incidents/stats', () => {
 })
 
 describe('Incidents Integration — GET /incidents/:id', () => {
-  it('should return a single incident with involved residents and actions', async () => {
+  it('should return a single incident with involved people and actions', async () => {
     const org = await createOrg()
     const user = await createUser({ email: `mgr-${Date.now()}@inc-test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
     await createStaffProfile({ userId: user.id })
@@ -131,7 +131,7 @@ describe('Incidents Integration — POST /incidents/:id/actions', () => {
 })
 
 describe('Incidents Integration — POST /incidents/:id/involved', () => {
-  it('should add involved resident to an incident', async () => {
+  it('should add involved person to an incident', async () => {
     const org = await createOrg()
     // Create a service user reference
     const suId = '00000000-0000-0000-0000-000000000001'

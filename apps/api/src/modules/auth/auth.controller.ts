@@ -208,7 +208,8 @@ export class AuthController {
 
     // Send welcome email asynchronously after response
     const orgName = (userRole === UserRole.ORG_ADMIN ? `${name}'s Organization` : `${name}'s Profile`);
-    EmailService.sendWelcomeEmail(email, name, orgName).catch(logWarn('sendWelcomeEmail'));
+    const isAdmin = userRole === UserRole.ORG_ADMIN;
+    EmailService.sendWelcomeEmail(email, name, orgName, isAdmin).catch(logWarn('sendWelcomeEmail'));
 
     res.status(201).json({
       user: sanitizeUser(user),
@@ -523,7 +524,7 @@ export class AuthController {
         const accessToken = generateAccessToken(tokenPayload);
         const refreshToken = generateRefreshToken(tokenPayload);
 
-        EmailService.sendWelcomeEmail(invitation.email, name, '').catch(logWarn('sendWelcomeEmail'));
+        EmailService.sendWelcomeEmail(invitation.email, name, '', false).catch(logWarn('sendWelcomeEmail'));
 
         res.status(200).json({
           user: sanitizeUser(existingUser),
@@ -582,7 +583,7 @@ export class AuthController {
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
-    EmailService.sendWelcomeEmail(invitation.email, name, '').catch(logWarn('sendWelcomeEmail'));
+    EmailService.sendWelcomeEmail(invitation.email, name, '', false).catch(logWarn('sendWelcomeEmail'));
 
     res.status(201).json({
       user: sanitizeUser(user),

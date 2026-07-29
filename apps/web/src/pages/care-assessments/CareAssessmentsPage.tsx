@@ -122,7 +122,7 @@ export default function CareAssessmentsPage() {
 
       {selectedSu && (
         <Typography variant="subtitle1" sx={{ mb: 2, color: '#6B7280' }}>
-          Resident: <strong>{selectedSu.first_name} {selectedSu.last_name}</strong>
+          Person: <strong>{selectedSu.first_name} {selectedSu.last_name}</strong>
         </Typography>
       )}
 

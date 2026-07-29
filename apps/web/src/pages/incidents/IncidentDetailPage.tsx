@@ -166,13 +166,13 @@ export default function IncidentDetailPage() {
         </Grid>
       )}
 
-      {/* Tab: Involved Residents */}
+      {/* Tab: Involved People */}
       {tab === 1 && (
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" fontWeight={800}>Involved Residents</Typography>
+            <Typography variant="subtitle1" fontWeight={800}>Involved People</Typography>
             <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddResidentOpen(true)}
-              sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Resident</Button>
+              sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Person</Button>
           </Stack>
           <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
             <Table size="small">
@@ -187,7 +187,7 @@ export default function IncidentDetailPage() {
               </TableHead>
               <TableBody>
                 {(!incident.involved || incident.involved.length === 0) ? (
-                  <TableRow><TableCell colSpan={5}><Typography textAlign="center" py={4} color="#9CA3AF">No residents linked</Typography></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5}><Typography textAlign="center" py={4} color="#9CA3AF">No people linked</Typography></TableCell></TableRow>
                 ) : incident.involved.map((ir: any) => (
                   <TableRow key={ir.id}>
                     <TableCell><Typography fontWeight={600}>{ir.first_name} {ir.last_name}</Typography></TableCell>
@@ -280,10 +280,10 @@ export default function IncidentDetailPage() {
       {/* Add Resident Dialog */}
       <Dialog open={addResidentOpen} onClose={() => setAddResidentOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); addResidentMutation.mutate(residentForm) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Add Involved Resident</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 800 }}>Add Involved Person</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField select label="Resident" fullWidth required value={residentForm.service_user_id} onChange={e => setResidentForm({ ...residentForm, service_user_id: e.target.value })}>
+              <TextField select label="Person" fullWidth required value={residentForm.service_user_id} onChange={e => setResidentForm({ ...residentForm, service_user_id: e.target.value })}>
                 {(residents || []).map((r: any) => (
                   <MenuItem key={r.id} value={r.id}>{r.first_name} {r.last_name}{r.room_number ? ` (Room ${r.room_number})` : ''}</MenuItem>
                 ))}

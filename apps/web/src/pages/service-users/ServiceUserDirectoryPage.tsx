@@ -65,7 +65,7 @@ export default function ServiceUserDirectoryPage() {
 
   const bulkDischargeMutation = useMutation({
     mutationFn: (ids: string[]) => api.post('/service-users/bulk/discharge', { ids }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-users'] }); setSelected(new Set()); setBulkOpen(null); showSnackbar('Residents discharged') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-users'] }); setSelected(new Set()); setBulkOpen(null); showSnackbar('People discharged') },
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Bulk discharge failed', 'error'),
   })
 
@@ -112,7 +112,7 @@ export default function ServiceUserDirectoryPage() {
           )}
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
             sx={{ bgcolor: '#0F4C81', textTransform: 'none', fontWeight: 700 }}>
-            Add Resident
+            Add Person
           </Button>
         </Stack>
       </Stack>
@@ -152,7 +152,7 @@ export default function ServiceUserDirectoryPage() {
             </TableHead>
             <TableBody>
               {paginated.length === 0 ? (
-                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: '#9CA3AF' }}>No residents found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: '#9CA3AF' }}>No people found</TableCell></TableRow>
               ) : paginated.map((u: any) => (
                 <TableRow key={u.id} hover selected={selected.has(u.id)} sx={{ cursor: 'pointer' }}>
                   <TableCell padding="checkbox" onClick={e => e.stopPropagation()}>
@@ -198,7 +198,7 @@ export default function ServiceUserDirectoryPage() {
       {/* Add Resident Dialog */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={handleCreate}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Add New Resident</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 800 }}>Add New Person</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -230,7 +230,7 @@ export default function ServiceUserDirectoryPage() {
             <Button onClick={() => setAddOpen(false)}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={createMutation.isPending}
               sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
-              {createMutation.isPending ? <CircularProgress size={20} /> : 'Create Resident'}
+              {createMutation.isPending ? <CircularProgress size={20} /> : 'Create Person'}
             </Button>
           </DialogActions>
         </Box>
@@ -238,7 +238,7 @@ export default function ServiceUserDirectoryPage() {
 
       {/* Bulk Status Dialog */}
       <Dialog open={bulkOpen === 'status'} onClose={() => setBulkOpen(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Change Status ({selected.size} residents)</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>Change Status ({selected.size} people)</DialogTitle>
         <DialogContent>
           <TextField select label="New Status" fullWidth value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} sx={{ mt: 1 }}>
             <MenuItem value="active">Active</MenuItem>
@@ -257,9 +257,9 @@ export default function ServiceUserDirectoryPage() {
 
       {/* Bulk Discharge Dialog */}
       <Dialog open={bulkOpen === 'discharge'} onClose={() => setBulkOpen(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Discharge {selected.size} Residents?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>Discharge {selected.size} People?</DialogTitle>
         <DialogContent>
-          <Typography>This will mark the selected residents as discharged. The action can be reversed later.</Typography>
+          <Typography>This will mark the selected people as discharged. The action can be reversed later.</Typography>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setBulkOpen(null)}>Cancel</Button>

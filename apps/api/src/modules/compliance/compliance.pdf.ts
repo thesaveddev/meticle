@@ -49,7 +49,7 @@ export function buildEvidencePackHtml(data: any, orgName?: string): string {
   const incSection = data.incidents?.length
     ? `<h2 style="color:#0F4C81;font-size:18px;margin-top:24px">Incidents (${data.incidents.length})</h2>
        <table><thead><tr><th>Title</th><th>Involved Residents</th><th>Severity</th><th>Status</th><th>Date</th></tr></thead><tbody>
-       ${data.incidents.map((inc: any) => `<tr><td>${inc.title}</td><td>${inc.involved_residents||'N/A'}</td><td><span style="background:${inc.severity==='critical'||inc.severity==='high'?'#FEE2E2':inc.severity==='medium'?'#FEF3C7':'#F3F4F6'};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${inc.severity}</span></td><td>${inc.status}</td><td>${inc.occurred_at ? new Date(inc.occurred_at).toLocaleDateString() : '-'}</td></tr>`).join('')}
+       ${data.incidents.map((inc: any) => `<tr><td>${inc.title}</td><td>${inc.involved_people||'N/A'}</td><td><span style="background:${inc.severity==='critical'||inc.severity==='high'?'#FEE2E2':inc.severity==='medium'?'#FEF3C7':'#F3F4F6'};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${inc.severity}</span></td><td>${inc.status}</td><td>${inc.occurred_at ? new Date(inc.occurred_at).toLocaleDateString() : '-'}</td></tr>`).join('')}
        </tbody></table>`
     : ''
 

@@ -1,15 +1,13 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Box, Button, Container, Typography, TextField, Stack, Chip, Alert, CircularProgress } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
-import { CloudUpload as UploadIcon } from '@mui/icons-material'
 import api from '../../services/api'
 
 const isValidEmail = (e: string) => /^\S+@\S+\.\S+$/.test(e.trim())
 
 export default function OnboardingFlow() {
   const navigate = useNavigate()
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const userStr = localStorage.getItem('user')
   let user: any = null
   try { user = userStr ? JSON.parse(userStr) : null } catch { user = null }
@@ -89,22 +87,6 @@ export default function OnboardingFlow() {
                     onChange={e => setEmailInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addEmail() } }}
                     sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#0f172a', '& input': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
                   <Button variant="contained" onClick={addEmail} sx={{ bgcolor: '#10b981', whiteSpace: 'nowrap' }}>Add</Button>
-                  <Button variant="outlined" component="label" sx={{ borderColor: 'rgba(255,255,255,0.2)', color: 'white', minWidth: 40 }}>
-                    <UploadIcon />
-                    <input ref={fileInputRef} type="file" hidden accept=".xlsx,.xls,.csv" onChange={e => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        const reader = new FileReader()
-                        reader.onload = (evt) => {
-                          const text = evt.target?.result as string
-                          const emails = text.split(/[,;\n\r]+/).map(s => s.trim()).filter(isValidEmail)
-                          setInvites(prev => [...new Set([...prev, ...emails])])
-                        }
-                        reader.readAsText(file)
-                      }
-                      e.target.value = ''
-                    }} />
-                  </Button>
                 </Stack>
                 {invites.length > 0 && (
                   <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>

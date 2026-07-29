@@ -186,12 +186,12 @@ async function seed() {
   const supportLevels = ['independent', 'minimal', 'one_to_one', 'two_to_one', 'three_to_one', 'complex']
   const noteTemplates = [
     'Had a good day. Participated in morning activities and ate well at lunch.',
-    'Mood stable. Engaged socially with other residents during afternoon tea.',
+    'Mood stable. Engaged socially with others during afternoon tea.',
     'Required assistance with personal care this morning. Mobility slightly reduced.',
     'Ate 75% of breakfast and lunch. Hydration encouraged throughout the day.',
     'Slept well through the night. No incidents reported.',
     'Physiotherapy session went well. Improved mobility with walking frame.',
-    'Family visited today. Resident was very happy and animated.',
+    'Family visited today. Person was very happy and animated.',
     'Mood low this morning but improved after lunch. Encouraged to join group activity.',
     'Assisted with medication at 0800 and 2000. No issues.',
     'Skin integrity checked — pressure areas clear. Repositioned regularly.',
@@ -341,12 +341,12 @@ async function seed() {
   const incidents = [
     { title: 'Fall in bathroom — minor bruising', sev: 'medium', status: 'resolved', days: 45, su: 0 },
     { title: 'Medication error — wrong dose administered', sev: 'high', status: 'investigating', days: 3, su: 2 },
-    { title: 'Resident altercation in communal area', sev: 'low', status: 'resolved', days: 20, su: 1 },
+    { title: 'Altercation in communal area', sev: 'low', status: 'resolved', days: 20, su: 1 },
     { title: 'Pressure sore discovered on sacrum', sev: 'medium', status: 'reported', days: 7, su: 3 },
     { title: 'Slip in corridor — no injury', sev: 'low', status: 'resolved', days: 60, su: 5 },
     { title: 'Aggressive behaviour towards staff', sev: 'high', status: 'investigating', days: 5, su: 14 },
-    { title: 'Medication refusal by resident', sev: 'medium', status: 'resolved', days: 12, su: 8 },
-    { title: 'Missing resident — found in garden', sev: 'critical', status: 'closed', days: 30, su: 10 },
+    { title: 'Medication refusal', sev: 'medium', status: 'resolved', days: 12, su: 8 },
+    { title: 'Person reported missing — found in garden', sev: 'critical', status: 'closed', days: 30, su: 10 },
     { title: 'Choking incident at mealtime', sev: 'high', status: 'closed', days: 80, su: 17 },
     { title: 'Scald from hot drink', sev: 'medium', status: 'resolved', days: 15, su: 3 },
     { title: 'Unauthorised visitor on premises', sev: 'low', status: 'resolved', days: 90, su: 0 },
@@ -480,7 +480,7 @@ async function seed() {
     { title: 'Staff supervision — David Patel', pri: 'medium', days: 7, status: 'pending', su: false },
     { title: 'Window repair — Room 204', pri: 'urgent', days: -7, status: 'completed', su: true },
     { title: 'Garden maintenance check', pri: 'low', days: 10, status: 'pending', su: false },
-    { title: 'New resident assessment — Room 108', pri: 'medium', days: 2, status: 'in_progress', su: true },
+    { title: 'New person assessment — Room 108', pri: 'medium', days: 2, status: 'in_progress', su: true },
     { title: 'Quarterly medication audit', pri: 'high', days: 14, status: 'pending', su: false },
     { title: 'Staff training compliance review', pri: 'medium', days: 5, status: 'pending', su: false },
     { title: 'Update family contact details', pri: 'low', days: -3, status: 'completed', su: true },
@@ -671,7 +671,7 @@ async function seed() {
        `Family of ${su.name}`, relationships2[Math.floor(Math.random() * relationships2.length)],
        commMethods[Math.floor(Math.random() * commMethods.length)],
        commDirections[Math.floor(Math.random() * commDirections.length)],
-       'Discussed resident wellbeing and upcoming care plan review. Family satisfied with care.',
+       'Discussed wellbeing and upcoming care plan review. Family satisfied with care.',
        new Date(Date.now() - Math.floor(Math.random() * 30) * 86400000).toISOString().split('T')[0],
        staff[Math.floor(Math.random() * staff.length)].userId])
   }

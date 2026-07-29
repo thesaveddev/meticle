@@ -38,7 +38,7 @@ async function sendMail(to: string, subject: string, html: string) {
   }
 }
 
-const baseUrl = () => process.env.FRONTEND_URL || 'https://meticlecare.com';
+const baseUrl = () => 'https://meticle.com';
 
 export class EmailService {
   static async sendVerificationEmail(email: string, token: string) {
@@ -69,23 +69,53 @@ export class EmailService {
         { label: 'Accept Invitation', url }));
   }
 
-  static async sendWelcomeEmail(email: string, name: string, orgName?: string) {
-    const org = orgName || 'your organisation';
+  static async sendWelcomeEmail(email: string, name: string, orgName?: string, isAdmin?: boolean) {
     const url = `${baseUrl()}/dashboard`;
-    await sendMail(email, `Welcome to Meticle, ${org}!`,
-      buildEmailHtml('Welcome',
-        `Welcome to Meticle, ${org}`,
-        `<p style="margin:0 0 12px 0">Hi ${name},</p>` +
-        `<p style="margin:0 0 12px 0">Thank you for choosing Meticle. I built this platform because I believe every care provider deserves to walk into a CQC inspection knowing exactly what their score will be.</p>` +
-        `<p style="margin:0 0 16px 0">Here's what I suggest you do first:</p>` +
-        `<p style="margin:0 0 4px 0"><strong>1. Add your staff</strong> — invite your team from the Staff Directory</p>` +
-        `<p style="margin:0 0 4px 0"><strong>2. Set up compliance profiles</strong> — staff are auto-assigned by role</p>` +
-        `<p style="margin:0 0 4px 0"><strong>3. Run your first CQC readiness assessment</strong> — see where you stand</p>` +
-        `<p style="margin:0 0 12px 0"><strong>4. Generate an evidence pack</strong> — one click, inspector-ready</p>` +
-        `<p style="margin:0 0 12px 0">You're on a <strong>14-day free trial</strong>. Take it for a proper spin.</p>` +
-        `<p style="margin:0;font-size:13px;color:#9CA3AF">If you have any questions, just reply to this email.</p>` +
-        `<p style="margin:0;font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
-        { label: 'Go to Meticle', url }));
+    const subject = 'Welcome To Meticle';
+    const org = orgName || 'your organisation';
+
+    if (isAdmin) {
+      await sendMail(email, subject,
+        buildEmailHtml('Welcome',
+          'Welcome To Meticle',
+          `<p style="margin:0 0 20px 0">Hi ${name},</p>` +
+          `<p style="margin:0 0 16px 0">You've just taken the first step toward running a smarter, safer care organisation. <strong>Meticle</strong> is the all-in-one platform that unifies your entire care operation — from scheduling and compliance to clinical records and family communication.</p>` +
+          `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:#1F2937">What you can do with Meticle:</p>` +
+          `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0">` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Smart Scheduling &amp; Rota Planning</strong> — Drag-and-drop rota, shift swaps, overtime claims, and minimum-staff alerts. Reduce agency spend by up to 40%.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Compliance &amp; CQC Readiness</strong> — Real-time compliance dashboards, automated training reminders, DBS tracking, and one-click CQC evidence packs. Know your score before the inspector arrives.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>eMAR &amp; Clinical Records</strong> — 31-day medication administration charts, PRN tracking, stock management, and full clinical history for every service user.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Service User Hub</strong> — Care plans, daily notes, risk assessments, family portal, body maps, wellbeing logs, and discharge planning — all in one place.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Incidents &amp; Reporting</strong> — Log, categorise, and action incidents with full audit trails. 35+ reports with filters and CSV export.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Leave, Training &amp; Competency</strong> — End-to-end leave management, training matrix with expiry alerts, and competency assessments with evidence.</td></tr>` +
+          `</table>` +
+          `<p style="margin:0 0 16px 0">You're on a <strong>14-day free trial</strong> with full access to every feature. Here's how to get started:</p>` +
+          `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>1.</strong> Complete your organisation profile and invite your team</p>` +
+          `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>2.</strong> Set up your locations, departments, and teams</p>` +
+          `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>3.</strong> Add service users and configure care plans</p>` +
+          `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>4.</strong> Build your rota and invite staff to claim shifts</p>` +
+          `<p style="margin:0 0 16px 0;font-size:14px;color:#1F2937"><strong>5.</strong> Run your first CQC readiness assessment</p>` +
+          `<p style="margin:0;font-size:14px;color:#4B5563">If you need anything, just reply to this email — we're here to help.</p>` +
+          `<p style="margin:16px 0 0 0;font-size:13px;color:#9CA3AF">The Meticle Team</p>`,
+          { label: 'Go to Dashboard', url }));
+    } else {
+      await sendMail(email, subject,
+        buildEmailHtml('Welcome',
+          'Welcome To Meticle',
+          `<p style="margin:0 0 20px 0">Hi ${name},</p>` +
+          `<p style="margin:0 0 16px 0">Welcome to <strong>${org}</strong> on Meticle. You now have access to everything your organisation uses to run care operations — scheduling, compliance, clinical records, and more.</p>` +
+          `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:#1F2937">Here's what you can do right away:</p>` +
+          `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0">` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">View your shifts and rota</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Complete your compliance and training requirements</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Log care notes, observations, and eMAR administrations</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Request leave and swap shifts with your team</td></tr>` +
+          `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Chat with colleagues in real-time</td></tr>` +
+          `</table>` +
+          `<p style="margin:0 0 16px 0;font-size:14px;color:#4B5563">Your manager will assign your shifts and set up any training you need. If you have questions, reach out to your team lead or reply to this email.</p>` +
+          `<p style="margin:0;font-size:13px;color:#9CA3AF">The Meticle Team</p>`,
+          { label: 'Go to Dashboard', url }));
+    }
   }
 
   // ── Leave ──
