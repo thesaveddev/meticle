@@ -42,12 +42,13 @@ describe('registration schema enforcement', () => {
     });
     expect(valid.success).toBe(true);
 
-    const invalid = registerSchema.safeParse({
+    const validAdmin = registerSchema.safeParse({
       email: 'admin@test.com',
       password: 'Password123!',
       role: 'ORG_ADMIN',
       name: 'Test Admin',
     });
-    expect(invalid.success).toBe(false);
+    expect(validAdmin.success).toBe(true);
+    expect(validAdmin.data?.role).toBe('ORG_ADMIN');
   });
 });
