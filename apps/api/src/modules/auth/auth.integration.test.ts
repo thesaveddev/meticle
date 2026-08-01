@@ -51,7 +51,7 @@ describe('Auth Integration — POST /auth/register', () => {
     const email = `admin-${Date.now()}@test.com`
     const res = await request(app)
       .post('/auth/register')
-      .send({ email, password: 'TestPass123!', role: 'ORG_ADMIN', name: 'Test Admin' })
+      .send({ email, password: 'TestPass123!', role: 'ORG_ADMIN', name: `Test Admin ${Date.now()}` })
 
     expect(res.status).toBe(201)
     expect(res.body.user).toBeDefined()

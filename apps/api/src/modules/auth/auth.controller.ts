@@ -371,6 +371,7 @@ export class AuthController {
   static async sendEmailCode(req: Request, res: Response) {
     const { email } = req.body;
     if (!email) throw new AppError(400, 'Email is required');
+    if (isDisposableEmail(email)) throw new AppError(400, 'Temporary email addresses are not allowed');
 
     // Check if email is already registered
     const existing = await UserRepository.findByEmail(email);

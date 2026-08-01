@@ -89,6 +89,10 @@ jobs:
             docker pull "ghcr.io/${GHCR_owner}/meticle-api:${IMAGE_TAG}"
             docker pull "ghcr.io/${GHCR_owner}/meticle-web:${IMAGE_TAG}"
 
+            echo "=== Pin image tags for every compose invocation ==="
+            export API_TAG="$IMAGE_TAG"
+            export WEB_TAG="$IMAGE_TAG"
+
             echo "=== Save current running tags for rollback ==="
             PREV_API_TAG=$(docker inspect meticle-api-1 --format='{{.Config.Image}}' 2>/dev/null | sed 's/.*://;s/.*@//' || echo "latest")
             PREV_WEB_TAG=$(docker inspect meticle-web-1 --format='{{.Config.Image}}' 2>/dev/null | sed 's/.*://;s/.*@//' || echo "latest")
@@ -99,13 +103,13 @@ jobs:
             docker compose -f docker-compose.prod.yml up -d db redis uptime
 
             echo "=== Run migrations ==="
-            API_TAG="${IMAGE_TAG}" docker compose -f docker-compose.prod.yml run --rm api sh -c "node apps/api/dist/shared/database/setup.js"
+            docker compose -f docker-compose.prod.yml run --rm api sh -c "node apps/api/dist/shared/database/setup.js"
 
             echo "=== Wait for DB migration ==="
             sleep 3
 
             echo "=== Deploy API (with rollback) ==="
-            API_TAG="${IMAGE_TAG}" docker compose -f docker-compose.prod.yml up -d --force-recreate api
+            docker compose -f docker-compose.prod.yml up -d --force-recreate api
             API_HEALTHY=false
             for i in $(seq 1 30); do
               if docker compose -f docker-compose.prod.yml exec -T api wget -qO- http://localhost:3002/health/live 2>/dev/null | grep -q '"status":"ok"'; then
@@ -122,7 +126,7 @@ jobs:
             fi
 
             echo "=== Deploy Web (with rollback) ==="
-            WEB_TAG="${IMAGE_TAG}" docker compose -f docker-compose.prod.yml up -d --force-recreate web
+            docker compose -f docker-compose.prod.yml up -d --force-recreate web
             WEB_HEALTHY=false
             for i in $(seq 1 30); do
               if curl -sf http://127.0.0.1:8080/ >/dev/null 2>&1; then
@@ -139,8 +143,8 @@ jobs:
             fi
 
             echo "=== Verify production ==="
-            curl -sf -o /dev/null https://meticlecare.com || echo "Warning: Frontend unreachable"
-            curl -sf https://meticlecare.com/api/health/live | grep -q '"status":"ok"' || echo "Warning: API unreachable via nginx"
+            curl -sf -o /dev/null https://meticlecare.com || { echo "ERROR: Frontend unreachable"; exit 1; }
+            curl -sf https://meticlecare.com/api/health/live | grep -q '"status":"ok"' || { echo "ERROR: API unreachable via nginx"; exit 1; }
 
             echo "=== Cleanup old images ==="
             docker image prune -af --filter "until=168h" || true

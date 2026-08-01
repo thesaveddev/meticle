@@ -43,7 +43,7 @@ export const verifyEmailSchema = z.object({
 });
 
 export const sendEmailCodeSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().refine(v => !isDisposableEmail(v), 'Temporary email addresses are not allowed'),
 });
 
 export const verifyEmailCodeSchema = z.object({

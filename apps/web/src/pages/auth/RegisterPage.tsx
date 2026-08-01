@@ -16,6 +16,14 @@ const PASSWORD_RULES = [
   { key: 'special', label: 'One special character', test: (v: string) => /[^A-Za-z0-9]/.test(v) },
 ]
 
+function apiErrorMsg(err: any, fallback: string): string {
+  const data = err?.response?.data
+  if (data?.errors?.length) return data.errors[0].message
+  if (data?.message) return data.message
+  if (err?.code === 'ERR_NETWORK') return 'Unable to connect to the server. Please check your internet connection and try again.'
+  return fallback
+}
+
 export default function RegisterPage() {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm()
   const [loading, setLoading] = useState(false)
@@ -80,7 +88,7 @@ export default function RegisterPage() {
       setCodeSent(true)
       setCodeCooldown(60)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to send verification code')
+      setError(apiErrorMsg(err, 'Failed to send verification code'))
     } finally {
       setSendingCode(false)
     }
@@ -94,7 +102,7 @@ export default function RegisterPage() {
       await api.post('/auth/verify-email-code', { email: email.trim(), code: verificationCode.trim() })
       setEmailVerified(true)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid verification code')
+      setError(apiErrorMsg(err, 'Invalid verification code'))
     } finally {
       setVerifyingCode(false)
     }
@@ -148,14 +156,7 @@ export default function RegisterPage() {
         navigate('/onboarding')
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message
-      if (msg) {
-        setError(msg)
-      } else if (err.code === 'ERR_NETWORK') {
-        setError('Unable to connect to the server. Please check your internet connection and try again.')
-      } else {
-        setError('Something went wrong. Please try again later.')
-      }
+      setError(apiErrorMsg(err, 'Something went wrong. Please try again later.'))
     } finally {
       setLoading(false)
     }
