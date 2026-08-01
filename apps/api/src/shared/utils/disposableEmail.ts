@@ -56,6 +56,41 @@ const EXTRA_DOMAINS = [
 
 const domainSet = new Set<string>([...(disposableDomains as string[]), ...EXTRA_DOMAINS]);
 
+const kRefreshUrl = 'https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt';
+
+let _lastRefresh: Date | null = null;
+
+/**
+ * Fetch the maintained disposable-email-domains list (updated every 24h) and
+ * merge into the in-memory domain set. Runs at startup and every 24h
+ * thereafter. Fails open — on any error the existing set is unchanged.
+ */
+export async function refreshDisposableEmailBlocklist(): Promise<void> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
+    const res = await fetch(kRefreshUrl, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) return;
+    const text = await res.text();
+    const added: string[] = [];
+    for (const raw of text.split(/\r?\n/)) {
+      const line = raw.trim().toLowerCase();
+      if (!line || line.startsWith('#')) continue;
+      if (!domainSet.has(line)) added.push(line);
+      domainSet.add(line);
+    }
+    _lastRefresh = new Date();
+    // eslint-disable-next-line no-console
+    console.log(`[disposableEmail] refreshed blocklist: ${added.length} new domains (total ${domainSet.size})`);
+  } catch {
+    // fail open — keep existing set
+  }
+}
+
+export function blocklistLastRefresh(): Date | null { return _lastRefresh; }
+export function blocklistSize(): number { return domainSet.size; }
+
 export function isDisposableEmail(email: string): boolean {
   const domain = email.split('@')[1]?.toLowerCase();
   if (!domain) return false;
