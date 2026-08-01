@@ -53,6 +53,16 @@ const SUPPORT_LEVEL_LABELS: Record<string, string> = {
   complex: 'Complex',
 }
 
+const EMPTY_PLAN_FORM = {
+  title: '', category: '', description: '', risk_assessment: '', review_date: '',
+  mobility_level: '', mobility_aids: '', communication_needs: '', capacity_status: '',
+  sleep_pattern: '', emergency_info: '', personal_goals: '', likes_dislikes: '',
+  cultural_needs: '', file_url: '',
+  sections: { contributors: [] as Contributor[], what_tried: '', what_learned: '', what_pleased: '', what_concerned: '', next_steps: '' } as { contributors: Contributor[]; what_tried: string; what_learned: string; what_pleased: string; what_concerned: string; next_steps: string },
+}
+
+interface Contributor { name: string; role: string }
+
 const SUPPORT_LEVEL_COLORS: Record<string, 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info'> = {
   independent: 'success',
   minimal: 'info',
@@ -89,7 +99,8 @@ export default function ServiceUserProfilePage() {
   const [addRiskOpen, setAddRiskOpen] = useState(false)
   const [addContactOpen, setAddContactOpen] = useState(false)
   const [editForm, setEditForm] = useState<any>({})
-  const [planForm, setPlanForm] = useState({ title: '', category: '', description: '', risk_assessment: '', review_date: '', mobility_level: '', mobility_aids: '', communication_needs: '', capacity_status: '', sleep_pattern: '', emergency_info: '', personal_goals: '', likes_dislikes: '', cultural_needs: '', file_url: '' })
+  const [planForm, setPlanForm] = useState({ ...EMPTY_PLAN_FORM })
+  const [planTab, setPlanTab] = useState(0)
   const [noteForm, setNoteForm] = useState({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' })
   const [editNoteId, setEditNoteId] = useState<string | null>(null)
   const [viewNote, setViewNote] = useState<any>(null)
@@ -153,7 +164,7 @@ export default function ServiceUserProfilePage() {
 
   const addPlanMutation = useMutation({
     mutationFn: (data: any) => api.post(`/service-users/${id}/care-plans`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setAddPlanOpen(false); setPlanForm({ title: '', category: '', description: '', risk_assessment: '', review_date: '', mobility_level: '', mobility_aids: '', communication_needs: '', capacity_status: '', sleep_pattern: '', emergency_info: '', personal_goals: '', likes_dislikes: '', cultural_needs: '', file_url: '' }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setAddPlanOpen(false); setPlanForm({ ...EMPTY_PLAN_FORM }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add care plan'),
   })
 
@@ -183,7 +194,7 @@ export default function ServiceUserProfilePage() {
 
   const updatePlanMutation = useMutation({
     mutationFn: ({ planId, data }: { planId: string; data: any }) => api.patch(`/service-users/care-plans/${planId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setEditPlanId(null); setPlanForm({ title: '', category: '', description: '', risk_assessment: '', review_date: '', mobility_level: '', mobility_aids: '', communication_needs: '', capacity_status: '', sleep_pattern: '', emergency_info: '', personal_goals: '', likes_dislikes: '', cultural_needs: '', file_url: '' }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setEditPlanId(null); setPlanForm({ ...EMPTY_PLAN_FORM }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update care plan'),
   })
 
@@ -786,7 +797,7 @@ export default function ServiceUserProfilePage() {
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Care Plans</Typography>
             <Button size="small" variant="contained" startIcon={<AddIcon />}
-              onClick={() => { setPlanForm({ title: '', category: '', description: '', risk_assessment: '', review_date: '', mobility_level: '', mobility_aids: '', communication_needs: '', capacity_status: '', sleep_pattern: '', emergency_info: '', personal_goals: '', likes_dislikes: '', cultural_needs: '', file_url: '' }); setEditPlanId(null); setAddPlanOpen(true) }}
+              onClick={() => { setPlanForm({ ...EMPTY_PLAN_FORM }); setEditPlanId(null); setAddPlanOpen(true) }}
               sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Add Care Plan</Button>
           </Stack>
           {(!user.care_plans || user.care_plans.length === 0) ? (
@@ -815,7 +826,7 @@ export default function ServiceUserProfilePage() {
                             <VisibilityIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <IconButton size="small" onClick={() => { setPlanForm({ title: cp.title, category: cp.category, description: cp.description || '', risk_assessment: cp.risk_assessment || '', review_date: cp.review_date || '', mobility_level: cp.mobility_level || '', mobility_aids: cp.mobility_aids || '', communication_needs: cp.communication_needs || '', capacity_status: cp.capacity_status || '', sleep_pattern: cp.sleep_pattern || '', emergency_info: cp.emergency_info || '', personal_goals: cp.personal_goals || '', likes_dislikes: cp.likes_dislikes || '', cultural_needs: cp.cultural_needs || '', file_url: cp.file_url || '' }); setEditPlanId(cp.id); setAddPlanOpen(true) }}>
+                        <IconButton size="small" onClick={() => { setPlanForm({ title: cp.title, category: cp.category, description: cp.description || '', risk_assessment: cp.risk_assessment || '', review_date: cp.review_date || '', mobility_level: cp.mobility_level || '', mobility_aids: cp.mobility_aids || '', communication_needs: cp.communication_needs || '', capacity_status: cp.capacity_status || '', sleep_pattern: cp.sleep_pattern || '', emergency_info: cp.emergency_info || '', personal_goals: cp.personal_goals || '', likes_dislikes: cp.likes_dislikes || '', cultural_needs: cp.cultural_needs || '', file_url: cp.file_url || '', sections: cp.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(cp.id); setPlanTab(0); setAddPlanOpen(true) }}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton size="small" onClick={() => setDeleteConfirm({ type: 'plan', id: cp.id })}>
@@ -1291,7 +1302,7 @@ export default function ServiceUserProfilePage() {
       </Dialog>
 
       {/* Add / Edit Care Plan Dialog */}
-      <Dialog open={addPlanOpen} onClose={() => { setAddPlanOpen(false); setEditPlanId(null) }} maxWidth="md" fullWidth>
+       <Dialog open={addPlanOpen} onClose={() => { setAddPlanOpen(false); setEditPlanId(null) }} maxWidth="md" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => {
           e.preventDefault()
           if (editPlanId) {
@@ -1300,9 +1311,14 @@ export default function ServiceUserProfilePage() {
             addPlanMutation.mutate(planForm)
           }
         }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editPlanId ? 'Edit Care Plan' : 'Add Care Plan'}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 800, pb: 0 }}>{editPlanId ? 'Edit Care Plan' : 'Add Care Plan'}</DialogTitle>
+          <Tabs value={planTab} onChange={(_, v) => setPlanTab(v)} sx={{ borderBottom: 1, borderColor: '#E5E7EB', px: 3, mb: 1 }}>
+            <Tab label="Details" />
+            <Tab label="Person-Centred Plan" />
+          </Tabs>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            {planTab === 0 ? (
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Title" fullWidth required value={planForm.title} onChange={e => setPlanForm({ ...planForm, title: e.target.value })} />
               <TextField select label="Category" fullWidth required value={planForm.category} onChange={e => setPlanForm({ ...planForm, category: e.target.value })}>
@@ -1383,6 +1399,64 @@ export default function ServiceUserProfilePage() {
                 )}
               </Stack>
             </Stack>
+            ) : (
+            <Stack spacing={2.5} sx={{ mt: 1 }}>
+              <Typography variant="subtitle1" fontWeight={700}>Who Contributed</Typography>
+              {(planForm.sections.contributors || []).map((c: Contributor, i: number) => (
+                <Stack key={i} direction="row" spacing={1}>
+                  <TextField size="small" label="Name" fullWidth value={c.name}
+                    onChange={e => {
+                      const next = [...(planForm.sections.contributors || [])]
+                      next[i] = { ...next[i], name: e.target.value }
+                      setPlanForm({ ...planForm, sections: { ...planForm.sections, contributors: next } })
+                    }} />
+                  <TextField size="small" label="Role" fullWidth value={c.role}
+                    onChange={e => {
+                      const next = [...(planForm.sections.contributors || [])]
+                      next[i] = { ...next[i], role: e.target.value }
+                      setPlanForm({ ...planForm, sections: { ...planForm.sections, contributors: next } })
+                    }} />
+                  <IconButton size="small" color="error" onClick={() => {
+                    const next = (planForm.sections.contributors || []).filter((_: any, j: number) => j !== i)
+                    setPlanForm({ ...planForm, sections: { ...planForm.sections, contributors: next } })
+                  }}><DeleteIcon fontSize="small" /></IconButton>
+                </Stack>
+              ))}
+              <Button size="small" startIcon={<AddIcon />} variant="outlined"
+                onClick={() => setPlanForm({ ...planForm, sections: { ...planForm.sections, contributors: [...(planForm.sections.contributors || []), { name: '', role: '' }] } })}
+                sx={{ textTransform: 'none', alignSelf: 'flex-start' }}>
+                Add contributor
+              </Button>
+
+              <Divider />
+              <Typography variant="subtitle1" fontWeight={700}>What have we tried?</Typography>
+              <TextField fullWidth multiline rows={3} placeholder="Describe strategies, approaches, and interventions that have been attempted..."
+                value={planForm.sections.what_tried || ''}
+                onChange={e => setPlanForm({ ...planForm, sections: { ...planForm.sections, what_tried: e.target.value } })} />
+
+              <Typography variant="subtitle1" fontWeight={700}>What have we learned?</Typography>
+              <TextField fullWidth multiline rows={3} placeholder="What has worked, what hasn't worked, key insights..."
+                value={planForm.sections.what_learned || ''}
+                onChange={e => setPlanForm({ ...planForm, sections: { ...planForm.sections, what_learned: e.target.value } })} />
+
+              <Divider />
+              <Typography variant="subtitle1" fontWeight={700}>What are we pleased about?</Typography>
+              <TextField fullWidth multiline rows={3} placeholder="Progress made, strengths, positive outcomes..."
+                value={planForm.sections.what_pleased || ''}
+                onChange={e => setPlanForm({ ...planForm, sections: { ...planForm.sections, what_pleased: e.target.value } })} />
+
+              <Typography variant="subtitle1" fontWeight={700}>What are we concerned about?</Typography>
+              <TextField fullWidth multiline rows={3} placeholder="Risks, challenges, areas needing attention..."
+                value={planForm.sections.what_concerned || ''}
+                onChange={e => setPlanForm({ ...planForm, sections: { ...planForm.sections, what_concerned: e.target.value } })} />
+
+              <Divider />
+              <Typography variant="subtitle1" fontWeight={700}>What do we need to do next?</Typography>
+              <TextField fullWidth multiline rows={4} placeholder="Actionable next steps, responsible person, timeline..."
+                value={planForm.sections.next_steps || ''}
+                onChange={e => setPlanForm({ ...planForm, sections: { ...planForm.sections, next_steps: e.target.value } })} />
+            </Stack>
+            )}
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddPlanOpen(false); setEditPlanId(null) }}>Cancel</Button>
@@ -1444,6 +1518,54 @@ export default function ServiceUserProfilePage() {
                   ))}
                 </Grid>
 
+                {viewPlan.sections && (viewPlan.sections.contributors?.length > 0 || viewPlan.sections.what_tried || viewPlan.sections.what_learned || viewPlan.sections.what_pleased || viewPlan.sections.what_concerned || viewPlan.sections.next_steps) && (
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderColor: '#0F4C81', bgcolor: '#F8FAFC' }}>
+                    <Typography variant="subtitle2" fontWeight={800} color="#0F4C81" sx={{ mb: 1.5 }}>PERSON-CENTRED PLAN</Typography>
+                    <Stack spacing={2}>
+                      {(viewPlan.sections.contributors || []).length > 0 && (
+                        <Box>
+                          <Typography variant="caption" color="#6B7280" fontWeight={700}>WHO CONTRIBUTED</Typography>
+                          {viewPlan.sections.contributors.map((c: Contributor, i: number) => (
+                            <Typography key={i} variant="body2" sx={{ mt: 0.25 }}>
+                              {c.name}{c.role ? ` (${c.role})` : ''}
+                            </Typography>
+                          ))}
+                        </Box>
+                      )}
+                      {viewPlan.sections.what_tried && (
+                        <Box>
+                          <Typography variant="caption" color="#6B7280" fontWeight={700}>WHAT HAVE WE TRIED</Typography>
+                          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{viewPlan.sections.what_tried}</Typography>
+                        </Box>
+                      )}
+                      {viewPlan.sections.what_learned && (
+                        <Box>
+                          <Typography variant="caption" color="#6B7280" fontWeight={700}>WHAT HAVE WE LEARNED</Typography>
+                          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{viewPlan.sections.what_learned}</Typography>
+                        </Box>
+                      )}
+                      {viewPlan.sections.what_pleased && (
+                        <Box>
+                          <Typography variant="caption" color="#6B7280" fontWeight={700}>WHAT ARE WE PLEASED ABOUT</Typography>
+                          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{viewPlan.sections.what_pleased}</Typography>
+                        </Box>
+                      )}
+                      {viewPlan.sections.what_concerned && (
+                        <Box>
+                          <Typography variant="caption" color="#6B7280" fontWeight={700}>WHAT ARE WE CONCERNED ABOUT</Typography>
+                          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{viewPlan.sections.what_concerned}</Typography>
+                        </Box>
+                      )}
+                      {viewPlan.sections.next_steps && (
+                        <Box>
+                          <Typography variant="caption" color="#6B7280" fontWeight={700}>WHAT DO WE NEED TO DO NEXT</Typography>
+                          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{viewPlan.sections.next_steps}</Typography>
+                        </Box>
+                      )}
+                    </Stack>
+                  </Paper>
+                )}
+
                 {viewPlan.file_url && (
                   <Paper variant="outlined" sx={{ borderRadius: 2, p: 1.5 }}>
                     <Stack direction="row" alignItems="center" spacing={1}>
@@ -1463,7 +1585,7 @@ export default function ServiceUserProfilePage() {
             </DialogContent>
             <DialogActions sx={{ p: 2.5 }}>
               <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}
-                onClick={() => { closeCarePlanView(); setPlanForm({ title: viewPlan.title, category: viewPlan.category, description: viewPlan.description || '', risk_assessment: viewPlan.risk_assessment || '', review_date: viewPlan.review_date || '', mobility_level: viewPlan.mobility_level || '', mobility_aids: viewPlan.mobility_aids || '', communication_needs: viewPlan.communication_needs || '', capacity_status: viewPlan.capacity_status || '', sleep_pattern: viewPlan.sleep_pattern || '', emergency_info: viewPlan.emergency_info || '', personal_goals: viewPlan.personal_goals || '', likes_dislikes: viewPlan.likes_dislikes || '', cultural_needs: viewPlan.cultural_needs || '', file_url: viewPlan.file_url || '' }); setEditPlanId(viewPlan.id); setAddPlanOpen(true) }}>
+                onClick={() => { closeCarePlanView(); setPlanForm({ title: viewPlan.title, category: viewPlan.category, description: viewPlan.description || '', risk_assessment: viewPlan.risk_assessment || '', review_date: viewPlan.review_date || '', mobility_level: viewPlan.mobility_level || '', mobility_aids: viewPlan.mobility_aids || '', communication_needs: viewPlan.communication_needs || '', capacity_status: viewPlan.capacity_status || '', sleep_pattern: viewPlan.sleep_pattern || '', emergency_info: viewPlan.emergency_info || '', personal_goals: viewPlan.personal_goals || '', likes_dislikes: viewPlan.likes_dislikes || '', cultural_needs: viewPlan.cultural_needs || '', file_url: viewPlan.file_url || '', sections: viewPlan.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(viewPlan.id); setPlanTab(0); setAddPlanOpen(true) }}>
                 Edit Plan
               </Button>
               <Button onClick={closeCarePlanView} sx={{ textTransform: 'none' }}>Close</Button>

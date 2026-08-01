@@ -68,6 +68,14 @@ const MIGRATION_008: Migration = {
   ],
 };
 
+const MIGRATION_009: Migration = {
+  name: '009_care_plan_person_centred_sections',
+  strict: false,
+  statements: [
+    `ALTER TABLE care_plans ADD COLUMN IF NOT EXISTS sections JSONB DEFAULT '{}'`,
+  ],
+};
+
 const INITIAL_MIGRATION: Migration = {
   name: '001_initial',
   strict: false,
@@ -1540,7 +1548,7 @@ export const setupDatabase = async () => {
     logger.info('Database schema setup completed.');
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)
