@@ -85,8 +85,6 @@ export default function ServiceUserProfilePage() {
   const [editOpen, setEditOpen] = useState(false)
   const [addPlanOpen, setAddPlanOpen] = useState(false)
   const [viewPlan, setViewPlan] = useState<any>(null)
-  const [planFileUrl, setPlanFileUrl] = useState('')
-  const [planFileError, setPlanFileError] = useState('')
   const [addNoteOpen, setAddNoteOpen] = useState(false)
   const [addRiskOpen, setAddRiskOpen] = useState(false)
   const [addContactOpen, setAddContactOpen] = useState(false)
@@ -315,31 +313,24 @@ export default function ServiceUserProfilePage() {
     } catch { /* silently fall back to initials */ }
   }
 
-  const loadFileToBlob = async (url: string) => {
-    setPlanFileError('')
+  const viewFileInNewTab = async (url: string) => {
     try {
       const token = localStorage.getItem('accessToken')
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-      if (!res.ok) {
-        throw new Error(res.status === 404 ? 'File not found' : res.status === 403 ? 'Access denied' : `Failed to load (${res.status})`)
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
-      setPlanFileUrl(URL.createObjectURL(blob))
-    } catch (err: any) {
-      setPlanFileError(err.message || 'Failed to load file')
+      const blobUrl = URL.createObjectURL(blob)
+      window.open(blobUrl, '_blank', 'noopener,noreferrer')
+    } catch {
+      window.open(url, '_blank', 'noopener,noreferrer')
     }
   }
 
   const viewCarePlan = (cp: any) => {
     setViewPlan(cp)
-    setPlanFileUrl('')
-    setPlanFileError('')
-    if (cp.file_url) loadFileToBlob(`/files/private/${cp.file_url}`)
   }
 
   const closeCarePlanView = () => {
-    if (planFileUrl) { URL.revokeObjectURL(planFileUrl); setPlanFileUrl('') }
-    setPlanFileError('')
     setViewPlan(null)
   }
 
@@ -1454,41 +1445,18 @@ export default function ServiceUserProfilePage() {
                 </Grid>
 
                 {viewPlan.file_url && (
-                  <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
-                    <Stack direction="row" alignItems="center" spacing={1} sx={{ p: 1.5, borderBottom: '1px solid #E5E7EB', bgcolor: '#F8FAFC' }}>
-                      <FileIcon sx={{ fontSize: 18, color: '#0F4C81' }} />
-                      <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1, minWidth: 0 }} noWrap>
+                  <Paper variant="outlined" sx={{ borderRadius: 2, p: 1.5 }}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <FileIcon sx={{ fontSize: 20, color: '#0F4C81' }} />
+                      <Typography variant="body2" fontWeight={600} sx={{ flex: 1, minWidth: 0 }} noWrap>
                         {viewPlan.file_url.split('/').pop() || 'Attached document'}
                       </Typography>
-                      <Button size="small" variant="outlined" component="a"
-                        href={planFileUrl || `/files/private/${viewPlan.file_url}`}
-                        target="_blank" rel="noopener noreferrer"
-                        download={viewPlan.file_url.split('/').pop()}
-                        startIcon={<DownloadIcon fontSize="small" />}
-                        sx={{ textTransform: 'none', borderRadius: 1.5, '&:visited': { color: 'inherit' } }}>
-                        Download
+                      <Button size="small" variant="outlined" startIcon={<DownloadIcon fontSize="small" />}
+                        onClick={() => viewFileInNewTab(`/files/private/${viewPlan.file_url}`)}
+                        sx={{ textTransform: 'none', borderRadius: 1.5 }}>
+                        View file
                       </Button>
                     </Stack>
-                    {planFileUrl ? (
-                      <Box sx={{ width: '100%', height: 480 }}>
-                        <iframe src={planFileUrl} title="Care plan attachment" style={{ width: '100%', height: '100%', border: 'none' }} />
-                      </Box>
-                    ) : planFileError ? (
-                      <Box sx={{ p: 3, textAlign: 'center' }}>
-                        <Typography variant="body2" color="error" sx={{ mb: 1 }}>{planFileError}</Typography>
-                        <Button size="small" variant="outlined" component="a"
-                          href={`/files/private/${viewPlan.file_url}`}
-                          target="_blank" rel="noopener noreferrer"
-                          sx={{ textTransform: 'none', borderRadius: 1.5 }}>
-                          Open in new tab
-                        </Button>
-                      </Box>
-                    ) : (
-                      <Box sx={{ p: 3, textAlign: 'center' }}>
-                        <CircularProgress size={24} />
-                        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', mt: 1 }}>Loading document...</Typography>
-                      </Box>
-                    )}
                   </Paper>
                 )}
               </Stack>
