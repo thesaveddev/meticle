@@ -12,6 +12,7 @@ import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import logger from './shared/utils/logger';
 import dotenv from 'dotenv';
+import { refreshDisposableEmailBlocklist } from './shared/utils/disposableEmail';
 import { rateLimit } from './shared/middleware/rateLimit.middleware';
 import { correlationId } from './shared/middleware/correlationId';
 import { getHttpsOptions } from './shared/https';
@@ -266,6 +267,10 @@ initSocketServer(httpServer).catch((err) => {
 // Error handling
 app.use(notFoundHandler);
 app.use(errorHandler);
+
+// Refresh the disposable email blocklist at startup and every 24h
+refreshDisposableEmailBlocklist().catch(() => {});
+setInterval(() => refreshDisposableEmailBlocklist().catch(() => {}), 24 * 60 * 60 * 1000);
 
 httpServer.listen(port, () => {
   logger.info({ port, nodeEnv: process.env.NODE_ENV }, `Meticle API running on port ${port}`);
