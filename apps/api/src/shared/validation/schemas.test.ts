@@ -7,6 +7,7 @@ import {
   inviteStaffSchema,
   uploadDocumentSchema,
   registerSchema,
+  sendEmailCodeSchema,
   loginSchema,
   updateStaffRoleSchema,
   updateStaffStatusSchema,
@@ -121,6 +122,28 @@ describe('validation schemas', () => {
         role: 'CARE_WORKER',
         name: 'John Doe',
       });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject disposable email', () => {
+      const result = registerSchema.safeParse({
+        email: 'tester@10minutemail.com',
+        password: 'Password123!',
+        role: 'CARE_WORKER',
+        name: 'John Doe',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('sendEmailCodeSchema', () => {
+    it('should accept a valid email', () => {
+      const result = sendEmailCodeSchema.safeParse({ email: 'test@example.com' });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject disposable email', () => {
+      const result = sendEmailCodeSchema.safeParse({ email: 'tester@10minutemail.com' });
       expect(result.success).toBe(false);
     });
   });
