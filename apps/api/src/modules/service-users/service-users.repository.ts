@@ -16,6 +16,9 @@ export interface ServiceUserRow {
   gp_address?: string;
   dietary_requirements?: string;
   allergies: any[];
+  support_level?: string;
+  location_id?: string;
+  min_staff_required?: number | null;
   pharmacy_name?: string;
   pharmacy_phone?: string;
   pharmacy_address?: string;
@@ -164,11 +167,11 @@ export class ServiceUserRepository {
   }
 
   static async create(data: Partial<ServiceUserRow>) {
-    const { organization_id, first_name, last_name, date_of_birth, nhs_number, room_number, status, gp_name, gp_surgery, gp_phone, gp_email, gp_address, dietary_requirements, allergies, pharmacy_name, pharmacy_phone, pharmacy_address, social_worker_name, social_worker_phone, social_worker_email, photo_url, gender, pronouns, marital_status, religion, communication_language, communication_interpreter, communication_method, admission_date, admission_source, funding_type, funding_details, flags, tags, dnacpr_status, dnacpr_date, dnacpr_review_date, dnacpr_details, advance_decision, advance_decision_date, discharge_date, discharge_reason, discharge_summary, discharge_destination } = data;
+    const { organization_id, first_name, last_name, date_of_birth, nhs_number, room_number, status, gp_name, gp_surgery, gp_phone, gp_email, gp_address, dietary_requirements, allergies, support_level, location_id, min_staff_required, pharmacy_name, pharmacy_phone, pharmacy_address, social_worker_name, social_worker_phone, social_worker_email, photo_url, gender, pronouns, marital_status, religion, communication_language, communication_interpreter, communication_method, admission_date, admission_source, funding_type, funding_details, flags, tags, dnacpr_status, dnacpr_date, dnacpr_review_date, dnacpr_details, advance_decision, advance_decision_date, discharge_date, discharge_reason, discharge_summary, discharge_destination } = data;
     const result = await query(
-      `INSERT INTO service_users (organization_id, first_name, last_name, date_of_birth, nhs_number, room_number, status, gp_name, gp_surgery, gp_phone, gp_email, gp_address, dietary_requirements, allergies, pharmacy_name, pharmacy_phone, pharmacy_address, social_worker_name, social_worker_phone, social_worker_email, photo_url, gender, pronouns, marital_status, religion, communication_language, communication_interpreter, communication_method, admission_date, admission_source, funding_type, funding_details, flags, tags, dnacpr_status, dnacpr_date, dnacpr_review_date, dnacpr_details, advance_decision, advance_decision_date, discharge_date, discharge_reason, discharge_summary, discharge_destination)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44) RETURNING *`,
-      [organization_id, first_name, last_name, date_of_birth, nhs_number, room_number, status || 'active', gp_name, gp_surgery, gp_phone, gp_email || null, gp_address || null, dietary_requirements, allergies || [], pharmacy_name || null, pharmacy_phone || null, pharmacy_address || null, social_worker_name || null, social_worker_phone || null, social_worker_email || null, photo_url || null, gender || null, pronouns || null, marital_status || null, religion || null, communication_language || null, communication_interpreter ?? null, communication_method || null, admission_date || null, admission_source || null, funding_type || null, funding_details || null, flags || [], tags || [], dnacpr_status || null, dnacpr_date || null, dnacpr_review_date || null, dnacpr_details || null, advance_decision || null, advance_decision_date || null, discharge_date || null, discharge_reason || null, discharge_summary || null, discharge_destination || null]
+      `INSERT INTO service_users (organization_id, first_name, last_name, date_of_birth, nhs_number, room_number, status, gp_name, gp_surgery, gp_phone, gp_email, gp_address, dietary_requirements, allergies, support_level, location_id, min_staff_required, pharmacy_name, pharmacy_phone, pharmacy_address, social_worker_name, social_worker_phone, social_worker_email, photo_url, gender, pronouns, marital_status, religion, communication_language, communication_interpreter, communication_method, admission_date, admission_source, funding_type, funding_details, flags, tags, dnacpr_status, dnacpr_date, dnacpr_review_date, dnacpr_details, advance_decision, advance_decision_date, discharge_date, discharge_reason, discharge_summary, discharge_destination)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47) RETURNING *`,
+      [organization_id, first_name, last_name, date_of_birth, nhs_number, room_number, status || 'active', gp_name, gp_surgery, gp_phone, gp_email || null, gp_address || null, dietary_requirements, typeof allergies === 'string' ? allergies : JSON.stringify(allergies ?? []), support_level || null, location_id || null, min_staff_required ?? null, pharmacy_name || null, pharmacy_phone || null, pharmacy_address || null, social_worker_name || null, social_worker_phone || null, social_worker_email || null, photo_url || null, gender || null, pronouns || null, marital_status || null, religion || null, communication_language || null, communication_interpreter ?? null, communication_method || null, admission_date || null, admission_source || null, funding_type || null, funding_details || null, typeof flags === 'string' ? flags : JSON.stringify(flags ?? []), typeof tags === 'string' ? tags : JSON.stringify(tags ?? []), dnacpr_status || null, dnacpr_date || null, dnacpr_review_date || null, dnacpr_details || null, advance_decision || null, advance_decision_date || null, discharge_date || null, discharge_reason || null, discharge_summary || null, discharge_destination || null]
     );
     return result.rows[0];
   }
@@ -177,7 +180,7 @@ export class ServiceUserRepository {
     const ALLOWED_COLUMNS = new Set([
       'first_name', 'last_name', 'date_of_birth', 'nhs_number', 'room_number',
       'status', 'gp_name', 'gp_surgery', 'gp_phone', 'gp_email', 'gp_address',
-      'dietary_requirements', 'allergies',
+      'dietary_requirements', 'allergies', 'support_level', 'location_id', 'min_staff_required',
       'pharmacy_name', 'pharmacy_phone', 'pharmacy_address',
       'social_worker_name', 'social_worker_phone', 'social_worker_email',
       'photo_url', 'updated_at',
@@ -191,9 +194,13 @@ export class ServiceUserRepository {
     ]);
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     const dateFields = new Set(['date_of_birth', 'review_date', 'recorded_date', 'resolved_date', 'check_date', 'reassessment_date', 'next_review_date', 'assessment_date']);
+    const jsonFields = new Set(['allergies', 'flags', 'tags']);
     for (const [k, v] of Object.entries(data)) {
       if (!ALLOWED_COLUMNS.has(k)) continue;
-      const val = dateFields.has(k) && v === '' ? null : v;
+      let val = dateFields.has(k) && v === '' ? null : v;
+      if (jsonFields.has(k) && val !== null && val !== undefined) {
+        val = typeof val === 'string' ? val : JSON.stringify(val);
+      }
       fields.push(`${k} = $${idx++}`); params.push(val);
     }
     if (fields.length === 0) {

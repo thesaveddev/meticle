@@ -125,7 +125,7 @@ export default function ArchivedMarPage() {
             getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
             value={selectedServiceUser}
             onChange={(_, v) => { setSelectedServiceUser(v); setExpandedChartId(null); setChartMonth(null) }}
-            renderInput={(params) => <TextField {...params} label="Search Service User" size="small" />}
+            renderInput={(params) => <TextField {...params} label="Search Person" size="small" />}
             sx={{ minWidth: 300 }}
           />
           <TextField size="small" placeholder="Search by chart title..." value={searchTerm}
@@ -141,12 +141,12 @@ export default function ArchivedMarPage() {
       ) : !selectedServiceUser ? (
         <Paper sx={{ p: 6, textAlign: 'center' }}>
           <MedIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 2 }} />
-          <Typography color="text.secondary">Select a service user to view archived charts</Typography>
+          <Typography color="text.secondary">Select a person to view archived charts</Typography>
         </Paper>
       ) : filteredRecords.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography color="text.secondary">
-            {recordsData?.length === 0 ? 'No archived charts for this service user.' : 'No charts match your search.'}
+            {recordsData?.length === 0 ? 'No archived charts for this person.' : 'No charts match your search.'}
           </Typography>
         </Paper>
       ) : (

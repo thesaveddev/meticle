@@ -8,6 +8,26 @@ import bcrypt from 'bcryptjs'
 
 const PWH = bcrypt.hashSync('DemoPass123!', 10)
 
+// Bypass RLS for seeding: wrap pool.query so every query runs on a connection
+// with the super-admin RLS session vars set (seed runs outside the request context).
+const __seedPoolQuery = pool.query.bind(pool);
+(pool as any).query = (text: string, params?: any[]) => {
+  if (typeof text === 'string') {
+    return (async () => {
+      const client = await pool.connect();
+      try {
+        await client.query(`SELECT set_config('app.current_org_id', $1, false)`, ['']);
+        await client.query(`SELECT set_config('app.current_user_id', $1, false)`, ['00000000-0000-0000-0000-000000000000']);
+        await client.query(`SELECT set_config('app.current_user_role', $1, false)`, ['SUPER_ADMIN']);
+        return await client.query(text, params);
+      } finally {
+        client.release();
+      }
+    })();
+  }
+  return __seedPoolQuery(text, params);
+};
+
 const ADJECTIVES = ['Apex', 'Bright', 'Clear', 'Crest', 'Crown', 'Fair', 'Golden', 'Grand', 'High', 'Ivy', 'Jade', 'Key', 'Lark', 'Maple', 'North', 'Oak', 'Pine', 'Quest', 'Ridge', 'Silver', 'Stone', 'Summit', 'Tide', 'True', 'Vale', 'West', 'Wise', 'Yew']
 const NOUNS = ['Ascot', 'Bridge', 'Brook', 'Chase', 'Cliff', 'Dale', 'Downs', 'Edge', 'Elm', 'Field', 'Garth', 'Glen', 'Grange', 'Grove', 'Hall', 'Haven', 'Heath', 'Holme', 'Hurst', 'Knoll', 'Lea', 'Marsh', 'Meadow', 'Moor', 'Orchards', 'Park', 'Rise', 'Royd', 'Shaw', 'Spring', 'Thorn', 'Vale', 'Wade', 'Ward', 'Wood', 'Worth']
 
@@ -134,7 +154,7 @@ async function seed() {
   }
   console.log('  ✓ Leave types & balances created')
 
-  // ── 7. Service Users (18) ──
+  // ── 7. People (18) ──
   const suData = [
     { first: 'Arthur', last: 'Clarke', room: '101', nhs: 'A12345678', allergies: 'Penicillin', dob: '1942-03-15', gender: 'Male', religion: 'Catholic', funding: 'la_funded', flags: ['falls_risk', 'dnr'], support: 'two_to_one', locIdx: 0, diet: 'Soft diet only', gp: 'Dr Patel', gpSurg: 'Victoria Road Surgery', gpPhone: '020 7946 0101' },
     { first: 'Margaret', last: 'Silva', room: '102', nhs: 'A23456789', allergies: '', dob: '1938-07-22', gender: 'Female', religion: 'Church of England', funding: 'self_funded', flags: ['mca_dols', 'behaviour'], support: 'one_to_one', locIdx: 0, diet: 'Diabetic', gp: 'Dr Evans', gpSurg: 'Victoria Road Surgery', gpPhone: '020 7946 0101' },
@@ -158,11 +178,12 @@ async function seed() {
   const sus: any[] = []
   for (const su of suData) {
     const id = uuid()
-    await pool.query(`INSERT INTO service_users (id,organization_id,first_name,last_name,date_of_birth,nhs_number,room_number,gender,religion,funding_type,flags,allergies,dietary_requirements,gp_name,gp_surgery,gp_phone,status,support_level) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
-      [id, orgId, su.first, su.last, su.dob, su.nhs, su.room, su.gender, su.religion, su.funding, JSON.stringify(su.flags), JSON.stringify(su.allergies.split(', ').filter(Boolean)), su.diet, su.gp, su.gpSurg, su.gpPhone, 'active', su.support])
+    const minStaff = su.support === 'one_to_one' ? 1 : su.support === 'two_to_one' ? 2 : su.support === 'three_to_one' ? 3 : su.support === 'complex' ? 2 : null
+    await pool.query(`INSERT INTO service_users (id,organization_id,first_name,last_name,date_of_birth,nhs_number,room_number,gender,religion,funding_type,flags,allergies,dietary_requirements,gp_name,gp_surgery,gp_phone,status,support_level,location_id,min_staff_required) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
+      [id, orgId, su.first, su.last, su.dob, su.nhs, su.room, su.gender, su.religion, su.funding, JSON.stringify(su.flags), JSON.stringify(su.allergies.split(', ').filter(Boolean)), su.diet, su.gp, su.gpSurg, su.gpPhone, 'active', su.support, locIds[su.locIdx], minStaff])
     sus.push({ id, name: `${su.first} ${su.last}`, room: su.room, locIdx: su.locIdx, allergies: su.allergies, diet: su.diet })
   }
-  console.log('  ✓ 18 service users created')
+  console.log('  ✓ 18 people created')
 
   // ── 8. Care Plans (36) ──
   const planCats = ['personal_care', 'medication', 'mobility', 'nutrition', 'mental_health', 'behaviour', 'skin_care', 'communication']
@@ -743,7 +764,7 @@ async function seed() {
   }
   console.log('  ✓ 20 notifications created')
 
-  // ── 37. Service User Documents (24) ──
+  // ── 37. Person Documents (24) ──
   const docTypes = ['care_plan', 'assessment', 'referral', 'consent_form', 'correspondence', 'other']
   for (let i = 0; i < 24; i++) {
     const su = sus[i % sus.length]
@@ -755,7 +776,7 @@ async function seed() {
        new Date(Date.now() - i * 15 * 86400000).toISOString().split('T')[0],
        staff[Math.floor(Math.random() * staff.length)].userId])
   }
-  console.log('  ✓ 24 service user documents created')
+  console.log('  ✓ 24 person documents created')
 
   // ── 38. Manager Delegations (5) ──
   const delePairs = [[1, 5], [2, 9], [3, 11], [1, 14], [2, 16]]
@@ -887,7 +908,7 @@ async function seed() {
   console.log(`  All passwords: DemoPass123!`)
   console.log(`\n  Locations:`)
   for (const l of locations) console.log(`    - ${l.name}`)
-  console.log(`\n  ${staff.length} staff, ${sus.length} service users`)
+  console.log(`\n  ${staff.length} staff, ${sus.length} people`)
   console.log(`  ${trCount} training records, ${crCount} compliance records`)
   console.log(`  ${shiftCount} shifts across ${locations.length} locations\n`)
 

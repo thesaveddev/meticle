@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { EMedicationRepository, EMedicationAuditRepository } from './emedication.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { query } from '../../shared/database';
+import { MedicationAlertService } from './medication-alert.service';
 
 export class EMedicationController {
   static getOrgId(req: Request): string {
@@ -172,6 +173,30 @@ export class EMedicationController {
       }
     }
 
+    // Block marking as given when linked stock is empty
+    let stockBefore: { quantity: number; reorder_level: number } | null = null;
+    let linkedStockItemId: string | null = null;
+    if (status === 'given') {
+      const itemResult = await query(`SELECT stock_item_id, name FROM emedication_items WHERE id = $1`, [emedication_item_id]);
+      linkedStockItemId = itemResult.rows[0]?.stock_item_id || null;
+      if (linkedStockItemId) {
+        const stock = await EMedicationRepository.getStockForItem(emedication_item_id);
+        if (stock && stock.quantity !== null && Number(stock.quantity) <= 0) {
+          throw new AppError(409, `Cannot mark as given: no stock available for ${itemResult.rows[0]?.name || 'this medication'}. Log a delivery or stock adjustment first.`);
+        }
+        if (stock && !stock.service_user_id) {
+          const rec = await query(
+            `SELECT er.service_user_id FROM emedication_items mi JOIN emedication_records er ON er.id = mi.emedication_record_id WHERE mi.id = $1`,
+            [emedication_item_id]
+          );
+          if (rec.rows[0]?.service_user_id) {
+            await query(`UPDATE emedication_stock SET service_user_id = $2 WHERE id = $1 AND service_user_id IS NULL`, [linkedStockItemId, rec.rows[0].service_user_id]);
+          }
+        }
+        stockBefore = { quantity: Number(stock?.quantity ?? 0), reorder_level: Number(stock?.reorder_level ?? 0) };
+      }
+    }
+
     const admin = await EMedicationRepository.upsertAdministration({
       emedication_item_id,
       staff_id: staffProfileId,
@@ -182,14 +207,17 @@ export class EMedicationController {
       prn_reason, prn_effectiveness, wastage_amount, wastage_reason, batch_number, expiry_date
     });
 
-    if (status === 'given') {
-      const itemResult = await query(`SELECT stock_item_id FROM emedication_items WHERE id = $1`, [emedication_item_id]);
-      if (itemResult.rows[0]?.stock_item_id) {
-        await EMedicationRepository.deductStockFromAdministration(itemResult.rows[0].stock_item_id);
+    const orgIdAdmin = EMedicationController.getOrgId(req);
+
+    if (status === 'given' && linkedStockItemId) {
+      const stockAfter = await EMedicationRepository.deductStockFromAdministration(linkedStockItemId);
+      if (stockBefore && stockAfter &&
+          stockBefore.quantity > stockBefore.reorder_level &&
+          stockAfter.quantity <= stockAfter.reorder_level) {
+        await MedicationAlertService.notifyReorder(orgIdAdmin, linkedStockItemId, stockAfter);
       }
     }
 
-    const orgIdAdmin = EMedicationController.getOrgId(req);
     await EMedicationAuditRepository.log({
       organization_id: orgIdAdmin,
       action: status === 'given' ? 'administer' : status,
@@ -204,6 +232,20 @@ export class EMedicationController {
   }
 
   static async updateAdministration(req: Request, res: Response) {
+    if (req.body.status === 'given') {
+      const itemResult = await query(
+        `SELECT a.emedication_item_id, i.stock_item_id, i.name
+         FROM emedication_administrations a
+         JOIN emedication_items i ON a.emedication_item_id = i.id
+         WHERE a.id = $1`, [req.params.adminId]);
+      if (itemResult.rows[0]?.stock_item_id) {
+        const stock = await EMedicationRepository.getStockForItem(itemResult.rows[0].emedication_item_id);
+        if (stock && stock.quantity !== null && Number(stock.quantity) <= 0) {
+          throw new AppError(409, `Cannot mark as given: no stock available for ${itemResult.rows[0]?.name || 'this medication'}. Log a delivery or stock adjustment first.`);
+        }
+      }
+    }
+
     const admin = await EMedicationRepository.updateAdministration(req.params.adminId, req.body);
     if (!admin) throw new AppError(404, 'Administration record not found');
 

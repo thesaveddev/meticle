@@ -226,18 +226,18 @@ export default function StaffDirectoryPage() {
     }
   })
 
-  const admin = data?.admin
+  const admins = data?.admins?.length ? data.admins : (data?.admin ? [data.admin] : [])
   const staff = data?.staff || []
   const invitations = data?.invitations || []
 
   const existingEmails = new Set([
-    ...(admin ? [admin.email] : []),
+    ...admins.map((a: any) => a.email),
     ...staff.map((s: any) => s.email),
     ...invitations.map((i: any) => i.email),
   ])
 
   const allMembers = [
-    ...(admin ? [{ ...admin, _type: 'admin' as const }] : []),
+    ...admins.map((a: any) => ({ ...a, _type: 'admin' as const })),
     ...staff.map((s: any) => ({ ...s, _type: 'staff' as const })),
     ...invitations.map((i: any) => ({ ...i, _type: 'invitation' as const })),
   ]
@@ -582,7 +582,7 @@ export default function StaffDirectoryPage() {
                     </TableCell>
                     <TableCell>{statusChip(m.status, isInvitation)}</TableCell>
                     <TableCell align="right">
-                      {isAdmin ? null : (
+                      {isAdmin && currentUserRole !== UserRole.ORG_ADMIN ? null : (
                         <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, m) }}>
                           <MoreVertIcon fontSize="small" />
                         </IconButton>
@@ -624,16 +624,18 @@ export default function StaffDirectoryPage() {
               <ListItemText>Cancel Invitation</ListItemText>
             </MenuItem>,
           ]
-        ) : activeMenuUser?._type === 'staff' ? (
+        ) : activeMenuUser?._type === 'staff' || activeMenuUser?._type === 'admin' ? (
           [
             <MenuItem key="edit" onClick={handleEditProfile}>
               <ListItemIcon><EditIcon fontSize="small" /></ListItemIcon>
               <ListItemText>Edit Profile</ListItemText>
             </MenuItem>,
-            <MenuItem key="role" onClick={handleChangeRoleOpen}>
-              <ListItemIcon><PersonAddIcon fontSize="small" /></ListItemIcon>
-              <ListItemText>Change Role</ListItemText>
-            </MenuItem>,
+            currentUserRole === UserRole.ORG_ADMIN && activeMenuUser?.id !== currentUserId && (
+              <MenuItem key="role" onClick={handleChangeRoleOpen}>
+                <ListItemIcon><PersonAddIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Change Role</ListItemText>
+              </MenuItem>
+            ),
             activeMenuUser?.id !== currentUserId && (
               <MenuItem key="toggle" onClick={handleToggleStatus}>
                 <ListItemIcon>
@@ -644,7 +646,7 @@ export default function StaffDirectoryPage() {
                 </ListItemText>
               </MenuItem>
             ),
-            activeMenuUser?.id !== currentUserId && activeMenuUser?.status !== 'deactivated' && (
+            currentUserRole === UserRole.ORG_ADMIN && activeMenuUser?.id !== currentUserId && activeMenuUser?.status !== 'deactivated' && (
               <MenuItem key="remove" onClick={handleRemoveStaff}>
                 <ListItemIcon><DeleteIcon fontSize="small" /></ListItemIcon>
                 <ListItemText>Remove from Org</ListItemText>

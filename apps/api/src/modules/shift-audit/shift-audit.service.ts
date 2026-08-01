@@ -2,6 +2,7 @@ import { ShiftAuditRepository } from './shift-audit.repository';
 import { EmailService } from '../../shared/utils/email.service';
 import logger from '../../shared/utils/logger';
 import pool from '../../shared/database';
+import { EMedicationRepository } from '../emedication/emedication.repository';
 
 interface ShiftAssignment {
   staff_id: string;
@@ -43,6 +44,15 @@ export interface LocationAudit {
     missed: number;
     refused: number;
   }[];
+  low_stock: {
+    medication_name: string;
+    dosage: string;
+    unit: string;
+    quantity: number;
+    reorder_level: number;
+    quantity_unit: string;
+    service_user_name: string;
+  }[];
 }
 
 export class ShiftAuditService {
@@ -80,6 +90,22 @@ export class ShiftAuditService {
       managerMap.set(m.location_id, m);
     }
 
+    const lowStock = await EMedicationRepository.getLowStockForOrg(organizationId);
+    const lowStockByLocation = new Map<string, LocationAudit['low_stock']>();
+    for (const s of lowStock) {
+      const list = lowStockByLocation.get(s.location_id) || [];
+      list.push({
+        medication_name: s.medication_name,
+        dosage: s.dosage,
+        unit: s.unit,
+        quantity: Number(s.quantity),
+        reorder_level: Number(s.reorder_level),
+        quantity_unit: s.quantity_unit,
+        service_user_name: s.service_user_name,
+      });
+      lowStockByLocation.set(s.location_id, list);
+    }
+
     const locationMap = new Map<string, LocationAudit>();
     const locationSuIds = new Map<string, Set<string>>();
 
@@ -96,6 +122,7 @@ export class ShiftAuditService {
           staffing_ok: true,
           shifts: [],
           emar: [],
+          low_stock: [],
         });
         locationSuIds.set(s.location_id, new Set());
       }
@@ -128,6 +155,8 @@ export class ShiftAuditService {
     for (const [locId, loc] of locationMap) {
       const suIds = locationSuIds.get(locId) || new Set<string>();
       const emarStats: LocationAudit['emar'] = [];
+
+      loc.low_stock = lowStockByLocation.get(locId) || [];
 
       for (const suId of suIds) {
         const admins = emarBySu.get(suId) || [];

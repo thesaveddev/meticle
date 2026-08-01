@@ -15,18 +15,18 @@ export interface PolicyRow {
 }
 
 export const STANDARD_POLICIES = [
-  { title: 'Risk Assessment Policy', category: 'Risk Management', content: 'This policy sets out the organisation\'s approach to identifying, assessing, and managing risks to ensure the safety and wellbeing of service users and staff.' },
-  { title: 'Complaints & Compliments Policy', category: 'Human Resources', content: 'This policy sets out how the organisation receives, handles, and learns from complaints and compliments from service users, families, and others.' },
+  { title: 'Risk Assessment Policy', category: 'Risk Management', content: 'This policy sets out the organisation\'s approach to identifying, assessing, and managing risks to ensure the safety and wellbeing of people and staff.' },
+  { title: 'Complaints & Compliments Policy', category: 'Human Resources', content: 'This policy sets out how the organisation receives, handles, and learns from complaints and compliments from people, families, and others.' },
   { title: 'Lone Working Policy', category: 'Health & Safety', content: 'This policy sets out arrangements to protect staff who work alone without direct supervision as part of their normal duties.' },
   { title: 'Data Protection & GDPR Policy', category: 'GDPR & Data Protection', content: 'This policy sets out how the organisation collects, uses, stores, and protects personal and sensitive data in accordance with data protection law.' },
-  { title: 'Whistleblowing Policy', category: 'Human Resources', content: 'This policy encourages and enables staff to raise concerns about malpractice, wrongdoing, or risks to service users without fear of detriment.' },
-  { title: 'Infection Prevention & Control Policy', category: 'Infection Control', content: 'This policy sets out the organisation\'s approach to preventing and controlling the spread of infection to protect the health of service users, staff, and visitors.' },
-  { title: 'Equality, Diversity & Inclusion Policy', category: 'Equality & Diversity', content: 'This policy sets out the organisation\'s commitment to promoting equality, valuing diversity, and ensuring inclusion for all service users and staff.' },
-  { title: 'Mental Capacity Act (MCA) & DoLS Policy', category: 'Mental Health', content: 'This policy sets out how the organisation upholds the rights of service users under the Mental Capacity Act 2005 and Deprivation of Liberty Safeguards (DoLS).' },
-  { title: 'Fire Safety & Emergency Evacuation Policy', category: 'Fire Safety', content: 'This policy sets out the organisation\'s approach to fire safety and emergency evacuation to protect staff, service users, and visitors.' },
-  { title: 'Medication Management & Administration Policy', category: 'Medication', content: 'This policy ensures the safe and lawful management, administration, storage, and disposal of medication for all service users.' },
+  { title: 'Whistleblowing Policy', category: 'Human Resources', content: 'This policy encourages and enables staff to raise concerns about malpractice, wrongdoing, or risks to people without fear of detriment.' },
+  { title: 'Infection Prevention & Control Policy', category: 'Infection Control', content: 'This policy sets out the organisation\'s approach to preventing and controlling the spread of infection to protect the health of people, staff, and visitors.' },
+  { title: 'Equality, Diversity & Inclusion Policy', category: 'Equality & Diversity', content: 'This policy sets out the organisation\'s commitment to promoting equality, valuing diversity, and ensuring inclusion for all people and staff.' },
+  { title: 'Mental Capacity Act (MCA) & DoLS Policy', category: 'Mental Health', content: 'This policy sets out how the organisation upholds the rights of people under the Mental Capacity Act 2005 and Deprivation of Liberty Safeguards (DoLS).' },
+  { title: 'Fire Safety & Emergency Evacuation Policy', category: 'Fire Safety', content: 'This policy sets out the organisation\'s approach to fire safety and emergency evacuation to protect staff, people, and visitors.' },
+  { title: 'Medication Management & Administration Policy', category: 'Medication', content: 'This policy ensures the safe and lawful management, administration, storage, and disposal of medication for all people.' },
   { title: 'Safeguarding Adults Policy', category: 'Safeguarding', content: 'This policy sets out the organisation\'s approach to safeguarding adults at risk of abuse or neglect.' },
-  { title: 'Health & Safety Policy', category: 'Health & Safety', content: 'This policy sets out the organisation\'s commitment to providing a safe and healthy working environment for all staff, service users, and visitors.' },
+  { title: 'Health & Safety Policy', category: 'Health & Safety', content: 'This policy sets out the organisation\'s commitment to providing a safe and healthy working environment for all staff, people, and visitors.' },
 ];
 
 export class PolicyRepository {

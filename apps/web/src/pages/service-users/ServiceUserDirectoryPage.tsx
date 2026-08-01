@@ -4,7 +4,7 @@ import {
   TableContainer, TableHead, TableRow, TextField, Button,
   Chip, Stack, Alert, CircularProgress, InputAdornment,
   Dialog, DialogTitle, DialogContent, DialogActions, MenuItem,
-  TablePagination, Avatar, Checkbox,
+  TablePagination, Checkbox,
 } from '@mui/material'
 import {
   Add as AddIcon, Search as SearchIcon,
@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
+import ServiceUserAvatar from '../../components/ServiceUserAvatar'
 
 const SUPPORT_LEVELS = [
   { value: '', label: 'None specified' },
@@ -37,7 +38,7 @@ export default function ServiceUserDirectoryPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [addOpen, setAddOpen] = useState(false)
-  const [form, setForm] = useState({ first_name: '', last_name: '', date_of_birth: '', nhs_number: '', room_number: '', status: 'active', allergies: '', support_level: '' })
+  const [form, setForm] = useState({ first_name: '', last_name: '', date_of_birth: '', nhs_number: '', room_number: '', status: 'active', allergies: '', support_level: '', location_id: '', min_staff_required: '' })
   const [formError, setFormError] = useState('')
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -46,6 +47,11 @@ export default function ServiceUserDirectoryPage() {
   const [bulkStatus, setBulkStatus] = useState('active')
   const queryClient = useQueryClient()
 
+  const { data: locations = [] } = useQuery({
+    queryKey: ['locations'],
+    queryFn: () => api.get('/settings/locations').then(r => r.data),
+  })
+
   const { data: users = [], isLoading, error } = useQuery({
     queryKey: ['service-users', statusFilter, search],
     queryFn: () => api.get('/service-users', { params: { status: statusFilter || undefined, search: search || undefined } }).then(r => r.data),
@@ -53,7 +59,12 @@ export default function ServiceUserDirectoryPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post('/service-users', data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-users'] }); setAddOpen(false); setForm({ first_name: '', last_name: '', date_of_birth: '', nhs_number: '', room_number: '', status: 'active', allergies: '', support_level: '' }) },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-users'] })
+      setAddOpen(false)
+      setForm({ first_name: '', last_name: '', date_of_birth: '', nhs_number: '', room_number: '', status: 'active', allergies: '', support_level: '', location_id: '', min_staff_required: '' })
+      showSnackbar('Person added successfully')
+    },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to create'),
   })
 
@@ -73,6 +84,7 @@ export default function ServiceUserDirectoryPage() {
     e.preventDefault()
     setFormError('')
     if (!form.first_name.trim() || !form.last_name.trim()) { setFormError('Name is required'); return }
+    if (!form.location_id) { setFormError('Location is required'); return }
     const payload: any = { first_name: form.first_name, last_name: form.last_name }
     if (form.date_of_birth) payload.date_of_birth = form.date_of_birth
     if (form.nhs_number) payload.nhs_number = form.nhs_number
@@ -80,6 +92,8 @@ export default function ServiceUserDirectoryPage() {
     if (form.status) payload.status = form.status
     if (form.allergies.trim()) payload.allergies = form.allergies.split(',').map((a: string) => a.trim()).filter(Boolean)
     if (form.support_level) payload.support_level = form.support_level
+    payload.location_id = form.location_id
+    if (form.support_level === 'complex' && form.min_staff_required) payload.min_staff_required = parseInt(form.min_staff_required, 10)
     createMutation.mutate(payload)
   }
 
@@ -96,7 +110,7 @@ export default function ServiceUserDirectoryPage() {
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800 }}>Service Users</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 800 }}>People</Typography>
         <Stack direction="row" spacing={1}>
           {selected.size > 0 && (
             <>
@@ -159,10 +173,8 @@ export default function ServiceUserDirectoryPage() {
                     <Checkbox checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} />
                   </TableCell>
                   <TableCell onClick={() => navigate(`/service-users/${u.id}`)}>
-                    <Avatar src={u.photo_url || undefined}
-                      sx={{ width: 40, height: 40, bgcolor: '#0F4C81', fontSize: 16 }}>
-                      {!u.photo_url && `${u.first_name?.[0]}${u.last_name?.[0]}`}
-                    </Avatar>
+                    <ServiceUserAvatar photoUrl={u.photo_url} name={`${u.first_name} ${u.last_name}`}
+                      sx={{ width: 40, height: 40, bgcolor: '#0F4C81', fontSize: 16 }} />
                   </TableCell>
                   <TableCell onClick={() => navigate(`/service-users/${u.id}`)}>
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -219,11 +231,23 @@ export default function ServiceUserDirectoryPage() {
                 <TextField label="Room / Bed" fullWidth value={form.room_number} onChange={e => setForm({ ...form, room_number: e.target.value })} />
               </Stack>
               <TextField label="Allergies (comma-separated)" fullWidth placeholder="e.g. Penicillin, Latex, Peanuts" value={form.allergies} onChange={e => setForm({ ...form, allergies: e.target.value })} />
+              <TextField select label="Location" fullWidth required value={form.location_id} error={!!formError && !form.location_id}
+                helperText={formError && !form.location_id ? 'Please select a location' : 'Which location does this person live at?'}
+                onChange={e => setForm({ ...form, location_id: e.target.value })}>
+                {locations.map((l: any) => (
+                  <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>
+                ))}
+              </TextField>
               <TextField select label="Level of Support" fullWidth value={form.support_level} onChange={e => setForm({ ...form, support_level: e.target.value })}>
                 {SUPPORT_LEVELS.map(sl => (
                   <MenuItem key={sl.value} value={sl.value}>{sl.label}</MenuItem>
                 ))}
               </TextField>
+              {form.support_level === 'complex' && (
+                <TextField label="Minimum Staff Required" type="number" inputProps={{ min: 1, max: 6 }}
+                  fullWidth required helperText="How many staff are required to support this person safely at all times?"
+                  value={form.min_staff_required} onChange={e => setForm({ ...form, min_staff_required: e.target.value })} />
+              )}
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>

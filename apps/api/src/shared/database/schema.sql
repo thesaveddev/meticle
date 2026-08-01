@@ -626,6 +626,8 @@ CREATE TABLE IF NOT EXISTS service_users (
     dietary_requirements TEXT,
     allergies JSONB DEFAULT '[]',
     support_level VARCHAR(50),
+    location_id UUID REFERENCES locations(id) ON DELETE SET NULL,
+    min_staff_required INTEGER DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

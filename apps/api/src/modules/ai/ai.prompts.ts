@@ -58,15 +58,16 @@ Rules you MUST follow:
 1. **Minimum staffing by shift type**: Day shifts require {{min_day_staff}} staff, Night shifts require {{min_night_staff}} staff, Sleep-in shifts require {{min_sleep_staff}} staff
 2. **Mandatory start times**: Each shift MUST start at one of the provided mandatory start times ({{mandatory_start_times}}). If "All" is specified, all shifts start at that single time.
 3. **Minimum end time**: No shift should end before {{min_end_time}} unless it is a sleep-in shift. Day shifts must end at or after {{min_end_time}}. If "All Shifts Same End" is "true", ALL shifts must end exactly at {{min_end_time}}.
-4. **Shift types**: Day (07:00-14:00, 08:00-16:00, 09:00-17:00, 10:00-18:00, 14:00-22:00), Sleep-in (22:00-07:00), Wake Night (21:00-07:00) — use the mandatory start times as the only allowed start times; vary end times between the minimum and typical duration to provide coverage overlap
-5. **Staff allocation**: Assign staff to their HOME location (primary_location) first; only cross-location if absolutely necessary
-6. **Compliance priority**: Staff with higher compliance % should be prioritized for assignment
-7. **Hours limits**: Check each staff's max_hours_weekly (visa limit). If present, this is the HARD CEILING — do not exceed it. If no max_hours_weekly, use contracted_hours_weekly as limit. Mark overtime shifts clearly.
-8. **Rest periods**: Ensure 11 hours between consecutive shifts
-9. **No double-booking**: A staff member cannot be assigned to two shifts at the same time or overlapping times
-10. **Leave respect**: Staff on approved leave must not be assigned
-11. **Weekend rotation**: Rotate weekends fairly among staff — same staff should not work every weekend
-12. **Cross-location**: When assigning staff away from their primary location, add a note explaining why
+ 4. **Shift types**: Day (07:00-14:00, 08:00-16:00, 09:00-17:00, 10:00-18:00, 14:00-22:00), Sleep-in (22:00-07:00), Wake Night (21:00-07:00) — use the mandatory start times as the only allowed start times; vary end times between the minimum and typical duration to provide coverage overlap
+ 5. **Care needs staffing**: Each person at the location has a staffing requirement (one_to_one = 1 staff, two_to_one = 2, three_to_one = 3, complex = the custom min staff). The total staff on duty at any time MUST be at least the sum of the staffing needs of all people present, AND at least the minimum staffing by shift type. Add a warning listing any day where assigned staff fall below the care-needs total.
+ 6. **Staff allocation**: Assign staff to their HOME location (primary_location) first; only cross-location if absolutely necessary
+ 7. **Compliance priority**: Staff with higher compliance % should be prioritized for assignment
+ 8. **Hours limits**: Check each staff's max_hours_weekly (visa limit). If present, this is the HARD CEILING — do not exceed it. If no max_hours_weekly, use contracted_hours_weekly as limit. Mark overtime shifts clearly.
+ 9. **Rest periods**: Ensure 11 hours between consecutive shifts
+ 10. **No double-booking**: A staff member cannot be assigned to two shifts at the same time or overlapping times
+ 11. **Leave respect**: Staff on approved leave must not be assigned
+ 12. **Weekend rotation**: Rotate weekends fairly among staff — same staff should not work every weekend
+ 13. **Cross-location**: When assigning staff away from their primary location, add a note explaining why
 
 Output JSON with this EXACT structure (no extra fields):
 {
@@ -112,8 +113,11 @@ Existing Shifts (do not create duplicates):
 Staff on Leave (do not assign):
 {{staff_on_leave}}
 
-Service Users Requiring Care:
+People Requiring Care:
 {{service_users}}
+
+Staffing Needs (sum of person requirements per day — total staff on duty MUST be at least this):
+{{staffing_needs}}
 
 Contracted Hours & Visa Limits: {{contracted_hours}}
 
@@ -148,7 +152,7 @@ Provide a prioritized compliance gap analysis.`,
   },
 
   incident_severity_triage: {
-    system: `You are a care quality risk assessor. Analyze incident reports and classify them by severity (low, medium, high, critical). Consider: harm to service users, regulatory reporting requirements (CQC notifiable), recurrence pattern, and systemic risk. Output JSON: { "severity": "low" | "medium" | "high" | "critical", "confidence": number (0-1), "reasoning": string, "recommended_actions": string[], "requires_cqc_notification": boolean }`,
+    system: `You are a care quality risk assessor. Analyze incident reports and classify them by severity (low, medium, high, critical). Consider: harm to people, regulatory reporting requirements (CQC notifiable), recurrence pattern, and systemic risk. Output JSON: { "severity": "low" | "medium" | "high" | "critical", "confidence": number (0-1), "reasoning": string, "recommended_actions": string[], "requires_cqc_notification": boolean }`,
     userTemplate: `Incident Title: {{title}}
 Description: {{description}}
 Category: {{category}}
@@ -160,7 +164,7 @@ Classify the severity and recommend actions.`,
   },
 
   visit_note_care_plan_gap: {
-    system: `You are a care plan auditor. Compare a carer's visit note against the service user's care plan and identify gaps, contradictions, or missing documentation. Output JSON: { "gaps": [{ "type": "missing" | "contradiction" | "incomplete", "description": string, "care_plan_reference": string, "risk_level": "low" | "medium" | "high" }], "audit_risk": "low" | "medium" | "high", "summary": string }`,
+    system: `You are a care plan auditor. Compare a carer's visit note against the person's care plan and identify gaps, contradictions, or missing documentation. Output JSON: { "gaps": [{ "type": "missing" | "contradiction" | "incomplete", "description": string, "care_plan_reference": string, "risk_level": "low" | "medium" | "high" }], "audit_risk": "low" | "medium" | "high", "summary": string }`,
     userTemplate: `Care Plan Requirements:
 {{care_plan}}
 
@@ -290,7 +294,7 @@ Return JSON:
     userTemplate: `Daily Note Content:
 {{daily_note_content}}
 
-Service User: {{service_user_name}}
+Person: {{service_user_name}}
 Recent History: {{recent_history}}
 
 Analyze for safeguarding concerns.`,
@@ -322,7 +326,7 @@ Return JSON:
     }
   ]
 }`,
-    userTemplate: `Service User: {{service_user_name}}
+    userTemplate: `Person: {{service_user_name}}
 Daily Note: {{daily_note_content}}
 Current Care Plans: {{current_care_plans}}
 Recent Goal Progress: {{recent_goal_progress}}
@@ -347,7 +351,7 @@ Return JSON:
   "factors_influencing_mood": ["identified contributing factors"],
   "recommended_support": ["suggested interventions to support wellbeing"]
 }`,
-    userTemplate: `Service User: {{service_user_name}}
+    userTemplate: `Person: {{service_user_name}}
 Observation: {{staff_input}}
 Previous Mood Data: {{previous_mood}}
 Known Factors: {{known_factors}}

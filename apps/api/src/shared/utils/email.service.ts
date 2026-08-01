@@ -84,15 +84,15 @@ export class EmailService {
           `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0">` +
           `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Smart Scheduling &amp; Rota Planning</strong> — Drag-and-drop rota, shift swaps, overtime claims, and minimum-staff alerts. Reduce agency spend by up to 40%.</td></tr>` +
           `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Compliance &amp; CQC Readiness</strong> — Real-time compliance dashboards, automated training reminders, DBS tracking, and one-click CQC evidence packs. Know your score before the inspector arrives.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>eMAR &amp; Clinical Records</strong> — 31-day medication administration charts, PRN tracking, stock management, and full clinical history for every service user.</td></tr>` +
-          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Service User Hub</strong> — Care plans, daily notes, risk assessments, family portal, body maps, wellbeing logs, and discharge planning — all in one place.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>eMAR &amp; Clinical Records</strong> — 31-day medication administration charts, PRN tracking, stock management, and full clinical history for every person.</td></tr>` +
+          `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Person Hub</strong> — Care plans, daily notes, risk assessments, family portal, body maps, wellbeing logs, and discharge planning — all in one place.</td></tr>` +
           `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Incidents &amp; Reporting</strong> — Log, categorise, and action incidents with full audit trails. 35+ reports with filters and CSV export.</td></tr>` +
           `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Leave, Training &amp; Competency</strong> — End-to-end leave management, training matrix with expiry alerts, and competency assessments with evidence.</td></tr>` +
           `</table>` +
           `<p style="margin:0 0 16px 0">You're on a <strong>14-day free trial</strong> with full access to every feature. Here's how to get started:</p>` +
           `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>1.</strong> Complete your organisation profile and invite your team</p>` +
           `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>2.</strong> Set up your locations, departments, and teams</p>` +
-          `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>3.</strong> Add service users and configure care plans</p>` +
+          `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>3.</strong> Add people and configure care plans</p>` +
           `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>4.</strong> Build your rota and invite staff to claim shifts</p>` +
           `<p style="margin:0 0 16px 0;font-size:14px;color:#1F2937"><strong>5.</strong> Run your first CQC readiness assessment</p>` +
           `<p style="margin:0;font-size:14px;color:#4B5563">If you need anything, just reply to this email — we're here to help.</p>` +
@@ -388,6 +388,15 @@ export class EmailService {
         missed: number;
         refused: number;
       }[];
+      low_stock: {
+        medication_name: string;
+        dosage: string;
+        unit: string;
+        quantity: number;
+        reorder_level: number;
+        quantity_unit: string;
+        service_user_name: string;
+      }[];
     }
   ) {
     const staffingBadge = loc.staffing_ok
@@ -438,12 +447,41 @@ export class EmailService {
 <tr><td>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
 <tr style="background:#F9FAFB">
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Service User</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Person</td>
   <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Required</td>
   <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Given</td>
   <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Missed/Refused</td>
 </tr>
 ${emarRows}
+</table>
+</td></tr></table>
+</td></tr>`
+      : '';
+
+    const lowStockRows = loc.low_stock.map(s =>
+      `<tr>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${s.medication_name} ${s.dosage}${s.unit}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${s.service_user_name || 'Shared stock'}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">
+          <span style="color:#991B1B;background:#FEE2E2;padding:2px 8px;border-radius:10px;font-weight:600">${s.quantity} ${s.quantity_unit || s.unit || ''}</span>
+        </td>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">${s.reorder_level}</td>
+      </tr>`).join('');
+
+    const lowStockSection = loc.low_stock.length > 0
+      ? `<tr><td style="padding:20px 0 0 0">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="font-size:16px;font-weight:700;color:#1F2937;padding:0 0 4px 0">Stock Reorder Alerts</td></tr>
+<tr><td style="font-size:13px;color:#6B7280;padding:0 0 12px 0">${loc.low_stock.length} item(s) at or below reorder level — please arrange delivery.</td></tr>
+<tr><td>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
+<tr style="background:#F9FAFB">
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Medication</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Person</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Remaining</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Reorder At</td>
+</tr>
+${lowStockRows}
 </table>
 </td></tr></table>
 </td></tr>`
@@ -488,14 +526,106 @@ ${emarRows}
 <tr style="background:#F9FAFB">
   <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Shift</td>
   <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Staff</td>
-  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Service User</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Person</td>
   <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Status</td>
 </tr>
 ${shiftRows}
 </table>
 </td></tr></table>
-${emarSection}`,
+${emarSection}
+${lowStockSection}`,
         { label: 'View Rota', url: `${baseUrl()}/scheduling` }
+      )
+    );
+  }
+
+  // -- Stock reorder alert --
+  static async sendStockReorderEmail(
+    email: string,
+    managerName: string,
+    item: {
+      medication_name: string;
+      dosage: string;
+      unit: string;
+      quantity: number;
+      reorder_level: number;
+      quantity_unit: string;
+      location_name: string;
+      service_user_name: string;
+    }
+  ) {
+    const remainingLabel = `${item.quantity} ${item.quantity_unit || item.unit || ''}`;
+    await sendMail(email,
+      `Stock Reorder Alert — ${item.medication_name} — ${item.location_name}`,
+      buildEmailHtml(
+        'Stock Reorder Alert',
+        `Reorder required: ${item.medication_name}`,
+        `<p>Hi ${managerName},</p>
+<p><strong>${item.medication_name} ${item.dosage}${item.unit}</strong>${item.service_user_name ? ` for <strong>${item.service_user_name}</strong>` : ''} has reached its reorder level.</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
+<tr style="background:#F9FAFB">
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Remaining Stock</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Reorder Level</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Location</td>
+</tr>
+<tr>
+  <td style="padding:8px 12px;font-size:14px;font-weight:700;color:#991B1B">${remainingLabel}</td>
+  <td style="padding:8px 12px;font-size:14px;text-align:center">${item.reorder_level}</td>
+  <td style="padding:8px 12px;font-size:13px">${item.location_name || '—'}</td>
+</tr>
+</table>
+
+<p style="font-size:13px;color:#6B7280">Once stock is below the reorder level, administrations cannot be recorded as given until a delivery is logged. Please arrange a delivery as soon as possible.</p>`,
+        { label: 'View Stock', url: `${baseUrl()}/emedication` }
+      )
+    );
+  }
+
+  // -- Late medication alert --
+  static async sendLateMedAlertEmail(
+    email: string,
+    recipientName: string,
+    locationName: string,
+    items: {
+      service_user_name: string;
+      medication_name: string;
+      dosage: string;
+      unit: string;
+      scheduled_time: string;
+    }[],
+    delayMinutes: number
+  ) {
+    const rows = items.map(i => {
+      const time = new Date(i.scheduled_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      return `<tr>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${i.service_user_name}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px"><strong>${i.medication_name}</strong> ${i.dosage}${i.unit}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">
+          <span style="color:#991B1B;background:#FEE2E2;padding:2px 8px;border-radius:10px;font-weight:600">${time}</span>
+        </td>
+      </tr>`;
+    }).join('');
+
+    await sendMail(email,
+      `Medication Overdue — ${locationName} — ${items.length} due`,
+      buildEmailHtml(
+        'Late Medication Alert',
+        `Medications overdue at ${locationName}`,
+        `<p>Hi ${recipientName},</p>
+<p>${items.length} medication administration${items.length !== 1 ? 's are' : ' is'} overdue by more than <strong>${delayMinutes} minutes</strong>. Please check on the person(s) and administer where appropriate.</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
+<tr style="background:#F9FAFB">
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Person</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase">Medication</td>
+  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;text-align:center">Scheduled</td>
+</tr>
+${rows}
+</table>
+
+<p style="font-size:13px;color:#6B7280">Any omitted or refused administration must be recorded on the MAR chart and reported to the prescriber if required.</p>`,
+        { label: 'Open eMAR', url: `${baseUrl()}/emedication` }
       )
     );
   }

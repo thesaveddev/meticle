@@ -17,12 +17,45 @@ export class ServiceUserController {
     return req.user!.userId;
   }
 
+  private static staffingFor(body: any): any {
+    const level = body?.support_level;
+    if (level === undefined || level === null) return body;
+    const data = { ...body };
+    if (level === 'one_to_one') data.min_staff_required = 1;
+    else if (level === 'two_to_one') data.min_staff_required = 2;
+    else if (level === 'three_to_one') data.min_staff_required = 3;
+    else if (level === 'complex') {
+      const ms = Math.round(Number(data.min_staff_required));
+      data.min_staff_required = ms > 0 && ms <= 6 ? ms : 1;
+    } else {
+      data.min_staff_required = null;
+    }
+    return data;
+  }
+
+  private static decorate(row: any): any {
+    if (!row) return row;
+    if (row.min_staff_required == null && row.support_level) {
+      if (row.support_level === 'one_to_one') row.min_staff_required = 1;
+      else if (row.support_level === 'two_to_one') row.min_staff_required = 2;
+      else if (row.support_level === 'three_to_one') row.min_staff_required = 3;
+      else if (row.support_level === 'complex') row.min_staff_required = 1;
+    }
+    return row;
+  }
+
+  private static async assertLocationInOrg(orgId: string, locationId?: string | null) {
+    if (!locationId) return;
+    const r = await pool.query(`SELECT id FROM locations WHERE id = $1 AND organization_id = $2`, [locationId, orgId]);
+    if (r.rows.length === 0) throw new AppError(400, 'Location not found in your organization');
+  }
+
   // ---- Service Users ----
   static async list(req: Request, res: Response) {
     const orgId = ServiceUserController.getOrgId(req);
     const { status, search } = req.query as any;
     const users = await ServiceUserRepository.findAll(orgId, { status, search });
-    res.json(users);
+    res.json(users.map(ServiceUserController.decorate));
   }
 
   static async getById(req: Request, res: Response) {
@@ -34,24 +67,26 @@ export class ServiceUserController {
       'INSERT INTO service_user_access_log (service_user_id, accessed_by, action, ip_address) VALUES ($1, $2, $3, $4)',
       [req.params.id, userId, 'view', req.ip]
     );
-    res.json(user);
+    res.json(ServiceUserController.decorate(user));
   }
 
   static async create(req: Request, res: Response) {
     const orgId = ServiceUserController.getOrgId(req);
-    const user = await ServiceUserRepository.create({ ...req.body, organization_id: orgId });
+    await ServiceUserController.assertLocationInOrg(orgId, req.body?.location_id);
+    const user = await ServiceUserRepository.create({ ...ServiceUserController.staffingFor(req.body), organization_id: orgId });
     AuditRepository.log({ user_id: req.user!.userId, action: 'create', entity_type: 'service_user', entity_id: user.id, ip_address: req.ip }).catch(() => {});
     // Auto-create monthly MAR
     await EMedicationRepository.ensureMonthlyMar(orgId, user.id, req.user!.userId);
-    res.status(201).json(user);
+    res.status(201).json(ServiceUserController.decorate(user));
   }
 
   static async update(req: Request, res: Response) {
     const orgId = ServiceUserController.getOrgId(req);
-    const user = await ServiceUserRepository.update(req.params.id, req.body, orgId);
+    await ServiceUserController.assertLocationInOrg(orgId, req.body?.location_id);
+    const user = await ServiceUserRepository.update(req.params.id, ServiceUserController.staffingFor(req.body), orgId);
     if (!user) throw new AppError(404, 'Service user not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'service_user', entity_id: req.params.id, new_data: req.body, ip_address: req.ip }).catch(() => {});
-    res.json(user);
+    res.json(ServiceUserController.decorate(user));
   }
 
   static async uploadPhoto(req: Request, res: Response) {

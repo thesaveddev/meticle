@@ -40,7 +40,7 @@ export function seedTemplates() {
   <li>Training matrix with completion rates</li>
   <li>Identity document expiry tracking</li>
   <li>Competency assessment records</li>
-  <li>Service user care plan coverage</li>
+  <li>Person care plan coverage</li>
   <li>Incident log with severity classification</li>
 </ul>
 <p>All organised by CQC's 5 Key Lines of Enquiry. This is what inspectors expect — and what Meticle generates automatically.</p>

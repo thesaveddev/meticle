@@ -11,6 +11,19 @@ import { UserRole } from '@meticle/shared';
 import crypto from 'crypto';
 import { logWarn } from '../../shared/utils/logger';
 
+async function checkNotLastAdmin(orgId: string | undefined, excludeUserId?: string): Promise<void> {
+  if (!orgId) return;
+  const result = await pool.query(
+    'SELECT COUNT(*)::int as count FROM users WHERE organization_id = $1 AND role = $2 AND status != $3',
+    [orgId, 'ORG_ADMIN', 'deactivated']
+  );
+  let count = result.rows[0]?.count || 0;
+  if (excludeUserId) count--;
+  if (count <= 0) {
+    throw new AppError(400, 'Cannot remove the only ORG_ADMIN. Promote another user to ORG_ADMIN first.');
+  }
+}
+
 export class StaffController {
   static async createProfile(req: Request, res: Response) {
     const user = req.user!;
@@ -68,6 +81,9 @@ export class StaffController {
     if (user.rows.length === 0) throw new AppError(404, 'User not found');
 
     const oldRole = user.rows[0].role;
+    if (oldRole === 'ORG_ADMIN' && role !== 'ORG_ADMIN') {
+      await checkNotLastAdmin(orgId, userId);
+    }
     const result = await transaction(async (client) => {
       const updateResult = await client.query('UPDATE users SET role = $1 WHERE id = $2 RETURNING id, email, role, status', [role, userId]);
       await client.query('DELETE FROM user_permissions WHERE user_id = $1', [userId]);
@@ -117,6 +133,10 @@ export class StaffController {
     const user = await pool.query('SELECT * FROM users WHERE id = $1 AND organization_id = $2', [userId, orgId]);
     if (user.rows.length === 0) throw new AppError(404, 'User not found');
 
+    if (status === 'deactivated' && user.rows[0].role === 'ORG_ADMIN') {
+      await checkNotLastAdmin(orgId, userId);
+    }
+
     const result = await pool.query('UPDATE users SET status = $1 WHERE id = $2 RETURNING id, email, role, status', [status, userId]);
 
     AuditRepository.log({
@@ -139,6 +159,10 @@ export class StaffController {
     const user = await pool.query('SELECT * FROM users WHERE id = $1 AND organization_id = $2', [userId, orgId]);
     if (user.rows.length === 0) throw new AppError(404, 'User not found');
 
+    if (user.rows[0].role === 'ORG_ADMIN') {
+      await checkNotLastAdmin(orgId, userId);
+    }
+
     await pool.query('UPDATE users SET status = $1 WHERE id = $2', ['deactivated', userId]);
 
     AuditRepository.log({
@@ -155,6 +179,13 @@ export class StaffController {
 
   static async selfDeactivate(req: Request, res: Response) {
     const userId = req.user!.userId;
+    const orgId = req.user!.organizationId;
+
+    const userCheck = await pool.query('SELECT role FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length > 0 && userCheck.rows[0].role === 'ORG_ADMIN' && orgId) {
+      await checkNotLastAdmin(orgId, userId);
+    }
+
     await pool.query('UPDATE users SET status = $1 WHERE id = $2', ['deactivated', userId]);
 
     AuditRepository.log({
@@ -454,7 +485,8 @@ export class StaffController {
             FROM compliance_records cr
             GROUP BY cr.staff_id
           ) c ON c.staff_id = sp.id
-          WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN'`,
+          WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN'
+          ORDER BY sp.first_name, sp.last_name`,
         [organizationId]
       ),
       pool.query(
@@ -483,6 +515,7 @@ export class StaffController {
 
     res.json({
       admin: adminResult.rows[0] || null,
+      admins: adminResult.rows,
       staff: staffResult.rows,
       invitations: invitationsResult.rows,
     });

@@ -79,7 +79,7 @@ interface AppointmentItem {
 const ONBOARDING_STEPS = [
   { label: 'Add your location', desc: 'Create your first location so your data stays organised by site.', icon: <LocationIcon />, path: '/settings' },
   { label: 'Add your staff', desc: 'Invite team members. They\'ll receive an email with a link to set their password.', icon: <PeopleIcon />, path: '/staff' },
-  { label: 'Add service users', desc: 'Add the people in your care once your location is set up.', icon: <HomeIcon />, path: '/service-users' },
+  { label: 'Add people', desc: 'Add the people in your care once your location is set up.', icon: <HomeIcon />, path: '/service-users' },
   { label: 'Explore your dashboard', desc: 'See live overviews of tasks, alerts, appointments, and compliance.', icon: <FlagIcon />, path: '/compliance' },
 ]
 

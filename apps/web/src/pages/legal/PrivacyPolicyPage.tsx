@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
 
       <Section title="1. Information We Collect">
         <p>We collect information you provide directly, including:</p>
-        <ul><li>Account information (name, email, password)</li><li>Organisation information (company name, address, staff details)</li><li>Service user information (names, care plans, medical details, daily notes)</li><li>Staff compliance data (training records, DBS checks, identity documents)</li><li>Payment information (processed securely through Stripe — we never store your full card details)</li><li>Usage data (pages visited, features used, error logs)</li></ul>
+        <ul><li>Account information (name, email, password)</li><li>Organisation information (company name, address, staff details)</li><li>Person information (names, care plans, medical details, daily notes)</li><li>Staff compliance data (training records, DBS checks, identity documents)</li><li>Payment information (processed securely through Stripe — we never store your full card details)</li><li>Usage data (pages visited, features used, error logs)</li></ul>
       </Section>
 
       <Section title="2. How We Use Your Information">
@@ -40,7 +40,7 @@ export default function PrivacyPolicyPage() {
       </Section>
 
       <Section title="6. Data Retention">
-        <ul><li>Account data: active period + 90 days after cancellation</li><li>Service user records: minimum 8 years (CQC statutory guidance)</li><li>Financial records: 7 years (HMRC requirements)</li><li>Compliance records: 6 years (CQC requirements)</li><li>Audit trails: 2 years</li></ul>
+        <ul><li>Account data: active period + 90 days after cancellation</li><li>Person records: minimum 8 years (CQC statutory guidance)</li><li>Financial records: 7 years (HMRC requirements)</li><li>Compliance records: 6 years (CQC requirements)</li><li>Audit trails: 2 years</li></ul>
       </Section>
 
       <Section title="7. Your Rights">

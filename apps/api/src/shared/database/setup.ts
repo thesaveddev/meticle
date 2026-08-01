@@ -39,6 +39,35 @@ const MIGRATION_005: Migration = {
   ],
 };
 
+const MIGRATION_006: Migration = {
+  name: '006_daily_shift_audit_time',
+  strict: false,
+  statements: [
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS daily_shift_audit_time TIME DEFAULT '19:00'`,
+  ],
+};
+
+const MIGRATION_007: Migration = {
+  name: '007_service_user_location_staffing',
+  strict: false,
+  statements: [
+    `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS location_id UUID REFERENCES locations(id) ON DELETE SET NULL`,
+    `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS min_staff_required INTEGER DEFAULT NULL`,
+    `CREATE INDEX IF NOT EXISTS idx_service_users_location ON service_users(location_id)`,
+  ],
+};
+
+const MIGRATION_008: Migration = {
+  name: '008_medication_alert_settings',
+  strict: false,
+  statements: [
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS reorder_alert_enabled BOOLEAN DEFAULT true`,
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS late_med_alert_enabled BOOLEAN DEFAULT true`,
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS late_med_alert_delay_minutes INTEGER DEFAULT 30`,
+    `ALTER TABLE emedication_administrations ADD COLUMN IF NOT EXISTS late_alert_sent_at TIMESTAMPTZ`,
+  ],
+};
+
 const INITIAL_MIGRATION: Migration = {
   name: '001_initial',
   strict: false,
@@ -1511,7 +1540,7 @@ export const setupDatabase = async () => {
     logger.info('Database schema setup completed.');
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

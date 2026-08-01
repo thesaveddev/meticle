@@ -85,7 +85,8 @@ router.post('/:serviceUserId/care-pathways', requireRole(UserRole.ORG_ADMIN, Use
 router.patch('/care-pathways/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateCarePathwaySchema), asyncHandler(ServiceUserController.updateCarePathway));
 router.delete('/care-pathways/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ServiceUserController.deleteCarePathway));
 
-router.get('/:serviceUserId/discharge-checklist', asyncHandler(ServiceUserController.listDischargeChecklist));
+  router.get('/:serviceUserId/discharge-checklist', asyncHandler(ServiceUserController.listDischargeChecklist));
+
 router.post('/:serviceUserId/discharge-checklist', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createDischargeChecklistSchema), asyncHandler(ServiceUserController.createDischargeChecklist));
 router.patch('/discharge-checklist/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateDischargeChecklistSchema), asyncHandler(ServiceUserController.updateDischargeChecklist));
 router.delete('/discharge-checklist/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ServiceUserController.deleteDischargeChecklist));

@@ -60,7 +60,7 @@ export default function CompliancePage() {
   const isError = configsError || recordsError || membersError || docsError
 
   const allMembers: any[] = [
-    ...(membersData?.admin ? [membersData.admin] : []),
+    ...(membersData?.admins?.length ? membersData.admins : (membersData?.admin ? [membersData.admin] : [])),
     ...(membersData?.staff || [])
   ].filter((m: any) => m.status === 'active')
 
@@ -310,7 +310,7 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, expand
   const [search, setSearch] = useState('')
 
   const allMembers: any[] = [
-    ...(membersData?.admin ? [membersData.admin] : []),
+    ...(membersData?.admins?.length ? membersData.admins : (membersData?.admin ? [membersData.admin] : [])),
     ...(membersData?.staff || [])
   ].filter((m: any) => m.status === 'active')
 
@@ -448,7 +448,7 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
     }
   })
   const members: any[] = [
-    ...(membersData?.admin ? [membersData.admin] : []),
+    ...(membersData?.admins?.length ? membersData.admins : (membersData?.admin ? [membersData.admin] : [])),
     ...(membersData?.staff || [])
   ].filter((m: any) => m.status === 'active')
 
@@ -608,7 +608,7 @@ function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onT
     queryFn: async () => { const res = await api.get('/staff/org-members'); return res.data as any },
   })
   const members: any[] = [
-    ...(membersData?.admin ? [membersData.admin] : []),
+    ...(membersData?.admins?.length ? membersData.admins : (membersData?.admin ? [membersData.admin] : [])),
     ...(membersData?.staff || [])
   ].filter((m: any) => m.staff_id && m.status === 'active')
 

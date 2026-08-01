@@ -262,6 +262,8 @@ export class AuthController {
     const user = await UserRepository.findByEmail(email);
     if (!user) throw new AppError(401, 'Invalid email or password');
 
+    if (user.status === 'deactivated') throw new AppError(403, 'Your account has been deactivated. Please contact your organization administrator.');
+
     const isPasswordValid = await comparePassword(password, user.password_hash);
     if (!isPasswordValid) {
       // Track failed attempt
@@ -278,8 +280,6 @@ export class AuthController {
 
     // Successful login — clear lockout
     loginLockoutMap.delete(lockoutKey);
-
-    if (user.status === 'deactivated') throw new AppError(403, 'Your account has been deactivated. Please contact your organization administrator.');
     if (user.force_password_reset) {
       res.json({ forcePasswordReset: true, message: 'A password reset has been requested for this account. Check your email to reset your password before logging in.' });
       return;
@@ -764,7 +764,7 @@ export class AuthController {
 
     let organization = null;
     if (user.organization_id) {
-      organization = (await migrateQuery('SELECT id, name, plan, subscription_status FROM organizations WHERE id = $1', [user.organization_id])).rows[0] || null;
+      organization = (await migrateQuery('SELECT id, name, plan, subscription_status, logo_url, primary_color, secondary_color, accent_color FROM organizations WHERE id = $1', [user.organization_id])).rows[0] || null;
     }
 
     res.json({

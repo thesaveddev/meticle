@@ -25,7 +25,7 @@ export default function TasksPage() {
     queryKey: ['staff-task'],
     queryFn: () => api.get('/staff/org-members').then(r => r.data),
   })
-  const members = [...(staffList?.admin ? [staffList.admin] : []), ...(staffList?.staff || [])].filter((m: any) => m.status === 'active')
+  const members = [...(staffList?.admins?.length ? staffList.admins : (staffList?.admin ? [staffList.admin] : [])), ...(staffList?.staff || [])].filter((m: any) => m.status === 'active')
 
   const { data: serviceUsers } = useQuery({
     queryKey: ['su-task'],
@@ -85,7 +85,7 @@ export default function TasksPage() {
           <TableHead><TableRow>
             <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Assigned To</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Service User</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Priority</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Due</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
@@ -142,7 +142,7 @@ export default function TasksPage() {
               <Autocomplete options={serviceUsers} getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}${o.room_number ? ` (Room ${o.room_number})` : ''}`}
                 value={serviceUsers?.find((s: any) => s.id === form.service_user_id) || null}
                 onChange={(_, v) => setForm(f => ({ ...f, service_user_id: v?.id || '' }))}
-                renderInput={p => <TextField {...p} label="Related Service User (optional)" />} />
+                renderInput={p => <TextField {...p} label="Related Person (optional)" />} />
               <TextField label="Due Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
             </Stack>
           </DialogContent>

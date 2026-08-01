@@ -231,8 +231,12 @@ export default function RotaPlannerPage() {
       ).join('\n')
 
       const suList = serviceUsers.map((su: any) =>
-        `${su.first_name} ${su.last_name}${su.location_id ? ` @ ${locations.find(l=>l.id===su.location_id)?.name||''}` : ''}`
+        `${su.first_name} ${su.last_name}${su.location_id ? ` @ ${locations.find(l=>l.id===su.location_id)?.name||''}` : ''} - Support: ${su.support_level || 'not set'}${su.min_staff_required ? ` (min ${su.min_staff_required} staff)` : ''}`
       ).join('\n') || 'None'
+
+      const staffingNeeds = locations.map(l =>
+        `${l.name}: ${getCareStaffingNeeds(l.id)} staff required from person care needs (incl. ${serviceUsers.filter((su: any) => su.location_id === l.id).length} people)`
+      ).join('\n') || 'No care needs data'
 
       const minDay = getShiftTypeMin(selectedLocationId || '', 'day')
       const minNight = getShiftTypeMin(selectedLocationId || '', 'wake_night')
@@ -254,6 +258,7 @@ export default function RotaPlannerPage() {
         existingShifts,
         staffOnLeave: 'Not available — assume all staff available unless already assigned',
         serviceUsers: suList,
+        staffingNeeds,
         contractedHours,
         mandatoryStartTimes: mandatoryStartTimesStr,
         minEndTime: minEndTimeStr,
@@ -552,6 +557,17 @@ export default function RotaPlannerPage() {
     return assignedStaff.size
   }
 
+  const getCareStaffingNeeds = (locationId: string) => {
+    const locUsers = serviceUsers.filter((su: any) => su.status === 'active' && su.location_id === locationId)
+    return locUsers.reduce((sum: number, su: any) => {
+      if (su.support_level === 'one_to_one') return sum + 1
+      if (su.support_level === 'two_to_one') return sum + 2
+      if (su.support_level === 'three_to_one') return sum + 3
+      if (su.support_level === 'complex') return sum + (Number(su.min_staff_required) || 1)
+      return sum
+    }, 0)
+  }
+
   const handleCreateShift = async () => {
     setShiftDialogError('')
     setShiftSaving(true)
@@ -792,13 +808,15 @@ export default function RotaPlannerPage() {
                 {locations.map(loc => {
                   const dayShiftCounts = weekDates.map(d => getStaffCountForLocation(d, loc.id))
                   const minRequired = getMinStaffForLocation(loc.id)
-                  const allAbove = dayShiftCounts.every(c => c >= minRequired)
-                  const shortDays = dayShiftCounts.filter(c => c < minRequired).length
+                  const careNeeds = getCareStaffingNeeds(loc.id)
+                  const required = Math.max(minRequired, careNeeds)
+                  const allAbove = dayShiftCounts.every(c => c >= required)
+                  const shortDays = dayShiftCounts.filter(c => c < required).length
                   return (
                     <Chip key={loc.id} size="small" icon={allAbove ? <CheckIcon /> : <WarningIcon />}
                       label={allAbove
-                        ? `${loc.name}: Covered (need ${minRequired}/day)`
-                        : `${loc.name}: ${shortDays} day${shortDays > 1 ? 's' : ''} short (need ${minRequired}/day)`}
+                        ? `${loc.name}: Covered (need ${required}/day${careNeeds > minRequired ? ` incl. ${careNeeds} care-needs` : ''})`
+                        : `${loc.name}: ${shortDays} day${shortDays > 1 ? 's' : ''} short (need ${required}/day${careNeeds > minRequired ? ` incl. ${careNeeds} care-needs` : ''})`}
                       color={allAbove ? 'success' : 'warning'} variant="outlined" />
                   )
                 })}
@@ -895,7 +913,9 @@ export default function RotaPlannerPage() {
                     const dayLocations = locations.map(loc => {
                       const cnt = getStaffCountForLocation(d, loc.id)
                       const min = getMinStaffForLocation(loc.id)
-                      return { loc, cnt, min, ok: cnt >= min }
+                      const care = getCareStaffingNeeds(loc.id)
+                      const need = Math.max(min, care)
+                      return { loc, cnt, min, care, need, ok: cnt >= need }
                     })
                     return (
                       <TableCell key={i} sx={{
@@ -911,7 +931,7 @@ export default function RotaPlannerPage() {
                           {d.getDate()} {d.toLocaleDateString('en-GB', { month: 'short' })}
                         </Typography>
                         {dayLocations.filter(x => !x.ok).length > 0 && (
-                          <Tooltip title={dayLocations.filter(x => !x.ok).map(x => `${x.loc.name}: ${x.cnt}/${x.min}`).join(', ')}>
+                          <Tooltip title={dayLocations.filter(x => !x.ok).map(x => `${x.loc.name}: ${x.cnt}/${x.need}${x.care > x.min ? ` (${x.care} care-needs)` : ''}`).join(', ')}>
                             <WarningIcon sx={{ fontSize: 12, color: '#D97706', ml: 0.5, verticalAlign: 'middle' }} />
                           </Tooltip>
                         )}
@@ -1125,8 +1145,8 @@ export default function RotaPlannerPage() {
               </Typography>
             </FormControl>
             <FormControl fullWidth size="small">
-              <InputLabel>Service User (optional)</InputLabel>
-              <Select value={shiftForm.service_user_id} label="Service User (optional)"
+              <InputLabel>Person (optional)</InputLabel>
+              <Select value={shiftForm.service_user_id} label="Person (optional)"
                 onChange={e => setShiftForm(p => ({ ...p, service_user_id: e.target.value }))}>
                 <MenuItem value=""><em>None</em></MenuItem>
                 {serviceUsers.map((su: any) => (

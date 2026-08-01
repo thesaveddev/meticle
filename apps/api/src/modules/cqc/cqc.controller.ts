@@ -124,7 +124,7 @@ export class CqcController {
     const avgSat = parseFloat(satStats?.avg_rating || '0');
     const satTotal = parseInt(satStats?.total || '0');
     if (satTotal === 0) {
-      gaps.push({ area: 'Satisfaction Surveys', statement: 'C1 — Kindness, compassion and dignity (Caring)', current_state: 'No satisfaction surveys have been collected', recommended_action: 'Send email invitations to service users and families for feedback', priority: 'MEDIUM', domain: 'caring', effort: 'Set up and send invitations' });
+      gaps.push({ area: 'Satisfaction Surveys', statement: 'C1 — Kindness, compassion and dignity (Caring)', current_state: 'No satisfaction surveys have been collected', recommended_action: 'Send email invitations to people and families for feedback', priority: 'MEDIUM', domain: 'caring', effort: 'Set up and send invitations' });
     } else if (avgSat < 4) {
       gaps.push({ area: 'Satisfaction Surveys', statement: 'C1 — Kindness, compassion and dignity (Caring)', current_state: `Average satisfaction rating is ${avgSat}/5`, recommended_action: 'Review negative feedback, investigate common themes, create improvement plan', priority: 'HIGH', domain: 'caring', effort: 'Review and action feedback' });
     }

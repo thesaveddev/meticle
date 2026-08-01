@@ -18,18 +18,21 @@ import {
   Link as LinkIcon, Schedule as ScheduleIcon, Notifications as NotificationsIcon,
   Lock as SecurityIcon, Palette as PaletteIcon,
   SmartToy as SmartToyIcon, History as HistoryIcon,
-  Warning as WarningIcon,
+  Warning as WarningIcon, DarkMode as DarkModeIcon,
+  LightMode as LightModeIcon,
 } from '@mui/icons-material'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
+import { useThemeMode } from '../../context/ThemeContext'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
   const { showSnackbar } = useSnackbar()
+  const { mode, toggleTheme, updateBranding } = useThemeMode()
   const [tab, setTab] = useState(0)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -514,6 +517,7 @@ export default function SettingsPage() {
         logo_url: brandingLogo,
         ...brandingColors,
       })
+      updateBranding(brandingColors, brandingLogo)
       showSnackbar("Settings saved.", "success")
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save branding')
@@ -541,8 +545,8 @@ export default function SettingsPage() {
 
   const calculateEntitlements = async () => {
     try {
-      await api.post('/settings/calculate-entitlements')
-      showSnackbar("Settings saved.", "success")
+      const res = await api.post('/settings/calculate-entitlements')
+      showSnackbar('Entitlements calculated: ' + (res.data?.message || `${staffList.length} staff updated`), "success")
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to calculate entitlements')
     }
@@ -615,6 +619,7 @@ export default function SettingsPage() {
           </Box>
         </Stack>
       </Paper>
+      <NotificationPreferencesSection />
       <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#DC2626' }}>Danger Zone</Typography>
         <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>Once you deactivate your account, you will not be able to log in again unless an administrator reactivates it.</Typography>
@@ -725,6 +730,35 @@ export default function SettingsPage() {
             sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>I've Saved Them</Button>
         </DialogActions>
       </Dialog>
+    </Stack>
+  )
+
+  const renderAppearanceTab = () => (
+    <Stack spacing={4}>
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+          <PaletteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Theme
+        </Typography>
+        <Stack direction="row" spacing={3} alignItems="center">
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>Color Scheme</Typography>
+          <Button
+            variant={mode === 'light' ? 'contained' : 'outlined'}
+            startIcon={<LightModeIcon />}
+            onClick={() => mode !== 'light' && toggleTheme()}
+            sx={{ textTransform: 'none' }}
+          >
+            Light
+          </Button>
+          <Button
+            variant={mode === 'dark' ? 'contained' : 'outlined'}
+            startIcon={<DarkModeIcon />}
+            onClick={() => mode !== 'dark' && toggleTheme()}
+            sx={{ textTransform: 'none' }}
+          >
+            Dark
+          </Button>
+        </Stack>
+      </Paper>
     </Stack>
   )
 
@@ -861,8 +895,8 @@ export default function SettingsPage() {
           <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
             <CardContent>
               <Typography variant="caption" color="#6B7280">Base Leave Hours</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800 }}>{orgSettings.base_leave_hours || 240}h</Typography>
-              <Typography variant="caption" color="#9CA3AF">For {orgSettings.base_contracted_hours || 40}h/week</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>{orgSettings.base_leave_hours ?? 240}h</Typography>
+              <Typography variant="caption" color="#9CA3AF">For {orgSettings.base_contracted_hours ?? 40}h/week</Typography>
             </CardContent>
           </Card>
           <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
@@ -896,18 +930,18 @@ export default function SettingsPage() {
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField label="Default Hours per Leave Day" type="number" fullWidth size="small"
-              value={orgSettings.default_hours_per_leave_day || 7.5}
+              value={orgSettings.default_hours_per_leave_day ?? 7.5}
               onChange={e => setOrgSettings((p: any) => ({ ...p, default_hours_per_leave_day: Number(e.target.value) }))} />
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField label="Base Leave Hours (full-time)" type="number" fullWidth size="small"
-              value={orgSettings.base_leave_hours || 240}
+              value={orgSettings.base_leave_hours ?? 240}
               onChange={e => setOrgSettings((p: any) => ({ ...p, base_leave_hours: Number(e.target.value) }))}
               helperText="Total leave hours for a full-time (40h/week) staff member" />
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField label="Base Contracted Hours/Week" type="number" fullWidth size="small"
-              value={orgSettings.base_contracted_hours || 40}
+              value={orgSettings.base_contracted_hours ?? 40}
               onChange={e => setOrgSettings((p: any) => ({ ...p, base_contracted_hours: Number(e.target.value) }))}
               helperText="Full-time weekly hours used as baseline for proportional calculation" />
           </Grid>
@@ -1013,21 +1047,60 @@ export default function SettingsPage() {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Daily Shift Audit
         </Typography>
-        <FormControlLabel
-          control={<Switch checked={orgSettings.daily_shift_audit_enabled !== false}
-            onChange={e => setOrgSettings((p: any) => ({ ...p, daily_shift_audit_enabled: e.target.checked }))} />}
-          label="Send daily shift audit emails to location managers"
-        />
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
+          <FormControlLabel
+            control={<Switch checked={orgSettings.daily_shift_audit_enabled !== false}
+              onChange={e => setOrgSettings((p: any) => ({ ...p, daily_shift_audit_enabled: e.target.checked }))} />}
+            label="Send daily shift audit emails to location managers"
+          />
+          <TextField label="Send time" type="time" size="small" sx={{ width: 160 }}
+            value={orgSettings.daily_shift_audit_time?.slice(0, 5) || '19:00'}
+            onChange={e => setOrgSettings((p: any) => ({ ...p, daily_shift_audit_time: e.target.value }))}
+            InputLabelProps={{ shrink: true }} />
+        </Stack>
         <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
-          When enabled, location managers receive a daily email at 7pm summarizing shift coverage,
-          staffing levels, and medication administration for the day.
+          When enabled, location managers receive a daily shift audit email at the configured time
+          summarizing shift coverage, staffing levels, and medication administration for the day.
         </Typography>
         <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Shift Audit Settings
         </Button>
       </Paper>
 
-      <NotificationPreferencesSection />
+      <Paper sx={{ p: 4, mt: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+          <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Medication Alerts
+        </Typography>
+        <FormControlLabel
+          control={<Switch checked={orgSettings.reorder_alert_enabled !== false}
+            onChange={e => setOrgSettings((p: any) => ({ ...p, reorder_alert_enabled: e.target.checked }))} />}
+          label="Email location managers when stock reaches reorder level"
+          sx={{ mt: 1 }}
+        />
+        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+          When enabled, the location manager is emailed the moment a medication's stock drops to or below its reorder level
+          after an administration. Low-stock items are also included in the daily shift audit email.
+        </Typography>
+        <FormControlLabel
+          control={<Switch checked={orgSettings.late_med_alert_enabled !== false}
+            onChange={e => setOrgSettings((p: any) => ({ ...p, late_med_alert_enabled: e.target.checked }))} />}
+          label="Email on-duty staff when medications are overdue"
+          sx={{ mt: 2 }}
+        />
+        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
+          When enabled, staff currently on duty at the person's location are emailed if a scheduled administration
+          remains unrecorded after the delay below. If no staff are on duty, the location manager is alerted instead.
+        </Typography>
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 2 }}>
+          <TextField label="Overdue delay (minutes)" type="number" size="small" sx={{ width: 200 }}
+            value={orgSettings.late_med_alert_delay_minutes ?? 30}
+            onChange={e => setOrgSettings((p: any) => ({ ...p, late_med_alert_delay_minutes: Math.max(1, Math.min(1440, Number(e.target.value))) }))}
+            InputProps={{ inputProps: { min: 1, max: 1440 } }} />
+        </Stack>
+        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <SaveIcon sx={{ mr: 1 }} /> Save Medication Alert Settings
+        </Button>
+      </Paper>
     </Stack>
   )
 
@@ -1868,6 +1941,7 @@ export default function SettingsPage() {
           sx={{ '& .MuiTab-root': { fontWeight: 700, textTransform: 'none', minHeight: 48 } }}>
           <Tab icon={<ProfileIcon />} iconPosition="start" label="My Profile" />
           {user && <Tab icon={<SecurityIcon />} iconPosition="start" label="Security" />}
+          <Tab icon={<PaletteIcon />} iconPosition="start" label="Appearance" />
           {isOrgAdmin && <Tab icon={<SettingsIcon />} iconPosition="start" label="Organization" />}
           {isOrgAdmin && <Tab icon={<BuildingIcon />} iconPosition="start" label="Locations" />}
           {isOrgAdmin && <Tab icon={<ComplianceIcon />} iconPosition="start" label="Compliance" />}
@@ -1879,13 +1953,14 @@ export default function SettingsPage() {
       </Paper>
       {tab === 0 && renderProfileTab()}
       {user && tab === 1 && renderSecurityTab()}
-      {isOrgAdmin && tab === 2 && renderOrgSettingsTab()}
-      {isOrgAdmin && tab === 3 && renderLocationsTab()}
-      {isOrgAdmin && tab === 4 && renderComplianceTab()}
-      {isOrgAdmin && tab === 5 && renderDelegationsTab()}
-      {isOrgAdmin && tab === 6 && renderAITab()}
-      {isOrgAdmin && tab === 7 && <LeaveTypesSettings />}
-      {isOrgAdmin && tab === 8 && <IncidentCategoriesSettings />}
+      {tab === 2 && renderAppearanceTab()}
+      {isOrgAdmin && tab === 3 && renderOrgSettingsTab()}
+      {isOrgAdmin && tab === 4 && renderLocationsTab()}
+      {isOrgAdmin && tab === 5 && renderComplianceTab()}
+      {isOrgAdmin && tab === 6 && renderDelegationsTab()}
+      {isOrgAdmin && tab === 7 && renderAITab()}
+      {isOrgAdmin && tab === 8 && <LeaveTypesSettings />}
+      {isOrgAdmin && tab === 9 && <IncidentCategoriesSettings />}
     </Box>
   )
 }
@@ -2103,17 +2178,25 @@ function IncidentCategoriesSettings() {
 function NotificationPreferencesSection() {
   const [prefs, setPrefs] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [prefError, setPrefError] = useState('')
 
   useEffect(() => {
-    api.get('/notifications/preferences').then(r => setPrefs(r.data)).catch(() => {})
+    let mounted = true
+    api.get('/notifications/preferences')
+      .then(r => { if (mounted) setPrefs(Array.isArray(r.data) ? r.data : []) })
+      .catch(() => { if (mounted) setPrefError('Could not load your notification preferences. Please try again.') })
+    return () => { mounted = false }
   }, [])
 
   const toggle = async (type: string, enabled: boolean) => {
     try {
       setLoading(true)
+      setPrefError('')
       await api.patch('/notifications/preferences', { notification_type: type, enabled })
       setPrefs(p => p.map(pt => pt.notification_type === type ? { ...pt, enabled } : pt))
-    } catch { /* ignore */ }
+    } catch {
+      setPrefError(`Could not update "${labels[type] || type}". Please try again.`)
+    }
     finally { setLoading(false) }
   }
 
@@ -2125,23 +2208,30 @@ function NotificationPreferencesSection() {
   }
 
   return (
-    <Paper sx={{ p: 4, mt: 4 }}>
+    <Paper sx={{ p: 4 }}>
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
         <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />My Notification Preferences
       </Typography>
       <Typography variant="caption" color="#6B7280" sx={{ display: 'block', mb: 2 }}>
         Choose which notifications you want to receive. Disabled types will not generate push or in-app alerts.
       </Typography>
+      {prefError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPrefError('')}>{prefError}</Alert>}
       <Grid container spacing={1}>
-        {prefs.map(p => (
-          <Grid item xs={12} sm={6} key={p.notification_type}>
-            <FormControlLabel
-              control={<Switch checked={p.enabled} disabled={loading}
-                onChange={e => toggle(p.notification_type, e.target.checked)} />}
-              label={labels[p.notification_type] || p.notification_type}
-            />
+        {prefs.length === 0 && !prefError ? (
+          <Grid item xs={12}>
+            <Typography variant="body2" color="#6B7280">Loading your notification preferences...</Typography>
           </Grid>
-        ))}
+        ) : (
+          prefs.map(p => (
+            <Grid item xs={12} sm={6} key={p.notification_type}>
+              <FormControlLabel
+                control={<Switch checked={p.enabled} disabled={loading}
+                  onChange={e => toggle(p.notification_type, e.target.checked)} />}
+                label={labels[p.notification_type] || p.notification_type}
+              />
+            </Grid>
+          ))
+        )}
       </Grid>
     </Paper>
   )
