@@ -36,6 +36,43 @@ async function streamDocumentToResponse(user: any, docUrl: string, res: Response
   stream.pipe(res);
 }
 
+async function findFileOrg(fileUrl: string): Promise<string | null> {
+  const direct: [string, string, string | null][] = [
+    ['documents', 'url', null],
+    ['compliance_records', 'file_url', null],
+    ['organizations', 'logo_url', 'id'],
+    ['room_checks', 'photo_url', null],
+    ['service_users', 'photo_url', null],
+    ['care_plans', 'file_url', null],
+    ['service_user_documents', 'file_url', null],
+    ['service_user_expenses', 'receipt_url', null],
+  ];
+  for (const [table, col, orgCol] of direct) {
+    const org = orgCol || 'organization_id';
+    const r = await pool.query(`SELECT ${org} FROM ${table} WHERE ${col} = $1 LIMIT 1`, [fileUrl]);
+    if (r.rows.length > 0) return r.rows[0][org];
+  }
+
+  const joined = [
+    `SELECT u.organization_id FROM staff_profiles sp JOIN users u ON sp.user_id = u.id WHERE sp.profile_picture_url = $1 LIMIT 1`,
+    `SELECT u.organization_id FROM training_records tr JOIN staff_profiles sp ON tr.staff_id = sp.id JOIN users u ON sp.user_id = u.id WHERE tr.file_url = $1 LIMIT 1`,
+    `SELECT u.organization_id FROM competency_assessments ca JOIN staff_profiles sp ON ca.staff_id = sp.id JOIN users u ON sp.user_id = u.id WHERE ca.evidence_url = $1 LIMIT 1`,
+    `SELECT ch.organization_id FROM chat_messages chm JOIN chat_channels ch ON chm.channel_id = ch.id WHERE chm.file_url = $1 LIMIT 1`,
+    `SELECT ch.organization_id FROM chat_files chf JOIN chat_channels ch ON chf.channel_id = ch.id WHERE chf.file_url = $1 LIMIT 1`,
+    `SELECT l.organization_id FROM location_certificates lc JOIN locations l ON lc.location_id = l.id WHERE lc.file_url = $1 LIMIT 1`,
+    `SELECT su.organization_id FROM body_map_entries bme JOIN service_users su ON bme.service_user_id = su.id WHERE bme.image_url = $1 LIMIT 1`,
+    `SELECT su.organization_id FROM memory_book_entries mbe JOIN service_users su ON mbe.service_user_id = su.id WHERE mbe.image_url = $1 LIMIT 1`,
+    `SELECT su.organization_id FROM memory_book_entries mbe CROSS JOIN jsonb_array_elements_text(mbe.image_urls) img JOIN service_users su ON mbe.service_user_id = su.id WHERE img = $1 LIMIT 1`,
+    `SELECT da.organization_id FROM dspt_standard_status dss CROSS JOIN jsonb_array_elements(dss.evidence_files) ev JOIN dspt_assessments da ON dss.assessment_id = da.id WHERE ev = $1 LIMIT 1`,
+  ];
+  for (const sql of joined) {
+    const r = await pool.query(sql, [fileUrl]);
+    if (r.rows.length > 0) return r.rows[0].organization_id;
+  }
+
+  return null;
+}
+
 export class ComplianceController {
   static async uploadDocument(req: Request, res: Response) {
     const user = req.user!;
@@ -319,27 +356,12 @@ export class ComplianceController {
 
   static async servePrivateFile(req: Request, res: Response) {
     const user = req.user!;
-    const { filename } = req.params;
-    const url = '/files/private/' + filename;
-    const orgId = user.organizationId;
-    // Check documents table (staff compliance docs)
-    const docResult = await pool.query(
-      `SELECT d.* FROM documents d
-       JOIN staff_profiles sp ON d.staff_id = sp.id
-       JOIN users u ON sp.user_id = u.id
-       WHERE d.url = $1 AND u.organization_id = $2`,
-      [url, orgId]
-    );
-    if (docResult.rows.length > 0)
-      return await streamDocumentToResponse(user, docResult.rows[0].url, res);
-    // Check service_users photo_url
-    const suResult = await pool.query(
-      `SELECT id, photo_url FROM service_users WHERE photo_url = $1 AND organization_id = $2`,
-      [url, orgId]
-    );
-    if (suResult.rows.length > 0)
-      return await streamDocumentToResponse(user, suResult.rows[0].photo_url, res);
-    throw new AppError(404, 'File not found');
+    const url = '/files/private/' + req.params.filename;
+
+    const orgId = await findFileOrg(url);
+    if (!orgId) throw new AppError(404, 'File not found');
+    if (orgId !== user.organizationId) throw new AppError(403, 'Access denied');
+    await streamDocumentToResponse(user, url, res);
   }
 
   // ---- Evidence Mappings ----
