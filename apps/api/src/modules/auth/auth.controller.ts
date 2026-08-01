@@ -14,7 +14,7 @@ import { OrgRepository } from '../orgs/org.repository';
 import { PermissionsController } from '../permissions/permissions.controller';
 import { blacklistToken } from '../../shared/middleware/tokenBlacklist';
 import { logWarn, default as logger } from '../../shared/utils/logger';
-import { isDisposableEmail } from '../../shared/utils/disposableEmail';
+import { isDisposableEmail, isDisposableEmailByMx } from '../../shared/utils/disposableEmail';
 
 const PASSWORD_HISTORY_LIMIT = 5;
 
@@ -133,6 +133,8 @@ export class AuthController {
   static async register(req: Request, res: Response) {
     const validated = registrationSchema.parse(req.body);
     const { email, password, role, name, organizationId } = validated;
+
+    if (await isDisposableEmailByMx(email)) throw new AppError(400, 'Temporary email addresses are not allowed');
 
     const existingUser = await UserRepository.findByEmail(email);
     if (existingUser) {
@@ -372,6 +374,7 @@ export class AuthController {
     const { email } = req.body;
     if (!email) throw new AppError(400, 'Email is required');
     if (isDisposableEmail(email)) throw new AppError(400, 'Temporary email addresses are not allowed');
+    if (await isDisposableEmailByMx(email)) throw new AppError(400, 'Temporary email addresses are not allowed');
 
     // Check if email is already registered
     const existing = await UserRepository.findByEmail(email);

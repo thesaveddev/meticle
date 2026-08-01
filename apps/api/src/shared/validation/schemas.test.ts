@@ -134,6 +134,16 @@ describe('validation schemas', () => {
       });
       expect(result.success).toBe(false);
     });
+
+    it('should reject tempmail.com (missing from package, covered by supplement)', () => {
+      const result = registerSchema.safeParse({
+        email: 'tester@tempmail.com',
+        password: 'Password123!',
+        role: 'CARE_WORKER',
+        name: 'John Doe',
+      });
+      expect(result.success).toBe(false);
+    });
   });
 
   describe('sendEmailCodeSchema', () => {
@@ -144,6 +154,11 @@ describe('validation schemas', () => {
 
     it('should reject disposable email', () => {
       const result = sendEmailCodeSchema.safeParse({ email: 'tester@10minutemail.com' });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject tempmail.com (missing from package, covered by supplement)', () => {
+      const result = sendEmailCodeSchema.safeParse({ email: 'tester@tempmail.com' });
       expect(result.success).toBe(false);
     });
   });
