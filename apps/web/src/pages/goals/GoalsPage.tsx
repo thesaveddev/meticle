@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Box, Typography, Paper, Grid, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, IconButton, LinearProgress, CircularProgress, Autocomplete, Alert, Collapse, Divider, Tooltip } from '@mui/material'
+import { Box, Typography, Paper, Grid, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, IconButton, LinearProgress, CircularProgress, Autocomplete, Alert, Collapse, Divider, Tooltip, Checkbox, FormControlLabel } from '@mui/material'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ExpandMore as ExpandIcon, Warning as WarningIcon, CheckCircle as CheckIcon } from '@mui/icons-material'
 import { useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
@@ -14,6 +14,8 @@ interface Goal {
   frequency: string; goal_category?: string
   care_plan_id?: string; care_plan_title?: string
   baseline_value?: number; target_value?: number; value_unit?: string
+  provider_clarification?: string; assigned_to?: string; assigned_to_name?: string
+  status_reason?: string; is_private?: boolean; started_at?: string
   milestones_count?: number; completed_milestones?: number
   overdue_review?: boolean
 }
@@ -25,10 +27,22 @@ const STATUS_OPTIONS = ['active', 'completed', 'cancelled', 'on_hold']
 const FREQUENCIES = ['one_time', 'daily', 'weekly', 'monthly', 'quarterly']
 const GOAL_CATEGORIES = ['Wellbeing', 'Health', 'Social', 'Education', 'Employment', 'Independence', 'Behavioural', 'Communication', 'Mobility', 'Other']
 
+const CLARIFICATION_OPTIONS = [
+  { value: '', label: '— Not specified —' },
+  { value: 'person_centred_review', label: 'Person-centred review' },
+  { value: 'la_review', label: 'LA review' },
+  { value: 'persons_request', label: "Person's request" },
+  { value: 'family_request', label: 'Family request' },
+  { value: 'safeguarding', label: 'Safeguarding alert/outcome' },
+  { value: 'organisational_priority', label: 'Organisational priority' },
+  { value: 'other', label: 'Other' },
+]
+
 const initialForm = {
   title: '', description: '', service_user_id: '', target_date: '', review_date: '',
   status: 'active', progress: 0, cqc_domain: '', frequency: 'one_time', goal_category: '',
   care_plan_id: '', baseline_value: '', target_value: '', value_unit: '',
+  provider_clarification: '', assigned_to: '', status_reason: '', is_private: false, started_at: '',
 }
 
 function freqLabel(f: string) {
@@ -36,9 +50,9 @@ function freqLabel(f: string) {
   return m[f] || f
 }
 
-export default function GoalsPage() {
+export default function GoalsPage({ serviceUserId }: { serviceUserId?: string }) {
   const [searchParams] = useSearchParams()
-  const preselectedSu = searchParams.get('su') || ''
+  const preselectedSu = serviceUserId || searchParams.get('su') || ''
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -93,6 +107,11 @@ export default function GoalsPage() {
       baseline_value: g.baseline_value != null ? String(g.baseline_value) : '',
       target_value: g.target_value != null ? String(g.target_value) : '',
       value_unit: g.value_unit || '',
+      provider_clarification: g.provider_clarification || '',
+      assigned_to: g.assigned_to || '',
+      status_reason: g.status_reason || '',
+      is_private: g.is_private || false,
+      started_at: g.started_at?.slice(0, 10) || '',
     })
     setDialogOpen(true)
   }
@@ -110,6 +129,11 @@ export default function GoalsPage() {
         baseline_value: form.baseline_value ? Number(form.baseline_value) : null,
         target_value: form.target_value ? Number(form.target_value) : null,
         value_unit: form.value_unit || null,
+        provider_clarification: form.provider_clarification || null,
+        assigned_to: form.assigned_to || null,
+        status_reason: form.status_reason || null,
+        is_private: form.is_private || false,
+        started_at: form.started_at || null,
       }
       if (editing) { await api.patch(`/goals/${editing.id}`, payload) }
       else { await api.post('/goals', payload) }
@@ -383,6 +407,16 @@ export default function GoalsPage() {
               </FormControl>
             </Stack>
             <FormControl fullWidth>
+              <InputLabel>Provider Clarification</InputLabel>
+              <Select value={form.provider_clarification || ''} label="Provider Clarification" onChange={e => setForm(f => ({ ...f, provider_clarification: e.target.value }))}>
+                {CLARIFICATION_OPTIONS.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <TextField label="Started" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.started_at || ''} onChange={e => setForm(f => ({ ...f, started_at: e.target.value }))} />
+            {form.status !== 'active' && (
+              <TextField label="Status Reason" fullWidth multiline rows={2} placeholder="Why is this outcome being marked as completed, cancelled, or on hold?" value={form.status_reason || ''} onChange={e => setForm(f => ({ ...f, status_reason: e.target.value }))} />
+            )}
+            <FormControl fullWidth>
               <InputLabel>CQC Domain</InputLabel>
               <Select value={form.cqc_domain} label="CQC Domain" onChange={e => setForm(f => ({ ...f, cqc_domain: e.target.value }))}>
                 <MenuItem value="">None</MenuItem>
@@ -396,6 +430,10 @@ export default function GoalsPage() {
               <TextField label="Target Value" type="number" fullWidth value={form.target_value} onChange={e => setForm(f => ({ ...f, target_value: e.target.value }))} />
             </Stack>
             <TextField label="Unit (e.g. score, minutes, %)" fullWidth value={form.value_unit} onChange={e => setForm(f => ({ ...f, value_unit: e.target.value }))} />
+            <Divider />
+            <Stack direction="row" spacing={2} alignItems="center">
+              <FormControlLabel control={<Checkbox checked={form.is_private || false} onChange={e => setForm(f => ({ ...f, is_private: e.target.checked }))} />} label="Private (only visible to assigned staff)" />
+            </Stack>
           </Stack>
         </DialogContent>
         <DialogActions>

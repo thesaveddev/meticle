@@ -1193,6 +1193,11 @@ export const createGoalSchema = z.object({
   baseline_value: z.number().optional().nullable(),
   target_value: z.number().optional().nullable(),
   value_unit: z.string().max(50).optional().nullable(),
+  provider_clarification: z.enum(['person_centred_review', 'la_review', 'persons_request', 'family_request', 'safeguarding', 'organisational_priority', 'other']).optional(),
+  assigned_to: z.string().uuid().optional().nullable(),
+  status_reason: z.string().max(1000).optional(),
+  is_private: z.boolean().optional(),
+  started_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
 });
 
 export const updateGoalSchema = z.object({
@@ -1210,6 +1215,11 @@ export const updateGoalSchema = z.object({
   baseline_value: z.number().optional().nullable(),
   target_value: z.number().optional().nullable(),
   value_unit: z.string().max(50).optional().nullable(),
+  provider_clarification: z.enum(['person_centred_review', 'la_review', 'persons_request', 'family_request', 'safeguarding', 'organisational_priority', 'other']).nullable().optional(),
+  assigned_to: z.string().uuid().optional().nullable(),
+  status_reason: z.string().max(1000).optional(),
+  is_private: z.boolean().optional(),
+  started_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
 });
 
 // === Body Map ===

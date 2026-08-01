@@ -20,6 +20,11 @@ export interface GoalRow {
   baseline_value?: number;
   target_value?: number;
   value_unit?: string;
+  provider_clarification?: string;
+  assigned_to?: string;
+  status_reason?: string;
+  is_private?: boolean;
+  started_at?: string;
 }
 
 export interface MilestoneRow {
@@ -44,7 +49,7 @@ export interface ProgressHistoryRow {
 }
 
 export class GoalRepository {
-  private static readonly GOAL_UPDATE_COLUMNS = new Set(['service_user_id', 'title', 'description', 'target_date', 'review_date', 'status', 'progress', 'cqc_domain', 'frequency', 'goal_category', 'created_by', 'care_plan_id', 'baseline_value', 'target_value', 'value_unit']);
+  private static readonly GOAL_UPDATE_COLUMNS = new Set(['service_user_id', 'title', 'description', 'target_date', 'review_date', 'status', 'progress', 'cqc_domain', 'frequency', 'goal_category', 'created_by', 'care_plan_id', 'baseline_value', 'target_value', 'value_unit', 'provider_clarification', 'assigned_to', 'status_reason', 'is_private', 'started_at']);
   private static readonly MILESTONE_UPDATE_COLUMNS = new Set(['title', 'is_completed', 'sort_order']);
   static async findAll(orgId: string, serviceUserId?: string, status?: string) {
     let sql = `
@@ -76,11 +81,11 @@ export class GoalRepository {
   }
 
   static async create(data: Partial<GoalRow>) {
-    const { organization_id, service_user_id, title, description, target_date, review_date, status, progress, cqc_domain, frequency, goal_category, created_by, care_plan_id, baseline_value, target_value, value_unit } = data;
+    const { organization_id, service_user_id, title, description, target_date, review_date, status, progress, cqc_domain, frequency, goal_category, created_by, care_plan_id, baseline_value, target_value, value_unit, provider_clarification, assigned_to, status_reason, is_private, started_at } = data;
     const result = await query(
-      `INSERT INTO service_user_goals (organization_id, service_user_id, title, description, target_date, review_date, status, progress, cqc_domain, frequency, goal_category, created_by, care_plan_id, baseline_value, target_value, value_unit)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
-      [organization_id, service_user_id, title, description, target_date, review_date, status || 'active', progress || 0, cqc_domain, frequency || 'one_time', goal_category, created_by, care_plan_id || null, baseline_value ?? null, target_value ?? null, value_unit || null]
+      `INSERT INTO service_user_goals (organization_id, service_user_id, title, description, target_date, review_date, status, progress, cqc_domain, frequency, goal_category, created_by, care_plan_id, baseline_value, target_value, value_unit, provider_clarification, assigned_to, status_reason, is_private, started_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING *`,
+      [organization_id, service_user_id, title, description, target_date, review_date, status || 'active', progress || 0, cqc_domain, frequency || 'one_time', goal_category, created_by, care_plan_id || null, baseline_value ?? null, target_value ?? null, value_unit || null, provider_clarification || null, assigned_to || null, status_reason || null, is_private || false, started_at || null]
     );
     return result.rows[0];
   }
