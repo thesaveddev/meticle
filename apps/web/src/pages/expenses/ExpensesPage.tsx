@@ -156,7 +156,7 @@ export default function ExpensesPage() {
                 <MenuItem value="">All</MenuItem>
                 {CATEGORIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
               </TextField>
-              <TextField select label="Service User" size="small" value={filterSu} onChange={e => setFilterSu(e.target.value)} sx={{ minWidth: 200 }}>
+              <TextField select label="Person" size="small" value={filterSu} onChange={e => setFilterSu(e.target.value)} sx={{ minWidth: 200 }}>
                 <MenuItem value="">All</MenuItem>
                 {serviceUsers?.map((su: any) => <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>)}
               </TextField>
@@ -171,7 +171,7 @@ export default function ExpensesPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Date</TableCell><TableCell>Service User</TableCell><TableCell>Category</TableCell>
+                  <TableCell>Date</TableCell><TableCell>Person</TableCell><TableCell>Category</TableCell>
                   <TableCell>Description</TableCell><TableCell align="right">Amount</TableCell><TableCell>Added By</TableCell><TableCell width={100}>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -328,7 +328,7 @@ function ExpenseForm({ serviceUsers, initialData, onSubmit, onCancel, isLoading 
     <>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField select label="Service User" fullWidth required value={serviceUserId} onChange={e => setServiceUserId(e.target.value)}>
+          <TextField select label="Person" fullWidth required value={serviceUserId} onChange={e => setServiceUserId(e.target.value)}>
             {serviceUsers?.map((su: any) => <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>)}
           </TextField>
           <TextField select label="Category" fullWidth required value={category} onChange={e => setCategory(e.target.value)}>

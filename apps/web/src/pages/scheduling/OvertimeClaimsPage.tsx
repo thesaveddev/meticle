@@ -202,7 +202,7 @@ export default function OvertimeClaimsPage() {
                 <TableCell><strong>Duration</strong></TableCell>
                 <TableCell><strong>Location</strong></TableCell>
                 <TableCell><strong>Type</strong></TableCell>
-                <TableCell><strong>Service User</strong></TableCell>
+                <TableCell><strong>Person</strong></TableCell>
                 <TableCell><strong>Status</strong></TableCell>
                 <TableCell><strong>To Start</strong></TableCell>
                 <TableCell align="right"><strong>Claimed</strong></TableCell>
@@ -252,7 +252,7 @@ export default function OvertimeClaimsPage() {
                 <TableCell><strong>Duration</strong></TableCell>
                 <TableCell><strong>Location</strong></TableCell>
                 <TableCell><strong>Type</strong></TableCell>
-                <TableCell><strong>Service User</strong></TableCell>
+                <TableCell><strong>Person</strong></TableCell>
                 <TableCell><strong>Status</strong></TableCell>
                 <TableCell align="right"><strong>Claimed</strong></TableCell>
                 <TableCell align="center"><strong>Actions</strong></TableCell>
@@ -331,7 +331,7 @@ export default function OvertimeClaimsPage() {
                 <TableCell><strong>Duration</strong></TableCell>
                 <TableCell><strong>Location</strong></TableCell>
                 <TableCell><strong>Type</strong></TableCell>
-                <TableCell><strong>Service User</strong></TableCell>
+                <TableCell><strong>Person</strong></TableCell>
                 <TableCell align="right"><strong>Approved</strong></TableCell>
                 <TableCell align="center"><strong>Actions</strong></TableCell>
               </TableRow>
@@ -422,7 +422,7 @@ export default function OvertimeClaimsPage() {
                         </Typography>
                         {(s.su_first_name || s.department_name) && (
                           <Typography variant="caption" color="#6B7280">
-                            {s.su_first_name ? `Service User: ${s.su_first_name} ${s.su_last_name || ''}` : ''}
+                            {s.su_first_name ? `Person: ${s.su_first_name} ${s.su_last_name || ''}` : ''}
                             {s.su_first_name && s.department_name ? ' | ' : ''}
                             {s.department_name ? `Dept: ${s.department_name}` : ''}
                           </Typography>

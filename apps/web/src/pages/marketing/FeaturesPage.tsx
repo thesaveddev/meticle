@@ -52,7 +52,7 @@ const featureGroups = [
           { title: 'Shift-Based Notes', desc: 'Categorise notes by shift (day/night) and topic. Carer notes are immediately visible to the oncoming shift for smooth handover.' },
           { title: 'Category Tagging', desc: 'Pre-set categories (personal care, behaviour, mood, nutrition, social) ensure consistent documentation across staff.' },
           { title: 'Author Attribution', desc: 'Every note is timestamped and attributed to the staff member. Full audit trail for CQC evidence packs.' },
-          { title: 'Service User Timeline', desc: 'Notes appear on the service user profile timeline alongside care plans, observations, and appointments.' },
+          { title: 'Person Timeline', desc: 'Notes appear on the person profile timeline alongside care plans, observations, and appointments.' },
         ]
       },
       {
@@ -76,7 +76,7 @@ const featureGroups = [
           { title: 'Health Observations', desc: 'Record observations by category: general, skin, medication, sleep, pain, weight, other. Severity from normal to severe with color-coded left borders.' },
           { title: 'Severity Tracking', desc: 'Normal, mild, moderate, severe. Color-coded for at-a-glance dashboard review.' },
           { title: 'CQC Evidence', desc: 'Observations feed the Safe domain of CQC readiness scoring.' },
-          { title: 'Linked to Service User Timeline', desc: 'All observations appear on the service user profile under the Health tab.' },
+          { title: 'Linked to Person Timeline', desc: 'All observations appear on the person profile under the Health tab.' },
         ]
       },
       {
@@ -85,22 +85,22 @@ const featureGroups = [
         icon: <AppointmentsIcon sx={{ fontSize: 40 }} />,
         description: 'Track appointments and health reviews with status tracking and dashboard widget.',
         items: [
-          { title: 'Full CRUD', desc: 'Create, edit, and delete appointments. Title, service user, staff member, start/end time, location, status, and notes.' },
+          { title: 'Full CRUD', desc: 'Create, edit, and delete appointments. Title, person, staff member, start/end time, location, status, and notes.' },
           { title: 'Dashboard Widget', desc: 'Today\'s appointments card shows total, scheduled, completed, and cancelled counts at a glance.' },
           { title: 'Status Chips', desc: 'Scheduled, attended, cancelled, did-not-attend. Color-coded for rapid review.' },
-          { title: 'Service User & Staff Linking', desc: 'Link appointments to both a service user and an assigned staff member. Autocomplete search on both.' },
+          { title: 'Person & Staff Linking', desc: 'Link appointments to both a person and an assigned staff member. Autocomplete search on both.' },
         ]
       },
       {
         id: 'goals',
         category: 'Goals & Progress Tracking',
         icon: <GoalsIcon sx={{ fontSize: 40 }} />,
-        description: 'Set goals and measure outcomes with 0-100% progress per service user.',
+        description: 'Set goals and measure outcomes with 0-100% progress per person.',
         items: [
-          { title: 'Per-Service-User Goals', desc: 'Track goals per service user with title, description, target date, review date, and progress percentage.' },
-          { title: 'Progress Dashboard', desc: 'Summary cards: total goals, active, completed, average progress. Instantly see which service users need attention.' },
+          { title: 'Per-Person Goals', desc: 'Track goals per person with title, description, target date, review date, and progress percentage.' },
+          { title: 'Progress Dashboard', desc: 'Summary cards: total goals, active, completed, average progress. Instantly see which people need attention.' },
           { title: 'CQC Domain Mapping', desc: 'Goals tagged by CQC domain (Safe, Effective, Caring, Responsive, Well-led). Feeds readiness scoring.' },
-          { title: 'Profile Integration', desc: 'Goals tab (6) on service user profile. Standalone page with ?su= filter for per-user view.' },
+          { title: 'Profile Integration', desc: 'Goals tab (6) on person profile. Standalone page with ?su= filter for per-user view.' },
         ]
       },
     ]
@@ -174,10 +174,10 @@ const featureGroups = [
         category: 'Expense Tracking',
         icon: <ExpenseIcon sx={{ fontSize: 40 }} />,
         tag: 'Phase 2',
-        description: 'Track petty cash, receipts and service user spending.',
+        description: 'Track petty cash, receipts and person spending.',
         items: [
-          { title: 'Service User Spending Ledger', desc: 'Track purchases against per-service-user spending allowance. Categorise by type (food, clothing, activities, transport).' },
-          { title: 'Receipt Upload', desc: 'Attach photo or scan of receipt to each expense entry. Stored securely against the service user profile.' },
+          { title: 'Person Spending Ledger', desc: 'Track purchases against per-service-user spending allowance. Categorise by type (food, clothing, activities, transport).' },
+          { title: 'Receipt Upload', desc: 'Attach photo or scan of receipt to each expense entry. Stored securely against the person profile.' },
           { title: 'Petty Cash Balance', desc: 'Per-location petty cash balance with running total. Top-ups and reconciliations logged.' },
           { title: 'Monthly Reports', desc: 'Export per-service-user or per-location spend reports for relatives and financial audits.' },
         ]
@@ -266,7 +266,7 @@ const featureGroups = [
         icon: <ReadinessIcon sx={{ fontSize: 40 }} />,
         description: 'Email-invited surveys feeding CQC Caring and Well-led domains.',
         items: [
-          { title: 'Satisfaction Surveys (Caring)', desc: 'Email invitations with unique tokens. Public form for service users and families. Source tracked as Email or Manual.' },
+          { title: 'Satisfaction Surveys (Caring)', desc: 'Email invitations with unique tokens. Public form for people and families. Source tracked as Email or Manual.' },
           { title: 'Staff Engagement (Well-led)', desc: 'Customizable question templates with slider-based ratings. Send to specific roles. Anonymous or named.' },
           { title: 'Template Builder', desc: 'Create unlimited survey templates with per-question key. Stored in JSON for flexible analysis.' },
           { title: 'Dashboard & Analytics', desc: 'Aggregated scores, response counts, and average scores by question. All feeding into CQC domain scoring.' },

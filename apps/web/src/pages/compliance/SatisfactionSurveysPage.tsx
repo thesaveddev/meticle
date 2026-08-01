@@ -62,7 +62,7 @@ export default function SatisfactionSurveysPage() {
     }
   })
   const allStaff: any[] = [
-    ...(staffList?.admin ? [staffList.admin] : []),
+    ...(staffList?.admins?.length ? staffList.admins : (staffList?.admin ? [staffList.admin] : [])),
     ...(staffList?.staff || [])
   ].filter((m: any) => m.status === 'active')
 
@@ -223,8 +223,8 @@ export default function SatisfactionSurveysPage() {
         <DialogTitle>Record Satisfaction Feedback</DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 2 }}>
-            <TextField select label="Service User (optional)" value={form.service_user_id} onChange={e => setForm(p => ({ ...p, service_user_id: e.target.value }))} fullWidth size="small">
-              <MenuItem value="">— Not specific to a service user —</MenuItem>
+            <TextField select label="Person (optional)" value={form.service_user_id} onChange={e => setForm(p => ({ ...p, service_user_id: e.target.value }))} fullWidth size="small">
+              <MenuItem value="">— Not specific to a person —</MenuItem>
               {(serviceUsers || []).map((su: any) => (
                 <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>
               ))}
@@ -276,11 +276,11 @@ export default function SatisfactionSurveysPage() {
                 ))}
               </TextField>
             )}
-            <TextField select label="Regarding Service User (optional)" value={inviteForm.service_user_id} onChange={e => {
+            <TextField select label="Regarding Person (optional)" value={inviteForm.service_user_id} onChange={e => {
               const sel = (serviceUsers || []).find((su: any) => su.id === e.target.value)
               setInviteForm(p => ({ ...p, service_user_id: e.target.value, service_user_name: sel ? `${sel.first_name} ${sel.last_name}` : '' }))
             }} fullWidth size="small">
-              <MenuItem value="">— Not specific to a service user —</MenuItem>
+              <MenuItem value="">— Not specific to a person —</MenuItem>
               {(serviceUsers || []).map((su: any) => (
                 <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>
               ))}
@@ -315,7 +315,7 @@ export default function SatisfactionSurveysPage() {
                   <Rating value={viewSurvey.rating} readOnly />
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="#6B7280">Service User</Typography>
+                  <Typography variant="body2" color="#6B7280">Person</Typography>
                   <Typography variant="body2" fontWeight={600}>{viewSurvey.first_name && viewSurvey.last_name ? `${viewSurvey.first_name} ${viewSurvey.last_name}` : '—'}</Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">

@@ -39,7 +39,7 @@ async function seed() {
   }
   console.log('  15 staff created')
 
-  // 4. Service Users (12)
+  // 4. People (12)
   const suNames = [
     ['Arthur','Clarke','101','A12345678','Penicillin'],
     ['Margaret','Thatcher','102','A23456789',''],
@@ -61,7 +61,7 @@ async function seed() {
       [id, orgId, su[0], su[1], su[2], su[3], JSON.stringify(su[4].split(', ').filter(Boolean)), su[4] ? 'active' : 'active'])
     serviceUsers.push({ id, name: su[0] + ' ' + su[1], room: su[2] })
   }
-  console.log('  12 service users created')
+  console.log('  12 people created')
 
   // 5. Training Modules (8 CQC-mandated)
   const modules = [

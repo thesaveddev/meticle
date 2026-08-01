@@ -110,16 +110,16 @@ export const REPORT_REGISTRY: ReportDefinition[] = [
     chartTypes: ['bar', 'table'], defaultChartType: 'table',
   },
 
-  // ─── Service Users ──────────────────────────────────────
+  // ─── People ─────────────────────────────────────────────
   {
-    id: 'su-directory', title: 'Service User Directory', description: 'Active service users with demographics and care level',
+    id: 'su-directory', title: 'Person Directory', description: 'Active people with demographics and care level',
     category: 'service-users', icon: 'Group', color: '#8B5CF6',
     filters: ['dateRange', 'location', 'status'],
     groupByOptions: ['location', 'status', 'care_level'],
     chartTypes: ['bar', 'pie', 'table'], defaultChartType: 'table',
   },
   {
-    id: 'su-by-location', title: 'Service Users by Location', description: 'Service user distribution across locations',
+    id: 'su-by-location', title: 'People by Location', description: 'Person distribution across locations',
     category: 'service-users', icon: 'LocationOn', color: '#8B5CF6',
     filters: ['dateRange', 'location', 'status'],
     groupByOptions: ['location', 'status'],
@@ -133,7 +133,7 @@ export const REPORT_REGISTRY: ReportDefinition[] = [
     chartTypes: ['bar', 'pie', 'table'], defaultChartType: 'table',
   },
   {
-    id: 'su-outcomes', title: 'Service User Outcomes', description: 'Goals, wellbeing scores, and clinical assessments',
+    id: 'su-outcomes', title: 'Person Outcomes', description: 'Goals, wellbeing scores, and clinical assessments',
     category: 'service-users', icon: 'Psychology', color: '#8B5CF6',
     filters: ['dateRange', 'location', 'status'],
     groupByOptions: ['location', 'cqc_domain'],
@@ -318,7 +318,7 @@ export const REPORT_REGISTRY: ReportDefinition[] = [
 
 export const CATEGORIES = [
   { id: 'staff', label: 'Staff', color: '#0F4C81', icon: 'People' },
-  { id: 'service-users', label: 'Service Users', color: '#8B5CF6', icon: 'Group' },
+  { id: 'service-users', label: 'People', color: '#8B5CF6', icon: 'Group' },
   { id: 'scheduling', label: 'Scheduling', color: '#D97706', icon: 'CalendarMonth' },
   { id: 'leave', label: 'Leave', color: '#0EA5E9', icon: 'BeachAccess' },
   { id: 'incidents', label: 'Incidents', color: '#DC2626', icon: 'WarningAmber' },

@@ -21,8 +21,8 @@ router.get('/compliance-records', asyncHandler(SettingsController.getComplianceR
 router.get('/compliance-profiles', asyncHandler(SettingsController.getComplianceProfiles));
 router.get('/my-teams', asyncHandler(SettingsController.getMyTeams));
 
-// Mutation routes (ORG_ADMIN only)
-router.patch('/org', requireRole(UserRole.ORG_ADMIN), validate(updateOrgSettingsSchema), asyncHandler(SettingsController.updateOrgSettings));
+// Mutation routes (ORG_ADMIN, plus MANAGER for medication/alert toggles)
+router.patch('/org', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateOrgSettingsSchema), asyncHandler(SettingsController.updateOrgSettings));
 router.post('/locations', requireRole(UserRole.ORG_ADMIN), validate(createLocationSchema), asyncHandler(SettingsController.createLocation));
 router.put('/locations/:id', requireRole(UserRole.ORG_ADMIN), validate(updateLocationSchema), asyncHandler(SettingsController.updateLocation));
 router.delete('/locations/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(SettingsController.deleteLocation));

@@ -43,7 +43,7 @@ export default function IdentityMonitoringPage() {
     }
   })
   const members: any[] = [
-    ...(membersData?.admin ? [membersData.admin] : []),
+    ...(membersData?.admins?.length ? membersData.admins : (membersData?.admin ? [membersData.admin] : [])),
     ...(membersData?.staff || [])
   ].filter((m: any) => m.status === 'active')
 

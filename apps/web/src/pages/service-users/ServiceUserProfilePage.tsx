@@ -16,7 +16,8 @@ import {
   CheckCircle as CheckCircleIcon, RadioButtonUnchecked as UncheckedIcon,
   People as PeopleIcon, AutoAwesome as AiIcon, Mic as MicIcon, Stop as StopIcon,
   Psychology as PsychologyIcon, Flag as FlagIcon, TrendingUp as TrendIcon,
-  Lightbulb as LightbulbIcon, Save as SaveIcon,
+  Lightbulb as LightbulbIcon, Save as SaveIcon, Visibility as VisibilityIcon,
+  Description as FileIcon, Download as DownloadIcon, Close as CloseIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -61,6 +62,19 @@ const SUPPORT_LEVEL_COLORS: Record<string, 'default' | 'primary' | 'secondary' |
   complex: 'error',
 }
 
+const toDateInput = (v: any) => {
+  if (!v) return ''
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v
+  const d = new Date(v)
+  if (isNaN(d.getTime())) return String(v)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+const EDIT_DATE_FIELDS = ['date_of_birth', 'admission_date', 'dnacpr_date', 'dnacpr_review_date', 'advance_decision_date', 'discharge_date']
+
 export default function ServiceUserProfilePage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -70,6 +84,8 @@ export default function ServiceUserProfilePage() {
   const [activeCategory, setActiveCategory] = useState(0)
   const [editOpen, setEditOpen] = useState(false)
   const [addPlanOpen, setAddPlanOpen] = useState(false)
+  const [viewPlan, setViewPlan] = useState<any>(null)
+  const [planFileUrl, setPlanFileUrl] = useState('')
   const [addNoteOpen, setAddNoteOpen] = useState(false)
   const [addRiskOpen, setAddRiskOpen] = useState(false)
   const [addContactOpen, setAddContactOpen] = useState(false)
@@ -117,6 +133,11 @@ export default function ServiceUserProfilePage() {
     queryKey: ['service-user', id],
     queryFn: () => api.get(`/service-users/${id}`).then(r => r.data),
     enabled: !!id,
+  })
+
+  const { data: locations = [] } = useQuery({
+    queryKey: ['locations'],
+    queryFn: () => api.get('/settings/locations').then(r => r.data),
   })
 
   const { data: portalMembers = [] } = useQuery({
@@ -293,6 +314,27 @@ export default function ServiceUserProfilePage() {
     } catch { /* silently fall back to initials */ }
   }
 
+  const loadFileToBlob = async (url: string) => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to load file')
+      const blob = await res.blob()
+      setPlanFileUrl(URL.createObjectURL(blob))
+    } catch { setPlanFileUrl('') }
+  }
+
+  const viewCarePlan = (cp: any) => {
+    setViewPlan(cp)
+    setPlanFileUrl('')
+    if (cp.file_url) loadFileToBlob(`/files/private/${cp.file_url}`)
+  }
+
+  const closeCarePlanView = () => {
+    if (planFileUrl) { URL.revokeObjectURL(planFileUrl); setPlanFileUrl('') }
+    setViewPlan(null)
+  }
+
   useEffect(() => {
     if (user?.photo_url) {
       loadPhotoToBlob(user.photo_url)
@@ -301,7 +343,7 @@ export default function ServiceUserProfilePage() {
   }, [user?.photo_url])
 
   // AI Daily Notes helper functions
-  const startAiRecording = () => {
+  const startRecordingFor = (onTranscript: (t: string) => void) => {
     setAiError('')
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) { setAiError('Voice input not supported on this browser. Try Chrome.'); return }
@@ -312,7 +354,7 @@ export default function ServiceUserProfilePage() {
     rec.onresult = (e: any) => {
       let full = ''
       for (let i = e.resultIndex; i < e.results.length; i++) full += e.results[i][0].transcript
-      setAiTranscript(full)
+      onTranscript(full)
     }
     rec.onerror = (e: any) => { setAiError(`Voice error: ${e.error}`); setAiRecording(false) }
     rec.onend = () => setAiRecording(false)
@@ -320,6 +362,9 @@ export default function ServiceUserProfilePage() {
     rec.start()
     setAiRecording(true)
   }
+
+  const startAiRecording = () => startRecordingFor(setAiTranscript)
+  const startNoteDictation = () => startRecordingFor(t => setNoteForm(f => ({ ...f, content: t })))
 
   const stopAiRecording = () => {
     aiRecognitionRef.current?.stop()
@@ -434,6 +479,7 @@ export default function ServiceUserProfilePage() {
               </Stack>
               <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 0.75 }}>
                 {user.room_number && <Chip icon={<EventIcon sx={{ fontSize: 13 }} />} label={`Room ${user.room_number}`} size="small" variant="outlined" sx={{ borderRadius: 1 }} />}
+                {user.location_id && locations.find((l: any) => l.id === user.location_id) && <Chip label={locations.find((l: any) => l.id === user.location_id).name} size="small" variant="outlined" sx={{ borderRadius: 1 }} />}
                 {user.nhs_number && <Chip label={`NHS: ${user.nhs_number}`} size="small" variant="outlined" sx={{ borderRadius: 1 }} />}
                 {user.gender && <Chip label={user.gender} size="small" variant="outlined" sx={{ borderRadius: 1 }} />}
                 {user.pronouns && <Chip label={user.pronouns} size="small" variant="outlined" sx={{ borderRadius: 1, borderStyle: 'dashed' }} />}
@@ -450,7 +496,11 @@ export default function ServiceUserProfilePage() {
               )}
             </Box>
           </Stack>
-          <Button startIcon={<EditIcon />} variant="outlined" size="small" onClick={() => { setEditForm({ ...user }); setEditOpen(true) }}
+          <Button startIcon={<EditIcon />} variant="outlined" size="small" onClick={() => {
+            const f: any = { ...user }
+            for (const k of EDIT_DATE_FIELDS) f[k] = toDateInput(f[k])
+            setEditForm(f); setEditOpen(true)
+          }}
             sx={{ textTransform: 'none', borderRadius: 1.5, whiteSpace: 'nowrap' }}>
             Edit Profile
           </Button>
@@ -761,6 +811,11 @@ export default function ServiceUserProfilePage() {
                         {cp.description && <Typography variant="body2" color="#6B7280" sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{cp.description}</Typography>}
                       </Box>
                       <Stack direction="row" spacing={0.5} sx={{ ml: 1, flexShrink: 0 }}>
+                        <Tooltip title="View care plan">
+                          <IconButton size="small" onClick={() => viewCarePlan(cp)}>
+                            <VisibilityIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                         <IconButton size="small" onClick={() => { setPlanForm({ title: cp.title, category: cp.category, description: cp.description || '', risk_assessment: cp.risk_assessment || '', review_date: cp.review_date || '', mobility_level: cp.mobility_level || '', mobility_aids: cp.mobility_aids || '', communication_needs: cp.communication_needs || '', capacity_status: cp.capacity_status || '', sleep_pattern: cp.sleep_pattern || '', emergency_info: cp.emergency_info || '', personal_goals: cp.personal_goals || '', likes_dislikes: cp.likes_dislikes || '', cultural_needs: cp.cultural_needs || '', file_url: cp.file_url || '' }); setEditPlanId(cp.id); setAddPlanOpen(true) }}>
                           <EditIcon fontSize="small" />
                         </IconButton>
@@ -905,11 +960,12 @@ export default function ServiceUserProfilePage() {
       {/* Tab: Family & Contacts (with portal access status) */}
       {tab === 5 && (
         <Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
             <Typography variant="subtitle1" fontWeight={800}>Family & Contacts</Typography>
             <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false }); setAddContactOpen(true) }}
               sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Contact</Button>
           </Stack>
+          <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>Add family members and their contact details, then invite them to the Family Portal so they can view care notes and plans securely.</Typography>
 
           {(!user.family_contacts || user.family_contacts.length === 0) ? (
             <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB', mb: 3 }}>
@@ -1065,6 +1121,12 @@ export default function ServiceUserProfilePage() {
                 <MenuItem value="discharged">Discharged</MenuItem>
                 <MenuItem value="deceased">Deceased</MenuItem>
               </TextField>
+              <TextField select label="Location" fullWidth value={editForm.location_id || ''} onChange={e => setEditForm({ ...editForm, location_id: e.target.value })}>
+                <MenuItem value="">None specified</MenuItem>
+                {locations.map((l: any) => (
+                  <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>
+                ))}
+              </TextField>
               <Divider />
               <Typography variant="subtitle2" fontWeight={700}>GP Details</Typography>
               <TextField label="GP Name" fullWidth value={editForm.gp_name || ''} onChange={e => setEditForm({ ...editForm, gp_name: e.target.value })} />
@@ -1142,6 +1204,11 @@ export default function ServiceUserProfilePage() {
                   <MenuItem key={sl.value} value={sl.value}>{sl.label}</MenuItem>
                 ))}
               </TextField>
+              {editForm.support_level === 'complex' && (
+                <TextField label="Minimum Staff Required" type="number" inputProps={{ min: 1, max: 6 }}
+                  fullWidth required helperText="How many staff are required to support this person safely at all times?"
+                  value={editForm.min_staff_required || ''} onChange={e => setEditForm({ ...editForm, min_staff_required: e.target.value })} />
+              )}
               <Divider />
               <Typography variant="subtitle2" fontWeight={700}>Pharmacy</Typography>
               <Stack direction="row" spacing={1}>
@@ -1328,6 +1395,97 @@ export default function ServiceUserProfilePage() {
         </Box>
       </Dialog>
 
+      {/* View Care Plan Dialog */}
+      <Dialog open={!!viewPlan} onClose={closeCarePlanView} maxWidth="md" fullWidth>
+        {viewPlan && (
+          <>
+            <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AssignmentIcon sx={{ color: '#0F4C81' }} />
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="subtitle1" fontWeight={800} noWrap>{viewPlan.title}</Typography>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Chip label={viewPlan.category?.replace(/_/g, ' ')} size="small" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
+                  <Chip label={viewPlan.status === 'active' ? 'Active' : viewPlan.status === 'archived' ? 'Archived' : 'Draft'} size="small"
+                    color={viewPlan.status === 'active' ? 'success' : 'default'} sx={{ height: 20, fontSize: 11 }} />
+                  {viewPlan.review_date && <Typography variant="caption" color="#9CA3AF">Review: {new Date(viewPlan.review_date).toLocaleDateString('en-GB')}</Typography>}
+                </Stack>
+              </Box>
+              <IconButton sx={{ ml: 'auto' }} onClick={closeCarePlanView}><CloseIcon fontSize="small" /></IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Stack spacing={2}>
+                {viewPlan.description && (
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: '#F8FAFC', borderRadius: 2 }}>
+                    <Typography variant="caption" color="#6B7280" fontWeight={700}>DESCRIPTION</Typography>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewPlan.description}</Typography>
+                  </Paper>
+                )}
+                {viewPlan.risk_assessment && (
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: '#FFF7ED', borderColor: '#FED7AA', borderRadius: 2 }}>
+                    <Typography variant="caption" color="#C2410C" fontWeight={700}>RISK ASSESSMENT</Typography>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewPlan.risk_assessment}</Typography>
+                  </Paper>
+                )}
+                <Grid container spacing={2}>
+                  {[
+                    ['Mobility Level', viewPlan.mobility_level],
+                    ['Mobility Aids', viewPlan.mobility_aids],
+                    ['Communication Needs', viewPlan.communication_needs],
+                    ['Mental Capacity', viewPlan.capacity_status],
+                    ['Sleep Pattern', viewPlan.sleep_pattern],
+                    ['Personal Goals', viewPlan.personal_goals],
+                    ['Likes & Dislikes', viewPlan.likes_dislikes],
+                    ['Cultural & Religious Needs', viewPlan.cultural_needs],
+                    ['Emergency Information', viewPlan.emergency_info],
+                  ].filter(([, v]) => v).map(([k, v]) => (
+                    <Grid item xs={12} md={6} key={k as string}>
+                      <Typography variant="caption" color="#6B7280" fontWeight={700}>{String(k).toUpperCase()}</Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{String(v).replace(/_/g, ' ')}</Typography>
+                    </Grid>
+                  ))}
+                </Grid>
+
+                {viewPlan.file_url && (
+                  <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ p: 1.5, borderBottom: '1px solid #E5E7EB', bgcolor: '#F8FAFC' }}>
+                      <FileIcon sx={{ fontSize: 18, color: '#0F4C81' }} />
+                      <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1, minWidth: 0 }} noWrap>
+                        {viewPlan.file_url.split('/').pop() || 'Attached document'}
+                      </Typography>
+                      <Button size="small" variant="outlined" component="a"
+                        href={planFileUrl || `/files/private/${viewPlan.file_url}`}
+                        target="_blank" rel="noopener noreferrer"
+                        download={viewPlan.file_url.split('/').pop()}
+                        startIcon={<DownloadIcon fontSize="small" />}
+                        sx={{ textTransform: 'none', borderRadius: 1.5, '&:visited': { color: 'inherit' } }}>
+                        Download
+                      </Button>
+                    </Stack>
+                    {planFileUrl ? (
+                      <Box sx={{ width: '100%', height: 480 }}>
+                        <iframe src={planFileUrl} title="Care plan attachment" style={{ width: '100%', height: '100%', border: 'none' }} />
+                      </Box>
+                    ) : (
+                      <Box sx={{ p: 3, textAlign: 'center' }}>
+                        <CircularProgress size={24} />
+                        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', mt: 1 }}>Loading document...</Typography>
+                      </Box>
+                    )}
+                  </Paper>
+                )}
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ p: 2.5 }}>
+              <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}
+                onClick={() => { closeCarePlanView(); setPlanForm({ title: viewPlan.title, category: viewPlan.category, description: viewPlan.description || '', risk_assessment: viewPlan.risk_assessment || '', review_date: viewPlan.review_date || '', mobility_level: viewPlan.mobility_level || '', mobility_aids: viewPlan.mobility_aids || '', communication_needs: viewPlan.communication_needs || '', capacity_status: viewPlan.capacity_status || '', sleep_pattern: viewPlan.sleep_pattern || '', emergency_info: viewPlan.emergency_info || '', personal_goals: viewPlan.personal_goals || '', likes_dislikes: viewPlan.likes_dislikes || '', cultural_needs: viewPlan.cultural_needs || '', file_url: viewPlan.file_url || '' }); setEditPlanId(viewPlan.id); setAddPlanOpen(true) }}>
+                Edit Plan
+              </Button>
+              <Button onClick={closeCarePlanView} sx={{ textTransform: 'none' }}>Close</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
       {/* Add Daily Note Dialog */}
       <Dialog open={addNoteOpen} onClose={() => { setAddNoteOpen(false); setEditNoteId(null); resetAiMode() }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); if (!aiMode) { if (editNoteId) updateNoteMutation.mutate({ noteId: editNoteId, data: noteForm }); else addNoteMutation.mutate(noteForm) } }}>
@@ -1365,7 +1523,19 @@ export default function ServiceUserProfilePage() {
                     <MenuItem key={sl.value} value={sl.value}>{sl.label}</MenuItem>
                   ))}
                 </TextField>
-                <TextField label="Notes" fullWidth multiline rows={4} required value={noteForm.content} onChange={e => setNoteForm({ ...noteForm, content: e.target.value })} />
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <TextField label="Notes" fullWidth multiline rows={4} required value={noteForm.content} onChange={e => setNoteForm({ ...noteForm, content: e.target.value })}
+                    sx={{ '& .MuiOutlinedInput-root': aiRecording ? { bgcolor: '#FAF5FF', borderColor: '#7C3AED' } : {} }} />
+                  <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
+                    <Tooltip title={aiRecording ? 'Stop dictation' : 'Dictate note with voice'}>
+                      <IconButton size="small" onClick={aiRecording ? stopAiRecording : startNoteDictation}
+                        sx={{ bgcolor: aiRecording ? '#DC2626' : '#E5E7EB', color: aiRecording ? '#fff' : '#6B7280', borderRadius: 1.5, width: 34, height: 34, '&:hover': { bgcolor: aiRecording ? '#B91C1C' : '#D1D5DB' } }}>
+                        {aiRecording ? <StopIcon sx={{ fontSize: 18 }} /> : <MicIcon sx={{ fontSize: 18 }} />}
+                      </IconButton>
+                    </Tooltip>
+                    {aiRecording && <Chip label="Recording..." size="small" color="error" variant="outlined" sx={{ animation: 'blink 1s infinite', height: 20, fontSize: 10 }} />}
+                  </Stack>
+                </Stack>
               </>
             )}
 
@@ -1753,24 +1923,12 @@ function GoalsTabInline({ serviceUserId }: { serviceUserId: string }) {
   })
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
   if (isError) return <Alert severity="error">Failed to load goals</Alert>
-  const stats = {
-    total: goals?.length || 0,
-    active: goals?.filter((g: any) => g.status === 'active').length || 0,
-    completed: goals?.filter((g: any) => g.status === 'completed').length || 0,
-    avgProgress: Math.round((goals?.reduce((s: number, g: any) => s + (g.progress || 0), 0) || 0) / (goals?.length || 1)),
-  }
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Service User Goals</Typography>
+        <Typography variant="subtitle1" fontWeight={800}>Person Goals</Typography>
         <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => navigate(`/goals?su=${serviceUserId}`)}
           sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Manage Goals</Button>
-      </Stack>
-      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-        <Paper sx={{ p: 2, flex: 1, textAlign: 'center', borderRadius: 2 }}><Typography variant="h6" fontWeight={800}>{stats.total}</Typography><Typography variant="caption">Total</Typography></Paper>
-        <Paper sx={{ p: 2, flex: 1, textAlign: 'center', borderRadius: 2 }}><Typography variant="h6" fontWeight={800} color="#0F4C81">{stats.active}</Typography><Typography variant="caption">Active</Typography></Paper>
-        <Paper sx={{ p: 2, flex: 1, textAlign: 'center', borderRadius: 2 }}><Typography variant="h6" fontWeight={800} color="#16A34A">{stats.completed}</Typography><Typography variant="caption">Completed</Typography></Paper>
-        <Paper sx={{ p: 2, flex: 1, textAlign: 'center', borderRadius: 2 }}><Typography variant="h6" fontWeight={800} color="#D97706">{stats.avgProgress}%</Typography><Typography variant="caption">Avg Progress</Typography></Paper>
       </Stack>
       {(!goals || goals.length === 0) ? (
         <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
@@ -1795,30 +1953,63 @@ function GoalsTabInline({ serviceUserId }: { serviceUserId: string }) {
   )
 }
 
+const ASSESSMENT_TYPES = ['Initial', 'Annual Review', 'MCA', 'DoLS', 'Best Interest', 'Capacity', 'Other']
+const ASSESSMENT_STATUS_COLORS: Record<string, string> = { draft: '#D97706', completed: '#16A34A', reviewed: '#0F4C81' }
+
 function CareAssessmentsTabInline({ serviceUserId }: { serviceUserId: string }) {
-  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [viewOpen, setViewOpen] = useState(false)
+  const [selected, setSelected] = useState<any>(null)
+  const [editAssessment, setEditAssessment] = useState<any>(null)
+  const [form, setForm] = useState({ assessment_type: '', assessment_date: new Date().toISOString().split('T')[0], assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '' })
+  const [error, setError] = useState('')
   const { data: assessments, isLoading, isError } = useQuery({
     queryKey: ['assessments', serviceUserId],
     queryFn: () => api.get(`/service-users/${serviceUserId}/assessments`).then(r => r.data),
   })
+  const resetForm = () => setForm({ assessment_type: '', assessment_date: new Date().toISOString().split('T')[0], assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '' })
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload = { ...form }
+      if (editAssessment) return api.patch(`/service-users/assessments/${editAssessment.id}`, payload)
+      return api.post(`/service-users/${serviceUserId}/assessments`, payload)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assessments', serviceUserId] })
+      queryClient.invalidateQueries({ queryKey: ['timeline', serviceUserId] })
+      setOpen(false)
+      setEditAssessment(null)
+      resetForm()
+      setError('')
+    },
+    onError: (err: any) => setError(err.response?.data?.message || err.message || 'Failed to save assessment'),
+  })
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/service-users/assessments/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assessments', serviceUserId] }),
+  })
+  const openEdit = (a: any) => {
+    setEditAssessment(a)
+    setForm({
+      assessment_type: a.assessment_type,
+      assessment_date: a.assessment_date?.split('T')[0] || '',
+      assessor_name: a.assessor_name || '',
+      findings: a.findings || '',
+      recommendations: a.recommendations || '',
+      status: a.status || 'draft',
+      next_review_date: a.next_review_date?.split('T')[0] || '',
+    })
+    setOpen(true)
+  }
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
   if (isError) return <Alert severity="error">Failed to load assessments</Alert>
-  const stats = {
-    total: assessments?.length || 0,
-    completed: assessments?.filter((a: any) => a.status === 'completed').length || 0,
-    draft: assessments?.filter((a: any) => a.status === 'draft').length || 0,
-  }
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="subtitle1" fontWeight={800}>Care Assessments</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => navigate(`/care-assessments?su=${serviceUserId}`)}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Manage Assessments</Button>
-      </Stack>
-      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-        <Paper sx={{ p: 2, flex: 1, textAlign: 'center', borderRadius: 2 }}><Typography variant="h6" fontWeight={800}>{stats.total}</Typography><Typography variant="caption">Total</Typography></Paper>
-        <Paper sx={{ p: 2, flex: 1, textAlign: 'center', borderRadius: 2 }}><Typography variant="h6" fontWeight={800} color="#16A34A">{stats.completed}</Typography><Typography variant="caption">Completed</Typography></Paper>
-        <Paper sx={{ p: 2, flex: 1, textAlign: 'center', borderRadius: 2 }}><Typography variant="h6" fontWeight={800} color="#D97706">{stats.draft}</Typography><Typography variant="caption">Draft</Typography></Paper>
+        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditAssessment(null); resetForm(); setOpen(true) }}
+          sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>New Assessment</Button>
       </Stack>
       {(!assessments || assessments.length === 0) ? (
         <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
@@ -1834,22 +2025,80 @@ function CareAssessmentsTabInline({ serviceUserId }: { serviceUserId: string }) 
                 <TableCell sx={{ fontWeight: 700 }}>Assessor</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Next Review</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {assessments.map((a: any) => (
-                <TableRow key={a.id}>
-                  <TableCell sx={{ textTransform: 'capitalize' }}>{a.assessment_type?.replace(/_/g, ' ')}</TableCell>
+                <TableRow key={a.id} hover sx={{ cursor: 'pointer' }} onClick={() => { setSelected(a); setViewOpen(true) }}>
+                  <TableCell sx={{ fontWeight: 600 }}>{a.assessment_type?.replace(/_/g, ' ')}</TableCell>
                   <TableCell>{a.assessment_date ? new Date(a.assessment_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell>{a.assessor_name || '—'}</TableCell>
-                  <TableCell><Chip label={a.status} size="small" color={a.status === 'completed' ? 'success' : a.status === 'reviewed' ? 'primary' : 'default'} /></TableCell>
+                  <TableCell><Chip label={a.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[a.status] || '#6B7280'}20`, color: ASSESSMENT_STATUS_COLORS[a.status] || '#6B7280', fontWeight: 700, textTransform: 'capitalize' }} /></TableCell>
                   <TableCell>{a.next_review_date ? new Date(a.next_review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
+                  <TableCell align="right" onClick={e => e.stopPropagation()}>
+                    <IconButton size="small" onClick={() => openEdit(a)}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => { if (confirm('Delete this assessment?')) deleteMutation.mutate(a.id) }}><DeleteIcon fontSize="small" /></IconButton>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
       )}
+
+      {/* View Dialog */}
+      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>{selected?.assessment_type}</DialogTitle>
+        <DialogContent>
+          {selected && (
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={4}>
+                <Box><Typography variant="caption" color="#6B7280">Date</Typography><Typography fontWeight={600}>{new Date(selected.assessment_date).toLocaleDateString('en-GB')}</Typography></Box>
+                <Box><Typography variant="caption" color="#6B7280">Assessor</Typography><Typography fontWeight={600}>{selected.assessor_name || '—'}</Typography></Box>
+                <Box><Typography variant="caption" color="#6B7280">Status</Typography><Chip label={selected.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[selected.status] || '#6B7280'}20`, color: ASSESSMENT_STATUS_COLORS[selected.status] || '#6B7280', fontWeight: 700 }} /></Box>
+                <Box><Typography variant="caption" color="#6B7280">Next Review</Typography><Typography fontWeight={600}>{selected.next_review_date ? new Date(selected.next_review_date).toLocaleDateString('en-GB') : '—'}</Typography></Box>
+              </Stack>
+              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Findings</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: '#F9FAFB', whiteSpace: 'pre-wrap' }}>{selected.findings || 'No findings recorded'}</Paper></Box>
+              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Recommendations</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: '#F9FAFB', whiteSpace: 'pre-wrap' }}>{selected.recommendations || 'No recommendations recorded'}</Paper></Box>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setViewOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={open} onClose={() => { setOpen(false); setError('') }} maxWidth="sm" fullWidth>
+        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); saveMutation.mutate() }}>
+          <DialogTitle sx={{ fontWeight: 800 }}>{editAssessment ? 'Edit Assessment' : 'New Assessment'}</DialogTitle>
+          <DialogContent>
+            {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <TextField select label="Assessment Type" required fullWidth value={form.assessment_type} onChange={e => setForm(p => ({ ...p, assessment_type: e.target.value }))}>
+                {ASSESSMENT_TYPES.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+              </TextField>
+              <TextField label="Assessment Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.assessment_date} onChange={e => setForm(p => ({ ...p, assessment_date: e.target.value }))} />
+              <TextField label="Assessor Name" fullWidth value={form.assessor_name} onChange={e => setForm(p => ({ ...p, assessor_name: e.target.value }))} />
+              <TextField label="Findings" multiline rows={4} fullWidth value={form.findings} onChange={e => setForm(p => ({ ...p, findings: e.target.value }))} />
+              <TextField label="Recommendations" multiline rows={4} fullWidth value={form.recommendations} onChange={e => setForm(p => ({ ...p, recommendations: e.target.value }))} />
+              <TextField select label="Status" fullWidth value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
+                <MenuItem value="draft">Draft</MenuItem>
+                <MenuItem value="completed">Completed</MenuItem>
+                <MenuItem value="reviewed">Reviewed</MenuItem>
+              </TextField>
+              <TextField label="Next Review Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.next_review_date} onChange={e => setForm(p => ({ ...p, next_review_date: e.target.value }))} />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => { setOpen(false); setError('') }}>Cancel</Button>
+            <Button type="submit" variant="contained" disabled={!form.assessment_type.trim() || saveMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
+              {saveMutation.isPending ? <CircularProgress size={20} /> : editAssessment ? 'Update' : 'Create'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
     </Box>
   )
 }
@@ -1873,7 +2122,7 @@ function TimelineTab({ serviceUserId }: { serviceUserId: string }) {
 
   return (
     <Box>
-      <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 3 }}>Service User Timeline</Typography>
+      <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 3 }}>Person Timeline</Typography>
       {timeline.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
           <Typography color="#9CA3AF">No timeline events yet</Typography>

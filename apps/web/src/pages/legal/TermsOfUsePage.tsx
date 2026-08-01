@@ -22,7 +22,7 @@ export default function TermsOfUsePage() {
       </Section>
 
       <Section title="2. Definitions">
-        <ul><li><strong>"We", "Us", "Meticle"</strong> — the Service provider</li><li><strong>"You", "Customer"</strong> — the organisation or individual using the Service</li><li><strong>"Service User"</strong> — a person receiving care, whose data is stored in the Service</li><li><strong>"Staff"</strong> — employees or contractors of the Customer who access the Service</li></ul>
+        <ul><li><strong>"We", "Us", "Meticle"</strong> — the Service provider</li><li><strong>"You", "Customer"</strong> — the organisation or individual using the Service</li><li><strong>"Person"</strong> — a person receiving care, whose data is stored in the Service</li><li><strong>"Staff"</strong> — employees or contractors of the Customer who access the Service</li></ul>
       </Section>
 
       <Section title="3. Your Account">
@@ -36,7 +36,7 @@ export default function TermsOfUsePage() {
 
       <Section title="5. Data Processing">
         <p>You are the data controller for all personal data you upload to Meticle. We act as a data processor. This relationship is governed by our Data Processing Agreement, incorporated by reference into these Terms. You are responsible for:</p>
-        <ul><li>Obtaining necessary consents from staff and service users</li><li>Ensuring data is accurate and up to date</li><li>Complying with Subject Access Requests from your staff and service users</li><li>Notifying us of any data breaches involving Service data</li></ul>
+        <ul><li>Obtaining necessary consents from staff and people</li><li>Ensuring data is accurate and up to date</li><li>Complying with Subject Access Requests from your staff and people</li><li>Notifying us of any data breaches involving Service data</li></ul>
       </Section>
 
       <Section title="6. Payment and Subscription">

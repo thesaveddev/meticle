@@ -70,7 +70,7 @@ export default function OutcomeAssessmentsPage() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800 }}>Outcome Assessments</Typography>
-          <Typography color="#6B7280">Record and review standardised scale assessments for service users.</Typography>
+          <Typography color="#6B7280">Record and review standardised scale assessments for people.</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ scale_id: '', service_user_id: '', score: 5, notes: '' }); setDialogOpen(true) }} sx={{ bgcolor: '#0F4C81' }}>Record Assessment</Button>
       </Stack>
@@ -79,7 +79,7 @@ export default function OutcomeAssessmentsPage() {
         <Table>
           <TableHead><TableRow sx={{ bgcolor: '#F8FAFC' }}>
             <TableCell sx={{ fontWeight: 800 }}>Scale</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Service User</TableCell>
+            <TableCell sx={{ fontWeight: 800 }}>Person</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Score</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Band</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
@@ -129,7 +129,7 @@ export default function OutcomeAssessmentsPage() {
               getOptionLabel={o => `${o.first_name} ${o.last_name}`}
               value={serviceUsers.find(su => su.id === form.service_user_id) || null}
               onChange={(_, v) => setForm(f => ({ ...f, service_user_id: v?.id || '' }))}
-              renderInput={p => <TextField {...p} label="Select Service User" fullWidth required />}
+              renderInput={p => <TextField {...p} label="Select Person" fullWidth required />}
             />
             {selectedScale && (
               <Box>

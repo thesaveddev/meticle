@@ -222,7 +222,7 @@ export default function EvidencePacksPage() {
           <Typography variant="h5" sx={{ color: '#0F4C81', mb: 1 }}>Meticle Evidence Pack</Typography>
           <Typography variant="body2" color="text.secondary">
             Generated: {new Date(data?.generated_at || Date.now()).toLocaleString()}
-            {data?.summary && ` · ${data.summary.total_staff} staff, ${data.summary.total_service_users || 0} service users`}
+            {data?.summary && ` · ${data.summary.total_staff} staff, ${data.summary.total_service_users || 0} people`}
           </Typography>
 
           {data?.summary && (
@@ -231,7 +231,7 @@ export default function EvidencePacksPage() {
                 <Box key={k} sx={{ flex: 1, minWidth: 100, border: '1px solid #D1D5DB', borderRadius: 2, p: 2, textAlign: 'center' }}>
                   <Typography variant="h5" fontWeight={800}>{v as number}</Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {k === 'total_staff' ? 'Staff' : k === 'total_service_users' ? 'Service Users' : k === 'active_service_users' ? 'Active SUs' : k === 'training_records' ? 'Training Records' : k === 'documents' ? 'Documents' : k === 'competency_records' ? 'Competency' : k === 'incidents' ? 'Incidents' : k === 'satisfaction_avg' ? 'Satisfaction Avg' : ''}
+                    {k === 'total_staff' ? 'Staff' : k === 'total_service_users' ? 'People' : k === 'active_service_users' ? 'Active SUs' : k === 'training_records' ? 'Training Records' : k === 'documents' ? 'Documents' : k === 'competency_records' ? 'Competency' : k === 'incidents' ? 'Incidents' : k === 'satisfaction_avg' ? 'Satisfaction Avg' : ''}
                   </Typography>
                 </Box>
               ))}
@@ -356,10 +356,10 @@ export default function EvidencePacksPage() {
           </Paper>
         )}
 
-        {/* Service User Evidence */}
+        {/* Person Evidence */}
         {data?.service_users?.length > 0 && (
           <Paper sx={{ p: 3, mb: 3, '@media print': { pageBreakAfter: 'always' } }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>Service Users ({data.service_users.length} total, {data.summary?.active_service_users} active)</Typography>
+            <Typography variant="h6" sx={{ mb: 2 }}>People ({data.service_users.length} total, {data.summary?.active_service_users} active)</Typography>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -396,7 +396,7 @@ export default function EvidencePacksPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Service User</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>

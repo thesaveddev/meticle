@@ -125,7 +125,7 @@ export default function StaffProfilePage() {
     }
   })
   const members: any[] = [
-    ...(orgMembers?.admin ? [orgMembers.admin] : []),
+    ...(orgMembers?.admins?.length ? orgMembers.admins : (orgMembers?.admin ? [orgMembers.admin] : [])),
     ...(orgMembers?.staff || [])
   ].filter((m: any) => m.status === 'active')
 

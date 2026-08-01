@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Typography, Container, TextField, Button, Alert, CircularProgress, Stack, Link, Paper } from '@mui/material'
+import { Box, Typography, Container, TextField, Button, Alert, CircularProgress, Stack, Paper } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import api from '../../services/api'
 
@@ -12,10 +12,7 @@ export default function MfaChallengePage() {
   const [token, setToken] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [showOptions, setShowOptions] = useState(false)
-  const [useBackupCode, setUseBackupCode] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
-  const [sendingCodes, setSendingCodes] = useState(false)
+  const [showLostAccess, setShowLostAccess] = useState(false)
 
   if (!mfaToken) {
     navigate('/login')
@@ -41,68 +38,6 @@ export default function MfaChallengePage() {
     }
   }
 
-  const handleSendBackupCodes = async () => {
-    setSendingCodes(true)
-    setError('')
-    try {
-      await api.post('/auth/mfa/send-backup-codes', { mfaToken })
-      setEmailSent(true)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to send backup codes.')
-    } finally {
-      setSendingCodes(false)
-    }
-  }
-
-  const handleBackToTotp = () => {
-    setUseBackupCode(false)
-    setEmailSent(false)
-    setShowOptions(false)
-    setError('')
-  }
-
-  if (emailSent) {
-    return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
-        <Container maxWidth="xs">
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>Backup Codes Sent</Typography>
-          </Box>
-
-          <Alert severity="success" sx={{ mb: 3 }}>
-            Check your email{email ? ` (${email})` : ''} for your backup codes. Each code can be used once to log in.
-          </Alert>
-
-          <Stack spacing={2}>
-            <Typography variant="body2" color="#6B7280" sx={{ textAlign: 'center' }}>
-              Enter one of the backup codes from the email to complete sign-in.
-            </Typography>
-
-            <TextField
-              fullWidth
-              label="Backup Code"
-              placeholder="XXXXXX-XXXXXX"
-              value={token}
-              onChange={e => setToken(e.target.value.toUpperCase())}
-              autoFocus
-              inputProps={{ style: { textAlign: 'center', fontSize: '1.2rem', letterSpacing: '0.2rem', fontFamily: 'monospace' } }}
-            />
-            <Button fullWidth variant="contained" size="large" disabled={loading || !token.trim()}
-              onClick={handleSubmit}
-              sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 700, borderRadius: 2, textTransform: 'none' }}>
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Verify Backup Code'}
-            </Button>
-
-            <Button fullWidth variant="text" onClick={handleBackToTotp} sx={{ textTransform: 'none' }}>
-              Back to authenticator code
-            </Button>
-          </Stack>
-        </Container>
-      </Box>
-    )
-  }
-
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
       <Container maxWidth="xs">
@@ -110,9 +45,7 @@ export default function MfaChallengePage() {
           <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle</Typography>
           <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>Two-Factor Authentication</Typography>
           <Typography sx={{ color: '#6B7280', mt: 1 }}>
-            {useBackupCode
-              ? `Enter a backup code${email ? ` (${email})` : ''}.`
-              : `Enter the code from your authenticator app${email ? ` (${email})` : ''}.`}
+            Enter the code from your authenticator app{email ? ` (${email})` : ''}.
           </Typography>
         </Box>
 
@@ -122,15 +55,13 @@ export default function MfaChallengePage() {
           <Stack spacing={3}>
             <TextField
               fullWidth
-              label={useBackupCode ? 'Backup Code' : 'Authentication Code'}
-              placeholder={useBackupCode ? 'XXXXXX-XXXXXX' : '000000'}
+              label="Authentication Code"
+              placeholder="000000"
               value={token}
-              onChange={e => setToken(useBackupCode ? e.target.value.toUpperCase() : e.target.value)}
+              onChange={e => setToken(e.target.value)}
               autoFocus
               inputProps={{
-                style: useBackupCode
-                  ? { textAlign: 'center', fontSize: '1.2rem', letterSpacing: '0.2rem', fontFamily: 'monospace' }
-                  : { textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' }
+                style: { textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' }
               }}
             />
             <Button fullWidth type="submit" variant="contained" size="large" disabled={loading}
@@ -138,39 +69,23 @@ export default function MfaChallengePage() {
               {loading ? <CircularProgress size={24} color="inherit" /> : 'Verify'}
             </Button>
 
-            {!showOptions && !useBackupCode && (
-              <Link
-                onClick={() => setShowOptions(true)}
+            {!showLostAccess ? (
+              <Typography
+                onClick={() => setShowLostAccess(true)}
                 sx={{ cursor: 'pointer', textAlign: 'center', color: '#6B7280', fontSize: '0.85rem', textDecoration: 'none', '&:hover': { color: '#0F4C81', textDecoration: 'underline' } }}>
                 Lost access to your authenticator?
-              </Link>
-            )}
-
-            {showOptions && !useBackupCode && (
+              </Typography>
+            ) : (
               <Paper sx={{ p: 2, bgcolor: '#F9FAFB' }}>
                 <Stack spacing={1.5}>
                   <Typography variant="body2" color="#6B7280" sx={{ textAlign: 'center' }}>
-                    Choose a recovery method:
+                    Contact your organization administrator to reset your MFA. They can reset it from the Staff Directory, allowing you to log in and set up a new authenticator.
                   </Typography>
-                  <Button fullWidth variant="outlined" onClick={() => { setUseBackupCode(true); setShowOptions(false); setError('') }}
-                    sx={{ textTransform: 'none', color: '#0F4C81', borderColor: '#0F4C81' }}>
-                    Use a backup code
-                  </Button>
-                  <Button fullWidth variant="outlined" disabled={sendingCodes} onClick={handleSendBackupCodes}
-                    sx={{ textTransform: 'none' }}>
-                    {sendingCodes ? <CircularProgress size={20} /> : 'Send backup codes to my email'}
-                  </Button>
-                  <Button fullWidth variant="text" onClick={() => setShowOptions(false)} sx={{ textTransform: 'none', color: '#9CA3AF' }}>
-                    Cancel
+                  <Button fullWidth variant="text" onClick={() => setShowLostAccess(false)} sx={{ textTransform: 'none', color: '#9CA3AF' }}>
+                    Back
                   </Button>
                 </Stack>
               </Paper>
-            )}
-
-            {useBackupCode && (
-              <Button fullWidth variant="text" onClick={handleBackToTotp} sx={{ textTransform: 'none' }}>
-                Use authenticator code instead
-              </Button>
             )}
 
             <Button fullWidth variant="text" onClick={() => navigate('/login')} sx={{ textTransform: 'none', color: '#9CA3AF' }}>

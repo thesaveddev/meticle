@@ -439,9 +439,9 @@ export class EMedicationRepository {
   // ── Stock ──
   static async createStockItem(orgId: string, data: any) {
     const result = await query(`
-      INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, location)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [orgId, data.medication_name, data.dosage, data.unit, data.batch_number, data.expiry_date, data.quantity, data.quantity_unit, data.reorder_level, data.location]);
+      INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, location, service_user_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [orgId, data.medication_name, data.dosage, data.unit, data.batch_number, data.expiry_date, data.quantity, data.quantity_unit, data.reorder_level, data.location, data.service_user_id || null]);
     return result.rows[0];
   }
 
@@ -488,8 +488,39 @@ export class EMedicationRepository {
     return result.rows[0];
   }
 
-  static async deductStockFromAdministration(stockItemId: string): Promise<void> {
-    await query(`UPDATE emedication_stock SET quantity = GREATEST(0, quantity - 1) WHERE id = $1`, [stockItemId]);
+  static async deductStockFromAdministration(stockItemId: string): Promise<{ id: string; quantity: number; reorder_level: number } | null> {
+    const result = await query(
+      `UPDATE emedication_stock SET quantity = GREATEST(0, quantity - 1)
+       WHERE id = $1
+       RETURNING id, quantity, reorder_level`,
+      [stockItemId]);
+    return result.rows[0] || null;
+  }
+
+  static async getStockForItem(itemId: string) {
+    const result = await query(
+      `SELECT s.* FROM emedication_stock s
+       JOIN emedication_items i ON i.stock_item_id = s.id
+       WHERE i.id = $1 AND s.status = 'active'`,
+      [itemId]);
+    return result.rows[0] || null;
+  }
+
+  static async getLowStockForOrg(orgId: string) {
+    const result = await query(
+      `SELECT s.id, s.medication_name, s.dosage, s.unit, s.quantity, s.reorder_level, s.quantity_unit,
+              l.id AS location_id, l.name AS location_name,
+              su.first_name || ' ' || su.last_name AS service_user_name
+       FROM emedication_stock s
+       JOIN service_users su ON su.id = s.service_user_id
+       JOIN locations l ON l.id = su.location_id
+       WHERE s.organization_id = $1
+         AND s.status = 'active'
+         AND s.quantity IS NOT NULL
+         AND s.quantity <= s.reorder_level
+       ORDER BY l.name, s.medication_name`,
+      [orgId]);
+    return result.rows;
   }
 
   // ── Daily Counts ──

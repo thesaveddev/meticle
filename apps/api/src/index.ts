@@ -359,6 +359,14 @@ function checkShiftAudit() {
 }
 setInterval(checkShiftAudit, 5 * 60 * 1000);
 
+// Late medication alerts — email on-duty staff when scheduled administrations go overdue (per-org delay/toggle)
+import { MedicationAlertService } from './modules/emedication/medication-alert.service';
+setInterval(() => {
+  MedicationAlertService.sendLateMedAlerts()
+    .then(count => { if (count > 0) logger.info({ emails: count }, 'Late medication alert emails sent'); })
+    .catch(err => logger.error(err, 'Late medication alert check failed'));
+}, 5 * 60 * 1000);
+
 // Start email queue processor
 import { EmailQueue } from './shared/utils/email.queue';
 EmailQueue.startProcessor();

@@ -37,6 +37,8 @@ import { connectSocket, disconnectSocket } from '../services/socket'
 import OfflineBanner from './OfflineBanner'
 import RouteLoadingIndicator from './RouteLoadingIndicator'
 import { useSubscriptionStatus } from './SubscriptionGuard'
+import { useThemeMode, METICLE_PRIMARY, METICLE_SECONDARY } from '../context/ThemeContext'
+import { useTheme } from '@mui/material/styles'
 
 const drawerWidth = 260
 
@@ -50,6 +52,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [chatUnreadCount, setChatUnreadCount] = useState(0)
   const { isActive, loading: subLoading, status: subStatus } = useSubscriptionStatus()
+
+  const { branding, logoUrl, updateBranding } = useThemeMode()
+  const theme = useTheme()
 
   const [rawUser, setRawUser] = useState<any>(() => {
     const s = localStorage.getItem('user'); try { return s ? JSON.parse(s) : {} } catch { return {} }
@@ -78,9 +83,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     {
       label: 'Care Management',
       items: [
-        { text: 'Service Users', icon: <PeopleIcon />, path: '/service-users', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'People', icon: <PeopleIcon />, path: '/service-users', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Goals', icon: <FlagIcon />, path: '/goals', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Care Assessments', icon: <EventIcon />, path: '/care-assessments', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
       ],
     },
@@ -227,8 +231,15 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       setRawUser(u)
       setOrgName(org?.name || null)
       setLocationName(u?.location_name || '')
+      if (org?.primary_color || org?.logo_url) {
+        updateBranding({
+          primary_color: org.primary_color || '#0F4C81',
+          secondary_color: org.secondary_color || '#6B7280',
+          accent_color: org.accent_color || '#F8FAFC',
+        }, org.logo_url || '')
+      }
     } catch { /* silent */ }
-  }, [])
+  }, [updateBranding])
 
   useEffect(() => {
     refreshUser()
@@ -254,7 +265,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
 
   const handleLogout = () => {
     localStorage.clear()
-    navigate('/')
+    updateBranding({ primary_color: METICLE_PRIMARY, secondary_color: METICLE_SECONDARY, accent_color: '#F8FAFC' }, '')
+    navigate('/login')
   }
 
   const timeAgo = (date: string) => {
@@ -269,13 +281,18 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   }
 
   const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'white' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.paper }}>
       <Toolbar sx={{ px: 3, flexDirection: 'column', alignItems: 'flex-start', pt: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px' }}>
-          Meticle
-        </Typography>
+        {logoUrl ? (
+          <Box component="img" src={logoUrl} alt={orgName || 'Meticle'}
+            sx={{ height: 40, maxWidth: 180, objectFit: 'contain', mb: 0.5 }} />
+        ) : (
+          <Typography variant="h5" sx={{ fontWeight: 900, color: branding.primary_color, letterSpacing: '-1.5px' }}>
+            Meticle
+          </Typography>
+        )}
         {orgName && (
-          <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 600, mt: 0.5 }}>
+          <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600, mt: 0.5 }}>
             {orgName}{locationName ? ` - ${locationName}` : ''}
           </Typography>
         )}
@@ -323,9 +340,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             >
               <ListItemText
                 primary={group.label}
-                primaryTypographyProps={{ fontSize: '0.65rem', fontWeight: 700, color: hasActiveChild ? '#0F4C81' : '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1 }}
+                primaryTypographyProps={{ fontSize: '0.65rem', fontWeight: 700, color: hasActiveChild ? branding.primary_color : theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1 }}
               />
-              {isCollapsed ? <ExpandMoreIcon sx={{ fontSize: 16, color: '#9CA3AF' }} /> : <ExpandLessIcon sx={{ fontSize: 16, color: '#9CA3AF' }} />}
+              {isCollapsed ? <ExpandMoreIcon sx={{ fontSize: 16, color: theme.palette.text.secondary }} /> : <ExpandLessIcon sx={{ fontSize: 16, color: theme.palette.text.secondary }} />}
             </ListItemButton>
             {!isCollapsed && group.items.map((item) => {
               const disabled = sidebarDisabled && item.text !== 'Learn'
@@ -338,16 +355,16 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                   sx={{ 
                     borderRadius: 2,
                     '&.Mui-selected': {
-                      bgcolor: '#E7EEF4',
-                      color: '#0F4C81',
-                      '& .MuiListItemIcon-root': { color: '#0F4C81' },
-                      '&:hover': { bgcolor: '#E7EEF4' }
+                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : `${branding.primary_color}15`,
+                      color: branding.primary_color,
+                      '& .MuiListItemIcon-root': { color: branding.primary_color },
+                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : `${branding.primary_color}15` }
                     },
-                    '&:hover': { bgcolor: '#F8FAFC' },
+                    '&:hover': { bgcolor: theme.palette.action.hover },
                     '&.Mui-disabled': { opacity: 0.45 },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 40, color: '#6B7280' }}>
+                  <ListItemIcon sx={{ minWidth: 40, color: theme.palette.text.secondary }}>
                     {item.icon}
                   </ListItemIcon>
                   <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
@@ -379,7 +396,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           <ListItem key={item.text} disablePadding>
             <ListItemButton disabled={disabled} sx={{ borderRadius: 2, '&.Mui-disabled': { opacity: 0.45 } }}
               onClick={disabled ? undefined : () => navigate(item.path)} selected={!disabled && location.pathname === item.path}>
-              <ListItemIcon sx={{ minWidth: 40, color: !disabled && location.pathname === item.path ? '#0F4C81' : '#6B7280' }}>{item.icon}</ListItemIcon>
+              <ListItemIcon sx={{ minWidth: 40, color: !disabled && location.pathname === item.path ? branding.primary_color : theme.palette.text.secondary }}>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
             </ListItemButton>
           </ListItem>
@@ -390,16 +407,16 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   )
 
   return (
-    <Box sx={{ display: 'flex', bgcolor: '#F8FAFC', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', bgcolor: theme.palette.background.default, minHeight: '100vh' }}>
       <AppBar
         position="fixed"
         elevation={0}
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
-          bgcolor: 'white',
-          borderBottom: '1px solid #E5E7EB',
-          color: '#111827'
+          bgcolor: theme.palette.background.paper,
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          color: theme.palette.text.primary
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between', px: 3 }}>
@@ -417,18 +434,18 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           </Typography>
 
           <Stack direction="row" spacing={2} alignItems="center">
-            <IconButton size="small" sx={{ bgcolor: '#F8FAFC' }} onClick={handleOpenNotif}>
+            <IconButton size="small" sx={{ bgcolor: theme.palette.action.hover }} onClick={handleOpenNotif}>
               <Badge badgeContent={unreadCount} color="error" max={99}>
                 <NotificationsIcon fontSize="small" />
               </Badge>
             </IconButton>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', p: 0.5, borderRadius: 2, '&:hover': { bgcolor: '#F8FAFC' } }} onClick={(e) => setAnchorEl(e.currentTarget)}>
-              <Avatar src={profilePic || undefined} sx={{ width: 32, height: 32, bgcolor: '#0F4C81', fontSize: '0.8rem' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', p: 0.5, borderRadius: 2, '&:hover': { bgcolor: theme.palette.action.hover } }} onClick={(e) => setAnchorEl(e.currentTarget)}>
+              <Avatar src={profilePic || undefined} sx={{ width: 32, height: 32, bgcolor: branding.primary_color, fontSize: '0.8rem' }}>
                 {profilePic ? '' : userInitial.toUpperCase()}
               </Avatar>
               <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
                 <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1 }}>{userName}</Typography>
-                <Typography variant="caption" sx={{ color: '#6B7280' }}>{userRole === UserRole.SUPER_ADMIN ? 'Platform Admin' : userRole === UserRole.ORG_ADMIN ? 'Admin' : userRole === UserRole.MANAGER ? 'Manager' : 'Staff'}</Typography>
+                <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>{userRole === UserRole.SUPER_ADMIN ? 'Platform Admin' : userRole === UserRole.ORG_ADMIN ? 'Admin' : userRole === UserRole.MANAGER ? 'Manager' : 'Staff'}</Typography>
               </Box>
             </Box>
           </Stack>
@@ -446,7 +463,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: '1px solid #E5E7EB' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: `1px solid ${theme.palette.divider}` },
           }}
         >
           {drawer}
@@ -455,7 +472,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: '1px solid #E5E7EB' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: `1px solid ${theme.palette.divider}` },
           }}
           open
         >
@@ -473,10 +490,10 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           <Paper
             elevation={0}
             sx={{
-              bgcolor: '#FEF2F2',
-              border: '1px solid #FECACA',
+              bgcolor: theme.palette.error.dark + '20',
+              border: `1px solid ${theme.palette.error.main}40`,
               borderLeft: 4,
-              borderLeftColor: '#DC2626',
+              borderLeftColor: theme.palette.error.main,
               p: 2,
               mb: 3,
               borderRadius: 2,
@@ -487,10 +504,10 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             }}
           >
             <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#991B1B' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: theme.palette.error.dark }}>
                 Subscription {subStatus === 'past_due' ? 'Past Due' : subStatus === 'canceled' ? 'Canceled' : subStatus === 'expired' ? 'Expired' : 'Inactive'}
               </Typography>
-              <Typography variant="body2" sx={{ color: '#B91C1C', mt: 0.5 }}>
+              <Typography variant="body2" sx={{ color: theme.palette.error.main, mt: 0.5 }}>
                 Your subscription is {subStatus === 'past_due' ? 'past due' : subStatus === 'canceled' ? 'has been canceled' : subStatus === 'expired' ? 'has expired' : 'inactive'}. 
                 {rawUser.role === UserRole.ORG_ADMIN ? ' Please update your billing information to restore access.' : ' Please contact your organization admin to restore access.'}
               </Typography>
@@ -499,7 +516,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               <Button
                 variant="contained"
                 size="small"
-                sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, whiteSpace: 'nowrap', flexShrink: 0 }}
+                sx={{ bgcolor: theme.palette.error.main, '&:hover': { bgcolor: theme.palette.error.dark }, whiteSpace: 'nowrap', flexShrink: 0 }}
                 onClick={() => navigate('/billing')}
               >
                 Update Billing
@@ -514,15 +531,15 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={() => setAnchorEl(null)}
-        PaperProps={{ sx: { width: 200, mt: 1, border: '1px solid #E5E7EB', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' } }}
+        PaperProps={{ sx: { width: 200, mt: 1, border: `1px solid ${theme.palette.divider}`, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' } }}
       >
         <MenuItem onClick={() => navigateAndClose('/settings')}>
           <ListItemIcon><ProfileIcon fontSize="small" /></ListItemIcon>
           Profile Settings
         </MenuItem>
         <Divider />
-        <MenuItem onClick={handleLogout} sx={{ color: '#DC2626' }}>
-          <ListItemIcon><LogoutIcon fontSize="small" sx={{ color: '#DC2626' }} /></ListItemIcon>
+        <MenuItem onClick={handleLogout} sx={{ color: theme.palette.error.main }}>
+          <ListItemIcon><LogoutIcon fontSize="small" sx={{ color: theme.palette.error.main }} /></ListItemIcon>
           Sign Out
         </MenuItem>
       </Menu>
@@ -531,7 +548,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         anchor="right"
         open={notifOpen}
         onClose={() => setNotifOpen(false)}
-        PaperProps={{ sx: { width: 360, borderLeft: '1px solid #E5E7EB' } }}
+        PaperProps={{ sx: { width: 360, borderLeft: `1px solid ${theme.palette.divider}` } }}
       >
         <Box sx={{ p: 3 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
@@ -543,7 +560,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             )}
           </Stack>
           {notifications.length === 0 ? (
-            <Typography variant="body2" color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No notifications yet.</Typography>
+            <Typography variant="body2" sx={{ color: theme.palette.text.disabled, textAlign: 'center', py: 4 }}>No notifications yet.</Typography>
           ) : (
             <Stack spacing={2}>
               {notifications.map((n: any) => (
@@ -553,20 +570,20 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                   sx={{
                     p: 2, borderRadius: 2,
                     borderLeft: 4,
-                    borderLeftColor: n.type === 'warning' ? '#D97706' : n.type === 'success' ? '#16A34A' : '#0F4C81',
-                    bgcolor: n.read ? 'white' : '#F8FAFC',
+                    borderLeftColor: n.type === 'warning' ? theme.palette.warning.main : n.type === 'success' ? theme.palette.success.main : branding.primary_color,
+                    bgcolor: n.read ? theme.palette.background.paper : theme.palette.action.hover,
                     cursor: 'pointer',
-                    '&:hover': { bgcolor: '#F1F5F9' },
+                    '&:hover': { bgcolor: theme.palette.action.selected },
                   }}
                   onClick={() => handleMarkAsRead(n.id)}
                 >
                   <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                     <Box sx={{ flex: 1 }}>
                       <Typography variant="body2" sx={{ fontWeight: n.read ? 600 : 800, mb: 0.5 }}>{n.title}</Typography>
-                      <Typography variant="caption" color="#6B7280" sx={{ display: 'block', mb: 0.5 }}>{n.message}</Typography>
-                      <Typography variant="caption" color="#9CA3AF">{timeAgo(n.created_at)}</Typography>
+                      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mb: 0.5 }}>{n.message}</Typography>
+                      <Typography variant="caption" sx={{ color: theme.palette.text.disabled }}>{timeAgo(n.created_at)}</Typography>
                     </Box>
-                    {!n.read && <CheckIcon sx={{ fontSize: 16, color: '#0F4C81', mt: 0.5 }} />}
+                    {!n.read && <CheckIcon sx={{ fontSize: 16, color: branding.primary_color, mt: 0.5 }} />}
                   </Stack>
                 </Paper>
               ))}

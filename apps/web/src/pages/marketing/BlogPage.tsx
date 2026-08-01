@@ -55,7 +55,7 @@ const blogPosts = [
   },
   {
     title: 'Satisfaction Surveys for CQC: Building Your Caring Domain Evidence',
-    excerpt: 'The Caring domain requires evidence of service user and family feedback. Learn how to implement an email-invited satisfaction survey programme with token-based access.',
+    excerpt: 'The Caring domain requires evidence of person and family feedback. Learn how to implement an email-invited satisfaction survey programme with token-based access.',
     category: 'Surveys',
     author: 'Meticle Team',
     date: 'April 2026',

@@ -52,7 +52,7 @@ export default function AppointmentsPage() {
   useEffect(() => {
     fetchAppointments()
     api.get('/service-users?status=active').then(r => setServiceUsers(r.data)).catch(() => {})
-    api.get('/staff/org-members').then(r => setStaff(r.data?.staff || [])).catch(() => {})
+    api.get('/staff/org-members').then(r => { const d = r.data; setStaff([...(d?.admins?.length ? d.admins : (d?.admin ? [d.admin] : [])), ...(d?.staff || [])]) }).catch(() => {})
   }, [dateFilter])
 
   const openCreate = () => { setEditing(null); setForm(initialForm); setDialogOpen(true) }
@@ -95,7 +95,7 @@ export default function AppointmentsPage() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800 }}>Appointments</Typography>
-          <Typography color="#6B7280">Track appointments for service users and staff.</Typography>
+          <Typography color="#6B7280">Track appointments for people and staff.</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: '#0F4C81' }}>Add Appointment</Button>
       </Stack>
@@ -106,7 +106,7 @@ export default function AppointmentsPage() {
         <Table>
           <TableHead><TableRow sx={{ bgcolor: '#F8FAFC' }}>
             <TableCell sx={{ fontWeight: 800 }}>Title</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Service User</TableCell>
+            <TableCell sx={{ fontWeight: 800 }}>Person</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Staff</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Time</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Status</TableCell>
@@ -140,8 +140,8 @@ export default function AppointmentsPage() {
             <TextField label="Title" fullWidth value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
             <TextField label="Description" fullWidth multiline rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
             <FormControl fullWidth>
-              <InputLabel>Service User</InputLabel>
-              <Select value={form.service_user_id} label="Service User" onChange={e => setForm(f => ({ ...f, service_user_id: e.target.value }))}>
+              <InputLabel>Person</InputLabel>
+              <Select value={form.service_user_id} label="Person" onChange={e => setForm(f => ({ ...f, service_user_id: e.target.value }))}>
                 <MenuItem value="">None</MenuItem>
                 {serviceUsers.map(su => <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>)}
               </Select>

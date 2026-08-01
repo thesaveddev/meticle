@@ -192,7 +192,7 @@ export function leaveOverviewCsv(data: any): string {
   return toCsv(headers, rows)
 }
 
-// --- Service User Roster ---
+// --- Person Roster ---
 export function buildServiceUserRosterHtml(data: any, orgName = 'Meticle'): string {
   const rows = (data.service_users || []).map((su: any) => [
     `${esc(su.first_name)} ${esc(su.last_name)}`,
@@ -204,14 +204,14 @@ export function buildServiceUserRosterHtml(data: any, orgName = 'Meticle'): stri
   ])
   const active = (data.service_users || []).filter((s: any) => s.status === 'active').length
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${buildReportStyles()}</style></head><body>
-    ${coverPage('Service User Roster', orgName, 'Active service users by location with status overview')}
-    <h1>Service User Summary</h1>
+    ${coverPage('Person Roster', orgName, 'Active people by location with status overview')}
+    <h1>People Summary</h1>
     <div class="summary-grid">
       <div class="summary-card"><div class="num">${data.service_users?.length || 0}</div><div class="label">Total</div></div>
       <div class="summary-card"><div class="num">${active}</div><div class="label">Active</div></div>
     </div>
-    <h2>Service Users (${rows.length})</h2>
-    ${rows.length ? table(['Name', 'Location', 'Status', 'Start Date', 'Key Worker', 'Care Level'], rows) : '<p>No service users.</p>'}
+    <h2>People (${rows.length})</h2>
+    ${rows.length ? table(['Name', 'Location', 'Status', 'Start Date', 'Key Worker', 'Care Level'], rows) : '<p>No people.</p>'}
     <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Report &bull; Generated ${now()}</div>
   </body></html>`
 }
@@ -269,7 +269,7 @@ export function medicationAdminCsv(data: any): string {
   return toCsv(headers, rows)
 }
 
-// --- Service User Outcomes ---
+// --- Person Outcomes ---
 export function buildServiceUserOutcomesHtml(data: any, orgName = 'Meticle'): string {
   const rows = (data.service_users || []).map((su: any) => [
     `${esc(su.first_name)} ${esc(su.last_name)}`,
@@ -280,15 +280,15 @@ export function buildServiceUserOutcomesHtml(data: any, orgName = 'Meticle'): st
     String(su.scale_assessments ?? 0),
   ])
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${buildReportStyles()}</style></head><body>
-    ${coverPage('Service User Outcomes', orgName, 'Goal progress, wellbeing scores, and outcome scale assessments per service user')}
+    ${coverPage('Person Outcomes', orgName, 'Goal progress, wellbeing scores, and outcome scale assessments per person')}
     <h1>Outcomes Summary</h1>
     <div class="summary-grid">
-      <div class="summary-card"><div class="num">${data.service_users?.length || 0}</div><div class="label">Service Users</div></div>
+      <div class="summary-card"><div class="num">${data.service_users?.length || 0}</div><div class="label">People</div></div>
       <div class="summary-card"><div class="num">${(data.service_users || []).reduce((s: number, u: any) => s + (u.total_goals || 0), 0)}</div><div class="label">Total Goals</div></div>
       <div class="summary-card"><div class="num">${(data.service_users || []).reduce((s: number, u: any) => s + (u.completed_goals || 0), 0)}</div><div class="label">Goals Completed</div></div>
     </div>
-    <h2>Service User Outcomes (${rows.length})</h2>
-    ${rows.length ? table(['Name', 'Total Goals', 'Completed', 'Avg Progress', 'Avg Wellbeing', 'Scale Assessments'], rows) : '<p>No service users.</p>'}
+    <h2>Person Outcomes (${rows.length})</h2>
+    ${rows.length ? table(['Name', 'Total Goals', 'Completed', 'Avg Progress', 'Avg Wellbeing', 'Scale Assessments'], rows) : '<p>No people.</p>'}
     <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Report &bull; Generated ${now()}</div>
   </body></html>`
 }

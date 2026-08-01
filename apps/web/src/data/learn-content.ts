@@ -19,12 +19,12 @@ const s: LearnSection[] = [
 { id:'getting-started', category:'Introduction', title:'Getting Started', icon:'🚀', subsections:[
 { id:'welcome', title:'Welcome to Meticle',
   content:
-    p('Meticle is a compliance-first care management platform for supported living and domiciliary care providers across all four UK nations. It combines staff management, scheduling, medication administration (eMAR), service user care planning, and regulatory compliance into one integrated system.') +
+    p('Meticle is a compliance-first care management platform for supported living and domiciliary care providers across all four UK nations. It combines staff management, scheduling, medication administration (eMAR), person care planning, and regulatory compliance into one integrated system.') +
     p('This Learning Center will walk you through every feature, button, and workflow step by step. Use the sidebar to navigate between modules and the search bar to find specific topics.') +
     h3('Who is this for?') +
     ul(['Registered Managers overseeing supported living or domiciliary care services','Care Coordinators managing rotas and appointments','Compliance Officers preparing for CQC/regulatory inspections','Care Workers documenting daily notes and administering medication','Administrators handling billing and staff onboarding']) +
     h3('Key Concepts') +
-    ul(['<strong>Organisation:</strong> Your care provider entity. Everything in Meticle is scoped to your organisation — data from other orgs is never visible.','<strong>Roles:</strong> ORG_ADMIN (full access), MANAGER (location management), CARE_WORKER (frontline staff), COMPLIANCE_OFFICER (audit and compliance), NURSE, SUPPORT_WORKER.','<strong>Locations:</strong> Physical care settings (supported living houses, offices, etc.). Each has its own minimum staffing rules.','<strong>Service Users:</strong> The people receiving care. Each person has a full profile with care plans, daily notes, health records, and more.','<strong>Regulator:</strong> Your governing body — CQC (England), CIW (Wales), Care Inspectorate (Scotland), or RQIA (Northern Ireland). This setting affects how compliance is scored.'])
+    ul(['<strong>Organisation:</strong> Your care provider entity. Everything in Meticle is scoped to your organisation — data from other orgs is never visible.','<strong>Roles:</strong> ORG_ADMIN (full access), MANAGER (location management), CARE_WORKER (frontline staff), COMPLIANCE_OFFICER (audit and compliance), NURSE, SUPPORT_WORKER.','<strong>Locations:</strong> Physical care settings (supported living houses, offices, etc.). Each has its own minimum staffing rules.','<strong>People:</strong> The people receiving care. Each person has a full profile with care plans, daily notes, health records, and more.','<strong>Regulator:</strong> Your governing body — CQC (England), CIW (Wales), Care Inspectorate (Scotland), or RQIA (Northern Ireland). This setting affects how compliance is scored.'])
 },
 { id:'login', title:'Login, MFA & Account Security',
   content:
@@ -55,7 +55,7 @@ const s: LearnSection[] = [
     step(6,'You will be redirected to the login page to sign in with your new password.') +
     h2('Role-Based Access Control') +
     p('Your role determines what you can see and do in Meticle. Roles are assigned by an ORG_ADMIN during staff creation and can be changed at any time from the Staff Directory.') +
-    ul(['<strong>ORG_ADMIN:</strong> Full access to all modules. Can manage billing, change any user\'s role, configure organisation settings, promote other users to ORG_ADMIN.','<strong>MANAGER:</strong> Can manage staff, service users, scheduling, leave, and compliance. Cannot change their own role or access billing. Cannot approve their own leave.','<strong>CARE_WORKER:</strong> Sees simplified dashboard (own shifts only, no compliance snapshot). Can view service user profiles, record daily notes, administer medication, claim shifts. Cannot create/edit shifts or access settings.','<strong>COMPLIANCE_OFFICER:</strong> Access to compliance modules — training matrix, identity monitoring, competency, evidence packs, CQC readiness, surveys.','<strong>NURSE:</strong> Clinical access — health observations, eMAR administration, care assessments.','<strong>SUPPORT_WORKER:</strong> Basic access — view rota, service users, daily notes.']) +
+    ul(['<strong>ORG_ADMIN:</strong> Full access to all modules. Can manage billing, change any user\'s role, configure organisation settings, promote other users to ORG_ADMIN.','<strong>MANAGER:</strong> Can manage staff, people, scheduling, leave, and compliance. Cannot change their own role or access billing. Cannot approve their own leave.','<strong>CARE_WORKER:</strong> Sees simplified dashboard (own shifts only, no compliance snapshot). Can view person profiles, record daily notes, administer medication, claim shifts. Cannot create/edit shifts or access settings.','<strong>COMPLIANCE_OFFICER:</strong> Access to compliance modules — training matrix, identity monitoring, competency, evidence packs, CQC readiness, surveys.','<strong>NURSE:</strong> Clinical access — health observations, eMAR administration, care assessments.','<strong>SUPPORT_WORKER:</strong> Basic access — view rota, people, daily notes.']) +
     tip('Role changes take effect immediately without requiring logout. The system re-checks user roles on every page focus and periodically.')
 },
 { id:'dashboard', title:'The Dashboard — Complete Walkthrough',
@@ -64,7 +64,7 @@ const s: LearnSection[] = [
     p('The Dashboard is your landing page after login and provides an at-a-glance overview of your organisation\'s key metrics. It is divided into several sections, each described below.') +
     h3('Top Row: Key Performance Indicators (KPIs)') +
     p('Seven KPI cards span the top of the dashboard:') +
-    ul(['<strong>Total Staff:</strong> Number of active staff members in your organisation. Click to navigate to the <em>Staff Directory</em>.','<strong>Active People:</strong> Count of service users with status "active". Click to navigate to <em>Service Users</em>.','<strong>Staff on Duty:</strong> Number of staff with assigned shifts for today (counts shifts with status "assigned" or "accepted" that start today).','<strong>Compliance Rate:</strong> Your organisation\'s overall compliance percentage (completed compliance records ÷ total records). Click the card or the "View Full Report" button to navigate to the <em>Compliance Dashboard</em>.','<strong>Open Shifts:</strong> Number of unassigned shifts across all locations.','<strong>Alerts:</strong> Count of open incidents (status "reported" or "investigating").','<strong>Agency Saved:</strong> Placeholder for cost savings from filling shifts internally vs. using agencies (Phase 2 feature).']) +
+    ul(['<strong>Total Staff:</strong> Number of active staff members in your organisation. Click to navigate to the <em>Staff Directory</em>.','<strong>Active People:</strong> Count of people with status "active". Click to navigate to <em>People</em>.','<strong>Staff on Duty:</strong> Number of staff with assigned shifts for today (counts shifts with status "assigned" or "accepted" that start today).','<strong>Compliance Rate:</strong> Your organisation\'s overall compliance percentage (completed compliance records ÷ total records). Click the card or the "View Full Report" button to navigate to the <em>Compliance Dashboard</em>.','<strong>Open Shifts:</strong> Number of unassigned shifts across all locations.','<strong>Alerts:</strong> Count of open incidents (status "reported" or "investigating").','<strong>Agency Saved:</strong> Placeholder for cost savings from filling shifts internally vs. using agencies (Phase 2 feature).']) +
     h3('Onboarding Checklist') +
     p('New organisations see a checklist guiding initial setup. Each item links to the relevant page:') +
     ul(['Add staff members → Staff Directory','Configure locations → Settings → Locations','Set minimum staffing rules → Settings → Organisation','Upload branding/logo → Settings → Branding','Set compliance profiles → Settings → Compliance','Invite your team → Staff Directory → Invite button']) +
@@ -77,16 +77,16 @@ const s: LearnSection[] = [
     h3('Today\'s Rota') +
     p('A table of all shifts happening today. Columns: Staff Name, Location, Time, Status. CARE_WORKERs see only their own shifts. Managers and admins see all shifts across all locations.') +
     h3('Today\'s Appointments') +
-    p('Lists all appointments scheduled for today with service user name, time, and status. Each appointment has a status chip: Scheduled (blue), In Progress (orange), Completed (green), Cancelled (grey).')
+    p('Lists all appointments scheduled for today with person name, time, and status. Each appointment has a status chip: Scheduled (blue), In Progress (orange), Completed (green), Cancelled (grey).')
 }
 ]},
 
 // ═══════════ 2. SERVICE USERS ═══════════
-{ id:'service-users', category:'Service Users', title:'Service Users Manager', icon:'👤', subsections:[
+{ id:'service-users', category:'People', title:'People Manager', icon:'👤', subsections:[
 { id:'su-directory', title:'Directory — Finding, Adding & Managing People',
   content:
-    h2('Service User Directory Page') +
-    p('The Service Users page (accessible from the sidebar) is your central hub for managing all people supported. It shows a paginated table of every service user in your organisation.') +
+    h2('Person Directory Page') +
+    p('The People page (accessible from the sidebar) is your central hub for managing all people supported. It shows a paginated table of every person in your organisation.') +
     h3('Table Columns') +
     ul(['<strong>Name:</strong> First and last name with a person icon. Click any row to open that person\'s profile.','<strong>Room:</strong> The person\'s room or bed number. Shows "—" if not set.','<strong>NHS Number:</strong> The person\'s NHS number. Shows "—" if not set.','<strong>DOB:</strong> Date of birth in DD/MM/YYYY format.','<strong>Status:</strong> Color-coded chip — Active (green), Discharged (grey), Deceased (red).','<strong>Care Plans:</strong> Number of active care plans for this person.','<strong>Open Risks:</strong> Number of high/critical risk assessments. Shows a red warning icon if greater than zero.']) +
     h3('Search & Filter') +
@@ -104,12 +104,12 @@ const s: LearnSection[] = [
     p('The directory table is paginated. Use the controls at the bottom to:') +
     ul(['Change rows per page (5, 10, 25, 50)','Navigate to next/previous pages','See the total count of people matching your filters']) +
     h3('Removing a Person') +
-    p('People cannot be deleted from the directory page. To "remove" a person, change their status to "Discharged" or "Deceased" from their profile page. Only ORG_ADMIN can hard-delete a service user via the API.') +
+    p('People cannot be deleted from the directory page. To "remove" a person, change their status to "Discharged" or "Deceased" from their profile page. Only ORG_ADMIN can hard-delete a person via the API.') +
     tip('When creating a person, you can also set extended fields like GP details, pharmacy, and social worker information after creation by editing the profile. These fields are available in the "Edit Person" dialog on the profile page.')
 },
 { id:'su-profile', title:'Profile Page — All 9 Tabs Explained',
   content:
-    h2('Service User Profile Overview') +
+    h2('Person Profile Overview') +
     p('Clicking any person in the directory opens their profile page. The page has a header section with key info and photo upload, followed by 9 tabs for different aspects of care documentation.') +
     h3('Header Section') +
     ul(['<strong>Photo:</strong> Shows the person\'s photo if uploaded, otherwise shows initials. Click the camera icon overlay to upload a photo (JPEG, PNG, GIF, WebP). Photos are loaded securely via authenticated fetch. A loading spinner appears during upload.','<strong>Name:</strong> Full name in large text.','<strong>Room Chip:</strong> Shows room number if assigned, otherwise "No room assigned".','<strong>Status Chip:</strong> Green for Active, grey otherwise.','<strong>NHS Number:</strong> Displayed if set.','<strong>Edit Button:</strong> Opens the full edit dialog with all person fields (see below).']) +
@@ -145,7 +145,7 @@ const s: LearnSection[] = [
     h2('Tab 7 — Memory Book') +
     p('Photo journal for documenting outings, activities, and special moments. Detailed in the <strong>Memory Book</strong> section.') +
     h2('Tab 8 — Goals') +
-    p('Inline summary of service user goals. Shows stat cards (Total, Active, Completed, Avg Progress) and a list of goals with progress bars. "Manage Goals" button navigates to the full Goals page.') +
+    p('Inline summary of person goals. Shows stat cards (Total, Active, Completed, Avg Progress) and a list of goals with progress bars. "Manage Goals" button navigates to the full Goals page.') +
     h2('Tab 9 — Care Assessments') +
     p('Inline summary of care assessments. Shows stat cards (Total, Completed, Draft) and a table with assessment type, date, assessor, status, next review date. "Manage Assessments" button navigates to the full Care Assessments page.')
 },
@@ -185,7 +185,7 @@ const s: LearnSection[] = [
     p('Click <strong>Edit</strong> (pencil icon) to modify a memory\'s title, description, or date.') +
     p('Click <strong>Delete</strong> (trash icon) and confirm to remove a memory.') +
     h3('Security & Privacy') +
-    p('Photos are stored securely on the server and loaded via authenticated requests. They are not publicly accessible. Only staff with access to this service user\'s profile can view the Memory Book.') +
+    p('Photos are stored securely on the server and loaded via authenticated requests. They are not publicly accessible. Only staff with access to this person\'s profile can view the Memory Book.') +
     tip('The Memory Book is great for CQC evidence of person-centred care and meaningful activity. Regular entries show inspectors that people are engaged and their wellbeing is prioritised.')
 }
 ]},
@@ -261,11 +261,11 @@ const s: LearnSection[] = [
     p('At the top of the Rota Planner, you\'ll see a location selector. Choose which location\'s rota to view, or select "All Locations" to see shifts across the organisation. Staff who are assigned to a single location see that location automatically. Managers see the locations they manage.') +
     h3('Calendar View') +
     p('Shifts are displayed on a calendar-style grid. Each shift card shows:') +
-    ul(['Staff name and role','Start and end times','Shift type (Day, Night, Sleep)','Service user (if assigned)']) +
+    ul(['Staff name and role','Start and end times','Shift type (Day, Night, Sleep)','Person (if assigned)']) +
     h3('Adding a Shift') +
     step(1,'Click the <strong>+</strong> icon on any day header or hour cell in the calendar.') +
     step(2,'A shift creation dialog opens with:') +
-    ul(['<strong>Shift Type:</strong> Day, Night (wake_night), Sleep (sleep)','<strong>Start Time:</strong> Time picker','<strong>End Time:</strong> Time picker','<strong>Staff Member:</strong> Autocomplete dropdown of active staff at this location','<strong>Service User:</strong> Optional — assign the shift to a specific person']) +
+    ul(['<strong>Shift Type:</strong> Day, Night (wake_night), Sleep (sleep)','<strong>Start Time:</strong> Time picker','<strong>End Time:</strong> Time picker','<strong>Staff Member:</strong> Autocomplete dropdown of active staff at this location','<strong>Person:</strong> Optional — assign the shift to a specific person']) +
     step(3,'Click <strong>Save</strong>. The shift appears on the calendar.') +
     p('<strong>Permission required:</strong> The <em>scheduling:edit</em> permission is needed to add, edit, or delete shifts. Staff without this permission see a read-only view.') +
     h3('Assigning Staff to Shifts') +
@@ -326,16 +326,16 @@ const s: LearnSection[] = [
 { id:'appointments', title:'Appointments Tracker',
   content:
     h2('Appointments Page') +
-    p('Tracks all scheduled appointments for service users. Accessible from the sidebar.') +
+    p('Tracks all scheduled appointments for people. Accessible from the sidebar.') +
     h3('Filtering Appointments') +
-    ul(['<strong>Date picker:</strong> Filter by specific date','<strong>Service User:</strong> Autocomplete search']) +
+    ul(['<strong>Date picker:</strong> Filter by specific date','<strong>Person:</strong> Autocomplete search']) +
     h3('Adding an Appointment') +
     step(1,'Click <strong>Add Appointment</strong>.') +
     step(2,'Fill in:') +
-    ul(['<strong>Service User:</strong> Autocomplete search','<strong>Staff Member:</strong> Autocomplete (optional)','<strong>Title:</strong> E.g., "GP Appointment", "Dentist", "Physio"','<strong>Start/End:</strong> Date and time','<strong>Status:</strong> Scheduled, In Progress, Completed, Cancelled','<strong>Location:</strong> Optional location assignment']) +
+    ul(['<strong>Person:</strong> Autocomplete search','<strong>Staff Member:</strong> Autocomplete (optional)','<strong>Title:</strong> E.g., "GP Appointment", "Dentist", "Physio"','<strong>Start/End:</strong> Date and time','<strong>Status:</strong> Scheduled, In Progress, Completed, Cancelled','<strong>Location:</strong> Optional location assignment']) +
     step(3,'Click <strong>Save</strong>.') +
     h3('Dashboard Widget') +
-    p('Today\'s appointments appear on the main Dashboard as a list. Each shows the service user name, appointment title, time, and status chip.') +
+    p('Today\'s appointments appear on the main Dashboard as a list. Each shows the person name, appointment title, time, and status chip.') +
     h3('Shift-Start Notifications') +
     p('Staff assigned to shifts receive an automated "Today\'s Plan" email approximately 15 minutes before their first shift starts, listing their appointments for the day.') +
     tip('Use the appointment status to track whether a person actually attended. Completed appointments are good evidence for CQC\'s Effective and Responsive domains.')
@@ -505,9 +505,9 @@ const s: LearnSection[] = [
     step(2,'Toggle which sections to include: Training, Identity Documents, Competency. Turn off sections you don\'t need.') +
     step(3,'The KLOE evidence mapping is auto-calculated based on your organisation\'s configurable mappings (see Settings → Compliance → Evidence Mappings) or built-in defaults.') +
     h3('Download Options') +
-    ul(['<strong>Download PDF:</strong> Uses Puppeteer with real Chrome to generate a professional A4 PDF with cover page, executive summary, staff table, training records, documents, competency, service users, care plans, incidents, and satisfaction overview. Includes page numbers, headers, and footers.','<strong>Download HTML:</strong> Downloads as an HTML file with embedded CSS for browser viewing.','<strong>Print:</strong> Opens the pack in a print-friendly browser window with @media print CSS for page breaks, avoiding splitting tables across pages.']) +
+    ul(['<strong>Download PDF:</strong> Uses Puppeteer with real Chrome to generate a professional A4 PDF with cover page, executive summary, staff table, training records, documents, competency, people, care plans, incidents, and satisfaction overview. Includes page numbers, headers, and footers.','<strong>Download HTML:</strong> Downloads as an HTML file with embedded CSS for browser viewing.','<strong>Print:</strong> Opens the pack in a print-friendly browser window with @media print CSS for page breaks, avoiding splitting tables across pages.']) +
     h3('What\'s in the Evidence Pack') +
-    ul(['<strong>Cover Page:</strong> Organisation name, regulator framework, generation date, summary counts','<strong>Executive Summary:</strong> Stat cards for staff, service users, training, documents, competency, satisfaction','<strong>Staff Table:</strong> All active staff with compliance rates','<strong>Service Users Table:</strong> People with care plan counts, open risks, goals','<strong>Training Records:</strong> Staff, module, category, status, completion date','<strong>Identity Documents:</strong> Staff, type, status, expiry date','<strong>Competency Records:</strong> Staff, template, result, assessor, date','<strong>Care Plans:</strong> Per service user with categories and statuses','<strong>Incidents:</strong> Recent incidents with involved people and severity','<strong>Satisfaction Overview:</strong> Average rating, total responses, positive count']) +
+    ul(['<strong>Cover Page:</strong> Organisation name, regulator framework, generation date, summary counts','<strong>Executive Summary:</strong> Stat cards for staff, people, training, documents, competency, satisfaction','<strong>Staff Table:</strong> All active staff with compliance rates','<strong>People Table:</strong> People with care plan counts, open risks, goals','<strong>Training Records:</strong> Staff, module, category, status, completion date','<strong>Identity Documents:</strong> Staff, type, status, expiry date','<strong>Competency Records:</strong> Staff, template, result, assessor, date','<strong>Care Plans:</strong> Per person with categories and statuses','<strong>Incidents:</strong> Recent incidents with involved people and severity','<strong>Satisfaction Overview:</strong> Average rating, total responses, positive count']) +
     h3('Scheduled Auto-Generation') +
     p('In Settings → Organisation → Compliance Notifications, you can enable <strong>Auto-generate evidence packs</strong> and choose a frequency (Weekly on Mondays, or Monthly on the 1st). When enabled, evidence packs are automatically generated and emailed to all ORG_ADMINs with summary stats.') +
     h3('Configurable Evidence Mappings') +
@@ -541,14 +541,14 @@ const s: LearnSection[] = [
 { id:'surveys', title:'Satisfaction & Engagement Surveys',
   content:
     h2('Satisfaction Surveys') +
-    p('Collect feedback from service users, families, and stakeholders.') +
+    p('Collect feedback from people, families, and stakeholders.') +
     h3('Manual Entry') +
     step(1,'Click <strong>Add Feedback</strong>.') +
-    step(2,'Fill in: Service User (optional), Respondent Name, Relationship to person (family, friend, social worker, etc.), Rating (1-5 stars), Comments.') +
+    step(2,'Fill in: Person (optional), Respondent Name, Relationship to person (family, friend, social worker, etc.), Rating (1-5 stars), Comments.') +
     step(3,'Click <strong>Submit</strong>. The source is recorded as "Manual".') +
     h3('Email Invitation') +
     step(1,'Click <strong>Send Invitation</strong>.') +
-    step(2,'Fill in: Recipient email, Service User (optional, pre-fills "Regarding" on the form), Respondent name.') +
+    step(2,'Fill in: Recipient email, Person (optional, pre-fills "Regarding" on the form), Respondent name.') +
     step(3,'Click <strong>Send</strong>. A branded HTML email is sent with a unique token link to a public satisfaction form.') +
     step(4,'The recipient clicks the link, fills in the form (no login required), and submits. The source is recorded as "Email".') +
     h3('Viewing Results') +
@@ -592,8 +592,8 @@ const s: LearnSection[] = [
   content:
     h2('eMAR Overview') +
     p('The eMAR (Electronic Medication Administration Record) module manages medication charts, administration, stock, and daily counts.') +
-    h3('Selecting a Service User') +
-    p('The main view shows a list of active medication charts. Select a service user to view their current MAR chart. Charts marked as "active" are shown; archived charts are moved to a separate page.') +
+    h3('Selecting a Person') +
+    p('The main view shows a list of active medication charts. Select a person to view their current MAR chart. Charts marked as "active" are shown; archived charts are moved to a separate page.') +
     h3('MAR Grid Layout') +
     p('The MAR grid uses a flat layout — one row per medication + time slot combination. All administration times are visible at once without expand/collapse.') +
     p('Each row shows: Drug name, Dose, Route (oral, topical, etc.), Frequency, Administration time, Status chip (Pending/Given/Refused/Missed/Not Available/N/A). A color swatch key explains the status colors.') +
@@ -609,11 +609,11 @@ const s: LearnSection[] = [
     h3('Medication Periods') +
     p('Each medication can have a <strong>start_date</strong> and <strong>end_date</strong> to specify a course duration (e.g., a 7-day antibiotic course from June 1-7). After the end date, the medication stops appearing on the active MAR.') +
     h3('Stock Management') +
-    p('<strong>Inventory Tab:</strong> View all medication stock items linked to service users. Adding a non-PRN medication to a MAR auto-creates a stock entry with quantity 0 (you must set the initial quantity manually).') +
+    p('<strong>Inventory Tab:</strong> View all medication stock items linked to people. Adding a non-PRN medication to a MAR auto-creates a stock entry with quantity 0 (you must set the initial quantity manually).') +
     p('<strong>Stock Adjustments:</strong> Click a stock item to open the adjustment dialog. Record adjustments for: Damaged, Expired, Lost, Returned, or Other. Enter the quantity and reason. Each adjustment creates an audit record with timestamp and staff ID.') +
     h3('Daily Counts') +
     p('The Daily Counts tab allows daily medication stock reconciliation:') +
-    step(1,'Select the service user and date.') +
+    step(1,'Select the person and date.') +
     step(2,'Physically count the medication.') +
     step(3,'Check the <strong>Matches Physical Count</strong> checkbox if the system count matches reality.') +
     step(4,'Enter your staff name and any notes.') +
@@ -634,7 +634,7 @@ const s: LearnSection[] = [
     p('Lists all reported incidents with search and pagination.') +
     h3('Reporting an Incident') +
     step(1,'Click <strong>Report Incident</strong>.') +
-    step(2,'Fill in: Title, Description, Severity (Low/Medium/High/Critical), Date/Time Occurred, Location, Involved Service Users (multi-select Autocomplete).') +
+    step(2,'Fill in: Title, Description, Severity (Low/Medium/High/Critical), Date/Time Occurred, Location, Involved People (multi-select Autocomplete).') +
     step(3,'Click <strong>Submit</strong>.') +
     h3('Managing an Incident') +
     p('Click any incident row to open its detail page:') +
@@ -665,45 +665,45 @@ const s: LearnSection[] = [
 ]},
 
 // ═══════════ 10. SERVICE USER TOOLS ═══════════
-{ id:'su-tools', category:'Service User Tools', title:'Goals, Assessments & Reports', icon:'🎯', subsections:[
-{ id:'goals-full', title:'Service User Goals',
+{ id:'su-tools', category:'Person Tools', title:'Goals, Assessments & Reports', icon:'🎯', subsections:[
+{ id:'goals-full', title:'Person Goals',
   content:
     h2('Goals Page') +
-    p('Track individual service user goals, progress, and outcomes.') +
+    p('Track individual person goals, progress, and outcomes.') +
     h3('Summary Cards') +
-    ul(['Total goals across all service users','Active goals (status = active)','Completed goals','Average progress percentage']) +
+    ul(['Total goals across all people','Active goals (status = active)','Completed goals','Average progress percentage']) +
     h3('Creating a Goal') +
     step(1,'Click <strong>Add Goal</strong>.') +
-    step(2,'Select the Service User (Autocomplete search).') +
+    step(2,'Select the Person (Autocomplete search).') +
     step(3,'Enter: Title (required, max 500 chars), Description (optional, max 2000 chars), Target Date, Review Date, Status (active/completed/cancelled/on-hold), Progress (0-100 integer), CQC Domain (safe/effective/caring/responsive/well-led), Frequency (text, e.g., "Weekly"), Goal Category (text).') +
     step(4,'Click <strong>Save</strong>.') +
     h3('Table View') +
-    ul(['Title, Service User, Progress bar (green ≥100%, blue otherwise), Status chip, CQC domain chip, Target date, Review date','Filter by service user (URL parameter ?su={id})','Filter by status']) +
+    ul(['Title, Person, Progress bar (green ≥100%, blue otherwise), Status chip, CQC domain chip, Target date, Review date','Filter by person (URL parameter ?su={id})','Filter by status']) +
     h3('Profile Tab Integration') +
-    p('The Goals tab on the Service User profile shows an inline summary with stat cards and progress bars. "Manage Goals" navigates to the full Goals page.') +
+    p('The Goals tab on the Person profile shows an inline summary with stat cards and progress bars. "Manage Goals" navigates to the full Goals page.') +
     tip('Map goals to CQC domains to demonstrate person-centred care planning. This feeds into the Effective and Caring domain scores.')
 },
 { id:'care-assessments-full', title:'Care Assessments',
   content:
     h2('Care Assessments Page') +
-    p('Formal care evaluations for service users.') +
+    p('Formal care evaluations for people.') +
     h3('Summary Cards') +
     ul(['Total assessments','Completed','Draft']) +
     h3('Creating an Assessment') +
     step(1,'Click <strong>New Assessment</strong>.') +
-    step(2,'Select Service User, Assessment Type, Date, Assessor Name, Findings (multiline), Recommendations (multiline), Status (draft/completed/reviewed), Next Review Date.') +
+    step(2,'Select Person, Assessment Type, Date, Assessor Name, Findings (multiline), Recommendations (multiline), Status (draft/completed/reviewed), Next Review Date.') +
     step(3,'Click <strong>Save</strong>.') +
     h3('Table View') +
-    ul(['Type, Service User, Date, Assessor, Status chip, Next Review Date','Type filter dropdown','Paginated']) +
+    ul(['Type, Person, Date, Assessor, Status chip, Next Review Date','Type filter dropdown','Paginated']) +
     h3('Profile Tab Integration') +
-    p('The Care Assessments tab on the Service User profile shows inline stats and a table. "Manage Assessments" navigates to the full page.') +
+    p('The Care Assessments tab on the Person profile shows inline stats and a table. "Manage Assessments" navigates to the full page.') +
     tip('Create care assessments as draft initially, then mark as completed after review. The "reviewed" status indicates a senior staff member has signed off.')
 },
 { id:'reports', title:'Reporting Suite',
   content:
     h2('Reports Page') +
     p('Six report card templates for common reporting needs. Each card has a description and a "Download Sample CSV" button.') +
-    ul(['<strong>Staff Compliance Report:</strong> Staff names, roles, compliance rates, missing requirements','<strong>Training Matrix Report:</strong> Staff vs modules matrix with completion statuses','<strong>Incident Log Report:</strong> Incident title, severity, date, status, involved people','<strong>Leave Overview Report:</strong> Staff leave balances, used, pending, remaining','<strong>Service User Roster Report:</strong> Active people with room numbers, care plans, risk counts','<strong>Medication Administration Report:</strong> MAR administration records with staff, times, statuses']) +
+    ul(['<strong>Staff Compliance Report:</strong> Staff names, roles, compliance rates, missing requirements','<strong>Training Matrix Report:</strong> Staff vs modules matrix with completion statuses','<strong>Incident Log Report:</strong> Incident title, severity, date, status, involved people','<strong>Leave Overview Report:</strong> Staff leave balances, used, pending, remaining','<strong>Person Roster Report:</strong> Active people with room numbers, care plans, risk counts','<strong>Medication Administration Report:</strong> MAR administration records with staff, times, statuses']) +
     p('Note: These are Phase 1 templates. Full live-data reporting is planned for Phase 2.') +
     tip('Use the sample CSVs to understand the report structure. Phase 2 will replace samples with live data and add PDF export.')
 }
@@ -861,7 +861,7 @@ const s: LearnSection[] = [
   content:
     h2('Insights Page') +
     p('Provides analytics across your organisation.') +
-    ul(['Staff analytics: headcount trends, turnover rates','Service user analytics: admissions, discharges, active counts','Operational metrics: shift fill rates, leave utilisation, incident frequency','Data visualisation with charts and tables']) +
+    ul(['Staff analytics: headcount trends, turnover rates','Person analytics: admissions, discharges, active counts','Operational metrics: shift fill rates, leave utilisation, incident frequency','Data visualisation with charts and tables']) +
     h2('Best Practices') +
     h3('For CQC Inspections') +
     ul(['Generate an evidence pack at least 2 weeks before inspection','Review gap analysis and create action items for any HIGH priority gaps','Ensure all identity documents are current (check the expiring dashboard widget)','Run satisfaction and engagement surveys quarterly — data feeds directly into Caring and Well-led domain scores','Keep training records up to date — expiring training counts against your Safe domain score']) +

@@ -22,7 +22,7 @@ export default function OutcomesPage() {
   return (
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>Outcomes</Typography>
-      <Typography color="#6B7280" sx={{ mb: 3 }}>Standardised outcome scales, assessments, and service user progress tracking.</Typography>
+      <Typography color="#6B7280" sx={{ mb: 3 }}>Standardised outcome scales, assessments, and person progress tracking.</Typography>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, '& .MuiTab-root': { fontWeight: 700, textTransform: 'none' } }}>
         <Tab label="Scales" />
         <Tab label="Assessments" />
@@ -213,7 +213,7 @@ function AssessmentsTab() {
           <Table>
             <TableHead><TableRow sx={{ bgcolor: '#F8FAFC' }}>
               <TableCell sx={{ fontWeight: 800 }}>Scale</TableCell>
-              <TableCell sx={{ fontWeight: 800 }}>Service User</TableCell>
+              <TableCell sx={{ fontWeight: 800 }}>Person</TableCell>
               <TableCell sx={{ fontWeight: 800 }}>Score</TableCell>
               <TableCell sx={{ fontWeight: 800 }}>Band</TableCell>
               <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
@@ -264,7 +264,7 @@ function AssessmentsTab() {
               getOptionLabel={o => `${o.first_name} ${o.last_name}`}
               value={serviceUsers.find(su => su.id === form.service_user_id) || null}
               onChange={(_, v) => setForm(f => ({ ...f, service_user_id: v?.id || '' }))}
-              renderInput={p => <TextField {...p} label="Select Service User" fullWidth required />}
+              renderInput={p => <TextField {...p} label="Select Person" fullWidth required />}
             />
             {selectedScale ? (
               <Box>

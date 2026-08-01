@@ -196,8 +196,8 @@ export default function GoalsPage() {
       {fetchError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFetchError('')}>{fetchError}</Alert>}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Service User Goals</Typography>
-          <Typography color="#6B7280">{preselectedSu ? 'Filtered by service user' : 'Track goals, milestones, and progress per service user.'}</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>Person Goals</Typography>
+          <Typography color="#6B7280">{preselectedSu ? 'Filtered by person' : 'Track goals, milestones, and progress per person.'}</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: '#0F4C81' }}>Add Goal</Button>
       </Stack>
@@ -231,7 +231,7 @@ export default function GoalsPage() {
           <TableHead><TableRow sx={{ bgcolor: '#F8FAFC' }}>
             <TableCell sx={{ fontWeight: 800 }} width={40}></TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Title</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Service User</TableCell>
+            <TableCell sx={{ fontWeight: 800 }}>Person</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Frequency</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Progress</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Status</TableCell>
@@ -352,7 +352,7 @@ export default function GoalsPage() {
               options={serviceUsers} getOptionLabel={o => `${o.first_name} ${o.last_name}`}
               value={serviceUsers.find(su => su.id === form.service_user_id) || null}
               onChange={(_, v) => setForm(f => ({ ...f, service_user_id: v?.id || '' }))}
-              renderInput={p => <TextField {...p} label="Service User" fullWidth />}
+              renderInput={p => <TextField {...p} label="Person" fullWidth />}
             />
             <Stack direction="row" spacing={2}>
               <FormControl fullWidth>

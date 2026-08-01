@@ -121,7 +121,7 @@ export default function AiDailyNotesPage() {
   }
 
   const handleGenerate = () => {
-    if (!transcript.trim() || !serviceUserId) { setError('Please enter observations and select a service user'); return }
+    if (!transcript.trim() || !serviceUserId) { setError('Please enter observations and select a person'); return }
     setError('')
     setAiResult(null)
     generateMutation.mutate({
@@ -196,7 +196,7 @@ export default function AiDailyNotesPage() {
                 getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}${o.room_number ? ` (${o.room_number})` : ''}`}
                 value={serviceUsers?.find((s: any) => s.id === serviceUserId) || null}
                 onChange={(_, v) => setServiceUserId(v?.id || '')}
-                renderInput={p => <TextField {...p} label="Select Service User" size="small" required />}
+                renderInput={p => <TextField {...p} label="Select Person" size="small" required />}
               />
 
               <Stack direction="row" spacing={1}>

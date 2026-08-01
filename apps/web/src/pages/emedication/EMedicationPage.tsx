@@ -110,6 +110,7 @@ export default function EMedicationPage() {
   const [editItem, setEditItem] = useState<MedicationItem | null>(null)
   const [adminTarget, setAdminTarget] = useState<{ itemId: string; date: string; time: string; existingAdmin?: Administration; isPrn?: boolean } | null>(null)
   const [adminForm, setAdminForm] = useState({ status: 'given' as AdminStatus, notes: '', staffUserId: '', prn_reason: '', prn_effectiveness: '', wastage_amount: '', wastage_reason: '', batch_number: '', expiry_date: '' })
+  const [adminTime, setAdminTime] = useState('')
   const [recordForm, setRecordForm] = useState({ title: '', start_date: '', end_date: '' })
   const [itemForm, setItemForm] = useState({ name: '', dosage: '', unit: 'mg', route: 'oral', frequency: 'once daily', times: [] as string[], instructions: '', is_prn: false, is_active: true, start_date: '', end_date: '', is_controlled_drug: false, prescriber_name: '', prescriber_phone: '', prescription_ref: '' })
   const [timeInput, setTimeInput] = useState('')
@@ -147,7 +148,7 @@ export default function EMedicationPage() {
   const [deliveryForm, setDeliveryForm] = useState({ supplier: '', delivery_note: '', delivery_date: todayStr(), received_by: '', notes: '', items: [] as any[] })
   const [deliveryItemForm, setDeliveryItemForm] = useState({ medication_name: '', dosage: '', unit: 'mg', batch_number: '', expiry_date: '', quantity: 0, quantity_unit: 'tablets' })
 
-  // Fetch service users
+  // Fetch people
   const { data: serviceUsers, isError: suError } = useQuery({
     queryKey: ['service-users-list'],
     queryFn: async () => { const res = await api.get('/service-users'); return res.data as any[] }
@@ -156,7 +157,7 @@ export default function EMedicationPage() {
   // Fetch staff
   const { data: staffList } = useQuery({
     queryKey: ['org-staff'],
-    queryFn: async () => { const res = await api.get('/staff/org-members'); const d = res.data as any; const merged = [...((d.staff || []) as StaffMember[])]; if (d.admin && !merged.find((s: any) => s.id === d.admin.id)) merged.unshift(d.admin); return merged }
+    queryFn: async () => { const res = await api.get('/staff/org-members'); const d = res.data as any; const merged = [...((d.staff || []) as StaffMember[])]; const admins = d.admins?.length ? d.admins : (d.admin ? [d.admin] : []); for (const a of admins) { if (!merged.find((s: any) => s.id === a.id)) merged.unshift(a) } return merged }
   })
 
   // Ensure MAR
@@ -435,6 +436,7 @@ export default function EMedicationPage() {
     const admins = chartData?.adminMap[item.id]?.[date]
     const existingAdmin = admins ? getAdminDisplay(admins) : undefined
     setAdminTarget({ itemId: item.id, date, time, existingAdmin, isPrn: item.is_prn })
+    setAdminTime(time)
     setAdminForm({
       status: (existingAdmin?.status as AdminStatus) || 'given',
       notes: existingAdmin?.notes || '',
@@ -451,7 +453,17 @@ export default function EMedicationPage() {
 
   const handleSaveAdmin = () => {
     if (!adminTarget) return
-    const scheduled = new Date(`${adminTarget.date}T${adminTarget.time}:00`).toISOString()
+    if (adminForm.status === 'given') {
+      const item = chartData?.items.find((i: MedicationItem) => i.id === adminTarget.itemId)
+      if (item?.stock_item_id) {
+        const stock = (stockData || []).find((s: StockItem) => s.id === item.stock_item_id && s.status !== 'archived')
+        if (stock && stock.quantity !== null && Number(stock.quantity) <= 0) {
+          setAdminError(`No stock available for ${item.name} (${stock.quantity} ${stock.quantity_unit} remaining). Log a delivery or stock adjustment first.`)
+          return
+        }
+      }
+    }
+    const scheduled = new Date(`${adminTarget.date}T${adminTime || adminTarget.time}:00`).toISOString()
     const payload: any = {
       emedication_item_id: adminTarget.itemId,
       scheduled_time: scheduled,
@@ -1836,14 +1848,14 @@ export default function EMedicationPage() {
       {/* ═══ TAB 0: MAR Chart ═══ */}
       {tab === 0 && (
         <>
-          {/* Service User Selector */}
+          {/* Person Selector */}
           <Paper sx={{ p: 2, mb: 3 }}>
             <Autocomplete
               options={serviceUsers || []}
               getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
               value={selectedServiceUser}
               onChange={(_, v) => { setSelectedServiceUser(v); setSelectedRecordId(null); setMonth(todayStr().slice(0, 7)) }}
-              renderInput={(params) => <TextField {...params} label="Search Service User" size="small" />}
+              renderInput={(params) => <TextField {...params} label="Search Person" size="small" />}
               sx={{ maxWidth: 400 }}
             />
           </Paper>
@@ -1889,7 +1901,7 @@ export default function EMedicationPage() {
                 ) : !recordsData || recordsData.length === 0 ? (
                   <Box sx={{ textAlign: 'center', py: 4 }}>
                     <Typography color="text.secondary" variant="body2">
-                      {selectedServiceUser ? 'No active charts.' : 'Select a service user.'}
+                      {selectedServiceUser ? 'No active charts.' : 'Select a person.'}
                     </Typography>
                     {selectedServiceUser && (
                       <Button size="small" variant="text" startIcon={<ViewArchivedIcon />}
@@ -2051,6 +2063,13 @@ export default function EMedicationPage() {
                                       <span style={{ textDecoration: item.is_active ? 'none' : 'line-through' }}>{item.name}</span>
                                       <Typography variant="caption" color="text.secondary">{item.dosage}{item.unit}</Typography>
                                       <Chip label={item.route} size="small" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+                                      {(() => {
+                                        const stock = (stockData || []).find((s: StockItem) => s.id === item.stock_item_id && s.status !== 'archived')
+                                        if (stock && stock.quantity !== null && Number(stock.quantity) <= 0) {
+                                          return <Chip label="No stock" size="small" color="error" sx={{ fontSize: '0.6rem', height: 18 }} />
+                                        }
+                                        return null
+                                      })()}
                                       {!item.is_active && <Chip label="Archived" size="small" variant="outlined" color="default" sx={{ fontSize: '0.6rem', height: 18 }} />}
                                       {canManage && item.is_active && (
                                         <>
@@ -2375,7 +2394,7 @@ export default function EMedicationPage() {
                   setCountLoading(false)
                 }
               }}
-              renderInput={(params) => <TextField {...params} label="Search Service User" size="small" />}
+              renderInput={(params) => <TextField {...params} label="Search Person" size="small" />}
               sx={{ maxWidth: 400 }}
             />
           </Paper>
@@ -2392,7 +2411,7 @@ export default function EMedicationPage() {
           {countNoRecords && !countLoading && (
             <Paper sx={{ p: 2, mb: 2 }}>
               <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                No active MAR records found for this service user.
+                No active MAR records found for this person.
               </Typography>
             </Paper>
           )}
@@ -2468,7 +2487,7 @@ export default function EMedicationPage() {
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Service User</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Staff Name</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Medications Checked</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Overall Match</TableCell>
@@ -2680,7 +2699,7 @@ export default function EMedicationPage() {
       {adminDialog && <Dialog open={adminDialog} onClose={() => { setAdminDialog(false); setAdminError('') }} maxWidth="sm" fullWidth>
         <DialogTitle>
           Log Administration
-          {adminTarget && (<Typography variant="body2" color="text.secondary">{adminTarget.date} at {adminTarget.time}</Typography>)}
+          {adminTarget && (<Typography variant="body2" color="text.secondary">{adminTarget.date} at {adminTime || adminTarget.time}</Typography>)}
         </DialogTitle>
         <DialogContent>
           {adminError && (
@@ -2703,6 +2722,17 @@ export default function EMedicationPage() {
               onChange={(e) => setAdminForm(p => ({ ...p, status: e.target.value as AdminStatus }))} size="small">
               {ADMIN_STATUSES.map(s => (<MenuItem key={s} value={s}>{STATUS_CONFIG[s].label}</MenuItem>))}
             </TextField>
+
+            <TextField
+              label={adminTarget?.isPrn ? 'Administration Time' : 'Scheduled Time (locked to chart)'}
+              type="time" fullWidth value={adminTime}
+              disabled={!adminTarget?.isPrn}
+              onChange={(e) => setAdminTime(e.target.value)} size="small"
+              InputLabelProps={{ shrink: true }}
+              helperText={adminTarget?.isPrn
+                ? 'PRN — set the actual time this medication was given.'
+                : 'Regular medication — time is fixed by the chart schedule.'}
+            />
 
             <Autocomplete
               options={staffList || []}
@@ -2799,7 +2829,7 @@ export default function EMedicationPage() {
               getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
               value={stockServiceUser}
               onChange={(_, v) => setStockServiceUser(v)}
-              renderInput={(params) => <TextField {...params} label="Service User" size="small" required />}
+              renderInput={(params) => <TextField {...params} label="Person" size="small" required />}
             />
           </Stack>
         </DialogContent>
