@@ -26,6 +26,7 @@ import { useSnackbar } from '../../context/SnackbarContext'
 import HealthTab from './HealthTab'
 import BodyMapTab from './BodyMapTab'
 import MemoryBookTab from './MemoryBookTab'
+import GoalsPage from '../goals/GoalsPage'
 import { LinearProgress, Rating } from '@mui/material'
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer as RechartsResponsiveContainer, BarChart, Bar, XAxis as RechartsXAxis, YAxis as RechartsYAxis, CartesianGrid as RechartsCartesianGrid, Tooltip as RechartsTooltip, Cell } from 'recharts'
 
@@ -1075,7 +1076,7 @@ export default function ServiceUserProfilePage() {
       {tab === 8 && <MemoryBookTab serviceUserId={id!} />}
 
       {/* Tab: Goals */}
-      {tab === 9 && <GoalsTabInline serviceUserId={id!} />}
+      {tab === 9 && <GoalsPage serviceUserId={id!} />}
 
       {/* Tab: Care Assessments */}
       {tab === 10 && <CareAssessmentsTabInline serviceUserId={id!} />}
@@ -2019,44 +2020,6 @@ export default function ServiceUserProfilePage() {
           }}>Delete</Button>
         </DialogActions>
       </Dialog>
-    </Box>
-  )
-}
-
-function GoalsTabInline({ serviceUserId }: { serviceUserId: string }) {
-  const navigate = useNavigate()
-  const { data: goals, isLoading, isError } = useQuery({
-    queryKey: ['goals', serviceUserId],
-    queryFn: () => api.get('/goals', { params: { service_user_id: serviceUserId } }).then(r => r.data),
-  })
-  if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
-  if (isError) return <Alert severity="error">Failed to load goals</Alert>
-  return (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Person Goals</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => navigate(`/goals?su=${serviceUserId}`)}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Manage Goals</Button>
-      </Stack>
-      {(!goals || goals.length === 0) ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No goals set yet</Typography>
-        </Paper>
-      ) : (
-        <Stack spacing={1.5}>
-          {goals.slice(0, 10).map((g: any) => (
-            <Paper key={g.id} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                <Typography variant="body2" fontWeight={700}>{g.title}</Typography>
-                <Chip label={g.status} size="small" color={g.status === 'completed' ? 'success' : g.status === 'active' ? 'primary' : 'default'} />
-              </Stack>
-              <LinearProgress variant="determinate" value={g.progress || 0}
-                sx={{ height: 6, borderRadius: 3, bgcolor: '#E5E7EB', '& .MuiLinearProgress-bar': { bgcolor: g.progress >= 100 ? '#16A34A' : '#0F4C81' } }} />
-              <Typography variant="caption" color="#6B7280" sx={{ mt: 0.5, display: 'block' }}>{g.progress || 0}% complete</Typography>
-            </Paper>
-          ))}
-        </Stack>
-      )}
     </Box>
   )
 }

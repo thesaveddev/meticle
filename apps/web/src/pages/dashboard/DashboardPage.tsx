@@ -79,7 +79,7 @@ interface AppointmentItem {
 const ONBOARDING_STEPS = [
   { label: 'Add your location', desc: 'Create your first location so your data stays organised by site.', icon: <LocationIcon />, path: '/settings' },
   { label: 'Add your staff', desc: 'Invite team members. They\'ll receive an email with a link to set their password.', icon: <PeopleIcon />, path: '/staff' },
-  { label: 'Add people', desc: 'Add the people in your care once your location is set up.', icon: <HomeIcon />, path: '/service-users' },
+  { label: 'Add people', desc: 'Add the people in your care once your location is set up.', icon: <HomeIcon />, path: '/people' },
   { label: 'Explore your dashboard', desc: 'See live overviews of tasks, alerts, appointments, and compliance.', icon: <FlagIcon />, path: '/compliance' },
 ]
 
@@ -168,7 +168,7 @@ export default function DashboardPage() {
       ]
     : [
         { label: 'Total Staff', value: String(stats?.total_staff ?? 0), color: '#0F4C81', icon: <PeopleIcon />, path: '/staff' },
-        { label: 'Active People', value: String(stats?.active_service_users ?? 0), color: '#0F4C81', icon: <HomeIcon />, path: '/service-users' },
+        { label: 'Active People', value: String(stats?.active_service_users ?? 0), color: '#0F4C81', icon: <HomeIcon />, path: '/people' },
         { label: 'Staff on Duty', value: String(stats?.staff_on_duty ?? 0), color: '#16A34A', icon: <BadgeIcon /> },
         { label: 'Compliance Rate', value: `${stats?.compliance_rate ?? 0}%`, color: '#16A34A', icon: <VerifiedIcon />, path: '/compliance' },
         { label: 'Open Shifts', value: String(stats?.open_shifts ?? 0), color: '#D97706', icon: <AlertIcon />, path: '/shift-marketplace' },

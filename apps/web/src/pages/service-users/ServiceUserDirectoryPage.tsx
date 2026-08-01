@@ -172,25 +172,25 @@ export default function ServiceUserDirectoryPage() {
                   <TableCell padding="checkbox" onClick={e => e.stopPropagation()}>
                     <Checkbox checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} />
                   </TableCell>
-                  <TableCell onClick={() => navigate(`/service-users/${u.id}`)}>
+                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>
                     <ServiceUserAvatar photoUrl={u.photo_url} name={`${u.first_name} ${u.last_name}`}
                       sx={{ width: 40, height: 40, bgcolor: '#0F4C81', fontSize: 16 }} />
                   </TableCell>
-                  <TableCell onClick={() => navigate(`/service-users/${u.id}`)}>
+                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="body2" fontWeight={700}>{u.first_name} {u.last_name}</Typography>
                     </Stack>
                   </TableCell>
-                  <TableCell onClick={() => navigate(`/service-users/${u.id}`)}>{u.room_number || '—'}</TableCell>
-                  <TableCell onClick={() => navigate(`/service-users/${u.id}`)}>{u.nhs_number || '—'}</TableCell>
-                  <TableCell onClick={() => navigate(`/service-users/${u.id}`)}>{u.date_of_birth ? new Date(u.date_of_birth).toLocaleDateString('en-GB') : '—'}</TableCell>
-                  <TableCell onClick={() => navigate(`/service-users/${u.id}`)}>
+                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>{u.room_number || '—'}</TableCell>
+                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>{u.nhs_number || '—'}</TableCell>
+                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>{u.date_of_birth ? new Date(u.date_of_birth).toLocaleDateString('en-GB') : '—'}</TableCell>
+                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>
                     <Chip label={STATUS_CONFIG[u.status]?.label || u.status} size="small" color={STATUS_CONFIG[u.status]?.color || 'default'} />
                   </TableCell>
-                  <TableCell align="right" onClick={() => navigate(`/service-users/${u.id}`)}>
+                  <TableCell align="right" onClick={() => navigate(`/people/${u.id}`)}>
                     <Chip label={u.active_care_plans || 0} size="small" variant="outlined" />
                   </TableCell>
-                  <TableCell align="right" onClick={() => navigate(`/service-users/${u.id}`)}>
+                  <TableCell align="right" onClick={() => navigate(`/people/${u.id}`)}>
                     {(u.open_risks || 0) > 0
                       ? <Chip icon={<WarningIcon />} label={u.open_risks} size="small" color="error" />
                       : <Chip label="0" size="small" variant="outlined" />}

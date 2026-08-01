@@ -61,7 +61,6 @@ import FamilyPortalPage from './pages/FamilyPortalPage'
 import ComplianceRecordsPage from './pages/compliance/ComplianceRecordsPage'
 import AppointmentsPage from './pages/appointments/AppointmentsPage'
 import PoliciesPage from './pages/policies/PoliciesPage'
-import GoalsPage from './pages/goals/GoalsPage'
 import OutcomesPage from './pages/outcomes/OutcomesPage'
 import EMedicationPage from './pages/emedication/EMedicationPage'
 import ArchivedMarPage from './pages/emedication/ArchivedMarPage'
@@ -131,15 +130,14 @@ function App() {
           <Route path="/shift-marketplace" element={<ModuleGuard module="marketplace"><ShiftMarketplacePage /></ModuleGuard>} />
           <Route path="/agencies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><AgenciesPage /></AuthGuard>} />
           <Route path="/expenses" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ExpensesPage /></AuthGuard>} />
-          <Route path="/service-users" element={<ModuleGuard module="staff_directory"><ServiceUserDirectoryPage /></ModuleGuard>} />
-          <Route path="/service-users/:id" element={<ModuleGuard module="staff_directory"><ServiceUserProfilePage /></ModuleGuard>} />
+          <Route path="/people" element={<ModuleGuard module="staff_directory"><ServiceUserDirectoryPage /></ModuleGuard>} />
+          <Route path="/people/:id" element={<ModuleGuard module="staff_directory"><ServiceUserProfilePage /></ModuleGuard>} />
           <Route path="/incidents" element={<ModuleGuard module="staff_directory"><IncidentDirectoryPage /></ModuleGuard>} />
           <Route path="/incidents/:id" element={<ModuleGuard module="staff_directory"><IncidentDetailPage /></ModuleGuard>} />
           <Route path="/training" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><TrainingMatrixPage /></AuthGuard>} />
           <Route path="/chat" element={<ModuleGuard module="dashboard"><ChatPage /></ModuleGuard>} />
           <Route path="/appointments" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="staff_directory"><AppointmentsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/policies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><PoliciesPage /></ModuleGuard></AuthGuard>} />
-          <Route path="/goals" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="staff_directory"><GoalsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/outcomes" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><OutcomesPage /></ModuleGuard></AuthGuard>} />
           <Route path="/room-checks" element={<ModuleGuard module="staff_directory"><RoomChecksPage /></ModuleGuard>} />
           <Route path="/mobile/check-in" element={<CheckInPage />} />

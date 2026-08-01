@@ -68,6 +68,18 @@ const MIGRATION_008: Migration = {
   ],
 };
 
+const MIGRATION_010: Migration = {
+  name: '010_goal_outcome_fields',
+  strict: false,
+  statements: [
+    `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS provider_clarification TEXT`,
+    `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS assigned_to UUID REFERENCES users(id) ON DELETE SET NULL`,
+    `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS status_reason TEXT`,
+    `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT false`,
+    `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS started_at DATE`,
+  ],
+};
+
 const MIGRATION_009: Migration = {
   name: '009_care_plan_person_centred_sections',
   strict: false,
@@ -1548,7 +1560,7 @@ export const setupDatabase = async () => {
     logger.info('Database schema setup completed.');
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

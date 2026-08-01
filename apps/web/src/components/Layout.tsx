@@ -18,7 +18,6 @@ import {
   Chat as ChatIcon,
   Event as EventIcon,
   Article as PolicyIcon,
-  Flag as FlagIcon,
   Medication as MedicationIcon,
   Storefront as MarketplaceIcon,
   Business as BusinessIcon,
@@ -83,8 +82,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     {
       label: 'Care Management',
       items: [
-        { text: 'People', icon: <PeopleIcon />, path: '/service-users', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Goals', icon: <FlagIcon />, path: '/goals', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'People', icon: <PeopleIcon />, path: '/people', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
       ],
     },
