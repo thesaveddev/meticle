@@ -340,6 +340,23 @@ setInterval(() => {
     .catch(err => logger.error(err, 'Scheduled evidence pack generation failed'));
 }, 6 * 60 * 60 * 1000);
 
+// Overdue review notifications — daily at 7 AM
+import { ReviewNotificationService } from './modules/reviews/review-notifications.service';
+let lastReviewCheckDate = '';
+function checkOverdueReviews() {
+  const now = new Date();
+  if (now.getHours() === 7) {
+    const today = now.toISOString().slice(0, 10);
+    if (lastReviewCheckDate !== today) {
+      lastReviewCheckDate = today;
+      ReviewNotificationService.checkOverdueReviews()
+        .then(count => { if (count > 0) logger.info({ count, date: today }, 'Overdue review notifications sent'); })
+        .catch(err => logger.error(err, 'Overdue review check failed'));
+    }
+  }
+}
+setInterval(checkOverdueReviews, 5 * 60 * 1000);
+
 // Trial reminder check (every 6 hours — sends at 7d, 3d, 1d, and expiry milestones)
 import { checkTrialExpirations } from './shared/utils/trial-reminders';
 setTimeout(() => {
