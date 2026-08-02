@@ -211,51 +211,25 @@ export default function GoalsPage({ serviceUserId }: { serviceUserId?: string })
 
   if (loading) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
 
-  const activeGoals = goals.filter(g => g.status === 'active')
-  const completedGoals = goals.filter(g => g.status === 'completed')
-  const overdueGoals = goals.filter(g => g.overdue_review)
-
   return (
     <Box>
       {fetchError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFetchError('')}>{fetchError}</Alert>}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Person Goals</Typography>
-          <Typography color="#6B7280">{preselectedSu ? 'Filtered by person' : 'Track goals, milestones, and progress per person.'}</Typography>
-        </Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <FormControl size="small" sx={{ width: 180 }}>
+          <InputLabel>Status Filter</InputLabel>
+          <Select value={statusFilter} label="Status Filter" onChange={e => setStatusFilter(e.target.value)}>
+            <MenuItem value="">All</MenuItem>
+            {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
+          </Select>
+        </FormControl>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: '#0F4C81' }}>Add Goal</Button>
       </Stack>
-
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {[
-          { label: 'Total Goals', value: goals.length, color: '#0F4C81' },
-          { label: 'Active', value: activeGoals.length, color: '#D97706' },
-          { label: 'Completed', value: completedGoals.length, color: '#16A34A' },
-          { label: 'Overdue Reviews', value: overdueGoals.length, color: '#DC2626' },
-        ].map((s, i) => (
-          <Grid item xs={6} md={3} key={i}>
-            <Paper elevation={0} sx={{ p: 3, border: '1px solid #E5E7EB', borderRadius: 3 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, color: s.color }}>{s.value}</Typography>
-              <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 600 }}>{s.label}</Typography>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
-
-      <FormControl size="small" sx={{ mb: 3, width: 200 }}>
-        <InputLabel>Status Filter</InputLabel>
-        <Select value={statusFilter} label="Status Filter" onChange={e => setStatusFilter(e.target.value)}>
-          <MenuItem value="">All</MenuItem>
-          {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
-        </Select>
-      </FormControl>
 
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
         <Table>
           <TableHead><TableRow sx={{ bgcolor: '#F8FAFC' }}>
             <TableCell sx={{ fontWeight: 800 }} width={40}></TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Title</TableCell>
-            <TableCell sx={{ fontWeight: 800 }}>Person</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Frequency</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Progress</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Status</TableCell>
@@ -266,7 +240,7 @@ export default function GoalsPage({ serviceUserId }: { serviceUserId?: string })
           </TableRow></TableHead>
           <TableBody>
             {goals.length === 0 ? (
-              <TableRow><TableCell colSpan={10} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No goals yet. Create your first goal.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No goals yet</TableCell></TableRow>
             ) : goals.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((g) => (
               <>
                 <TableRow key={g.id} hover sx={{ bgcolor: g.overdue_review ? '#FFF7ED' : undefined }}>
@@ -281,7 +255,6 @@ export default function GoalsPage({ serviceUserId }: { serviceUserId?: string })
                       {g.overdue_review && <Tooltip title="Review overdue"><WarningIcon sx={{ color: '#DC2626', fontSize: 16 }} /></Tooltip>}
                     </Stack>
                   </TableCell>
-                  <TableCell>{g.service_user_name || '-'}</TableCell>
                   <TableCell>
                     <Chip label={freqLabel(g.frequency)} size="small"
                       color={g.frequency === 'daily' ? 'error' : g.frequency === 'weekly' ? 'warning' : g.frequency === 'monthly' ? 'info' : g.frequency === 'quarterly' ? 'success' : 'default'} />
