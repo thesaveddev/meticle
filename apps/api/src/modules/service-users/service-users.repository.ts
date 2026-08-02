@@ -74,6 +74,7 @@ export interface CarePlanRow {
   likes_dislikes?: string;
   cultural_needs?: string;
   file_url?: string;
+  file_name?: string;
   sections?: any;
   version?: number;
   created_at: string;
@@ -231,16 +232,16 @@ export class ServiceUserRepository {
   static async createCarePlan(data: Partial<CarePlanRow>) {
     const { service_user_id, title, category, description, risk_assessment, review_date, status,
             mobility_level, mobility_aids, communication_needs, capacity_status,
-            sleep_pattern, emergency_info, personal_goals, likes_dislikes, cultural_needs, file_url, sections } = data;
+            sleep_pattern, emergency_info, personal_goals, likes_dislikes, cultural_needs, file_url, file_name, sections } = data;
     const result = await query(
       `INSERT INTO care_plans (service_user_id, title, category, description, risk_assessment, review_date, status,
         mobility_level, mobility_aids, communication_needs, capacity_status,
-        sleep_pattern, emergency_info, personal_goals, likes_dislikes, cultural_needs, file_url, sections)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+        sleep_pattern, emergency_info, personal_goals, likes_dislikes, cultural_needs, file_url, file_name, sections)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
       [service_user_id, title, category, description, risk_assessment, review_date, status || 'active',
        mobility_level || null, mobility_aids || null, communication_needs || null, capacity_status || null,
        sleep_pattern || null, emergency_info || null, personal_goals || null, likes_dislikes || null,
-       cultural_needs || null, file_url || null, JSON.stringify(sections || {})]
+       cultural_needs || null, file_url || null, file_name || null, JSON.stringify(sections || {})]
     );
     return result.rows[0];
   }
@@ -248,7 +249,7 @@ export class ServiceUserRepository {
   static async updateCarePlan(id: string, data: Partial<CarePlanRow>) {
     const ALLOWED = new Set(['title', 'category', 'description', 'risk_assessment', 'review_date', 'reviewed_by', 'reviewed_at', 'status',
       'mobility_level', 'mobility_aids', 'communication_needs', 'capacity_status',
-      'sleep_pattern', 'emergency_info', 'personal_goals', 'likes_dislikes', 'cultural_needs', 'file_url', 'sections']);
+      'sleep_pattern', 'emergency_info', 'personal_goals', 'likes_dislikes', 'cultural_needs', 'file_url', 'file_name', 'sections']);
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
       if (!ALLOWED.has(k)) continue;

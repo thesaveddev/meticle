@@ -58,7 +58,7 @@ const EMPTY_PLAN_FORM = {
   title: '', category: '', description: '', risk_assessment: '', review_date: '',
   mobility_level: '', mobility_aids: '', communication_needs: '', capacity_status: '',
   sleep_pattern: '', emergency_info: '', personal_goals: '', likes_dislikes: '',
-  cultural_needs: '', file_url: '',
+  cultural_needs: '', file_url: '', file_name: '',
   sections: { contributors: [] as Contributor[], what_tried: '', what_learned: '', what_pleased: '', what_concerned: '', next_steps: '' } as { contributors: Contributor[]; what_tried: string; what_learned: string; what_pleased: string; what_concerned: string; next_steps: string },
 }
 
@@ -827,7 +827,7 @@ export default function ServiceUserProfilePage() {
                             <VisibilityIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <IconButton size="small" onClick={() => { setPlanForm({ title: cp.title, category: cp.category, description: cp.description || '', risk_assessment: cp.risk_assessment || '', review_date: cp.review_date || '', mobility_level: cp.mobility_level || '', mobility_aids: cp.mobility_aids || '', communication_needs: cp.communication_needs || '', capacity_status: cp.capacity_status || '', sleep_pattern: cp.sleep_pattern || '', emergency_info: cp.emergency_info || '', personal_goals: cp.personal_goals || '', likes_dislikes: cp.likes_dislikes || '', cultural_needs: cp.cultural_needs || '', file_url: cp.file_url || '', sections: cp.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(cp.id); setPlanTab(0); setAddPlanOpen(true) }}>
+                        <IconButton size="small" onClick={() => { setPlanForm({ title: cp.title, category: cp.category, description: cp.description || '', risk_assessment: cp.risk_assessment || '', review_date: cp.review_date || '', mobility_level: cp.mobility_level || '', mobility_aids: cp.mobility_aids || '', communication_needs: cp.communication_needs || '', capacity_status: cp.capacity_status || '', sleep_pattern: cp.sleep_pattern || '', emergency_info: cp.emergency_info || '', personal_goals: cp.personal_goals || '', likes_dislikes: cp.likes_dislikes || '', cultural_needs: cp.cultural_needs || '', file_url: cp.file_url || '', file_name: cp.file_name || '', sections: cp.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(cp.id); setPlanTab(0); setAddPlanOpen(true) }}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton size="small" onClick={() => setDeleteConfirm({ type: 'plan', id: cp.id })}>
@@ -1303,7 +1303,7 @@ export default function ServiceUserProfilePage() {
       </Dialog>
 
       {/* Add / Edit Care Plan Dialog */}
-       <Dialog open={addPlanOpen} onClose={() => { setAddPlanOpen(false); setEditPlanId(null) }} maxWidth="md" fullWidth>
+       <Dialog open={addPlanOpen} onClose={() => { setAddPlanOpen(false); setEditPlanId(null) }} maxWidth="md" fullWidth key={editPlanId || 'new'}>
         <Box component="form" onSubmit={(e: React.FormEvent) => {
           e.preventDefault()
           if (editPlanId) {
@@ -1382,7 +1382,7 @@ export default function ServiceUserProfilePage() {
                   const fd = new FormData()
                   fd.append('file', file)
                   const res = await api.post('/settings/upload', fd)
-                  setPlanForm({ ...planForm, file_url: res.data.url })
+                  setPlanForm({ ...planForm, file_url: res.data.url, file_name: res.data.originalName || file.name })
                 } catch { setError('Failed to upload file') }
                 finally { setPlanUploading(false); e.target.value = '' }
               }} />
@@ -1394,7 +1394,7 @@ export default function ServiceUserProfilePage() {
                 </Button>
                 {planForm.file_url && (
                   <>
-                    <Chip label={planForm.file_url.split('/').pop() || 'Attached'} size="small" color="primary" variant="outlined" />
+                    <Chip label={planForm.file_name || planForm.file_url.split('/').pop() || 'Attached'} size="small" color="primary" variant="outlined" />
                     <IconButton size="small" onClick={() => setPlanForm({ ...planForm, file_url: '' })}><DeleteIcon fontSize="small" /></IconButton>
                   </>
                 )}
@@ -1572,7 +1572,7 @@ export default function ServiceUserProfilePage() {
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <FileIcon sx={{ fontSize: 20, color: '#0F4C81' }} />
                       <Typography variant="body2" fontWeight={600} sx={{ flex: 1, minWidth: 0 }} noWrap>
-                        {viewPlan.file_url.split('/').pop() || 'Attached document'}
+                        {viewPlan.file_name || viewPlan.file_url.split('/').pop() || 'Attached document'}
                       </Typography>
                       <Button size="small" variant="outlined" startIcon={<DownloadIcon fontSize="small" />}
                         onClick={() => viewFileInNewTab(`/files/private/${viewPlan.file_url}`)}
@@ -1586,7 +1586,7 @@ export default function ServiceUserProfilePage() {
             </DialogContent>
             <DialogActions sx={{ p: 2.5 }}>
               <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}
-                onClick={() => { closeCarePlanView(); setPlanForm({ title: viewPlan.title, category: viewPlan.category, description: viewPlan.description || '', risk_assessment: viewPlan.risk_assessment || '', review_date: viewPlan.review_date || '', mobility_level: viewPlan.mobility_level || '', mobility_aids: viewPlan.mobility_aids || '', communication_needs: viewPlan.communication_needs || '', capacity_status: viewPlan.capacity_status || '', sleep_pattern: viewPlan.sleep_pattern || '', emergency_info: viewPlan.emergency_info || '', personal_goals: viewPlan.personal_goals || '', likes_dislikes: viewPlan.likes_dislikes || '', cultural_needs: viewPlan.cultural_needs || '', file_url: viewPlan.file_url || '', sections: viewPlan.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(viewPlan.id); setPlanTab(0); setAddPlanOpen(true) }}>
+                onClick={() => { closeCarePlanView(); setPlanForm({ title: viewPlan.title, category: viewPlan.category, description: viewPlan.description || '', risk_assessment: viewPlan.risk_assessment || '', review_date: viewPlan.review_date || '', mobility_level: viewPlan.mobility_level || '', mobility_aids: viewPlan.mobility_aids || '', communication_needs: viewPlan.communication_needs || '', capacity_status: viewPlan.capacity_status || '', sleep_pattern: viewPlan.sleep_pattern || '', emergency_info: viewPlan.emergency_info || '', personal_goals: viewPlan.personal_goals || '', likes_dislikes: viewPlan.likes_dislikes || '', cultural_needs: viewPlan.cultural_needs || '', file_url: viewPlan.file_url || '', file_name: viewPlan.file_name || '', sections: viewPlan.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(viewPlan.id); setPlanTab(0); setAddPlanOpen(true) }}>
                 Edit Plan
               </Button>
               <Button onClick={closeCarePlanView} sx={{ textTransform: 'none' }}>Close</Button>
