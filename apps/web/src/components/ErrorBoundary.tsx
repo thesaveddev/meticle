@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
 import { Box, Typography, Button, Paper } from '@mui/material'
+import posthog from '../lib/posthog'
 
 interface Props {
   children: ReactNode
@@ -23,6 +24,9 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('ErrorBoundary caught:', error, info)
+    posthog.captureException(error, {
+      componentStack: info.componentStack,
+    })
   }
 
   render() {

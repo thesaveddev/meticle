@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, Ta
 import { Add as AddIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 
 const PRIORITY_COLORS: Record<string, 'error' | 'warning' | 'info' | 'default'> = { urgent: 'error', high: 'warning', medium: 'info', low: 'default' }
 const STATUS_COLORS: Record<string, 'error' | 'warning' | 'success' | 'default'> = { pending: 'default', in_progress: 'warning', completed: 'success', cancelled: 'error' }
@@ -37,7 +38,7 @@ export default function TasksPage() {
       const payload = { ...form, due_date: form.due_date || undefined, assigned_to: form.assigned_to || undefined, service_user_id: form.service_user_id || undefined }
       return editing ? api.patch(`/tasks/${editing.id}`, payload) : api.post('/tasks', payload)
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks'] }); close() },
+    onSuccess: () => { if (!editing) posthog.capture('task_created', { priority: form.priority, has_assignee: Boolean(form.assigned_to), has_due_date: Boolean(form.due_date) }); qc.invalidateQueries({ queryKey: ['tasks'] }); close() },
     onError: (e: any) => setError(e.response?.data?.message || 'Save failed'),
   })
 
@@ -51,6 +52,7 @@ export default function TasksPage() {
   const toggleStatus = async (t: any) => {
     const next = t.status === 'pending' ? 'in_progress' : t.status === 'in_progress' ? 'completed' : 'pending'
     await api.patch(`/tasks/${t.id}`, { status: next })
+    if (next === 'completed') posthog.capture('task_completed', { priority: t.priority, had_assignee: Boolean(t.assigned_to) })
     qc.invalidateQueries({ queryKey: ['tasks'] })
   }
 

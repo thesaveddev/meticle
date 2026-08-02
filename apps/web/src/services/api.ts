@@ -1,4 +1,5 @@
 import axios from 'axios'
+import posthog from '../lib/posthog'
 
 const api = axios.create({
   baseURL: '/api',
@@ -67,6 +68,7 @@ api.interceptors.response.use(
 
       const refreshToken = localStorage.getItem('refreshToken')
       if (!refreshToken) {
+        posthog.reset()
         localStorage.clear()
         window.location.href = '/login'
         return Promise.reject(error)
@@ -83,6 +85,7 @@ api.interceptors.response.use(
         return api(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
+        posthog.reset()
         localStorage.clear()
         window.location.href = '/login'
         return Promise.reject(refreshError)

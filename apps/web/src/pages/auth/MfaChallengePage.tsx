@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Box, Typography, Container, TextField, Button, Alert, CircularProgress, Stack, Paper } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 
 export default function MfaChallengePage() {
   const location = useLocation()
@@ -29,6 +30,13 @@ export default function MfaChallengePage() {
       localStorage.setItem('accessToken', response.data.accessToken)
       localStorage.setItem('refreshToken', response.data.refreshToken)
       localStorage.setItem('user', JSON.stringify(response.data.user))
+      if (response.data.user?.id) {
+        posthog.identify(response.data.user.id, {
+          email: response.data.user.email,
+          name: response.data.user.name,
+          role: response.data.user.role,
+        })
+      }
       const role = response.data.user?.role
       navigate(role === 'SUPER_ADMIN' ? '/platform-admin' : '/dashboard')
     } catch (err: any) {

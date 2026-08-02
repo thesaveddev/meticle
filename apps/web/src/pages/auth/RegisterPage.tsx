@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 import { CheckCircle as CheckIcon, Security as SecurityIcon, Visibility, VisibilityOff, MarkEmailRead as VerifiedIcon } from '@mui/icons-material'
 
 const REGISTER_ILLUSTRATION = '/signup-page.jpg';
@@ -149,6 +150,13 @@ export default function RegisterPage() {
       localStorage.setItem('accessToken', res.data.accessToken)
       localStorage.setItem('refreshToken', res.data.refreshToken)
       localStorage.setItem('user', JSON.stringify(storedUser))
+      if (storedUser?.id) {
+        posthog.identify(storedUser.id, {
+          email: storedUser.email,
+          name: storedUser.name ?? fullName,
+          role: storedUser.role,
+        })
+      }
 
       if (token) {
         navigate('/dashboard')

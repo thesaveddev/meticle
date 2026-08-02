@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Grid, Stack, Button, Dialog, DialogTitle, Dialo
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ExpandMore as ExpandIcon, Warning as WarningIcon, CheckCircle as CheckIcon } from '@mui/icons-material'
 import { useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 
 interface Milestone { id: string; title: string; description?: string; is_completed: boolean; completed_at?: string; sort_order: number }
 interface ProgressEntry { id: string; progress: number; note?: string; recorded_at: string; recorded_by_name?: string }
@@ -136,7 +137,14 @@ export default function GoalsPage({ serviceUserId }: { serviceUserId?: string })
         started_at: form.started_at || null,
       }
       if (editing) { await api.patch(`/goals/${editing.id}`, payload) }
-      else { await api.post('/goals', payload) }
+      else {
+        await api.post('/goals', payload)
+        posthog.capture('goal_created', {
+          frequency: form.frequency,
+          goal_category: form.goal_category || 'unspecified',
+          has_target_date: Boolean(form.target_date),
+        })
+      }
       setDialogOpen(false); fetchGoals()
     } catch (e: any) {
       setFetchError(e?.response?.data?.message || 'Failed to save goal')
@@ -188,6 +196,10 @@ export default function GoalsPage({ serviceUserId }: { serviceUserId?: string })
     if (!progressGoalId) return
     try {
       await api.post(`/goals/${progressGoalId}/progress`, { progress: progressValue, note: progressNote || undefined })
+      posthog.capture('goal_progress_recorded', {
+        progress: progressValue,
+        has_note: Boolean(progressNote),
+      })
       const [pRes, gRes] = await Promise.all([
         api.get(`/goals/${progressGoalId}/progress`),
         api.get(`/goals?${preselectedSu ? 'service_user_id=' + preselectedSu : ''}`),

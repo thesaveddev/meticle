@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Alert, Card, CardContent, Grid, Tabs, Tab, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControl, InputLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete } from '@mui/material'
 import { HowToReg as ClaimIcon, Schedule as ScheduleIcon, LocationOn as LocationIcon, CheckCircle, Cancel, History, Warning as WarningIcon, Send as SendIcon } from '@mui/icons-material'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 
 export default function ShiftMarketplacePage() {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
@@ -77,6 +78,7 @@ export default function ShiftMarketplacePage() {
     setError(''); setSuccess(''); setClaimingId(shiftId)
     try {
       await api.post(`/shifts/${shiftId}/claim`)
+      posthog.capture('shift_claimed')
       setSuccess('Shift claimed!')
       setShifts(prev => prev.filter(s => s.id !== shiftId))
       fetchMyClaims()
@@ -89,6 +91,7 @@ export default function ShiftMarketplacePage() {
     setError(''); setSuccess(''); setApprovingId(`${shiftId}-${staffId}`)
     try {
       await api.patch(`/shifts/${shiftId}/approve-claim/${staffId}`)
+      posthog.capture('shift_claim_approved')
       setSuccess('Claim approved')
       fetchPendingClaims(); fetchOpenShifts()
     } catch (err: any) {
@@ -131,6 +134,9 @@ export default function ShiftMarketplacePage() {
     try {
       setSendingToAgency(true)
       await api.patch(`/shifts/${agencyDialog.shiftId}/send-to-agency`, agencyData)
+      posthog.capture('shift_sent_to_agency', {
+        has_cost: Boolean(agencyData.agency_cost),
+      })
       setSuccess('Shift sent to agency')
       setAgencyDialog({ open: false, shiftId: '', start_time: '', end_time: '', shift_type: 'day' })
       fetchOpenShifts()

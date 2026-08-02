@@ -24,6 +24,7 @@ import {
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 import { useSnackbar } from '../../context/SnackbarContext'
 import { useThemeMode } from '../../context/ThemeContext'
 
@@ -196,7 +197,7 @@ export default function SettingsPage() {
 
   const deactivateMutation = useMutation({
     mutationFn: () => api.post('/staff/self-deactivate'),
-    onSuccess: () => { localStorage.clear(); navigate('/') },
+    onSuccess: () => { posthog.reset(); localStorage.clear(); navigate('/') },
     onError: (err: any) => { setDeactError(err.response?.data?.message || 'Failed to deactivate account.') },
   })
 
