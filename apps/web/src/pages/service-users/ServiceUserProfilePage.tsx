@@ -195,7 +195,7 @@ export default function ServiceUserProfilePage() {
 
   const updatePlanMutation = useMutation({
     mutationFn: ({ planId, data }: { planId: string; data: any }) => api.patch(`/service-users/care-plans/${planId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setEditPlanId(null); setPlanForm({ ...EMPTY_PLAN_FORM }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setAddPlanOpen(false); setEditPlanId(null); setPlanForm({ ...EMPTY_PLAN_FORM }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update care plan'),
   })
 
