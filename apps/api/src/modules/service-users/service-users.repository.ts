@@ -238,7 +238,7 @@ export class ServiceUserRepository {
         mobility_level, mobility_aids, communication_needs, capacity_status,
         sleep_pattern, emergency_info, personal_goals, likes_dislikes, cultural_needs, file_url, file_name, sections)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
-      [service_user_id, title, category, description, risk_assessment, review_date, status || 'active',
+       [service_user_id, title, category, description, risk_assessment, review_date || null, status || 'active',
        mobility_level || null, mobility_aids || null, communication_needs || null, capacity_status || null,
        sleep_pattern || null, emergency_info || null, personal_goals || null, likes_dislikes || null,
        cultural_needs || null, file_url || null, file_name || null, JSON.stringify(sections || {})]
@@ -254,7 +254,7 @@ export class ServiceUserRepository {
     for (const [k, v] of Object.entries(data)) {
       if (!ALLOWED.has(k)) continue;
       fields.push(`${k} = $${idx++}`);
-      params.push(v);
+      params.push(v === '' && (k === 'review_date') ? null : (k === 'sections' ? JSON.stringify(v) : v));
     }
     if (fields.length === 0) {
       const result = await query(`SELECT * FROM care_plans WHERE id = $1`, [id]);

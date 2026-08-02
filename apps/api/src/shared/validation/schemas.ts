@@ -478,6 +478,8 @@ export const createCarePlanSchema = z.object({
   likes_dislikes: z.string().optional(),
   cultural_needs: z.string().optional(),
   file_url: z.string().optional(),
+  file_name: z.string().optional(),
+  sections: z.record(z.string(), z.any()).optional(),
 });
 
 export const updateCarePlanSchema = z.object({
@@ -497,6 +499,8 @@ export const updateCarePlanSchema = z.object({
   likes_dislikes: z.string().optional(),
   cultural_needs: z.string().optional(),
   file_url: z.string().optional(),
+  file_name: z.string().optional(),
+  sections: z.record(z.string(), z.any()).optional(),
 });
 
 export const createDailyNoteSchema = z.object({

@@ -38,13 +38,9 @@ async function streamDocumentToResponse(user: any, docUrl: string, res: Response
 
 async function findFileOrg(fileUrl: string): Promise<string | null> {
   const direct: [string, string, string | null][] = [
-    ['documents', 'url', null],
-    ['compliance_records', 'file_url', null],
     ['organizations', 'logo_url', 'id'],
     ['room_checks', 'photo_url', null],
     ['service_users', 'photo_url', null],
-    ['care_plans', 'file_url', null],
-    ['service_user_documents', 'file_url', null],
     ['service_user_expenses', 'receipt_url', null],
   ];
   for (const [table, col, orgCol] of direct) {
@@ -54,6 +50,10 @@ async function findFileOrg(fileUrl: string): Promise<string | null> {
   }
 
   const joined = [
+    `SELECT u.organization_id FROM documents d JOIN staff_profiles sp ON d.staff_id = sp.id JOIN users u ON sp.user_id = u.id WHERE d.url = $1 LIMIT 1`,
+    `SELECT u.organization_id FROM compliance_records cr JOIN staff_profiles sp ON cr.staff_id = sp.id JOIN users u ON sp.user_id = u.id WHERE cr.file_url = $1 LIMIT 1`,
+    `SELECT su.organization_id FROM care_plans cp JOIN service_users su ON cp.service_user_id = su.id WHERE cp.file_url = $1 LIMIT 1`,
+    `SELECT su.organization_id FROM service_user_documents sud JOIN service_users su ON sud.service_user_id = su.id WHERE sud.file_url = $1 LIMIT 1`,
     `SELECT u.organization_id FROM staff_profiles sp JOIN users u ON sp.user_id = u.id WHERE sp.profile_picture_url = $1 LIMIT 1`,
     `SELECT u.organization_id FROM training_records tr JOIN staff_profiles sp ON tr.staff_id = sp.id JOIN users u ON sp.user_id = u.id WHERE tr.file_url = $1 LIMIT 1`,
     `SELECT u.organization_id FROM competency_assessments ca JOIN staff_profiles sp ON ca.staff_id = sp.id JOIN users u ON sp.user_id = u.id WHERE ca.evidence_url = $1 LIMIT 1`,
