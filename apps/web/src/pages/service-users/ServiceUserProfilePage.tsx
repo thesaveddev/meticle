@@ -332,7 +332,13 @@ export default function ServiceUserProfilePage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const blobUrl = URL.createObjectURL(blob)
-      window.open(blobUrl, '_blank', 'noopener,noreferrer')
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
     } catch {
       window.open(url, '_blank', 'noopener,noreferrer')
     }
@@ -2479,7 +2485,13 @@ function DocumentsTab({ serviceUserId }: { serviceUserId: string }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const blobUrl = URL.createObjectURL(blob)
-      window.open(blobUrl, '_blank', 'noopener,noreferrer')
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
     } catch {
       window.open(fileUrl, '_blank', 'noopener,noreferrer')
     }
