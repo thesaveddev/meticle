@@ -1581,7 +1581,7 @@ export default function ServiceUserProfilePage() {
                         {viewPlan.file_name || viewPlan.file_url.split('/').pop() || 'Attached document'}
                       </Typography>
                       <Button size="small" variant="outlined" startIcon={<DownloadIcon fontSize="small" />}
-                        onClick={() => viewFileInNewTab(`/files/private/${viewPlan.file_url}`)}
+                        onClick={() => viewFileInNewTab(viewPlan.file_url)}
                         sx={{ textTransform: 'none', borderRadius: 1.5 }}>
                         View file
                       </Button>
@@ -1592,7 +1592,7 @@ export default function ServiceUserProfilePage() {
             </DialogContent>
             <DialogActions sx={{ p: 2.5 }}>
               <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}
-                onClick={() => { closeCarePlanView(); setPlanForm({ title: viewPlan.title, category: viewPlan.category, description: viewPlan.description || '', risk_assessment: viewPlan.risk_assessment || '', review_date: viewPlan.review_date || '', mobility_level: viewPlan.mobility_level || '', mobility_aids: viewPlan.mobility_aids || '', communication_needs: viewPlan.communication_needs || '', capacity_status: viewPlan.capacity_status || '', sleep_pattern: viewPlan.sleep_pattern || '', emergency_info: viewPlan.emergency_info || '', personal_goals: viewPlan.personal_goals || '', likes_dislikes: viewPlan.likes_dislikes || '', cultural_needs: viewPlan.cultural_needs || '', file_url: viewPlan.file_url || '', file_name: viewPlan.file_name || '', sections: viewPlan.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(viewPlan.id); setPlanTab(0); setAddPlanOpen(true) }}>
+                onClick={() => { closeCarePlanView(); const p = viewPlan; setTimeout(() => { setPlanForm({ title: p.title, category: p.category, description: p.description || '', risk_assessment: p.risk_assessment || '', review_date: p.review_date || '', mobility_level: p.mobility_level || '', mobility_aids: p.mobility_aids || '', communication_needs: p.communication_needs || '', capacity_status: p.capacity_status || '', sleep_pattern: p.sleep_pattern || '', emergency_info: p.emergency_info || '', personal_goals: p.personal_goals || '', likes_dislikes: p.likes_dislikes || '', cultural_needs: p.cultural_needs || '', file_url: p.file_url || '', file_name: p.file_name || '', sections: p.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(p.id); setPlanTab(0); setAddPlanOpen(true) }, 100) }}>
                 Edit Plan
               </Button>
               <Button onClick={closeCarePlanView} sx={{ textTransform: 'none' }}>Close</Button>
