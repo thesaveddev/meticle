@@ -539,7 +539,7 @@ export class SettingsController {
   static async uploadFile(req: Request, res: Response) {
     if (!req.file) throw new AppError(400, 'No file provided');
     const fileUrl = '/files/private/' + req.file.filename;
-    res.json({ url: fileUrl });
+    res.json({ url: fileUrl, originalName: req.file.originalname });
   }
 
   // POST /settings/compliance-records/:id/upload
