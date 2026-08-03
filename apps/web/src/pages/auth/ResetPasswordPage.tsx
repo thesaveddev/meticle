@@ -1,3 +1,4 @@
+import { usePageMeta } from '../../components/PageMeta'
 import { useState } from 'react'
 import { Box, Button, TextField, Typography, Paper, Container, Stack, Alert, IconButton, InputAdornment } from '@mui/material'
 import { Visibility, VisibilityOff } from '@mui/icons-material'
@@ -49,6 +50,8 @@ export default function ResetPasswordPage() {
       </Container>
     )
   }
+
+  usePageMeta({ title: 'Reset Password | MeticleCare', description: 'Set a new password for your MeticleCare account.', noindex: true })
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', bgcolor: '#020617' }}>

@@ -1,3 +1,4 @@
+import { usePageMeta } from '../../components/PageMeta'
 import { useEffect, useState } from 'react'
 import { Box, Typography, Container, CircularProgress, Button } from '@mui/material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -35,6 +36,8 @@ export default function VerifyEmailPage() {
 
     verify()
   }, [token])
+
+  usePageMeta({ title: 'Verify Email | MeticleCare', description: 'Verify your email address for MeticleCare.', noindex: true })
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', bgcolor: '#020617' }}>

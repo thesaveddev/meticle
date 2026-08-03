@@ -3,6 +3,7 @@ import { Container, Typography, Grid, Box, Stack, Button, TextField, Paper, Aler
 import { Email, Phone, LocationOn, AccessTime } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import api from '../../services/api'
+import PageMeta from '../../components/PageMeta'
 
 const contactMethods = [
   { icon: <Email sx={{ color: '#0F4C81' }} />, title: 'Email', detail: 'hello@meticlecare.com', sub: 'We reply within 4 hours' },
@@ -33,6 +34,8 @@ export default function ContactPage() {
   }
 
   return (
+    <>
+      <PageMeta title="Contact MeticleCare | MeticleCare" description="Get in touch with the MeticleCare team. Ask about our care management platform for UK supported living, domiciliary care and care home providers." canonicalPath="/contact" />
     <MarketingLayout>
       <Box sx={{ py: 15, bgcolor: '#F8FAFC', borderBottom: '1px solid #E5E7EB' }}>
         <Container maxWidth="lg">
@@ -90,5 +93,6 @@ export default function ContactPage() {
         </Container>
       </Box>
     </MarketingLayout>
+    </>
   )
 }

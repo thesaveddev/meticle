@@ -9,6 +9,7 @@ import {
   ExpandMore, ExpandLess, School as LearnIcon,
 } from '@mui/icons-material'
 import { getLearnSections, type LearnSection } from '../../data/learn-content'
+import PageMeta from '../../components/PageMeta'
 
 const DRAWER_WIDTH = 300
 
@@ -144,6 +145,8 @@ export default function LearningCenterPage() {
   }
 
   return (
+    <>
+      <PageMeta title="Learning Center | MeticleCare" description="Learn how to use MeticleCare for care planning, staff management, medication records, compliance and daily operations. Guides and resources for care providers." canonicalPath="/learn" />
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F9FAFB' }}>
       {/* Mobile app bar */}
       {isMobile && (
@@ -257,5 +260,6 @@ export default function LearningCenterPage() {
         )}
       </Box>
     </Box>
+    </>
   )
 }

@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
@@ -10,13 +11,6 @@ import ReportBuilder from './pages/reporting/ReportBuilder'
 import InsightsPage from './pages/insights/InsightsPage'
 import Layout from './components/Layout'
 import LandingPage from './pages/LandingPage'
-import FeaturesPage from './pages/marketing/FeaturesPage'
-import PricingPage from './pages/marketing/PricingPage'
-import AboutPage from './pages/marketing/AboutPage'
-import CaseStudiesPage from './pages/marketing/CaseStudiesPage'
-import ContactPage from './pages/marketing/ContactPage'
-import HowItWorksPage from './pages/marketing/HowItWorksPage'
-import BlogPage from './pages/marketing/BlogPage'
 import AuthGuard from './components/AuthGuard'
 import ModuleGuard from './components/ModuleGuard'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
@@ -27,6 +21,19 @@ import MfaSetupPage from './pages/auth/MfaSetupPage'
 import OnboardingFlow from './pages/onboarding/OnboardingFlow'
 import StaffDirectoryPage from './pages/staff/StaffDirectoryPage'
 import StaffProfilePage from './pages/staff/StaffProfilePage'
+
+// Lazy-loaded marketing pages for code splitting
+const FeaturesPage = lazy(() => import('./pages/marketing/FeaturesPage'))
+const PricingPage = lazy(() => import('./pages/marketing/PricingPage'))
+const AboutPage = lazy(() => import('./pages/marketing/AboutPage'))
+const CaseStudiesPage = lazy(() => import('./pages/marketing/CaseStudiesPage'))
+const ContactPage = lazy(() => import('./pages/marketing/ContactPage'))
+const HowItWorksPage = lazy(() => import('./pages/marketing/HowItWorksPage'))
+const BlogPage = lazy(() => import('./pages/marketing/BlogPage'))
+const LearningCenterPage = lazy(() => import('./pages/learn/LearningCenterPage'))
+const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'))
+const TermsOfUsePage = lazy(() => import('./pages/legal/TermsOfUsePage'))
+const CookiePolicyPage = lazy(() => import('./pages/legal/CookiePolicyPage'))
 import CompliancePage from './pages/compliance/CompliancePage'
 import IdentityMonitoringPage from './pages/compliance/IdentityMonitoringPage'
 import CompetencyAssessmentsPage from './pages/compliance/CompetencyAssessmentsPage'
@@ -49,14 +56,10 @@ import IncidentDetailPage from './pages/incidents/IncidentDetailPage'
 import ChatPage from './pages/chat/ChatPage'
 import TrainingMatrixPage from './pages/training/TrainingMatrixPage'
 import SurveyFormPage from './pages/SurveyFormPage'
-import LearningCenterPage from './pages/learn/LearningCenterPage'
 import TasksPage from './pages/tasks/TasksPage'
 import RoomChecksPage from './pages/room-checks/RoomChecksPage'
 import CheckInPage from './pages/mobile/CheckInPage'
 import VoiceNotesPage from './pages/mobile/MobileNotesPage'
-import PrivacyPolicyPage from './pages/legal/PrivacyPolicyPage'
-import TermsOfUsePage from './pages/legal/TermsOfUsePage'
-import CookiePolicyPage from './pages/legal/CookiePolicyPage'
 import FamilyPortalPage from './pages/FamilyPortalPage'
 import ComplianceRecordsPage from './pages/compliance/ComplianceRecordsPage'
 import AppointmentsPage from './pages/appointments/AppointmentsPage'
@@ -76,13 +79,13 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<ErrorBoundary><LandingPage /></ErrorBoundary>} />
-      <Route path="/features" element={<ErrorBoundary><FeaturesPage /></ErrorBoundary>} />
-      <Route path="/how-it-works" element={<ErrorBoundary><HowItWorksPage /></ErrorBoundary>} />
-      <Route path="/pricing" element={<ErrorBoundary><PricingPage /></ErrorBoundary>} />
-      <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
-      <Route path="/case-studies" element={<ErrorBoundary><CaseStudiesPage /></ErrorBoundary>} />
-      <Route path="/contact" element={<ErrorBoundary><ContactPage /></ErrorBoundary>} />
-      <Route path="/blog" element={<ErrorBoundary><BlogPage /></ErrorBoundary>} />
+      <Route path="/features" element={<ErrorBoundary><Suspense fallback={null}><FeaturesPage /></Suspense></ErrorBoundary>} />
+      <Route path="/how-it-works" element={<ErrorBoundary><Suspense fallback={null}><HowItWorksPage /></Suspense></ErrorBoundary>} />
+      <Route path="/pricing" element={<ErrorBoundary><Suspense fallback={null}><PricingPage /></Suspense></ErrorBoundary>} />
+      <Route path="/about" element={<ErrorBoundary><Suspense fallback={null}><AboutPage /></Suspense></ErrorBoundary>} />
+      <Route path="/case-studies" element={<ErrorBoundary><Suspense fallback={null}><CaseStudiesPage /></Suspense></ErrorBoundary>} />
+      <Route path="/contact" element={<ErrorBoundary><Suspense fallback={null}><ContactPage /></Suspense></ErrorBoundary>} />
+      <Route path="/blog" element={<ErrorBoundary><Suspense fallback={null}><BlogPage /></Suspense></ErrorBoundary>} />
       <Route path="/login" element={<ErrorBoundary><MeticleThemeProvider><LoginPage /></MeticleThemeProvider></ErrorBoundary>} />
       <Route path="/register" element={<ErrorBoundary><MeticleThemeProvider><RegisterPage /></MeticleThemeProvider></ErrorBoundary>} />
       <Route path="/forgot-password" element={<ErrorBoundary><MeticleThemeProvider><ForgotPasswordPage /></MeticleThemeProvider></ErrorBoundary>} />
@@ -93,10 +96,10 @@ function App() {
       <Route path="/survey/satisfaction/:token" element={<ErrorBoundary><SurveyFormPage /></ErrorBoundary>} />
       <Route path="/survey/engagement/:token" element={<ErrorBoundary><SurveyFormPage /></ErrorBoundary>} />
       <Route path="/family-portal/:token" element={<ErrorBoundary><FamilyPortalPage /></ErrorBoundary>} />
-      <Route path="/learn" element={<ErrorBoundary><LearningCenterPage /></ErrorBoundary>} />
-      <Route path="/privacy" element={<ErrorBoundary><PrivacyPolicyPage /></ErrorBoundary>} />
-      <Route path="/terms" element={<ErrorBoundary><TermsOfUsePage /></ErrorBoundary>} />
-      <Route path="/cookies" element={<ErrorBoundary><CookiePolicyPage /></ErrorBoundary>} />
+      <Route path="/learn" element={<ErrorBoundary><Suspense fallback={null}><LearningCenterPage /></Suspense></ErrorBoundary>} />
+      <Route path="/privacy" element={<ErrorBoundary><Suspense fallback={null}><PrivacyPolicyPage /></Suspense></ErrorBoundary>} />
+      <Route path="/terms" element={<ErrorBoundary><Suspense fallback={null}><TermsOfUsePage /></Suspense></ErrorBoundary>} />
+      <Route path="/cookies" element={<ErrorBoundary><Suspense fallback={null}><CookiePolicyPage /></Suspense></ErrorBoundary>} />
 
       {/* Protected Internal Routes */}
       <Route element={<AuthGuard />}>

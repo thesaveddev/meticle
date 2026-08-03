@@ -47,7 +47,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   return (
     <Box sx={{ bgcolor: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <NavHeader />
-      <Box sx={{ pt: { xs: '64px', md: '72px' }, flex: 1 }}>
+      <Box component="main" sx={{ pt: { xs: '64px', md: '72px' }, flex: 1 }}>
         {children}
       </Box>
 

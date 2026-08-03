@@ -1,6 +1,7 @@
 import { Container, Typography, Grid, Box, Card, Divider, List, ListItem, ListItemIcon, ListItemText, Button } from '@mui/material'
 import { CheckCircle as CheckIcon } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
+import PageMeta from '../../components/PageMeta'
 
 export default function PricingPage() {
   const plans = [
@@ -49,6 +50,8 @@ export default function PricingPage() {
   ]
 
   return (
+    <>
+      <PageMeta title="Pricing | MeticleCare" description="MeticleCare pricing for UK care providers. Start with a 14-day free trial — no credit card required. Simple per-user pricing for care homes and domiciliary care agencies." canonicalPath="/pricing" />
     <MarketingLayout>
       <Box sx={{ py: 12 }}>
         <Container maxWidth="lg">
@@ -130,5 +133,6 @@ export default function PricingPage() {
         </Container>
       </Box>
     </MarketingLayout>
+    </>
   )
 }

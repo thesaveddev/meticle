@@ -1,4 +1,5 @@
 import { Box, Container, Typography } from '@mui/material'
+import PageMeta from '../../components/PageMeta'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -13,6 +14,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function PrivacyPolicyPage() {
   return (
+    <>
+      <PageMeta title="Privacy Policy | MeticleCare" description="MeticleCare privacy policy. How we collect, use and protect personal data for UK care providers using our care management platform." canonicalPath="/privacy" />
     <Container maxWidth="md" sx={{ py: 8 }}>
       <Typography variant="h3" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Privacy Policy</Typography>
       <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: July 2026</Typography>
@@ -55,5 +58,6 @@ export default function PrivacyPolicyPage() {
         <p>Data Protection Officer: dpo@meticlecare.com<br/>Privacy concerns: privacy@meticlecare.com<br/>ICO registered. Registration available on request.</p>
       </Section>
     </Container>
+    </>
   )
 }

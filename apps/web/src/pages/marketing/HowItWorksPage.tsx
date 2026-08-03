@@ -10,6 +10,7 @@ import {
   Map as RegulatorIcon,
 } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
+import PageMeta from '../../components/PageMeta'
 
 const steps = [
   {
@@ -57,6 +58,8 @@ export default function HowItWorksPage() {
   const navigate = useNavigate()
 
   return (
+    <>
+      <PageMeta title="How MeticleCare Works | MeticleCare" description="See how MeticleCare connects care planning, staff rotas, medication records and compliance into one working platform for UK supported living and domiciliary care providers." canonicalPath="/how-it-works" />
     <MarketingLayout>
       {/* Header */}
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#F8FAFC', borderBottom: '1px solid #E5E7EB' }}>
@@ -164,5 +167,6 @@ export default function HowItWorksPage() {
         </Container>
       </Box>
     </MarketingLayout>
+    </>
   )
 }

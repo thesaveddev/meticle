@@ -2,6 +2,7 @@ import { Container, Typography, Grid, Box, Stack, Button, Chip } from '@mui/mate
 import { TrendingDown, CheckCircle, People, Speed } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import { useNavigate } from 'react-router-dom'
+import PageMeta from '../../components/PageMeta'
 
 const caseStudies = [
   {
@@ -53,7 +54,10 @@ const caseStudies = [
 
 export default function CaseStudiesPage() {
   const navigate = useNavigate()
+
   return (
+    <>
+      <PageMeta title="Case Studies | MeticleCare" description="Read how UK care providers use MeticleCare to manage rotas, medication, care plans and compliance. Real stories from supported living and domiciliary care services." canonicalPath="/case-studies" />
     <MarketingLayout>
       <Box sx={{ py: 15, bgcolor: '#F8FAFC', borderBottom: '1px solid #E5E7EB', textAlign: 'center' }}>
         <Container maxWidth="md">
@@ -111,5 +115,6 @@ export default function CaseStudiesPage() {
         </Container>
       </Box>
     </MarketingLayout>
+    </>
   )
 }

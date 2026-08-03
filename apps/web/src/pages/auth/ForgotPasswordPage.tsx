@@ -1,3 +1,4 @@
+import { usePageMeta } from '../../components/PageMeta'
 import { useState } from 'react'
 import { Box, Button, TextField, Typography, Paper, Container, Link, Alert, CircularProgress, Stack } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
@@ -30,6 +31,8 @@ export default function ForgotPasswordPage() {
       setLoading(false)
     }
   }
+
+  usePageMeta({ title: 'Forgot Password | MeticleCare', description: 'Reset your MeticleCare account password.', noindex: true })
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', bgcolor: '#020617' }}>
