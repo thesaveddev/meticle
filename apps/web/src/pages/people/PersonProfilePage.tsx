@@ -1100,7 +1100,7 @@ export default function PersonProfilePage() {
       {tab === 8 && <MemoryBookTab personId={id!} />}
 
       {/* Tab: Goals */}
-      {tab === 9 && <GoalsPage personId={id!} />}
+      {tab === 9 && <GoalsPage personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : ''} />}
 
       {/* Tab: Care Assessments */}
       {tab === 10 && <CareAssessmentsTabInline personId={id!} />}
@@ -1808,6 +1808,7 @@ export default function PersonProfilePage() {
       <Dialog open={!!viewNote} onClose={() => { setViewNote(null); setAiError('') }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 800 }}>Daily Note</DialogTitle>
         <DialogContent>
+          {aiError && <Alert severity="error" onClose={() => setAiError('')} sx={{ mb: 2 }}>{aiError}</Alert>}
           {viewNote && (
             <Stack spacing={2}>
               <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
