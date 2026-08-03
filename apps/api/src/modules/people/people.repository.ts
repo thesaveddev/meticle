@@ -100,6 +100,8 @@ export interface RiskAssessmentRow {
   details?: string;
   mitigation_actions?: string;
   review_date?: string;
+  file_url?: string;
+  file_name?: string;
   reviewed_by?: string;
   reviewed_at?: string;
   created_at: string;
@@ -135,7 +137,7 @@ export interface CareAssessmentRow {
 export class PersonRepository {
   private static readonly DAILY_NOTE_UPDATE_COLUMNS = new Set(['note_date', 'shift', 'category', 'content', 'support_level']);
   private static readonly CLINICAL_SCORE_UPDATE_COLUMNS = new Set(['score_type', 'score', 'risk_level', 'recorded_date', 'notes']);
-  private static readonly RISK_ASSESSMENT_UPDATE_COLUMNS = new Set(['type', 'risk_level', 'details', 'mitigation_actions', 'review_date', 'reviewed_by', 'reviewed_at']);
+  private static readonly RISK_ASSESSMENT_UPDATE_COLUMNS = new Set(['type', 'risk_level', 'details', 'mitigation_actions', 'review_date', 'file_url', 'file_name', 'reviewed_by', 'reviewed_at']);
   private static readonly FAMILY_CONTACT_UPDATE_COLUMNS = new Set(['name', 'relationship', 'phone', 'email', 'is_emergency_contact']);
   private static readonly ASSESSMENT_UPDATE_COLUMNS = new Set(['assessment_type', 'assessment_date', 'assessor_name', 'findings', 'recommendations', 'status', 'next_review_date', 'updated_at']);
   private static readonly BODY_MAP_UPDATE_COLUMNS = new Set(['body_view', 'body_zone', 'zone_x', 'zone_y', 'condition_type', 'description', 'severity', 'recorded_date']);
@@ -301,10 +303,10 @@ export class PersonRepository {
 
   // ---- Risk Assessments ----
   static async createRiskAssessment(data: Partial<RiskAssessmentRow>) {
-    const { person_id, type, risk_level, details, mitigation_actions, review_date } = data;
+    const { person_id, type, risk_level, details, mitigation_actions, review_date, file_url, file_name } = data;
     const result = await query(
-      `INSERT INTO risk_assessments (person_id, type, risk_level, details, mitigation_actions, review_date) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [person_id, type, risk_level, details, mitigation_actions, review_date]
+      `INSERT INTO risk_assessments (person_id, type, risk_level, details, mitigation_actions, review_date, file_url, file_name) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [person_id, type, risk_level, details, mitigation_actions, review_date, file_url || null, file_name || null]
     );
     return result.rows[0];
   }
