@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import { useNavigate } from 'react-router-dom'
+import PageMeta from '../../components/PageMeta'
 
 const featureGroups = [
   {
@@ -317,6 +318,8 @@ export default function FeaturesPage() {
   let sectionIndex = 0
 
   return (
+    <>
+      <PageMeta title="Care Management Software Features | MeticleCare" description="Explore MeticleCare features: eMAR medication management, staff rostering, care planning, compliance oversight, incident reporting, and daily care records for UK care providers." canonicalPath="/features" />
     <MarketingLayout>
       {/* Page Header */}
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#F8FAFC', borderBottom: '1px solid #E5E7EB' }}>
@@ -415,5 +418,6 @@ export default function FeaturesPage() {
         </Container>
       </Box>
     </MarketingLayout>
+    </>
   )
 }

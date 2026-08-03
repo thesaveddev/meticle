@@ -4,6 +4,37 @@ import { ArrowForward as ArrowForwardIcon, Check as CheckIcon } from '@mui/icons
 import { keyframes } from '@emotion/react'
 import { useNavigate } from 'react-router-dom'
 import MarketingLayout from '../components/marketing/MarketingLayout'
+import PageMeta from '../components/PageMeta'
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      name: 'MeticleCare',
+      url: 'https://meticlecare.com',
+      description: 'Care operations platform for UK supported living and domiciliary care providers.',
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'MeticleCare',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      description: 'Care management software combining care planning, staff rotas, medication records, compliance oversight, incident reporting and daily operations for UK care providers.',
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'GBP',
+        description: '14-day free trial',
+      },
+    },
+    {
+      '@type': 'WebSite',
+      name: 'MeticleCare',
+      url: 'https://meticlecare.com',
+    },
+  ],
+}
 
 const INK = '#1B2430'
 const NAVY = '#0F4C81'
@@ -72,6 +103,12 @@ export default function LandingPage() {
 
   return (
     <MarketingLayout>
+      <PageMeta
+        title="Care Management Software for UK Care Providers | MeticleCare"
+        description="MeticleCare brings care planning, staffing, compliance, medication, incidents and daily operations together in one connected platform for UK care providers. Start a free 14-day trial."
+        canonicalPath="/"
+        structuredData={structuredData}
+      />
       {/* HERO */}
       <Box sx={{ bgcolor: BONE, pt: { xs: 7, md: 10 }, pb: { xs: 10, md: 14 }, borderBottom: `1px solid ${HAIRLINE}` }}>
         <Container maxWidth="lg">
@@ -147,7 +184,7 @@ export default function LandingPage() {
                         <Typography sx={{ fontSize: '0.7rem', color: MIST, fontWeight: 600 }}>Care in progress</Typography>
                       </Stack>
                     </Stack>
-                    <img src={HERO_IMAGE} alt="A warm, connected care moment — two people sharing coffee in a comfortable home, representing the human side of supported living care" style={{ display: 'block', width: '100%', height: 'auto' }} />
+                    <img src={HERO_IMAGE} alt="A warm, connected care moment — two people sharing coffee in a comfortable home, representing the human side of supported living care" width="1600" height="1067" loading="eager" style={{ display: 'block', width: '100%', height: 'auto' }} />
                   </Box>
 
                   {/* Care-note toast */}
@@ -426,7 +463,7 @@ export default function LandingPage() {
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid #F0EBE1`, bgcolor: '#FCFAF6' }}>
                   <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.85rem' }}>MeticleCare · Today's care</Typography>
                 </Stack>
-                <img src={HERO_IMAGE} alt="Supported living care in practice — a moment of connection and everyday care at home" style={{ display: 'block', width: '100%', height: 'auto' }} />
+                <img src={HERO_IMAGE} alt="Supported living care in practice — a moment of connection and everyday care at home" width="1600" height="1067" loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
               </Box>
             </Grid>
             <Grid item xs={12} md={5}>

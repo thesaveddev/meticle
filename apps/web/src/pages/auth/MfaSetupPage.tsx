@@ -1,3 +1,4 @@
+import { usePageMeta } from '../../components/PageMeta'
 import { useState, useEffect } from 'react'
 import { Box, Typography, Container, TextField, Button, Alert, CircularProgress, Stack, Paper } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -82,6 +83,8 @@ export default function MfaSetupPage() {
       </Box>
     )
   }
+
+  usePageMeta({ title: 'Set Up Two-Factor Authentication | MeticleCare', description: 'Configure two-factor authentication for your MeticleCare account.', noindex: true })
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>

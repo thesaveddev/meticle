@@ -2,6 +2,7 @@ import { Container, Typography, Grid, Box, Stack, Button, Divider } from '@mui/m
 import { Verified as ShieldIcon, Group as TeamIcon, TrendingDown as SavingsIcon, Lightbulb as InnovationIcon } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import { useNavigate } from 'react-router-dom'
+import PageMeta from '../../components/PageMeta'
 
 const values = [
   { icon: <ShieldIcon sx={{ fontSize: 40, color: '#0F4C81' }} />, title: 'Trust & Compliance', text: 'Every feature is built with regulatory compliance at its core. We help care providers stay inspection-ready across all four UK frameworks.' },
@@ -12,7 +13,10 @@ const values = [
 
 export default function AboutPage() {
   const navigate = useNavigate()
+
   return (
+    <>
+      <PageMeta title="About MeticleCare | MeticleCare" description="MeticleCare was built for UK care providers — supported living, domiciliary care and care homes. Our team combines care-sector experience with technology to simplify care operations." canonicalPath="/about" />
     <MarketingLayout>
       <Box sx={{ py: 15, bgcolor: '#F8FAFC', borderBottom: '1px solid #E5E7EB' }}>
         <Container maxWidth="lg">
@@ -76,5 +80,6 @@ export default function AboutPage() {
         </Container>
       </Box>
     </MarketingLayout>
+    </>
   )
 }

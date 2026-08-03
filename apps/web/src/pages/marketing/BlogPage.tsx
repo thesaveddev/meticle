@@ -2,6 +2,7 @@ import { Container, Typography, Grid, Box, Stack, Paper, Button, Chip } from '@m
 import { useNavigate } from 'react-router-dom'
 import { Schedule as DateIcon, Person as AuthorIcon } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
+import PageMeta from '../../components/PageMeta'
 
 const blogPosts = [
   {
@@ -85,6 +86,8 @@ export default function BlogPage() {
   const others = blogPosts.filter(p => !p.featured)
 
   return (
+    <>
+      <PageMeta title="Blog | MeticleCare" description="Insights on care management, compliance, rostering and digital care records for UK care providers. Read the MeticleCare blog." canonicalPath="/blog" />
     <MarketingLayout>
       {/* Header */}
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#F8FAFC', borderBottom: '1px solid #E5E7EB' }}>
@@ -173,5 +176,6 @@ export default function BlogPage() {
         </Container>
       </Box>
     </MarketingLayout>
+    </>
   )
 }

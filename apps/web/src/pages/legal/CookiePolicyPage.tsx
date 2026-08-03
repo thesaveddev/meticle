@@ -1,4 +1,5 @@
 import { Container, Typography, Box } from '@mui/material'
+import PageMeta from '../../components/PageMeta'
 
 function S({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -11,6 +12,8 @@ function S({ title, children }: { title: string; children: React.ReactNode }) {
 
 export default function CookiePolicyPage() {
   return (
+    <>
+      <PageMeta title="Cookie Policy | MeticleCare" description="How MeticleCare uses cookies. Our care management platform uses only essential cookies to keep your data secure and your experience reliable." canonicalPath="/cookies" />
     <Container maxWidth="md" sx={{ py: 8 }}>
       <Typography variant="h3" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Cookie Policy</Typography>
       <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: July 2026</Typography>
@@ -47,5 +50,6 @@ export default function CookiePolicyPage() {
         <p>We will update this policy if our cookie usage changes. Material changes will be notified via in-app notification.</p>
       </S>
     </Container>
+    </>
   )
 }

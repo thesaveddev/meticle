@@ -1,3 +1,4 @@
+import { usePageMeta } from '../../components/PageMeta'
 import { useState, useEffect } from 'react'
 import { TextField, Button, Box, Typography, Container, Stack, Link, Alert, CircularProgress, MenuItem, InputAdornment, IconButton, Checkbox, FormControlLabel } from '@mui/material'
 import { useForm } from 'react-hook-form'
@@ -162,6 +163,8 @@ export default function RegisterPage() {
     }
   }
 
+
+  usePageMeta({ title: 'Create Account | MeticleCare', description: 'Register for a MeticleCare account. Start your 14-day free trial for UK care providers.', noindex: true })
   if (invitationLoading) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'white' }}>

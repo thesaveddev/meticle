@@ -1,3 +1,4 @@
+import { usePageMeta } from '../../components/PageMeta'
 import { useState } from 'react'
 import {
   TextField, Button, Box, Typography, Container, FormControlLabel,
@@ -58,6 +59,8 @@ export default function LoginPage() {
       setLoading(false)
     }
   }
+
+  usePageMeta({ title: 'Login | MeticleCare', description: 'Log in to your MeticleCare care management account.', noindex: true })
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'white' }}>

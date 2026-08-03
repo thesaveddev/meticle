@@ -1,0 +1,65 @@
+User-agent: *
+Allow: /
+
+# Public marketing pages
+Allow: /$
+Allow: /features
+Allow: /how-it-works
+Allow: /pricing
+Allow: /about
+Allow: /case-studies
+Allow: /contact
+Allow: /blog
+Allow: /learn
+Allow: /privacy
+Allow: /terms
+Allow: /cookies
+
+# Surveys and family portal (public)
+Allow: /survey/
+Allow: /family-portal/
+
+# Private application routes
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /mfa-challenge
+Disallow: /mfa-setup
+Disallow: /dashboard
+Disallow: /onboarding
+Disallow: /staff
+Disallow: /compliance
+Disallow: /schedule
+Disallow: /scheduling
+Disallow: /marketplace
+Disallow: /reports
+Disallow: /reporting
+Disallow: /insights
+Disallow: /organizations
+Disallow: /settings
+Disallow: /billing
+Disallow: /leave
+Disallow: /shift-marketplace
+Disallow: /agencies
+Disallow: /expenses
+Disallow: /people
+Disallow: /incidents
+Disallow: /training
+Disallow: /chat
+Disallow: /appointments
+Disallow: /policies
+Disallow: /outcomes
+Disallow: /room-checks
+Disallow: /mobile
+Disallow: /medications
+Disallow: /emedication
+Disallow: /tasks
+Disallow: /platform-admin
+Disallow: /unauthorized
+
+# API paths
+Disallow: /api/
+
+Sitemap: https://meticlecare.com/sitemap.xml
