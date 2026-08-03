@@ -50,9 +50,10 @@ function freqLabel(f: string) {
   return m[f] || f
 }
 
-export default function GoalsPage({ personId }: { personId?: string }) {
+export default function GoalsPage({ personId, personName }: { personId?: string; personName?: string }) {
   const [searchParams] = useSearchParams()
   const preselectedSu = personId || searchParams.get('su') || ''
+  const preselectedPersonName = personName || ''
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -95,7 +96,7 @@ export default function GoalsPage({ personId }: { personId?: string }) {
     api.get('/people?status=active').then(r => setPeople(r.data)).catch(() => {})
   }, [statusFilter, preselectedSu])
 
-  const openCreate = () => { setEditing(null); setForm({ ...initialForm }); setDialogOpen(true) }
+  const openCreate = () => { setEditing(null); setForm({ ...initialForm, person_id: preselectedSu }); setDialogOpen(true) }
   const openEdit = (g: Goal) => {
     setEditing(g)
     setForm({
@@ -121,7 +122,8 @@ export default function GoalsPage({ personId }: { personId?: string }) {
     try {
       const payload: any = {
         ...form,
-        cqc_domain: form.cqc_domain || null,
+        cqc_domain: form.cqc_domain ? form.cqc_domain.toLowerCase() : null,
+        status: form.status?.replace('_', '-'),
         target_date: form.target_date || null,
         review_date: form.review_date || null,
         goal_category: form.goal_category || null,
@@ -345,12 +347,16 @@ export default function GoalsPage({ personId }: { personId?: string }) {
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField label="Title" fullWidth value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
             <TextField label="Description" fullWidth multiline rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-            <Autocomplete
-              options={people} getOptionLabel={o => `${o.first_name} ${o.last_name}`}
-              value={people.find(su => su.id === form.person_id) || null}
-              onChange={(_, v) => setForm(f => ({ ...f, person_id: v?.id || '' }))}
-              renderInput={p => <TextField {...p} label="Person" fullWidth />}
-            />
+            {preselectedSu && preselectedPersonName ? (
+              <TextField label="Person" fullWidth value={preselectedPersonName} disabled InputProps={{ readOnly: true }} />
+            ) : (
+              <Autocomplete
+                options={people} getOptionLabel={o => `${o.first_name} ${o.last_name}`}
+                value={people.find(su => su.id === form.person_id) || null}
+                onChange={(_, v) => setForm(f => ({ ...f, person_id: v?.id || '' }))}
+                renderInput={p => <TextField {...p} label="Person" fullWidth />}
+              />
+            )}
             <Stack direction="row" spacing={2}>
               <FormControl fullWidth>
                 <InputLabel>Frequency</InputLabel>
