@@ -193,7 +193,7 @@ export class InsightsRepository {
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status = 'completed')::int AS completed,
         ROUND(AVG(progress) FILTER (WHERE status = 'active'))::int AS avg_progress
-      FROM service_user_goals
+      FROM person_goals
       WHERE organization_id = $1 AND cqc_domain IS NOT NULL
       GROUP BY cqc_domain ORDER BY cqc_domain
     `, [orgId]);
@@ -204,8 +204,8 @@ export class InsightsRepository {
         COUNT(*)::int AS entries,
         MIN(w.score) AS min_score,
         MAX(w.score) AS max_score
-      FROM su_wellbeing w
-      JOIN service_users su ON w.service_user_id = su.id
+      FROM person_wellbeing w
+      JOIN people su ON w.person_id = su.id
       WHERE su.organization_id = $1 AND w.recorded_date >= CURRENT_DATE - 30
       GROUP BY w.domain ORDER BY w.domain
     `, [orgId]);
@@ -220,7 +220,7 @@ export class InsightsRepository {
 
     const overdueReviews = await query(`
       SELECT COUNT(*)::int AS count
-      FROM service_user_goals
+      FROM person_goals
       WHERE organization_id = $1 AND status = 'active' AND review_date < CURRENT_DATE
     `, [orgId]);
 
@@ -229,7 +229,7 @@ export class InsightsRepository {
         ROUND(AVG(gph.progress))::int AS avg_progress,
         COUNT(*)::int AS updates
       FROM goal_progress_history gph
-      JOIN service_user_goals g ON gph.goal_id = g.id
+      JOIN person_goals g ON gph.goal_id = g.id
       WHERE g.organization_id = $1 AND gph.recorded_at >= NOW() - INTERVAL '6 months'
       GROUP BY DATE_TRUNC('week', gph.recorded_at)
       ORDER BY week

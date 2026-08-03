@@ -38,11 +38,11 @@ router.get('/my-roster', asyncHandler(async (req: any, res: any) => {
   const staffId = sp.rows[0]?.id;
   const result = await pool.query(
     `SELECT sh.id, sh.start_time::date as date, sh.start_time::time as start_time, sh.end_time::time as end_time,
-            sh.shift_type, l.name as location_name, COALESCE(su.first_name || ' ' || su.last_name, '') as service_user_name
+            sh.shift_type, l.name as location_name, COALESCE(su.first_name || ' ' || su.last_name, '') as person_name
      FROM shifts sh
      JOIN locations l ON l.id = sh.location_id
      JOIN shift_assignments sa ON sa.shift_id = sh.id
-     LEFT JOIN service_users su ON sh.service_user_id = su.id
+     LEFT JOIN people su ON sh.person_id = su.id
      WHERE sa.staff_id = $1 AND sh.start_time >= CURRENT_DATE
        AND sh.start_time < CURRENT_DATE + INTERVAL '7 days'
      ORDER BY sh.start_time`,
@@ -54,20 +54,20 @@ router.get('/my-roster', asyncHandler(async (req: any, res: any) => {
 // Voice notes via daily notes endpoint
 router.post('/notes', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(async (req: any, res: any) => {
   const user = req.user!;
-  const { service_user_id, content, shift, category, note_date } = req.body;
-  if (!service_user_id || !content) throw new AppError(400, 'Resident and note content required');
+  const { person_id, content, shift, category, note_date } = req.body;
+  if (!person_id || !content) throw new AppError(400, 'Resident and note content required');
 
-  // Verify service user belongs to org
-  const suCheck = await pool.query('SELECT 1 FROM service_users WHERE id = $1 AND organization_id = $2', [service_user_id, user.organizationId]);
-  if (suCheck.rows.length === 0) throw new AppError(404, 'Service user not found');
+  // Verify person belongs to org
+  const suCheck = await pool.query('SELECT 1 FROM people WHERE id = $1 AND organization_id = $2', [person_id, user.organizationId]);
+  if (suCheck.rows.length === 0) throw new AppError(404, 'Person not found');
 
   const sp = await pool.query('SELECT id FROM staff_profiles WHERE user_id = $1', [user.userId]);
   const staffId = sp.rows[0]?.id;
 
   const result = await pool.query(
-    `INSERT INTO daily_notes (service_user_id, author_id, note_date, shift, category, content)
+    `INSERT INTO daily_notes (person_id, author_id, note_date, shift, category, content)
      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [service_user_id, user.userId, note_date || new Date().toISOString().split('T')[0], shift || 'day', category || 'wellbeing', content]
+    [person_id, user.userId, note_date || new Date().toISOString().split('T')[0], shift || 'day', category || 'wellbeing', content]
   );
   res.status(201).json(result.rows[0]);
 }));

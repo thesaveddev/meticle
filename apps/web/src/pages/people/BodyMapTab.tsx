@@ -261,7 +261,7 @@ function zoneCenter(z: Zone): { cx: number; cy: number } {
   return { cx: Math.round(sx / n), cy: Math.round(sy / n) }
 }
 
-export default function BodyMapTab({ serviceUserId }: { serviceUserId: string }) {
+export default function BodyMapTab({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [view, setView] = useState<'front' | 'back'>('front')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -272,23 +272,23 @@ export default function BodyMapTab({ serviceUserId }: { serviceUserId: string })
   const [error, setError] = useState('')
 
   const { data: entries = [], isLoading } = useQuery<BodyMapEntry[]>({
-    queryKey: ['body-map', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/body-map`).then(r => r.data),
+    queryKey: ['body-map', personId],
+    queryFn: () => api.get(`/people/${personId}/body-map`).then(r => r.data),
   })
 
   const createM = useMutation({
-    mutationFn: (d: any) => api.post(`/service-users/${serviceUserId}/body-map`, d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['body-map', serviceUserId] }); setDialogOpen(false) },
+    mutationFn: (d: any) => api.post(`/people/${personId}/body-map`, d),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['body-map', personId] }); setDialogOpen(false) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed'),
   })
   const updateM = useMutation({
-    mutationFn: (d: { id: string; p: any }) => api.patch(`/service-users/body-map/${d.id}`, d.p),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['body-map', serviceUserId] }); setDialogOpen(false) },
+    mutationFn: (d: { id: string; p: any }) => api.patch(`/people/body-map/${d.id}`, d.p),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['body-map', personId] }); setDialogOpen(false) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed'),
   })
   const deleteM = useMutation({
-    mutationFn: (id: string) => api.delete(`/service-users/body-map/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['body-map', serviceUserId] }); setDialogOpen(false) },
+    mutationFn: (id: string) => api.delete(`/people/body-map/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['body-map', personId] }); setDialogOpen(false) },
   })
 
   const openCreate = (z: Zone) => { setSelectedZone(z); setSelectedEntry(null); setForm({ condition_type: 'bruise', severity: 'mild', description: '', recorded_date: new Date().toISOString().split('T')[0], status: 'active' }); setError(''); setDialogOpen(true) }

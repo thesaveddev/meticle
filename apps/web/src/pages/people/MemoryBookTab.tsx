@@ -57,7 +57,7 @@ function getAllImageUrls(entry: MemoryEntry): string[] {
   return []
 }
 
-export default function MemoryBookTab({ serviceUserId }: { serviceUserId: string }) {
+export default function MemoryBookTab({ personId }: { personId: string }) {
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -72,9 +72,9 @@ export default function MemoryBookTab({ serviceUserId }: { serviceUserId: string
   const [loadingThumbs, setLoadingThumbs] = useState<Record<string, boolean>>({})
 
   const { data: entries = [], isLoading } = useQuery<MemoryEntry[]>({
-    queryKey: ['memory-book', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/memory-book`).then(r => r.data),
-    enabled: !!serviceUserId,
+    queryKey: ['memory-book', personId],
+    queryFn: () => api.get(`/people/${personId}/memory-book`).then(r => r.data),
+    enabled: !!personId,
   })
 
   const createMutation = useMutation({
@@ -85,21 +85,21 @@ export default function MemoryBookTab({ serviceUserId }: { serviceUserId: string
       fd.append('recorded_date', form.recorded_date)
       if (form.support_level) fd.append('support_level', form.support_level)
       files.forEach(f => fd.append('images', f))
-      return api.post(`/service-users/${serviceUserId}/memory-book`, fd)
+      return api.post(`/people/${personId}/memory-book`, fd)
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['memory-book', serviceUserId] }); closeDialog() },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['memory-book', personId] }); closeDialog() },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to save'),
   })
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => api.patch(`/service-users/memory-book/${editingEntry?.id}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['memory-book', serviceUserId] }); closeDialog() },
+    mutationFn: (data: any) => api.patch(`/people/memory-book/${editingEntry?.id}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['memory-book', personId] }); closeDialog() },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/service-users/memory-book/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['memory-book', serviceUserId] }),
+    mutationFn: (id: string) => api.delete(`/people/memory-book/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['memory-book', personId] }),
   })
 
   const closeDialog = useCallback(() => {

@@ -209,7 +209,7 @@ export class ReportingRepository {
     return result.rows;
   }
 
-  // ─── Service User Reports ────────────────────────────────
+  // ─── Person Reports ────────────────────────────────
 
   static async suDirectory(orgId: string, f: ReportFilters) {
     let sql = `
@@ -217,7 +217,7 @@ export class ReportingRepository {
              su.nhs_number, su.created_at,
              l.name as location_name,
              kw.first_name as key_worker_first, kw.last_name as key_worker_last
-      FROM service_users su
+      FROM people su
       LEFT JOIN locations l ON su.location_id = l.id
       LEFT JOIN staff_profiles sp ON su.key_worker_id = sp.id
       LEFT JOIN users kw ON sp.user_id = kw.id
@@ -235,7 +235,7 @@ export class ReportingRepository {
     let sql = `
       SELECT l.name as name, COUNT(su.id)::int as value
       FROM locations l
-      LEFT JOIN service_users su ON su.location_id = l.id
+      LEFT JOIN people su ON su.location_id = l.id
       WHERE l.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
@@ -252,11 +252,11 @@ export class ReportingRepository {
       SELECT su.first_name, su.last_name, su.status as su_status, l.name as location_name,
              cp.id as plan_id, cp.status as plan_status, cp.created_at as plan_created, cp.updated_at as plan_updated,
              CASE WHEN cp.updated_at < CURRENT_DATE - INTERVAL '90 days' THEN true ELSE false END as overdue_review
-      FROM service_users su
+      FROM people su
       LEFT JOIN locations l ON su.location_id = l.id
       LEFT JOIN LATERAL (
         SELECT id, status, created_at, updated_at FROM care_plans
-        WHERE service_user_id = su.id ORDER BY updated_at DESC LIMIT 1
+        WHERE person_id = su.id ORDER BY updated_at DESC LIMIT 1
       ) cp ON true
       WHERE su.organization_id = $1`;
     const params: any[] = [orgId];
@@ -271,13 +271,13 @@ export class ReportingRepository {
   static async suOutcomes(orgId: string, f: ReportFilters) {
     let sql = `
       SELECT su.first_name, su.last_name, su.status as su_status, l.name as location_name,
-        (SELECT COUNT(*)::int FROM service_user_goals g WHERE g.service_user_id = su.id) AS total_goals,
-        (SELECT COUNT(*)::int FROM service_user_goals g WHERE g.service_user_id = su.id AND g.status = 'completed') AS completed_goals,
-        (SELECT ROUND(AVG(progress))::int FROM service_user_goals g WHERE g.service_user_id = su.id AND g.status = 'active') AS avg_progress,
-        (SELECT ROUND(AVG(w.score), 1)::numeric FROM su_wellbeing w WHERE w.service_user_id = su.id
+        (SELECT COUNT(*)::int FROM person_goals g WHERE g.person_id = su.id) AS total_goals,
+        (SELECT COUNT(*)::int FROM person_goals g WHERE g.person_id = su.id AND g.status = 'completed') AS completed_goals,
+        (SELECT ROUND(AVG(progress))::int FROM person_goals g WHERE g.person_id = su.id AND g.status = 'active') AS avg_progress,
+        (SELECT ROUND(AVG(w.score), 1)::numeric FROM person_wellbeing w WHERE w.person_id = su.id
          AND w.recorded_date >= COALESCE($2::date, CURRENT_DATE - 30)) AS avg_wellbeing,
-        (SELECT COUNT(*)::int FROM outcome_scale_results osr WHERE osr.service_user_id = su.id) AS scale_assessments
-      FROM service_users su
+        (SELECT COUNT(*)::int FROM outcome_scale_results osr WHERE osr.person_id = su.id) AS scale_assessments
+      FROM people su
       LEFT JOIN locations l ON su.location_id = l.id
       WHERE su.organization_id = $1 AND su.status = 'active'`;
     const params: any[] = [orgId, f.dateFrom || null];
@@ -295,7 +295,7 @@ export class ReportingRepository {
              COUNT(*) FILTER (WHERE dn.mood IS NOT NULL)::int as mood_flagged,
              COUNT(*) FILTER (WHERE dn.safeguarding_concern = true)::int as safeguarding_flags
       FROM daily_notes dn
-      JOIN service_users su ON dn.service_user_id = su.id
+      JOIN people su ON dn.person_id = su.id
       LEFT JOIN locations l ON su.location_id = l.id
       WHERE su.organization_id = $1`;
     const params: any[] = [orgId];
@@ -710,7 +710,7 @@ export class ReportingRepository {
              l.name as location_name
       FROM emedication_administrations ea
       JOIN emedication_records er ON ea.medication_record_id = er.id
-      JOIN service_users su ON er.service_user_id = su.id
+      JOIN people su ON er.person_id = su.id
       LEFT JOIN locations l ON su.location_id = l.id
       WHERE er.organization_id = $1`;
     const params: any[] = [orgId];
@@ -731,7 +731,7 @@ export class ReportingRepository {
       FROM emedication_administrations ea
       JOIN emedication_items ei ON ea.medication_item_id = ei.id
       JOIN emedication_records er ON ea.medication_record_id = er.id
-      JOIN service_users su ON er.service_user_id = su.id
+      JOIN people su ON er.person_id = su.id
       LEFT JOIN locations l ON su.location_id = l.id
       WHERE er.organization_id = $1 AND ea.is_prn = true`;
     const params: any[] = [orgId];
@@ -753,12 +753,12 @@ export class ReportingRepository {
              COUNT(*) FILTER (WHERE sg.status = 'completed')::int as completed,
              COUNT(*) FILTER (WHERE sg.status = 'active')::int as active,
              ROUND(AVG(sg.progress))::int as avg_progress
-      FROM service_user_goals sg
+      FROM person_goals sg
       WHERE sg.organization_id = $1 AND sg.cqc_domain IS NOT NULL`;
     const params: any[] = [orgId];
     let idx = 2;
     if (f.location_id) {
-      sql += ` AND sg.service_user_id IN (SELECT su.id FROM service_users su WHERE su.location_id = $${idx})`;
+      sql += ` AND sg.person_id IN (SELECT su.id FROM people su WHERE su.location_id = $${idx})`;
       params.push(f.location_id); idx++;
     }
     if (f.dateFrom) { sql += ` AND sg.created_at >= $${idx}`; params.push(f.dateFrom); idx++; }
@@ -776,8 +776,8 @@ export class ReportingRepository {
              COUNT(*)::int as entries,
              MIN(w.score) as min_score,
              MAX(w.score) as max_score
-      FROM su_wellbeing w
-      JOIN service_users su ON w.service_user_id = su.id
+      FROM person_wellbeing w
+      JOIN people su ON w.person_id = su.id
       WHERE su.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
@@ -797,12 +797,12 @@ export class ReportingRepository {
              ROUND(AVG(gph.progress))::int as avg_progress,
              COUNT(*)::int as updates
       FROM goal_progress_history gph
-      JOIN service_user_goals sg ON gph.goal_id = sg.id
+      JOIN person_goals sg ON gph.goal_id = sg.id
       WHERE sg.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
     if (f.location_id) {
-      sql += ` AND sg.service_user_id IN (SELECT su.id FROM service_users su WHERE su.location_id = $${idx})`;
+      sql += ` AND sg.person_id IN (SELECT su.id FROM people su WHERE su.location_id = $${idx})`;
       params.push(f.location_id); idx++;
     }
     if (f.dateFrom) { sql += ` AND gph.recorded_at >= $${idx}`; params.push(f.dateFrom); idx++; }

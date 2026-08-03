@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { query } from '../../shared/database';
+import { query, migrateQuery } from '../../shared/database';
 
 function generateToken(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -7,19 +7,22 @@ function generateToken(): string {
 
 export class SurveysRepository {
   // ── Survey Invitations (email-based feedback) ──
-  static async createInvitation(orgId: string, type: 'satisfaction' | 'engagement', email: string, serviceUserId?: string, serviceUserName?: string) {
+  static async createInvitation(orgId: string, type: 'satisfaction' | 'engagement', email: string, personId?: string, personName?: string) {
     const token = generateToken();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     const result = await query(
-      `INSERT INTO survey_invitations (organization_id, type, email, token, service_user_id, service_user_name, expires_at)
+      `INSERT INTO survey_invitations (organization_id, type, email, token, person_id, person_name, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [orgId, type, email, token, serviceUserId || null, serviceUserName || null, expiresAt]
+      [orgId, type, email, token, personId || null, personName || null, expiresAt]
     );
     return { ...result.rows[0], token };
   }
 
+  // Token-based methods run without an authenticated RLS session context, so
+  // they use the superuser pool. The invitation token is the sole authorization
+  // and uniquely identifies the invitation, keeping reads scoped to that token.
   static async getInvitationByToken(token: string) {
-    const result = await query(
+    const result = await migrateQuery(
       `SELECT si.*, o.name as org_name
        FROM survey_invitations si
        JOIN organizations o ON si.organization_id = o.id
@@ -37,13 +40,13 @@ export class SurveysRepository {
     const inv = await this.getInvitationByToken(token);
     if (!inv) return null;
     // Create the satisfaction survey record
-    const survey = await query(
-      `INSERT INTO satisfaction_surveys (organization_id, service_user_id, respondent_name, relationship, rating, comments, invitation_token)
+    const survey = await migrateQuery(
+      `INSERT INTO satisfaction_surveys (organization_id, person_id, respondent_name, relationship, rating, comments, invitation_token)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [inv.organization_id, inv.service_user_id || null, data.respondent_name || null, data.relationship || null, data.rating, data.comments || null, token]
+      [inv.organization_id, inv.person_id || null, data.respondent_name || null, data.relationship || null, data.rating, data.comments || null, token]
     );
     // Mark invitation as used
-    await query(
+    await migrateQuery(
       `UPDATE survey_invitations SET used = true, respondent_name = $1, relationship = $2, completed_at = CURRENT_TIMESTAMP WHERE token = $3`,
       [data.respondent_name || null, data.relationship || null, token]
     );
@@ -54,9 +57,9 @@ export class SurveysRepository {
     const typeFilter = type ? ' AND si.type = $2' : '';
     const params = type ? [orgId, type] : [orgId];
     const result = await query(
-      `SELECT si.*, su.first_name as service_user_first_name, su.last_name as service_user_last_name
+      `SELECT si.*, su.first_name as person_first_name, su.last_name as person_last_name
        FROM survey_invitations si
-       LEFT JOIN service_users su ON si.service_user_id = su.id
+       LEFT JOIN people su ON si.person_id = su.id
        WHERE si.organization_id = $1${typeFilter}
        ORDER BY si.created_at DESC`,
       params
@@ -139,7 +142,7 @@ export class SurveysRepository {
       const token = generateToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       const inv = await query(
-        `INSERT INTO survey_invitations (organization_id, type, email, token, service_user_name, expires_at, template_id)
+        `INSERT INTO survey_invitations (organization_id, type, email, token, person_name, expires_at, template_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
         [orgId, 'engagement', s.email, token, `${s.first_name || ''} ${s.last_name || ''}`.trim(), expiresAt, templateId]
       );
@@ -155,13 +158,13 @@ export class SurveysRepository {
     const inv = await this.getInvitationByToken(token);
     if (!inv) return null;
     // Create the engagement survey record
-    const survey = await query(
+    const survey = await migrateQuery(
       `INSERT INTO staff_engagement_surveys (organization_id, respondent_id, ratings, comments, is_anonymous, template_id)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [inv.organization_id, data.respondent_id || null, JSON.stringify(data.ratings), data.comments || null, data.is_anonymous ?? true, inv.template_id || null]
     );
     // Mark invitation as used
-    await query(
+    await migrateQuery(
       `UPDATE survey_invitations SET used = true, completed_at = CURRENT_TIMESTAMP WHERE token = $1`,
       [token]
     );
@@ -170,31 +173,31 @@ export class SurveysRepository {
 
   // ── Satisfaction Surveys (Caring domain) ──
   static async createSatisfaction(orgId: string, data: {
-    service_user_id?: string; respondent_name?: string; relationship?: string;
+    person_id?: string; respondent_name?: string; relationship?: string;
     rating: number; comments?: string; invitation_token?: string;
   }) {
     const result = await query(
-      `INSERT INTO satisfaction_surveys (organization_id, service_user_id, respondent_name, relationship, rating, comments, invitation_token)
+      `INSERT INTO satisfaction_surveys (organization_id, person_id, respondent_name, relationship, rating, comments, invitation_token)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [orgId, data.service_user_id || null, data.respondent_name || null, data.relationship || null, data.rating, data.comments || null, data.invitation_token || null]
+      [orgId, data.person_id || null, data.respondent_name || null, data.relationship || null, data.rating, data.comments || null, data.invitation_token || null]
     );
     return result.rows[0];
   }
 
   static async getSatisfactionSurveys(orgId: string, filters?: {
-    serviceUserId?: string; search?: string; startDate?: string; endDate?: string;
+    personId?: string; search?: string; startDate?: string; endDate?: string;
   }) {
     const conditions = ['ss.organization_id = $1'];
     const params: any[] = [orgId];
     let idx = 2;
-    if (filters?.serviceUserId) { conditions.push(`ss.service_user_id = $${idx++}`); params.push(filters.serviceUserId); }
+    if (filters?.personId) { conditions.push(`ss.person_id = $${idx++}`); params.push(filters.personId); }
     if (filters?.search) { conditions.push(`(LOWER(ss.respondent_name) LIKE LOWER($${idx}) OR LOWER(ss.comments) LIKE LOWER($${idx++}))`); params.push(`%${filters.search}%`); }
     if (filters?.startDate) { conditions.push(`ss.created_at >= $${idx++}`); params.push(filters.startDate); }
     if (filters?.endDate) { conditions.push(`ss.created_at < $${idx++}::date + 1`); params.push(filters.endDate); }
     const result = await query(
       `SELECT ss.*, su.first_name, su.last_name
        FROM satisfaction_surveys ss
-       LEFT JOIN service_users su ON ss.service_user_id = su.id
+       LEFT JOIN people su ON ss.person_id = su.id
        WHERE ${conditions.join(' AND ')}
        ORDER BY ss.created_at DESC`,
       params

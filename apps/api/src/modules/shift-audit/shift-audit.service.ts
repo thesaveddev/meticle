@@ -1,7 +1,7 @@
 import { ShiftAuditRepository } from './shift-audit.repository';
 import { EmailService } from '../../shared/utils/email.service';
 import logger from '../../shared/utils/logger';
-import pool from '../../shared/database';
+import pool, { requestDBStorage, migrateQuery, resetRlsSessionVars } from '../../shared/database';
 import { EMedicationRepository } from '../emedication/emedication.repository';
 
 interface ShiftAssignment {
@@ -15,7 +15,7 @@ interface ShiftAssignment {
 }
 
 interface EmarAdmin {
-  service_user_id: string;
+  person_id: string;
   medication_name: string;
   admin_status: string;
   is_prn: boolean;
@@ -38,7 +38,7 @@ export interface LocationAudit {
     staff: ShiftAssignment[];
   }[];
   emar: {
-    service_user_name: string;
+    person_name: string;
     required: number;
     given: number;
     missed: number;
@@ -51,7 +51,7 @@ export interface LocationAudit {
     quantity: number;
     reorder_level: number;
     quantity_unit: string;
-    service_user_name: string;
+    person_name: string;
   }[];
 }
 
@@ -72,16 +72,16 @@ export class ShiftAuditService {
       assignmentsByShift.set(a.shift_id, list);
     }
 
-    const serviceUserIds = [...new Set(shifts.filter((s: any) => s.service_user_id).map((s: any) => s.service_user_id))];
-    const emarData = serviceUserIds.length > 0
-      ? await ShiftAuditRepository.getEmedicationAdministrations(serviceUserIds, auditDate)
+    const personIds = [...new Set(shifts.filter((s: any) => s.person_id).map((s: any) => s.person_id))];
+    const emarData = personIds.length > 0
+      ? await ShiftAuditRepository.getEmedicationAdministrations(personIds, auditDate)
       : [];
 
     const emarBySu = new Map<string, EmarAdmin[]>();
     for (const e of emarData) {
-      const list = emarBySu.get(e.service_user_id) || [];
+      const list = emarBySu.get(e.person_id) || [];
       list.push(e);
-      emarBySu.set(e.service_user_id, list);
+      emarBySu.set(e.person_id, list);
     }
 
     const managers = await ShiftAuditRepository.getLocationManagers(organizationId);
@@ -101,7 +101,7 @@ export class ShiftAuditService {
         quantity: Number(s.quantity),
         reorder_level: Number(s.reorder_level),
         quantity_unit: s.quantity_unit,
-        service_user_name: s.service_user_name,
+        person_name: s.person_name,
       });
       lowStockByLocation.set(s.location_id, list);
     }
@@ -143,8 +143,8 @@ export class ShiftAuditService {
         staff,
       });
 
-      if (s.service_user_id) {
-        locationSuIds.get(s.location_id)!.add(s.service_user_id);
+      if (s.person_id) {
+        locationSuIds.get(s.location_id)!.add(s.person_id);
       }
     }
 
@@ -162,14 +162,14 @@ export class ShiftAuditService {
         const admins = emarBySu.get(suId) || [];
         if (admins.length === 0) continue;
 
-        const first = shifts.find((s: any) => s.service_user_id === suId);
+        const first = shifts.find((s: any) => s.person_id === suId);
         const suName = first
           ? `${first.su_first_name} ${first.su_last_name}`
           : 'Unknown';
 
         const nonPrn = admins.filter(a => !a.is_prn);
         emarStats.push({
-          service_user_name: suName,
+          person_name: suName,
           required: nonPrn.length,
           given: nonPrn.filter(a => a.admin_status === 'given').length,
           missed: nonPrn.filter(a => a.admin_status === 'missed').length,
@@ -198,38 +198,53 @@ export class ShiftAuditService {
     let emailsSent = 0;
 
     for (const orgId of orgResult) {
-      const setting = await pool.query('SELECT daily_shift_audit_enabled FROM organizations WHERE id = $1', [orgId]);
+      const setting = await migrateQuery('SELECT daily_shift_audit_enabled FROM organizations WHERE id = $1', [orgId]);
       if (!setting.rows[0]?.daily_shift_audit_enabled) continue;
 
-      const audit = await this.generateDailyAudit(orgId, auditDate);
-      if (!audit) continue;
+      // This is a background job with no request-scoped RLS context. Acquire a
+      // dedicated client and scope it to this org so all audit queries (which
+      // use the ALS request-scoped client) run against the correct tenant.
+      const client = await pool.connect();
+      try {
+        await client.query(`SELECT set_config('app.current_org_id', $1, false)`, [orgId]);
+        await client.query(`SELECT set_config('app.current_user_id', $1, false)`, ['00000000-0000-0000-0000-000000000000']);
+        await client.query(`SELECT set_config('app.current_user_role', $1, false)`, ['MANAGER']);
 
-      for (const loc of audit.locations) {
-        if (!loc.manager_email) {
-          logger.warn({ location: loc.location_name }, 'Shift audit: no manager email, skipping');
-          continue;
-        }
+        await requestDBStorage.run({ client }, async () => {
+          const audit = await this.generateDailyAudit(orgId, auditDate);
+          if (!audit) return;
 
-        try {
-          await EmailService.sendShiftAuditEmail(
-            loc.manager_email,
-            loc.manager_name,
-            auditDate,
-            loc
-          );
-          emailsSent++;
-          logger.info({
-            location: loc.location_name,
-            manager: loc.manager_email,
-            date: auditDate,
-          }, 'Shift audit email sent');
-        } catch (err: any) {
-          logger.error({
-            err: err.message,
-            location: loc.location_name,
-            manager: loc.manager_email,
-          }, 'Shift audit email failed');
-        }
+          for (const loc of audit.locations) {
+            if (!loc.manager_email) {
+              logger.warn({ location: loc.location_name }, 'Shift audit: no manager email, skipping');
+              continue;
+            }
+
+            try {
+              await EmailService.sendShiftAuditEmail(
+                loc.manager_email,
+                loc.manager_name,
+                auditDate,
+                loc
+              );
+              emailsSent++;
+              logger.info({
+                location: loc.location_name,
+                manager: loc.manager_email,
+                date: auditDate,
+              }, 'Shift audit email sent');
+            } catch (err: any) {
+              logger.error({
+                err: err.message,
+                location: loc.location_name,
+                manager: loc.manager_email,
+              }, 'Shift audit email failed');
+            }
+          }
+        });
+      } finally {
+        await resetRlsSessionVars(client);
+        try { client.release(); } catch { /* already released */ }
       }
     }
 

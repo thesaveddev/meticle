@@ -212,7 +212,7 @@ export class EmailService {
   static async sendShiftStartEmail(staffEmail: string, staffName: string, date: string, shifts: any[], incidents?: any[], appointments?: any[]) {
     const shiftList = shifts.map((s: any) => `<tr><td style="padding:4px 12px">${s.time || s.start_time}</td><td style="padding:4px 12px">${s.location}</td><td style="padding:4px 12px">${s.type || ''}</td></tr>`).join('');
     const incList = incidents?.length ? `<p style="margin-top:12px"><strong>Recent Incidents:</strong></p><ul>${incidents.map((i: any) => `<li>${i.title} (${i.severity})</li>`).join('')}</ul>` : '';
-    const appList = appointments?.length ? `<p style="margin-top:12px"><strong>Today's Appointments:</strong></p><ul>${appointments.map((a: any) => `<li>${a.title} — ${a.service_user_name || ''}</li>`).join('')}</ul>` : '';
+    const appList = appointments?.length ? `<p style="margin-top:12px"><strong>Today's Appointments:</strong></p><ul>${appointments.map((a: any) => `<li>${a.title} — ${a.person_name || ''}</li>`).join('')}</ul>` : '';
     await sendMail(staffEmail, `Your Rota for ${date}`,
       buildEmailHtml('Today\'s Plan', `Hi ${staffName},`,
         `<p>Here's your plan for ${date}:</p><table>${shiftList}</table>${incList}${appList}`,
@@ -284,12 +284,12 @@ export class EmailService {
   }
 
   // ── Family Portal ──
-  static async sendFamilyPortalInviteEmail(email: string, memberName: string, serviceUserName: string, token: string, orgName: string) {
+  static async sendFamilyPortalInviteEmail(email: string, memberName: string, personName: string, token: string, orgName: string) {
     const url = `${baseUrl()}/family-portal/${token}`;
-    await sendMail(email, `${orgName} — Access to ${serviceUserName}'s care information`,
+    await sendMail(email, `${orgName} — Access to ${personName}'s care information`,
       buildEmailHtml('Family Portal', `You've been invited to stay connected`,
         `<p>Hi ${memberName},</p>` +
-        `<p><strong>${orgName}</strong> has invited you to view care information for <strong>${serviceUserName}</strong> through the Meticle Family Portal.</p>` +
+        `<p><strong>${orgName}</strong> has invited you to view care information for <strong>${personName}</strong> through the Meticle Family Portal.</p>` +
         `<p>Through this secure portal you can see:</p>` +
         `<ul><li>Daily care notes</li><li>Care plans</li><li>Goals and progress</li><li>Health observations</li></ul>` +
         `<p style="margin-top:16px">This link expires in <strong>90 days</strong> and is unique to you. Do not share it.</p>`,
@@ -382,7 +382,7 @@ export class EmailService {
         staff: { first_name: string; last_name: string; is_overtime: boolean }[];
       }[];
       emar: {
-        service_user_name: string;
+        person_name: string;
         required: number;
         given: number;
         missed: number;
@@ -395,7 +395,7 @@ export class EmailService {
         quantity: number;
         reorder_level: number;
         quantity_unit: string;
-        service_user_name: string;
+        person_name: string;
       }[];
     }
   ) {
@@ -409,7 +409,7 @@ export class EmailService {
       ).join('') || '<em>Unassigned</em>';
 
       const suLabel = s.su_name
-        ? `<span style="color:#6B7280">Service user: ${s.su_name}</span>`
+        ? `<span style="color:#6B7280">Person: ${s.su_name}</span>`
         : '';
 
       const start = new Date(s.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -431,7 +431,7 @@ export class EmailService {
       const color = missedTotal > 0 ? '#991B1B' : '#065F46';
       const bg = missedTotal > 0 ? '#FEE2E2' : '#D1FAE5';
       return `<tr>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${e.service_user_name}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${e.person_name}</td>
         <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">${e.required}</td>
         <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">${e.given}</td>
         <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">
@@ -461,7 +461,7 @@ ${emarRows}
     const lowStockRows = loc.low_stock.map(s =>
       `<tr>
         <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${s.medication_name} ${s.dosage}${s.unit}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${s.service_user_name || 'Shared stock'}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${s.person_name || 'Shared stock'}</td>
         <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">
           <span style="color:#991B1B;background:#FEE2E2;padding:2px 8px;border-radius:10px;font-weight:600">${s.quantity} ${s.quantity_unit || s.unit || ''}</span>
         </td>
@@ -551,7 +551,7 @@ ${lowStockSection}`,
       reorder_level: number;
       quantity_unit: string;
       location_name: string;
-      service_user_name: string;
+      person_name: string;
     }
   ) {
     const remainingLabel = `${item.quantity} ${item.quantity_unit || item.unit || ''}`;
@@ -561,7 +561,7 @@ ${lowStockSection}`,
         'Stock Reorder Alert',
         `Reorder required: ${item.medication_name}`,
         `<p>Hi ${managerName},</p>
-<p><strong>${item.medication_name} ${item.dosage}${item.unit}</strong>${item.service_user_name ? ` for <strong>${item.service_user_name}</strong>` : ''} has reached its reorder level.</p>
+<p><strong>${item.medication_name} ${item.dosage}${item.unit}</strong>${item.person_name ? ` for <strong>${item.person_name}</strong>` : ''} has reached its reorder level.</p>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
 <tr style="background:#F9FAFB">
@@ -588,7 +588,7 @@ ${lowStockSection}`,
     recipientName: string,
     locationName: string,
     items: {
-      service_user_name: string;
+      person_name: string;
       medication_name: string;
       dosage: string;
       unit: string;
@@ -599,7 +599,7 @@ ${lowStockSection}`,
     const rows = items.map(i => {
       const time = new Date(i.scheduled_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       return `<tr>
-        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${i.service_user_name}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px">${i.person_name}</td>
         <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px"><strong>${i.medication_name}</strong> ${i.dosage}${i.unit}</td>
         <td style="padding:6px 12px;border-bottom:1px solid #F3F4F6;font-size:13px;text-align:center">
           <span style="color:#991B1B;background:#FEE2E2;padding:2px 8px;border-radius:10px;font-weight:600">${time}</span>

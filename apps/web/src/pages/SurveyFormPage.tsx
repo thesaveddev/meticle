@@ -20,7 +20,7 @@ export default function SurveyFormPage() {
   const [relationship, setRelationship] = useState('')
   const [satRating, setSatRating] = useState(5)
   const [comments, setComments] = useState('')
-  const [serviceUserChoice, setServiceUserChoice] = useState('')
+  const [personChoice, setPersonChoice] = useState('')
 
   useEffect(() => {
     const path = window.location.pathname
@@ -30,7 +30,7 @@ export default function SurveyFormPage() {
       try {
         const res = await api.get(`/api/surveys/form/${surveyType}/${token}`)
         setFormData(res.data)
-        if (res.data?.service_user_name) setServiceUserChoice(res.data.service_user_name)
+        if (res.data?.person_name) setPersonChoice(res.data.person_name)
         if (res.data?.questions?.length > 0) {
           setQuestions(res.data.questions)
           const defaults: Record<string, number> = {}
@@ -53,7 +53,7 @@ export default function SurveyFormPage() {
     try {
       await api.post(`/api/surveys/submit/satisfaction/${token}`, {
         respondent_name: name, relationship, rating: satRating, comments: comments || undefined,
-        service_user_name: serviceUserChoice || undefined,
+        person_name: personChoice || undefined,
       })
       setDone(true)
     } catch (err: any) {
@@ -121,11 +121,11 @@ export default function SurveyFormPage() {
               </Select>
             </FormControl>
 
-            {formData?.service_user_name && (
-              <TextField label="Regarding" value={formData.service_user_name} disabled fullWidth size="small" />
+            {formData?.person_name && (
+              <TextField label="Regarding" value={formData.person_name} disabled fullWidth size="small" />
             )}
-            {!formData?.service_user_name && (
-              <TextField label="Who is this feedback about? (optional)" value={serviceUserChoice} onChange={e => setServiceUserChoice(e.target.value)} fullWidth size="small" placeholder="e.g. a family member's name" />
+            {!formData?.person_name && (
+              <TextField label="Who is this feedback about? (optional)" value={personChoice} onChange={e => setPersonChoice(e.target.value)} fullWidth size="small" placeholder="e.g. a family member's name" />
             )}
 
             <Box>

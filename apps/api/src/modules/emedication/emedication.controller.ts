@@ -19,8 +19,8 @@ export class EMedicationController {
   // ── Records ──
   static async listRecords(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
-    const { serviceUserId } = req.query as any;
-    const records = await EMedicationRepository.findRecords(orgId, serviceUserId);
+    const { personId } = req.query as any;
+    const records = await EMedicationRepository.findRecords(orgId, personId);
     res.json(records);
   }
 
@@ -34,19 +34,19 @@ export class EMedicationController {
 
   static async createRecord(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
-    const { service_user_id, title, start_date, end_date, status } = req.body;
-    if (!service_user_id || !title || !start_date || !end_date) {
-      throw new AppError(400, 'service_user_id, title, start_date, and end_date are required');
+    const { person_id, title, start_date, end_date, status } = req.body;
+    if (!person_id || !title || !start_date || !end_date) {
+      throw new AppError(400, 'person_id, title, start_date, and end_date are required');
     }
     const record = await EMedicationRepository.createRecord(orgId, {
-      service_user_id, title, start_date, end_date, status,
+      person_id, title, start_date, end_date, status,
       created_by: req.user!.userId
     });
 
     await EMedicationAuditRepository.log({
       organization_id: orgId, action: 'create_record', entity_type: 'record',
       entity_id: record.id, user_id: req.user!.userId,
-      changes: { service_user_id, title, start_date, end_date, status }, ip_address: req.ip
+      changes: { person_id, title, start_date, end_date, status }, ip_address: req.ip
     });
 
     res.status(201).json(record);
@@ -93,7 +93,7 @@ export class EMedicationController {
     });
 
     if (!is_prn) {
-      const stockItem = await EMedicationRepository.findOrCreateStockForItem(orgId, record.service_user_id, { name, dosage, unit: unit || 'mg' });
+      const stockItem = await EMedicationRepository.findOrCreateStockForItem(orgId, record.person_id, { name, dosage, unit: unit || 'mg' });
       await EMedicationRepository.updateItem(item.id, { stock_item_id: stockItem.id });
       item.stock_item_id = stockItem.id;
     }
@@ -184,13 +184,13 @@ export class EMedicationController {
         if (stock && stock.quantity !== null && Number(stock.quantity) <= 0) {
           throw new AppError(409, `Cannot mark as given: no stock available for ${itemResult.rows[0]?.name || 'this medication'}. Log a delivery or stock adjustment first.`);
         }
-        if (stock && !stock.service_user_id) {
+        if (stock && !stock.person_id) {
           const rec = await query(
-            `SELECT er.service_user_id FROM emedication_items mi JOIN emedication_records er ON er.id = mi.emedication_record_id WHERE mi.id = $1`,
+            `SELECT er.person_id FROM emedication_items mi JOIN emedication_records er ON er.id = mi.emedication_record_id WHERE mi.id = $1`,
             [emedication_item_id]
           );
-          if (rec.rows[0]?.service_user_id) {
-            await query(`UPDATE emedication_stock SET service_user_id = $2 WHERE id = $1 AND service_user_id IS NULL`, [linkedStockItemId, rec.rows[0].service_user_id]);
+          if (rec.rows[0]?.person_id) {
+            await query(`UPDATE emedication_stock SET person_id = $2 WHERE id = $1 AND person_id IS NULL`, [linkedStockItemId, rec.rows[0].person_id]);
           }
         }
         stockBefore = { quantity: Number(stock?.quantity ?? 0), reorder_level: Number(stock?.reorder_level ?? 0) };
@@ -288,9 +288,9 @@ export class EMedicationController {
   // ── Ensure monthly MAR ──
   static async ensureMonthlyMar(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
-    const { serviceUserId } = req.body;
-    if (!serviceUserId) throw new AppError(400, 'serviceUserId is required');
-    const result = await EMedicationRepository.ensureMonthlyMar(orgId, serviceUserId, req.user!.userId);
+    const { personId } = req.body;
+    if (!personId) throw new AppError(400, 'personId is required');
+    const result = await EMedicationRepository.ensureMonthlyMar(orgId, personId, req.user!.userId);
     res.json(result);
   }
 
@@ -452,8 +452,8 @@ export class EMedicationController {
   // ── Daily Counts ──
   static async listDailyCounts(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
-    const { serviceUserId } = req.query as any;
-    const counts = await EMedicationRepository.findDailyCounts(orgId, serviceUserId);
+    const { personId } = req.query as any;
+    const counts = await EMedicationRepository.findDailyCounts(orgId, personId);
     res.json(counts);
   }
 

@@ -1,4 +1,4 @@
-import { query } from '../../shared/database';
+import { query, migrateQuery } from '../../shared/database';
 
 export class ShiftAuditRepository {
   static async getShiftsForDate(organizationId: string, date: string) {
@@ -12,13 +12,13 @@ export class ShiftAuditRepository {
         l.id AS location_id,
         l.name AS location_name,
         l.minimum_staff_per_day,
-        su.id AS service_user_id,
+        su.id AS person_id,
         su.first_name AS su_first_name,
         su.last_name AS su_last_name,
         d.name AS department_name
       FROM shifts s
       JOIN locations l ON s.location_id = l.id
-      LEFT JOIN service_users su ON s.service_user_id = su.id
+      LEFT JOIN people su ON s.person_id = su.id
       LEFT JOIN departments d ON s.department_id = d.id
       WHERE l.organization_id = $1
         AND s.start_time::date = $2::date
@@ -51,27 +51,27 @@ export class ShiftAuditRepository {
   }
 
   static async getEmedicationAdministrations(
-    serviceUserIds: string[],
+    personIds: string[],
     date: string
   ) {
-    if (serviceUserIds.length === 0) return [];
+    if (personIds.length === 0) return [];
     const result = await query(
       `SELECT
         ea.emedication_item_id,
         ei.name AS medication_name,
         ei.dosage,
         ei.is_prn,
-        er.service_user_id,
+        er.person_id,
         ea.status AS admin_status,
         ea.scheduled_time
       FROM emedication_administrations ea
       JOIN emedication_items ei ON ea.emedication_item_id = ei.id
       JOIN emedication_records er ON ei.emedication_record_id = er.id
-      WHERE er.service_user_id = ANY($1)
+      WHERE er.person_id = ANY($1)
         AND ea.scheduled_time::date = $2::date
         AND er.status = 'active'
-      ORDER BY er.service_user_id, ei.name, ea.scheduled_time`,
-      [serviceUserIds, date]
+      ORDER BY er.person_id, ei.name, ea.scheduled_time`,
+      [personIds, date]
     );
     return result.rows;
   }
@@ -119,7 +119,9 @@ export class ShiftAuditRepository {
   }
 
   static async getAllOrgIds(): Promise<string[]> {
-    const result = await query(
+    // Background job context (no authenticated RLS session): iterate all orgs
+    // with shifts today via the superuser pool.
+    const result = await migrateQuery(
       `SELECT DISTINCT l.organization_id
        FROM shifts s
        JOIN locations l ON s.location_id = l.id

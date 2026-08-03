@@ -18,7 +18,7 @@ const STATUS_CONFIG: Record<AdminStatus, { label: string; color: 'success' | 'er
 }
 
 interface MedicationRecord {
-  id: string; title: string; service_user_id: string; service_user_name: string
+  id: string; title: string; person_id: string; person_name: string
   start_date: string; end_date: string; status: string
 }
 
@@ -52,23 +52,23 @@ export default function ArchivedMarPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const [selectedServiceUser, setSelectedServiceUser] = useState<any>(null)
+  const [selectedPerson, setSelectedPerson] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedChartId, setExpandedChartId] = useState<string | null>(null)
 
-  const { data: serviceUsers } = useQuery({
-    queryKey: ['service-users-list'],
-    queryFn: async () => { const res = await api.get('/service-users'); return res.data as any[] }
+  const { data: people } = useQuery({
+    queryKey: ['people-list'],
+    queryFn: async () => { const res = await api.get('/people'); return res.data as any[] }
   })
 
   const { data: recordsData, isLoading: recordsLoading } = useQuery({
-    queryKey: ['archived-mar-records', selectedServiceUser?.id],
+    queryKey: ['archived-mar-records', selectedPerson?.id],
     queryFn: async () => {
-      if (!selectedServiceUser) return []
-      const res = await api.get(`/emedication/records?serviceUserId=${selectedServiceUser.id}`)
+      if (!selectedPerson) return []
+      const res = await api.get(`/emedication/records?personId=${selectedPerson.id}`)
       return (res.data as MedicationRecord[]).filter(r => r.status === 'archived')
     },
-    enabled: !!selectedServiceUser
+    enabled: !!selectedPerson
   })
 
   const unarchiveMutation = useMutation({
@@ -121,10 +121,10 @@ export default function ArchivedMarPage() {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <Autocomplete
-            options={serviceUsers || []}
+            options={people || []}
             getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
-            value={selectedServiceUser}
-            onChange={(_, v) => { setSelectedServiceUser(v); setExpandedChartId(null); setChartMonth(null) }}
+            value={selectedPerson}
+            onChange={(_, v) => { setSelectedPerson(v); setExpandedChartId(null); setChartMonth(null) }}
             renderInput={(params) => <TextField {...params} label="Search Person" size="small" />}
             sx={{ minWidth: 300 }}
           />
@@ -138,7 +138,7 @@ export default function ArchivedMarPage() {
 
       {recordsLoading ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}><CircularProgress size={24} /></Paper>
-      ) : !selectedServiceUser ? (
+      ) : !selectedPerson ? (
         <Paper sx={{ p: 6, textAlign: 'center' }}>
           <MedIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 2 }} />
           <Typography color="text.secondary">Select a person to view archived charts</Typography>
@@ -163,7 +163,7 @@ export default function ArchivedMarPage() {
                     <Box>
                       <Typography variant="subtitle2" fontWeight={600}>{record.title}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {record.service_user_name} &bull; {new Date(record.start_date).toLocaleDateString()} &ndash; {new Date(record.end_date).toLocaleDateString()}
+                        {record.person_name} &bull; {new Date(record.start_date).toLocaleDateString()} &ndash; {new Date(record.end_date).toLocaleDateString()}
                       </Typography>
                     </Box>
                   </Stack>

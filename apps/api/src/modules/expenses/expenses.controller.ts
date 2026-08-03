@@ -9,7 +9,7 @@ export class ExpensesController {
     const orgId = req.user!.organizationId!;
     const userId = req.user!.userId;
     const expense = await createExpense(orgId, userId, {
-      service_user_id: req.body.serviceUserId,
+      person_id: req.body.personId,
       location_id: req.body.locationId,
       category: req.body.category,
       amount_pence: req.body.amountPence,
@@ -23,7 +23,7 @@ export class ExpensesController {
   static async list(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
     const expenses = await getExpenses(orgId, {
-      service_user_id: req.query.serviceUserId as string,
+      person_id: req.query.personId as string,
       location_id: req.query.locationId as string,
       category: req.query.category as string,
       from: req.query.from as string,
@@ -41,7 +41,7 @@ export class ExpensesController {
   static async update(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
     const expense = await updateExpense(orgId, req.params.id, {
-      service_user_id: req.body.serviceUserId,
+      person_id: req.body.personId,
       location_id: req.body.locationId,
       category: req.body.category,
       amount_pence: req.body.amountPence,

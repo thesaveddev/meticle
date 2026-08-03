@@ -102,7 +102,7 @@ export const aiRotaGenerateSchema = z.object({
   staffRoster: z.string(),
   existingShifts: z.string(),
   staffOnLeave: z.string(),
-  serviceUsers: z.string(),
+  people: z.string(),
   contractedHours: z.string(),
   mandatoryStartTimes: z.string().optional(),
   minEndTime: z.string().optional(),
@@ -110,14 +110,14 @@ export const aiRotaGenerateSchema = z.object({
 });
 
 export const aiDailyNoteGenerateSchema = z.object({
-  serviceUserId: z.string().uuid(),
+  personId: z.string().uuid(),
   staffInput: z.string().min(1, 'Staff observation is required'),
   shift: z.enum(['day', 'night']).optional().default('day'),
   noteDate: z.string().optional(),
 });
 
 export const aiDailyNoteApproveSchema = z.object({
-  serviceUserId: z.string().uuid(),
+  personId: z.string().uuid(),
   dailyNote: z.object({
     content: z.string(),
     shift: z.enum(['day', 'night']),
@@ -317,7 +317,7 @@ export const createShiftSchema = z.object({
   start_time: z.string().datetime({ offset: true, message: 'Start time must be an ISO 8601 datetime string' }),
   end_time: z.string().datetime({ offset: true, message: 'End time must be an ISO 8601 datetime string' }),
   assigned_staff_ids: z.array(z.string().uuid()).optional().default([]),
-  service_user_id: z.string().uuid().optional(),
+  person_id: z.string().uuid().optional(),
   shift_type: z.enum(['day', 'sleep', 'wake_night']).optional(),
 });
 
@@ -327,7 +327,7 @@ export const updateShiftSchema = z.object({
   start_time: z.string().datetime({ offset: true, message: 'Start time must be an ISO 8601 datetime string' }).optional(),
   end_time: z.string().datetime({ offset: true, message: 'End time must be an ISO 8601 datetime string' }).optional(),
   status: z.string().optional(),
-  service_user_id: z.string().uuid().optional(),
+  person_id: z.string().uuid().optional(),
   shift_type: z.enum(['day', 'sleep', 'wake_night']).optional(),
 });
 
@@ -346,8 +346,8 @@ export const createTemplateSchema = z.object({
   end_time: z.string().min(1),
 });
 
-// === Service Users ===
-export const createServiceUserSchema = z.object({
+// === People ===
+export const createPersonSchema = z.object({
   first_name: z.string().min(1, 'First name is required'),
   last_name: z.string().min(1, 'Last name is required'),
   date_of_birth: z.string().min(1, 'Date of birth is required'),
@@ -396,7 +396,7 @@ export const createServiceUserSchema = z.object({
   min_staff_required: z.coerce.number().int().min(0).max(6).nullable().optional(),
 });
 
-export const updateServiceUserSchema = z.object({
+export const updatePersonSchema = z.object({
   first_name: z.string().min(1).optional(),
   last_name: z.string().min(1).optional(),
   date_of_birth: z.string().nullable().optional(),
@@ -582,7 +582,7 @@ export const createIncidentCategorySchema = z.object({
 });
 
 export const addInvolvedResidentSchema = z.object({
-  service_user_id: z.string().uuid(),
+  person_id: z.string().uuid(),
   involvement_type: z.enum(['affected', 'witness', 'involved']).optional(),
   notes: z.string().optional(),
 });
@@ -897,7 +897,7 @@ export const updateLocationCertificateSchema = z.object({
 
 // === eMedication ===
 export const createMedicationRecordSchema = z.object({
-  service_user_id: z.string().uuid(),
+  person_id: z.string().uuid(),
   title: z.string().min(1).max(255),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -972,11 +972,11 @@ export const createStockItemSchema = z.object({
   quantity_unit: z.string().max(50).optional(),
   reorder_level: z.number().min(0).optional(),
   location: z.string().max(255).optional(),
-  service_user_id: z.string().uuid().optional(),
+  person_id: z.string().uuid().optional(),
 });
 
 export const createDeliverySchema = z.object({
-  service_user_id: z.string().uuid(),
+  person_id: z.string().uuid(),
   medication_name: z.string().min(1).max(255),
   dosage: z.string().min(1).max(100),
   quantity: z.number().min(0),
@@ -985,7 +985,7 @@ export const createDeliverySchema = z.object({
 });
 
 export const createDailyCountSchema = z.object({
-  service_user_id: z.string().uuid(),
+  person_id: z.string().uuid(),
   count_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   staff_name: z.string().min(1).max(255),
   confirmed: z.boolean().optional(),
@@ -1023,7 +1023,7 @@ export const updateStockItemSchema = z.object({
   quantity_unit: z.string().max(50).optional(),
   reorder_level: z.number().min(0).optional(),
   location: z.string().max(255).optional(),
-  service_user_id: z.string().uuid().optional(),
+  person_id: z.string().uuid().optional(),
 });
 
 export const toggleMedicationCompetenceSchema = z.object({
@@ -1031,10 +1031,10 @@ export const toggleMedicationCompetenceSchema = z.object({
 });
 
 export const ensureMonthlyMarSchema = z.object({
-  serviceUserId: z.string().uuid(),
+  personId: z.string().uuid(),
 });
 
-// === Service User new modules ===
+// === Person new modules ===
 export const createWellbeingSchema = z.object({
   recorded_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   domain: z.enum(['mood','engagement','sleep','appetite','pain','mobility','social','overall']),
@@ -1160,7 +1160,7 @@ export const updatePolicySchema = z.object({
 
 // === Appointments ===
 export const createAppointmentSchema = z.object({
-  service_user_id: z.string().uuid(),
+  person_id: z.string().uuid(),
   staff_id: z.string().uuid().optional(),
   title: z.string().min(1).max(500),
   description: z.string().max(2000).optional(),
@@ -1171,7 +1171,7 @@ export const createAppointmentSchema = z.object({
 });
 
 export const updateAppointmentSchema = z.object({
-  service_user_id: z.string().uuid().optional(),
+  person_id: z.string().uuid().optional(),
   staff_id: z.string().uuid().optional().nullable(),
   title: z.string().min(1).max(500).optional(),
   description: z.string().max(2000).optional(),
@@ -1181,9 +1181,9 @@ export const updateAppointmentSchema = z.object({
   location_id: z.string().uuid().optional().nullable(),
 });
 
-// === Service User Goals ===
+// === Person Goals ===
 export const createGoalSchema = z.object({
-  service_user_id: z.string().uuid(),
+  person_id: z.string().uuid(),
   title: z.string().min(1).max(500),
   description: z.string().max(2000).optional(),
   target_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -1205,7 +1205,7 @@ export const createGoalSchema = z.object({
 });
 
 export const updateGoalSchema = z.object({
-  service_user_id: z.string().uuid().optional(),
+  person_id: z.string().uuid().optional(),
   title: z.string().min(1).max(500).optional(),
   description: z.string().max(2000).optional(),
   target_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
@@ -1272,7 +1272,7 @@ export const createTaskSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().max(2000).optional(),
   assigned_to: z.string().uuid().optional(),
-  service_user_id: z.string().uuid().optional(),
+  person_id: z.string().uuid().optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional(),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -1282,7 +1282,7 @@ export const updateTaskSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(2000).optional(),
   assigned_to: z.string().uuid().optional().nullable(),
-  service_user_id: z.string().uuid().optional().nullable(),
+  person_id: z.string().uuid().optional().nullable(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional(),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
@@ -1311,7 +1311,7 @@ export const updateRoomCheckSchema = z.object({
 
 // === Family Portal ===
 export const createFamilyMemberSchema = z.object({
-  service_user_id: z.string().uuid(),
+  person_id: z.string().uuid(),
   name: z.string().min(1).max(255),
   email: z.string().email().max(255),
   relationship: z.string().max(100).optional(),
@@ -1357,7 +1357,7 @@ export const createScaleSchema = z.object({
 export const updateScaleSchema = createScaleSchema.partial();
 
 export const recordAssessmentSchema = z.object({
-  service_user_id: z.string().uuid(),
+  person_id: z.string().uuid(),
   scores: z.record(z.string(), z.number()),
   total_score: z.number(),
   band_label: z.string().optional(),

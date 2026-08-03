@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-02T00:00:00.000Z",
+  "title": "Design System: MeticleCare Marketing Site",
+  "extensions": {
+    "colorMeta": {
+      "navy": { "role": "primary", "displayName": "Deep Navy", "canonical": "#0F4C81", "tonalRamp": ["#061C33", "#082844", "#0A3455", "#0B4069", "#0F4C81", "#45759F", "#7EA0BC", "#B9CBE0"] },
+      "navy-deep": { "role": "primary", "displayName": "Navy Deep", "canonical": "#0A3A63", "tonalRamp": ["#041627", "#062038", "#082B48", "#0A3359", "#0A3A63", "#4A6B8B", "#849CB4", "#BCCDDB"] },
+      "emerald": { "role": "secondary", "displayName": "Emerald", "canonical": "#10B981", "tonalRamp": ["#052E23", "#064534", "#075E45", "#0A7A58", "#10B981", "#38D29B", "#7FE3BF", "#C4F3E3"] },
+      "emerald-deep": { "role": "secondary", "displayName": "Emerald Deep", "canonical": "#047857", "tonalRamp": ["#04241B", "#05352A", "#064839", "#075D4A", "#047857", "#3E9479", "#7BBBA5", "#C0DED3"] },
+      "emerald-hover": { "role": "secondary", "displayName": "Emerald Hover", "canonical": "#065F46", "tonalRamp": ["#032820", "#053A2E", "#064C3D", "#076048", "#065F46", "#3E8B73", "#7BB8A5", "#C2DFD5"] },
+      "ink": { "role": "neutral", "displayName": "Charcoal Ink", "canonical": "#1B2430", "tonalRamp": ["#0B0E13", "#0E1219", "#111720", "#141C24", "#1B2430", "#4A5560", "#7C8690", "#B4BCC3"] },
+      "ink-dark": { "role": "neutral", "displayName": "Ink Dark", "canonical": "#141C24", "tonalRamp": ["#05080C", "#090D12", "#0C1117", "#10161D", "#141C24", "#464F59", "#7C848E", "#B6BCC2"] },
+      "ink-deep": { "role": "neutral", "displayName": "Ink Deep", "canonical": "#1D2733", "tonalRamp": ["#070B11", "#0B1117", "#0F161E", "#121B25", "#1D2733", "#4D5965", "#838C97", "#BDC3C9"] },
+      "bone": { "role": "neutral", "displayName": "Bone", "canonical": "#F7F4EE", "tonalRamp": ["#C9C2B4", "#D5CFC2", "#E0DBD0", "#EBE7DE", "#F2EFE6", "#F7F4EE", "#FAF8F4", "#FDFCFA"] },
+      "mist": { "role": "neutral", "displayName": "Mist", "canonical": "#5B6672", "tonalRamp": ["#262E37", "#303A45", "#3A4551", "#46505B", "#5B6672", "#7E8893", "#A5ADB5", "#D3D8DD"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "#E7E1D6", "tonalRamp": ["#B9B09E", "#C6BEAC", "#D2CBBA", "#DED8C9", "#E7E1D6", "#EFEAE0", "#F6F3EC", "#FBFAF7"] },
+      "text-deep": { "role": "neutral", "displayName": "Text Deep", "canonical": "#3A4551", "tonalRamp": ["#0F1620", "#16202B", "#1D2936", "#24313F", "#3A4551", "#67727E", "#9AA3AC", "#D0D4D9"] },
+      "outline-button-border": { "role": "neutral", "displayName": "Outline Button Border", "canonical": "#C9C2B4", "tonalRamp": ["#A69E8D", "#B6AE9E", "#C5BDAF", "#C9C2B4", "#D6D0C5", "#E3DFD6", "#F0EDE7", "#FBFAF7"] },
+      "window-border": { "role": "neutral", "displayName": "Window Border", "canonical": "#E0D9CA", "tonalRamp": ["#B7AF9D", "#C4BCA9", "#D2CBB9", "#E0D9CA", "#E8E3D8", "#F1EDE5", "#F8F6F1", "#FCFBF8"] },
+      "window-chrome": { "role": "neutral", "displayName": "Window Chrome", "canonical": "#FCFAF6", "tonalRamp": ["#E5E1D6", "#EBE8DF", "#F1EFE8", "#F6F4EE", "#FCFAF6", "#FDFCFA", "#FEFEFD", "#FFFFFF"] },
+      "window-chrome-line": { "role": "neutral", "displayName": "Window Chrome Line", "canonical": "#F0EBE1", "tonalRamp": ["#D2CBB9", "#DAD3C2", "#E3DCCA", "#EAE4D6", "#F0EBE1", "#F6F2EB", "#FAF8F3", "#FDFCFA"] },
+      "button-on-navy": { "role": "neutral", "displayName": "Button On Navy", "canonical": "#FFFFFF", "tonalRamp": ["#E6E6E6", "#ECECEC", "#F2F2F2", "#F7F7F7", "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"] },
+      "button-on-navy-hover": { "role": "neutral", "displayName": "Button On Navy Hover", "canonical": "#F3F1EA", "tonalRamp": ["#D5D2C8", "#DFDCD3", "#E8E6DE", "#EEECE5", "#F3F1EA", "#F8F7F3", "#FBFBF8", "#FEFEFC"] },
+      "foot-muted": { "role": "neutral", "displayName": "Foot Muted", "canonical": "#8E98A3", "tonalRamp": ["#3B434D", "#4E5762", "#616B76", "#747E89", "#8E98A3", "#A8B0B9", "#C6CCD2", "#E5E8EB"] },
+      "foot-heading": { "role": "neutral", "displayName": "Foot Heading", "canonical": "#E8EBEE", "tonalRamp": ["#ADB5BD", "#C2C8CF", "#D5D9DF", "#E0E3E7", "#E8EBEE", "#F0F2F4", "#F7F8FA", "#FDFDFE"] },
+      "foot-hairline": { "role": "neutral", "displayName": "Foot Hairline", "canonical": "rgba(255,255,255,0.12)", "tonalRamp": ["rgba(255,255,255,0.04)", "rgba(255,255,255,0.08)", "rgba(255,255,255,0.12)", "rgba(255,255,255,0.24)", "rgba(255,255,255,0.4)", "rgba(255,255,255,0.6)", "rgba(255,255,255,0.8)", "rgba(255,255,255,1)"] },
+      "white": { "role": "neutral", "displayName": "White", "canonical": "#FFFFFF", "tonalRamp": ["#E6E6E6", "#ECECEC", "#F2F2F2", "#F7F7F7", "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero and final-CTA headlines only — 900 weight, -0.03em tracking." },
+      "headline": { "displayName": "Headline", "purpose": "Section h2s — 800 weight, -0.025em tracking, maxWidth 520-720px." },
+      "title": { "displayName": "Title", "purpose": "Row titles, step titles, showcase/compliance rows, role headings." },
+      "body": { "displayName": "Body", "purpose": "Lead subs at 1.12rem/1.7 line-height; secondary copy 0.86-0.98rem in mist." },
+      "label": { "displayName": "Label", "purpose": "Uppercase eyebrows — 800, navy, 0.08em tracking; mega-menu/footer categories at 0.66rem." }
+    },
+    "shadows": [
+      { "name": "window-hero", "value": "0 32px 64px -28px rgba(20, 32, 45, 0.4)", "purpose": "Seats the hero framed dashboard window on the bone desk." },
+      { "name": "window-showcase", "value": "0 32px 64px -28px rgba(20, 32, 45, 0.35)", "purpose": "Same framed window, slightly softer, in the mid-page showcase." },
+      { "name": "toast", "value": "0 20px 44px -20px rgba(20, 32, 45, 0.45)", "purpose": "Floats the care-note toast over the hero window chrome." },
+      { "name": "mega-menu", "value": "0 24px 56px -20px rgba(20, 32, 45, 0.22)", "purpose": "The 760px Features mega menu." },
+      { "name": "dropdown", "value": "0 20px 44px -18px rgba(20, 32, 45, 0.2)", "purpose": "The About dropdown panel." }
+    ],
+    "motion": [
+      { "name": "entrance-rise", "value": "transform: translateY(24px) → translateY(0); opacity: 0 → 1", "purpose": "The single authored page entrance — the hero visual column, triggered 80ms after mount." },
+      { "name": "entrance-ease", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Easing for the 0.9s hero rise; opacity fades over the same 0.9s with 'ease'." },
+      { "name": "toast-delay", "value": "opacity 0.6s ease 1.05s", "purpose": "The care-note toast fades in after the hero entrance completes." },
+      { "name": "pulse", "value": "opacity 1 ↔ 0.35, 2.4s ease-in-out infinite", "purpose": "The window-chrome 'Live' dot. Disabled under prefers-reduced-motion." },
+      { "name": "micro-hover", "value": "color 0.15s ease, transform 0.15s ease", "purpose": "Capability-row arrow slide (translateX 4px) and title recolor on hover." },
+      { "name": "dropdown-reveal", "value": "all 0.18s ease", "purpose": "Mega menu and About dropdown opacity/visibility/translateY(-4px) reveal on hover." },
+      { "name": "reduced-motion", "value": "prefers-reduced-motion: reduce", "purpose": "Skips the entrance entirely (content renders instantly) and kills the Live-dot pulse." }
+    ],
+    "breakpoints": [
+      { "name": "xs", "value": "0px" },
+      { "name": "sm", "value": "600px" },
+      { "name": "md", "value": "900px" },
+      { "name": "lg", "value": "1200px" },
+      { "name": "xl", "value": "1536px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The navy identity CTA — hero 'Start your free trial' and nav 'Start free trial'.",
+      "html": "<button class=\"ds-btn-primary\">Start your free trial</button>",
+      "css": ".ds-btn-primary { background: #0F4C81; color: #FFFFFF; font-family: 'Inter', 'Roboto', Helvetica, Arial, sans-serif; font-weight: 800; font-size: 1rem; padding: 14px 20px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s ease; } .ds-btn-primary:hover { background: #0A3A63; } .ds-btn-primary:active { background: #0A3A63; } .ds-btn-primary:focus-visible { outline: 2px solid #10B981; outline-offset: 2px; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action — hero 'See how it works'. Border swaps to ink on hover.",
+      "html": "<button class=\"ds-btn-outline\">See how it works</button>",
+      "css": ".ds-btn-outline { background: transparent; color: #1B2430; font-family: 'Inter', 'Roboto', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 1rem; padding: 14px 20px; border: 1px solid #C9C2B4; border-radius: 8px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease; } .ds-btn-outline:hover { border-color: #1B2430; background: rgba(27, 36, 48, 0.04); } .ds-btn-outline:focus-visible { outline: 2px solid #10B981; outline-offset: 2px; }"
+    },
+    {
+      "name": "CTA Button",
+      "kind": "button",
+      "refersTo": "button-cta",
+      "description": "The closing-band conversion CTA — emerald-deep fill inside the ink-dark Final CTA band.",
+      "html": "<button class=\"ds-btn-cta\">Start your free trial</button>",
+      "css": ".ds-btn-cta { background: #047857; color: #FFFFFF; font-family: 'Inter', 'Roboto', Helvetica, Arial, sans-serif; font-weight: 800; font-size: 1.05rem; padding: 15px 28px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s ease; } .ds-btn-cta:hover { background: #065F46; } .ds-btn-cta:focus-visible { outline: 2px solid #10B981; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Link Button",
+      "kind": "button",
+      "refersTo": "button-text-link",
+      "description": "Inline navy link-action — 'See how it works', 'Explore reporting →'. Underlines on hover.",
+      "html": "<button class=\"ds-btn-text-link\">See how it works</button>",
+      "css": ".ds-btn-text-link { background: transparent; border: none; color: #0F4C81; font-family: 'Inter', 'Roboto', Helvetica, Arial, sans-serif; font-weight: 800; font-size: 1.05rem; padding: 0; cursor: pointer; } .ds-btn-text-link:hover { text-decoration: underline; } .ds-btn-text-link:focus-visible { outline: 2px solid #10B981; outline-offset: 2px; border-radius: 8px; }"
+    },
+    {
+      "name": "Nav Link",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Desktop marketing nav item — mist at rest, navy on hover/active, 2px emerald focus ring.",
+      "html": "<button class=\"ds-nav-link is-active\">Features<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 9 12 15 18 9\"/></svg></button>",
+      "css": ".ds-nav-link { background: none; border: none; font-family: 'Inter', 'Roboto', Helvetica, Arial, sans-serif; font-size: 0.875rem; font-weight: 600; color: #5B6672; cursor: pointer; padding: 16px 0; display: flex; align-items: center; gap: 4px; transition: color 0.15s ease; } .ds-nav-link:hover { color: #0F4C81; } .ds-nav-link.is-active { color: #0F4C81; } .ds-nav-link:focus-visible { outline: 2px solid #10B981; outline-offset: 4px; border-radius: 8px; }"
+    },
+    {
+      "name": "Capability Row",
+      "kind": "custom",
+      "refersTo": "cap-row",
+      "description": "The capability-index line — keyboard-reachable, hairline-ruled, arrow slides 4px to emerald-deep on hover.",
+      "html": "<div class=\"ds-cap-row\" tabindex=\"0\" role=\"link\"><div><p class=\"ds-cap-name\">Rota planner</p><p class=\"ds-cap-desc\">Build rotas on a week grid, with safe-staffing rules.</p></div><svg class=\"ds-cap-arrow\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#5B6672\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/><polyline points=\"12 5 19 12 12 19\"/></svg></div>",
+      "css": ".ds-cap-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 0; border-bottom: 1px solid #E7E1D6; cursor: pointer; font-family: 'Inter', 'Roboto', Helvetica, Arial, sans-serif; } .ds-cap-name { font-weight: 700; font-size: 0.98rem; color: #1B2430; margin: 0 0 4px; transition: color 0.15s ease; } .ds-cap-desc { font-size: 0.88rem; color: #5B6672; line-height: 1.55; margin: 0; } .ds-cap-arrow { transition: transform 0.15s ease, color 0.15s ease; } .ds-cap-row:hover .ds-cap-name { color: #0F4C81; } .ds-cap-row:hover .ds-cap-arrow { transform: translateX(4px); color: #047857; } .ds-cap-row:focus-visible { outline: 2px solid #10B981; outline-offset: -2px; }"
+    },
+    {
+      "name": "Framed Product Window",
+      "kind": "custom",
+      "refersTo": "framed-window",
+      "description": "The signature silhouette — 24px-cornered window with chrome bar, mock tabs, pulsing Live dot, seated by a deep ink shadow.",
+      "html": "<div class=\"ds-window\"><div class=\"ds-window-chrome\"><div class=\"ds-window-brand\"><span class=\"ds-window-mark\"></span><span class=\"ds-window-title\">MeticleCare</span></div><div class=\"ds-window-tabs\"><span class=\"ds-window-tab is-active\">Rota</span><span class=\"ds-window-tab\">eMAR</span><span class=\"ds-window-tab\">Compliance</span></div><div class=\"ds-window-live\"><span class=\"ds-window-dot\"></span><span class=\"ds-window-livetext\">Live</span></div></div><div class=\"ds-window-img\"></div></div>",
+      "css": ".ds-window { border-radius: 24px; overflow: hidden; border: 1px solid #E0D9CA; background: #FFFFFF; box-shadow: 0 32px 64px -28px rgba(20, 32, 45, 0.4); font-family: 'Inter', 'Roboto', Helvetica, Arial, sans-serif; } .ds-window-chrome { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #F0EBE1; background: #FCFAF6; } .ds-window-brand { display: flex; align-items: center; gap: 10px; } .ds-window-mark { width: 10px; height: 10px; border-radius: 8px; background: #0F4C81; flex-shrink: 0; } .ds-window-title { font-weight: 800; font-size: 0.85rem; color: #1B2430; } .ds-window-tabs { display: flex; gap: 24px; } .ds-window-tab { font-size: 0.72rem; font-weight: 700; color: #5B6672; padding-bottom: 4px; } .ds-window-tab.is-active { color: #0F4C81; border-bottom: 2px solid #10B981; } .ds-window-live { display: flex; align-items: center; gap: 8px; } .ds-window-dot { width: 8px; height: 8px; border-radius: 50%; background: #10B981; animation: ds-pulse 2.4s ease-in-out infinite; } .ds-window-livetext { font-size: 0.7rem; color: #5B6672; font-weight: 600; } @keyframes ds-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } } @media (prefers-reduced-motion: reduce) { .ds-window-dot { animation: none; } } .ds-window-img { display: block; width: 100%; height: auto; min-height: 160px; background: #E7EEF4; }"
+    },
+    {
+      "name": "Care-Note Toast",
+      "kind": "custom",
+      "refersTo": "toast",
+      "description": "The floating confirmation toast over the hero window — emerald badge, ink title, mist sub-line.",
+      "html": "<div class=\"ds-toast\"><div class=\"ds-toast-badge\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg></div><div><p class=\"ds-toast-title\">Care note recorded</p><p class=\"ds-toast-sub\">Saved to today's daily record</p></div></div>",
+      "css": ".ds-toast { display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 1px solid #E7E1D6; border-radius: 16px; box-shadow: 0 20px 44px -20px rgba(20, 32, 45, 0.45); padding: 10px 14px; font-family: 'Inter', 'Roboto', Helvetica, Arial, sans-serif; } .ds-toast-badge { width: 22px; height: 22px; border-radius: 50%; background: #10B981; display: flex; align-items: center; justify-content: center; flex-shrink: 0; } .ds-toast-title { font-weight: 800; font-size: 0.78rem; color: #1B2430; line-height: 1.2; margin: 0; } .ds-toast-sub { font-size: 0.7rem; color: #5B6672; line-height: 1.3; margin: 0; }"
+    },
+    {
+      "name": "Eyebrow Label",
+      "kind": "chip",
+      "refersTo": "eyebrow-label",
+      "description": "Section/category eyebrow — 10px emerald square plus uppercase navy label at 0.08em tracking.",
+      "html": "<div class=\"ds-eyebrow\"><span class=\"ds-eyebrow-dot\"></span><p class=\"ds-eyebrow-text\">Care &amp; medication</p></div>",
+      "css": ".ds-eyebrow { display: flex; align-items: center; gap: 12px; font-family: 'Inter', 'Roboto', Helvetica, Arial, sans-serif; } .ds-eyebrow-dot { width: 10px; height: 10px; border-radius: 8px; background: #10B981; flex-shrink: 0; } .ds-eyebrow-text { font-weight: 800; color: #0F4C81; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.8rem; margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Editorial Care Console",
+    "overview": "MeticleCare is a connected care-management platform for UK supported living and domiciliary care providers, and its marketing surface is built as an honest, editorial operations desk rather than a SaaS product page. The world refuses the metric-stacked, icon-card SaaS default and the floating-dashboard hero: there are no stat badges, no icon grids, no product screenshots drifting on gradients. Instead the dashboard is seated — framed in a window with a chrome bar and a warm card beneath it, on a bone ground, like a photograph on a desk.\n\nThe palette is a strict two-key system: deep navy #0F4C81 carries identity and authority, a single emerald #10B981 is the only accent, and everything else lives on the warm side — bone #F7F4EE grounds, white alternating bands, charcoal ink #1B2430 text, and hairline #E7E1D6 editorial rules. Typography is Inter across all nine weights (400-900), set tight: hero headlines at weight 900 with -0.03em tracking, section heads at 800 with -0.025em, secondary copy in mist #5B6672 at relaxed 1.55-1.75 line heights. Depth is carried almost entirely by a small vocabulary of deep ink shadows (rgba(20, 32, 45, ...)) that seat framed product windows and floating toasts; surfaces are otherwise flat.\n\nMotion is deliberately quiet. The page authors exactly one entrance — the hero visual column rises 24px and fades in over 0.9s — and a single persistent life cue, a pulsing 'Live' dot in the window chrome. Everything else is hover-state micro-motion. Under prefers-reduced-motion: reduce, the entrance is skipped entirely (content is rendered instantly) and the pulse animation is disabled. The whole surface alternates warm bone and white bands in a fixed rhythm, separated by hairlines, telling one story: a care manager believes the entire working day — rota, medication, notes, compliance — can run from one honest, connected platform, and acts to start a trial.",
+    "keyCharacteristics": [
+      "Strict two-key color system: navy identity + single emerald accent; everything else warm neutral.",
+      "Warm bone/white alternating section bands with editorial 1px hairlines.",
+      "Product UI is always framed — never floating, never on gradients.",
+      "One authored entrance per viewport; reduced-motion skips it entirely.",
+      "Inter across 400-900; tight tracking on display heads (-0.03em/-0.025em).",
+      "Charcoal ink text on warm grounds; mist secondary copy; opacity layering only on dark navy/ink bands.",
+      "Keyboard reachable everywhere: nav, mega-menu links, capability rows all handle Enter/Space with a 2px emerald focus-visible ring."
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Emerald #10B981 appears only as small marks — square dots, 2px rules, the live dot, the focus ring. It never fills a section band and never sets paragraph text. Its rarity is the point.", "section": "colors" },
+      { "name": "The Two-Key Rule", "body": "Navy is the identity, emerald the accent, and everything else is warm neutral. No third hue enters the system anywhere in the landing build.", "section": "colors" },
+      { "name": "The Inter-Only Rule", "body": "No second typeface anywhere in the marketing build. Hierarchy comes from weight (400-900), tracking, size, and case — never a face change.", "section": "typography" },
+      { "name": "The Tight-Head Rule", "body": "Every display and headline sits at negative tracking (-0.02em to -0.03em) with a max width. Never re-expand a headline to fill a column.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. Shadows are reserved for objects meant to float or seat (windows, toasts, menus) and are never used for hover feedback on cards or rows.", "section": "elevation" },
+      { "name": "The Framed Window Rule", "body": "Product imagery always carries the window silhouette: 24px corners, a 1px #E0D9CA frame, a chrome title bar (#FCFAF6, hairline #F0EBE1 bottom) and, in the hero, a pulsing Live dot and overlay toast. No product screenshot ever sits flat on the page un-framed.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do keep every product screenshot inside a framed window (24px corners, 1px #E0D9CA, chrome bar, deep ink shadow) — never flat, never on a gradient.",
+      "Do reserve emerald #10B981 for small marks, 2px rules, the live dot, and the focus ring; let navy #0F4C81 carry identity.",
+      "Do alternate section bands Bone #F7F4EE and White, and separate stacked rows with 1px #E7E1D6 hairlines.",
+      "Do set display heads at 900/800 with negative tracking and a maxWidth (520-720px); set secondary copy in mist #5B6672 at relaxed line heights.",
+      "Do author a single page entrance, skip it under prefers-reduced-motion, and keep all other motion as hover micro-states.",
+      "Do keep buttons shadow-free at rest and hover, squared at 8px, and padded on the 8px spacing grid."
+    ],
+    "donts": [
+      "Don't add a third hue — no teal, no purple, no red accents on the marketing surface. Two keys only.",
+      "Don't float product imagery, and don't use stat badges or icon-card grids in the hero.",
+      "Don't re-expand headlines to fill columns; tight tracking and a max width are the voice.",
+      "Don't lift cards with hover shadows; change ink/border color and let the arrow slide 4px instead.",
+      "Don't use a second typeface — Inter at 400-900 is the entire scale."
+    ]
+  }
+}

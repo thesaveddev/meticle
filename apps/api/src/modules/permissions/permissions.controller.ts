@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import pool from '../../shared/database';
+import { query, transaction, migrateQuery } from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 
 const MODULES = [
@@ -32,10 +32,10 @@ export class PermissionsController {
       throw new AppError(403, 'You can only view your own permissions');
     }
 
-    const user = await pool.query('SELECT * FROM users WHERE id = $1 AND organization_id = $2', [userId, orgId]);
+    const user = await query('SELECT * FROM users WHERE id = $1 AND organization_id = $2', [userId, orgId]);
     if (user.rows.length === 0) throw new AppError(404, 'User not found');
 
-    const result = await pool.query(
+    const result = await query(
       'SELECT module, permission_level FROM user_permissions WHERE user_id = $1',
       [userId]
     );
@@ -61,12 +61,10 @@ export class PermissionsController {
       throw new AppError(403, 'Only admins and managers can update permissions');
     }
 
-    const user = await pool.query('SELECT * FROM users WHERE id = $1 AND organization_id = $2', [userId, orgId]);
+    const user = await query('SELECT * FROM users WHERE id = $1 AND organization_id = $2', [userId, orgId]);
     if (user.rows.length === 0) throw new AppError(404, 'User not found');
 
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
+    await transaction(async (client) => {
       await client.query('DELETE FROM user_permissions WHERE user_id = $1', [userId]);
       for (const perm of permissions) {
         await client.query(
@@ -74,13 +72,7 @@ export class PermissionsController {
           [userId, perm.module, perm.permission_level]
         );
       }
-      await client.query('COMMIT');
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
-    }
+    });
 
     res.json({ message: 'Permissions updated' });
   }
@@ -93,20 +85,14 @@ export class PermissionsController {
     const defaults = ROLE_DEFAULTS[role] || {};
     const entries = Object.entries(defaults).filter(([, level]) => level !== 'none');
     if (entries.length === 0) return;
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const [module, level] of entries) {
-        await client.query(
-          'INSERT INTO user_permissions (user_id, module, permission_level) VALUES ($1, $2, $3) ON CONFLICT (user_id, module) DO NOTHING',
-          [userId, module, level]
-        );
-      }
-      await client.query('COMMIT');
-    } catch {
-      await client.query('ROLLBACK');
-    } finally {
-      client.release();
+    // Runs via the superuser pool: it is invoked from public auth routes (no RLS
+    // session context) and from staff creation. The userId is always scoped to an
+    // organization the caller already controls, so RLS bypass is safe here.
+    for (const [module, level] of entries) {
+      await migrateQuery(
+        'INSERT INTO user_permissions (user_id, module, permission_level) VALUES ($1, $2, $3) ON CONFLICT (user_id, module) DO NOTHING',
+        [userId, module, level]
+      );
     }
   }
 }

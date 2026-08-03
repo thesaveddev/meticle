@@ -24,8 +24,8 @@ router.post('/results', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), async
 router.get('/results/:resultId', asyncHandler(OutcomesController.getResult));
 router.delete('/results/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(OutcomesController.deleteResult));
 
-router.get('/service-user/:serviceUserId/summary', asyncHandler(OutcomesController.getServiceUserSummary));
-router.get('/service-user/:serviceUserId/trend', asyncHandler(OutcomesController.getServiceUserTrend));
+router.get('/person/:personId/summary', asyncHandler(OutcomesController.getPersonSummary));
+router.get('/person/:personId/trend', asyncHandler(OutcomesController.getPersonTrend));
 router.get('/org/summary', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(OutcomesController.getOrgSummary));
 
 export default router;

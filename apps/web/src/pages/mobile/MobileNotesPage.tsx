@@ -8,16 +8,16 @@ export default function MobileNotesPage() {
   const qc = useQueryClient()
   const [recording, setRecording] = useState(false)
   const [transcript, setTranscript] = useState('')
-  const [serviceUserId, setServiceUserId] = useState('')
+  const [personId, setPersonId] = useState('')
   const [shift, setShift] = useState<'day' | 'night'>('day')
   const [category, setCategory] = useState('wellbeing')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   const recognitionRef = useRef<any>(null)
 
-  const { data: serviceUsers } = useQuery({
+  const { data: people } = useQuery({
     queryKey: ['mobile-su'],
-    queryFn: () => api.get('/service-users?status=active').then(r => r.data),
+    queryFn: () => api.get('/people?status=active').then(r => r.data),
   })
 
   const saveNoteMutation = useMutation({
@@ -52,9 +52,9 @@ export default function MobileNotesPage() {
   }
 
   const saveNote = () => {
-    if (!transcript.trim() || !serviceUserId) { setError('Please speak a note and select a person'); return }
+    if (!transcript.trim() || !personId) { setError('Please speak a note and select a person'); return }
     saveNoteMutation.mutate({
-      service_user_id: serviceUserId,
+      person_id: personId,
       content: transcript.trim(),
       shift, category,
       note_date: new Date().toISOString().split('T')[0],
@@ -72,9 +72,9 @@ export default function MobileNotesPage() {
       {sent && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>Note saved!</Alert>}
 
       <Stack spacing={2}>
-        <Autocomplete options={serviceUsers || []} getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}${o.room_number ? ` (${o.room_number})` : ''}`}
-          value={serviceUsers?.find((s: any) => s.id === serviceUserId) || null}
-          onChange={(_, v) => setServiceUserId(v?.id || '')}
+        <Autocomplete options={people || []} getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}${o.room_number ? ` (${o.room_number})` : ''}`}
+          value={people?.find((s: any) => s.id === personId) || null}
+          onChange={(_, v) => setPersonId(v?.id || '')}
           renderInput={p => <TextField {...p} label="Select Person" size="small" />} />
 
         <Stack direction="row" spacing={1}>
@@ -112,7 +112,7 @@ export default function MobileNotesPage() {
             </Button>
           )}
           <Button variant="contained" startIcon={<SendIcon />} onClick={saveNote}
-            disabled={!transcript.trim() || !serviceUserId || saveNoteMutation.isPending}
+            disabled={!transcript.trim() || !personId || saveNoteMutation.isPending}
             sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 3, px: 3 }}>
             {saveNoteMutation.isPending ? <CircularProgress size={20} /> : 'Save'}
           </Button>

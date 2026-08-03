@@ -193,8 +193,8 @@ export function leaveOverviewCsv(data: any): string {
 }
 
 // --- Person Roster ---
-export function buildServiceUserRosterHtml(data: any, orgName = 'Meticle'): string {
-  const rows = (data.service_users || []).map((su: any) => [
+export function buildPersonRosterHtml(data: any, orgName = 'Meticle'): string {
+  const rows = (data.people || []).map((su: any) => [
     `${esc(su.first_name)} ${esc(su.last_name)}`,
     esc(su.location_name || '-'),
     statusBadge(su.status || 'active'),
@@ -202,12 +202,12 @@ export function buildServiceUserRosterHtml(data: any, orgName = 'Meticle'): stri
     `${esc(su.key_worker_first || '')} ${esc(su.key_worker_last || '')}`.trim() || '-',
     esc(su.care_level || '-'),
   ])
-  const active = (data.service_users || []).filter((s: any) => s.status === 'active').length
+  const active = (data.people || []).filter((s: any) => s.status === 'active').length
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${buildReportStyles()}</style></head><body>
     ${coverPage('Person Roster', orgName, 'Active people by location with status overview')}
     <h1>People Summary</h1>
     <div class="summary-grid">
-      <div class="summary-card"><div class="num">${data.service_users?.length || 0}</div><div class="label">Total</div></div>
+      <div class="summary-card"><div class="num">${data.people?.length || 0}</div><div class="label">Total</div></div>
       <div class="summary-card"><div class="num">${active}</div><div class="label">Active</div></div>
     </div>
     <h2>People (${rows.length})</h2>
@@ -216,9 +216,9 @@ export function buildServiceUserRosterHtml(data: any, orgName = 'Meticle'): stri
   </body></html>`
 }
 
-export function serviceUserRosterCsv(data: any): string {
+export function personRosterCsv(data: any): string {
   const headers = ['Name', 'Location', 'Status', 'Start Date', 'Key Worker', 'Care Level']
-  const rows = (data.service_users || []).map((su: any) => [
+  const rows = (data.people || []).map((su: any) => [
     `${su.first_name} ${su.last_name}`,
     su.location_name || '',
     su.status || '',
@@ -270,8 +270,8 @@ export function medicationAdminCsv(data: any): string {
 }
 
 // --- Person Outcomes ---
-export function buildServiceUserOutcomesHtml(data: any, orgName = 'Meticle'): string {
-  const rows = (data.service_users || []).map((su: any) => [
+export function buildPersonOutcomesHtml(data: any, orgName = 'Meticle'): string {
+  const rows = (data.people || []).map((su: any) => [
     `${esc(su.first_name)} ${esc(su.last_name)}`,
     String(su.total_goals ?? 0),
     `${su.completed_goals ?? 0}/${su.total_goals ?? 0}`,
@@ -283,9 +283,9 @@ export function buildServiceUserOutcomesHtml(data: any, orgName = 'Meticle'): st
     ${coverPage('Person Outcomes', orgName, 'Goal progress, wellbeing scores, and outcome scale assessments per person')}
     <h1>Outcomes Summary</h1>
     <div class="summary-grid">
-      <div class="summary-card"><div class="num">${data.service_users?.length || 0}</div><div class="label">People</div></div>
-      <div class="summary-card"><div class="num">${(data.service_users || []).reduce((s: number, u: any) => s + (u.total_goals || 0), 0)}</div><div class="label">Total Goals</div></div>
-      <div class="summary-card"><div class="num">${(data.service_users || []).reduce((s: number, u: any) => s + (u.completed_goals || 0), 0)}</div><div class="label">Goals Completed</div></div>
+      <div class="summary-card"><div class="num">${data.people?.length || 0}</div><div class="label">People</div></div>
+      <div class="summary-card"><div class="num">${(data.people || []).reduce((s: number, u: any) => s + (u.total_goals || 0), 0)}</div><div class="label">Total Goals</div></div>
+      <div class="summary-card"><div class="num">${(data.people || []).reduce((s: number, u: any) => s + (u.completed_goals || 0), 0)}</div><div class="label">Goals Completed</div></div>
     </div>
     <h2>Person Outcomes (${rows.length})</h2>
     ${rows.length ? table(['Name', 'Total Goals', 'Completed', 'Avg Progress', 'Avg Wellbeing', 'Scale Assessments'], rows) : '<p>No people.</p>'}
@@ -293,9 +293,9 @@ export function buildServiceUserOutcomesHtml(data: any, orgName = 'Meticle'): st
   </body></html>`
 }
 
-export function serviceUserOutcomesCsv(data: any): string {
+export function personOutcomesCsv(data: any): string {
   const headers = ['Name', 'Total Goals', 'Completed', 'Avg Progress', 'Avg Wellbeing', 'Scale Assessments']
-  const rows = (data.service_users || []).map((su: any) => [
+  const rows = (data.people || []).map((su: any) => [
     `${su.first_name} ${su.last_name}`,
     String(su.total_goals ?? 0),
     `${su.completed_goals ?? 0}/${su.total_goals ?? 0}`,
@@ -364,8 +364,8 @@ export const reportBuilders: Record<string, { html: HtmlBuilder; csv: CsvBuilder
   'training-matrix': { html: buildTrainingMatrixHtml, csv: trainingMatrixCsv },
   'incident-log': { html: buildIncidentLogHtml, csv: incidentLogCsv },
   'leave-overview': { html: buildLeaveOverviewHtml, csv: leaveOverviewCsv },
-  'service-user-roster': { html: buildServiceUserRosterHtml, csv: serviceUserRosterCsv },
+  'person-roster': { html: buildPersonRosterHtml, csv: personRosterCsv },
   'medication-admin': { html: buildMedicationAdminHtml, csv: medicationAdminCsv },
-  'service-user-outcomes': { html: buildServiceUserOutcomesHtml, csv: serviceUserOutcomesCsv },
+  'person-outcomes': { html: buildPersonOutcomesHtml, csv: personOutcomesCsv },
   'org-outcomes-summary': { html: buildOrgOutcomesSummaryHtml, csv: orgOutcomesSummaryCsv },
 }

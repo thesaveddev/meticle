@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import pool, { query, migrateQuery, migratePool } from './index';
+import pool, { query, migrateQuery, migratePool, resetRlsSessionVars } from './index';
 import { v4 as uuidv4 } from 'uuid';
 import { hashPassword } from '../../modules/auth/password.util';
 import { PoolClient } from 'pg';
@@ -12,8 +12,8 @@ const userIdA = uuidv4();
 const userIdB = uuidv4();
 const staffProfileIdA = uuidv4();
 const staffProfileIdB = uuidv4();
-const serviceUserIdA = uuidv4();
-const serviceUserIdB = uuidv4();
+const personIdA = uuidv4();
+const personIdB = uuidv4();
 const locationIdA = uuidv4();
 const locationIdB = uuidv4();
 
@@ -47,9 +47,9 @@ async function setupStaffProfile(id: string, userId: string) {
   );
 }
 
-async function setupServiceUser(id: string, orgId: string, firstName: string) {
+async function setupPerson(id: string, orgId: string, firstName: string) {
   await migrateQuery(
-    `INSERT INTO service_users (id, organization_id, first_name, last_name, date_of_birth, status)
+    `INSERT INTO people (id, organization_id, first_name, last_name, date_of_birth, status)
      VALUES ($1, $2, $3, 'TestUser', '1990-01-01', 'active')
      ON CONFLICT (id) DO NOTHING`,
     [id, orgId, firstName]
@@ -116,8 +116,8 @@ beforeAll(async () => {
   await setupUser(userIdB, orgBId, `rls-b-${orgBId.slice(0, 8)}@test.com`);
   await setupStaffProfile(staffProfileIdA, userIdA);
   await setupStaffProfile(staffProfileIdB, userIdB);
-  await setupServiceUser(serviceUserIdA, orgAId, 'ServiceA');
-  await setupServiceUser(serviceUserIdB, orgBId, 'ServiceB');
+  await setupPerson(personIdA, orgAId, 'ServiceA');
+  await setupPerson(personIdB, orgBId, 'ServiceB');
   await setupLocation(locationIdA, orgAId, 'Location A');
   await setupLocation(locationIdB, orgBId, 'Location B');
 }, 30_000);
@@ -138,9 +138,9 @@ afterAll(async () => {
   for (const table of tables) {
     try { await migrateQuery(`DELETE FROM ${table}`); } catch { /* skip */ }
   }
-  // Delete service_users, staff_profiles, locations by org ID
+  // Delete people, staff_profiles, locations by org ID
   for (const orgId of [orgAId, orgBId]) {
-    try { await migrateQuery(`DELETE FROM service_users WHERE organization_id = $1`, [orgId]); } catch { /* skip */ }
+    try { await migrateQuery(`DELETE FROM people WHERE organization_id = $1`, [orgId]); } catch { /* skip */ }
     try { await migrateQuery(`DELETE FROM locations WHERE organization_id = $1`, [orgId]); } catch { /* skip */ }
   }
   try { await migrateQuery(`DELETE FROM staff_profiles WHERE user_id IN ($1, $2)`, [userIdA, userIdB]); } catch { /* skip */ }
@@ -159,7 +159,7 @@ describe('RLS — Policy existence verification', () => {
     const tables = result.rows.map((r: any) => r.tablename);
     const expected = [
       'users', 'locations', 'teams', 'departments',
-      'service_users', 'staff_profiles',
+      'people', 'staff_profiles',
       'incidents', 'tasks', 'policies', 'appointments',
       'qualifications', 'skills', 'emergency_contacts', 'staff_availability',
       'health_observations', 'bowel_movements', 'dental_records', 'fluid_intake',
@@ -186,7 +186,7 @@ describe('RLS — Policy existence verification', () => {
         AND c.relrowsecurity = true
         AND c.relforcerowsecurity = true
         AND c.relname IN (
-          'users', 'tasks', 'policies', 'incidents', 'service_users',
+          'users', 'tasks', 'policies', 'incidents', 'people',
           'locations', 'qualifications', 'skills', 'emergency_contacts',
           'health_observations', 'bowel_movements', 'dental_records', 'fluid_intake'
         )
@@ -196,7 +196,7 @@ describe('RLS — Policy existence verification', () => {
     expect(forced).toContain('users');
     expect(forced).toContain('tasks');
     expect(forced).toContain('policies');
-    expect(forced).toContain('service_users');
+    expect(forced).toContain('people');
     expect(forced).toContain('health_observations');
   });
 });
@@ -229,14 +229,14 @@ describe('RLS — Cross-org isolation', () => {
     });
   });
 
-  describe('service_users table', () => {
-    it('should only return service users from the current org', async () => {
+  describe('people table', () => {
+    it('should only return people from the current org', async () => {
       const client = await getRlsClient(orgAId, userIdA);
       try {
-        const result = await client.query('SELECT id FROM service_users');
+        const result = await client.query('SELECT id FROM people');
         const ids = result.rows.map((r: any) => r.id);
-        expect(ids).toContain(serviceUserIdA);
-        expect(ids).not.toContain(serviceUserIdB);
+        expect(ids).toContain(personIdA);
+        expect(ids).not.toContain(personIdB);
       } finally {
         await releaseClient(client);
       }
@@ -334,10 +334,10 @@ describe('RLS — Cross-org isolation', () => {
     });
   });
 
-  describe('health_observations (FK traversal via service_users)', () => {
+  describe('health_observations (FK traversal via people)', () => {
     beforeAll(async () => {
-      await migrateQuery(`INSERT INTO health_observations (id, service_user_id, category, notes, severity) VALUES ($1, $2, 'general', 'Org A observation', 'normal') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
-      await migrateQuery(`INSERT INTO health_observations (id, service_user_id, category, notes, severity) VALUES ($1, $2, 'pain', 'Org B observation', 'mild') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
+      await migrateQuery(`INSERT INTO health_observations (id, person_id, category, notes, severity) VALUES ($1, $2, 'general', 'Org A observation', 'normal') ON CONFLICT (id) DO NOTHING`, [uuidv4(), personIdA]);
+      await migrateQuery(`INSERT INTO health_observations (id, person_id, category, notes, severity) VALUES ($1, $2, 'pain', 'Org B observation', 'mild') ON CONFLICT (id) DO NOTHING`, [uuidv4(), personIdB]);
     });
 
     it('should only return health observations from the current org', async () => {
@@ -353,10 +353,10 @@ describe('RLS — Cross-org isolation', () => {
     });
   });
 
-  describe('bowel_movements (FK traversal via service_users)', () => {
+  describe('bowel_movements (FK traversal via people)', () => {
     beforeAll(async () => {
-      await migrateQuery(`INSERT INTO bowel_movements (id, service_user_id, bristol_type, notes) VALUES ($1, $2, 4, 'Org A bowel') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
-      await migrateQuery(`INSERT INTO bowel_movements (id, service_user_id, bristol_type, notes) VALUES ($1, $2, 6, 'Org B bowel') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
+      await migrateQuery(`INSERT INTO bowel_movements (id, person_id, bristol_type, notes) VALUES ($1, $2, 4, 'Org A bowel') ON CONFLICT (id) DO NOTHING`, [uuidv4(), personIdA]);
+      await migrateQuery(`INSERT INTO bowel_movements (id, person_id, bristol_type, notes) VALUES ($1, $2, 6, 'Org B bowel') ON CONFLICT (id) DO NOTHING`, [uuidv4(), personIdB]);
     });
 
     it('should only return bowel movements from the current org', async () => {
@@ -372,10 +372,10 @@ describe('RLS — Cross-org isolation', () => {
     });
   });
 
-  describe('dental_records (FK traversal via service_users)', () => {
+  describe('dental_records (FK traversal via people)', () => {
     beforeAll(async () => {
-      await migrateQuery(`INSERT INTO dental_records (id, service_user_id, checkup_date, findings) VALUES ($1, $2, '2025-01-01', 'Org A dental') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
-      await migrateQuery(`INSERT INTO dental_records (id, service_user_id, checkup_date, findings) VALUES ($1, $2, '2025-06-01', 'Org B dental') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
+      await migrateQuery(`INSERT INTO dental_records (id, person_id, checkup_date, findings) VALUES ($1, $2, '2025-01-01', 'Org A dental') ON CONFLICT (id) DO NOTHING`, [uuidv4(), personIdA]);
+      await migrateQuery(`INSERT INTO dental_records (id, person_id, checkup_date, findings) VALUES ($1, $2, '2025-06-01', 'Org B dental') ON CONFLICT (id) DO NOTHING`, [uuidv4(), personIdB]);
     });
 
     it('should only return dental records from the current org', async () => {
@@ -391,10 +391,10 @@ describe('RLS — Cross-org isolation', () => {
     });
   });
 
-  describe('fluid_intake (FK traversal via service_users)', () => {
+  describe('fluid_intake (FK traversal via people)', () => {
     beforeAll(async () => {
-      await migrateQuery(`INSERT INTO fluid_intake (id, service_user_id, amount_ml, fluid_type, notes) VALUES ($1, $2, 250, 'Water', 'Org A fluid') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdA]);
-      await migrateQuery(`INSERT INTO fluid_intake (id, service_user_id, amount_ml, fluid_type, notes) VALUES ($1, $2, 150, 'Tea', 'Org B fluid') ON CONFLICT (id) DO NOTHING`, [uuidv4(), serviceUserIdB]);
+      await migrateQuery(`INSERT INTO fluid_intake (id, person_id, amount_ml, fluid_type, notes) VALUES ($1, $2, 250, 'Water', 'Org A fluid') ON CONFLICT (id) DO NOTHING`, [uuidv4(), personIdA]);
+      await migrateQuery(`INSERT INTO fluid_intake (id, person_id, amount_ml, fluid_type, notes) VALUES ($1, $2, 150, 'Tea', 'Org B fluid') ON CONFLICT (id) DO NOTHING`, [uuidv4(), personIdB]);
     });
 
     it('should only return fluid intake from the current org', async () => {
@@ -545,15 +545,58 @@ describe('RLS — SUPER_ADMIN bypass', () => {
       expect(userIds).toContain(userIdA);
       expect(userIds).toContain(userIdB);
 
-      const suResult = await client.query('SELECT id FROM service_users');
+      const suResult = await client.query('SELECT id FROM people');
       const suIds = suResult.rows.map((r: any) => r.id);
-      expect(suIds).toContain(serviceUserIdA);
-      expect(suIds).toContain(serviceUserIdB);
+      expect(suIds).toContain(personIdA);
+      expect(suIds).toContain(personIdB);
 
       const locResult = await client.query('SELECT id FROM locations');
       const locIds = locResult.rows.map((r: any) => r.id);
       expect(locIds).toContain(locationIdA);
       expect(locIds).toContain(locationIdB);
+    } finally {
+      await releaseClient(client);
+    }
+  });
+});
+
+describe('RLS — Session-var reset (connection poisoning guard)', () => {
+  it('should clear RLS session vars when resetRlsSessionVars is called', async () => {
+    const client = await migratePool.connect();
+    try {
+      await client.query(`SELECT set_config('app.current_org_id', $1, false)`, [orgAId]);
+      await client.query(`SELECT set_config('app.current_user_id', $1, false)`, [userIdA]);
+      await client.query(`SELECT set_config('app.current_user_role', $1, false)`, ['MANAGER']);
+
+      await resetRlsSessionVars(client);
+
+      const org = await client.query(`SELECT current_setting('app.current_org_id', true) AS v`);
+      const uid = await client.query(`SELECT current_setting('app.current_user_id', true) AS v`);
+      const role = await client.query(`SELECT current_setting('app.current_user_role', true) AS v`);
+      expect(org.rows[0].v).toBe('');
+      expect(uid.rows[0].v).toBe('');
+      expect(role.rows[0].v).toBe('');
+    } finally {
+      await releaseClient(client);
+    }
+  });
+
+  it('should not leak the previous org context into a recycled connection', async () => {
+    // Simulates: a request sets org A vars, the client is released WITHOUT the
+    // reset guard, and the next request reuses it with no context set.
+    const client = await migratePool.connect();
+    try {
+      await client.query(`SELECT set_config('app.current_org_id', $1, false)`, [orgAId]);
+      await client.query(`SELECT set_config('app.current_user_id', $1, false)`, [userIdA]);
+      await client.query(`SELECT set_config('app.current_user_role', $1, false)`, ['MANAGER']);
+
+      await resetRlsSessionVars(client);
+      await client.query(`SET ROLE TO ${TEST_ROLE}`);
+
+      // With the guard, the recycled connection has no org context → RLS blocks
+      // everything. Without the guard it would return org A's users.
+      const result = await client.query('SELECT id FROM users');
+      expect(result.rows.length).toBe(0);
     } finally {
       await releaseClient(client);
     }

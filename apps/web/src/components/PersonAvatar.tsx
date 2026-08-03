@@ -6,7 +6,7 @@ interface Props extends AvatarProps {
   name?: string | null
 }
 
-export default function ServiceUserAvatar({ photoUrl, name, children, ...rest }: Props) {
+export default function PersonAvatar({ photoUrl, name, children, ...rest }: Props) {
   const [src, setSrc] = useState<string | null>(null)
 
   useEffect(() => {

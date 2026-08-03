@@ -17,8 +17,8 @@ export default function SatisfactionSurveysPage() {
   const [search, setSearch] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [form, setForm] = useState({ service_user_id: '', respondent_name: '', relationship: '', rating: 5, comments: '' })
-  const [inviteForm, setInviteForm] = useState({ email: '', recipient_type: 'email', staff_id: '', service_user_id: '', service_user_name: '' })
+  const [form, setForm] = useState({ person_id: '', respondent_name: '', relationship: '', rating: 5, comments: '' })
+  const [inviteForm, setInviteForm] = useState({ email: '', recipient_type: 'email', staff_id: '', person_id: '', person_name: '' })
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [viewSurvey, setViewSurvey] = useState<any>(null)
   const [managerNote, setManagerNote] = useState('')
@@ -46,10 +46,10 @@ export default function SatisfactionSurveysPage() {
     }
   })
 
-  const { data: serviceUsers } = useQuery({
-    queryKey: ['service-users-survey'],
+  const { data: people } = useQuery({
+    queryKey: ['people-survey'],
     queryFn: async () => {
-      const res = await api.get('/service-users?status=active')
+      const res = await api.get('/people?status=active')
       return res.data as any[]
     }
   })
@@ -72,7 +72,7 @@ export default function SatisfactionSurveysPage() {
       queryClient.invalidateQueries({ queryKey: ['satisfaction-surveys'] })
       queryClient.invalidateQueries({ queryKey: ['satisfaction-aggregate'] })
       setOpen(false)
-      setForm({ service_user_id: '', respondent_name: '', relationship: '', rating: 5, comments: '' })
+      setForm({ person_id: '', respondent_name: '', relationship: '', rating: 5, comments: '' })
       setFeedback({ type: 'success', message: 'Feedback recorded successfully' })
     },
     onError: () => setFeedback({ type: 'error', message: 'Failed to record feedback' }),
@@ -83,14 +83,14 @@ export default function SatisfactionSurveysPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['satisfaction-surveys'] })
       setInviteOpen(false)
-      setInviteForm({ email: '', recipient_type: 'email', staff_id: '', service_user_id: '', service_user_name: '' })
+      setInviteForm({ email: '', recipient_type: 'email', staff_id: '', person_id: '', person_name: '' })
       setFeedback({ type: 'success', message: 'Survey invitation sent!' })
     },
     onError: () => setFeedback({ type: 'error', message: 'Failed to send invitation' }),
   })
 
   const handleSubmit = () => submitMutation.mutate({
-      service_user_id: form.service_user_id || undefined,
+      person_id: form.person_id || undefined,
     respondent_name: form.respondent_name || undefined,
     relationship: form.relationship || undefined,
     rating: form.rating,
@@ -103,8 +103,8 @@ export default function SatisfactionSurveysPage() {
       : inviteForm.email
     inviteMutation.mutate({
       email,
-      service_user_id: inviteForm.service_user_id || undefined,
-      service_user_name: inviteForm.service_user_name || undefined,
+      person_id: inviteForm.person_id || undefined,
+      person_name: inviteForm.person_name || undefined,
     })
   }
 
@@ -223,9 +223,9 @@ export default function SatisfactionSurveysPage() {
         <DialogTitle>Record Satisfaction Feedback</DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 2 }}>
-            <TextField select label="Person (optional)" value={form.service_user_id} onChange={e => setForm(p => ({ ...p, service_user_id: e.target.value }))} fullWidth size="small">
+            <TextField select label="Person (optional)" value={form.person_id} onChange={e => setForm(p => ({ ...p, person_id: e.target.value }))} fullWidth size="small">
               <MenuItem value="">— Not specific to a person —</MenuItem>
-              {(serviceUsers || []).map((su: any) => (
+              {(people || []).map((su: any) => (
                 <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>
               ))}
             </TextField>
@@ -276,12 +276,12 @@ export default function SatisfactionSurveysPage() {
                 ))}
               </TextField>
             )}
-            <TextField select label="Regarding Person (optional)" value={inviteForm.service_user_id} onChange={e => {
-              const sel = (serviceUsers || []).find((su: any) => su.id === e.target.value)
-              setInviteForm(p => ({ ...p, service_user_id: e.target.value, service_user_name: sel ? `${sel.first_name} ${sel.last_name}` : '' }))
+            <TextField select label="Regarding Person (optional)" value={inviteForm.person_id} onChange={e => {
+              const sel = (people || []).find((su: any) => su.id === e.target.value)
+              setInviteForm(p => ({ ...p, person_id: e.target.value, person_name: sel ? `${sel.first_name} ${sel.last_name}` : '' }))
             }} fullWidth size="small">
               <MenuItem value="">— Not specific to a person —</MenuItem>
-              {(serviceUsers || []).map((su: any) => (
+              {(people || []).map((su: any) => (
                 <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>
               ))}
             </TextField>

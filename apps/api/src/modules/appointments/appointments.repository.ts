@@ -3,7 +3,7 @@ import { query } from '../../shared/database';
 export interface AppointmentRow {
   id: string;
   organization_id: string;
-  service_user_id?: string;
+  person_id?: string;
   staff_id?: string;
   title: string;
   description?: string;
@@ -17,11 +17,11 @@ export interface AppointmentRow {
 }
 
 export class AppointmentRepository {
-  private static readonly APPOINTMENT_UPDATE_COLUMNS = new Set(['service_user_id', 'staff_id', 'title', 'description', 'start_time', 'end_time', 'status', 'location_id', 'created_by']);
+  private static readonly APPOINTMENT_UPDATE_COLUMNS = new Set(['person_id', 'staff_id', 'title', 'description', 'start_time', 'end_time', 'status', 'location_id', 'created_by']);
   static async findAll(orgId: string, date?: string) {
     let sql = `
       SELECT a.*,
-        (SELECT first_name || ' ' || last_name FROM service_users WHERE id = a.service_user_id) AS service_user_name,
+        (SELECT first_name || ' ' || last_name FROM people WHERE id = a.person_id) AS person_name,
         (SELECT first_name || ' ' || last_name FROM staff_profiles WHERE id = a.staff_id) AS staff_name,
         l.name AS location_name
       FROM appointments a
@@ -40,7 +40,7 @@ export class AppointmentRepository {
   static async findById(id: string, orgId: string) {
     const result = await query(`
       SELECT a.*,
-        (SELECT first_name || ' ' || last_name FROM service_users WHERE id = a.service_user_id) AS service_user_name,
+        (SELECT first_name || ' ' || last_name FROM people WHERE id = a.person_id) AS person_name,
         (SELECT first_name || ' ' || last_name FROM staff_profiles WHERE id = a.staff_id) AS staff_name,
         l.name AS location_name
       FROM appointments a
@@ -51,11 +51,11 @@ export class AppointmentRepository {
   }
 
   static async create(data: Partial<AppointmentRow>) {
-    const { organization_id, service_user_id, staff_id, title, description, start_time, end_time, status, location_id, created_by } = data;
+    const { organization_id, person_id, staff_id, title, description, start_time, end_time, status, location_id, created_by } = data;
     const result = await query(
-      `INSERT INTO appointments (organization_id, service_user_id, staff_id, title, description, start_time, end_time, status, location_id, created_by)
+      `INSERT INTO appointments (organization_id, person_id, staff_id, title, description, start_time, end_time, status, location_id, created_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-      [organization_id, service_user_id, staff_id, title, description, start_time, end_time, status || 'scheduled', location_id, created_by]
+      [organization_id, person_id, staff_id, title, description, start_time, end_time, status || 'scheduled', location_id, created_by]
     );
     return result.rows[0];
   }

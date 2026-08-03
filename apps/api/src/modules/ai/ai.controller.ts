@@ -260,7 +260,7 @@ export class AIController {
       return res.status(403).json({ error: { message: 'Rota Optimization is not enabled for your organization.' } });
     }
 
-    const { generatePeriod, locationName, minStaffPerDay, minDayStaff, minNightStaff, minSleepStaff, staffRoster, existingShifts, staffOnLeave, serviceUsers, staffingNeeds, contractedHours, mandatoryStartTimes, minEndTime, allSameEnd } = req.body;
+    const { generatePeriod, locationName, minStaffPerDay, minDayStaff, minNightStaff, minSleepStaff, staffRoster, existingShifts, staffOnLeave, people, staffingNeeds, contractedHours, mandatoryStartTimes, minEndTime, allSameEnd } = req.body;
     const { system, user } = renderPrompt('rota_generation', {
       generate_period: generatePeriod || 'This week',
       location_name: locationName || 'Unknown',
@@ -271,7 +271,7 @@ export class AIController {
       staff_roster: staffRoster || 'No data',
       existing_shifts: existingShifts || 'No existing shifts',
       staff_on_leave: staffOnLeave || 'None on leave',
-      service_users: serviceUsers || 'No people requiring care',
+      people: people || 'No people requiring care',
       staffing_needs: staffingNeeds || 'No staffing needs data',
       contracted_hours: contractedHours || 'No contracted hours data',
       mandatory_start_times: mandatoryStartTimes || '07:00, 10:00, 14:00, 21:00',
@@ -354,24 +354,24 @@ export class AIController {
       return res.status(403).json({ error: { message: 'Daily Note Generation is not enabled for your organization.' } });
     }
 
-    const { serviceUserId, staffInput, shift, noteDate } = req.body;
+    const { personId, staffInput, shift, noteDate } = req.body;
 
-    // Fetch service user context
+    // Fetch person context
     const pool = (await import('../../shared/database')).default;
     const suResult = await pool.query(
       `SELECT su.*, 
               json_agg(DISTINCT jsonb_build_object('title', cp.title, 'category', cp.category, 'description', cp.description)) FILTER (WHERE cp.id IS NOT NULL) as care_plans,
               json_agg(DISTINCT jsonb_build_object('title', sg.title, 'description', sg.description, 'status', sg.status, 'target_value', sg.target_value, 'value_unit', sg.value_unit)) FILTER (WHERE sg.id IS NOT NULL) as recent_goals
-       FROM service_users su
-       LEFT JOIN care_plans cp ON cp.service_user_id = su.id AND cp.status = 'active'
-       LEFT JOIN service_user_goals sg ON sg.service_user_id = su.id AND sg.status != 'completed'
+       FROM people su
+       LEFT JOIN care_plans cp ON cp.person_id = su.id AND cp.status = 'active'
+       LEFT JOIN person_goals sg ON sg.person_id = su.id AND sg.status != 'completed'
        WHERE su.id = $1 AND su.organization_id = $2
        GROUP BY su.id`,
-      [serviceUserId, orgId]
+      [personId, orgId]
     );
 
     if (suResult.rows.length === 0) {
-      return res.status(404).json({ error: { message: 'Service user not found' } });
+      return res.status(404).json({ error: { message: 'Person not found' } });
     }
 
     const su = suResult.rows[0];
@@ -379,9 +379,9 @@ export class AIController {
     // Fetch recent mood/baseline data
     const baselineResult = await pool.query(
       `SELECT content, category, note_date FROM daily_notes 
-       WHERE service_user_id = $1 AND note_date >= CURRENT_DATE - INTERVAL '7 days'
+       WHERE person_id = $1 AND note_date >= CURRENT_DATE - INTERVAL '7 days'
        ORDER BY note_date DESC LIMIT 5`,
-      [serviceUserId]
+      [personId]
     );
 
     const carePlans = (su.care_plans || []).filter((cp: any) => cp.title).map((cp: any) => 
@@ -397,7 +397,7 @@ export class AIController {
     ).join('\n') || 'No recent notes';
 
     const { system, user } = renderPrompt('daily_note_generation', {
-      service_user_name: `${su.first_name} ${su.last_name}`,
+      person_name: `${su.first_name} ${su.last_name}`,
       date_of_birth: su.date_of_birth || 'Unknown',
       room_number: su.room_number || 'N/A',
       allergies: Array.isArray(su.allergies) ? su.allergies.join(', ') || 'None known' : 'None known',
@@ -436,14 +436,14 @@ export class AIController {
           provider: provider.name,
           durationMs: Date.now() - start,
           createdBy: req.user?.userId,
-          requestData: { serviceUserId, shift, noteDate },
+          requestData: { personId, shift, noteDate },
           responseSummary: typeof parsed === 'object' ? `Risk: ${parsed.risk_level || 'unknown'}, Safeguarding flags: ${parsed.safeguarding_flags?.length || 0}` : result.content.slice(0, 200),
         });
       } catch { /* audit logging non-critical */ }
 
       res.json({ 
         result: parsed, 
-        serviceUser: { id: su.id, name: `${su.first_name} ${su.last_name}` },
+        person: { id: su.id, name: `${su.first_name} ${su.last_name}` },
         usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } 
       });
     } catch (err: any) {
@@ -469,12 +469,12 @@ export class AIController {
     if (!orgId || !userId) return res.status(400).json({ error: { message: 'Organization and user required' } });
 
     const pool = (await import('../../shared/database')).default;
-    const { serviceUserId, dailyNote, moodAnalysis, safeguardingFlags, carePlanUpdates, interventionsSuggested, riskLevel, followUpRequired, followUpDetails, linkedGoalId, noteDate } = req.body;
+    const { personId, dailyNote, moodAnalysis, safeguardingFlags, carePlanUpdates, interventionsSuggested, riskLevel, followUpRequired, followUpDetails, linkedGoalId, noteDate } = req.body;
 
-    // Verify service user belongs to org
-    const suCheck = await pool.query('SELECT id FROM service_users WHERE id = $1 AND organization_id = $2', [serviceUserId, orgId]);
+    // Verify person belongs to org
+    const suCheck = await pool.query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [personId, orgId]);
     if (suCheck.rows.length === 0) {
-      return res.status(404).json({ error: { message: 'Service user not found' } });
+      return res.status(404).json({ error: { message: 'Person not found' } });
     }
 
     const client = await pool.connect();
@@ -483,11 +483,11 @@ export class AIController {
 
       // 1. Insert the daily note with AI analysis metadata
       const noteResult = await client.query(
-        `INSERT INTO daily_notes (service_user_id, author_id, note_date, shift, category, content, support_level, generated_by_ai,
+        `INSERT INTO daily_notes (person_id, author_id, note_date, shift, category, content, support_level, generated_by_ai,
          ai_mood_analysis, ai_safeguarding_flags, ai_care_plan_updates, ai_interventions, ai_risk_level, ai_follow_up_required, ai_follow_up_details)
          VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
         [
-          serviceUserId, userId, noteDate || new Date().toISOString().split('T')[0],
+          personId, userId, noteDate || new Date().toISOString().split('T')[0],
           dailyNote.shift, dailyNote.category, dailyNote.content, dailyNote.support_level || null,
           moodAnalysis ? JSON.stringify(moodAnalysis) : null,
           safeguardingFlags && safeguardingFlags.length > 0 ? JSON.stringify(safeguardingFlags) : null,
@@ -560,7 +560,7 @@ export class AIController {
     const { noteId } = req.params;
 
     const noteResult = await pool.query(
-      'SELECT n.*, su.first_name, su.last_name FROM daily_notes n JOIN service_users su ON su.id = n.service_user_id WHERE n.id = $1 AND su.organization_id = $2',
+      'SELECT n.*, su.first_name, su.last_name FROM daily_notes n JOIN people su ON su.id = n.person_id WHERE n.id = $1 AND su.organization_id = $2',
       [noteId, orgId]
     );
     if (noteResult.rows.length === 0) {
@@ -579,24 +579,24 @@ export class AIController {
 
     const start = Date.now();
     try {
-      const serviceUserRes = await pool.query(
-        'SELECT first_name, last_name, date_of_birth, room_number FROM service_users WHERE id = $1',
-        [note.service_user_id]
+      const personRes = await pool.query(
+        'SELECT first_name, last_name, date_of_birth, room_number FROM people WHERE id = $1',
+        [note.person_id]
       );
-      const su = serviceUserRes.rows[0];
+      const su = personRes.rows[0];
 
       const carePlansRes = await pool.query(
-        'SELECT title, goals, interventions FROM care_plans WHERE service_user_id = $1 AND status = $2',
-        [note.service_user_id, 'active']
+        'SELECT title, goals, interventions FROM care_plans WHERE person_id = $1 AND status = $2',
+        [note.person_id, 'active']
       );
 
       const goalsRes = await pool.query(
-        'SELECT title, target_date, status FROM goals WHERE service_user_id = $1',
-        [note.service_user_id]
+        'SELECT title, target_date, status FROM goals WHERE person_id = $1',
+        [note.person_id]
       );
 
       const userPrompt = userTemplate
-        .replace('{{service_user_name}}', `${su.first_name} ${su.last_name}`)
+        .replace('{{person_name}}', `${su.first_name} ${su.last_name}`)
         .replace('{{date_of_birth}}', su.date_of_birth ? new Date(su.date_of_birth).toLocaleDateString('en-GB') : 'Unknown')
         .replace('{{room_number}}', su.room_number || 'Unknown')
         .replace('{{allergies}}', 'None on file')
@@ -658,7 +658,7 @@ export class AIController {
           provider: provider.name,
           durationMs: Date.now() - start,
           createdBy: req.user?.userId,
-          requestData: { noteId, serviceUserId: note.service_user_id },
+          requestData: { noteId, personId: note.person_id },
           responseSummary: `Risk: ${parsed.risk_level || 'unknown'}, Safeguarding flags: ${parsed.safeguarding_flags?.length || 0}`,
         });
       } catch { /* audit non-critical */ }

@@ -46,7 +46,7 @@ export default function ExpensesPage() {
     queryFn: async () => {
       const params = new URLSearchParams()
       if (filterCategory) params.set('category', filterCategory)
-      if (filterSu) params.set('serviceUserId', filterSu)
+      if (filterSu) params.set('personId', filterSu)
       const res = await api.get(`/expenses?${params}`)
       return res.data
     },
@@ -57,9 +57,9 @@ export default function ExpensesPage() {
     queryFn: async () => { const res = await api.get('/expenses/stats'); return res.data },
   })
 
-  const { data: serviceUsers } = useQuery({
-    queryKey: ['service-users-list'],
-    queryFn: async () => { const res = await api.get('/service-users?limit=200'); return res.data },
+  const { data: people } = useQuery({
+    queryKey: ['people-list'],
+    queryFn: async () => { const res = await api.get('/people?limit=200'); return res.data },
   })
 
   const { data: balances } = useQuery({
@@ -158,7 +158,7 @@ export default function ExpensesPage() {
               </TextField>
               <TextField select label="Person" size="small" value={filterSu} onChange={e => setFilterSu(e.target.value)} sx={{ minWidth: 200 }}>
                 <MenuItem value="">All</MenuItem>
-                {serviceUsers?.map((su: any) => <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>)}
+                {people?.map((su: any) => <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>)}
               </TextField>
             </Stack>
           </CardContent>
@@ -179,7 +179,7 @@ export default function ExpensesPage() {
                 {expenses.map((e: any) => (
                   <TableRow key={e.id}>
                     <TableCell>{fmtDate(e.incurred_date)}</TableCell>
-                    <TableCell>{e.service_user_name}</TableCell>
+                    <TableCell>{e.person_name}</TableCell>
                     <TableCell><Chip label={e.category} size="small" /></TableCell>
                     <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description || '—'}</TableCell>
                     <TableCell align="right">£{(e.amount_pence / 100).toFixed(2)}</TableCell>
@@ -251,14 +251,14 @@ export default function ExpensesPage() {
       {/* Create Expense Dialog */}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Add Expense</DialogTitle>
-        <ExpenseForm serviceUsers={serviceUsers} onSubmit={data => createMutation.mutate(data)} onCancel={() => setCreateOpen(false)} isLoading={createMutation.isPending} />
+        <ExpenseForm people={people} onSubmit={data => createMutation.mutate(data)} onCancel={() => setCreateOpen(false)} isLoading={createMutation.isPending} />
       </Dialog>
 
       {/* Edit Expense Dialog */}
       <Dialog open={editOpen} onClose={() => { setEditOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
         <DialogTitle>Edit Expense</DialogTitle>
         {editId && <ExpenseForm
-          serviceUsers={serviceUsers}
+          people={people}
           initialData={expenses?.find((e: any) => e.id === editId)}
           onSubmit={data => updateMutation.mutate({ id: editId, data })}
           onCancel={() => { setEditOpen(false); setEditId(null) }}
@@ -315,10 +315,10 @@ export default function ExpensesPage() {
   )
 }
 
-function ExpenseForm({ serviceUsers, initialData, onSubmit, onCancel, isLoading }: {
-  serviceUsers: any[]; initialData?: any; onSubmit: (data: any) => void; onCancel: () => void; isLoading: boolean
+function ExpenseForm({ people, initialData, onSubmit, onCancel, isLoading }: {
+  people: any[]; initialData?: any; onSubmit: (data: any) => void; onCancel: () => void; isLoading: boolean
 }) {
-  const [serviceUserId, setServiceUserId] = useState(initialData?.service_user_id || '')
+  const [personId, setPersonId] = useState(initialData?.person_id || '')
   const [category, setCategory] = useState(initialData?.category || 'food')
   const [amountPence, setAmountPence] = useState(initialData ? initialData.amount_pence / 100 : 0)
   const [description, setDescription] = useState(initialData?.description || '')
@@ -328,8 +328,8 @@ function ExpenseForm({ serviceUsers, initialData, onSubmit, onCancel, isLoading 
     <>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField select label="Person" fullWidth required value={serviceUserId} onChange={e => setServiceUserId(e.target.value)}>
-            {serviceUsers?.map((su: any) => <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>)}
+          <TextField select label="Person" fullWidth required value={personId} onChange={e => setPersonId(e.target.value)}>
+            {people?.map((su: any) => <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>)}
           </TextField>
           <TextField select label="Category" fullWidth required value={category} onChange={e => setCategory(e.target.value)}>
             {CATEGORIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
@@ -342,8 +342,8 @@ function ExpenseForm({ serviceUsers, initialData, onSubmit, onCancel, isLoading 
       <DialogActions>
         <Button onClick={onCancel}>Cancel</Button>
         <Button variant="contained" onClick={() => onSubmit({
-          serviceUserId, category, amountPence: Math.round(amountPence * 100), description, incurredDate,
-        })} disabled={!serviceUserId || !amountPence || !incurredDate || isLoading}>
+          personId, category, amountPence: Math.round(amountPence * 100), description, incurredDate,
+        })} disabled={!personId || !amountPence || !incurredDate || isLoading}>
           {isLoading ? <CircularProgress size={20} /> : initialData ? 'Update' : 'Add Expense'}
         </Button>
       </DialogActions>

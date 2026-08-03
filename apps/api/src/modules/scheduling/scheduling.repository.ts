@@ -50,7 +50,7 @@ export class SchedulingRepository {
   }
 
   static async createShift(data: any) {
-    const { location_id, department_id, start_time, end_time, assigned_staff_ids = [], service_user_id, shift_type } = data;
+    const { location_id, department_id, start_time, end_time, assigned_staff_ids = [], person_id, shift_type } = data;
     return transaction(async (client) => {
       // Check staff cap per location per day (including shift-type-specific caps)
       if (assigned_staff_ids.length > 0) {
@@ -93,8 +93,8 @@ export class SchedulingRepository {
 
       const status = assigned_staff_ids.length > 0 ? 'filled' : 'open';
       const result = await client.query(
-        'INSERT INTO shifts (location_id, department_id, start_time, end_time, status, service_user_id, shift_type) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-        [location_id, department_id || null, start_time, end_time, status, service_user_id || null, shift_type || 'day']
+        'INSERT INTO shifts (location_id, department_id, start_time, end_time, status, person_id, shift_type) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [location_id, department_id || null, start_time, end_time, status, person_id || null, shift_type || 'day']
       );
       const shift = result.rows[0];
       for (const staffId of assigned_staff_ids) {
@@ -111,7 +111,7 @@ export class SchedulingRepository {
     const { start_date, end_date, location_id, organization_id, managed_location_ids } = filters;
     let sql = `SELECT s.*, l.name as location_name, su.first_name as su_first_name, su.last_name as su_last_name
       FROM shifts s JOIN locations l ON s.location_id = l.id
-      LEFT JOIN service_users su ON s.service_user_id = su.id
+      LEFT JOIN people su ON s.person_id = su.id
       WHERE s.end_time > $1 AND s.start_time < $2 AND l.organization_id = $3`;
     const params: any[] = [start_date, end_date, organization_id];
     let paramIdx = 4;
@@ -133,7 +133,7 @@ export class SchedulingRepository {
     const result = await query(
       `SELECT s.*, l.name as location_name, su.first_name as su_first_name, su.last_name as su_last_name
        FROM shifts s JOIN locations l ON s.location_id = l.id
-       LEFT JOIN service_users su ON s.service_user_id = su.id
+       LEFT JOIN people su ON s.person_id = su.id
        WHERE s.id = $1`,
       [id]
     );
@@ -141,7 +141,7 @@ export class SchedulingRepository {
   }
 
   static async updateShift(id: string, data: any) {
-    const { location_id, department_id, start_time, end_time, status, service_user_id, shift_type } = data;
+    const { location_id, department_id, start_time, end_time, status, person_id, shift_type } = data;
     const result = await query(
       `UPDATE shifts SET
         location_id = COALESCE($1, location_id),
@@ -149,10 +149,10 @@ export class SchedulingRepository {
         start_time = COALESCE($3, start_time),
         end_time = COALESCE($4, end_time),
         status = COALESCE($5, status),
-        service_user_id = CASE WHEN $6::uuid IS NOT NULL THEN $6::uuid ELSE service_user_id END,
+        person_id = CASE WHEN $6::uuid IS NOT NULL THEN $6::uuid ELSE person_id END,
         shift_type = COALESCE($7, shift_type)
        WHERE id = $8 RETURNING *`,
-      [location_id, department_id, start_time, end_time, status, service_user_id, shift_type, id]
+      [location_id, department_id, start_time, end_time, status, person_id, shift_type, id]
     );
     return result.rows[0] || null;
   }
@@ -397,7 +397,7 @@ export class SchedulingRepository {
       FROM shifts s
       JOIN locations l ON s.location_id = l.id
       LEFT JOIN departments d ON s.department_id = d.id
-      LEFT JOIN service_users su ON s.service_user_id = su.id
+      LEFT JOIN people su ON s.person_id = su.id
       WHERE l.organization_id = $1
         AND s.status IN ('open', 'pending')
         AND s.start_time >= $2
@@ -419,7 +419,7 @@ export class SchedulingRepository {
        FROM shifts s
        JOIN locations l ON s.location_id = l.id
        LEFT JOIN departments d ON s.department_id = d.id
-       LEFT JOIN service_users su ON s.service_user_id = su.id
+       LEFT JOIN people su ON s.person_id = su.id
        WHERE l.organization_id = $1
          AND s.status = 'open'
          AND s.start_time > $2
@@ -468,7 +468,7 @@ export class SchedulingRepository {
        JOIN shifts s ON sa.shift_id = s.id
        JOIN locations l ON s.location_id = l.id
        LEFT JOIN departments d ON s.department_id = d.id
-       LEFT JOIN service_users su ON s.service_user_id = su.id
+       LEFT JOIN people su ON s.person_id = su.id
        WHERE sa.staff_id = $1 AND l.organization_id = $2
        ORDER BY s.start_time DESC`,
       [staffProfileId, orgId]
@@ -485,7 +485,7 @@ export class SchedulingRepository {
        FROM shift_assignments sa
        JOIN shifts s ON sa.shift_id = s.id
        JOIN locations l ON s.location_id = l.id
-       LEFT JOIN service_users su ON s.service_user_id = su.id
+       LEFT JOIN people su ON s.person_id = su.id
        JOIN staff_profiles sp ON sa.staff_id = sp.id
        WHERE l.organization_id = $1 AND sa.status = 'pending'`;
     const params: any[] = [orgId];
@@ -716,7 +716,7 @@ export class SchedulingRepository {
        FROM shift_assignments sa
        JOIN shifts s ON sa.shift_id = s.id
        JOIN locations l ON s.location_id = l.id
-       LEFT JOIN service_users su ON s.service_user_id = su.id
+       LEFT JOIN people su ON s.person_id = su.id
        JOIN staff_profiles sp ON sa.staff_id = sp.id
        WHERE sp.user_id = $1 AND s.start_time >= $2 AND s.end_time <= $3
        ORDER BY s.start_time`,
@@ -732,7 +732,7 @@ export class SchedulingRepository {
        FROM shift_assignments sa
        JOIN shifts s ON sa.shift_id = s.id
        JOIN locations l ON s.location_id = l.id
-       LEFT JOIN service_users su ON s.service_user_id = su.id
+       LEFT JOIN people su ON s.person_id = su.id
        WHERE sa.staff_id = $1 AND s.start_time >= $2 AND s.end_time <= $3
        ORDER BY s.start_time`,
       [staffProfileId, startDate, endDate]
@@ -750,7 +750,7 @@ export class SchedulingRepository {
        FROM shift_assignments sa
        JOIN shifts s ON sa.shift_id = s.id
        JOIN locations l ON s.location_id = l.id
-       LEFT JOIN service_users su ON s.service_user_id = su.id
+       LEFT JOIN people su ON s.person_id = su.id
        JOIN staff_profiles sp ON sa.staff_id = sp.id
        WHERE l.organization_id = $1 AND sa.status = 'assigned' AND s.shift_type IS NOT NULL
          AND l.id = ANY($2::uuid[])

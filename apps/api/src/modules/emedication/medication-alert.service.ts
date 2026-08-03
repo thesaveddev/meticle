@@ -13,7 +13,7 @@ export class MedicationAlertService {
                 COALESCE(u.email, m2.email) AS manager_email,
                 COALESCE(sp.first_name || ' ' || sp.last_name, u.email, m2.email) AS manager_name
          FROM emedication_stock s
-         LEFT JOIN service_users su ON su.id = s.service_user_id
+         LEFT JOIN people su ON su.id = s.person_id
          LEFT JOIN locations l ON l.id = su.location_id
          LEFT JOIN users u ON l.manager_id = u.id
          LEFT JOIN staff_profiles sp ON l.manager_id = sp.user_id
@@ -42,7 +42,7 @@ export class MedicationAlertService {
           reorder_level: stock.reorder_level,
           quantity_unit: item.quantity_unit,
           location_name: item.location_name,
-          service_user_name: item.service_user_name || 'Shared stock',
+          person_name: item.person_name || 'Shared stock',
         }
       );
       logger.info({ stockItemId, orgId }, 'Stock reorder alert email queued');
@@ -72,13 +72,13 @@ export class MedicationAlertService {
         const overdue = await pool.query(
           `SELECT a.id AS admin_id, a.scheduled_time,
                   mi.name AS medication_name, mi.dosage, mi.unit,
-                  su.id AS service_user_id,
-                  su.first_name || ' ' || su.last_name AS service_user_name,
+                  su.id AS person_id,
+                  su.first_name || ' ' || su.last_name AS person_name,
                   su.location_id, l.name AS location_name
            FROM emedication_administrations a
            JOIN emedication_items mi ON a.emedication_item_id = mi.id
            JOIN emedication_records r ON mi.emedication_record_id = r.id
-           JOIN service_users su ON su.id = r.service_user_id
+           JOIN people su ON su.id = r.person_id
            LEFT JOIN locations l ON l.id = su.location_id
            WHERE r.organization_id = $1
              AND r.status = 'active'

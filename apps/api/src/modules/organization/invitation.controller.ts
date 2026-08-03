@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import pool from '../../shared/database';
+import pool, { migrateQuery } from '../../shared/database';
 import { EmailService } from '../../shared/utils/email.service';
 import { randomUUID } from 'crypto';
 import { AppError } from '../../shared/middleware/error.middleware';
@@ -63,7 +63,9 @@ export class InvitationController {
       throw new AppError(400, 'Token is required');
     }
 
-    const result = await pool.query(
+    // Public route (no authenticated RLS context): invitation validate runs
+    // cross-tenant via the superuser pool. The invitation token is the auth.
+    const result = await migrateQuery(
       'SELECT i.id, i.email, i.role, i.organization_id, o.name as organization_name FROM invitations i JOIN organizations o ON o.id = i.organization_id WHERE i.token = $1 AND i.status = $2 AND i.expires_at > NOW()',
       [token, 'pending']
     );
@@ -87,7 +89,9 @@ export class InvitationController {
       throw new AppError(400, 'Token is required');
     }
 
-    const result = await pool.query(
+    // Public route (no authenticated RLS context): runs cross-tenant via the
+    // superuser pool, scoped by the invitation token.
+    const result = await migrateQuery(
       'SELECT * FROM invitations WHERE token = $1 AND status = $2 AND expires_at > NOW()',
       [token, 'pending']
     );
@@ -97,7 +101,7 @@ export class InvitationController {
     }
 
     const invitation = result.rows[0];
-    await pool.query(
+    await migrateQuery(
       'UPDATE invitations SET status = $1 WHERE id = $2',
       ['accepted', invitation.id]
     );

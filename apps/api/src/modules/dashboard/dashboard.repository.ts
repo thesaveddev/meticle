@@ -24,7 +24,7 @@ export class DashboardRepository {
          CROSS JOIN organizations o2
          WHERE l4.organization_id = $1 AND sh.agency_id IS NOT NULL AND sh.agency_covered = true
            AND o2.id = $1) as agency_saved,
-        (SELECT COUNT(*)::int FROM service_users WHERE organization_id = $1 AND status = 'active') as active_service_users,
+        (SELECT COUNT(*)::int FROM people WHERE organization_id = $1 AND status = 'active') as active_people,
         (SELECT COUNT(DISTINCT sa.staff_id)::int FROM shift_assignments sa
          JOIN shifts sh2 ON sa.shift_id = sh2.id
          JOIN locations l2 ON l2.id = sh2.location_id
@@ -209,33 +209,33 @@ export class DashboardRepository {
   static async getReviewScheduler(orgId: string) {
     const result = await query(`
       SELECT * FROM (
-        SELECT 'care_plan' AS entity_type, cp.id, su.first_name || ' ' || su.last_name AS service_user, cp.title AS item_name,
-          cp.review_date AS due_date, cp.status, su.id AS service_user_id
-        FROM care_plans cp JOIN service_users su ON cp.service_user_id = su.id
+        SELECT 'care_plan' AS entity_type, cp.id, su.first_name || ' ' || su.last_name AS person, cp.title AS item_name,
+          cp.review_date AS due_date, cp.status, su.id AS person_id
+        FROM care_plans cp JOIN people su ON cp.person_id = su.id
         WHERE su.organization_id = $1 AND cp.review_date IS NOT NULL
         UNION ALL
         SELECT 'risk_assessment' AS entity_type, ra.id, su.first_name || ' ' || su.last_name, ra.type,
           ra.review_date, ra.risk_level, su.id
-        FROM risk_assessments ra JOIN service_users su ON ra.service_user_id = su.id
+        FROM risk_assessments ra JOIN people su ON ra.person_id = su.id
         WHERE su.organization_id = $1 AND ra.review_date IS NOT NULL
         UNION ALL
         SELECT 'care_assessment' AS entity_type, ca.id, su.first_name || ' ' || su.last_name, ca.assessment_type,
           ca.next_review_date, ca.status, su.id
-        FROM care_assessments ca JOIN service_users su ON ca.service_user_id = su.id
+        FROM care_assessments ca JOIN people su ON ca.person_id = su.id
         WHERE su.organization_id = $1 AND ca.next_review_date IS NOT NULL
         UNION ALL
         SELECT 'dnacpr' AS entity_type, su.id, su.first_name || ' ' || su.last_name, 'DNACPR Review',
           su.dnacpr_review_date, su.dnacpr_status, su.id
-        FROM service_users su WHERE su.organization_id = $1 AND su.dnacpr_review_date IS NOT NULL
+        FROM people su WHERE su.organization_id = $1 AND su.dnacpr_review_date IS NOT NULL
         UNION ALL
         SELECT 'capacity' AS entity_type, ca2.id, su2.first_name || ' ' || su2.last_name,
           'MCA: ' || LEFT(ca2.decision_to_be_made, 50), ca2.review_date, ca2.capacity_status, su2.id
-        FROM su_capacity_assessments ca2 JOIN service_users su2 ON ca2.service_user_id = su2.id
+        FROM person_capacity_assessments ca2 JOIN people su2 ON ca2.person_id = su2.id
         WHERE su2.organization_id = $1 AND ca2.review_date IS NOT NULL
         UNION ALL
         SELECT 'goal' AS entity_type, g.id, su3.first_name || ' ' || su3.last_name, g.title,
           g.review_date, g.status, su3.id
-        FROM service_user_goals g JOIN service_users su3 ON g.service_user_id = su3.id
+        FROM person_goals g JOIN people su3 ON g.person_id = su3.id
         WHERE su3.organization_id = $1 AND g.review_date IS NOT NULL
       ) reviews
       ORDER BY due_date ASC

@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS shifts (
     published_at TIMESTAMP WITH TIME ZONE,
     start_notification_sent_at TIMESTAMP WITH TIME ZONE,
     unclaimed_notified_at TIMESTAMP WITH TIME ZONE,
-    service_user_id UUID,
+    person_id UUID,
     shift_type VARCHAR(20) DEFAULT 'day' NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -610,8 +610,8 @@ CREATE INDEX IF NOT EXISTS idx_cp_requirements_profile ON compliance_profile_req
 CREATE INDEX IF NOT EXISTS idx_cp_requirements_requirement ON compliance_profile_requirements(requirement_id);
 CREATE INDEX IF NOT EXISTS idx_staff_compliance_profile ON staff_profiles(compliance_profile_id);
 
--- Service User / Resident Management
-CREATE TABLE IF NOT EXISTS service_users (
+-- Person / Resident Management
+CREATE TABLE IF NOT EXISTS people (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     first_name VARCHAR(100) NOT NULL,
@@ -634,7 +634,7 @@ CREATE TABLE IF NOT EXISTS service_users (
 
 CREATE TABLE IF NOT EXISTS care_plans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     category VARCHAR(50) NOT NULL,
     description TEXT,
@@ -649,7 +649,7 @@ CREATE TABLE IF NOT EXISTS care_plans (
 
 CREATE TABLE IF NOT EXISTS daily_notes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     note_date DATE NOT NULL DEFAULT CURRENT_DATE,
     shift VARCHAR(10) NOT NULL CHECK (shift IN ('day','night')),
@@ -669,7 +669,7 @@ CREATE TABLE IF NOT EXISTS daily_notes (
 
 CREATE TABLE IF NOT EXISTS risk_assessments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     type VARCHAR(50) NOT NULL,
     risk_level VARCHAR(20) NOT NULL CHECK (risk_level IN ('low','medium','high','critical')),
     details TEXT,
@@ -683,7 +683,7 @@ CREATE TABLE IF NOT EXISTS risk_assessments (
 
 CREATE TABLE IF NOT EXISTS family_contacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     relationship VARCHAR(100),
     phone VARCHAR(50),
@@ -693,18 +693,18 @@ CREATE TABLE IF NOT EXISTS family_contacts (
 );
 
 -- Triggers for updated_at
-DO $$ BEGIN CREATE TRIGGER trg_service_users_updated BEFORE UPDATE ON service_users FOR EACH ROW EXECUTE FUNCTION update_updated_at(); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TRIGGER trg_people_updated BEFORE UPDATE ON people FOR EACH ROW EXECUTE FUNCTION update_updated_at(); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TRIGGER trg_care_plans_updated BEFORE UPDATE ON care_plans FOR EACH ROW EXECUTE FUNCTION update_updated_at(); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TRIGGER trg_risk_assessments_updated BEFORE UPDATE ON risk_assessments FOR EACH ROW EXECUTE FUNCTION update_updated_at(); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_service_users_org ON service_users(organization_id);
-CREATE INDEX IF NOT EXISTS idx_service_users_status ON service_users(status);
-CREATE INDEX IF NOT EXISTS idx_care_plans_service_user ON care_plans(service_user_id);
-CREATE INDEX IF NOT EXISTS idx_daily_notes_service_user ON daily_notes(service_user_id);
+CREATE INDEX IF NOT EXISTS idx_people_org ON people(organization_id);
+CREATE INDEX IF NOT EXISTS idx_people_status ON people(status);
+CREATE INDEX IF NOT EXISTS idx_care_plans_person ON care_plans(person_id);
+CREATE INDEX IF NOT EXISTS idx_daily_notes_person ON daily_notes(person_id);
 CREATE INDEX IF NOT EXISTS idx_daily_notes_date ON daily_notes(note_date);
-CREATE INDEX IF NOT EXISTS idx_risk_assessments_service_user ON risk_assessments(service_user_id);
-CREATE INDEX IF NOT EXISTS idx_family_contacts_service_user ON family_contacts(service_user_id);
+CREATE INDEX IF NOT EXISTS idx_risk_assessments_person ON risk_assessments(person_id);
+CREATE INDEX IF NOT EXISTS idx_family_contacts_person ON family_contacts(person_id);
 
 -- Incident Management
 CREATE TABLE IF NOT EXISTS incident_categories (
@@ -741,7 +741,7 @@ CREATE TABLE IF NOT EXISTS incidents (
 CREATE TABLE IF NOT EXISTS incident_involved_residents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     incident_id UUID NOT NULL REFERENCES incidents(id) ON DELETE CASCADE,
-    service_user_id UUID REFERENCES service_users(id) ON DELETE SET NULL,
+    person_id UUID REFERENCES people(id) ON DELETE SET NULL,
     involvement_type VARCHAR(50) DEFAULT 'affected' CHECK (involvement_type IN ('affected','witness','involved')),
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -839,7 +839,7 @@ CREATE INDEX IF NOT EXISTS idx_competency_assessments_template ON competency_ass
 CREATE TABLE IF NOT EXISTS emedication_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -850,7 +850,7 @@ CREATE TABLE IF NOT EXISTS emedication_records (
 );
 
 CREATE INDEX IF NOT EXISTS idx_emedr_org ON emedication_records(organization_id);
-CREATE INDEX IF NOT EXISTS idx_emedr_service_user ON emedication_records(service_user_id);
+CREATE INDEX IF NOT EXISTS idx_emedr_person ON emedication_records(person_id);
 
 CREATE TABLE IF NOT EXISTS emedication_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -889,7 +889,7 @@ CREATE INDEX IF NOT EXISTS idx_emed_admin_scheduled ON emedication_administratio
 -- Body Map
 CREATE TABLE IF NOT EXISTS body_map_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     body_view VARCHAR(10) NOT NULL CHECK (body_view IN ('front', 'back')),
     body_zone VARCHAR(50) NOT NULL,
     zone_x FLOAT,
@@ -906,13 +906,13 @@ CREATE TABLE IF NOT EXISTS body_map_entries (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_body_map_su ON body_map_entries(service_user_id);
-CREATE INDEX IF NOT EXISTS idx_body_map_status ON body_map_entries(service_user_id, status);
+CREATE INDEX IF NOT EXISTS idx_body_map_person ON body_map_entries(person_id);
+CREATE INDEX IF NOT EXISTS idx_body_map_status ON body_map_entries(person_id, status);
 
 -- Memory Book (adventures, photos for families)
 CREATE TABLE IF NOT EXISTS memory_book_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     image_url TEXT,
@@ -924,21 +924,21 @@ CREATE TABLE IF NOT EXISTS memory_book_entries (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_memory_book_su ON memory_book_entries(service_user_id);
-CREATE INDEX IF NOT EXISTS idx_memory_book_date ON memory_book_entries(service_user_id, recorded_date);
+CREATE INDEX IF NOT EXISTS idx_memory_book_person ON memory_book_entries(person_id);
+CREATE INDEX IF NOT EXISTS idx_memory_book_date ON memory_book_entries(person_id, recorded_date);
 
 CREATE TABLE IF NOT EXISTS emedication_daily_counts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     count_date DATE NOT NULL,
     staff_name TEXT NOT NULL,
     matches_physical BOOLEAN DEFAULT TRUE,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(service_user_id, count_date)
+    UNIQUE(person_id, count_date)
 );
-CREATE INDEX IF NOT EXISTS idx_emed_daily_counts_su ON emedication_daily_counts(service_user_id);
+CREATE INDEX IF NOT EXISTS idx_emed_daily_counts_person ON emedication_daily_counts(person_id);
 
 CREATE TABLE IF NOT EXISTS emedication_daily_count_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -976,11 +976,11 @@ CREATE TABLE IF NOT EXISTS dbs_checks (
 CREATE INDEX IF NOT EXISTS idx_dbs_checks_org ON dbs_checks(organization_id);
 CREATE INDEX IF NOT EXISTS idx_dbs_checks_staff ON dbs_checks(staff_id);
 
--- Expense tracking (service user spending ledger)
-CREATE TABLE IF NOT EXISTS service_user_expenses (
+-- Expense tracking (person spending ledger)
+CREATE TABLE IF NOT EXISTS person_expenses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     location_id UUID REFERENCES locations(id) ON DELETE SET NULL,
     category VARCHAR(30) NOT NULL CHECK (category IN ('food','clothing','activities','transport','personal','health','other')),
     amount_pence INTEGER NOT NULL CHECK (amount_pence > 0),
@@ -991,9 +991,9 @@ CREATE TABLE IF NOT EXISTS service_user_expenses (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_expenses_org ON service_user_expenses(organization_id);
-CREATE INDEX IF NOT EXISTS idx_expenses_su ON service_user_expenses(service_user_id);
-CREATE INDEX IF NOT EXISTS idx_expenses_date ON service_user_expenses(organization_id, incurred_date);
+CREATE INDEX IF NOT EXISTS idx_expenses_org ON person_expenses(organization_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_person ON person_expenses(person_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_date ON person_expenses(organization_id, incurred_date);
 
 -- Petty cash per location
 CREATE TABLE IF NOT EXISTS petty_cash_balances (
@@ -1024,9 +1024,9 @@ CREATE TABLE IF NOT EXISTS petty_cash_transactions (
 CREATE INDEX IF NOT EXISTS idx_pct_org ON petty_cash_transactions(organization_id);
 CREATE INDEX IF NOT EXISTS idx_pct_location ON petty_cash_transactions(location_id);
 
--- Deferred FK: shifts.service_user_id (service_users defined after shifts)
+-- Deferred FK: shifts.person_id (people defined after shifts)
 DO $$ BEGIN
-    ALTER TABLE shifts ADD CONSTRAINT shifts_service_user_id_fkey
-        FOREIGN KEY (service_user_id) REFERENCES service_users(id) ON DELETE SET NULL;
+    ALTER TABLE shifts ADD CONSTRAINT shifts_person_id_fkey
+        FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;

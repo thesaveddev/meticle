@@ -20,7 +20,7 @@ const STATUS_CONFIG: Record<AdminStatus, { label: string; color: 'success' | 'er
 }
 
 interface MedicationRecord {
-  id: string; title: string; service_user_id: string; service_user_name: string
+  id: string; title: string; person_id: string; person_name: string
   start_date: string; end_date: string; status: string
 }
 
@@ -55,7 +55,7 @@ interface StaffMember {
 interface StockItem {
   id: string; medication_name: string; dosage: string; unit: string
   batch_number: string; expiry_date: string; quantity: number; quantity_unit: string
-  reorder_level: number; location: string; service_user_id?: string; status?: string
+  reorder_level: number; location: string; person_id?: string; status?: string
 }
 
 interface Delivery {
@@ -95,7 +95,7 @@ export default function EMedicationPage() {
   const canManage = userRole === 'ORG_ADMIN' || userRole === 'MANAGER'
 
   const [tab, setTab] = useState(0)
-  const [selectedServiceUser, setSelectedServiceUser] = useState<any>(null)
+  const [selectedPerson, setSelectedPerson] = useState<any>(null)
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
   const [month, setMonth] = useState(() => {
     const m = todayStr().slice(0, 7)
@@ -123,7 +123,7 @@ export default function EMedicationPage() {
   const [stockDialog, setStockDialog] = useState(false)
   const [editStock, setEditStock] = useState<StockItem | null>(null)
   const [stockForm, setStockForm] = useState({ medication_name: '', dosage: '', unit: 'mg', batch_number: '', expiry_date: '', quantity: 0, quantity_unit: 'tablets', reorder_level: 10, location: '' })
-  const [stockServiceUser, setStockServiceUser] = useState<any>(null)
+  const [stockPerson, setStockPerson] = useState<any>(null)
 
   // Stock adjustment state
   const [adjustDialog, setAdjustDialog] = useState(false)
@@ -133,7 +133,7 @@ export default function EMedicationPage() {
   // Daily counts state
   const [showArchivedStock, setShowArchivedStock] = useState(false)
   // Daily count state (inline form, no dialog)
-  const [countServiceUser, setCountServiceUser] = useState<any>(null)
+  const [countPerson, setCountPerson] = useState<any>(null)
   const [countMedications, setCountMedications] = useState<any[]>([])
   const [countItemsForm, setCountItemsForm] = useState<Record<string, { actual_quantity: number; reason_for_mismatch: string; escalate: boolean }>>({})
   const [countLoading, setCountLoading] = useState(false)
@@ -149,9 +149,9 @@ export default function EMedicationPage() {
   const [deliveryItemForm, setDeliveryItemForm] = useState({ medication_name: '', dosage: '', unit: 'mg', batch_number: '', expiry_date: '', quantity: 0, quantity_unit: 'tablets' })
 
   // Fetch people
-  const { data: serviceUsers, isError: suError } = useQuery({
-    queryKey: ['service-users-list'],
-    queryFn: async () => { const res = await api.get('/service-users'); return res.data as any[] }
+  const { data: people, isError: suError } = useQuery({
+    queryKey: ['people-list'],
+    queryFn: async () => { const res = await api.get('/people'); return res.data as any[] }
   })
 
   // Fetch staff
@@ -162,28 +162,28 @@ export default function EMedicationPage() {
 
   // Ensure MAR
   const ensureMarMutation = useMutation({
-    mutationFn: (serviceUserId: string) => api.post('/emedication/ensure-monthly-mar', { serviceUserId }),
+    mutationFn: (personId: string) => api.post('/emedication/ensure-monthly-mar', { personId }),
   })
 
   useEffect(() => {
-    if (selectedServiceUser) {
-      ensureMarMutation.mutate(selectedServiceUser.id, {
+    if (selectedPerson) {
+      ensureMarMutation.mutate(selectedPerson.id, {
         onSettled: () => {
           queryClient.invalidateQueries({ queryKey: ['emedication-records'] })
         }
       })
     }
-  }, [selectedServiceUser?.id])
+  }, [selectedPerson?.id])
 
   // Records - always active
   const { data: recordsData, isLoading: recordsLoading, isError: recordsError } = useQuery({
-    queryKey: ['emedication-records', selectedServiceUser?.id],
+    queryKey: ['emedication-records', selectedPerson?.id],
     queryFn: async () => {
-      if (!selectedServiceUser) return []
-      const res = await api.get(`/emedication/records?serviceUserId=${selectedServiceUser.id}`)
+      if (!selectedPerson) return []
+      const res = await api.get(`/emedication/records?personId=${selectedPerson.id}`)
       return (res.data as MedicationRecord[]).filter(r => r.status === 'active')
     },
-    enabled: !!selectedServiceUser
+    enabled: !!selectedPerson
   })
 
   // Derive active record by matching month string to record TITLE (e.g. "July 2026 MAR").
@@ -240,9 +240,9 @@ export default function EMedicationPage() {
 
   // Daily Counts
   const { data: dailyCounts } = useQuery({
-    queryKey: ['emedication-daily-counts', countServiceUser?.id],
+    queryKey: ['emedication-daily-counts', countPerson?.id],
     queryFn: async () => {
-      const params = countServiceUser?.id ? `?serviceUserId=${countServiceUser.id}` : ''
+      const params = countPerson?.id ? `?personId=${countPerson.id}` : ''
       const res = await api.get(`/emedication/daily-counts${params}`)
       return res.data as any[]
     },
@@ -345,10 +345,10 @@ export default function EMedicationPage() {
   })
 
   const handleSaveDailyCount = async () => {
-    if (!countServiceUser) return
+    if (!countPerson) return
     try {
       const res = await countCreateMutation.mutateAsync({
-        service_user_id: countServiceUser.id,
+        person_id: countPerson.id,
         count_date: todayStr(),
         staff_name: `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.email,
         matches_physical: true,
@@ -371,7 +371,7 @@ export default function EMedicationPage() {
       queryClient.invalidateQueries({ queryKey: ['emedication-daily-counts'] })
       setCountMedications([])
       setCountItemsForm({})
-      setCountServiceUser(null)
+      setCountPerson(null)
       setSuccessMsg('Daily count logged'); setTimeout(() => setSuccessMsg(''), 3000)
     } catch { /* handled by mutation */ }
   }
@@ -383,7 +383,7 @@ export default function EMedicationPage() {
       queryClient.invalidateQueries({ queryKey: ['emedication-stock'] })
       setStockDialog(false); setEditStock(null)
       setStockForm({ medication_name: '', dosage: '', unit: 'mg', batch_number: '', expiry_date: '', quantity: 0, quantity_unit: 'tablets', reorder_level: 10, location: '' })
-      setStockServiceUser(null)
+      setStockPerson(null)
       setSuccessMsg('Stock item added'); setTimeout(() => setSuccessMsg(''), 3000)
     }
   })
@@ -393,7 +393,7 @@ export default function EMedicationPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emedication-stock'] })
       setStockDialog(false); setEditStock(null)
-      setStockServiceUser(null)
+      setStockPerson(null)
       setSuccessMsg('Stock item updated'); setTimeout(() => setSuccessMsg(''), 3000)
     }
   })
@@ -519,8 +519,8 @@ export default function EMedicationPage() {
     const today = todayStr()
     const days = chartData.days
 
-    const su = (serviceUsers || []).find((u: any) => u.id === chartData.record.service_user_id)
-    const suName = chartData.record.service_user_name
+    const su = (people || []).find((u: any) => u.id === chartData.record.person_id)
+    const suName = chartData.record.person_name
     const nhsNumber = su?.nhs_number || 'N/A'
     const dob = su?.date_of_birth ? new Date(su.date_of_birth).toLocaleDateString() : 'N/A'
     const age = su?.date_of_birth ? Math.floor((Date.now() - new Date(su.date_of_birth).getTime()) / 31557600000) : ''
@@ -1164,7 +1164,7 @@ export default function EMedicationPage() {
     const today = todayStr()
     const days = chartData.days
 
-    const su = (serviceUsers || []).find((u: any) => u.id === chartData.record.service_user_id)
+    const su = (people || []).find((u: any) => u.id === chartData.record.person_id)
     const age = su?.date_of_birth ? Math.floor((Date.now() - new Date(su.date_of_birth).getTime()) / 31557600000) : ''
 
     const topicalRoutes = new Set(['topical', 'cream', 'ointment', 'gel', 'lotion'])
@@ -1745,8 +1745,8 @@ export default function EMedicationPage() {
 
   const handleStockSave = () => {
     const data: any = { ...stockForm }
-    if (stockServiceUser) {
-      data.service_user_id = stockServiceUser.id
+    if (stockPerson) {
+      data.person_id = stockPerson.id
     }
     if (editStock) {
       stockUpdateMutation.mutate({ id: editStock.id, data })
@@ -1764,16 +1764,16 @@ export default function EMedicationPage() {
         quantity: item.quantity, quantity_unit: item.quantity_unit,
         reorder_level: item.reorder_level, location: item.location
       })
-      if (item.service_user_id) {
-        const su = (serviceUsers || []).find((u: any) => u.id === item.service_user_id)
-        setStockServiceUser(su || null)
+      if (item.person_id) {
+        const su = (people || []).find((u: any) => u.id === item.person_id)
+        setStockPerson(su || null)
       } else {
-        setStockServiceUser(null)
+        setStockPerson(null)
       }
     } else {
       setEditStock(null)
       setStockForm({ medication_name: '', dosage: '', unit: 'mg', batch_number: '', expiry_date: '', quantity: 0, quantity_unit: 'tablets', reorder_level: 10, location: '' })
-      setStockServiceUser(null)
+      setStockPerson(null)
     }
     setStockDialog(true)
   }
@@ -1829,7 +1829,7 @@ export default function EMedicationPage() {
       {overdueData && overdueData.length > 0 && tab === 0 && (
         <Alert severity="error" sx={{ mb: 2 }} icon={<WarningIcon />}>
           {overdueData.length} overdue medication administration{overdueData.length > 1 ? 's' : ''}.{' '}
-          {overdueData.slice(0, 3).map((a: any) => a.service_user_name).join(', ')}
+          {overdueData.slice(0, 3).map((a: any) => a.person_name).join(', ')}
           {overdueData.length > 3 ? ` and ${overdueData.length - 3} more` : ''} require attention.
         </Alert>
       )}
@@ -1851,10 +1851,10 @@ export default function EMedicationPage() {
           {/* Person Selector */}
           <Paper sx={{ p: 2, mb: 3 }}>
             <Autocomplete
-              options={serviceUsers || []}
+              options={people || []}
               getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
-              value={selectedServiceUser}
-              onChange={(_, v) => { setSelectedServiceUser(v); setSelectedRecordId(null); setMonth(todayStr().slice(0, 7)) }}
+              value={selectedPerson}
+              onChange={(_, v) => { setSelectedPerson(v); setSelectedRecordId(null); setMonth(todayStr().slice(0, 7)) }}
               renderInput={(params) => <TextField {...params} label="Search Person" size="small" />}
               sx={{ maxWidth: 400 }}
             />
@@ -1868,7 +1868,7 @@ export default function EMedicationPage() {
                     <Typography variant="subtitle2" fontWeight={700}>MAR Charts</Typography>
                     <Typography variant="caption" color="text.secondary">One month at a time</Typography>
                   </Box>
-                  {selectedServiceUser && (
+                  {selectedPerson && (
                     <Button size="small" variant="outlined" startIcon={<ViewArchivedIcon />}
                       onClick={() => navigate('/emedication/archived')}>
                       Archived
@@ -1901,9 +1901,9 @@ export default function EMedicationPage() {
                 ) : !recordsData || recordsData.length === 0 ? (
                   <Box sx={{ textAlign: 'center', py: 4 }}>
                     <Typography color="text.secondary" variant="body2">
-                      {selectedServiceUser ? 'No active charts.' : 'Select a person.'}
+                      {selectedPerson ? 'No active charts.' : 'Select a person.'}
                     </Typography>
-                    {selectedServiceUser && (
+                    {selectedPerson && (
                       <Button size="small" variant="text" startIcon={<ViewArchivedIcon />}
                         onClick={() => navigate('/emedication/archived')} sx={{ mt: 1 }}>
                         View Archived Charts
@@ -1955,7 +1955,7 @@ export default function EMedicationPage() {
                       <Box>
                         <Typography variant="h6">{chartData.record.title}</Typography>
                         <Typography variant="body2" color="text.secondary">
-                          {chartData.record.service_user_name} &bull; {new Date(chartData.record.start_date).toLocaleDateString()} &ndash; {new Date(chartData.record.end_date).toLocaleDateString()}
+                          {chartData.record.person_name} &bull; {new Date(chartData.record.start_date).toLocaleDateString()} &ndash; {new Date(chartData.record.end_date).toLocaleDateString()}
                           &nbsp;&bull; {chartData.days.length} days
                         </Typography>
                       </Box>
@@ -2366,18 +2366,18 @@ export default function EMedicationPage() {
           <Paper sx={{ p: 2, mb: 2 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Daily Medication Counts</Typography>
             <Autocomplete
-              options={serviceUsers || []}
+              options={people || []}
               getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
-              value={countServiceUser}
+              value={countPerson}
               onChange={async (_, v) => {
-                setCountServiceUser(v)
+                setCountPerson(v)
                 setCountMedications([])
                 setCountItemsForm({})
                 setCountNoRecords(false)
                 if (v?.id) {
                   setCountLoading(true)
                   try {
-                    const recordsRes = await api.get(`/emedication/records?serviceUserId=${v.id}`)
+                    const recordsRes = await api.get(`/emedication/records?personId=${v.id}`)
                     const activeRecords = (recordsRes.data as any[]).filter((r: any) => r.status === 'active')
                     if (activeRecords.length > 0) {
                       const medsRes = await api.get(`/emedication/records/${activeRecords[0].id}/medication-quantities`)
@@ -2417,7 +2417,7 @@ export default function EMedicationPage() {
           )}
 
           {/* Current-day per-med form */}
-          {countServiceUser && countMedications.length > 0 && (
+          {countPerson && countMedications.length > 0 && (
             <Paper sx={{ p: 2, mb: 2 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
                 <Typography variant="subtitle1" fontWeight={700}>
@@ -2470,7 +2470,7 @@ export default function EMedicationPage() {
                 )
               })}
               <Button variant="contained" onClick={handleSaveDailyCount}
-                disabled={!countServiceUser || countCreateMutation.isPending}>
+                disabled={!countPerson || countCreateMutation.isPending}>
                 {countCreateMutation.isPending ? 'Saving...' : "Save Today's Count"}
               </Button>
             </Paper>
@@ -2498,7 +2498,7 @@ export default function EMedicationPage() {
                     {dailyCounts.map((c: any) => (
                       <TableRow key={c.id} hover>
                         <TableCell>{new Date(c.count_date).toLocaleDateString()}</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>{c.service_user_name || '\u2014'}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{c.person_name || '\u2014'}</TableCell>
                         <TableCell>{c.staff_name || '\u2014'}</TableCell>
                         <TableCell>{c.items_count || 0} meds</TableCell>
                         <TableCell>
@@ -2595,7 +2595,7 @@ export default function EMedicationPage() {
               {recordUpdateMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           ) : (
-            <Button variant="contained" onClick={() => recordCreateMutation.mutate({ ...recordForm, service_user_id: selectedServiceUser.id })}
+            <Button variant="contained" onClick={() => recordCreateMutation.mutate({ ...recordForm, person_id: selectedPerson.id })}
               disabled={!recordForm.title || !recordForm.start_date || !recordForm.end_date || recordCreateMutation.isPending}>
               {recordCreateMutation.isPending ? 'Creating...' : 'Create Chart'}
             </Button>
@@ -2825,10 +2825,10 @@ export default function EMedicationPage() {
                 onChange={(e) => setStockForm(p => ({ ...p, location: e.target.value }))} size="small" placeholder="e.g., Cabinet A" />
             </Stack>
             <Autocomplete
-              options={serviceUsers || []}
+              options={people || []}
               getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
-              value={stockServiceUser}
-              onChange={(_, v) => setStockServiceUser(v)}
+              value={stockPerson}
+              onChange={(_, v) => setStockPerson(v)}
               renderInput={(params) => <TextField {...params} label="Person" size="small" required />}
             />
           </Stack>
@@ -2836,7 +2836,7 @@ export default function EMedicationPage() {
         <DialogActions>
           <Button onClick={() => setStockDialog(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleStockSave}
-            disabled={!stockForm.medication_name || !stockServiceUser || stockCreateMutation.isPending || stockUpdateMutation.isPending}>
+            disabled={!stockForm.medication_name || !stockPerson || stockCreateMutation.isPending || stockUpdateMutation.isPending}>
             {editStock ? 'Update' : 'Add'}
           </Button>
         </DialogActions>

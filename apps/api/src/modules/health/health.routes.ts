@@ -11,28 +11,28 @@ const router = Router();
 router.use(authenticate);
 
 // Health Observations
-router.get('/:serviceUserId/observations', asyncHandler(HealthController.getObservations));
-router.post('/:serviceUserId/observations', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createObservationSchema), asyncHandler(HealthController.createObservation));
-router.patch('/:serviceUserId/observations/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateObservationSchema), asyncHandler(HealthController.updateObservation));
-router.delete('/:serviceUserId/observations/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(HealthController.deleteObservation));
+router.get('/:personId/observations', asyncHandler(HealthController.getObservations));
+router.post('/:personId/observations', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createObservationSchema), asyncHandler(HealthController.createObservation));
+router.patch('/:personId/observations/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateObservationSchema), asyncHandler(HealthController.updateObservation));
+router.delete('/:personId/observations/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(HealthController.deleteObservation));
 
 // Bowel Movements
-router.get('/:serviceUserId/bowel', asyncHandler(HealthController.getBowelMovements));
-router.post('/:serviceUserId/bowel', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createBowelMovementSchema), asyncHandler(HealthController.createBowelMovement));
-router.patch('/:serviceUserId/bowel/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateBowelMovementSchema), asyncHandler(HealthController.updateBowelMovement));
-router.delete('/:serviceUserId/bowel/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(HealthController.deleteBowelMovement));
+router.get('/:personId/bowel', asyncHandler(HealthController.getBowelMovements));
+router.post('/:personId/bowel', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createBowelMovementSchema), asyncHandler(HealthController.createBowelMovement));
+router.patch('/:personId/bowel/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateBowelMovementSchema), asyncHandler(HealthController.updateBowelMovement));
+router.delete('/:personId/bowel/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(HealthController.deleteBowelMovement));
 
 // Dental Records
-router.get('/:serviceUserId/dental', asyncHandler(HealthController.getDentalRecords));
-router.post('/:serviceUserId/dental', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createDentalRecordSchema), asyncHandler(HealthController.createDentalRecord));
-router.patch('/:serviceUserId/dental/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateDentalRecordSchema), asyncHandler(HealthController.updateDentalRecord));
-router.delete('/:serviceUserId/dental/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(HealthController.deleteDentalRecord));
+router.get('/:personId/dental', asyncHandler(HealthController.getDentalRecords));
+router.post('/:personId/dental', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createDentalRecordSchema), asyncHandler(HealthController.createDentalRecord));
+router.patch('/:personId/dental/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateDentalRecordSchema), asyncHandler(HealthController.updateDentalRecord));
+router.delete('/:personId/dental/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(HealthController.deleteDentalRecord));
 
 // Fluid Intake
-router.get('/:serviceUserId/fluid', asyncHandler(HealthController.getFluidIntake));
-router.get('/:serviceUserId/fluid/total', asyncHandler(HealthController.getDailyFluidTotal));
-router.post('/:serviceUserId/fluid', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createFluidIntakeSchema), asyncHandler(HealthController.createFluidIntake));
-router.patch('/:serviceUserId/fluid/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateFluidIntakeSchema), asyncHandler(HealthController.updateFluidIntake));
-router.delete('/:serviceUserId/fluid/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(HealthController.deleteFluidIntake));
+router.get('/:personId/fluid', asyncHandler(HealthController.getFluidIntake));
+router.get('/:personId/fluid/total', asyncHandler(HealthController.getDailyFluidTotal));
+router.post('/:personId/fluid', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createFluidIntakeSchema), asyncHandler(HealthController.createFluidIntake));
+router.patch('/:personId/fluid/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateFluidIntakeSchema), asyncHandler(HealthController.updateFluidIntake));
+router.delete('/:personId/fluid/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(HealthController.deleteFluidIntake));
 
 export default router;

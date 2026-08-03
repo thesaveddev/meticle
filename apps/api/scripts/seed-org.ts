@@ -302,48 +302,48 @@ async function seed() {
     }
     console.log('✓ 42 shifts (14 days × 3 per day) with assignments');
 
-    // ─── Service Users ───
+    // ─── People ───
     const suIds = [uuid(), uuid(), uuid(), uuid(), uuid()];
-    const serviceUsers = [
+    const people = [
       { id: suIds[0], firstName: 'Margaret', lastName: 'Thompson', dob: '1942-03-15', loc: locationIds[0] },
       { id: suIds[1], firstName: 'John', lastName: 'Williams', dob: '1938-11-22', loc: locationIds[0] },
       { id: suIds[2], firstName: 'Patricia', lastName: 'Jenkins', dob: '1945-07-08', loc: locationIds[1] },
       { id: suIds[3], firstName: 'David', lastName: 'Okonkwo', dob: '1950-01-30', loc: locationIds[1] },
       { id: suIds[4], firstName: 'Grace', lastName: 'Moyo', dob: '1955-09-12', loc: locationIds[2] },
     ];
-    for (const su of serviceUsers) {
+    for (const su of people) {
       await pool.query(
-        `INSERT INTO service_users (id, organization_id, first_name, last_name, date_of_birth, status)
+        `INSERT INTO people (id, organization_id, first_name, last_name, date_of_birth, status)
          VALUES ($1, $2, $3, $4, $5, 'active')`,
         [su.id, orgId, su.firstName, su.lastName, su.dob]
       );
     }
-    console.log('✓ 5 service users');
+    console.log('✓ 5 people');
 
     // ─── Care Plans ───
-    for (const su of serviceUsers) {
+    for (const su of people) {
       await pool.query(
-        `INSERT INTO care_plans (id, service_user_id, title, category, description, status)
+        `INSERT INTO care_plans (id, person_id, title, category, description, status)
          VALUES ($1, $2, $3, $4, $5, 'active')`,
         [uuid(), su.id, 'Daily Living', 'personal_care', `Personalised care plan for ${su.firstName} ${su.lastName} covering daily living activities, preferences, and routines.`]
       );
       await pool.query(
-        `INSERT INTO care_plans (id, service_user_id, title, category, description, status)
+        `INSERT INTO care_plans (id, person_id, title, category, description, status)
          VALUES ($1, $2, $3, $4, $5, 'active')`,
         [uuid(), su.id, 'Health & Wellbeing', 'health', `Health and wellbeing care plan for ${su.firstName} ${su.lastName} including medication, nutrition, and health monitoring.`]
       );
     }
-    console.log('✓ 10 care plans (2 per service user)');
+    console.log('✓ 10 care plans (2 per person)');
 
     // ─── Incidents ───
     await pool.query(
       `INSERT INTO incidents (id, organization_id, title, description, severity, status, incident_date, incident_time, location, reported_by)
-       VALUES ($1, $2, 'Fall in communal area', 'Service user M. Thompson slipped in the dining room at 09:45. Minor bruising to left wrist. First aid administered. No hospital visit required.', 'medium', 'closed', '2026-07-10', '09:45:00', 'Sunrise House - Brixton dining room', $3)`,
+       VALUES ($1, $2, 'Fall in communal area', 'Person M. Thompson slipped in the dining room at 09:45. Minor bruising to left wrist. First aid administered. No hospital visit required.', 'medium', 'closed', '2026-07-10', '09:45:00', 'Sunrise House - Brixton dining room', $3)`,
       [uuid(), orgId, userIds[1]]
     );
     await pool.query(
       `INSERT INTO incidents (id, organization_id, title, description, severity, status, incident_date, incident_time, location, reported_by)
-       VALUES ($1, $2, 'Medication administration delay', 'J. Williams evening medication administered 45 minutes late due to staff shortage. Service user was informed and no adverse effects observed.', 'low', 'reported', '2026-07-15', '18:30:00', 'Sunrise House - Brixton', $3)`,
+       VALUES ($1, $2, 'Medication administration delay', 'J. Williams evening medication administered 45 minutes late due to staff shortage. Person was informed and no adverse effects observed.', 'low', 'reported', '2026-07-15', '18:30:00', 'Sunrise House - Brixton', $3)`,
       [uuid(), orgId, userIds[1]]
     );
     await pool.query(

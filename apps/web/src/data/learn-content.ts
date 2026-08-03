@@ -82,7 +82,7 @@ const s: LearnSection[] = [
 ]},
 
 // ═══════════ 2. SERVICE USERS ═══════════
-{ id:'service-users', category:'People', title:'People Manager', icon:'👤', subsections:[
+{ id:'people', category:'People', title:'People Manager', icon:'👤', subsections:[
 { id:'su-directory', title:'Directory — Finding, Adding & Managing People',
   content:
     h2('Person Directory Page') +

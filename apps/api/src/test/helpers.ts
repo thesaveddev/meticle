@@ -19,7 +19,7 @@ import orgRoutes from '../modules/orgs/org.routes'
 import staffRoutes from '../modules/staff/staff.routes'
 import complianceRoutes from '../modules/compliance/compliance.routes'
 import schedulingRoutes from '../modules/scheduling/scheduling.routes'
-import serviceUserRoutes from '../modules/service-users/service-users.routes'
+import personRoutes from '../modules/people/people.routes'
 import leaveRoutes from '../modules/leave/leave.routes'
 import notificationRoutes from '../modules/notifications/notifications.routes'
 import incidentRoutes from '../modules/incidents/incidents.routes'
@@ -75,7 +75,7 @@ export function createTestApp(): Express {
   app.use('/marketplace', marketplaceRoutes)
   app.use('/reporting', reportingRoutes)
   app.use('/insights', insightsRoutes)
-  app.use('/service-users', serviceUserRoutes)
+  app.use('/people', personRoutes)
   app.use('/incidents', incidentRoutes)
   app.use('/dashboard', dashboardRoutes)
   app.use('/notifications', notificationRoutes)

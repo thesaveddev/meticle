@@ -12,15 +12,15 @@ const HEALTH_SUB_TABS = ['Observations', 'Bowel Movements', 'Dental Records', 'F
 
 const today = () => new Date().toISOString().split('T')[0]
 
-function ObservationsSection({ serviceUserId }: { serviceUserId: string }) {
+function ObservationsSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState({ observation_date: today(), category: 'general', notes: '', severity: 'normal' })
-  const { data, isLoading } = useQuery({ queryKey: ['health-obs', serviceUserId], queryFn: () => api.get(`/health/${serviceUserId}/observations`).then(r => r.data) })
-  const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${serviceUserId}/observations`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-obs', serviceUserId] }); setAddOpen(false); setEditId(null); setForm({ observation_date: today(), category: 'general', notes: '', severity: 'normal' }) } })
-  const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${serviceUserId}/observations/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-obs', serviceUserId] }); setAddOpen(false); setEditId(null); setForm({ observation_date: today(), category: 'general', notes: '', severity: 'normal' }) } })
-  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${serviceUserId}/observations/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ['health-obs', serviceUserId] }) })
+  const { data, isLoading } = useQuery({ queryKey: ['health-obs', personId], queryFn: () => api.get(`/health/${personId}/observations`).then(r => r.data) })
+  const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${personId}/observations`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-obs', personId] }); setAddOpen(false); setEditId(null); setForm({ observation_date: today(), category: 'general', notes: '', severity: 'normal' }) } })
+  const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${personId}/observations/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-obs', personId] }); setAddOpen(false); setEditId(null); setForm({ observation_date: today(), category: 'general', notes: '', severity: 'normal' }) } })
+  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/observations/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ['health-obs', personId] }) })
 
   if (isLoading) return <CircularProgress size={24} />
   return (
@@ -76,15 +76,15 @@ function ObservationsSection({ serviceUserId }: { serviceUserId: string }) {
   )
 }
 
-function BowelSection({ serviceUserId }: { serviceUserId: string }) {
+function BowelSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState({ recorded_date: today(), recorded_time: '', bristol_type: 4, consistency: '', color: '', notes: '' })
-  const { data, isLoading } = useQuery({ queryKey: ['health-bowel', serviceUserId], queryFn: () => api.get(`/health/${serviceUserId}/bowel`).then(r => r.data) })
-  const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${serviceUserId}/bowel`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-bowel', serviceUserId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', bristol_type: 4, consistency: '', color: '', notes: '' }) } })
-  const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${serviceUserId}/bowel/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-bowel', serviceUserId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', bristol_type: 4, consistency: '', color: '', notes: '' }) } })
-  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${serviceUserId}/bowel/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ['health-bowel', serviceUserId] }) })
+  const { data, isLoading } = useQuery({ queryKey: ['health-bowel', personId], queryFn: () => api.get(`/health/${personId}/bowel`).then(r => r.data) })
+  const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${personId}/bowel`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-bowel', personId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', bristol_type: 4, consistency: '', color: '', notes: '' }) } })
+  const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${personId}/bowel/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-bowel', personId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', bristol_type: 4, consistency: '', color: '', notes: '' }) } })
+  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/bowel/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ['health-bowel', personId] }) })
 
   if (isLoading) return <CircularProgress size={24} />
   return (
@@ -154,15 +154,15 @@ function BowelSection({ serviceUserId }: { serviceUserId: string }) {
   )
 }
 
-function DentalSection({ serviceUserId }: { serviceUserId: string }) {
+function DentalSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState({ checkup_date: today(), dentist_name: '', findings: '', actions_taken: '', next_checkup_date: '', notes: '' })
-  const { data, isLoading } = useQuery({ queryKey: ['health-dental', serviceUserId], queryFn: () => api.get(`/health/${serviceUserId}/dental`).then(r => r.data) })
-  const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${serviceUserId}/dental`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-dental', serviceUserId] }); setAddOpen(false); setEditId(null); setForm({ checkup_date: today(), dentist_name: '', findings: '', actions_taken: '', next_checkup_date: '', notes: '' }) } })
-  const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${serviceUserId}/dental/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-dental', serviceUserId] }); setAddOpen(false); setEditId(null); setForm({ checkup_date: today(), dentist_name: '', findings: '', actions_taken: '', next_checkup_date: '', notes: '' }) } })
-  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${serviceUserId}/dental/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ['health-dental', serviceUserId] }) })
+  const { data, isLoading } = useQuery({ queryKey: ['health-dental', personId], queryFn: () => api.get(`/health/${personId}/dental`).then(r => r.data) })
+  const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${personId}/dental`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-dental', personId] }); setAddOpen(false); setEditId(null); setForm({ checkup_date: today(), dentist_name: '', findings: '', actions_taken: '', next_checkup_date: '', notes: '' }) } })
+  const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${personId}/dental/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-dental', personId] }); setAddOpen(false); setEditId(null); setForm({ checkup_date: today(), dentist_name: '', findings: '', actions_taken: '', next_checkup_date: '', notes: '' }) } })
+  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/dental/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ['health-dental', personId] }) })
 
   if (isLoading) return <CircularProgress size={24} />
   return (
@@ -214,17 +214,17 @@ function DentalSection({ serviceUserId }: { serviceUserId: string }) {
   )
 }
 
-function FluidSection({ serviceUserId }: { serviceUserId: string }) {
+function FluidSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [date, setDate] = useState(today())
   const [form, setForm] = useState({ recorded_date: today(), recorded_time: '', amount_ml: 200, fluid_type: 'Water', notes: '' })
-  const { data, isLoading } = useQuery({ queryKey: ['health-fluid', serviceUserId, date], queryFn: () => api.get(`/health/${serviceUserId}/fluid?date=${date}`).then(r => r.data) })
-  const { data: total } = useQuery({ queryKey: ['health-fluid-total', serviceUserId, date], queryFn: () => api.get(`/health/${serviceUserId}/fluid/total?date=${date}`).then(r => r.data) })
-  const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${serviceUserId}/fluid`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-fluid', serviceUserId] }); qc.invalidateQueries({ queryKey: ['health-fluid-total', serviceUserId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', amount_ml: 200, fluid_type: 'Water', notes: '' }) } })
-  const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${serviceUserId}/fluid/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-fluid', serviceUserId] }); qc.invalidateQueries({ queryKey: ['health-fluid-total', serviceUserId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', amount_ml: 200, fluid_type: 'Water', notes: '' }) } })
-  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${serviceUserId}/fluid/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-fluid', serviceUserId] }); qc.invalidateQueries({ queryKey: ['health-fluid-total', serviceUserId] }) } })
+  const { data, isLoading } = useQuery({ queryKey: ['health-fluid', personId, date], queryFn: () => api.get(`/health/${personId}/fluid?date=${date}`).then(r => r.data) })
+  const { data: total } = useQuery({ queryKey: ['health-fluid-total', personId, date], queryFn: () => api.get(`/health/${personId}/fluid/total?date=${date}`).then(r => r.data) })
+  const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${personId}/fluid`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-fluid', personId] }); qc.invalidateQueries({ queryKey: ['health-fluid-total', personId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', amount_ml: 200, fluid_type: 'Water', notes: '' }) } })
+  const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${personId}/fluid/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-fluid', personId] }); qc.invalidateQueries({ queryKey: ['health-fluid-total', personId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', amount_ml: 200, fluid_type: 'Water', notes: '' }) } })
+  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/fluid/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-fluid', personId] }); qc.invalidateQueries({ queryKey: ['health-fluid-total', personId] }) } })
 
   if (isLoading) return <CircularProgress size={24} />
   const totalMl = total?.total_ml || 0
@@ -288,7 +288,7 @@ function FluidSection({ serviceUserId }: { serviceUserId: string }) {
   )
 }
 
-export default function HealthTab({ serviceUserId }: { serviceUserId: string }) {
+export default function HealthTab({ personId }: { personId: string }) {
   const [subTab, setSubTab] = useState(0)
 
   return (
@@ -296,10 +296,10 @@ export default function HealthTab({ serviceUserId }: { serviceUserId: string }) 
       <Tabs value={subTab} onChange={(_, v) => setSubTab(v)} sx={{ borderBottom: 1, borderColor: '#E5E7EB', mb: 3 }}>
         {HEALTH_SUB_TABS.map(t => <Tab key={t} label={t} sx={{ textTransform: 'none', fontWeight: 700 }} />)}
       </Tabs>
-      {subTab === 0 && <ObservationsSection serviceUserId={serviceUserId} />}
-      {subTab === 1 && <BowelSection serviceUserId={serviceUserId} />}
-      {subTab === 2 && <DentalSection serviceUserId={serviceUserId} />}
-      {subTab === 3 && <FluidSection serviceUserId={serviceUserId} />}
+      {subTab === 0 && <ObservationsSection personId={personId} />}
+      {subTab === 1 && <BowelSection personId={personId} />}
+      {subTab === 2 && <DentalSection personId={personId} />}
+      {subTab === 3 && <FluidSection personId={personId} />}
     </Box>
   )
 }

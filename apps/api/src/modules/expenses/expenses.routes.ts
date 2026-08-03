@@ -9,7 +9,7 @@ import { UserRole } from '@meticle/shared';
 import { ExpenseCategory } from './expenses.types';
 
 const createExpenseSchema = z.object({
-  serviceUserId: z.string().uuid(),
+  personId: z.string().uuid(),
   locationId: z.string().uuid().optional(),
   category: z.nativeEnum(ExpenseCategory),
   amountPence: z.number().int().positive(),

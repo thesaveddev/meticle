@@ -17,8 +17,8 @@ export enum PettyCashTransactionType {
 export interface Expense {
   id: string;
   organization_id: string;
-  service_user_id: string;
-  service_user_name?: string;
+  person_id: string;
+  person_name?: string;
   location_id?: string;
   location_name?: string;
   category: ExpenseCategory;
@@ -33,7 +33,7 @@ export interface Expense {
 }
 
 export interface ExpenseInput {
-  service_user_id: string;
+  person_id: string;
   location_id?: string;
   category: ExpenseCategory;
   amount_pence: number;
@@ -72,7 +72,7 @@ export interface ExpenseStats {
   total_expenses: number;
   total_amount_pounds: number;
   by_category: { category: ExpenseCategory; count: number; total_pounds: number }[];
-  by_service_user: { service_user_id: string; service_user_name: string; count: number; total_pounds: number }[];
+  by_person: { person_id: string; person_name: string; count: number; total_pounds: number }[];
   by_location: { location_id: string; location_name: string; total_pounds: number }[];
   period_start: string;
   period_end: string;

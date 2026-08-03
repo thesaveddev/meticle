@@ -1,7 +1,13 @@
-import { Box, Container, Typography, Stack, Divider, Grid } from '@mui/material'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { Box, Container, Typography, Stack, Grid, Link } from '@mui/material'
+import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import NavHeader from './NavHeader'
+
+const INK_DARK = '#141C24'
+const INK_DEEP = '#1D2733'
+const EMERALD = '#10B981'
+const FOOT_MUTED = '#8E98A3'
+const FOOT_HAIRLINE = 'rgba(255,255,255,0.12)'
 
 const footerLinks = {
   Product: [
@@ -25,7 +31,6 @@ const footerLinks = {
   Resources: [
     { name: 'Learning Center', path: '/learn' },
     { name: 'Blog & Guides', path: '/blog' },
-    { name: 'FAQ', path: '/faq' },
   ],
   Legal: [
     { name: 'Privacy Policy', path: '/privacy' },
@@ -35,7 +40,6 @@ const footerLinks = {
 }
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate()
   const { pathname } = useLocation()
 
   useEffect(() => { window.scrollTo(0, 0) }, [pathname])
@@ -48,49 +52,54 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       </Box>
 
       {/* Footer */}
-      <Box sx={{ py: 10, bgcolor: '#F8FAFC', borderTop: '1px solid #E5E7EB' }}>
+      <Box component="footer" sx={{ bgcolor: INK_DARK, color: '#FFFFFF' }}>
         <Container maxWidth="lg">
-          <Grid container spacing={6}>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h5" sx={{ fontWeight: 900, color: '#111827', mb: 2, cursor: 'pointer' }} onClick={() => navigate('/')}>
-                Meticle
+          <Grid container spacing={{ xs: 4, md: 6 }} sx={{ pt: { xs: 8, md: 10 }, pb: { xs: 5, md: 8 } }}>
+            <Grid item xs={12} md={3}>
+              <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: '-1.5px', mb: 2.5, fontSize: '1.35rem' }} component={RouterLink} to="/" style={{ textDecoration: 'none', color: '#FFFFFF' }}>
+                Meticle<span style={{ color: EMERALD }}>Care</span>
               </Typography>
-              <Typography variant="body2" sx={{ color: '#6B7280', mb: 3, maxWidth: 300 }}>
-                The compliance-first platform for UK care providers. Built for CQC, CIW, Care Inspectorate, and RQIA.
+              <Typography variant="body2" sx={{ color: FOOT_MUTED, mb: 4, maxWidth: 280, lineHeight: 1.7 }}>
+                A connected care management platform for UK supported living and domiciliary care providers.
               </Typography>
-              <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>
-                ✓ All Four UK Regulators Supported
+              <Typography variant="caption" sx={{ color: FOOT_MUTED, fontWeight: 600, letterSpacing: '0.04em' }}>
+                CQC · CIW · Care Inspectorate · RQIA
               </Typography>
             </Grid>
             {Object.entries(footerLinks).map(([category, links]) => (
-              <Grid item xs={6} md={2} key={category}>
-                <Typography variant="caption" sx={{ fontWeight: 800, color: '#111827', textTransform: 'uppercase', mb: 2, display: 'block' }}>
+              <Grid item key={category} sx={{ width: { xs: '50%', sm: '33.33%', md: 'auto' }, flexGrow: { md: 1 }, flexBasis: { md: 0 } }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: '#E8EBEE', textTransform: 'uppercase', letterSpacing: 1, mb: 2.5, display: 'block' }}>
                   {category}
                 </Typography>
                 <Stack spacing={1.5}>
                   {links.map(link => (
-                    <Typography
-                      key={link.name} variant="body2" color="#6B7280"
-                      sx={{ cursor: 'pointer', '&:hover': { color: '#0F4C81' } }}
-                      onClick={() => navigate(link.path)}
+                    <Link
+                      key={link.name}
+                      component={RouterLink}
+                      to={link.path}
+                      underline="hover"
+                      sx={{ color: FOOT_MUTED, fontSize: '0.9rem', transition: 'color 0.15s ease', '&:hover': { color: '#FFFFFF' } }}
                     >
                       {link.name}
-                    </Typography>
+                    </Link>
                   ))}
                 </Stack>
               </Grid>
             ))}
           </Grid>
-          <Divider sx={{ my: 6 }} />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-            <Typography variant="body2" color="#9CA3AF">© 2026 Meticle Technologies. All rights reserved.</Typography>
-            <Stack direction="row" spacing={3}>
-              <Typography variant="caption" color="#9CA3AF" sx={{ cursor: 'pointer', '&:hover': { color: '#0F4C81' } }} onClick={() => navigate('/privacy')}>Privacy Policy</Typography>
-              <Typography variant="caption" color="#9CA3AF" sx={{ cursor: 'pointer', '&:hover': { color: '#0F4C81' } }} onClick={() => navigate('/terms')}>Terms of Use</Typography>
-              <Typography variant="caption" color="#9CA3AF" sx={{ cursor: 'pointer', '&:hover': { color: '#0F4C81' } }} onClick={() => navigate('/cookies')}>Cookie Policy</Typography>
-            </Stack>
-          </Box>
         </Container>
+        <Box sx={{ borderTop: `1px solid ${FOOT_HAIRLINE}`, py: { xs: 2.5, md: 3 }, bgcolor: INK_DEEP }}>
+          <Container maxWidth="lg">
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+              <Typography variant="body2" sx={{ color: FOOT_MUTED, fontSize: '0.85rem' }}>© 2026 MeticleCare Technologies. All rights reserved.</Typography>
+              <Stack direction="row" spacing={3}>
+                <Link component={RouterLink} to="/privacy" underline="hover" sx={{ color: FOOT_MUTED, fontSize: '0.75rem', transition: 'color 0.15s ease', '&:hover': { color: '#FFFFFF' } }}>Privacy Policy</Link>
+                <Link component={RouterLink} to="/terms" underline="hover" sx={{ color: FOOT_MUTED, fontSize: '0.75rem', transition: 'color 0.15s ease', '&:hover': { color: '#FFFFFF' } }}>Terms of Use</Link>
+                <Link component={RouterLink} to="/cookies" underline="hover" sx={{ color: FOOT_MUTED, fontSize: '0.75rem', transition: 'color 0.15s ease', '&:hover': { color: '#FFFFFF' } }}>Cookie Policy</Link>
+              </Stack>
+            </Box>
+          </Container>
+        </Box>
       </Box>
     </Box>
   )
