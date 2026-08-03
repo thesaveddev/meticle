@@ -332,15 +332,27 @@ export default function PersonProfilePage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const blobUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.target = '_blank'
-      a.rel = 'noopener noreferrer'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+      const w = window.open(blobUrl, '_blank', 'noopener,noreferrer')
+      if (!w) {
+        const a = document.createElement('a')
+        a.href = blobUrl
+        a.target = '_blank'
+        a.rel = 'noopener noreferrer'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      }
     } catch {
-      window.open(url, '_blank', 'noopener,noreferrer')
+      const w = window.open(url, '_blank', 'noopener,noreferrer')
+      if (!w) {
+        const a = document.createElement('a')
+        a.href = url
+        a.target = '_blank'
+        a.rel = 'noopener noreferrer'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      }
     }
   }
 
@@ -2485,15 +2497,27 @@ function DocumentsTab({ personId }: { personId: string }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const blobUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.target = '_blank'
-      a.rel = 'noopener noreferrer'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+      const w = window.open(blobUrl, '_blank', 'noopener,noreferrer')
+      if (!w) {
+        const a = document.createElement('a')
+        a.href = blobUrl
+        a.target = '_blank'
+        a.rel = 'noopener noreferrer'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      }
     } catch {
-      window.open(fileUrl, '_blank', 'noopener,noreferrer')
+      const w = window.open(fileUrl, '_blank', 'noopener,noreferrer')
+      if (!w) {
+        const a = document.createElement('a')
+        a.href = fileUrl
+        a.target = '_blank'
+        a.rel = 'noopener noreferrer'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      }
     }
   }
 
