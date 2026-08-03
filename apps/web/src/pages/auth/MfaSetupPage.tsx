@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Box, Typography, Container, TextField, Button, Alert, CircularProgress, Stack, Paper } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 
 export default function MfaSetupPage() {
   const location = useLocation()
@@ -45,6 +46,13 @@ export default function MfaSetupPage() {
       localStorage.setItem('accessToken', res.data.accessToken)
       localStorage.setItem('refreshToken', res.data.refreshToken)
       localStorage.setItem('user', JSON.stringify(res.data.user))
+      if (res.data.user?.id) {
+        posthog.identify(res.data.user.id, {
+          email: res.data.user.email,
+          name: res.data.user.name,
+          role: res.data.user.role,
+        })
+      }
       setBackupCodes(res.data.backupCodes || [])
     } catch (err: any) {
       setError(err.response?.data?.message || err.response?.data?.error?.message || 'Invalid code. Try again.')

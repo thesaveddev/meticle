@@ -14,6 +14,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 
 const SEVERITY_COLORS: Record<string, string> = { low: '#16A34A', medium: '#D97706', high: '#DC2626', critical: '#7C3AED' }
 const STATUS_COLORS: Record<string, string> = { reported: '#D97706', investigating: '#0F4C81', resolved: '#16A34A', closed: '#6B7280' }
@@ -47,7 +48,7 @@ export default function IncidentDirectoryPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post('/incidents', data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incidents'] }); queryClient.invalidateQueries({ queryKey: ['incident-stats'] }); setAddOpen(false); setForm({ title: '', description: '', category_id: '', incident_date: new Date().toISOString().split('T')[0], incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false }) },
+    onSuccess: (_data, submittedForm) => { posthog.capture('incident_reported', { severity: submittedForm.severity, is_cqc_reportable: submittedForm.is_cqc_reportable, has_category: Boolean(submittedForm.category_id) }); queryClient.invalidateQueries({ queryKey: ['incidents'] }); queryClient.invalidateQueries({ queryKey: ['incident-stats'] }); setAddOpen(false); setForm({ title: '', description: '', category_id: '', incident_date: new Date().toISOString().split('T')[0], incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to create incident'),
   })
 

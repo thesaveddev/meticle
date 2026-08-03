@@ -6,6 +6,7 @@ import {
 } from '@mui/material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 import { Security as SecurityIcon, Visibility, VisibilityOff } from '@mui/icons-material'
 
 const LOGIN_ILLUSTRATION = '/login-page.jpg';
@@ -43,6 +44,13 @@ export default function LoginPage() {
       localStorage.setItem('accessToken', response.data.accessToken)
       localStorage.setItem('refreshToken', response.data.refreshToken)
       localStorage.setItem('user', JSON.stringify(response.data.user))
+      if (response.data.user?.id) {
+        posthog.identify(response.data.user.id, {
+          email: response.data.user.email,
+          name: response.data.user.name,
+          role: response.data.user.role,
+        })
+      }
       const role = response.data.user?.role
       navigate(role === 'SUPER_ADMIN' ? '/platform-admin' : '/dashboard')
     } catch (err: any) {

@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeModeProvider } from './context/ThemeContext'
 import { SnackbarProvider } from './context/SnackbarContext'
 import './index.css'
+import './lib/posthog'
 
 const queryClient = new QueryClient()
 

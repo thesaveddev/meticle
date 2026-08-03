@@ -3,6 +3,7 @@ import { Box, Button, Container, Typography, TextField, Stack, Chip, Alert, Circ
 import { useNavigate } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 
 const isValidEmail = (e: string) => /^\S+@\S+\.\S+$/.test(e.trim())
 
@@ -56,6 +57,10 @@ export default function OnboardingFlow() {
           employment_status: 'available',
         })
       }
+      posthog.capture('onboarding_completed', {
+        account_type: isOrg ? 'organization' : 'staff',
+        invitation_count: invites.length,
+      })
       navigate('/dashboard')
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save. You can set this up later in Settings.')

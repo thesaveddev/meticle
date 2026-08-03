@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
 import * as XLSX from 'xlsx'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 
 const ROLE_OPTIONS = [
   { value: 'MANAGER', label: 'Manager' },
@@ -337,12 +338,19 @@ export default function StaffDirectoryPage() {
   }
 
   const handleSendInvitations = async () => {
+    let successfulInvitations = 0
     for (const entry of inviteEntries) {
       try {
         await inviteMutation.mutateAsync(entry)
+        successfulInvitations += 1
       } catch {
         // continue with remaining
       }
+    }
+    if (successfulInvitations > 0) {
+      posthog.capture('staff_invitations_sent', {
+        invitation_count: successfulInvitations,
+      })
     }
     setInviteEntries([])
     setAddDialogOpen(false)

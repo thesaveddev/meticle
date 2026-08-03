@@ -13,6 +13,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import posthog from '../../lib/posthog'
 
 const SEVERITY_COLORS: Record<string, string> = { low: '#16A34A', medium: '#D97706', high: '#DC2626', critical: '#7C3AED' }
 const STATUS_COLORS: Record<string, string> = { reported: '#D97706', investigating: '#0F4C81', resolved: '#16A34A', closed: '#6B7280' }
@@ -44,7 +45,7 @@ export default function IncidentDetailPage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => api.patch(`/incidents/${id}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incident', id] }); setUpdateOpen(false) },
+    onSuccess: (_data, submittedUpdate) => { posthog.capture('incident_updated', { status: submittedUpdate.status, is_cqc_reportable: submittedUpdate.is_cqc_reportable }); queryClient.invalidateQueries({ queryKey: ['incident', id] }); setUpdateOpen(false) },
   })
 
   const addResidentMutation = useMutation({
@@ -59,7 +60,7 @@ export default function IncidentDetailPage() {
 
   const addActionMutation = useMutation({
     mutationFn: (data: any) => api.post(`/incidents/${id}/actions`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incident', id] }); setAddActionOpen(false); setActionForm({ action: '', assigned_to: '', due_date: '' }) },
+    onSuccess: (_data, submittedAction) => { posthog.capture('incident_action_created', { has_assignee: Boolean(submittedAction.assigned_to), has_due_date: Boolean(submittedAction.due_date) }); queryClient.invalidateQueries({ queryKey: ['incident', id] }); setAddActionOpen(false); setActionForm({ action: '', assigned_to: '', due_date: '' }) },
   })
 
   const completeActionMutation = useMutation({

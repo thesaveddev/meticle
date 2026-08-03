@@ -32,6 +32,7 @@ import {
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
 import api from '../services/api'
+import posthog from '../lib/posthog'
 import { connectSocket, disconnectSocket } from '../services/socket'
 import OfflineBanner from './OfflineBanner'
 import RouteLoadingIndicator from './RouteLoadingIndicator'
@@ -262,6 +263,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   }
 
   const handleLogout = () => {
+    posthog.reset()
     localStorage.clear()
     updateBranding({ primary_color: METICLE_PRIMARY, secondary_color: METICLE_SECONDARY, accent_color: '#F8FAFC' }, '')
     navigate('/login')
