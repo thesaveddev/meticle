@@ -1568,14 +1568,32 @@ const INITIAL_MIGRATION: Migration = {
   ],
 };
 
+async function isFreshDatabase(): Promise<boolean> {
+  try {
+    const result = await query(`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '_migrations') AS exists`);
+    return !result.rows[0].exists;
+  } catch {
+    // If the query itself fails, assume fresh (table might not exist)
+    return true;
+  }
+}
+
 export const setupDatabase = async () => {
   try {
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
 
-    // Execute full schema (pg simple query protocol handles multi-statement)
-    await query(schema);
-    logger.info('Database schema setup completed.');
+    // Check if the DB has been initialized before (fresh vs upgrade)
+    const freshDb = await isFreshDatabase();
+
+    // Execute full schema only on a fresh database
+    // On existing databases, migrations handle all schema changes
+    if (freshDb) {
+      await query(schema);
+      logger.info('Database schema setup completed.');
+    } else {
+      logger.info('Existing database detected — skipping schema.sql, migrations handle changes.');
+    }
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012]);
@@ -1619,3 +1637,16 @@ export const setupDatabase = async () => {
     throw error;
   }
 };
+
+// Standalone execution for deploy workflow: `node dist/shared/database/setup.js`
+if (require.main === module) {
+  setupDatabase()
+    .then(() => {
+      logger.info('setup-db complete — exiting');
+      process.exit(0);
+    })
+    .catch((err) => {
+      logger.error(err, 'setup-db failed');
+      process.exit(1);
+    });
+}
