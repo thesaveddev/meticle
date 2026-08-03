@@ -7,21 +7,21 @@ interface Appointment {
   id: string
   title: string
   description?: string
-  service_user_name?: string
+  person_name?: string
   staff_name?: string
   location_name?: string
   start_time: string
   end_time: string
   status: string
-  service_user_id?: string
+  person_id?: string
   staff_id?: string
   location_id?: string
 }
 
-interface ServiceUser { id: string; first_name: string; last_name: string }
+interface Person { id: string; first_name: string; last_name: string }
 interface StaffMember { id: string; first_name: string; last_name: string }
 
-const initialForm = { title: '', description: '', service_user_id: '', staff_id: '', location_id: '', start_time: '', end_time: '', status: 'scheduled' }
+const initialForm = { title: '', description: '', person_id: '', staff_id: '', location_id: '', start_time: '', end_time: '', status: 'scheduled' }
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -31,7 +31,7 @@ export default function AppointmentsPage() {
   const [form, setForm] = useState(initialForm)
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
-  const [serviceUsers, setServiceUsers] = useState<ServiceUser[]>([])
+  const [people, setPeople] = useState<Person[]>([])
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [saving, setSaving] = useState(false)
   const [fetchError, setFetchError] = useState('')
@@ -51,17 +51,17 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     fetchAppointments()
-    api.get('/service-users?status=active').then(r => setServiceUsers(r.data)).catch(() => {})
+    api.get('/people?status=active').then(r => setPeople(r.data)).catch(() => {})
     api.get('/staff/org-members').then(r => { const d = r.data; setStaff([...(d?.admins?.length ? d.admins : (d?.admin ? [d.admin] : [])), ...(d?.staff || [])]) }).catch(() => {})
   }, [dateFilter])
 
   const openCreate = () => { setEditing(null); setForm(initialForm); setDialogOpen(true) }
-  const openEdit = (a: Appointment) => { setEditing(a); setForm({ title: a.title, description: a.description || '', service_user_id: a.service_user_id || '', staff_id: a.staff_id || '', location_id: a.location_id || '', start_time: a.start_time.slice(0, 16), end_time: a.end_time.slice(0, 16), status: a.status }); setDialogOpen(true) }
+  const openEdit = (a: Appointment) => { setEditing(a); setForm({ title: a.title, description: a.description || '', person_id: a.person_id || '', staff_id: a.staff_id || '', location_id: a.location_id || '', start_time: a.start_time.slice(0, 16), end_time: a.end_time.slice(0, 16), status: a.status }); setDialogOpen(true) }
 
   const handleSave = async () => {
     setSaving(true)
     try {
-      const payload = { ...form, start_time: new Date(form.start_time).toISOString(), end_time: new Date(form.end_time).toISOString(), service_user_id: form.service_user_id || null, staff_id: form.staff_id || null, location_id: form.location_id || null }
+      const payload = { ...form, start_time: new Date(form.start_time).toISOString(), end_time: new Date(form.end_time).toISOString(), person_id: form.person_id || null, staff_id: form.staff_id || null, location_id: form.location_id || null }
       if (editing) { await api.patch(`/appointments/${editing.id}`, payload) }
       else { await api.post('/appointments', payload) }
       setDialogOpen(false); fetchAppointments()
@@ -118,7 +118,7 @@ export default function AppointmentsPage() {
             ) : appointments.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((a) => (
               <TableRow key={a.id} hover>
                 <TableCell sx={{ fontWeight: 700 }}>{a.title}</TableCell>
-                <TableCell>{a.service_user_name || '-'}</TableCell>
+                <TableCell>{a.person_name || '-'}</TableCell>
                 <TableCell>{a.staff_name || '-'}</TableCell>
                 <TableCell>{new Date(a.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(a.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</TableCell>
                 <TableCell>{statusChip(a.status)}</TableCell>
@@ -141,9 +141,9 @@ export default function AppointmentsPage() {
             <TextField label="Description" fullWidth multiline rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
             <FormControl fullWidth>
               <InputLabel>Person</InputLabel>
-              <Select value={form.service_user_id} label="Person" onChange={e => setForm(f => ({ ...f, service_user_id: e.target.value }))}>
+              <Select value={form.person_id} label="Person" onChange={e => setForm(f => ({ ...f, person_id: e.target.value }))}>
                 <MenuItem value="">None</MenuItem>
-                {serviceUsers.map(su => <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>)}
+                {people.map(su => <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>)}
               </Select>
             </FormControl>
             <FormControl fullWidth>

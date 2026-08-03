@@ -101,6 +101,27 @@ const _originalPoolQuery = pool.query.bind(pool);
 /** Query via the superuser migration pool (for DDL / setup / cross-tenant auth operations) */
 export const migrateQuery = (text: string, params?: any[]) => migratePool.query(text, params);
 
+/**
+ * Clear the RLS session variables on a pooled client.
+ *
+ * Session-level settings set with `set_config(..., false)` persist on the
+ * underlying PostgreSQL connection. If they are not cleared before a client
+ * is returned to the pool, the next request reusing that connection inherits
+ * the previous user's org/user/role context (connection poisoning). Public
+ * routes and background jobs would then operate against the wrong tenant.
+ */
+export async function resetRlsSessionVars(client: { query: (text: string, params?: any[]) => Promise<any> }): Promise<void> {
+  try {
+    await client.query(
+      `SELECT set_config('app.current_org_id', '', false),
+              set_config('app.current_user_id', '', false),
+              set_config('app.current_user_role', '', false)`
+    );
+  } catch {
+    // Connection may already be broken — the reset is best-effort.
+  }
+}
+
 export async function transaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
   // Use the ALS request-scoped client when available so that RLS session
   // variables persist inside the transaction.

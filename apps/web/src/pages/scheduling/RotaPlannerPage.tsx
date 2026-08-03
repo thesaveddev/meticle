@@ -64,7 +64,7 @@ export default function RotaPlannerPage() {
   const [staffList, setStaffList] = useState<any[]>([])
   const [locations, setLocations] = useState<any[]>([])
   const [minStaffCounts, setMinStaffCounts] = useState<any[]>([])
-  const [serviceUsers, setServiceUsers] = useState<any[]>([])
+  const [people, setPeople] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -77,7 +77,7 @@ export default function RotaPlannerPage() {
   const [shiftDialog, setShiftDialog] = useState(false)
   const [shiftDialogError, setShiftDialogError] = useState('')
   const [shiftSaving, setShiftSaving] = useState(false)
-  const [shiftForm, setShiftForm] = useState({ location_id: '', department_id: '', start_date: '', start_time: '09:00', end_time: '17:00', assigned_staff_ids: [] as string[], service_user_id: '', shift_type: 'day' })
+  const [shiftForm, setShiftForm] = useState({ location_id: '', department_id: '', start_date: '', start_time: '09:00', end_time: '17:00', assigned_staff_ids: [] as string[], person_id: '', shift_type: 'day' })
 
   const [assignDialog, setAssignDialog] = useState(false)
   const [assignShiftId, setAssignShiftId] = useState('')
@@ -230,12 +230,12 @@ export default function RotaPlannerPage() {
         `${s.first_name} ${s.last_name}: ${s.contracted_hours_weekly || 0}h/week${s.max_hours_weekly ? ` (visa cap: ${s.max_hours_weekly}h/wk)` : ''}`
       ).join('\n')
 
-      const suList = serviceUsers.map((su: any) =>
+      const suList = people.map((su: any) =>
         `${su.first_name} ${su.last_name}${su.location_id ? ` @ ${locations.find(l=>l.id===su.location_id)?.name||''}` : ''} - Support: ${su.support_level || 'not set'}${su.min_staff_required ? ` (min ${su.min_staff_required} staff)` : ''}`
       ).join('\n') || 'None'
 
       const staffingNeeds = locations.map(l =>
-        `${l.name}: ${getCareStaffingNeeds(l.id)} staff required from person care needs (incl. ${serviceUsers.filter((su: any) => su.location_id === l.id).length} people)`
+        `${l.name}: ${getCareStaffingNeeds(l.id)} staff required from person care needs (incl. ${people.filter((su: any) => su.location_id === l.id).length} people)`
       ).join('\n') || 'No care needs data'
 
       const minDay = getShiftTypeMin(selectedLocationId || '', 'day')
@@ -257,7 +257,7 @@ export default function RotaPlannerPage() {
         staffRoster,
         existingShifts,
         staffOnLeave: 'Not available — assume all staff available unless already assigned',
-        serviceUsers: suList,
+        people: suList,
         staffingNeeds,
         contractedHours,
         mandatoryStartTimes: mandatoryStartTimesStr,
@@ -426,12 +426,12 @@ export default function RotaPlannerPage() {
           safeGet('/shifts/staff', []),
           safeGet('/leave/locations', []),
           safeGet('/shifts/min-staff', []),
-          safeGet('/service-users?status=active', []),
+          safeGet('/people?status=active', []),
         ])
         if (staffData.length) setStaffList(staffData)
         if (locData.length) setLocations(locData)
         if (minStaffData) setMinStaffCounts(minStaffData)
-        if (suData) setServiceUsers(suData)
+        if (suData) setPeople(suData)
       }
 
       // Always refresh shifts + pending claims
@@ -558,7 +558,7 @@ export default function RotaPlannerPage() {
   }
 
   const getCareStaffingNeeds = (locationId: string) => {
-    const locUsers = serviceUsers.filter((su: any) => su.status === 'active' && su.location_id === locationId)
+    const locUsers = people.filter((su: any) => su.status === 'active' && su.location_id === locationId)
     return locUsers.reduce((sum: number, su: any) => {
       if (su.support_level === 'one_to_one') return sum + 1
       if (su.support_level === 'two_to_one') return sum + 2
@@ -584,11 +584,11 @@ export default function RotaPlannerPage() {
         start_time: startDateTime,
         end_time: endDateTime,
         assigned_staff_ids: shiftForm.assigned_staff_ids,
-        service_user_id: shiftForm.service_user_id || undefined,
+        person_id: shiftForm.person_id || undefined,
         shift_type: shiftForm.shift_type,
       })
       setShiftDialog(false)
-      setShiftForm({ location_id: '', department_id: '', start_date: '', start_time: '09:00', end_time: '17:00', assigned_staff_ids: [], service_user_id: '', shift_type: 'day' })
+      setShiftForm({ location_id: '', department_id: '', start_date: '', start_time: '09:00', end_time: '17:00', assigned_staff_ids: [], person_id: '', shift_type: 'day' })
       setSuccess(shiftForm.assigned_staff_ids.length > 0 ? 'Shift created and staff assigned' : 'Open shift created')
       fetchData()
     } catch (err: any) {
@@ -692,7 +692,7 @@ export default function RotaPlannerPage() {
       start_time: '09:00',
       end_time: '17:00',
       assigned_staff_ids: [],
-      service_user_id: '',
+      person_id: '',
       shift_type: 'day',
     })
     setShiftDialogError('')
@@ -1146,10 +1146,10 @@ export default function RotaPlannerPage() {
             </FormControl>
             <FormControl fullWidth size="small">
               <InputLabel>Person (optional)</InputLabel>
-              <Select value={shiftForm.service_user_id} label="Person (optional)"
-                onChange={e => setShiftForm(p => ({ ...p, service_user_id: e.target.value }))}>
+              <Select value={shiftForm.person_id} label="Person (optional)"
+                onChange={e => setShiftForm(p => ({ ...p, person_id: e.target.value }))}>
                 <MenuItem value=""><em>None</em></MenuItem>
-                {serviceUsers.map((su: any) => (
+                {people.map((su: any) => (
                   <MenuItem key={su.id} value={su.id}>{su.first_name} {su.last_name}</MenuItem>
                 ))}
               </Select>

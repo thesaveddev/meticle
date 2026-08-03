@@ -3,7 +3,7 @@ import { query } from '../../shared/database';
 export interface GoalRow {
   id: string;
   organization_id: string;
-  service_user_id: string;
+  person_id: string;
   title: string;
   description?: string;
   target_date?: string;
@@ -49,20 +49,20 @@ export interface ProgressHistoryRow {
 }
 
 export class GoalRepository {
-  private static readonly GOAL_UPDATE_COLUMNS = new Set(['service_user_id', 'title', 'description', 'target_date', 'review_date', 'status', 'progress', 'cqc_domain', 'frequency', 'goal_category', 'created_by', 'care_plan_id', 'baseline_value', 'target_value', 'value_unit', 'provider_clarification', 'assigned_to', 'status_reason', 'is_private', 'started_at']);
+  private static readonly GOAL_UPDATE_COLUMNS = new Set(['person_id', 'title', 'description', 'target_date', 'review_date', 'status', 'progress', 'cqc_domain', 'frequency', 'goal_category', 'created_by', 'care_plan_id', 'baseline_value', 'target_value', 'value_unit', 'provider_clarification', 'assigned_to', 'status_reason', 'is_private', 'started_at']);
   private static readonly MILESTONE_UPDATE_COLUMNS = new Set(['title', 'is_completed', 'sort_order']);
-  static async findAll(orgId: string, serviceUserId?: string, status?: string) {
+  static async findAll(orgId: string, personId?: string, status?: string) {
     let sql = `
       SELECT g.*,
-        (SELECT first_name || ' ' || last_name FROM service_users WHERE id = g.service_user_id) AS service_user_name,
+        (SELECT first_name || ' ' || last_name FROM people WHERE id = g.person_id) AS person_name,
         (SELECT cp.title FROM care_plans cp WHERE cp.id = g.care_plan_id) AS care_plan_title,
         (SELECT COUNT(*)::int FROM goal_milestones gm WHERE gm.goal_id = g.id) AS milestones_total,
         (SELECT COUNT(*)::int FROM goal_milestones gm WHERE gm.goal_id = g.id AND gm.is_completed = true) AS milestones_completed
-      FROM service_user_goals g
+      FROM person_goals g
       WHERE g.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
-    if (serviceUserId) { sql += ` AND g.service_user_id = $${idx++}`; params.push(serviceUserId); }
+    if (personId) { sql += ` AND g.person_id = $${idx++}`; params.push(personId); }
     if (status) { sql += ` AND g.status = $${idx++}`; params.push(status); }
     sql += ' ORDER BY g.created_at DESC';
     const result = await query(sql, params);
@@ -72,20 +72,20 @@ export class GoalRepository {
   static async findById(id: string, orgId: string) {
     const result = await query(`
       SELECT g.*,
-        (SELECT first_name || ' ' || last_name FROM service_users WHERE id = g.service_user_id) AS service_user_name,
+        (SELECT first_name || ' ' || last_name FROM people WHERE id = g.person_id) AS person_name,
         (SELECT cp.title FROM care_plans cp WHERE cp.id = g.care_plan_id) AS care_plan_title
-      FROM service_user_goals g
+      FROM person_goals g
       WHERE g.id = $1 AND g.organization_id = $2
     `, [id, orgId]);
     return result.rows[0] || null;
   }
 
   static async create(data: Partial<GoalRow>) {
-    const { organization_id, service_user_id, title, description, target_date, review_date, status, progress, cqc_domain, frequency, goal_category, created_by, care_plan_id, baseline_value, target_value, value_unit, provider_clarification, assigned_to, status_reason, is_private, started_at } = data;
+    const { organization_id, person_id, title, description, target_date, review_date, status, progress, cqc_domain, frequency, goal_category, created_by, care_plan_id, baseline_value, target_value, value_unit, provider_clarification, assigned_to, status_reason, is_private, started_at } = data;
     const result = await query(
-      `INSERT INTO service_user_goals (organization_id, service_user_id, title, description, target_date, review_date, status, progress, cqc_domain, frequency, goal_category, created_by, care_plan_id, baseline_value, target_value, value_unit, provider_clarification, assigned_to, status_reason, is_private, started_at)
+      `INSERT INTO person_goals (organization_id, person_id, title, description, target_date, review_date, status, progress, cqc_domain, frequency, goal_category, created_by, care_plan_id, baseline_value, target_value, value_unit, provider_clarification, assigned_to, status_reason, is_private, started_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING *`,
-      [organization_id, service_user_id, title, description, target_date, review_date, status || 'active', progress || 0, cqc_domain, frequency || 'one_time', goal_category, created_by, care_plan_id || null, baseline_value ?? null, target_value ?? null, value_unit || null, provider_clarification || null, assigned_to || null, status_reason || null, is_private || false, started_at || null]
+      [organization_id, person_id, title, description, target_date, review_date, status || 'active', progress || 0, cqc_domain, frequency || 'one_time', goal_category, created_by, care_plan_id || null, baseline_value ?? null, target_value ?? null, value_unit || null, provider_clarification || null, assigned_to || null, status_reason || null, is_private || false, started_at || null]
     );
     return result.rows[0];
   }
@@ -99,17 +99,17 @@ export class GoalRepository {
     }
     params.push(id, orgId);
     const result = await query(
-      `UPDATE service_user_goals SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${idx} AND organization_id = $${idx + 1} RETURNING *`,
+      `UPDATE person_goals SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${idx} AND organization_id = $${idx + 1} RETURNING *`,
       params
     );
     return result.rows[0] || null;
   }
 
   static async delete(id: string, orgId: string) {
-    await query('DELETE FROM service_user_goals WHERE id = $1 AND organization_id = $2', [id, orgId]);
+    await query('DELETE FROM person_goals WHERE id = $1 AND organization_id = $2', [id, orgId]);
   }
 
-  static async getServiceUserStats(orgId: string, serviceUserId: string) {
+  static async getPersonStats(orgId: string, personId: string) {
     const result = await query(`
       SELECT
         COUNT(*)::int AS total,
@@ -117,11 +117,11 @@ export class GoalRepository {
         COUNT(*) FILTER (WHERE status = 'completed')::int AS completed,
         COALESCE(ROUND(AVG(progress) FILTER (WHERE status = 'active')), 0)::int AS avg_progress,
         COUNT(*) FILTER (WHERE status = 'active' AND review_date < CURRENT_DATE)::int AS overdue_reviews,
-        (SELECT COUNT(*)::int FROM goal_milestones gm JOIN service_user_goals g2 ON gm.goal_id = g2.id WHERE g2.service_user_id = $2 AND g2.organization_id = $1 AND gm.is_completed = true) AS milestones_completed,
-        (SELECT COUNT(*)::int FROM goal_milestones gm JOIN service_user_goals g2 ON gm.goal_id = g2.id WHERE g2.service_user_id = $2 AND g2.organization_id = $1) AS milestones_total
-      FROM service_user_goals
-      WHERE organization_id = $1 AND service_user_id = $2
-    `, [orgId, serviceUserId]);
+        (SELECT COUNT(*)::int FROM goal_milestones gm JOIN person_goals g2 ON gm.goal_id = g2.id WHERE g2.person_id = $2 AND g2.organization_id = $1 AND gm.is_completed = true) AS milestones_completed,
+        (SELECT COUNT(*)::int FROM goal_milestones gm JOIN person_goals g2 ON gm.goal_id = g2.id WHERE g2.person_id = $2 AND g2.organization_id = $1) AS milestones_total
+      FROM person_goals
+      WHERE organization_id = $1 AND person_id = $2
+    `, [orgId, personId]);
     return result.rows[0] || { total: 0, active: 0, completed: 0, avg_progress: 0, overdue_reviews: 0, milestones_completed: 0, milestones_total: 0 };
   }
 
@@ -179,7 +179,7 @@ export class GoalRepository {
     );
     // Update goal's current progress
     const result = await query(
-      `UPDATE service_user_goals SET progress = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+      `UPDATE person_goals SET progress = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
       [progress, goalId]
     );
     return result.rows[0] || null;

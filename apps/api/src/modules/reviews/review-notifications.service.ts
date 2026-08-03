@@ -6,8 +6,8 @@ import logger from '../../shared/utils/logger';
 interface OverdueItem {
   entity_type: string;
   item_name: string;
-  service_user_name: string;
-  service_user_id: string;
+  person_name: string;
+  person_id: string;
   due_date: string;
   organization_id: string;
   location_id: string | null;
@@ -22,7 +22,7 @@ export class ReviewNotificationService {
     let notificationCount = 0;
     try {
       const orgsResult = await pool.query(
-        `SELECT DISTINCT organization_id FROM service_users WHERE organization_id IS NOT NULL`
+        `SELECT DISTINCT organization_id FROM people WHERE organization_id IS NOT NULL`
       );
       const orgIds: string[] = orgsResult.rows.map((r: any) => r.organization_id);
 
@@ -44,7 +44,7 @@ export class ReviewNotificationService {
         for (const item of overdue) {
           const friendlyDue = new Date(item.due_date).toLocaleDateString('en-GB');
           const title = `${this.entityLabel(item.entity_type)} overdue`;
-          const message = `"${item.item_name}" for ${item.service_user_name} was due by ${friendlyDue}.`;
+          const message = `"${item.item_name}" for ${item.person_name} was due by ${friendlyDue}.`;
 
           const notified = new Set<string>();
 
@@ -97,8 +97,8 @@ export class ReviewNotificationService {
     const result = await pool.query(
       `SELECT * FROM (
         SELECT 'care_plan' AS entity_type, cp.title AS item_name,
-          su.first_name || ' ' || su.last_name AS service_user_name,
-          su.id AS service_user_id, su.organization_id, su.location_id,
+          su.first_name || ' ' || su.last_name AS person_name,
+          su.id AS person_id, su.organization_id, su.location_id,
           l.name AS location_name, COALESCE(l.manager_id,
             (SELECT sp.user_id FROM staff_profiles sp JOIN users u ON sp.user_id = u.id
              WHERE u.role = 'MANAGER' AND u.organization_id = su.organization_id
@@ -107,7 +107,7 @@ export class ReviewNotificationService {
           msp.first_name || ' ' || msp.last_name AS manager_name,
           cp.review_date AS due_date
         FROM care_plans cp
-        JOIN service_users su ON cp.service_user_id = su.id
+        JOIN people su ON cp.person_id = su.id
         LEFT JOIN locations l ON su.location_id = l.id
         LEFT JOIN users mgr ON l.manager_id = mgr.id
         LEFT JOIN staff_profiles msp ON l.manager_id = msp.user_id
@@ -128,7 +128,7 @@ export class ReviewNotificationService {
           msp.first_name || ' ' || msp.last_name,
           ra.review_date
         FROM risk_assessments ra
-        JOIN service_users su ON ra.service_user_id = su.id
+        JOIN people su ON ra.person_id = su.id
         LEFT JOIN locations l ON su.location_id = l.id
         LEFT JOIN users mgr ON l.manager_id = mgr.id
         LEFT JOIN staff_profiles msp ON l.manager_id = msp.user_id
@@ -148,7 +148,7 @@ export class ReviewNotificationService {
           msp.first_name || ' ' || msp.last_name,
           ca.next_review_date
         FROM care_assessments ca
-        JOIN service_users su ON ca.service_user_id = su.id
+        JOIN people su ON ca.person_id = su.id
         LEFT JOIN locations l ON su.location_id = l.id
         LEFT JOIN users mgr ON l.manager_id = mgr.id
         LEFT JOIN staff_profiles msp ON l.manager_id = msp.user_id
@@ -167,7 +167,7 @@ export class ReviewNotificationService {
           mgr.email,
           msp.first_name || ' ' || msp.last_name,
           su.dnacpr_review_date
-        FROM service_users su
+        FROM people su
         LEFT JOIN locations l ON su.location_id = l.id
         LEFT JOIN users mgr ON l.manager_id = mgr.id
         LEFT JOIN staff_profiles msp ON l.manager_id = msp.user_id
@@ -186,8 +186,8 @@ export class ReviewNotificationService {
           mgr.email,
           msp.first_name || ' ' || msp.last_name,
           sca.review_date
-        FROM su_capacity_assessments sca
-        JOIN service_users su ON sca.service_user_id = su.id
+        FROM person_capacity_assessments sca
+        JOIN people su ON sca.person_id = su.id
         LEFT JOIN locations l ON su.location_id = l.id
         LEFT JOIN users mgr ON l.manager_id = mgr.id
         LEFT JOIN staff_profiles msp ON l.manager_id = msp.user_id
@@ -206,8 +206,8 @@ export class ReviewNotificationService {
           mgr.email,
           msp.first_name || ' ' || msp.last_name,
           g.review_date
-        FROM service_user_goals g
-        JOIN service_users su ON g.service_user_id = su.id
+        FROM person_goals g
+        JOIN people su ON g.person_id = su.id
         LEFT JOIN locations l ON su.location_id = l.id
         LEFT JOIN users mgr ON l.manager_id = mgr.id
         LEFT JOIN staff_profiles msp ON l.manager_id = msp.user_id
@@ -256,13 +256,13 @@ export class ReviewNotificationService {
     friendlyDue: string
   ): Promise<void> {
     if (!to) return;
-    const subject = `Overdue review: ${item.item_name} for ${item.service_user_name}`;
+    const subject = `Overdue review: ${item.item_name} for ${item.person_name}`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px;">
         <h2 style="color: #DC2626; margin-top: 0;">Overdue Review</h2>
         <p>Hello ${recipientName},</p>
         <p>
-          A <strong>${item.item_name}</strong> for <strong>${item.service_user_name}</strong>
+          A <strong>${item.item_name}</strong> for <strong>${item.person_name}</strong>
           ${item.location_name ? ` at <strong>${item.location_name}</strong>` : ''}
           was due for review by <strong>${friendlyDue}</strong> and is now overdue.
         </p>

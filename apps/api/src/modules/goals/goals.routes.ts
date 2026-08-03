@@ -12,7 +12,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', asyncHandler(GoalController.list));
-router.get('/stats/:serviceUserId', asyncHandler(GoalController.getServiceUserStats));
+router.get('/stats/:personId', asyncHandler(GoalController.getPersonStats));
 router.get('/:id', asyncHandler(GoalController.getById));
 router.post('/', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createGoalSchema), asyncHandler(GoalController.create));
 router.patch('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateGoalSchema), asyncHandler(GoalController.update));

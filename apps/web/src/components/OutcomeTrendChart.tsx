@@ -6,20 +6,20 @@ import api from '../services/api'
 interface TrendDataPoint { week: string; avg_progress: number; updates: number }
 
 interface Props {
-  serviceUserId?: string
+  personId?: string
   title?: string
   height?: number
 }
 
-export default function OutcomeTrendChart({ serviceUserId, title = 'Goal Progress Trend', height = 300 }: Props) {
+export default function OutcomeTrendChart({ personId, title = 'Goal Progress Trend', height = 300 }: Props) {
   const [data, setData] = useState<TrendDataPoint[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchTrend = async () => {
       try {
-        if (serviceUserId) {
-          const res = await api.get(`/outcomes/results/trend?service_user_id=${serviceUserId}`)
+        if (personId) {
+          const res = await api.get(`/outcomes/results/trend?person_id=${personId}`)
           setData(res.data)
         } else {
           const res = await api.get('/insights/outcomes')
@@ -29,7 +29,7 @@ export default function OutcomeTrendChart({ serviceUserId, title = 'Goal Progres
       setLoading(false)
     }
     fetchTrend()
-  }, [serviceUserId])
+  }, [personId])
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={24} /></Box>
   if (!data.length) return <Typography variant="body2" color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No trend data available</Typography>

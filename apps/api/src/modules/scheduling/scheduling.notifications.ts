@@ -135,7 +135,7 @@ export class SchedulingNotificationService {
       `SELECT a.id, a.title, a.start_time, a.end_time, a.status,
               su.first_name, su.last_name
        FROM appointments a
-       LEFT JOIN service_users su ON a.service_user_id = su.id
+       LEFT JOIN people su ON a.person_id = su.id
        WHERE a.staff_id = $1
          AND DATE(a.start_time) = $2
          AND a.status IN ('scheduled', 'confirmed')

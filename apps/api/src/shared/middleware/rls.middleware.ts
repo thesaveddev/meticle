@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import pool, { requestDBStorage } from '../database';
+import pool, { requestDBStorage, resetRlsSessionVars } from '../database';
 import logger from '../utils/logger';
 
 /**
@@ -16,15 +16,24 @@ import logger from '../utils/logger';
  * it decodes the JWT.  For public routes (no authenticate), the client is
  * still acquired so that downstream code can optionally set vars, and the
  * connection is released when the response finishes.
+ *
+ * Before a client is released back to the pool, the RLS session variables
+ * are cleared so a subsequent request can never inherit the previous
+ * user's tenant context (connection poisoning).
  */
 export function rlsMiddleware(req: Request, res: Response, next: NextFunction) {
   pool.connect().then(client => {
-    // Ensure the client is always released when the response is complete
-    const releaseClient = () => {
+    // Ensure the client is always released when the response is complete.
+    // RLS session vars are cleared first so they never leak into the pool.
+    let released = false;
+    const releaseClient = async () => {
+      if (released) return;
+      released = true;
+      await resetRlsSessionVars(client);
       try { client.release(); } catch { /* already released */ }
     };
-    res.on('finish', releaseClient);
-    res.on('close', releaseClient);
+    res.on('finish', () => { void releaseClient(); });
+    res.on('close', () => { void releaseClient(); });
 
     // Store the client in AsyncLocalStorage so query() uses it
     requestDBStorage.run({ client }, () => {

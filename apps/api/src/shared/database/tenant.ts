@@ -139,10 +139,10 @@ export async function requireComplianceInOrg(user: AuthUser, table: string, id: 
 }
 
 /**
- * Enforce that a service user belongs to the org.
+ * Enforce that a person belongs to the org.
  */
-export async function requireServiceUserInOrg(user: AuthUser, serviceUserId: string): Promise<void> {
-  await requireOrgAccess(user, 'service_users', 'id', serviceUserId);
+export async function requirePersonInOrg(user: AuthUser, personId: string): Promise<void> {
+  await requireOrgAccess(user, 'people', 'id', personId);
 }
 
 /**

@@ -100,7 +100,7 @@ export class IncidentsRepository {
     const result = await query(
       `SELECT iir.*, su.first_name, su.last_name, su.room_number
        FROM incident_involved_residents iir
-       LEFT JOIN service_users su ON iir.service_user_id = su.id
+       LEFT JOIN people su ON iir.person_id = su.id
        WHERE iir.incident_id = $1 ORDER BY iir.created_at`,
       [incidentId]
     );
@@ -109,9 +109,9 @@ export class IncidentsRepository {
 
   static async addInvolvedResident(incidentId: string, data: any) {
     const result = await query(
-      `INSERT INTO incident_involved_residents (incident_id, service_user_id, involvement_type, notes)
+      `INSERT INTO incident_involved_residents (incident_id, person_id, involvement_type, notes)
        VALUES ($1, $2, $3, $4) RETURNING *`,
-      [incidentId, data.service_user_id, data.involvement_type || 'affected', data.notes]
+      [incidentId, data.person_id, data.involvement_type || 'affected', data.notes]
     );
     return result.rows[0];
   }

@@ -40,7 +40,7 @@ const featureGroups = [
           { title: '31-Day MAR Chart', desc: 'Full medication administration record with audit trail per dose. Print-ready reports for inspection.' },
           { title: 'Controlled Drug Register', desc: 'Separate register for controlled drugs with stock tracking, witness sign-off, and discrepancy alerts.' },
           { title: 'Missed-Dose Alerts', desc: 'Automatic alerts when a scheduled medication round is missed or late, enabling timely follow-up.' },
-          { title: 'Print-Ready MAR Reports', desc: 'One-click export for CQC evidence packs. Per-service-user or per-location reports.' },
+          { title: 'Print-Ready MAR Reports', desc: 'One-click export for CQC evidence packs. Per-person or per-location reports.' },
         ]
       },
       {
@@ -176,10 +176,10 @@ const featureGroups = [
         tag: 'Phase 2',
         description: 'Track petty cash, receipts and person spending.',
         items: [
-          { title: 'Person Spending Ledger', desc: 'Track purchases against per-service-user spending allowance. Categorise by type (food, clothing, activities, transport).' },
+          { title: 'Person Spending Ledger', desc: 'Track purchases against per-person spending allowance. Categorise by type (food, clothing, activities, transport).' },
           { title: 'Receipt Upload', desc: 'Attach photo or scan of receipt to each expense entry. Stored securely against the person profile.' },
           { title: 'Petty Cash Balance', desc: 'Per-location petty cash balance with running total. Top-ups and reconciliations logged.' },
-          { title: 'Monthly Reports', desc: 'Export per-service-user or per-location spend reports for relatives and financial audits.' },
+          { title: 'Monthly Reports', desc: 'Export per-person or per-location spend reports for relatives and financial audits.' },
         ]
       },
       {

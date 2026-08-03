@@ -48,12 +48,12 @@ const MIGRATION_006: Migration = {
 };
 
 const MIGRATION_007: Migration = {
-  name: '007_service_user_location_staffing',
+  name: '007_person_location_staffing',
   strict: false,
   statements: [
-    `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS location_id UUID REFERENCES locations(id) ON DELETE SET NULL`,
-    `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS min_staff_required INTEGER DEFAULT NULL`,
-    `CREATE INDEX IF NOT EXISTS idx_service_users_location ON service_users(location_id)`,
+    `ALTER TABLE people ADD COLUMN IF NOT EXISTS location_id UUID REFERENCES locations(id) ON DELETE SET NULL`,
+    `ALTER TABLE people ADD COLUMN IF NOT EXISTS min_staff_required INTEGER DEFAULT NULL`,
+    `CREATE INDEX IF NOT EXISTS idx_people_location ON people(location_id)`,
   ],
 };
 
@@ -72,11 +72,11 @@ const MIGRATION_010: Migration = {
   name: '010_goal_outcome_fields',
   strict: false,
   statements: [
-    `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS provider_clarification TEXT`,
-    `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS assigned_to UUID REFERENCES users(id) ON DELETE SET NULL`,
-    `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS status_reason TEXT`,
-    `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT false`,
-    `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS started_at DATE`,
+    `ALTER TABLE person_goals ADD COLUMN IF NOT EXISTS provider_clarification TEXT`,
+    `ALTER TABLE person_goals ADD COLUMN IF NOT EXISTS assigned_to UUID REFERENCES users(id) ON DELETE SET NULL`,
+    `ALTER TABLE person_goals ADD COLUMN IF NOT EXISTS status_reason TEXT`,
+    `ALTER TABLE person_goals ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT false`,
+    `ALTER TABLE person_goals ADD COLUMN IF NOT EXISTS started_at DATE`,
   ],
 };
 
@@ -86,6 +86,15 @@ const MIGRATION_011: Migration = {
   statements: [
     `ALTER TABLE care_plans ADD COLUMN IF NOT EXISTS file_name TEXT`,
   ],
+};
+
+const MIGRATION_012: Migration = {
+  name: '012_rename_service_user_to_person',
+  strict: false,
+  statements: (() => {
+    const p = path.join(__dirname, 'migrations', '012_rename_service_user_to_person.sql');
+    return [fs.readFileSync(p, 'utf8')];
+  })(),
 };
 
 const MIGRATION_009: Migration = {
@@ -213,8 +222,8 @@ const INITIAL_MIGRATION: Migration = {
   )`,
   `CREATE INDEX IF NOT EXISTS idx_comp_snap_org_date ON compliance_snapshots(organization_id, snapshot_date)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_comp_snap_staff_date ON compliance_snapshots(staff_id, snapshot_date)`,
-  // Service User Management
-  `CREATE TABLE IF NOT EXISTS service_users (
+  // Person Management
+  `CREATE TABLE IF NOT EXISTS people (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     first_name VARCHAR(100) NOT NULL,
@@ -233,7 +242,7 @@ const INITIAL_MIGRATION: Migration = {
   )`,
   `CREATE TABLE IF NOT EXISTS care_plans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     category VARCHAR(50) NOT NULL,
     description TEXT,
@@ -247,7 +256,7 @@ const INITIAL_MIGRATION: Migration = {
   )`,
   `CREATE TABLE IF NOT EXISTS daily_notes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     note_date DATE NOT NULL DEFAULT CURRENT_DATE,
     shift VARCHAR(10) NOT NULL CHECK (shift IN ('day','night')),
@@ -257,7 +266,7 @@ const INITIAL_MIGRATION: Migration = {
   )`,
   `CREATE TABLE IF NOT EXISTS risk_assessments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     type VARCHAR(50) NOT NULL,
     risk_level VARCHAR(20) NOT NULL CHECK (risk_level IN ('low','medium','high','critical')),
     details TEXT,
@@ -270,7 +279,7 @@ const INITIAL_MIGRATION: Migration = {
   )`,
   `CREATE TABLE IF NOT EXISTS family_contacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     relationship VARCHAR(100),
     phone VARCHAR(50),
@@ -278,14 +287,14 @@ const INITIAL_MIGRATION: Migration = {
     is_emergency_contact BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   )`,
-  // Indexes for service users
-  `CREATE INDEX IF NOT EXISTS idx_service_users_org ON service_users(organization_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_service_users_status ON service_users(status)`,
-  `CREATE INDEX IF NOT EXISTS idx_care_plans_service_user ON care_plans(service_user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_daily_notes_service_user ON daily_notes(service_user_id)`,
+  // Indexes for people
+  `CREATE INDEX IF NOT EXISTS idx_people_org ON people(organization_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_people_status ON people(status)`,
+  `CREATE INDEX IF NOT EXISTS idx_care_plans_person ON care_plans(person_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_daily_notes_person ON daily_notes(person_id)`,
   `CREATE INDEX IF NOT EXISTS idx_daily_notes_date ON daily_notes(note_date)`,
-  `CREATE INDEX IF NOT EXISTS idx_risk_assessments_service_user ON risk_assessments(service_user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_family_contacts_service_user ON family_contacts(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_risk_assessments_person ON risk_assessments(person_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_family_contacts_person ON family_contacts(person_id)`,
   // Incident Management tables
   `CREATE TABLE IF NOT EXISTS incident_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -319,7 +328,7 @@ const INITIAL_MIGRATION: Migration = {
   `CREATE TABLE IF NOT EXISTS incident_involved_residents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     incident_id UUID NOT NULL REFERENCES incidents(id) ON DELETE CASCADE,
-    service_user_id UUID REFERENCES service_users(id) ON DELETE SET NULL,
+    person_id UUID REFERENCES people(id) ON DELETE SET NULL,
     involvement_type VARCHAR(50) DEFAULT 'affected' CHECK (involvement_type IN ('affected','witness','involved')),
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -516,7 +525,7 @@ const INITIAL_MIGRATION: Migration = {
   `CREATE TABLE IF NOT EXISTS satisfaction_surveys (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    service_user_id UUID REFERENCES service_users(id) ON DELETE SET NULL,
+    person_id UUID REFERENCES people(id) ON DELETE SET NULL,
     respondent_name VARCHAR(255),
     relationship VARCHAR(100),
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
@@ -524,7 +533,7 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE INDEX IF NOT EXISTS idx_satisfaction_surveys_org ON satisfaction_surveys(organization_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_satisfaction_surveys_service_user ON satisfaction_surveys(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_satisfaction_surveys_person ON satisfaction_surveys(person_id)`,
   // Engagement survey templates (must be created before references below)
   `CREATE TABLE IF NOT EXISTS engagement_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -556,7 +565,7 @@ const INITIAL_MIGRATION: Migration = {
     title VARCHAR(255) NOT NULL,
     description TEXT,
     assigned_to UUID REFERENCES staff_profiles(id) ON DELETE SET NULL,
-    service_user_id UUID REFERENCES service_users(id) ON DELETE SET NULL,
+    person_id UUID REFERENCES people(id) ON DELETE SET NULL,
     priority VARCHAR(10) DEFAULT 'medium' CHECK (priority IN ('low','medium','high','urgent')),
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','in_progress','completed','cancelled')),
     due_date DATE,
@@ -622,8 +631,8 @@ const INITIAL_MIGRATION: Migration = {
     token VARCHAR(64) NOT NULL UNIQUE,
     respondent_name VARCHAR(255),
     relationship VARCHAR(100),
-    service_user_id UUID REFERENCES service_users(id) ON DELETE SET NULL,
-    service_user_name VARCHAR(255),
+    person_id UUID REFERENCES people(id) ON DELETE SET NULL,
+    person_name VARCHAR(255),
     sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP WITH TIME ZONE,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -648,9 +657,9 @@ const INITIAL_MIGRATION: Migration = {
   `CREATE INDEX IF NOT EXISTS idx_engagement_templates_org ON engagement_templates(organization_id)`,
   // Add invitation_token to satisfaction_surveys
   `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='satisfaction_surveys' AND column_name='invitation_token') THEN ALTER TABLE satisfaction_surveys ADD COLUMN invitation_token VARCHAR(64); END IF; END $$`,
-  // Fix survey_invitations FK from staff_profiles to service_users
-  `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'survey_invitations_service_user_id_fkey' AND table_name = 'survey_invitations') THEN ALTER TABLE survey_invitations DROP CONSTRAINT survey_invitations_service_user_id_fkey; ALTER TABLE survey_invitations ADD CONSTRAINT survey_invitations_service_user_id_fkey FOREIGN KEY (service_user_id) REFERENCES service_users(id) ON DELETE SET NULL; END IF; END $$`,
-  // Rename satisfaction_surveys.staff_id to service_user_id and point FK at service_users
+  // Fix survey_invitations FK from staff_profiles to people
+  `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'survey_invitations_person_id_fkey' AND table_name = 'survey_invitations') THEN ALTER TABLE survey_invitations DROP CONSTRAINT survey_invitations_person_id_fkey; ALTER TABLE survey_invitations ADD CONSTRAINT survey_invitations_person_id_fkey FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE SET NULL; END IF; END $$`,
+  // Rename satisfaction_surveys.staff_id to person_id and point FK at people
   `DO $$
   BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='satisfaction_surveys' AND column_name='staff_id') THEN
@@ -660,9 +669,9 @@ const INITIAL_MIGRATION: Migration = {
       IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_satisfaction_surveys_staff') THEN
         DROP INDEX idx_satisfaction_surveys_staff;
       END IF;
-      ALTER TABLE satisfaction_surveys RENAME COLUMN staff_id TO service_user_id;
-      ALTER TABLE satisfaction_surveys ADD CONSTRAINT satisfaction_surveys_service_user_id_fkey FOREIGN KEY (service_user_id) REFERENCES service_users(id) ON DELETE SET NULL;
-      CREATE INDEX idx_satisfaction_surveys_service_user ON satisfaction_surveys(service_user_id);
+      ALTER TABLE satisfaction_surveys RENAME COLUMN staff_id TO person_id;
+      ALTER TABLE satisfaction_surveys ADD CONSTRAINT satisfaction_surveys_person_id_fkey FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE SET NULL;
+      CREATE INDEX idx_satisfaction_surveys_person ON satisfaction_surveys(person_id);
     END IF;
   END $$`,
   // Email queue for async sending
@@ -682,10 +691,10 @@ const INITIAL_MIGRATION: Migration = {
   // Unique organization name (case-insensitive) — remove duplicates first
   `DELETE FROM organizations WHERE id NOT IN (SELECT DISTINCT ON (LOWER(name)) id FROM organizations ORDER BY LOWER(name), created_at ASC)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS uq_organizations_name ON organizations(LOWER(name))`,
-  // Health monitoring tables for service users
+  // Health monitoring tables for people
   `CREATE TABLE IF NOT EXISTS health_observations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     observation_date DATE NOT NULL DEFAULT CURRENT_DATE,
     category VARCHAR(50) NOT NULL DEFAULT 'general' CHECK (category IN ('general','skin','medication','sleep','pain','weight','other')),
     notes TEXT,
@@ -693,11 +702,11 @@ const INITIAL_MIGRATION: Migration = {
     recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_health_obs_su ON health_observations(service_user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_health_obs_date ON health_observations(service_user_id, observation_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_health_obs_person ON health_observations(person_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_health_obs_date ON health_observations(person_id, observation_date)`,
   `CREATE TABLE IF NOT EXISTS bowel_movements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     recorded_date DATE NOT NULL DEFAULT CURRENT_DATE,
     recorded_time TIME,
     bristol_type INTEGER CHECK (bristol_type BETWEEN 1 AND 7),
@@ -708,11 +717,11 @@ const INITIAL_MIGRATION: Migration = {
     recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_bowel_su ON bowel_movements(service_user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_bowel_date ON bowel_movements(service_user_id, recorded_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_bowel_person ON bowel_movements(person_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_bowel_date ON bowel_movements(person_id, recorded_date)`,
   `CREATE TABLE IF NOT EXISTS dental_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     checkup_date DATE NOT NULL,
     dentist_name VARCHAR(255),
     findings TEXT,
@@ -723,10 +732,10 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_dental_su ON dental_records(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_dental_person ON dental_records(person_id)`,
   `CREATE TABLE IF NOT EXISTS fluid_intake (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     recorded_date DATE NOT NULL DEFAULT CURRENT_DATE,
     recorded_time TIME,
     amount_ml INTEGER NOT NULL,
@@ -735,13 +744,13 @@ const INITIAL_MIGRATION: Migration = {
     recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_fluid_su ON fluid_intake(service_user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_fluid_date ON fluid_intake(service_user_id, recorded_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_fluid_person ON fluid_intake(person_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_fluid_date ON fluid_intake(person_id, recorded_date)`,
   // Appointments table
   `CREATE TABLE IF NOT EXISTS appointments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    service_user_id UUID REFERENCES service_users(id) ON DELETE SET NULL,
+    person_id UUID REFERENCES people(id) ON DELETE SET NULL,
     staff_id UUID REFERENCES staff_profiles(id) ON DELETE SET NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -779,11 +788,11 @@ const INITIAL_MIGRATION: Migration = {
   `ALTER TABLE incident_actions ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','in_progress','completed','cancelled'))`,
   // Shift-start notification tracking
   `ALTER TABLE shifts ADD COLUMN IF NOT EXISTS start_notification_sent_at TIMESTAMP WITH TIME ZONE`,
-  // Service User Goals table
-  `CREATE TABLE IF NOT EXISTS service_user_goals (
+  // Person Goals table
+  `CREATE TABLE IF NOT EXISTS person_goals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     target_date DATE,
@@ -795,13 +804,13 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_service_user_goals_org ON service_user_goals(organization_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_service_user_goals_su ON service_user_goals(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_person_goals_org ON person_goals(organization_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_person_goals_person ON person_goals(person_id)`,
   // eMAR tables
   `CREATE TABLE IF NOT EXISTS emedication_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -811,7 +820,7 @@ const INITIAL_MIGRATION: Migration = {
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE INDEX IF NOT EXISTS idx_emedr_org ON emedication_records(organization_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_emedr_service_user ON emedication_records(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_emedr_person ON emedication_records(person_id)`,
   `CREATE TABLE IF NOT EXISTS emedication_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     emedication_record_id UUID NOT NULL REFERENCES emedication_records(id) ON DELETE CASCADE,
@@ -894,13 +903,13 @@ const INITIAL_MIGRATION: Migration = {
     quantity DECIMAL(10,2) NOT NULL, quantity_unit VARCHAR(50) DEFAULT 'tablet(s)',
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS frequency VARCHAR(20) DEFAULT 'one_time' CHECK (frequency IN ('daily','weekly','monthly','quarterly','one_time'))`,
-  `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS goal_category VARCHAR(50)`,
+  `ALTER TABLE person_goals ADD COLUMN IF NOT EXISTS frequency VARCHAR(20) DEFAULT 'one_time' CHECK (frequency IN ('daily','weekly','monthly','quarterly','one_time'))`,
+  `ALTER TABLE person_goals ADD COLUMN IF NOT EXISTS goal_category VARCHAR(50)`,
   // Care Assessments
   `CREATE TABLE IF NOT EXISTS care_assessments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     assessment_type VARCHAR(50) NOT NULL,
     assessment_date DATE NOT NULL DEFAULT CURRENT_DATE,
     assessor_name VARCHAR(255),
@@ -912,33 +921,33 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_care_assessments_su ON care_assessments(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_care_assessments_su ON care_assessments(person_id)`,
   `CREATE INDEX IF NOT EXISTS idx_care_assessments_org ON care_assessments(organization_id)`,
-  // Service User extended details
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS pharmacy_name TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS pharmacy_phone TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS pharmacy_address TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS social_worker_name TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS social_worker_phone TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS social_worker_email TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS gp_email TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS gp_address TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS photo_url VARCHAR(500)`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS gender VARCHAR(20)`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS pronouns VARCHAR(50)`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS marital_status VARCHAR(30)`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS religion VARCHAR(100)`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS communication_language VARCHAR(100)`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS communication_interpreter BOOLEAN DEFAULT false`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS communication_method VARCHAR(50)`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS admission_date DATE`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS admission_source VARCHAR(100)`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS funding_type VARCHAR(30)`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS funding_details TEXT`,
+  // Person extended details
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS pharmacy_name TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS pharmacy_phone TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS pharmacy_address TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS social_worker_name TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS social_worker_phone TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS social_worker_email TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS gp_email TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS gp_address TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS photo_url VARCHAR(500)`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS gender VARCHAR(20)`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS pronouns VARCHAR(50)`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS marital_status VARCHAR(30)`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS religion VARCHAR(100)`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS communication_language VARCHAR(100)`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS communication_interpreter BOOLEAN DEFAULT false`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS communication_method VARCHAR(50)`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS admission_date DATE`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS admission_source VARCHAR(100)`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS funding_type VARCHAR(30)`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS funding_details TEXT`,
   // Body Map
   `CREATE TABLE IF NOT EXISTS body_map_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     body_view VARCHAR(10) NOT NULL CHECK (body_view IN ('front', 'back')),
     body_zone VARCHAR(50) NOT NULL,
     zone_x FLOAT,
@@ -954,12 +963,12 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_body_map_su ON body_map_entries(service_user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_body_map_status ON body_map_entries(service_user_id, status)`,
+  `CREATE INDEX IF NOT EXISTS idx_body_map_person ON body_map_entries(person_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_body_map_status ON body_map_entries(person_id, status)`,
   // Memory Book
   `CREATE TABLE IF NOT EXISTS memory_book_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     image_url TEXT,
@@ -968,8 +977,8 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_memory_book_su ON memory_book_entries(service_user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_memory_book_date ON memory_book_entries(service_user_id, recorded_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_memory_book_person ON memory_book_entries(person_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_memory_book_date ON memory_book_entries(person_id, recorded_date)`,
   // Evidence Mappings (configurable KLOE domain assignments)
   `CREATE TABLE IF NOT EXISTS evidence_mappings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -980,8 +989,8 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS uq_evidence_mappings_unique ON evidence_mappings(organization_id, source_type, COALESCE(source_category, ''))`,
-  // eMAR: link stock to service user
-  `ALTER TABLE emedication_stock ADD COLUMN IF NOT EXISTS service_user_id UUID REFERENCES service_users(id) ON DELETE SET NULL`,
+  // eMAR: link stock to person
+  `ALTER TABLE emedication_stock ADD COLUMN IF NOT EXISTS person_id UUID REFERENCES people(id) ON DELETE SET NULL`,
   // eMAR: item period dates and stock linkage
   `ALTER TABLE emedication_items ADD COLUMN IF NOT EXISTS start_date DATE`,
   `ALTER TABLE emedication_items ADD COLUMN IF NOT EXISTS end_date DATE`,
@@ -990,15 +999,15 @@ const INITIAL_MIGRATION: Migration = {
   `CREATE TABLE IF NOT EXISTS emedication_daily_counts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     count_date DATE NOT NULL,
     staff_name TEXT NOT NULL,
     matches_physical BOOLEAN DEFAULT TRUE,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(service_user_id, count_date)
+    UNIQUE(person_id, count_date)
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_emed_daily_counts_su ON emedication_daily_counts(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_emed_daily_counts_person ON emedication_daily_counts(person_id)`,
   // eMAR: stock adjustments for damaged/expired/lost/returned
   `CREATE TABLE IF NOT EXISTS emedication_stock_adjustments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1070,26 +1079,26 @@ const INITIAL_MIGRATION: Migration = {
   `ALTER TABLE shifts ADD COLUMN IF NOT EXISTS agency_sent_at TIMESTAMPTZ`,
   // Crown Jewels: pgcrypto extension for column-level PII encryption at rest
   `CREATE EXTENSION IF NOT EXISTS pgcrypto`,
-  // Crown Jewels: audit log for service user record access
-  `CREATE TABLE IF NOT EXISTS service_user_access_log (
+  // Crown Jewels: audit log for person record access
+  `CREATE TABLE IF NOT EXISTS person_access_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     accessed_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     action VARCHAR(50) NOT NULL DEFAULT 'view',
     ip_address VARCHAR(45),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_su_access_user ON service_user_access_log(service_user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_su_access_accessed_by ON service_user_access_log(accessed_by, created_at DESC)`,
-  // Link shifts to a service user
-  `ALTER TABLE shifts ADD COLUMN IF NOT EXISTS service_user_id UUID REFERENCES service_users(id) ON DELETE SET NULL`,
+  `CREATE INDEX IF NOT EXISTS idx_person_access_user ON person_access_log(person_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_person_access_accessed_by ON person_access_log(accessed_by, created_at DESC)`,
+  // Link shifts to a person
+  `ALTER TABLE shifts ADD COLUMN IF NOT EXISTS person_id UUID REFERENCES people(id) ON DELETE SET NULL`,
   `ALTER TABLE shifts ADD COLUMN IF NOT EXISTS shift_type VARCHAR(20) DEFAULT 'day' NOT NULL`,
   `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'shifts_shift_type_check') THEN ALTER TABLE shifts ADD CONSTRAINT shifts_shift_type_check CHECK (shift_type IN ('day', 'sleep', 'wake_night')); END IF; END $$`,
   `ALTER TABLE shifts ADD COLUMN IF NOT EXISTS unclaimed_notified_at TIMESTAMP WITH TIME ZONE`,
   `ALTER TABLE locations ADD COLUMN IF NOT EXISTS manager_id UUID REFERENCES users(id) ON DELETE SET NULL`,
   `CREATE TABLE IF NOT EXISTS shift_swaps (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), shift_id UUID REFERENCES shifts(id) ON DELETE CASCADE, from_staff_id UUID REFERENCES staff_profiles(id) ON DELETE CASCADE, to_staff_id UUID REFERENCES staff_profiles(id) ON DELETE CASCADE, to_shift_id UUID REFERENCES shifts(id) ON DELETE SET NULL, status VARCHAR(20) DEFAULT 'pending', reason TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, responded_at TIMESTAMP WITH TIME ZONE)`,
 `ALTER TABLE shift_swaps ADD COLUMN IF NOT EXISTS to_shift_id UUID REFERENCES shifts(id) ON DELETE SET NULL`,
-  `CREATE INDEX IF NOT EXISTS idx_shifts_service_user ON shifts(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_shifts_person ON shifts(person_id)`,
   `CREATE INDEX IF NOT EXISTS idx_shifts_end_time ON shifts(end_time)`,
   `CREATE INDEX IF NOT EXISTS idx_shifts_range ON shifts(location_id, start_time, end_time)`,
   `CREATE TABLE IF NOT EXISTS delegation_audit_logs (
@@ -1247,7 +1256,7 @@ const INITIAL_MIGRATION: Migration = {
   `CREATE TABLE IF NOT EXISTS family_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     relationship VARCHAR(100),
@@ -1260,23 +1269,23 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   )`,
-  // Service User Alerts / Flags, DNACPR, Tags, Discharge
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS flags JSONB DEFAULT '[]'`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS dnacpr_status VARCHAR(20)`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS dnacpr_date DATE`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS dnacpr_review_date DATE`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS dnacpr_details TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS advance_decision TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS advance_decision_date DATE`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS discharge_date DATE`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS discharge_reason TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS discharge_summary TEXT`,
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS discharge_destination VARCHAR(100)`,
+  // Person Alerts / Flags, DNACPR, Tags, Discharge
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS flags JSONB DEFAULT '[]'`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS dnacpr_status VARCHAR(20)`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS dnacpr_date DATE`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS dnacpr_review_date DATE`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS dnacpr_details TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS advance_decision TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS advance_decision_date DATE`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS discharge_date DATE`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS discharge_reason TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS discharge_summary TEXT`,
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS discharge_destination VARCHAR(100)`,
   // Clinical Scores
   `CREATE TABLE IF NOT EXISTS clinical_scores (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     score_type VARCHAR(20) NOT NULL CHECK (score_type IN ('waterlow','must','bmi')),
     score NUMERIC(6,2),
     risk_level VARCHAR(20),
@@ -1285,11 +1294,11 @@ const INITIAL_MIGRATION: Migration = {
     recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_clinical_scores_su ON clinical_scores(service_user_id)`,
-  // Service User Documents
-  `CREATE TABLE IF NOT EXISTS service_user_documents (
+  `CREATE INDEX IF NOT EXISTS idx_clinical_scores_person ON clinical_scores(person_id)`,
+  // Person Documents
+  `CREATE TABLE IF NOT EXISTS person_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     document_type VARCHAR(50) NOT NULL,
     file_url TEXT NOT NULL,
@@ -1298,11 +1307,11 @@ const INITIAL_MIGRATION: Migration = {
     uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_su_documents_su ON service_user_documents(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_person_documents_person ON person_documents(person_id)`,
   `ALTER TABLE care_plans ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1`,
-  `CREATE TABLE IF NOT EXISTS su_wellbeing (
+  `CREATE TABLE IF NOT EXISTS person_wellbeing (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     recorded_date DATE DEFAULT CURRENT_DATE,
     domain VARCHAR(50) NOT NULL CHECK (domain IN ('mood','engagement','sleep','appetite','pain','mobility','social','overall')),
     score INTEGER NOT NULL CHECK (score >= 1 AND score <= 10),
@@ -1310,10 +1319,10 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     recorded_by UUID REFERENCES users(id) ON DELETE SET NULL
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_wellbeing_su_date ON su_wellbeing(service_user_id, recorded_date)`,
-  `CREATE TABLE IF NOT EXISTS su_communication_log (
+  `CREATE INDEX IF NOT EXISTS idx_wellbeing_person_date ON person_wellbeing(person_id, recorded_date)`,
+  `CREATE TABLE IF NOT EXISTS person_communication_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     contact_name VARCHAR(255),
     relationship VARCHAR(100),
     contact_method VARCHAR(50) NOT NULL CHECK (contact_method IN ('phone','email','letter','visit','video_call','other')),
@@ -1324,10 +1333,10 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     recorded_by UUID REFERENCES users(id) ON DELETE SET NULL
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_commlog_su ON su_communication_log(service_user_id)`,
-  `CREATE TABLE IF NOT EXISTS su_capacity_assessments (
+  `CREATE INDEX IF NOT EXISTS idx_commlog_person ON person_communication_log(person_id)`,
+  `CREATE TABLE IF NOT EXISTS person_capacity_assessments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     assessment_date DATE DEFAULT CURRENT_DATE,
     decision_to_be_made TEXT NOT NULL,
     capacity_found BOOLEAN,
@@ -1341,10 +1350,10 @@ const INITIAL_MIGRATION: Migration = {
     recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_capacity_su ON su_capacity_assessments(service_user_id)`,
-  `CREATE TABLE IF NOT EXISTS su_care_pathways (
+  `CREATE INDEX IF NOT EXISTS idx_capacity_person ON person_capacity_assessments(person_id)`,
+  `CREATE TABLE IF NOT EXISTS person_care_pathways (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     pathway_type VARCHAR(50) NOT NULL CHECK (pathway_type IN ('hospital_admission','hospital_discharge','short_break','assessment_unit','transition','other')),
     title VARCHAR(255) NOT NULL,
     start_date DATE NOT NULL,
@@ -1357,10 +1366,10 @@ const INITIAL_MIGRATION: Migration = {
     recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_carepathways_su ON su_care_pathways(service_user_id)`,
-  `CREATE TABLE IF NOT EXISTS su_discharge_checklist (
+  `CREATE INDEX IF NOT EXISTS idx_carepathways_person ON person_care_pathways(person_id)`,
+  `CREATE TABLE IF NOT EXISTS person_discharge_checklist (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     item VARCHAR(255) NOT NULL,
     category VARCHAR(50) NOT NULL CHECK (category IN ('documentation','medication','equipment','notification','property','financial','other')),
     is_complete BOOLEAN DEFAULT FALSE,
@@ -1368,10 +1377,10 @@ const INITIAL_MIGRATION: Migration = {
     completed_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_discharge_checklist_su ON su_discharge_checklist(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_discharge_checklist_person ON person_discharge_checklist(person_id)`,
 
-  // Phase 2b: support_level for service_user onboarding, daily notes, memory book
-  `ALTER TABLE service_users ADD COLUMN IF NOT EXISTS support_level VARCHAR(50) DEFAULT NULL`,
+  // Phase 2b: support_level for person onboarding, daily notes, memory book
+  `ALTER TABLE people ADD COLUMN IF NOT EXISTS support_level VARCHAR(50) DEFAULT NULL`,
   `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS support_level VARCHAR(50) DEFAULT NULL`,
   `ALTER TABLE memory_book_entries ADD COLUMN IF NOT EXISTS support_level VARCHAR(50) DEFAULT NULL`,
   `ALTER TABLE memory_book_entries ADD COLUMN IF NOT EXISTS image_urls JSONB DEFAULT '[]'::jsonb`,
@@ -1399,10 +1408,10 @@ const INITIAL_MIGRATION: Migration = {
   `CREATE INDEX IF NOT EXISTS idx_dbs_checks_org ON dbs_checks(organization_id)`,
   `CREATE INDEX IF NOT EXISTS idx_dbs_checks_staff ON dbs_checks(staff_id)`,
   // Expense tracking tables
-  `CREATE TABLE IF NOT EXISTS service_user_expenses (
+  `CREATE TABLE IF NOT EXISTS person_expenses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     location_id UUID REFERENCES locations(id) ON DELETE SET NULL,
     category VARCHAR(30) NOT NULL CHECK (category IN ('food','clothing','activities','transport','personal','health','other')),
     amount_pence INTEGER NOT NULL CHECK (amount_pence > 0),
@@ -1412,9 +1421,9 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_expenses_org ON service_user_expenses(organization_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_expenses_su ON service_user_expenses(service_user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_expenses_date ON service_user_expenses(organization_id, incurred_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_expenses_org ON person_expenses(organization_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_expenses_person ON person_expenses(person_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_expenses_date ON person_expenses(organization_id, incurred_date)`,
   `CREATE TABLE IF NOT EXISTS petty_cash_balances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -1465,7 +1474,7 @@ const INITIAL_MIGRATION: Migration = {
   // Goal Milestones
   `CREATE TABLE IF NOT EXISTS goal_milestones (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    goal_id UUID NOT NULL REFERENCES service_user_goals(id) ON DELETE CASCADE,
+    goal_id UUID NOT NULL REFERENCES person_goals(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     is_completed BOOLEAN DEFAULT FALSE,
     completed_at TIMESTAMPTZ,
@@ -1478,7 +1487,7 @@ const INITIAL_MIGRATION: Migration = {
   // Goal Progress History (immutable log)
   `CREATE TABLE IF NOT EXISTS goal_progress_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    goal_id UUID NOT NULL REFERENCES service_user_goals(id) ON DELETE CASCADE,
+    goal_id UUID NOT NULL REFERENCES person_goals(id) ON DELETE CASCADE,
     progress INTEGER NOT NULL CHECK (progress >= 0 AND progress <= 100),
     notes TEXT,
     recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -1488,13 +1497,13 @@ const INITIAL_MIGRATION: Migration = {
   `CREATE INDEX IF NOT EXISTS idx_goal_progress_date ON goal_progress_history(recorded_at)`,
 
   // Goal columns: care_plan link, baseline, target, unit
-  `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS care_plan_id UUID REFERENCES care_plans(id) ON DELETE SET NULL`,
-  `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS baseline_value NUMERIC`,
-  `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS target_value NUMERIC`,
-  `ALTER TABLE service_user_goals ADD COLUMN IF NOT EXISTS value_unit VARCHAR(50)`,
+  `ALTER TABLE person_goals ADD COLUMN IF NOT EXISTS care_plan_id UUID REFERENCES care_plans(id) ON DELETE SET NULL`,
+  `ALTER TABLE person_goals ADD COLUMN IF NOT EXISTS baseline_value NUMERIC`,
+  `ALTER TABLE person_goals ADD COLUMN IF NOT EXISTS target_value NUMERIC`,
+  `ALTER TABLE person_goals ADD COLUMN IF NOT EXISTS value_unit VARCHAR(50)`,
 
   // Daily notes: link to goals
-  `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS linked_goal_id UUID REFERENCES service_user_goals(id) ON DELETE SET NULL`,
+  `ALTER TABLE daily_notes ADD COLUMN IF NOT EXISTS linked_goal_id UUID REFERENCES person_goals(id) ON DELETE SET NULL`,
 
   // Outcome Scale Templates
   `CREATE TABLE IF NOT EXISTS outcome_scales (
@@ -1518,7 +1527,7 @@ const INITIAL_MIGRATION: Migration = {
   `CREATE TABLE IF NOT EXISTS outcome_scale_results (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     scale_id UUID NOT NULL REFERENCES outcome_scales(id) ON DELETE CASCADE,
-    service_user_id UUID NOT NULL REFERENCES service_users(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     scores JSONB NOT NULL DEFAULT '{}',
     total_score NUMERIC NOT NULL,
     band_label VARCHAR(100),
@@ -1528,7 +1537,7 @@ const INITIAL_MIGRATION: Migration = {
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE INDEX IF NOT EXISTS idx_outcome_results_scale ON outcome_scale_results(scale_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_outcome_results_su ON outcome_scale_results(service_user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_outcome_results_person ON outcome_scale_results(person_id)`,
   `CREATE INDEX IF NOT EXISTS idx_outcome_results_date ON outcome_scale_results(assessed_at)`,
 
   // Evidence mappings: expand source_type to include goals/wellbeing/outcomes
@@ -1569,7 +1578,7 @@ export const setupDatabase = async () => {
     logger.info('Database schema setup completed.');
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

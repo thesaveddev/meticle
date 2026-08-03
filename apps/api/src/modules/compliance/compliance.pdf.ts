@@ -32,10 +32,10 @@ export function buildEvidencePackHtml(data: any, orgName?: string): string {
        </tbody></table>`
     : ''
 
-  const suSection = data.service_users?.length
-    ? `<h2 style="color:#0F4C81;font-size:18px;margin-top:24px">People (${data.service_users.length} total, ${data.service_users.filter((s:any) => s.status === 'active').length} active)</h2>
+  const suSection = data.people?.length
+    ? `<h2 style="color:#0F4C81;font-size:18px;margin-top:24px">People (${data.people.length} total, ${data.people.filter((s:any) => s.status === 'active').length} active)</h2>
        <table><thead><tr><th>Name</th><th>Room</th><th>Status</th><th>Care Plans</th><th>Open Risks</th><th>Goals</th></tr></thead><tbody>
-       ${data.service_users.map((su: any) => `<tr><td>${su.first_name} ${su.last_name}</td><td>${su.room_number||'-'}</td><td><span style="background:${su.status==='active'?'#DCFCE7':'#F3F4F6'};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${su.status}</span></td><td>${su.active_care_plans||0}</td><td>${su.open_risks||0}</td><td>${su.total_goals||0}</td></tr>`).join('')}
+       ${data.people.map((su: any) => `<tr><td>${su.first_name} ${su.last_name}</td><td>${su.room_number||'-'}</td><td><span style="background:${su.status==='active'?'#DCFCE7':'#F3F4F6'};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${su.status}</span></td><td>${su.active_care_plans||0}</td><td>${su.open_risks||0}</td><td>${su.total_goals||0}</td></tr>`).join('')}
        </tbody></table>`
     : ''
 
@@ -91,7 +91,7 @@ export function buildEvidencePackHtml(data: any, orgName?: string): string {
     <p class="subtitle">${orgName || 'Meticle'} — ${now}</p>
     <div class="meta">
       <p>Total Staff: ${data.summary?.total_staff || 0}</p>
-      <p>People: ${data.summary?.total_service_users || 0} (${data.summary?.active_service_users || 0} active)</p>
+      <p>People: ${data.summary?.total_people || 0} (${data.summary?.active_people || 0} active)</p>
       <p>Training Records: ${data.summary?.training_records || 0}</p>
       <p>Documents: ${data.summary?.documents || 0}</p>
       <p>Competency Assessments: ${data.summary?.competency_records || 0}</p>
@@ -103,7 +103,7 @@ export function buildEvidencePackHtml(data: any, orgName?: string): string {
   <h1>Executive Summary</h1>
   <div class="summary-grid">
     <div class="summary-card"><div class="num">${data.summary?.total_staff || 0}</div><div class="label">Staff</div></div>
-    <div class="summary-card"><div class="num">${data.summary?.total_service_users || 0}</div><div class="label">People</div></div>
+    <div class="summary-card"><div class="num">${data.summary?.total_people || 0}</div><div class="label">People</div></div>
     <div class="summary-card"><div class="num">${data.summary?.training_records || 0}</div><div class="label">Training</div></div>
     <div class="summary-card"><div class="num">${data.summary?.documents || 0}</div><div class="label">Documents</div></div>
     <div class="summary-card"><div class="num">${data.summary?.competency_records || 0}</div><div class="label">Competency</div></div>

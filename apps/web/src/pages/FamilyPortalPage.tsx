@@ -64,7 +64,7 @@ export default function FamilyPortalPage() {
     </Box>
   )
 
-  const su = info.service_user
+  const su = info.person
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#F9FAFB' }}>

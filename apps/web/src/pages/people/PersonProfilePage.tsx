@@ -86,7 +86,7 @@ const toDateInput = (v: any) => {
 
 const EDIT_DATE_FIELDS = ['date_of_birth', 'admission_date', 'dnacpr_date', 'dnacpr_review_date', 'advance_decision_date', 'discharge_date']
 
-export default function ServiceUserProfilePage() {
+export default function PersonProfilePage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -141,8 +141,8 @@ export default function ServiceUserProfilePage() {
   }
 
   const { data: user, isLoading } = useQuery({
-    queryKey: ['service-user', id],
-    queryFn: () => api.get(`/service-users/${id}`).then(r => r.data),
+    queryKey: ['person', id],
+    queryFn: () => api.get(`/people/${id}`).then(r => r.data),
     enabled: !!id,
   })
 
@@ -153,79 +153,79 @@ export default function ServiceUserProfilePage() {
 
   const { data: portalMembers = [] } = useQuery({
     queryKey: ['family-members', id],
-    queryFn: () => api.get('/family-portal/members', { params: { service_user_id: id } }).then(r => r.data),
+    queryFn: () => api.get('/family-portal/members', { params: { person_id: id } }).then(r => r.data),
     enabled: !!id,
   })
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => api.patch(`/service-users/${id}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setEditOpen(false) },
+    mutationFn: (data: any) => api.patch(`/people/${id}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditOpen(false) },
     onError: (err: any) => setError(err.response?.data?.message || 'Update failed'),
   })
 
   const addPlanMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${id}/care-plans`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setAddPlanOpen(false); setPlanForm({ ...EMPTY_PLAN_FORM }) },
+    mutationFn: (data: any) => api.post(`/people/${id}/care-plans`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddPlanOpen(false); setPlanForm({ ...EMPTY_PLAN_FORM }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add care plan'),
   })
 
   const addNoteMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${id}/daily-notes`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setAddNoteOpen(false); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' }) },
+    mutationFn: (data: any) => api.post(`/people/${id}/daily-notes`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddNoteOpen(false); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add note'),
   })
 
   const addRiskMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${id}/risk-assessments`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setAddRiskOpen(false); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '' }) },
+    mutationFn: (data: any) => api.post(`/people/${id}/risk-assessments`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddRiskOpen(false); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '' }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add risk assessment'),
   })
 
   const addContactMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${id}/family-contacts`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setAddContactOpen(false); setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false }) },
+    mutationFn: (data: any) => api.post(`/people/${id}/family-contacts`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddContactOpen(false); setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add contact'),
   })
 
   const deleteContactMutation = useMutation({
-    mutationFn: (contactId: string) => api.delete(`/service-users/family-contacts/${contactId}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); showSnackbar('Contact removed') },
+    mutationFn: (contactId: string) => api.delete(`/people/family-contacts/${contactId}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); showSnackbar('Contact removed') },
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete contact', 'error'),
   })
 
   const updatePlanMutation = useMutation({
-    mutationFn: ({ planId, data }: { planId: string; data: any }) => api.patch(`/service-users/care-plans/${planId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setAddPlanOpen(false); setEditPlanId(null); setPlanForm({ ...EMPTY_PLAN_FORM }) },
+    mutationFn: ({ planId, data }: { planId: string; data: any }) => api.patch(`/people/care-plans/${planId}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddPlanOpen(false); setEditPlanId(null); setPlanForm({ ...EMPTY_PLAN_FORM }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update care plan'),
   })
 
   const deletePlanMutation = useMutation({
-    mutationFn: (planId: string) => api.delete(`/service-users/care-plans/${planId}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-user', id] }),
+    mutationFn: (planId: string) => api.delete(`/people/care-plans/${planId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['person', id] }),
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to delete care plan'),
   })
 
   const updateNoteMutation = useMutation({
-    mutationFn: ({ noteId, data }: { noteId: string; data: any }) => api.patch(`/service-users/daily-notes/${noteId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setEditNoteId(null); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' }) },
+    mutationFn: ({ noteId, data }: { noteId: string; data: any }) => api.patch(`/people/daily-notes/${noteId}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditNoteId(null); setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update note'),
   })
 
   const updateRiskMutation = useMutation({
-    mutationFn: ({ riskId, data }: { riskId: string; data: any }) => api.patch(`/service-users/risk-assessments/${riskId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setEditRiskId(null); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '' }) },
+    mutationFn: ({ riskId, data }: { riskId: string; data: any }) => api.patch(`/people/risk-assessments/${riskId}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditRiskId(null); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '' }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update risk assessment'),
   })
 
   const deleteRiskMutation = useMutation({
-    mutationFn: (riskId: string) => api.delete(`/service-users/risk-assessments/${riskId}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-user', id] }),
+    mutationFn: (riskId: string) => api.delete(`/people/risk-assessments/${riskId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['person', id] }),
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to delete risk assessment'),
   })
 
   const updateContactMutation = useMutation({
-    mutationFn: ({ contactId, data }: { contactId: string; data: any }) => api.patch(`/service-users/family-contacts/${contactId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-user', id] }); setContactEditId(null); setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false }) },
+    mutationFn: ({ contactId, data }: { contactId: string; data: any }) => api.patch(`/people/family-contacts/${contactId}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setContactEditId(null); setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update contact'),
   })
 
@@ -261,7 +261,7 @@ export default function ServiceUserProfilePage() {
   const aiApproveMutation = useMutation({
     mutationFn: (data: any) => api.post('/ai/daily-notes/approve', data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['service-user', id] })
+      queryClient.invalidateQueries({ queryKey: ['person', id] })
       setAddNoteOpen(false)
       setAiMode(false)
       setAiResult(null)
@@ -287,7 +287,7 @@ export default function ServiceUserProfilePage() {
         ai_follow_up_required: r.follow_up_required,
         ai_follow_up_details: r.follow_up_details,
       } : null)
-      queryClient.invalidateQueries({ queryKey: ['service-user', id] })
+      queryClient.invalidateQueries({ queryKey: ['person', id] })
       showSnackbar('AI analysis complete')
     },
     onError: (e: any) => setAiError(e.response?.data?.error?.message || 'Analysis failed'),
@@ -301,10 +301,10 @@ export default function ServiceUserProfilePage() {
     mutationFn: (file: File) => {
       const fd = new FormData()
       fd.append('photo', file)
-      return api.post(`/service-users/${id}/photo`, fd)
+      return api.post(`/people/${id}/photo`, fd)
     },
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['service-user', id] })
+      queryClient.invalidateQueries({ queryKey: ['person', id] })
       setPhotoError('')
       if (res.data?.url) {
         loadPhotoToBlob(res.data.url)
@@ -393,7 +393,7 @@ export default function ServiceUserProfilePage() {
     setAiError('')
     setAiResult(null)
     aiGenerateMutation.mutate({
-      serviceUserId: id,
+      personId: id,
       staffInput: aiTranscript.trim(),
       shift: noteForm.shift,
       noteDate: noteForm.note_date,
@@ -403,7 +403,7 @@ export default function ServiceUserProfilePage() {
   const handleAiApprove = () => {
     if (!aiResult || !id) return
     aiApproveMutation.mutate({
-      serviceUserId: id,
+      personId: id,
       dailyNote: {
         content: aiEditedContent || aiResult.daily_note?.content || '',
         shift: aiResult.daily_note?.shift || noteForm.shift,
@@ -463,7 +463,7 @@ export default function ServiceUserProfilePage() {
   return (
     <Box>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Button startIcon={<ArrowBack />} onClick={() => navigate('/service-users')} sx={{ color: '#6B7280', textTransform: 'none', fontWeight: 600 }}>
+        <Button startIcon={<ArrowBack />} onClick={() => navigate('/people')} sx={{ color: '#6B7280', textTransform: 'none', fontWeight: 600 }}>
           Back to People
         </Button>
       </Stack>
@@ -796,7 +796,7 @@ export default function ServiceUserProfilePage() {
       )}
 
       {/* Tab: Timeline */}
-      {tab === 1 && <TimelineTab serviceUserId={id!} />}
+      {tab === 1 && <TimelineTab personId={id!} />}
 
       {/* Tab: Care Plans */}
       {tab === 2 && (
@@ -1049,7 +1049,7 @@ export default function ServiceUserProfilePage() {
               if (!pm || pm.status === 'revoked') {
                 return (
                   <MenuItem onClick={() => {
-                    inlineInvitePortalMutation.mutate({ name: c.name, email: c.email, relationship: c.relationship || '', phone: c.phone || '', service_user_id: id })
+                    inlineInvitePortalMutation.mutate({ name: c.name, email: c.email, relationship: c.relationship || '', phone: c.phone || '', person_id: id })
                     setContactMenuAnchor(null)
                   }} disabled={inlineInvitePortalMutation.isPending}>
                     <ListItemIcon><PeopleIcon fontSize="small" sx={{ color: '#0F4C81' }} /></ListItemIcon><ListItemText>Invite to Family Portal</ListItemText>
@@ -1073,49 +1073,49 @@ export default function ServiceUserProfilePage() {
       )}
 
       {/* Tab: Health */}
-      {tab === 6 && <HealthTab serviceUserId={id!} />}
+      {tab === 6 && <HealthTab personId={id!} />}
 
       {/* Tab: Body Map */}
-      {tab === 7 && <BodyMapTab serviceUserId={id!} />}
+      {tab === 7 && <BodyMapTab personId={id!} />}
 
       {/* Tab: Memory Book */}
-      {tab === 8 && <MemoryBookTab serviceUserId={id!} />}
+      {tab === 8 && <MemoryBookTab personId={id!} />}
 
       {/* Tab: Goals */}
-      {tab === 9 && <GoalsPage serviceUserId={id!} />}
+      {tab === 9 && <GoalsPage personId={id!} />}
 
       {/* Tab: Care Assessments */}
-      {tab === 10 && <CareAssessmentsTabInline serviceUserId={id!} />}
+      {tab === 10 && <CareAssessmentsTabInline personId={id!} />}
 
       {/* Tab: Room Checks */}
       {tab === 11 && <RoomChecksTab roomNumber={user.room_number} />}
 
       {/* Tab: Clinical Scores */}
-      {tab === 12 && <ClinicalScoresTab serviceUserId={id!} />}
+      {tab === 12 && <ClinicalScoresTab personId={id!} />}
 
       {/* Tab: Documents */}
-      {tab === 13 && <DocumentsTab serviceUserId={id!} />}
+      {tab === 13 && <DocumentsTab personId={id!} />}
 
       {/* Tab: Wellbeing */}
-      {tab === 14 && <WellbeingTabInline serviceUserId={id!} />}
+      {tab === 14 && <WellbeingTabInline personId={id!} />}
 
       {/* Tab: Communication Log */}
-      {tab === 15 && <CommunicationLogTabInline serviceUserId={id!} />}
+      {tab === 15 && <CommunicationLogTabInline personId={id!} />}
 
       {/* Tab: MCA / Capacity */}
-      {tab === 16 && <CapacityMcaTabInline serviceUserId={id!} />}
+      {tab === 16 && <CapacityMcaTabInline personId={id!} />}
 
       {/* Tab: Care Pathways */}
-      {tab === 17 && <CarePathwaysTabInline serviceUserId={id!} />}
+      {tab === 17 && <CarePathwaysTabInline personId={id!} />}
 
       {/* Tab: Discharge Checklist */}
-      {tab === 18 && <DischargeChecklistTabInline serviceUserId={id!} />}
+      {tab === 18 && <DischargeChecklistTabInline personId={id!} />}
 
       {/* Tab: Mood Chart */}
-      {tab === 19 && <MoodChartTabInline serviceUserId={id!} />}
+      {tab === 19 && <MoodChartTabInline personId={id!} />}
 
       {/* Tab: Audit Trail */}
-      {tab === 20 && <AuditTrailTabInline serviceUserId={id!} />}
+      {tab === 20 && <AuditTrailTabInline personId={id!} />}
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
@@ -1984,7 +1984,7 @@ export default function ServiceUserProfilePage() {
       <Dialog open={invitePortalOpen} onClose={() => { setInvitePortalOpen(false); setInvitePortalError('') }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => {
           e.preventDefault()
-          inviteFromContactMutation.mutate({ ...invitePortalForm, service_user_id: id })
+          inviteFromContactMutation.mutate({ ...invitePortalForm, person_id: id })
         }}>
           <DialogTitle sx={{ fontWeight: 800 }}>Invite to Family Portal</DialogTitle>
           <DialogContent>
@@ -2033,7 +2033,7 @@ export default function ServiceUserProfilePage() {
 const ASSESSMENT_TYPES = ['Initial', 'Annual Review', 'MCA', 'DoLS', 'Best Interest', 'Capacity', 'Other']
 const ASSESSMENT_STATUS_COLORS: Record<string, string> = { draft: '#D97706', completed: '#16A34A', reviewed: '#0F4C81' }
 
-function CareAssessmentsTabInline({ serviceUserId }: { serviceUserId: string }) {
+function CareAssessmentsTabInline({ personId }: { personId: string }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)
@@ -2042,19 +2042,19 @@ function CareAssessmentsTabInline({ serviceUserId }: { serviceUserId: string }) 
   const [form, setForm] = useState({ assessment_type: '', assessment_date: new Date().toISOString().split('T')[0], assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '' })
   const [error, setError] = useState('')
   const { data: assessments, isLoading, isError } = useQuery({
-    queryKey: ['assessments', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/assessments`).then(r => r.data),
+    queryKey: ['assessments', personId],
+    queryFn: () => api.get(`/people/${personId}/assessments`).then(r => r.data),
   })
   const resetForm = () => setForm({ assessment_type: '', assessment_date: new Date().toISOString().split('T')[0], assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '' })
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = { ...form }
-      if (editAssessment) return api.patch(`/service-users/assessments/${editAssessment.id}`, payload)
-      return api.post(`/service-users/${serviceUserId}/assessments`, payload)
+      if (editAssessment) return api.patch(`/people/assessments/${editAssessment.id}`, payload)
+      return api.post(`/people/${personId}/assessments`, payload)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assessments', serviceUserId] })
-      queryClient.invalidateQueries({ queryKey: ['timeline', serviceUserId] })
+      queryClient.invalidateQueries({ queryKey: ['assessments', personId] })
+      queryClient.invalidateQueries({ queryKey: ['timeline', personId] })
       setOpen(false)
       setEditAssessment(null)
       resetForm()
@@ -2063,8 +2063,8 @@ function CareAssessmentsTabInline({ serviceUserId }: { serviceUserId: string }) 
     onError: (err: any) => setError(err.response?.data?.message || err.message || 'Failed to save assessment'),
   })
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/service-users/assessments/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assessments', serviceUserId] }),
+    mutationFn: (id: string) => api.delete(`/people/assessments/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assessments', personId] }),
   })
   const openEdit = (a: any) => {
     setEditAssessment(a)
@@ -2180,10 +2180,10 @@ function CareAssessmentsTabInline({ serviceUserId }: { serviceUserId: string }) 
   )
 }
 
-function TimelineTab({ serviceUserId }: { serviceUserId: string }) {
+function TimelineTab({ personId }: { personId: string }) {
   const { data: timeline = [], isLoading } = useQuery({
-    queryKey: ['timeline', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/timeline`).then(r => r.data),
+    queryKey: ['timeline', personId],
+    queryFn: () => api.get(`/people/${personId}/timeline`).then(r => r.data),
   })
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
 
@@ -2349,7 +2349,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
   )
 }
 
-function ClinicalScoresTab({ serviceUserId }: { serviceUserId: string }) {
+function ClinicalScoresTab({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] })
   const [formError, setFormError] = useState('')
@@ -2357,19 +2357,19 @@ function ClinicalScoresTab({ serviceUserId }: { serviceUserId: string }) {
   const { showSnackbar } = useSnackbar()
 
   const { data: scores = [], isLoading } = useQuery({
-    queryKey: ['clinical-scores', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/clinical-scores`).then(r => r.data),
+    queryKey: ['clinical-scores', personId],
+    queryFn: () => api.get(`/people/${personId}/clinical-scores`).then(r => r.data),
   })
 
   const addMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${serviceUserId}/clinical-scores`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clinical-scores', serviceUserId] }); setAddOpen(false); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] }) },
+    mutationFn: (data: any) => api.post(`/people/${personId}/clinical-scores`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clinical-scores', personId] }); setAddOpen(false); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add score'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/service-users/clinical-scores/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clinical-scores', serviceUserId] }),
+    mutationFn: (id: string) => api.delete(`/people/clinical-scores/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clinical-scores', personId] }),
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
   })
 
@@ -2452,7 +2452,7 @@ function ClinicalScoresTab({ serviceUserId }: { serviceUserId: string }) {
   )
 }
 
-function DocumentsTab({ serviceUserId }: { serviceUserId: string }) {
+function DocumentsTab({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState({ title: '', document_type: 'care_plan', description: '', file_url: '', upload_date: new Date().toISOString().split('T')[0] })
   const [formError, setFormError] = useState('')
@@ -2462,19 +2462,19 @@ function DocumentsTab({ serviceUserId }: { serviceUserId: string }) {
   const { showSnackbar } = useSnackbar()
 
   const { data: docs = [], isLoading } = useQuery({
-    queryKey: ['documents', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/documents`).then(r => r.data),
+    queryKey: ['documents', personId],
+    queryFn: () => api.get(`/people/${personId}/documents`).then(r => r.data),
   })
 
   const addMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${serviceUserId}/documents`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['documents', serviceUserId] }); setAddOpen(false); setForm({ title: '', document_type: 'care_plan', description: '', file_url: '', upload_date: new Date().toISOString().split('T')[0] }) },
+    mutationFn: (data: any) => api.post(`/people/${personId}/documents`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['documents', personId] }); setAddOpen(false); setForm({ title: '', document_type: 'care_plan', description: '', file_url: '', upload_date: new Date().toISOString().split('T')[0] }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to upload'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/service-users/documents/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents', serviceUserId] }),
+    mutationFn: (id: string) => api.delete(`/people/documents/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents', personId] }),
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
   })
 
@@ -2597,7 +2597,7 @@ const DOMAIN_COLORS: Record<string, string> = {
   pain: '#DC2626', mobility: '#D97706', social: '#0F4C81', overall: '#6B7280',
 }
 
-function WellbeingTabInline({ serviceUserId }: { serviceUserId: string }) {
+function WellbeingTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState({ domain: 'mood', score: 5, notes: '' })
   const [formError, setFormError] = useState('')
@@ -2605,19 +2605,19 @@ function WellbeingTabInline({ serviceUserId }: { serviceUserId: string }) {
   const { showSnackbar } = useSnackbar()
 
   const { data: entries = [], isLoading } = useQuery({
-    queryKey: ['wellbeing', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/wellbeing`).then(r => r.data),
+    queryKey: ['wellbeing', personId],
+    queryFn: () => api.get(`/people/${personId}/wellbeing`).then(r => r.data),
   })
 
   const addMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${serviceUserId}/wellbeing`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', serviceUserId] }); setAddOpen(false); setForm({ domain: 'mood', score: 5, notes: '' }) },
+    mutationFn: (data: any) => api.post(`/people/${personId}/wellbeing`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', personId] }); setAddOpen(false); setForm({ domain: 'mood', score: 5, notes: '' }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add entry'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/service-users/wellbeing/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', serviceUserId] }); showSnackbar('Entry deleted') },
+    mutationFn: (id: string) => api.delete(`/people/wellbeing/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', personId] }); showSnackbar('Entry deleted') },
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
   })
 
@@ -2716,7 +2716,7 @@ function WellbeingTabInline({ serviceUserId }: { serviceUserId: string }) {
 const CONTACT_METHODS = ['phone', 'email', 'letter', 'visit', 'video_call', 'other']
 const DIRECTION_OPTIONS = ['inbound', 'outbound']
 
-function CommunicationLogTabInline({ serviceUserId }: { serviceUserId: string }) {
+function CommunicationLogTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState({ contact_name: '', relationship: '', contact_method: 'phone', direction: 'inbound', summary: '', follow_up_actions: '', recorded_date: new Date().toISOString().split('T')[0] })
   const [formError, setFormError] = useState('')
@@ -2724,19 +2724,19 @@ function CommunicationLogTabInline({ serviceUserId }: { serviceUserId: string })
   const { showSnackbar } = useSnackbar()
 
   const { data: entries = [], isLoading } = useQuery({
-    queryKey: ['communication-log', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/communication-log`).then(r => r.data),
+    queryKey: ['communication-log', personId],
+    queryFn: () => api.get(`/people/${personId}/communication-log`).then(r => r.data),
   })
 
   const addMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${serviceUserId}/communication-log`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['communication-log', serviceUserId] }); setAddOpen(false); setForm({ contact_name: '', relationship: '', contact_method: 'phone', direction: 'inbound', summary: '', follow_up_actions: '', recorded_date: new Date().toISOString().split('T')[0] }) },
+    mutationFn: (data: any) => api.post(`/people/${personId}/communication-log`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['communication-log', personId] }); setAddOpen(false); setForm({ contact_name: '', relationship: '', contact_method: 'phone', direction: 'inbound', summary: '', follow_up_actions: '', recorded_date: new Date().toISOString().split('T')[0] }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add entry'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/service-users/communication-log/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['communication-log', serviceUserId] }); showSnackbar('Entry deleted') },
+    mutationFn: (id: string) => api.delete(`/people/communication-log/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['communication-log', personId] }); showSnackbar('Entry deleted') },
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
   })
 
@@ -2834,7 +2834,7 @@ const CAPACITY_STATUS_COLORS: Record<string, string> = {
   has_capacity: '#16A34A', lacks_capacity: '#DC2626', fluctuating: '#D97706', not_assessed: '#6B7280',
 }
 
-function CapacityMcaTabInline({ serviceUserId }: { serviceUserId: string }) {
+function CapacityMcaTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState({ assessment_date: new Date().toISOString().split('T')[0], decision_to_be_made: '', capacity_found: null as boolean | null, capacity_status: 'not_assessed', best_interest_decision: '', best_interest_meeting_date: '', independent_advocate: '', relevant_people_informed: '', review_date: '' })
@@ -2843,25 +2843,25 @@ function CapacityMcaTabInline({ serviceUserId }: { serviceUserId: string }) {
   const { showSnackbar } = useSnackbar()
 
   const { data: assessments = [], isLoading } = useQuery({
-    queryKey: ['capacity', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/capacity`).then(r => r.data),
+    queryKey: ['capacity', personId],
+    queryFn: () => api.get(`/people/${personId}/capacity`).then(r => r.data),
   })
 
   const addMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${serviceUserId}/capacity`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', serviceUserId] }); setAddOpen(false); resetForm() },
+    mutationFn: (data: any) => api.post(`/people/${personId}/capacity`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', personId] }); setAddOpen(false); resetForm() },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add assessment'),
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/service-users/capacity/${id}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', serviceUserId] }); setAddOpen(false); setEditId(null); resetForm() },
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/people/capacity/${id}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', personId] }); setAddOpen(false); setEditId(null); resetForm() },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to update assessment'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/service-users/capacity/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', serviceUserId] }); showSnackbar('Assessment deleted') },
+    mutationFn: (id: string) => api.delete(`/people/capacity/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', personId] }); showSnackbar('Assessment deleted') },
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
   })
 
@@ -2972,7 +2972,7 @@ const PATHWAY_TYPE_COLORS: Record<string, string> = {
   assessment_unit: '#7C3AED', transition: '#16A34A', other: '#6B7280',
 }
 
-function CarePathwaysTabInline({ serviceUserId }: { serviceUserId: string }) {
+function CarePathwaysTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState({ pathway_type: 'hospital_admission', title: '', start_date: new Date().toISOString().split('T')[0], end_date: '', location_name: '', referral_reason: '', discharge_notes: '', status: 'active' })
@@ -2981,25 +2981,25 @@ function CarePathwaysTabInline({ serviceUserId }: { serviceUserId: string }) {
   const { showSnackbar } = useSnackbar()
 
   const { data: pathways = [], isLoading } = useQuery({
-    queryKey: ['care-pathways', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/care-pathways`).then(r => r.data),
+    queryKey: ['care-pathways', personId],
+    queryFn: () => api.get(`/people/${personId}/care-pathways`).then(r => r.data),
   })
 
   const addMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${serviceUserId}/care-pathways`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', serviceUserId] }); setAddOpen(false); resetForm() },
+    mutationFn: (data: any) => api.post(`/people/${personId}/care-pathways`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', personId] }); setAddOpen(false); resetForm() },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add pathway'),
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/service-users/care-pathways/${id}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', serviceUserId] }); setAddOpen(false); setEditId(null); resetForm() },
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/people/care-pathways/${id}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', personId] }); setAddOpen(false); setEditId(null); resetForm() },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to update pathway'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/service-users/care-pathways/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', serviceUserId] }); showSnackbar('Pathway deleted') },
+    mutationFn: (id: string) => api.delete(`/people/care-pathways/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', personId] }); showSnackbar('Pathway deleted') },
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
   })
 
@@ -3111,7 +3111,7 @@ function CarePathwaysTabInline({ serviceUserId }: { serviceUserId: string }) {
 
 const DISCHARGE_CATEGORIES = ['documentation', 'medication', 'equipment', 'notification', 'property', 'financial', 'other']
 
-function DischargeChecklistTabInline({ serviceUserId }: { serviceUserId: string }) {
+function DischargeChecklistTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState({ item_text: '', category: 'documentation' })
   const [formError, setFormError] = useState('')
@@ -3119,25 +3119,25 @@ function DischargeChecklistTabInline({ serviceUserId }: { serviceUserId: string 
   const { showSnackbar } = useSnackbar()
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ['discharge-checklist', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/discharge-checklist`).then(r => r.data),
+    queryKey: ['discharge-checklist', personId],
+    queryFn: () => api.get(`/people/${personId}/discharge-checklist`).then(r => r.data),
   })
 
   const addMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${serviceUserId}/discharge-checklist`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['discharge-checklist', serviceUserId] }); setAddOpen(false); setForm({ item_text: '', category: 'documentation' }) },
+    mutationFn: (data: any) => api.post(`/people/${personId}/discharge-checklist`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['discharge-checklist', personId] }); setAddOpen(false); setForm({ item_text: '', category: 'documentation' }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add item'),
   })
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, completed }: { id: string; completed: boolean }) => api.patch(`/service-users/discharge-checklist/${id}`, { completed }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['discharge-checklist', serviceUserId] }),
+    mutationFn: ({ id, completed }: { id: string; completed: boolean }) => api.patch(`/people/discharge-checklist/${id}`, { completed }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['discharge-checklist', personId] }),
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to update', 'error'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/service-users/discharge-checklist/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['discharge-checklist', serviceUserId] }); showSnackbar('Item deleted') },
+    mutationFn: (id: string) => api.delete(`/people/discharge-checklist/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['discharge-checklist', personId] }); showSnackbar('Item deleted') },
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
   })
 
@@ -3222,20 +3222,20 @@ function DischargeChecklistTabInline({ serviceUserId }: { serviceUserId: string 
   )
 }
 
-function MoodChartTabInline({ serviceUserId }: { serviceUserId: string }) {
+function MoodChartTabInline({ personId }: { personId: string }) {
   const queryClient = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState({ domain: 'mood', score: 7, recorded_date: new Date().toISOString().split('T')[0], notes: '' })
   const [formError, setFormError] = useState('')
 
   const { data: entries = [], isLoading } = useQuery({
-    queryKey: ['wellbeing', serviceUserId],
-    queryFn: () => api.get(`/service-users/${serviceUserId}/wellbeing`).then(r => r.data),
+    queryKey: ['wellbeing', personId],
+    queryFn: () => api.get(`/people/${personId}/wellbeing`).then(r => r.data),
   })
 
   const addMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/service-users/${serviceUserId}/wellbeing`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', serviceUserId] }); setAddOpen(false); setForm({ domain: 'mood', score: 7, recorded_date: new Date().toISOString().split('T')[0], notes: '' }) },
+    mutationFn: (data: any) => api.post(`/people/${personId}/wellbeing`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', personId] }); setAddOpen(false); setForm({ domain: 'mood', score: 7, recorded_date: new Date().toISOString().split('T')[0], notes: '' }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to save'),
   })
 
@@ -3348,10 +3348,10 @@ function MoodChartTabInline({ serviceUserId }: { serviceUserId: string }) {
   )
 }
 
-function AuditTrailTabInline({ serviceUserId }: { serviceUserId: string }) {
+function AuditTrailTabInline({ personId }: { personId: string }) {
   const { data: logs = [], isLoading } = useQuery({
-    queryKey: ['audit-trail', serviceUserId],
-    queryFn: () => api.get('/audit/logs', { params: { service_user_id: serviceUserId } }).then(r => r.data),
+    queryKey: ['audit-trail', personId],
+    queryFn: () => api.get('/audit/logs', { params: { person_id: personId } }).then(r => r.data),
   })
   if (isLoading) return <CircularProgress size={24} sx={{ display: 'block', mx: 'auto', mt: 4 }} />
   if (!logs.length) return <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}><Typography color="#9CA3AF">No audit trail entries</Typography></Paper>

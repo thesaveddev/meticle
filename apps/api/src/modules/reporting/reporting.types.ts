@@ -113,35 +113,35 @@ export const REPORT_REGISTRY: ReportDefinition[] = [
   // ─── People ─────────────────────────────────────────────
   {
     id: 'su-directory', title: 'Person Directory', description: 'Active people with demographics and care level',
-    category: 'service-users', icon: 'Group', color: '#8B5CF6',
+    category: 'people', icon: 'Group', color: '#8B5CF6',
     filters: ['dateRange', 'location', 'status'],
     groupByOptions: ['location', 'status', 'care_level'],
     chartTypes: ['bar', 'pie', 'table'], defaultChartType: 'table',
   },
   {
     id: 'su-by-location', title: 'People by Location', description: 'Person distribution across locations',
-    category: 'service-users', icon: 'LocationOn', color: '#8B5CF6',
+    category: 'people', icon: 'LocationOn', color: '#8B5CF6',
     filters: ['dateRange', 'location', 'status'],
     groupByOptions: ['location', 'status'],
     chartTypes: ['bar', 'pie', 'table'], defaultChartType: 'bar',
   },
   {
     id: 'su-care-plans', title: 'Care Plan Summary', description: 'Care plan status and last review dates',
-    category: 'service-users', icon: 'Assignment', color: '#8B5CF6',
+    category: 'people', icon: 'Assignment', color: '#8B5CF6',
     filters: ['location', 'status'],
     groupByOptions: ['location', 'status'],
     chartTypes: ['bar', 'pie', 'table'], defaultChartType: 'table',
   },
   {
     id: 'su-outcomes', title: 'Person Outcomes', description: 'Goals, wellbeing scores, and clinical assessments',
-    category: 'service-users', icon: 'Psychology', color: '#8B5CF6',
+    category: 'people', icon: 'Psychology', color: '#8B5CF6',
     filters: ['dateRange', 'location', 'status'],
     groupByOptions: ['location', 'cqc_domain'],
     chartTypes: ['bar', 'pie', 'radar', 'table'], defaultChartType: 'bar',
   },
   {
     id: 'su-daily-notes', title: 'Daily Notes Summary', description: 'Note frequency, mood trends, and safeguarding flags',
-    category: 'service-users', icon: 'Note', color: '#8B5CF6',
+    category: 'people', icon: 'Note', color: '#8B5CF6',
     filters: ['dateRange', 'location'],
     groupByOptions: ['location', 'month'],
     chartTypes: ['bar', 'line', 'table'], defaultChartType: 'line',
@@ -318,7 +318,7 @@ export const REPORT_REGISTRY: ReportDefinition[] = [
 
 export const CATEGORIES = [
   { id: 'staff', label: 'Staff', color: '#0F4C81', icon: 'People' },
-  { id: 'service-users', label: 'People', color: '#8B5CF6', icon: 'Group' },
+  { id: 'people', label: 'People', color: '#8B5CF6', icon: 'Group' },
   { id: 'scheduling', label: 'Scheduling', color: '#D97706', icon: 'CalendarMonth' },
   { id: 'leave', label: 'Leave', color: '#0EA5E9', icon: 'BeachAccess' },
   { id: 'incidents', label: 'Incidents', color: '#DC2626', icon: 'WarningAmber' },

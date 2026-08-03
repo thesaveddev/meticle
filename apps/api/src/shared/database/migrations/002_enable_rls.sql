@@ -41,21 +41,21 @@ DO $$ DECLARE
     'leave_types', 'manager_delegations',
     'invoices', 'payment_methods',
     'shift_templates',
-    'service_users',
+    'people',
     'incident_categories', 'incidents',
     'training_modules',
     'competency_templates',
     'emedication_records', 'emedication_daily_counts', 'emedication_stock',
     'emedication_deliveries',
     'dbs_checks',
-    'service_user_expenses', 'petty_cash_balances', 'petty_cash_transactions',
+    'person_expenses', 'petty_cash_balances', 'petty_cash_transactions',
     'ai_audit_logs', 'compliance_snapshots',
     'chat_channels',
     'satisfaction_surveys', 'staff_engagement_surveys',
     'tasks', 'room_checks', 'mobile_check_ins', 'trial_reminders',
     'survey_invitations', 'engagement_templates',
     'appointments', 'policies',
-    'service_user_goals',
+    'person_goals',
     'emedication_audit_log',
     'care_assessments', 'evidence_mappings', 'emedication_stock_adjustments',
     'agencies', 'agency_workers', 'agency_rates',
@@ -127,37 +127,37 @@ CREATE POLICY tenant_isolation ON shift_swaps FOR ALL USING (
   org_check((SELECT l.organization_id FROM shifts s JOIN locations l ON l.id = s.location_id WHERE s.id = shift_swaps.shift_id))
 );
 
--- care_plans: service_user_id -> service_users -> org
+-- care_plans: person_id -> people -> org
 ALTER TABLE care_plans ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON care_plans;
 CREATE POLICY tenant_isolation ON care_plans FOR ALL USING (
-  org_check((SELECT organization_id FROM service_users WHERE service_users.id = care_plans.service_user_id))
+  org_check((SELECT organization_id FROM people WHERE people.id = care_plans.person_id))
 );
 
 -- daily_notes
 ALTER TABLE daily_notes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON daily_notes;
 CREATE POLICY tenant_isolation ON daily_notes FOR ALL USING (
-  org_check((SELECT organization_id FROM service_users WHERE service_users.id = daily_notes.service_user_id))
+  org_check((SELECT organization_id FROM people WHERE people.id = daily_notes.person_id))
 );
 
 -- risk_assessments
 ALTER TABLE risk_assessments ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON risk_assessments;
 CREATE POLICY tenant_isolation ON risk_assessments FOR ALL USING (
-  org_check((SELECT organization_id FROM service_users WHERE service_users.id = risk_assessments.service_user_id))
+  org_check((SELECT organization_id FROM people WHERE people.id = risk_assessments.person_id))
 );
 
 -- family_contacts, body_map_entries, memory_book_entries, clinical_scores,
--- service_user_documents, su_wellbeing, su_communication_log,
--- su_capacity_assessments, su_care_pathways, su_discharge_checklist
+-- person_documents, person_wellbeing, person_communication_log,
+-- person_capacity_assessments, person_care_pathways, person_discharge_checklist
 DO $$ DECLARE
   tbl TEXT;
   tables TEXT[] := ARRAY[
     'family_contacts', 'body_map_entries', 'memory_book_entries',
-    'clinical_scores', 'service_user_documents', 'su_wellbeing',
-    'su_communication_log', 'su_capacity_assessments', 'su_care_pathways',
-    'su_discharge_checklist', 'service_user_access_log'
+    'clinical_scores', 'person_documents', 'person_wellbeing',
+    'person_communication_log', 'person_capacity_assessments', 'person_care_pathways',
+    'person_discharge_checklist', 'person_access_log'
   ];
 BEGIN
   FOREACH tbl IN ARRAY tables LOOP
@@ -165,7 +165,7 @@ BEGIN
     EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', tbl);
     EXECUTE format(
       'CREATE POLICY tenant_isolation ON %I FOR ALL USING (
-        org_check((SELECT organization_id FROM service_users WHERE service_users.id = %I.service_user_id))
+        org_check((SELECT organization_id FROM people WHERE people.id = %I.person_id))
       )', tbl, tbl
     );
   END LOOP;
@@ -269,18 +269,18 @@ CREATE POLICY tenant_isolation ON emedication_daily_count_items FOR ALL USING (
   org_check((SELECT organization_id FROM emedication_daily_counts WHERE emedication_daily_counts.id = emedication_daily_count_items.daily_count_id))
 );
 
--- goal_milestones: goal_id -> service_user_goals -> org
+-- goal_milestones: goal_id -> person_goals -> org
 ALTER TABLE goal_milestones ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON goal_milestones;
 CREATE POLICY tenant_isolation ON goal_milestones FOR ALL USING (
-  org_check((SELECT organization_id FROM service_user_goals WHERE service_user_goals.id = goal_milestones.goal_id))
+  org_check((SELECT organization_id FROM person_goals WHERE person_goals.id = goal_milestones.goal_id))
 );
 
--- goal_progress_history: goal_id -> service_user_goals -> org
+-- goal_progress_history: goal_id -> person_goals -> org
 ALTER TABLE goal_progress_history ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON goal_progress_history;
 CREATE POLICY tenant_isolation ON goal_progress_history FOR ALL USING (
-  org_check((SELECT organization_id FROM service_user_goals WHERE service_user_goals.id = goal_progress_history.goal_id))
+  org_check((SELECT organization_id FROM person_goals WHERE person_goals.id = goal_progress_history.goal_id))
 );
 
 -- outcome_scale_results: scale_id -> outcome_scales -> org
@@ -378,31 +378,31 @@ CREATE POLICY tenant_isolation ON staff_availability FOR ALL USING (
 );
 
 -- ══════════════════════════════════════════════════════════
--- Health tables: service_user_id -> service_users -> org
+-- Health tables: person_id -> people -> org
 -- ══════════════════════════════════════════════════════════
 
 ALTER TABLE health_observations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON health_observations;
 CREATE POLICY tenant_isolation ON health_observations FOR ALL USING (
-  org_check((SELECT organization_id FROM service_users WHERE service_users.id = health_observations.service_user_id))
+  org_check((SELECT organization_id FROM people WHERE people.id = health_observations.person_id))
 );
 
 ALTER TABLE bowel_movements ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON bowel_movements;
 CREATE POLICY tenant_isolation ON bowel_movements FOR ALL USING (
-  org_check((SELECT organization_id FROM service_users WHERE service_users.id = bowel_movements.service_user_id))
+  org_check((SELECT organization_id FROM people WHERE people.id = bowel_movements.person_id))
 );
 
 ALTER TABLE dental_records ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON dental_records;
 CREATE POLICY tenant_isolation ON dental_records FOR ALL USING (
-  org_check((SELECT organization_id FROM service_users WHERE service_users.id = dental_records.service_user_id))
+  org_check((SELECT organization_id FROM people WHERE people.id = dental_records.person_id))
 );
 
 ALTER TABLE fluid_intake ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON fluid_intake;
 CREATE POLICY tenant_isolation ON fluid_intake FOR ALL USING (
-  org_check((SELECT organization_id FROM service_users WHERE service_users.id = fluid_intake.service_user_id))
+  org_check((SELECT organization_id FROM people WHERE people.id = fluid_intake.person_id))
 );
 
 -- ══════════════════════════════════════════════════════════

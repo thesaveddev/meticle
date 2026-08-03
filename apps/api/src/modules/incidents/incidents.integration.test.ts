@@ -133,11 +133,11 @@ describe('Incidents Integration — POST /incidents/:id/actions', () => {
 describe('Incidents Integration — POST /incidents/:id/involved', () => {
   it('should add involved person to an incident', async () => {
     const org = await createOrg()
-    // Create a service user reference
+    // Create a person reference
     const suId = '00000000-0000-0000-0000-000000000001'
     try {
       await migrateQuery(
-        'INSERT INTO service_users (id, organization_id, first_name, last_name) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        'INSERT INTO people (id, organization_id, first_name, last_name) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
         [suId, org.id, 'Test', 'Resident']
       )
     } catch { /* table may not exist */ }
@@ -149,10 +149,10 @@ describe('Incidents Integration — POST /incidents/:id/involved', () => {
     const res = await request(app)
       .post(`/incidents/${incident.id}/involved`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ service_user_id: suId, involvement_type: 'affected' })
+      .send({ person_id: suId, involvement_type: 'affected' })
 
     expect(res.status).toBe(201)
-    expect(res.body.service_user_id).toBe(suId)
+    expect(res.body.person_id).toBe(suId)
   })
 })
 

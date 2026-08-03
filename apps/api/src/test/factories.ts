@@ -126,13 +126,13 @@ export async function createShift(overrides: Record<string, any> = {}) {
   const endTime = overrides.end_time || overrides.endTime || new Date(Date.now() + 90000000).toISOString()
   const shiftType = overrides.shift_type || overrides.shiftType || 'day'
   const status = overrides.status || 'open'
-  const serviceUserId = overrides.service_user_id || overrides.serviceUserId || null
+  const personId = overrides.person_id || overrides.personId || null
 
   const result = await query(
-    `INSERT INTO shifts (id, location_id, department_id, start_time, end_time, shift_type, status, service_user_id)
+    `INSERT INTO shifts (id, location_id, department_id, start_time, end_time, shift_type, status, person_id)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
-    [id, locationId, departmentId, startTime, endTime, shiftType, status, serviceUserId]
+    [id, locationId, departmentId, startTime, endTime, shiftType, status, personId]
   )
   return result.rows[0]
 }

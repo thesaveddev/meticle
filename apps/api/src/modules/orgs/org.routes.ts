@@ -10,7 +10,7 @@ import { UserRole } from '@meticle/shared';
 
 const router = Router();
 
-router.post('/', authenticate, rateLimit(5, 60000), validate(createOrganizationSchema), asyncHandler(OrgController.createOrganization));
+router.post('/', authenticate, requireRole(UserRole.ORG_ADMIN), rateLimit(5, 60000), validate(createOrganizationSchema), asyncHandler(OrgController.createOrganization));
 router.get('/:id', authenticate, asyncHandler(OrgController.getOrganization));
 router.patch('/:id', authenticate, requireRole(UserRole.ORG_ADMIN), validate(updateOrganizationSchema), asyncHandler(OrgController.updateOrganization));
 router.post('/:orgId/locations', authenticate, requireRole(UserRole.ORG_ADMIN), validate(createLocationSchema), asyncHandler(OrgController.createLocation));

@@ -42,8 +42,8 @@ import LeaveManagerPage from './pages/leave/LeaveManagerPage'
 import ShiftMarketplacePage from './pages/shift-marketplace/ShiftMarketplacePage'
 import AgenciesPage from './pages/agencies/AgenciesPage'
 import ExpensesPage from './pages/expenses/ExpensesPage'
-import ServiceUserDirectoryPage from './pages/service-users/ServiceUserDirectoryPage'
-import ServiceUserProfilePage from './pages/service-users/ServiceUserProfilePage'
+import PersonDirectoryPage from './pages/people/PersonDirectoryPage'
+import PersonProfilePage from './pages/people/PersonProfilePage'
 import IncidentDirectoryPage from './pages/incidents/IncidentDirectoryPage'
 import IncidentDetailPage from './pages/incidents/IncidentDetailPage'
 import ChatPage from './pages/chat/ChatPage'
@@ -130,8 +130,8 @@ function App() {
           <Route path="/shift-marketplace" element={<ModuleGuard module="marketplace"><ShiftMarketplacePage /></ModuleGuard>} />
           <Route path="/agencies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><AgenciesPage /></AuthGuard>} />
           <Route path="/expenses" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ExpensesPage /></AuthGuard>} />
-          <Route path="/people" element={<ModuleGuard module="staff_directory"><ServiceUserDirectoryPage /></ModuleGuard>} />
-          <Route path="/people/:id" element={<ModuleGuard module="staff_directory"><ServiceUserProfilePage /></ModuleGuard>} />
+          <Route path="/people" element={<ModuleGuard module="staff_directory"><PersonDirectoryPage /></ModuleGuard>} />
+          <Route path="/people/:id" element={<ModuleGuard module="staff_directory"><PersonProfilePage /></ModuleGuard>} />
           <Route path="/incidents" element={<ModuleGuard module="staff_directory"><IncidentDirectoryPage /></ModuleGuard>} />
           <Route path="/incidents/:id" element={<ModuleGuard module="staff_directory"><IncidentDetailPage /></ModuleGuard>} />
           <Route path="/training" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><TrainingMatrixPage /></AuthGuard>} />

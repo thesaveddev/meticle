@@ -3,7 +3,7 @@ import { query } from '../../shared/database';
 export interface EMedicationRecord {
   id: string;
   organization_id: string;
-  service_user_id: string;
+  person_id: string;
   title: string;
   start_date: string;
   end_date: string;
@@ -44,18 +44,18 @@ export interface EMedicationAdministration {
 }
 
 export class EMedicationRepository {
-  private static readonly STOCK_UPDATE_COLUMNS = new Set(['medication_name', 'dosage', 'unit', 'batch_number', 'expiry_date', 'quantity', 'quantity_unit', 'reorder_level', 'location', 'service_user_id', 'status']);
+  private static readonly STOCK_UPDATE_COLUMNS = new Set(['medication_name', 'dosage', 'unit', 'batch_number', 'expiry_date', 'quantity', 'quantity_unit', 'reorder_level', 'location', 'person_id', 'status']);
   // ── Records ──
-  static async findRecords(orgId: string, serviceUserId?: string) {
+  static async findRecords(orgId: string, personId?: string) {
     let sql = `
       SELECT r.*,
-        (SELECT first_name || ' ' || last_name FROM service_users WHERE id = r.service_user_id) AS service_user_name
+        (SELECT first_name || ' ' || last_name FROM people WHERE id = r.person_id) AS person_name
       FROM emedication_records r
       WHERE r.organization_id = $1`;
     const params: any[] = [orgId];
-    if (serviceUserId) {
-      sql += ` AND r.service_user_id = $2`;
-      params.push(serviceUserId);
+    if (personId) {
+      sql += ` AND r.person_id = $2`;
+      params.push(personId);
     }
     sql += ` ORDER BY r.start_date DESC`;
     const result = await query(sql, params);
@@ -65,7 +65,7 @@ export class EMedicationRepository {
   static async findRecordById(id: string, orgId: string) {
     const result = await query(`
       SELECT r.*,
-        (SELECT first_name || ' ' || last_name FROM service_users WHERE id = r.service_user_id) AS service_user_name
+        (SELECT first_name || ' ' || last_name FROM people WHERE id = r.person_id) AS person_name
       FROM emedication_records r
       WHERE r.id = $1 AND r.organization_id = $2`, [id, orgId]);
     return result.rows[0] || null;
@@ -73,10 +73,10 @@ export class EMedicationRepository {
 
   static async createRecord(orgId: string, data: Partial<EMedicationRecord> & { created_by: string }) {
     const result = await query(`
-      INSERT INTO emedication_records (organization_id, service_user_id, title, start_date, end_date, status, created_by)
+      INSERT INTO emedication_records (organization_id, person_id, title, start_date, end_date, status, created_by)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *`,
-      [orgId, data.service_user_id, data.title, data.start_date, data.end_date, data.status || 'active', data.created_by]
+      [orgId, data.person_id, data.title, data.start_date, data.end_date, data.status || 'active', data.created_by]
     );
     return result.rows[0];
   }
@@ -312,8 +312,8 @@ export class EMedicationRepository {
   static async getOverdueAdministrations(orgId: string) {
     const result = await query(`
       SELECT a.*, mi.name AS medication_name, mi.dosage, mi.unit, mi.times,
-             r.service_user_id, r.title AS chart_title,
-             (SELECT first_name || ' ' || last_name FROM service_users WHERE id = r.service_user_id) AS service_user_name,
+             r.person_id, r.title AS chart_title,
+             (SELECT first_name || ' ' || last_name FROM people WHERE id = r.person_id) AS person_name,
              sp.first_name || ' ' || sp.last_name AS staff_name
       FROM emedication_administrations a
       JOIN emedication_items mi ON a.emedication_item_id = mi.id
@@ -344,12 +344,12 @@ export class EMedicationRepository {
   }
 
   // ── Ensure monthly MAR exists ──
-  static async ensureMonthlyMar(orgId: string, serviceUserId: string, userId: string) {
+  static async ensureMonthlyMar(orgId: string, personId: string, userId: string) {
     const now = new Date();
     const existingTitles = await query(`
       SELECT title FROM emedication_records
-      WHERE organization_id = $1 AND service_user_id = $2`,
-      [orgId, serviceUserId]);
+      WHERE organization_id = $1 AND person_id = $2`,
+      [orgId, personId]);
     const existingSet = new Set(existingTitles.rows.map(r => r.title));
     let created = 0;
 
@@ -368,9 +368,9 @@ export class EMedicationRepository {
         const monthStart = `${y}-${String(m + 1).padStart(2, '0')}-01`;
         const monthEnd = new Date(y, m + 1, 0).toISOString().split('T')[0];
         await query(`
-          INSERT INTO emedication_records (organization_id, service_user_id, title, start_date, end_date, status, created_by)
+          INSERT INTO emedication_records (organization_id, person_id, title, start_date, end_date, status, created_by)
           VALUES ($1, $2, $3, $4, $5, 'active', $6)`,
-          [orgId, serviceUserId, title, monthStart, monthEnd, userId]);
+          [orgId, personId, title, monthStart, monthEnd, userId]);
         created++;
       }
       cursor.setMonth(m + 1);
@@ -399,7 +399,7 @@ export class EMedicationRepository {
     const currentRecord = await this.findRecordById(recordId, orgId);
     if (!currentRecord) throw new Error('Record not found');
 
-    // Find previous month's record for same service user
+    // Find previous month's record for same person
     const prevMonthStart = new Date(currentRecord.start_date);
     prevMonthStart.setMonth(prevMonthStart.getMonth() - 1);
     const prevMonthLabel = prevMonthStart.toLocaleString('en', { month: 'long', year: 'numeric' });
@@ -407,8 +407,8 @@ export class EMedicationRepository {
 
     const prevRecords = await query(
       `SELECT id FROM emedication_records
-       WHERE organization_id = $1 AND service_user_id = $2 AND title = $3 AND status = 'active'`,
-      [orgId, currentRecord.service_user_id, prevTitle]);
+       WHERE organization_id = $1 AND person_id = $2 AND title = $3 AND status = 'active'`,
+      [orgId, currentRecord.person_id, prevTitle]);
     if (prevRecords.rows.length === 0) return { imported: 0, message: 'No previous month record found' };
 
     const prevRecordId = prevRecords.rows[0].id;
@@ -439,9 +439,9 @@ export class EMedicationRepository {
   // ── Stock ──
   static async createStockItem(orgId: string, data: any) {
     const result = await query(`
-      INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, location, service_user_id)
+      INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, location, person_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-      [orgId, data.medication_name, data.dosage, data.unit, data.batch_number, data.expiry_date, data.quantity, data.quantity_unit, data.reorder_level, data.location, data.service_user_id || null]);
+      [orgId, data.medication_name, data.dosage, data.unit, data.batch_number, data.expiry_date, data.quantity, data.quantity_unit, data.reorder_level, data.location, data.person_id || null]);
     return result.rows[0];
   }
 
@@ -475,16 +475,16 @@ export class EMedicationRepository {
   }
 
   // ── Stock auto-creation (linked to medication item) ──
-  static async findOrCreateStockForItem(orgId: string, serviceUserId: string, itemData: { name: string; dosage: string; unit: string }) {
+  static async findOrCreateStockForItem(orgId: string, personId: string, itemData: { name: string; dosage: string; unit: string }) {
     let existing = await query(
       `SELECT * FROM emedication_stock
-       WHERE organization_id = $1 AND medication_name = $2 AND dosage = $3 AND unit = $4 AND service_user_id = $5`,
-      [orgId, itemData.name, itemData.dosage, itemData.unit, serviceUserId]);
+       WHERE organization_id = $1 AND medication_name = $2 AND dosage = $3 AND unit = $4 AND person_id = $5`,
+      [orgId, itemData.name, itemData.dosage, itemData.unit, personId]);
     if (existing.rows.length > 0) return existing.rows[0];
     const result = await query(
-      `INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, quantity, quantity_unit, reorder_level, service_user_id)
+      `INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, quantity, quantity_unit, reorder_level, person_id)
        VALUES ($1, $2, $3, $4, 0, 'tablet(s)', 10, $5) RETURNING *`,
-      [orgId, itemData.name, itemData.dosage, itemData.unit, serviceUserId]);
+      [orgId, itemData.name, itemData.dosage, itemData.unit, personId]);
     return result.rows[0];
   }
 
@@ -510,9 +510,9 @@ export class EMedicationRepository {
     const result = await query(
       `SELECT s.id, s.medication_name, s.dosage, s.unit, s.quantity, s.reorder_level, s.quantity_unit,
               l.id AS location_id, l.name AS location_name,
-              su.first_name || ' ' || su.last_name AS service_user_name
+              su.first_name || ' ' || su.last_name AS person_name
        FROM emedication_stock s
-       JOIN service_users su ON su.id = s.service_user_id
+       JOIN people su ON su.id = s.person_id
        JOIN locations l ON l.id = su.location_id
        WHERE s.organization_id = $1
          AND s.status = 'active'
@@ -524,17 +524,17 @@ export class EMedicationRepository {
   }
 
   // ── Daily Counts ──
-  static async findDailyCounts(orgId: string, serviceUserId?: string): Promise<any[]> {
+  static async findDailyCounts(orgId: string, personId?: string): Promise<any[]> {
     let sql = `
       SELECT dc.*,
-        (SELECT first_name || ' ' || last_name FROM service_users WHERE id = dc.service_user_id) AS service_user_name,
+        (SELECT first_name || ' ' || last_name FROM people WHERE id = dc.person_id) AS person_name,
         (SELECT COUNT(*) FROM emedication_daily_count_items WHERE daily_count_id = dc.id)::int AS items_count
       FROM emedication_daily_counts dc
       WHERE dc.organization_id = $1`;
     const params: any[] = [orgId];
-    if (serviceUserId) {
-      sql += ` AND dc.service_user_id = $2`;
-      params.push(serviceUserId);
+    if (personId) {
+      sql += ` AND dc.person_id = $2`;
+      params.push(personId);
     }
     sql += ` ORDER BY dc.count_date DESC`;
     const result = await query(sql, params);
@@ -543,9 +543,9 @@ export class EMedicationRepository {
 
   static async createDailyCount(orgId: string, data: any): Promise<any> {
     const result = await query(
-      `INSERT INTO emedication_daily_counts (organization_id, service_user_id, count_date, staff_name, matches_physical, notes)
+      `INSERT INTO emedication_daily_counts (organization_id, person_id, count_date, staff_name, matches_physical, notes)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [orgId, data.service_user_id, data.count_date, data.staff_name, data.matches_physical !== false, data.notes || null]);
+      [orgId, data.person_id, data.count_date, data.staff_name, data.matches_physical !== false, data.notes || null]);
     return result.rows[0];
   }
 

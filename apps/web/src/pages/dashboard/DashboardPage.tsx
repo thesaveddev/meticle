@@ -31,7 +31,7 @@ interface DashboardStats {
   compliance_rate: number
   open_shifts: number
   agency_saved: number
-  active_service_users: number
+  active_people: number
   staff_on_duty: number
   open_incidents: number
 }
@@ -73,7 +73,7 @@ interface AppointmentItem {
   status: string
   location_name: string
   staff_name: string
-  service_user_name: string
+  person_name: string
 }
 
 const ONBOARDING_STEPS = [
@@ -123,7 +123,7 @@ export default function DashboardPage() {
             api.get('/dashboard/today-rota'),
             api.get(`/appointments?date=${todayStr}`),
           ])
-          setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_service_users: 0, staff_on_duty: 0, open_incidents: 0 })
+          setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0 })
           setTodayRota(rotaRes.data)
           setTodayAppointments(aptRes.data)
         } else {
@@ -141,7 +141,7 @@ export default function DashboardPage() {
           setTodayAppointments(aptRes.data)
         }
       } catch {
-        setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_service_users: 0, staff_on_duty: 0, open_incidents: 0 })
+        setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0 })
         setCompliance([
           { label: 'Mandatory Training', val: 0, color: '#16A34A' },
           { label: 'DBS Verifications', val: 0, color: '#16A34A' },
@@ -168,7 +168,7 @@ export default function DashboardPage() {
       ]
     : [
         { label: 'Total Staff', value: String(stats?.total_staff ?? 0), color: '#0F4C81', icon: <PeopleIcon />, path: '/staff' },
-        { label: 'Active People', value: String(stats?.active_service_users ?? 0), color: '#0F4C81', icon: <HomeIcon />, path: '/people' },
+        { label: 'Active People', value: String(stats?.active_people ?? 0), color: '#0F4C81', icon: <HomeIcon />, path: '/people' },
         { label: 'Staff on Duty', value: String(stats?.staff_on_duty ?? 0), color: '#16A34A', icon: <BadgeIcon /> },
         { label: 'Compliance Rate', value: `${stats?.compliance_rate ?? 0}%`, color: '#16A34A', icon: <VerifiedIcon />, path: '/compliance' },
         { label: 'Open Shifts', value: String(stats?.open_shifts ?? 0), color: '#D97706', icon: <AlertIcon />, path: '/shift-marketplace' },
@@ -437,9 +437,9 @@ export default function DashboardPage() {
                               <ClockIcon sx={{ fontSize: 14 }} /> {timeStr}
                             </Typography>
                           </Stack>
-                          {(apt.service_user_name || apt.staff_name) && (
+                          {(apt.person_name || apt.staff_name) && (
                             <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                              {apt.service_user_name}{apt.service_user_name && apt.staff_name ? ' • ' : ''}{apt.staff_name}
+                              {apt.person_name}{apt.person_name && apt.staff_name ? ' • ' : ''}{apt.staff_name}
                             </Typography>
                           )}
                           <Stack direction="row" spacing={1}>

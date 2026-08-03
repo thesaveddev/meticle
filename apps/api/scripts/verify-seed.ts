@@ -6,7 +6,7 @@ const pool = require('../src/shared/database').default;
 async function verify() {
   const tables = [
     'organizations', 'users', 'staff_profiles', 'locations', 'departments', 'teams',
-    'service_users', 'care_plans', 'incidents', 'policies', 'appointments', 'tasks',
+    'people', 'care_plans', 'incidents', 'policies', 'appointments', 'tasks',
     'shifts', 'shift_assignments', 'leave_types', 'leave_balances', 'leave_requests',
     'training_modules', 'training_records', 'compliance_config', 'compliance_records',
     'notifications', 'audit_logs', 'emergency_contacts', 'qualifications', 'skills',

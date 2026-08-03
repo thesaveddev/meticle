@@ -14,7 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
-import ServiceUserAvatar from '../../components/ServiceUserAvatar'
+import PersonAvatar from '../../components/PersonAvatar'
 
 const SUPPORT_LEVELS = [
   { value: '', label: 'None specified' },
@@ -32,7 +32,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' 
   deceased: { label: 'Deceased', color: 'error' },
 }
 
-export default function ServiceUserDirectoryPage() {
+export default function PersonDirectoryPage() {
   const navigate = useNavigate()
   const { showSnackbar } = useSnackbar()
   const [search, setSearch] = useState('')
@@ -53,14 +53,14 @@ export default function ServiceUserDirectoryPage() {
   })
 
   const { data: users = [], isLoading, error } = useQuery({
-    queryKey: ['service-users', statusFilter, search],
-    queryFn: () => api.get('/service-users', { params: { status: statusFilter || undefined, search: search || undefined } }).then(r => r.data),
+    queryKey: ['people', statusFilter, search],
+    queryFn: () => api.get('/people', { params: { status: statusFilter || undefined, search: search || undefined } }).then(r => r.data),
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => api.post('/service-users', data),
+    mutationFn: (data: any) => api.post('/people', data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['service-users'] })
+      queryClient.invalidateQueries({ queryKey: ['people'] })
       setAddOpen(false)
       setForm({ first_name: '', last_name: '', date_of_birth: '', nhs_number: '', room_number: '', status: 'active', allergies: '', support_level: '', location_id: '', min_staff_required: '' })
       showSnackbar('Person added successfully')
@@ -69,14 +69,14 @@ export default function ServiceUserDirectoryPage() {
   })
 
   const bulkStatusMutation = useMutation({
-    mutationFn: ({ ids, status }: { ids: string[]; status: string }) => api.post('/service-users/bulk/status', { ids, status }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-users'] }); setSelected(new Set()); setBulkOpen(null); showSnackbar('Status updated') },
+    mutationFn: ({ ids, status }: { ids: string[]; status: string }) => api.post('/people/bulk/status', { ids, status }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['people'] }); setSelected(new Set()); setBulkOpen(null); showSnackbar('Status updated') },
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Bulk update failed', 'error'),
   })
 
   const bulkDischargeMutation = useMutation({
-    mutationFn: (ids: string[]) => api.post('/service-users/bulk/discharge', { ids }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['service-users'] }); setSelected(new Set()); setBulkOpen(null); showSnackbar('People discharged') },
+    mutationFn: (ids: string[]) => api.post('/people/bulk/discharge', { ids }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['people'] }); setSelected(new Set()); setBulkOpen(null); showSnackbar('People discharged') },
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Bulk discharge failed', 'error'),
   })
 
@@ -173,7 +173,7 @@ export default function ServiceUserDirectoryPage() {
                     <Checkbox checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} />
                   </TableCell>
                   <TableCell onClick={() => navigate(`/people/${u.id}`)}>
-                    <ServiceUserAvatar photoUrl={u.photo_url} name={`${u.first_name} ${u.last_name}`}
+                    <PersonAvatar photoUrl={u.photo_url} name={`${u.first_name} ${u.last_name}`}
                       sx={{ width: 40, height: 40, bgcolor: '#0F4C81', fontSize: 16 }} />
                   </TableCell>
                   <TableCell onClick={() => navigate(`/people/${u.id}`)}>

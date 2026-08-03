@@ -54,7 +54,7 @@ export default function AiDailyNotesPage() {
   const qc = useQueryClient()
   const [recording, setRecording] = useState(false)
   const [transcript, setTranscript] = useState('')
-  const [serviceUserId, setServiceUserId] = useState('')
+  const [personId, setPersonId] = useState('')
   const [shift, setShift] = useState<'day' | 'night'>('day')
   const [noteDate, setNoteDate] = useState(new Date().toISOString().split('T')[0])
   const [aiResult, setAiResult] = useState<AIResult | null>(null)
@@ -65,9 +65,9 @@ export default function AiDailyNotesPage() {
   const [showApproveDialog, setShowApproveDialog] = useState(false)
   const recognitionRef = useRef<any>(null)
 
-  const { data: serviceUsers } = useQuery({
+  const { data: people } = useQuery({
     queryKey: ['su-list'],
-    queryFn: () => api.get('/service-users?status=active').then(r => r.data),
+    queryFn: () => api.get('/people?status=active').then(r => r.data),
   })
 
   const generateMutation = useMutation({
@@ -121,11 +121,11 @@ export default function AiDailyNotesPage() {
   }
 
   const handleGenerate = () => {
-    if (!transcript.trim() || !serviceUserId) { setError('Please enter observations and select a person'); return }
+    if (!transcript.trim() || !personId) { setError('Please enter observations and select a person'); return }
     setError('')
     setAiResult(null)
     generateMutation.mutate({
-      serviceUserId,
+      personId,
       staffInput: transcript.trim(),
       shift,
       noteDate,
@@ -133,9 +133,9 @@ export default function AiDailyNotesPage() {
   }
 
   const handleApprove = () => {
-    if (!aiResult || !serviceUserId) return
+    if (!aiResult || !personId) return
     approveMutation.mutate({
-      serviceUserId,
+      personId,
       dailyNote: {
         content: editedContent || aiResult.daily_note?.content || '',
         shift: aiResult.daily_note?.shift || shift,
@@ -192,10 +192,10 @@ export default function AiDailyNotesPage() {
 
             <Stack spacing={2}>
               <Autocomplete
-                options={serviceUsers || []}
+                options={people || []}
                 getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}${o.room_number ? ` (${o.room_number})` : ''}`}
-                value={serviceUsers?.find((s: any) => s.id === serviceUserId) || null}
-                onChange={(_, v) => setServiceUserId(v?.id || '')}
+                value={people?.find((s: any) => s.id === personId) || null}
+                onChange={(_, v) => setPersonId(v?.id || '')}
                 renderInput={p => <TextField {...p} label="Select Person" size="small" required />}
               />
 
@@ -249,7 +249,7 @@ export default function AiDailyNotesPage() {
                 variant="contained"
                 startIcon={generateMutation.isPending ? <CircularProgress size={20} /> : <AiIcon />}
                 onClick={handleGenerate}
-                disabled={!transcript.trim() || !serviceUserId || generateMutation.isPending}
+                disabled={!transcript.trim() || !personId || generateMutation.isPending}
                 fullWidth
                 size="large"
                 sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0D3D6B' } }}

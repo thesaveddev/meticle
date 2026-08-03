@@ -26,7 +26,7 @@ export default function IncidentDetailPage() {
   const [addActionOpen, setAddActionOpen] = useState(false)
   const [editActionOpen, setEditActionOpen] = useState(false)
   const [updateOpen, setUpdateOpen] = useState(false)
-  const [residentForm, setResidentForm] = useState({ service_user_id: '', involvement_type: 'affected', notes: '' })
+  const [residentForm, setResidentForm] = useState({ person_id: '', involvement_type: 'affected', notes: '' })
   const [actionForm, setActionForm] = useState({ action: '', assigned_to: '', due_date: '' })
   const [editActionForm, setEditActionForm] = useState<any>({})
   const [updateForm, setUpdateForm] = useState<any>({})
@@ -38,8 +38,8 @@ export default function IncidentDetailPage() {
   })
 
   const { data: residents } = useQuery({
-    queryKey: ['service-users-mini'],
-    queryFn: () => api.get('/service-users').then(r => r.data),
+    queryKey: ['people-mini'],
+    queryFn: () => api.get('/people').then(r => r.data),
   })
 
   const updateMutation = useMutation({
@@ -49,7 +49,7 @@ export default function IncidentDetailPage() {
 
   const addResidentMutation = useMutation({
     mutationFn: (data: any) => api.post(`/incidents/${id}/involved`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incident', id] }); setAddResidentOpen(false); setResidentForm({ service_user_id: '', involvement_type: 'affected', notes: '' }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incident', id] }); setAddResidentOpen(false); setResidentForm({ person_id: '', involvement_type: 'affected', notes: '' }) },
   })
 
   const removeResidentMutation = useMutation({
@@ -283,7 +283,7 @@ export default function IncidentDetailPage() {
           <DialogTitle sx={{ fontWeight: 800 }}>Add Involved Person</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField select label="Person" fullWidth required value={residentForm.service_user_id} onChange={e => setResidentForm({ ...residentForm, service_user_id: e.target.value })}>
+              <TextField select label="Person" fullWidth required value={residentForm.person_id} onChange={e => setResidentForm({ ...residentForm, person_id: e.target.value })}>
                 {(residents || []).map((r: any) => (
                   <MenuItem key={r.id} value={r.id}>{r.first_name} {r.last_name}{r.room_number ? ` (Room ${r.room_number})` : ''}</MenuItem>
                 ))}

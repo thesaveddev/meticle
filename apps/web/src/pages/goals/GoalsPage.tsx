@@ -8,8 +8,8 @@ interface Milestone { id: string; title: string; description?: string; is_comple
 interface ProgressEntry { id: string; progress: number; note?: string; recorded_at: string; recorded_by_name?: string }
 
 interface Goal {
-  id: string; title: string; description?: string; service_user_name?: string
-  service_user_id: string; target_date?: string; review_date?: string
+  id: string; title: string; description?: string; person_name?: string
+  person_id: string; target_date?: string; review_date?: string
   status: string; progress: number; cqc_domain?: string
   frequency: string; goal_category?: string
   care_plan_id?: string; care_plan_title?: string
@@ -20,7 +20,7 @@ interface Goal {
   overdue_review?: boolean
 }
 
-interface ServiceUser { id: string; first_name: string; last_name: string }
+interface Person { id: string; first_name: string; last_name: string }
 
 const CQC_DOMAINS = ['Safe', 'Effective', 'Caring', 'Responsive', 'Well-led']
 const STATUS_OPTIONS = ['active', 'completed', 'cancelled', 'on_hold']
@@ -39,7 +39,7 @@ const CLARIFICATION_OPTIONS = [
 ]
 
 const initialForm = {
-  title: '', description: '', service_user_id: '', target_date: '', review_date: '',
+  title: '', description: '', person_id: '', target_date: '', review_date: '',
   status: 'active', progress: 0, cqc_domain: '', frequency: 'one_time', goal_category: '',
   care_plan_id: '', baseline_value: '', target_value: '', value_unit: '',
   provider_clarification: '', assigned_to: '', status_reason: '', is_private: false, started_at: '',
@@ -50,19 +50,19 @@ function freqLabel(f: string) {
   return m[f] || f
 }
 
-export default function GoalsPage({ serviceUserId }: { serviceUserId?: string }) {
+export default function GoalsPage({ personId }: { personId?: string }) {
   const [searchParams] = useSearchParams()
-  const preselectedSu = serviceUserId || searchParams.get('su') || ''
+  const preselectedSu = personId || searchParams.get('su') || ''
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Goal | null>(null)
-  const [form, setForm] = useState({ ...initialForm, service_user_id: preselectedSu })
+  const [form, setForm] = useState({ ...initialForm, person_id: preselectedSu })
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [saving, setSaving] = useState(false)
   const [fetchError, setFetchError] = useState('')
-  const [serviceUsers, setServiceUsers] = useState<ServiceUser[]>([])
+  const [people, setPeople] = useState<Person[]>([])
   const [statusFilter, setStatusFilter] = useState('')
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null)
   const [milestones, setMilestones] = useState<Record<string, Milestone[]>>({})
@@ -80,7 +80,7 @@ export default function GoalsPage({ serviceUserId }: { serviceUserId?: string })
     try {
       const params = new URLSearchParams()
       if (statusFilter) params.set('status', statusFilter)
-      if (preselectedSu) params.set('service_user_id', preselectedSu)
+      if (preselectedSu) params.set('person_id', preselectedSu)
       const res = await api.get(`/goals?${params}`)
       setGoals(res.data)
     } catch (e: any) {
@@ -92,14 +92,14 @@ export default function GoalsPage({ serviceUserId }: { serviceUserId?: string })
 
   useEffect(() => {
     fetchGoals()
-    api.get('/service-users?status=active').then(r => setServiceUsers(r.data)).catch(() => {})
+    api.get('/people?status=active').then(r => setPeople(r.data)).catch(() => {})
   }, [statusFilter, preselectedSu])
 
   const openCreate = () => { setEditing(null); setForm({ ...initialForm }); setDialogOpen(true) }
   const openEdit = (g: Goal) => {
     setEditing(g)
     setForm({
-      title: g.title, description: g.description || '', service_user_id: g.service_user_id,
+      title: g.title, description: g.description || '', person_id: g.person_id,
       target_date: g.target_date?.slice(0, 10) || '', review_date: g.review_date?.slice(0, 10) || '',
       status: g.status, progress: g.progress, cqc_domain: g.cqc_domain || '',
       frequency: g.frequency || 'one_time', goal_category: g.goal_category || '',
@@ -190,7 +190,7 @@ export default function GoalsPage({ serviceUserId }: { serviceUserId?: string })
       await api.post(`/goals/${progressGoalId}/progress`, { progress: progressValue, note: progressNote || undefined })
       const [pRes, gRes] = await Promise.all([
         api.get(`/goals/${progressGoalId}/progress`),
-        api.get(`/goals?${preselectedSu ? 'service_user_id=' + preselectedSu : ''}`),
+        api.get(`/goals?${preselectedSu ? 'person_id=' + preselectedSu : ''}`),
       ])
       setProgressHistory(prev => ({ ...prev, [progressGoalId]: pRes.data }))
       setGoals(gRes.data)
@@ -346,9 +346,9 @@ export default function GoalsPage({ serviceUserId }: { serviceUserId?: string })
             <TextField label="Title" fullWidth value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
             <TextField label="Description" fullWidth multiline rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
             <Autocomplete
-              options={serviceUsers} getOptionLabel={o => `${o.first_name} ${o.last_name}`}
-              value={serviceUsers.find(su => su.id === form.service_user_id) || null}
-              onChange={(_, v) => setForm(f => ({ ...f, service_user_id: v?.id || '' }))}
+              options={people} getOptionLabel={o => `${o.first_name} ${o.last_name}`}
+              value={people.find(su => su.id === form.person_id) || null}
+              onChange={(_, v) => setForm(f => ({ ...f, person_id: v?.id || '' }))}
               renderInput={p => <TextField {...p} label="Person" fullWidth />}
             />
             <Stack direction="row" spacing={2}>
@@ -411,7 +411,7 @@ export default function GoalsPage({ serviceUserId }: { serviceUserId?: string })
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={saving || !form.title || !form.service_user_id}>{saving ? <CircularProgress size={20} /> : 'Save'}</Button>
+          <Button variant="contained" onClick={handleSave} disabled={saving || !form.title || !form.person_id}>{saving ? <CircularProgress size={20} /> : 'Save'}</Button>
         </DialogActions>
       </Dialog>
 

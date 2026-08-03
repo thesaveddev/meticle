@@ -232,7 +232,7 @@ async function seed() {
   for (const su of suData) {
     const id = uuid()
     const minStaff = su.support === 'one_to_one' ? 1 : su.support === 'two_to_one' ? 2 : su.support === 'complex' ? 2 : null
-    await insert(`INSERT INTO service_users (id,organization_id,first_name,last_name,date_of_birth,nhs_number,room_number,status,gp_name,gp_surgery,gp_phone,
+    await insert(`INSERT INTO people (id,organization_id,first_name,last_name,date_of_birth,nhs_number,room_number,status,gp_name,gp_surgery,gp_phone,
         dietary_requirements,allergies,support_level,created_at,pharmacy_name,pharmacy_phone,pharmacy_address,social_worker_name,social_worker_phone,social_worker_email,
         gp_email,gp_address,gender,pronouns,marital_status,religion,communication_language,communication_interpreter,communication_method,admission_date,admission_source,
         funding_type,funding_details,flags,tags,dnacpr_status,dnacpr_date,dnacpr_review_date,dnacpr_details,advance_decision,advance_decision_date,
@@ -265,7 +265,7 @@ async function seed() {
     if (su.locIdx === 0 && su.name === 'Albert Einstein') continue // discharged
     const cats = [...planCats].sort(() => Math.random() - 0.5).slice(0, 2)
     for (const cat of cats) {
-      await insert(`INSERT INTO care_plans (id,service_user_id,title,category,description,risk_assessment,review_date,reviewed_by,reviewed_at,status,created_at,
+      await insert(`INSERT INTO care_plans (id,person_id,title,category,description,risk_assessment,review_date,reviewed_by,reviewed_at,status,created_at,
           mobility_level,mobility_aids,communication_needs,capacity_status,sleep_pattern,emergency_info,personal_goals,likes_dislikes,cultural_needs,version)
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,1)`,
         [uuid(), su.id, planTitles[cat], cat,
@@ -310,7 +310,7 @@ async function seed() {
     const su = sus[Math.floor(Math.random() * (sus.length - 2))]
     const daysAgoN = Math.floor(Math.random() * 380)
     const author = Math.random() < 0.85 ? staff[2].userId : staff[Math.floor(Math.random() * 2)].userId
-    await insert(`INSERT INTO daily_notes (id,service_user_id,author_id,note_date,shift,category,content,support_level,generated_by_ai,created_at)
+    await insert(`INSERT INTO daily_notes (id,person_id,author_id,note_date,shift,category,content,support_level,generated_by_ai,created_at)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,false,$9)`,
       [uuid(), su.id, author, dateAgo(daysAgoN), shifts[Math.floor(Math.random() * shifts.length)],
        noteCats[Math.floor(Math.random() * noteCats.length)],
@@ -328,7 +328,7 @@ async function seed() {
     for (let i = 0; i < n; i++) {
       const type = riskTypes[Math.floor(Math.random() * riskTypes.length)]
       const level = riskLevels[Math.floor(Math.random() * (type === 'falls' ? 3 : 2))]
-      await insert(`INSERT INTO risk_assessments (id,service_user_id,type,risk_level,details,mitigation_actions,review_date,reviewed_by,reviewed_at,created_at)
+      await insert(`INSERT INTO risk_assessments (id,person_id,type,risk_level,details,mitigation_actions,review_date,reviewed_by,reviewed_at,created_at)
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
         [uuid(), su.id, type, level,
          `${type.replace(/_/g, ' ')} assessment completed ${level === 'high' ? 'following recent incident' : 'as part of quarterly review'}.`,
@@ -348,7 +348,7 @@ async function seed() {
       const rel = relationships[Math.floor(Math.random() * relationships.length)]
       const fcid = uuid()
       fContactIds.push(fcid)
-      await insert(`INSERT INTO family_contacts (id,service_user_id,name,relationship,phone,email,is_emergency_contact,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      await insert(`INSERT INTO family_contacts (id,person_id,name,relationship,phone,email,is_emergency_contact,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
         [fcid, su.id, `${['Anne', 'John', 'Mary', 'Peter', 'Susan', 'Robert', 'Catherine', 'Paul'][Math.floor(Math.random() * 8)]} ${su.name.split(' ')[1]}`,
          rel, `07${Math.floor(100000000 + Math.random() * 899999999)}`, relEmails[i % relEmails.length], i === 0, tsAgo(300)])
     }
@@ -356,7 +356,7 @@ async function seed() {
   for (const su of sus) {
     const n = 1 + Math.floor(Math.random() * 2)
     for (let i = 0; i < n; i++) {
-      await insert(`INSERT INTO family_members (id,organization_id,service_user_id,name,email,relationship,phone,access_token,token_expires_at,status,created_by,created_at)
+      await insert(`INSERT INTO family_members (id,organization_id,person_id,name,email,relationship,phone,access_token,token_expires_at,status,created_by,created_at)
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'active',$10,$11)`,
         [uuid(), orgId, su.id, `Family of ${su.name.split(' ')[0]}`, relEmails[(i + su.locIdx) % 3],
          relationships[i % relationships.length], `07${Math.floor(100000000 + Math.random() * 899999999)}`,
@@ -511,7 +511,7 @@ async function seed() {
          Math.random() < 0.5 ? 'completed' : 'in_progress', tsAgo(inc.days)])
     }
     const involved = sus[inc.su]
-    if (involved) await insert(`INSERT INTO incident_involved_residents (id,incident_id,service_user_id,involvement_type,notes,created_at) VALUES ($1,$2,$3,$4,$5,$6)`,
+    if (involved) await insert(`INSERT INTO incident_involved_residents (id,incident_id,person_id,involvement_type,notes,created_at) VALUES ($1,$2,$3,$4,$5,$6)`,
       [uuid(), incId, involved.id, 'involved', 'Directly involved in incident', tsAgo(inc.days)])
   }
   console.log('  ✓ 5 incident categories + 16 incidents (+actions/residents) created')
@@ -576,7 +576,7 @@ async function seed() {
     const su = sus[i % sus.length]
     const daysOffset = Math.floor((i - 8) * 3)
     const start = new Date(Date.now() + daysOffset * DAY)
-    await insert(`INSERT INTO appointments (id,organization_id,service_user_id,title,start_time,end_time,status,location_id,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    await insert(`INSERT INTO appointments (id,organization_id,person_id,title,start_time,end_time,status,location_id,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [uuid(), orgId, su.id, appointmentTypes[i % appointmentTypes.length],
        time(start, 9 + Math.floor(Math.random() * 4)), time(start, 10 + Math.floor(Math.random() * 4)),
        daysOffset < 0 ? 'completed' : 'scheduled', locIds[su.locIdx], staff[Math.floor(Math.random() * 3)].userId, tsAgo(Math.abs(daysOffset) + 14)])
@@ -596,7 +596,7 @@ async function seed() {
     const progress = Math.min(100, Math.floor(Math.random() * 120))
     const gid = uuid()
     goalIds.push(gid)
-    await insert(`INSERT INTO service_user_goals (id,organization_id,service_user_id,title,description,target_date,review_date,status,progress,cqc_domain,created_by,frequency,goal_category,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+    await insert(`INSERT INTO person_goals (id,organization_id,person_id,title,description,target_date,review_date,status,progress,cqc_domain,created_by,frequency,goal_category,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
       [gid, orgId, su.id, goalTemplates[i % goalTemplates.length],
        `Working towards: ${goalTemplates[i % goalTemplates.length].toLowerCase()}. Reviewed fortnightly with key worker.`,
        progress >= 100 ? dateAgo(10) : dateIn(45), dateIn(30), progress >= 100 ? 'completed' : 'active',
@@ -652,7 +652,7 @@ async function seed() {
     { title: 'Annual staff appraisals due', pri: 'medium', days: -90, status: 'completed', su: false },
   ]
   for (const td of taskData) {
-    await insert(`INSERT INTO tasks (id,organization_id,title,description,assigned_to,service_user_id,priority,status,due_date,completed_at,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+    await insert(`INSERT INTO tasks (id,organization_id,title,description,assigned_to,person_id,priority,status,due_date,completed_at,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
       [uuid(), orgId, td.title, td.title, staff[Math.floor(Math.random() * 3)].profileId,
        td.su ? sus[Math.floor(Math.random() * sus.length)].id : null,
        td.pri, td.status, dateIn(td.days), td.status === 'completed' ? tsAgo(Math.abs(td.days)) : null,
@@ -791,7 +791,7 @@ async function seed() {
   for (const md of memoryData) {
     const su = sus[Math.floor(Math.random() * (sus.length - 2))]
     const imgUrl = memoryImgs[Math.floor(Math.random() * memoryImgs.length)]
-    await insert(`INSERT INTO memory_book_entries (id,service_user_id,title,description,image_url,image_urls,support_level,recorded_date,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    await insert(`INSERT INTO memory_book_entries (id,person_id,title,description,image_url,image_urls,support_level,recorded_date,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [uuid(), su.id, md.title, md.desc, imgUrl, imgUrl ? JSON.stringify([imgUrl]) : '[]',
        SUPPORT_LEVELS[Math.floor(Math.random() * 4)], dateAgo(md.days),
        staff[Math.floor(Math.random() * 3)].userId, tsAgo(md.days)])
@@ -815,7 +815,7 @@ async function seed() {
     'Meal times could be more flexible.',
   ]
   for (let i = 0; i < 12; i++) {
-    await insert(`INSERT INTO satisfaction_surveys (id,organization_id,service_user_id,respondent_name,relationship,rating,comments,created_at,invitation_token) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+    await insert(`INSERT INTO satisfaction_surveys (id,organization_id,person_id,respondent_name,relationship,rating,comments,created_at,invitation_token) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [uuid(), orgId, sus[i % sus.length].id, `Family Member of ${sus[i % sus.length].name.split(' ')[0]}`,
        relationships2[i % relationships2.length], [2, 3, 4, 4, 5, 3, 5, 4, 5, 4, 5, 3][i], surveyComments[i],
        tsAgo(30 + i * 12), uuid()])
@@ -828,7 +828,7 @@ async function seed() {
     if (su.name === 'Albert Einstein') continue
     const n = 1 + Math.floor(Math.random() * 2)
     for (let i = 0; i < n; i++) {
-      await insert(`INSERT INTO care_assessments (id,organization_id,service_user_id,assessment_type,assessor_name,assessment_date,next_review_date,findings,recommendations,status,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      await insert(`INSERT INTO care_assessments (id,organization_id,person_id,assessment_type,assessor_name,assessment_date,next_review_date,findings,recommendations,status,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
         [uuid(), orgId, su.id, assessmentTypes[Math.floor(Math.random() * assessmentTypes.length)],
          staff[Math.floor(Math.random() * 2)].name.join(' '), dateAgo(Math.floor(Math.random() * 120)), dateIn(180),
          `Comprehensive assessment of ${su.name}. All care needs identified and documented.`,
@@ -847,7 +847,7 @@ async function seed() {
     for (let i = 0; i < n; i++) {
       const st = scoreTypes[Math.floor(Math.random() * scoreTypes.length)]
       const score = Math.floor(Math.random() * 20) + 5
-      await insert(`INSERT INTO clinical_scores (id,service_user_id,score_type,score,risk_level,recorded_date,notes,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      await insert(`INSERT INTO clinical_scores (id,person_id,score_type,score,risk_level,recorded_date,notes,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
         [uuid(), su.id, st, score, score < 10 ? 'low' : score < 15 ? 'medium' : 'high',
          dateAgo(Math.floor(Math.random() * 60)), `Routine ${st.toUpperCase()} assessment completed.`,
          staff[Math.floor(Math.random() * 3)].userId, tsAgo(Math.floor(Math.random() * 60))])
@@ -859,7 +859,7 @@ async function seed() {
   const wellbeingDomains = ['mood', 'engagement', 'sleep', 'appetite', 'pain', 'mobility', 'social', 'overall']
   for (let i = 0; i < 60; i++) {
     const su = sus[Math.floor(Math.random() * (sus.length - 2))]
-    await insert(`INSERT INTO su_wellbeing (id,service_user_id,recorded_date,domain,score,notes,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    await insert(`INSERT INTO person_wellbeing (id,person_id,recorded_date,domain,score,notes,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [uuid(), su.id, dateAgo(Math.floor(Math.random() * 21)), wellbeingDomains[Math.floor(Math.random() * wellbeingDomains.length)],
        Math.floor(Math.random() * 5) + 6, 'Good day. Positive engagement with staff and peers.',
        staff[Math.floor(Math.random() * 3)].userId, tsAgo(Math.floor(Math.random() * 21))])
@@ -871,7 +871,7 @@ async function seed() {
   const commDirections = ['inbound', 'outbound']
   for (let i = 0; i < 30; i++) {
     const su = sus[Math.floor(Math.random() * (sus.length - 2))]
-    await insert(`INSERT INTO su_communication_log (id,service_user_id,contact_name,relationship,contact_method,direction,summary,follow_up_actions,recorded_date,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+    await insert(`INSERT INTO person_communication_log (id,person_id,contact_name,relationship,contact_method,direction,summary,follow_up_actions,recorded_date,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
       [uuid(), su.id, `Family of ${su.name}`, relationships2[Math.floor(Math.random() * relationships2.length)],
        commMethods[Math.floor(Math.random() * commMethods.length)], commDirections[Math.floor(Math.random() * commDirections.length)],
        'Discussed wellbeing and upcoming care plan review. Family satisfied with care.',
@@ -884,7 +884,7 @@ async function seed() {
   const hasCapacity = [true, false, true, true, false, true, false, true, false, true, true, false]
   for (let i = 0; i < 12; i++) {
     const su = sus[i % sus.length]
-    await insert(`INSERT INTO su_capacity_assessments (id,service_user_id,assessment_date,decision_to_be_made,capacity_found,capacity_status,best_interest_decision,review_date,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    await insert(`INSERT INTO person_capacity_assessments (id,person_id,assessment_date,decision_to_be_made,capacity_found,capacity_status,best_interest_decision,review_date,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [uuid(), su.id, dateAgo(Math.floor(Math.random() * 180)), 'Capacity to make decisions about care and residence',
        hasCapacity[i], hasCapacity[i] ? 'has_capacity' : 'lacks_capacity',
        hasCapacity[i] ? null : 'Best interest decision made with family involvement. Remains in current placement.',
@@ -896,7 +896,7 @@ async function seed() {
   const pathwayTypes = ['hospital_admission', 'hospital_discharge', 'short_break', 'transition', 'assessment_unit']
   for (let i = 0; i < 10; i++) {
     const su = sus[Math.floor(Math.random() * (sus.length - 2))]
-    await insert(`INSERT INTO su_care_pathways (id,service_user_id,pathway_type,title,start_date,end_date,location_name,referral_reason,discharge_notes,status,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+    await insert(`INSERT INTO person_care_pathways (id,person_id,pathway_type,title,start_date,end_date,location_name,referral_reason,discharge_notes,status,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
       [uuid(), su.id, pathwayTypes[i % pathwayTypes.length], `${pathwayTypes[i % pathwayTypes.length].replace(/_/g, ' ')} pathway`,
        dateAgo(Math.floor(Math.random() * 60)), i < 5 ? dateAgo(Math.floor(Math.random() * 30)) : null,
        i < 7 ? ['St Thomas\' Hospital', 'Croydon University Hospital', 'Royal Brompton'][Math.floor(Math.random() * 3)] : null,
@@ -916,7 +916,7 @@ async function seed() {
   ]
   for (let i = 0; i < 12; i++) {
     const su = sus[Math.floor(Math.random() * sus.length)]
-    await insert(`INSERT INTO su_discharge_checklist (id,service_user_id,item,category,is_complete,completed_at,completed_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    await insert(`INSERT INTO person_discharge_checklist (id,person_id,item,category,is_complete,completed_at,completed_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [uuid(), su.id, checklistItems[i % checklistItems.length], checklistCategories[i % checklistCategories.length],
        i < 7, i < 7 ? tsAgo(Math.floor(Math.random() * 10)) : null, i < 7 ? staff[Math.floor(Math.random() * 3)].userId : null,
        tsAgo(Math.floor(Math.random() * 30))])
@@ -944,7 +944,7 @@ async function seed() {
   const docTypes = ['care_plan', 'assessment', 'referral', 'consent_form', 'correspondence', 'other']
   for (let i = 0; i < 24; i++) {
     const su = sus[i % sus.length]
-    await insert(`INSERT INTO service_user_documents (id,service_user_id,title,document_type,file_url,description,upload_date,uploaded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+    await insert(`INSERT INTO person_documents (id,person_id,title,document_type,file_url,description,upload_date,uploaded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [uuid(), su.id, `${docTypes[i % docTypes.length].replace(/_/g, ' ')} document — ${dateAgo(i * 15)}`,
        docTypes[i % docTypes.length], '/files/private/vps-document.pdf', 'Uploaded document',
        dateAgo(i * 15), staff[Math.floor(Math.random() * 3)].userId, tsAgo(i * 15)])
@@ -963,7 +963,7 @@ async function seed() {
 
   // ── 37. Audit log ──
   const auditActions = ['create', 'update', 'view', 'delete']
-  const auditEntities = ['service_user', 'care_plan', 'daily_note', 'incident', 'training_record', 'compliance_record', 'shift']
+  const auditEntities = ['person', 'care_plan', 'daily_note', 'incident', 'training_record', 'compliance_record', 'shift']
   for (let i = 0; i < 40; i++) {
     const daysN = Math.floor(Math.random() * 400)
     await insert(`INSERT INTO audit_logs (id,user_id,action,entity_type,entity_id,ip_address,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
@@ -977,7 +977,7 @@ async function seed() {
   const bodyParts = ['left_arm', 'right_arm', 'left_leg', 'right_leg', 'chest', 'back', 'abdomen', 'head']
   for (let i = 0; i < 15; i++) {
     const su = sus[Math.floor(Math.random() * (sus.length - 2))]
-    await insert(`INSERT INTO body_map_entries (id,service_user_id,body_view,body_zone,condition_type,description,severity,status,recorded_date,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+    await insert(`INSERT INTO body_map_entries (id,person_id,body_view,body_zone,condition_type,description,severity,status,recorded_date,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
       [uuid(), su.id, Math.random() < 0.5 ? 'front' : 'back', bodyParts[Math.floor(Math.random() * bodyParts.length)],
        bodyConditions[Math.floor(Math.random() * bodyConditions.length)], 'Minor noted during personal care.',
        ['mild', 'moderate', 'severe'][Math.floor(Math.random() * 3)], Math.random() < 0.6 ? 'active' : 'resolved',
@@ -1001,7 +1001,7 @@ async function seed() {
        'Generally positive. Would value more training opportunities.', tsAgo(150), null])
   }
   for (const s of staff) {
-    await insert(`INSERT INTO survey_invitations (id,organization_id,type,email,token,service_user_name,sent_at,completed_at,expires_at,used,created_at) VALUES ($1,$2,'engagement',$3,$4,NULL,$5,$6,$7,true,$8)`,
+    await insert(`INSERT INTO survey_invitations (id,organization_id,type,email,token,person_name,sent_at,completed_at,expires_at,used,created_at) VALUES ($1,$2,'engagement',$3,$4,NULL,$5,$6,$7,true,$8)`,
       [uuid(), orgId, s.email, uuid(), tsAgo(150), tsAgo(140), tsAgo(120), tsAgo(150)])
   }
   console.log('  ✓ 6 engagement templates + 3 responses + 3 invitations created')
@@ -1027,7 +1027,7 @@ async function seed() {
   for (const med of medNames) {
     const stockId = uuid()
     emedStockIds.push(stockId)
-    await insert(`INSERT INTO emedication_stock (id,organization_id,medication_name,dosage,unit,batch_number,expiry_date,quantity,quantity_unit,reorder_level,location,service_user_id,status,created_at) VALUES ($1,$2,$3,$4,$5,concat('B',floor(random()*9000)+1000),'${dateIn(90 + Math.floor(Math.random() * 150))}',$6,'tablet',30,'Orbis House',NULL,'active','${tsAgo(200)}')`,
+    await insert(`INSERT INTO emedication_stock (id,organization_id,medication_name,dosage,unit,batch_number,expiry_date,quantity,quantity_unit,reorder_level,location,person_id,status,created_at) VALUES ($1,$2,$3,$4,$5,concat('B',floor(random()*9000)+1000),'${dateIn(90 + Math.floor(Math.random() * 150))}',$6,'tablet',30,'Orbis House',NULL,'active','${tsAgo(200)}')`,
       [stockId, orgId, med.name, med.name.includes('mcg') ? med.name.match(/\d+/)?.[0] + ' mcg' : med.name.match(/\d+/)?.[0] + ' mg', med.name.includes('mcg') ? 'mcg' : 'mg', 60 + Math.floor(Math.random() * 80)])
   }
   // Deliveries
@@ -1056,7 +1056,7 @@ async function seed() {
   const emedItemIds: string[] = []
   for (let mi = 0; mi < marIds.length; mi++) {
     const su = sus[mi * 3]
-    await insert(`INSERT INTO emedication_records (id,organization_id,service_user_id,title,start_date,end_date,status,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,'active',$7,$8)`,
+    await insert(`INSERT INTO emedication_records (id,organization_id,person_id,title,start_date,end_date,status,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,'active',$7,$8)`,
       [marIds[mi], orgId, su.id, `MAR Chart - ${su.name}`, dateAgo(30), dateIn(24), staff[0].userId, tsAgo(30)])
     for (let medIdx = mi * 3; medIdx < mi * 3 + 3; medIdx++) {
       const med = medNames[medIdx % medNames.length]
@@ -1083,7 +1083,7 @@ async function seed() {
   for (let d = 0; d < 4; d++) {
     const dcId = uuid()
     const su = sus[d]
-    await insert(`INSERT INTO emedication_daily_counts (id,organization_id,service_user_id,count_date,staff_name,matches_physical,notes,created_at) VALUES ($1,$2,$3,$4,'Jane Dylan',true,'All stock verified',$5)`,
+    await insert(`INSERT INTO emedication_daily_counts (id,organization_id,person_id,count_date,staff_name,matches_physical,notes,created_at) VALUES ($1,$2,$3,$4,'Jane Dylan',true,'All stock verified',$5)`,
       [dcId, orgId, su.id, dateAgo(d * 7 + 2), tsAgo(d * 7 + 2)])
     for (let ci = 0; ci < 3; ci++) {
       await insert(`INSERT INTO emedication_daily_count_items (id,daily_count_id,medication_item_id,medication_name,expected_quantity,actual_quantity,created_at) VALUES ($1,$2,$3,$4,56,56,$5)`,
@@ -1107,24 +1107,24 @@ async function seed() {
   const obsCats = ['general', 'skin', 'medication', 'sleep', 'pain', 'weight']
   for (let i = 0; i < 30; i++) {
     const su = sus[Math.floor(Math.random() * (sus.length - 2))]
-    await insert(`INSERT INTO health_observations (id,service_user_id,observation_date,category,notes,severity,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    await insert(`INSERT INTO health_observations (id,person_id,observation_date,category,notes,severity,recorded_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [uuid(), su.id, dateAgo(Math.floor(Math.random() * 21)), obsCats[i % obsCats.length],
        'Observation within expected range. No concerns noted.', 'normal',
        staff[Math.floor(Math.random() * 3)].userId, tsAgo(Math.floor(Math.random() * 21))])
   }
   for (let i = 0; i < 24; i++) {
     const su = sus[Math.floor(Math.random() * (sus.length - 2))]
-    await insert(`INSERT INTO bowel_movements (id,service_user_id,recorded_date,recorded_time,bristol_type,color,consistency,notes,recorded_by,created_at) VALUES ($1,$2,$3,'08:30:00',$4,'brown','formed','Normal bowel movement', $5,$6)`,
+    await insert(`INSERT INTO bowel_movements (id,person_id,recorded_date,recorded_time,bristol_type,color,consistency,notes,recorded_by,created_at) VALUES ($1,$2,$3,'08:30:00',$4,'brown','formed','Normal bowel movement', $5,$6)`,
       [uuid(), su.id, dateAgo(Math.floor(Math.random() * 14)), 3 + Math.floor(Math.random() * 3), staff[2].userId, tsAgo(Math.floor(Math.random() * 14))])
   }
   for (let i = 0; i < 6; i++) {
     const su = sus[i % sus.length]
-    await insert(`INSERT INTO dental_records (id,service_user_id,checkup_date,dentist_name,findings,actions_taken,next_checkup_date,notes,recorded_by,created_at) VALUES ($1,$2,$3,'Dr N. Singh','Dentures fitting well. Gums healthy.','No action required.','${dateIn(180)}','Annual dental review', $4,$5)`,
+    await insert(`INSERT INTO dental_records (id,person_id,checkup_date,dentist_name,findings,actions_taken,next_checkup_date,notes,recorded_by,created_at) VALUES ($1,$2,$3,'Dr N. Singh','Dentures fitting well. Gums healthy.','No action required.','${dateIn(180)}','Annual dental review', $4,$5)`,
       [uuid(), su.id, dateAgo(i * 60 + 30), staff[Math.floor(Math.random() * 3)].userId, tsAgo(i * 60 + 30)])
   }
   for (let i = 0; i < 30; i++) {
     const su = sus[Math.floor(Math.random() * (sus.length - 2))]
-    await insert(`INSERT INTO fluid_intake (id,service_user_id,recorded_date,recorded_time,amount_ml,fluid_type,notes,recorded_by,created_at) VALUES ($1,$2,$3,'12:00:00',${150 + Math.floor(Math.random() * 150)},'water','Hydration encouraged', $4,$5)`,
+    await insert(`INSERT INTO fluid_intake (id,person_id,recorded_date,recorded_time,amount_ml,fluid_type,notes,recorded_by,created_at) VALUES ($1,$2,$3,'12:00:00',${150 + Math.floor(Math.random() * 150)},'water','Hydration encouraged', $4,$5)`,
       [uuid(), su.id, dateAgo(Math.floor(Math.random() * 10)), staff[2].userId, tsAgo(Math.floor(Math.random() * 10))])
   }
   console.log('  ✓ health observations, bowel, dental, fluid intake created')
@@ -1146,7 +1146,7 @@ async function seed() {
     const su = sus[i % sus.length]
     const scaleId = scaleIds[i % scaleIds.length]
     const score = scaleId === scaleIds[1] ? 35 + Math.floor(Math.random() * 50) : 42 + Math.floor(Math.random() * 20)
-    await insert(`INSERT INTO outcome_scale_results (id,scale_id,service_user_id,scores,total_score,band_label,assessed_by,assessed_at,notes,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    await insert(`INSERT INTO outcome_scale_results (id,scale_id,person_id,scores,total_score,band_label,assessed_by,assessed_at,notes,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [uuid(), scaleId, su.id, JSON.stringify({}), score, 'Standard band', staff[Math.floor(Math.random() * 3)].userId,
        tsAgo(Math.floor(Math.random() * 90)), 'Routine outcome measurement', tsAgo(Math.floor(Math.random() * 90))])
   }
@@ -1179,7 +1179,7 @@ async function seed() {
   for (let i = 0; i < 15; i++) {
     const su = sus[i % sus.length]
     const amount = (250 + Math.floor(Math.random() * 2000)) * 100
-    await insert(`INSERT INTO service_user_expenses (id,organization_id,service_user_id,location_id,category,amount_pence,description,receipt_url,incurred_date,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,NULL,$8,$9,$10)`,
+    await insert(`INSERT INTO person_expenses (id,organization_id,person_id,location_id,category,amount_pence,description,receipt_url,incurred_date,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,NULL,$8,$9,$10)`,
       [uuid(), orgId, su.id, locIds[su.locIdx], expenseCats[i % expenseCats.length], amount,
        `${expenseCats[i % expenseCats.length]} purchase for ${su.name}`, dateAgo(Math.floor(Math.random() * 30)),
        staff[Math.floor(Math.random() * 3)].userId, tsAgo(Math.floor(Math.random() * 30))])
@@ -1320,7 +1320,7 @@ async function seed() {
   // ── 52. Person access log ──
   for (let i = 0; i < 20; i++) {
     const su = sus[i % sus.length]
-    await insert(`INSERT INTO service_user_access_log (id,service_user_id,accessed_by,action,ip_address,created_at) VALUES ($1,$2,$3,$4,'185.71.76.${20 + Math.floor(Math.random() * 20)}',$5)`,
+    await insert(`INSERT INTO person_access_log (id,person_id,accessed_by,action,ip_address,created_at) VALUES ($1,$2,$3,$4,'185.71.76.${20 + Math.floor(Math.random() * 20)}',$5)`,
       [uuid(), su.id, staff[Math.floor(Math.random() * 3)].userId, Math.random() < 0.7 ? 'view' : 'update', tsAgo(Math.floor(Math.random() * 60))])
   }
   console.log('  ✓ 20 access log entries created')

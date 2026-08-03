@@ -54,12 +54,12 @@ async function seed() {
     ['William','Shakespeare','302','A12345679',''],
     ['Mary','Seacole','303','A23456780','Latex, Aspirin'],
   ]
-  const serviceUsers: any[] = []
+  const people: any[] = []
   for (const su of suNames) {
     const id = uuid()
-    await pool.query(`INSERT INTO service_users (id, organization_id, first_name, last_name, room_number, nhs_number, allergies, gp_name, gp_surgery, gp_phone, dietary_requirements, status) VALUES ($1,$2,$3,$4,$5,$6,$7,'Dr Miller','Harbour Medical Centre','01273 555010','Diabetic diet',$8)`,
+    await pool.query(`INSERT INTO people (id, organization_id, first_name, last_name, room_number, nhs_number, allergies, gp_name, gp_surgery, gp_phone, dietary_requirements, status) VALUES ($1,$2,$3,$4,$5,$6,$7,'Dr Miller','Harbour Medical Centre','01273 555010','Diabetic diet',$8)`,
       [id, orgId, su[0], su[1], su[2], su[3], JSON.stringify(su[4].split(', ').filter(Boolean)), su[4] ? 'active' : 'active'])
-    serviceUsers.push({ id, name: su[0] + ' ' + su[1], room: su[2] })
+    people.push({ id, name: su[0] + ' ' + su[1], room: su[2] })
   }
   console.log('  12 people created')
 
@@ -138,10 +138,10 @@ async function seed() {
 
   // 10. Care Plans (18)
   const planCategories = ['personal_care','medication','mobility','nutrition','mental_health','behaviour']
-  for (const su of serviceUsers) {
+  for (const su of people) {
     for (let i = 0; i < 2; i++) {
       const cat = planCategories[Math.floor(Math.random() * planCategories.length)]
-      await pool.query(`INSERT INTO care_plans (service_user_id, title, category, description, status, review_date) VALUES ($1,$2,$3,'Individualised care plan for '||$2,$4,$5)`,
+      await pool.query(`INSERT INTO care_plans (person_id, title, category, description, status, review_date) VALUES ($1,$2,$3,'Individualised care plan for '||$2,$4,$5)`,
         [su.id, `${cat.replace(/_/g,' ')} support plan`, cat, Math.random() < 0.2 ? 'archived' : 'active', new Date(Date.now() + 90*86400000).toISOString().split('T')[0]])
     }
   }
@@ -150,8 +150,8 @@ async function seed() {
   // 11. Satisfaction Surveys (8)
   for (let i = 0; i < 8; i++) {
     const ratings = [2,3,4,4,5,5,3,4]
-    await pool.query(`INSERT INTO satisfaction_surveys (organization_id, service_user_id, respondent_name, relationship, rating, comments) VALUES ($1,$2,$3,$4,$5,$6)`,
-      [orgId, serviceUsers[i % serviceUsers.length].id, `Family Member ${i+1}`, 'Family Member', ratings[i], ratings[i] >= 4 ? 'Very happy with the care provided' : 'Some concerns about communication'])
+    await pool.query(`INSERT INTO satisfaction_surveys (organization_id, person_id, respondent_name, relationship, rating, comments) VALUES ($1,$2,$3,$4,$5,$6)`,
+      [orgId, people[i % people.length].id, `Family Member ${i+1}`, 'Family Member', ratings[i], ratings[i] >= 4 ? 'Very happy with the care provided' : 'Some concerns about communication'])
   }
   console.log('  8 satisfaction surveys created')
 
@@ -178,8 +178,8 @@ async function seed() {
 
   // 13. Appointments (5)
   for (let i = 0; i < 5; i++) {
-    await pool.query(`INSERT INTO appointments (id, organization_id, service_user_id, title, start_time, end_time, status, location_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [uuid(), orgId, serviceUsers[i].id, ['GP Appointment','Dentist Checkup','Physiotherapy','Hairdresser Visit','Optician'][i],
+    await pool.query(`INSERT INTO appointments (id, organization_id, person_id, title, start_time, end_time, status, location_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [uuid(), orgId, people[i].id, ['GP Appointment','Dentist Checkup','Physiotherapy','Hairdresser Visit','Optician'][i],
         new Date(Date.now() + i * 86400000 + 9*3600000).toISOString(),
         new Date(Date.now() + i * 86400000 + 10*3600000).toISOString(), 'scheduled', locationId])
   }
@@ -188,8 +188,8 @@ async function seed() {
   // 14. Goals (10)
   for (let i = 0; i < 10; i++) {
     const progress = Math.floor(Math.random() * 100)
-    await pool.query(`INSERT INTO service_user_goals (organization_id, service_user_id, title, description, status, progress, target_date, cqc_domain) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [orgId, serviceUsers[i % serviceUsers.length].id,
+    await pool.query(`INSERT INTO person_goals (organization_id, person_id, title, description, status, progress, target_date, cqc_domain) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [orgId, people[i % people.length].id,
         ['Increase mobility','Improve nutrition','Social engagement','Personal hygiene routine','Medication adherence'][i % 5],
         `Working towards this goal with daily support`, progress >= 100 ? 'completed' : 'active', progress,
         new Date(Date.now() + 30*86400000).toISOString().split('T')[0], ['safe','effective','caring','responsive','well-led'][i % 5]])
@@ -209,9 +209,9 @@ async function seed() {
 
   // 16. Tasks (8)
   for (let i = 0; i < 8; i++) {
-    await pool.query(`INSERT INTO tasks (organization_id, title, description, assigned_to, service_user_id, priority, status, due_date) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    await pool.query(`INSERT INTO tasks (organization_id, title, description, assigned_to, person_id, priority, status, due_date) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [orgId, ['Review care plans','Order medication supplies','Fire safety check','Update risk assessments','Staff supervisions','Window repair Room 204','Garden maintenance check','New person assessment'][i],
-        '', staffProfiles[10 + i % 3].id, serviceUsers[i % serviceUsers.length].id,
+        '', staffProfiles[10 + i % 3].id, people[i % people.length].id,
         ['medium','high','low','medium','high','urgent','low','medium'][i],
         i < 3 ? 'completed' : i < 6 ? 'pending' : 'in_progress',
         new Date(Date.now() + (i < 3 ? -7 : 7) * 86400000).toISOString().split('T')[0]])

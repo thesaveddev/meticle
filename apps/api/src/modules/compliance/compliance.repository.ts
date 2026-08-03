@@ -160,13 +160,13 @@ export class ComplianceRepository {
          ORDER BY sp.last_name`;
     const staff = await query(staffSql, staffId ? [orgId, staffId] : [orgId]);
 
-    // Service user evidence
-    const serviceUsers = await query(
+    // Person evidence
+    const people = await query(
       `SELECT su.id, su.first_name, su.last_name, su.room_number, su.status,
-              (SELECT COUNT(*) FROM care_plans WHERE service_user_id = su.id AND status = 'active')::int as active_care_plans,
-              (SELECT COUNT(*) FROM risk_assessments WHERE service_user_id = su.id AND risk_level IN ('high','critical'))::int as open_risks,
-              (SELECT COUNT(*) FROM service_user_goals WHERE service_user_id = su.id)::int as total_goals
-       FROM service_users su
+              (SELECT COUNT(*) FROM care_plans WHERE person_id = su.id AND status = 'active')::int as active_care_plans,
+              (SELECT COUNT(*) FROM risk_assessments WHERE person_id = su.id AND risk_level IN ('high','critical'))::int as open_risks,
+              (SELECT COUNT(*) FROM person_goals WHERE person_id = su.id)::int as total_goals
+       FROM people su
        WHERE su.organization_id = $1
        ORDER BY su.last_name, su.first_name`,
       [orgId]
@@ -175,7 +175,7 @@ export class ComplianceRepository {
     const carePlans = await query(
       `SELECT cp.*, su.first_name, su.last_name
        FROM care_plans cp
-       JOIN service_users su ON cp.service_user_id = su.id
+       JOIN people su ON cp.person_id = su.id
        WHERE su.organization_id = $1
        ORDER BY su.last_name, cp.created_at DESC`,
       [orgId]
@@ -186,7 +186,7 @@ export class ComplianceRepository {
                string_agg(su.first_name || ' ' || su.last_name, ', ') as involved_people
         FROM incidents i
         LEFT JOIN incident_involved_residents iir ON i.id = iir.incident_id
-        LEFT JOIN service_users su ON iir.service_user_id = su.id
+        LEFT JOIN people su ON iir.person_id = su.id
         WHERE i.organization_id = $1
         GROUP BY i.id
         ORDER BY i.incident_date DESC
@@ -214,14 +214,14 @@ export class ComplianceRepository {
       training: training.rows,
       documents: documents.rows,
       competency: competency.rows,
-      service_users: serviceUsers.rows,
+      people: people.rows,
       care_plans: carePlans.rows,
       incidents: incidents.rows,
       satisfaction: satisfactionAgg.rows[0] || { avg_rating: null, total: 0, positive: 0 },
       summary: {
         total_staff: staff.rows.length,
-        total_service_users: serviceUsers.rows.length,
-        active_service_users: serviceUsers.rows.filter((r: any) => r.status === 'active').length,
+        total_people: people.rows.length,
+        active_people: people.rows.filter((r: any) => r.status === 'active').length,
         training_records: training.rows.length,
         documents: documents.rows.length,
         competency_records: competency.rows.length,

@@ -4,8 +4,8 @@ import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/ico
 import api from '../../services/api'
 
 interface Scale { id: string; name: string; shortcode: string; description?: string; min_score: number; max_score: number; score_bands: Array<{ min: number; max: number; label: string; color: string }>; is_active: boolean; total_assessments?: number }
-interface ServiceUser { id: string; first_name: string; last_name: string }
-interface Assessment { id: string; scale_name: string; scale_code: string; service_user_name: string; total_score: number; band_label?: string; assessed_at: string; assessor_name?: string; notes?: string }
+interface Person { id: string; first_name: string; last_name: string }
+interface Assessment { id: string; scale_name: string; scale_code: string; person_name: string; total_score: number; band_label?: string; assessed_at: string; assessor_name?: string; notes?: string }
 
 const defaultBands = [
   { min: 0, max: 33, label: 'Low', color: '#DC2626' },
@@ -158,17 +158,17 @@ function ScalesTab() {
 function AssessmentsTab() {
   const [assessments, setAssessments] = useState<Assessment[]>([])
   const [scales, setScales] = useState<Scale[]>([])
-  const [serviceUsers, setServiceUsers] = useState<ServiceUser[]>([])
+  const [people, setPeople] = useState<Person[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [fetchError, setFetchError] = useState('')
-  const [form, setForm] = useState({ scale_id: '', service_user_id: '', score: 5, notes: '' })
+  const [form, setForm] = useState({ scale_id: '', person_id: '', score: 5, notes: '' })
 
   const fetchData = async () => {
     try {
-      const [aRes, sRes, suRes] = await Promise.all([api.get('/outcomes/results'), api.get('/outcomes/scales'), api.get('/service-users?status=active')])
-      setAssessments(aRes.data); setScales(sRes.data); setServiceUsers(suRes.data)
+      const [aRes, sRes, suRes] = await Promise.all([api.get('/outcomes/results'), api.get('/outcomes/scales'), api.get('/people?status=active')])
+      setAssessments(aRes.data); setScales(sRes.data); setPeople(suRes.data)
     } catch (e: any) { setFetchError(e?.response?.data?.message || 'Failed to load data') }
     setLoading(false)
   }
@@ -178,11 +178,11 @@ function AssessmentsTab() {
   const currentBand = selectedScale ? getBand(form.score, selectedScale.score_bands) : null
 
   const handleSave = async () => {
-    if (!form.scale_id || !form.service_user_id) return
+    if (!form.scale_id || !form.person_id) return
     setSaving(true)
     try {
       const band = selectedScale ? getBand(form.score, selectedScale.score_bands) : null
-      await api.post('/outcomes/results', { scale_id: form.scale_id, service_user_id: form.service_user_id, score: form.score, band_label: band?.label || null, notes: form.notes || undefined })
+      await api.post('/outcomes/results', { scale_id: form.scale_id, person_id: form.person_id, score: form.score, band_label: band?.label || null, notes: form.notes || undefined })
       setDialogOpen(false); fetchData()
     } catch (e: any) { setFetchError(e?.response?.data?.message || 'Failed to record assessment') }
     setSaving(false)
@@ -201,7 +201,7 @@ function AssessmentsTab() {
       {fetchError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFetchError('')}>{fetchError}</Alert>}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{assessments.length} Assessment{assessments.length !== 1 ? 's' : ''}</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ scale_id: '', service_user_id: '', score: 5, notes: '' }); setDialogOpen(true) }} sx={{ bgcolor: '#0F4C81' }}>Record Assessment</Button>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ scale_id: '', person_id: '', score: 5, notes: '' }); setDialogOpen(true) }} sx={{ bgcolor: '#0F4C81' }}>Record Assessment</Button>
       </Stack>
 
       {scales.length === 0 ? (
@@ -231,7 +231,7 @@ function AssessmentsTab() {
                       <Typography variant="caption" color="#6B7280">{a.scale_code}</Typography>
                     </Stack>
                   </TableCell>
-                  <TableCell>{a.service_user_name}</TableCell>
+                  <TableCell>{a.person_name}</TableCell>
                   <TableCell><Typography sx={{ fontWeight: 800, fontSize: '1.1rem' }}>{a.total_score}</Typography></TableCell>
                   <TableCell>
                     {a.band_label ? <Chip label={a.band_label} size="small" sx={{ bgcolor: '#EEF2FF', color: '#3730A3', fontWeight: 700, fontSize: '0.7rem' }} /> : '-'}
@@ -260,10 +260,10 @@ function AssessmentsTab() {
               renderInput={p => <TextField {...p} label="Select Scale" fullWidth required />}
             />
             <Autocomplete
-              options={serviceUsers}
+              options={people}
               getOptionLabel={o => `${o.first_name} ${o.last_name}`}
-              value={serviceUsers.find(su => su.id === form.service_user_id) || null}
-              onChange={(_, v) => setForm(f => ({ ...f, service_user_id: v?.id || '' }))}
+              value={people.find(su => su.id === form.person_id) || null}
+              onChange={(_, v) => setForm(f => ({ ...f, person_id: v?.id || '' }))}
               renderInput={p => <TextField {...p} label="Select Person" fullWidth required />}
             />
             {selectedScale ? (
@@ -290,7 +290,7 @@ function AssessmentsTab() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={saving || !form.scale_id || !form.service_user_id}>{saving ? <CircularProgress size={20} /> : 'Record Assessment'}</Button>
+          <Button variant="contained" onClick={handleSave} disabled={saving || !form.scale_id || !form.person_id}>{saving ? <CircularProgress size={20} /> : 'Record Assessment'}</Button>
         </DialogActions>
       </Dialog>
     </Box>

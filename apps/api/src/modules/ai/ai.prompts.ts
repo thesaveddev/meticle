@@ -114,7 +114,7 @@ Staff on Leave (do not assign):
 {{staff_on_leave}}
 
 People Requiring Care:
-{{service_users}}
+{{people}}
 
 Staffing Needs (sum of person requirements per day — total staff on duty MUST be at least this):
 {{staffing_needs}}
@@ -237,7 +237,7 @@ OUTPUT STRUCTURE - Return EXACTLY this JSON format:
   "follow_up_details": "What follow-up is needed and by when"
 }`,
     userTemplate: `SERVICE USER CONTEXT:
-Name: {{service_user_name}}
+Name: {{person_name}}
 Date of Birth: {{date_of_birth}}
 Room/Location: {{room_number}}
 Known Allergies: {{allergies}}
@@ -294,7 +294,7 @@ Return JSON:
     userTemplate: `Daily Note Content:
 {{daily_note_content}}
 
-Person: {{service_user_name}}
+Person: {{person_name}}
 Recent History: {{recent_history}}
 
 Analyze for safeguarding concerns.`,
@@ -326,7 +326,7 @@ Return JSON:
     }
   ]
 }`,
-    userTemplate: `Person: {{service_user_name}}
+    userTemplate: `Person: {{person_name}}
 Daily Note: {{daily_note_content}}
 Current Care Plans: {{current_care_plans}}
 Recent Goal Progress: {{recent_goal_progress}}
@@ -351,7 +351,7 @@ Return JSON:
   "factors_influencing_mood": ["identified contributing factors"],
   "recommended_support": ["suggested interventions to support wellbeing"]
 }`,
-    userTemplate: `Person: {{service_user_name}}
+    userTemplate: `Person: {{person_name}}
 Observation: {{staff_input}}
 Previous Mood Data: {{previous_mood}}
 Known Factors: {{known_factors}}

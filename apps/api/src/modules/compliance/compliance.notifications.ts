@@ -546,7 +546,7 @@ export class ComplianceNotificationService {
             EmailService.sendEmail(
               admin.email,
               `Meticle Evidence Pack — ${org.name} (${new Date().toLocaleDateString('en-GB')})`,
-              `<p>Hi ${admin.name},</p><p>Your ${freq} evidence pack for <strong>${org.name}</strong> has been generated.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance/evidence-packs" style="color:#0F4C81">View in Meticle →</a></p><p style="color:#6B7280;font-size:12px">Staff: ${pack.summary?.total_staff || 0} · People: ${pack.summary?.total_service_users || 0} · Training: ${pack.summary?.training_records || 0}</p>`
+              `<p>Hi ${admin.name},</p><p>Your ${freq} evidence pack for <strong>${org.name}</strong> has been generated.</p><p><a href="${process.env.FRONTEND_URL || ''}/compliance/evidence-packs" style="color:#0F4C81">View in Meticle →</a></p><p style="color:#6B7280;font-size:12px">Staff: ${pack.summary?.total_staff || 0} · People: ${pack.summary?.total_people || 0} · Training: ${pack.summary?.training_records || 0}</p>`
             ).catch(logWarn('scheduledPackEmail'));
           }
         }

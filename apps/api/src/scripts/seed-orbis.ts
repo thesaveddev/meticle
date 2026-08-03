@@ -179,7 +179,7 @@ async function seed() {
   for (const su of suData) {
     const id = uuid()
     const minStaff = su.support === 'one_to_one' ? 1 : su.support === 'two_to_one' ? 2 : su.support === 'three_to_one' ? 3 : su.support === 'complex' ? 2 : null
-    await pool.query(`INSERT INTO service_users (id,organization_id,first_name,last_name,date_of_birth,nhs_number,room_number,gender,religion,funding_type,flags,allergies,dietary_requirements,gp_name,gp_surgery,gp_phone,status,support_level,location_id,min_staff_required) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
+    await pool.query(`INSERT INTO people (id,organization_id,first_name,last_name,date_of_birth,nhs_number,room_number,gender,religion,funding_type,flags,allergies,dietary_requirements,gp_name,gp_surgery,gp_phone,status,support_level,location_id,min_staff_required) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
       [id, orgId, su.first, su.last, su.dob, su.nhs, su.room, su.gender, su.religion, su.funding, JSON.stringify(su.flags), JSON.stringify(su.allergies.split(', ').filter(Boolean)), su.diet, su.gp, su.gpSurg, su.gpPhone, 'active', su.support, locIds[su.locIdx], minStaff])
     sus.push({ id, name: `${su.first} ${su.last}`, room: su.room, locIdx: su.locIdx, allergies: su.allergies, diet: su.diet })
   }
@@ -191,7 +191,7 @@ async function seed() {
     const cats = [...planCats].sort(() => Math.random() - 0.5).slice(0, 2)
     for (const cat of cats) {
       const cid = uuid()
-      await pool.query(`INSERT INTO care_plans (id,service_user_id,title,category,description,risk_assessment,review_date,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      await pool.query(`INSERT INTO care_plans (id,person_id,title,category,description,risk_assessment,review_date,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
         [cid, su.id, `${cat.replace(/_/g, ' ')} support plan`, cat,
          `Individualised plan for ${su.name}. Focus on maintaining independence and wellbeing. Reviewed monthly with family involvement.`,
          'Low risk with regular monitoring. Family aware of plan.',
@@ -225,7 +225,7 @@ async function seed() {
   for (let i = 0; i < 90; i++) {
     const su = sus[Math.floor(Math.random() * sus.length)]
     const daysAgo = Math.floor(Math.random() * 30)
-    await pool.query(`INSERT INTO daily_notes (id,service_user_id,author_id,note_date,shift,category,content,support_level) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    await pool.query(`INSERT INTO daily_notes (id,person_id,author_id,note_date,shift,category,content,support_level) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [uuid(), su.id, staff[Math.floor(Math.random() * staff.length)].userId,
        new Date(Date.now() - daysAgo * 86400000).toISOString().split('T')[0],
        shifts[Math.floor(Math.random() * shifts.length)],
@@ -243,7 +243,7 @@ async function seed() {
     for (let i = 0; i < n; i++) {
       const type = riskTypes[Math.floor(Math.random() * riskTypes.length)]
       const level = riskLevels[Math.floor(Math.random() * (type === 'falls' ? 3 : 2))]
-      await pool.query(`INSERT INTO risk_assessments (id,service_user_id,type,risk_level,details,mitigation_actions,review_date) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      await pool.query(`INSERT INTO risk_assessments (id,person_id,type,risk_level,details,mitigation_actions,review_date) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
         [uuid(), su.id, type, level,
          `${type.replace(/_/g, ' ')} assessment completed. ${level === 'high' ? 'Requires immediate attention.' : 'Monitor on regular basis.'}`,
          level === 'high' ? 'Daily monitoring, family informed, equipment in place.' : 'Weekly review, staff awareness.',
@@ -258,7 +258,7 @@ async function seed() {
     const n = 1 + Math.floor(Math.random() * 3)
     for (let i = 0; i < n; i++) {
       const rel = relationships[Math.floor(Math.random() * relationships.length)]
-      await pool.query(`INSERT INTO family_contacts (id,service_user_id,name,relationship,phone,email,is_emergency_contact) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      await pool.query(`INSERT INTO family_contacts (id,person_id,name,relationship,phone,email,is_emergency_contact) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
         [uuid(), su.id,
          `${['Anne', 'John', 'Mary', 'Peter', 'Susan', 'Robert', 'Catherine', 'Paul'][Math.floor(Math.random() * 8)]} ${su.name.split(' ')[1]}`,
          rel, `07${Math.floor(100000000 + Math.random() * 899999999)}`,
@@ -448,7 +448,7 @@ async function seed() {
   for (let i = 0; i < 16; i++) {
     const su = sus[i % sus.length]
     const daysOffset = Math.floor((i - 8) * 3)
-    await pool.query(`INSERT INTO appointments (id,organization_id,service_user_id,title,start_time,end_time,status,location_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    await pool.query(`INSERT INTO appointments (id,organization_id,person_id,title,start_time,end_time,status,location_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [uuid(), orgId, su.id, appointmentTypes[i % appointmentTypes.length],
        new Date(Date.now() + daysOffset * 86400000 + 9 * 3600000 + Math.floor(Math.random() * 4) * 3600000).toISOString(),
        new Date(Date.now() + daysOffset * 86400000 + 10 * 3600000 + Math.floor(Math.random() * 4) * 3600000).toISOString(),
@@ -468,7 +468,7 @@ async function seed() {
     const su = sus[i % sus.length]
     const progress = Math.min(100, Math.floor(Math.random() * 120))
     const g = goalTemplates[i % goalTemplates.length]
-    await pool.query(`INSERT INTO service_user_goals (id,organization_id,service_user_id,title,description,status,progress,target_date,cqc_domain) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+    await pool.query(`INSERT INTO person_goals (id,organization_id,person_id,title,description,status,progress,target_date,cqc_domain) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [uuid(), orgId, su.id, g,
        `Working towards: ${g.toLowerCase()}. Reviewed fortnightly with key worker.`,
        progress >= 100 ? 'completed' : 'active', Math.min(progress, 100),
@@ -512,7 +512,7 @@ async function seed() {
     { title: 'Update emergency contact list', pri: 'medium', days: -1, status: 'completed', su: true },
   ]
   for (const td of taskData) {
-    await pool.query(`INSERT INTO tasks (id,organization_id,title,assigned_to,service_user_id,priority,status,due_date) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    await pool.query(`INSERT INTO tasks (id,organization_id,title,assigned_to,person_id,priority,status,due_date) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [uuid(), orgId, td.title,
        staff[Math.floor(Math.random() * staff.length)].profileId,
        td.su ? sus[Math.floor(Math.random() * sus.length)].id : null,
@@ -602,7 +602,7 @@ async function seed() {
   for (const md of memoryData) {
     const su = sus[Math.floor(Math.random() * sus.length)]
     const imgUrl = memoryImgs[Math.floor(Math.random() * memoryImgs.length)]
-    await pool.query(`INSERT INTO memory_book_entries (id,service_user_id,title,description,image_url,image_urls,recorded_date,created_by,support_level) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+    await pool.query(`INSERT INTO memory_book_entries (id,person_id,title,description,image_url,image_urls,recorded_date,created_by,support_level) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [uuid(), su.id, md.title, md.desc, imgUrl,
        imgUrl ? JSON.stringify([imgUrl]) : '[]',
        new Date(Date.now() - md.days * 86400000).toISOString().split('T')[0],
@@ -628,7 +628,7 @@ async function seed() {
     'Meal times could be more flexible.',
   ]
   for (let i = 0; i < 12; i++) {
-      await pool.query(`INSERT INTO satisfaction_surveys (id,organization_id,service_user_id,respondent_name,relationship,rating,comments) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      await pool.query(`INSERT INTO satisfaction_surveys (id,organization_id,person_id,respondent_name,relationship,rating,comments) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
         [uuid(), orgId, sus[i % sus.length].id,
          `Family Member of ${sus[i % sus.length].name.split(' ')[0]}`,
          relationships2[i % relationships2.length],
@@ -642,7 +642,7 @@ async function seed() {
   for (const su of sus) {
     const n = 1 + Math.floor(Math.random() * 2)
     for (let i = 0; i < n; i++) {
-      await pool.query(`INSERT INTO care_assessments (id,organization_id,service_user_id,assessment_type,assessor_name,assessment_date,findings,recommendations,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      await pool.query(`INSERT INTO care_assessments (id,organization_id,person_id,assessment_type,assessor_name,assessment_date,findings,recommendations,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
         [uuid(), orgId, su.id, assessmentTypes[Math.floor(Math.random() * assessmentTypes.length)],
          `${staff[Math.floor(Math.random() * staff.length)].name.join(' ')}`,
          new Date(Date.now() - Math.floor(Math.random() * 90) * 86400000).toISOString().split('T')[0],
@@ -660,7 +660,7 @@ async function seed() {
     for (let i = 0; i < n; i++) {
       const st = scoreTypes[Math.floor(Math.random() * scoreTypes.length)]
       const score = Math.floor(Math.random() * 20) + 5
-      await pool.query(`INSERT INTO clinical_scores (id,service_user_id,score_type,score,risk_level,recorded_date,notes) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      await pool.query(`INSERT INTO clinical_scores (id,person_id,score_type,score,risk_level,recorded_date,notes) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
         [uuid(), su.id, st, score,
          score < 10 ? 'low' : score < 15 ? 'medium' : 'high',
          new Date(Date.now() - Math.floor(Math.random() * 60) * 86400000).toISOString().split('T')[0],
@@ -673,7 +673,7 @@ async function seed() {
   const wellbeingDomains = ['mood', 'engagement', 'sleep', 'appetite', 'pain', 'mobility', 'social', 'overall']
   for (let i = 0; i < 60; i++) {
     const su = sus[Math.floor(Math.random() * sus.length)]
-    await pool.query(`INSERT INTO su_wellbeing (id,service_user_id,domain,score,notes,recorded_date,recorded_by) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    await pool.query(`INSERT INTO person_wellbeing (id,person_id,domain,score,notes,recorded_date,recorded_by) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
       [uuid(), su.id, wellbeingDomains[Math.floor(Math.random() * wellbeingDomains.length)],
        Math.floor(Math.random() * 5) + 6,
        'Good day. Positive engagement with staff and peers.',
@@ -687,7 +687,7 @@ async function seed() {
   const commDirections = ['inbound', 'outbound']
   for (let i = 0; i < 30; i++) {
     const su = sus[Math.floor(Math.random() * sus.length)]
-    await pool.query(`INSERT INTO su_communication_log (id,service_user_id,contact_name,relationship,contact_method,direction,summary,recorded_date,recorded_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+    await pool.query(`INSERT INTO person_communication_log (id,person_id,contact_name,relationship,contact_method,direction,summary,recorded_date,recorded_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [uuid(), su.id,
        `Family of ${su.name}`, relationships2[Math.floor(Math.random() * relationships2.length)],
        commMethods[Math.floor(Math.random() * commMethods.length)],
@@ -702,7 +702,7 @@ async function seed() {
   const hasCapacity = [true, false, true, true, false, true, false, true, false, true, true, false]
   for (let i = 0; i < 12; i++) {
     const su = sus[i % sus.length]
-    await pool.query(`INSERT INTO su_capacity_assessments (id,service_user_id,assessment_date,decision_to_be_made,capacity_found,capacity_status,best_interest_decision,review_date,recorded_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+    await pool.query(`INSERT INTO person_capacity_assessments (id,person_id,assessment_date,decision_to_be_made,capacity_found,capacity_status,best_interest_decision,review_date,recorded_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [uuid(), su.id,
        new Date(Date.now() - Math.floor(Math.random() * 180) * 86400000).toISOString().split('T')[0],
        'Capacity to make decisions about care and residence',
@@ -717,7 +717,7 @@ async function seed() {
   const pathwayTypes = ['hospital_admission', 'hospital_discharge', 'short_break', 'transition', 'assessment_unit']
   for (let i = 0; i < 10; i++) {
     const su = sus[Math.floor(Math.random() * sus.length)]
-    await pool.query(`INSERT INTO su_care_pathways (id,service_user_id,pathway_type,title,start_date,end_date,location_name,status,recorded_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+    await pool.query(`INSERT INTO person_care_pathways (id,person_id,pathway_type,title,start_date,end_date,location_name,status,recorded_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [uuid(), su.id, pathwayTypes[Math.floor(Math.random() * pathwayTypes.length)],
        `${pathwayTypes[i % pathwayTypes.length].replace(/_/g, ' ')} pathway`,
        new Date(Date.now() - Math.floor(Math.random() * 60) * 86400000).toISOString().split('T')[0],
@@ -738,7 +738,7 @@ async function seed() {
   ]
   for (let i = 0; i < 12; i++) {
     const su = sus[Math.floor(Math.random() * sus.length)]
-    await pool.query(`INSERT INTO su_discharge_checklist (id,service_user_id,item,category,is_complete,completed_at,completed_by) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    await pool.query(`INSERT INTO person_discharge_checklist (id,person_id,item,category,is_complete,completed_at,completed_by) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
       [uuid(), su.id,
        checklistItems[i % checklistItems.length],
        checklistCategories[i % checklistCategories.length],
@@ -768,7 +768,7 @@ async function seed() {
   const docTypes = ['care_plan', 'assessment', 'referral', 'consent_form', 'correspondence', 'other']
   for (let i = 0; i < 24; i++) {
     const su = sus[i % sus.length]
-    await pool.query(`INSERT INTO service_user_documents (id,service_user_id,title,document_type,file_url,upload_date,uploaded_by) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    await pool.query(`INSERT INTO person_documents (id,person_id,title,document_type,file_url,upload_date,uploaded_by) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
       [uuid(), su.id,
        `${docTypes[i % docTypes.length].replace(/_/g, ' ')} document - ${new Date(Date.now() - i * 30 * 86400000).toLocaleDateString('en-GB')}`,
        docTypes[i % docTypes.length],
@@ -788,7 +788,7 @@ async function seed() {
 
   // ── 39. Audit Log (30 entries) ──
   const auditActions = ['create', 'update', 'view', 'delete']
-  const auditEntities = ['service_user', 'care_plan', 'daily_note', 'incident', 'training_record', 'compliance_record']
+  const auditEntities = ['person', 'care_plan', 'daily_note', 'incident', 'training_record', 'compliance_record']
   for (let i = 0; i < 30; i++) {
     const action = auditActions[Math.floor(Math.random() * 3)]
     const entity = auditEntities[Math.floor(Math.random() * auditEntities.length)]
@@ -805,7 +805,7 @@ async function seed() {
   const bodyParts = ['left_arm', 'right_arm', 'left_leg', 'right_leg', 'chest', 'back', 'abdomen', 'head']
   for (let i = 0; i < 15; i++) {
     const su = sus[Math.floor(Math.random() * sus.length)]
-    await pool.query(`INSERT INTO body_map_entries (id,service_user_id,body_view,body_zone,condition_type,description,severity,status,recorded_date,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    await pool.query(`INSERT INTO body_map_entries (id,person_id,body_view,body_zone,condition_type,description,severity,status,recorded_date,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [uuid(), su.id, Math.random() < 0.5 ? 'front' : 'back',
        bodyParts[Math.floor(Math.random() * bodyParts.length)],
        bodyConditions[Math.floor(Math.random() * bodyConditions.length)],
@@ -858,7 +858,7 @@ async function seed() {
     const su = sus[mi * 4]
     const chartStart = new Date(Date.now() - 7 * 86400000)
     const chartEnd = new Date(Date.now() + 24 * 86400000)
-    await pool.query(`INSERT INTO emedication_records (id,organization_id,service_user_id,title,start_date,end_date,status,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    await pool.query(`INSERT INTO emedication_records (id,organization_id,person_id,title,start_date,end_date,status,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [marIds[mi], orgId, su.id, `MAR Chart - ${su.name}`, chartStart.toISOString().split('T')[0], chartEnd.toISOString().split('T')[0], 'active', staff[0].userId])
     for (let medIdx = mi * 3; medIdx < mi * 3 + 3; medIdx++) {
       const med = medNames[medIdx % medNames.length]

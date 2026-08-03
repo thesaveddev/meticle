@@ -13,7 +13,7 @@ export default function TasksPage() {
   const [filter, setFilter] = useState('')
   const [dialog, setDialog] = useState(false)
   const [editing, setEditing] = useState<any>(null)
-  const [form, setForm] = useState({ title: '', description: '', assigned_to: '', service_user_id: '', priority: 'medium', status: 'pending', due_date: '' })
+  const [form, setForm] = useState({ title: '', description: '', assigned_to: '', person_id: '', priority: 'medium', status: 'pending', due_date: '' })
   const [error, setError] = useState('')
 
   const { data: tasks = [], isLoading } = useQuery({
@@ -27,14 +27,14 @@ export default function TasksPage() {
   })
   const members = [...(staffList?.admins?.length ? staffList.admins : (staffList?.admin ? [staffList.admin] : [])), ...(staffList?.staff || [])].filter((m: any) => m.status === 'active')
 
-  const { data: serviceUsers } = useQuery({
+  const { data: people } = useQuery({
     queryKey: ['su-task'],
-    queryFn: () => api.get('/service-users?status=active').then(r => r.data),
+    queryFn: () => api.get('/people?status=active').then(r => r.data),
   })
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const payload = { ...form, due_date: form.due_date || undefined, assigned_to: form.assigned_to || undefined, service_user_id: form.service_user_id || undefined }
+      const payload = { ...form, due_date: form.due_date || undefined, assigned_to: form.assigned_to || undefined, person_id: form.person_id || undefined }
       return editing ? api.patch(`/tasks/${editing.id}`, payload) : api.post('/tasks', payload)
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks'] }); close() },
@@ -46,8 +46,8 @@ export default function TasksPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
   })
 
-  const close = () => { setDialog(false); setEditing(null); setForm({ title: '', description: '', assigned_to: '', service_user_id: '', priority: 'medium', status: 'pending', due_date: '' }); setError('') }
-  const openEdit = (t: any) => { setEditing(t); setForm({ title: t.title, description: t.description || '', assigned_to: t.assigned_to || '', service_user_id: t.service_user_id || '', priority: t.priority, status: t.status, due_date: t.due_date || '' }); setDialog(true) }
+  const close = () => { setDialog(false); setEditing(null); setForm({ title: '', description: '', assigned_to: '', person_id: '', priority: 'medium', status: 'pending', due_date: '' }); setError('') }
+  const openEdit = (t: any) => { setEditing(t); setForm({ title: t.title, description: t.description || '', assigned_to: t.assigned_to || '', person_id: t.person_id || '', priority: t.priority, status: t.status, due_date: t.due_date || '' }); setDialog(true) }
   const toggleStatus = async (t: any) => {
     const next = t.status === 'pending' ? 'in_progress' : t.status === 'in_progress' ? 'completed' : 'pending'
     await api.patch(`/tasks/${t.id}`, { status: next })
@@ -96,7 +96,7 @@ export default function TasksPage() {
               <TableRow key={t.id} hover>
                 <TableCell sx={{ fontWeight: 600 }}>{t.title}</TableCell>
                 <TableCell>{t.assigned_name || '—'}</TableCell>
-                <TableCell>{t.service_user_name || '—'}</TableCell>
+                <TableCell>{t.person_name || '—'}</TableCell>
                 <TableCell><Chip label={t.priority} size="small" color={PRIORITY_COLORS[t.priority] || 'default'} /></TableCell>
                 <TableCell>{t.due_date ? new Date(t.due_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                 <TableCell>
@@ -139,9 +139,9 @@ export default function TasksPage() {
                 value={members.find((m: any) => m.id === form.assigned_to) || null}
                 onChange={(_, v) => setForm(f => ({ ...f, assigned_to: v?.id || '' }))}
                 renderInput={p => <TextField {...p} label="Assign To" />} />
-              <Autocomplete options={serviceUsers} getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}${o.room_number ? ` (Room ${o.room_number})` : ''}`}
-                value={serviceUsers?.find((s: any) => s.id === form.service_user_id) || null}
-                onChange={(_, v) => setForm(f => ({ ...f, service_user_id: v?.id || '' }))}
+              <Autocomplete options={people} getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}${o.room_number ? ` (Room ${o.room_number})` : ''}`}
+                value={people?.find((s: any) => s.id === form.person_id) || null}
+                onChange={(_, v) => setForm(f => ({ ...f, person_id: v?.id || '' }))}
                 renderInput={p => <TextField {...p} label="Related Person (optional)" />} />
               <TextField label="Due Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
             </Stack>

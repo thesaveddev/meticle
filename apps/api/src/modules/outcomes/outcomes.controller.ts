@@ -56,8 +56,8 @@ export class OutcomesController {
   }
 
   static async listResults(req: Request, res: Response) {
-    const { service_user_id, date_from, date_to } = req.query as any;
-    const results = await OutcomesRepository.findResults(req.params.scaleId, { service_user_id, date_from, date_to });
+    const { person_id, date_from, date_to } = req.query as any;
+    const results = await OutcomesRepository.findResults(req.params.scaleId, { person_id, date_from, date_to });
     res.json(results);
   }
 
@@ -75,16 +75,16 @@ export class OutcomesController {
 
   static async listAllResults(req: Request, res: Response) {
     const orgId = OutcomesController.getOrgId(req);
-    const { service_user_id } = req.query as any;
-    const results = await OutcomesRepository.findAllResults(orgId, { service_user_id });
+    const { person_id } = req.query as any;
+    const results = await OutcomesRepository.findAllResults(orgId, { person_id });
     res.json(results);
   }
 
   static async recordAssessmentFromBody(req: Request, res: Response) {
-    const { scale_id, service_user_id, score, notes } = req.body;
-    if (!scale_id || !service_user_id || score == null) throw new AppError(400, 'scale_id, service_user_id, and score are required');
+    const { scale_id, person_id, score, notes } = req.body;
+    if (!scale_id || !person_id || score == null) throw new AppError(400, 'scale_id, person_id, and score are required');
     const result = await OutcomesRepository.recordAssessment({
-      scale_id, service_user_id, total_score: score, assessed_by: req.user!.userId, notes,
+      scale_id, person_id, total_score: score, assessed_by: req.user!.userId, notes,
     });
     AuditRepository.log({ user_id: req.user!.userId, action: 'create', entity_type: 'outcome_scale_result', entity_id: result.id, ip_address: req.ip }).catch(() => {});
     res.status(201).json(result);
@@ -92,14 +92,14 @@ export class OutcomesController {
 
   // ─── Analytics ───
 
-  static async getServiceUserSummary(req: Request, res: Response) {
-    const summary = await OutcomesRepository.getServiceUserSummary(req.params.serviceUserId);
+  static async getPersonSummary(req: Request, res: Response) {
+    const summary = await OutcomesRepository.getPersonSummary(req.params.personId);
     res.json(summary);
   }
 
-  static async getServiceUserTrend(req: Request, res: Response) {
+  static async getPersonTrend(req: Request, res: Response) {
     const { scale_id, days } = req.query as any;
-    const trend = await OutcomesRepository.getServiceUserTrend(req.params.serviceUserId, scale_id, days ? parseInt(days) : 90);
+    const trend = await OutcomesRepository.getPersonTrend(req.params.personId, scale_id, days ? parseInt(days) : 90);
     res.json(trend);
   }
 
