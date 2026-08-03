@@ -517,6 +517,8 @@ export const createRiskAssessmentSchema = z.object({
   details: z.string().optional(),
   mitigation_actions: z.string().optional(),
   review_date: z.string().optional(),
+  file_url: z.string().optional(),
+  file_name: z.string().optional(),
 });
 
 export const updateRiskAssessmentSchema = z.object({
@@ -525,6 +527,8 @@ export const updateRiskAssessmentSchema = z.object({
   details: z.string().optional(),
   mitigation_actions: z.string().optional(),
   review_date: z.string().optional(),
+  file_url: z.string().optional(),
+  file_name: z.string().optional(),
 });
 
 export const createFamilyContactSchema = z.object({

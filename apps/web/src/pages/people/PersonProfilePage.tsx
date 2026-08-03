@@ -105,7 +105,9 @@ export default function PersonProfilePage() {
   const [noteForm, setNoteForm] = useState({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' })
   const [editNoteId, setEditNoteId] = useState<string | null>(null)
   const [viewNote, setViewNote] = useState<any>(null)
-  const [riskForm, setRiskForm] = useState({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '' })
+  const [riskForm, setRiskForm] = useState({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '', file_url: '', file_name: '' })
+  const [riskFileUploading, setRiskFileUploading] = useState(false)
+  const riskFileInputRef = useRef<HTMLInputElement>(null)
   const [contactForm, setContactForm] = useState({ name: '', relationship: '', phone: '', email: '', is_emergency_contact: false })
   const [contactEditId, setContactEditId] = useState<string | null>(null)
   const [contactMenuAnchor, setContactMenuAnchor] = useState<null | { el: HTMLElement; contact: any }>(null)
@@ -114,6 +116,7 @@ export default function PersonProfilePage() {
   const [invitePortalError, setInvitePortalError] = useState('')
   const [editPlanId, setEditPlanId] = useState<string | null>(null)
   const [editRiskId, setEditRiskId] = useState<string | null>(null)
+  const [viewRisk, setViewRisk] = useState<any>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: string } | null>(null)
   const [error, setError] = useState('')
   const planFileInputRef = useRef<HTMLInputElement>(null)
@@ -177,7 +180,7 @@ export default function PersonProfilePage() {
 
   const addRiskMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${id}/risk-assessments`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddRiskOpen(false); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '' }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setAddRiskOpen(false); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '', file_url: '', file_name: '' }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to add risk assessment'),
   })
 
@@ -213,7 +216,7 @@ export default function PersonProfilePage() {
 
   const updateRiskMutation = useMutation({
     mutationFn: ({ riskId, data }: { riskId: string; data: any }) => api.patch(`/people/risk-assessments/${riskId}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditRiskId(null); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '' }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['person', id] }); setEditRiskId(null); setAddRiskOpen(false); setRiskForm({ type: '', risk_level: 'medium', details: '', mitigation_actions: '', review_date: '', file_url: '', file_name: '' }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to update risk assessment'),
   })
 
@@ -970,10 +973,13 @@ export default function PersonProfilePage() {
                       <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>{ra.details || '—'}</Typography></TableCell>
                       <TableCell>{ra.review_date ? new Date(ra.review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                       <TableCell>
-                        <IconButton size="small" onClick={() => { setRiskForm({ type: ra.type, risk_level: ra.risk_level, details: ra.details || '', mitigation_actions: ra.mitigation_actions || '', review_date: ra.review_date || '' }); setEditRiskId(ra.id); setAddRiskOpen(true) }}>
+                        <IconButton size="small" onClick={() => setViewRisk(ra)} title="View details">
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" onClick={() => { setRiskForm({ type: ra.type, risk_level: ra.risk_level, details: ra.details || '', mitigation_actions: ra.mitigation_actions || '', review_date: ra.review_date ? ra.review_date.slice(0, 10) : '', file_url: ra.file_url || '', file_name: ra.file_name || '' }); setEditRiskId(ra.id); setAddRiskOpen(true) }} title="Edit">
                           <EditIcon fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" onClick={() => setDeleteConfirm({ type: 'risk', id: ra.id })}>
+                        <IconButton size="small" onClick={() => setDeleteConfirm({ type: 'risk', id: ra.id })} title="Delete">
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </TableCell>
@@ -1921,9 +1927,10 @@ export default function PersonProfilePage() {
       </Dialog>
 
       {/* Add / Edit Risk Assessment Dialog */}
-      <Dialog open={addRiskOpen} onClose={() => { setAddRiskOpen(false); setEditRiskId(null) }} maxWidth="sm" fullWidth>
+      <Dialog open={addRiskOpen} onClose={() => { setAddRiskOpen(false); setEditRiskId(null); setError('') }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => {
           e.preventDefault()
+          setError('')
           if (editRiskId) {
             updateRiskMutation.mutate({ riskId: editRiskId, data: riskForm })
           } else {
@@ -1932,7 +1939,7 @@ export default function PersonProfilePage() {
         }}>
           <DialogTitle sx={{ fontWeight: 800 }}>{editRiskId ? 'Edit Risk Assessment' : 'Add Risk Assessment'}</DialogTitle>
           <DialogContent>
-            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField select label="Type" fullWidth required value={riskForm.type} onChange={e => setRiskForm({ ...riskForm, type: e.target.value })}>
                 {RISK_TYPES.map(t => <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>{t.replace(/_/g, ' ')}</MenuItem>)}
@@ -1943,11 +1950,36 @@ export default function PersonProfilePage() {
               <TextField label="Details" fullWidth multiline rows={3} value={riskForm.details} onChange={e => setRiskForm({ ...riskForm, details: e.target.value })} />
               <TextField label="Mitigation Actions" fullWidth multiline rows={3} value={riskForm.mitigation_actions} onChange={e => setRiskForm({ ...riskForm, mitigation_actions: e.target.value })} />
               <TextField label="Review Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={riskForm.review_date} onChange={e => setRiskForm({ ...riskForm, review_date: e.target.value })} />
+              <Box>
+                <input type="file" ref={riskFileInputRef} hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={async e => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setRiskFileUploading(true)
+                  try {
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    const res = await api.post('/settings/upload', fd)
+                    setRiskForm(f => ({ ...f, file_url: res.data.url, file_name: res.data.originalName || file.name }))
+                  } catch { setError('Failed to upload file') }
+                  finally { setRiskFileUploading(false); e.target.value = '' }
+                }} />
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Button variant="outlined" size="small" onClick={() => riskFileInputRef.current?.click()}
+                    disabled={riskFileUploading} startIcon={riskFileUploading ? <CircularProgress size={16} /> : <UploadIcon />}
+                    sx={{ textTransform: 'none' }}>
+                    {riskForm.file_url ? 'Change File' : 'Attach File'}
+                  </Button>
+                  {riskForm.file_url && (
+                    <Chip label={riskForm.file_name || 'File attached'} size="small" onDelete={() => setRiskForm(f => ({ ...f, file_url: '', file_name: '' }))}
+                      icon={<FileIcon />} variant="outlined" sx={{ maxWidth: 240 }} />
+                  )}
+                </Stack>
+              </Box>
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            <Button onClick={() => { setAddRiskOpen(false); setEditRiskId(null) }}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addRiskMutation.isPending || updateRiskMutation.isPending}
+            <Button onClick={() => { setAddRiskOpen(false); setEditRiskId(null); setError('') }}>Cancel</Button>
+            <Button type="submit" variant="contained" disabled={addRiskMutation.isPending || updateRiskMutation.isPending || riskFileUploading}
               sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
               {(addRiskMutation.isPending || updateRiskMutation.isPending) ? <CircularProgress size={20} /> : (editRiskId ? 'Save' : 'Add Assessment')}
             </Button>
@@ -2019,6 +2051,54 @@ export default function PersonProfilePage() {
             </Button>
           </DialogActions>
         </Box>
+      </Dialog>
+
+      {/* View Risk Assessment Dialog */}
+      <Dialog open={!!viewRisk} onClose={() => setViewRisk(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Risk Assessment</DialogTitle>
+        <DialogContent>
+          {viewRisk && (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <Box>
+                <Typography variant="caption" color="#6B7280">Type</Typography>
+                <Typography sx={{ textTransform: 'capitalize', fontWeight: 600 }}>{viewRisk.type?.replace(/_/g, ' ')}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="#6B7280">Risk Level</Typography>
+                <Chip icon={<WarningIcon sx={{ fontSize: 14 }} />} label={viewRisk.risk_level} size="small"
+                  sx={{ bgcolor: `${RISK_COLORS[viewRisk.risk_level] || '#6B7280'}18`, color: RISK_COLORS[viewRisk.risk_level] || '#6B7280', fontWeight: 700, textTransform: 'capitalize', mt: 0.5 }} />
+              </Box>
+              <Box>
+                <Typography variant="caption" color="#6B7280">Details</Typography>
+                <Typography sx={{ whiteSpace: 'pre-wrap' }}>{viewRisk.details || '—'}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="#6B7280">Mitigation Actions</Typography>
+                <Typography sx={{ whiteSpace: 'pre-wrap' }}>{viewRisk.mitigation_actions || '—'}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="#6B7280">Review Date</Typography>
+                <Typography>{viewRisk.review_date ? new Date(viewRisk.review_date).toLocaleDateString('en-GB') : '—'}</Typography>
+              </Box>
+              {viewRisk.file_url && (
+                <Box>
+                  <Typography variant="caption" color="#6B7280">Attached File</Typography>
+                  <Paper variant="outlined" sx={{ borderRadius: 2, p: 1.5, mt: 0.5 }}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <FileIcon color="action" />
+                      <Typography noWrap sx={{ flex: 1 }}>{viewRisk.file_name || viewRisk.file_url.split('/').pop()}</Typography>
+                      <Button variant="outlined" size="small" startIcon={<VisibilityIcon />} onClick={() => { viewFileInNewTab(viewRisk.file_url); setViewRisk(null) }}
+                        sx={{ textTransform: 'none' }}>View</Button>
+                    </Stack>
+                  </Paper>
+                </Box>
+              )}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setViewRisk(null)}>Close</Button>
+        </DialogActions>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
