@@ -1074,14 +1074,16 @@ export const createCapacityAssessmentSchema = z.object({
 
 export const updateCapacityAssessmentSchema = createCapacityAssessmentSchema.partial();
 
+const emptyToNull = (schema: z.ZodTypeAny) => z.preprocess(v => (v === '' ? null : v), schema.nullable().optional());
+
 export const createCarePathwaySchema = z.object({
   pathway_type: z.enum(['hospital_admission','hospital_discharge','short_break','assessment_unit','transition','other']),
   title: z.string().min(1).max(255),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
-  location_name: z.string().max(255).optional(),
-  referral_reason: z.string().max(2000).optional(),
-  discharge_notes: z.string().max(5000).optional(),
+  end_date: emptyToNull(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  location_name: emptyToNull(z.string().max(255)),
+  referral_reason: emptyToNull(z.string().max(2000)),
+  discharge_notes: emptyToNull(z.string().max(5000)),
   status: z.enum(['active','completed','cancelled']).optional(),
 });
 

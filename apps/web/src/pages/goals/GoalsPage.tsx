@@ -50,7 +50,7 @@ function freqLabel(f: string) {
   return m[f] || f
 }
 
-export default function GoalsPage({ personId, personName }: { personId?: string; personName?: string }) {
+export default function GoalsPage({ personId, personName, carePlans }: { personId?: string; personName?: string; carePlans?: any[] }) {
   const [searchParams] = useSearchParams()
   const preselectedSu = personId || searchParams.get('su') || ''
   const preselectedPersonName = personName || ''
@@ -76,7 +76,7 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
   const [progressValue, setProgressValue] = useState(50)
   const [progressNote, setProgressNote] = useState('')
   const [deleteGoalId, setDeleteGoalId] = useState<string | null>(null)
-  const [carePlans, setCarePlans] = useState<any[]>([])
+  const carePlanList = carePlans || []
 
   const fetchGoals = async () => {
     setFetchError('')
@@ -96,7 +96,6 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
   useEffect(() => {
     fetchGoals()
     api.get('/people?status=active').then(r => setPeople(r.data)).catch(() => {})
-    if (preselectedSu) api.get(`/people/${preselectedSu}/care-plans?status=active`).then(r => setCarePlans(r.data)).catch(() => {})
   }, [statusFilter, preselectedSu])
 
   const openCreate = () => { setEditing(null); setForm({ ...initialForm, person_id: preselectedSu }); setFetchError(''); setDialogOpen(true) }
@@ -405,12 +404,12 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
             {form.status !== 'active' && (
               <TextField label="Status Reason" fullWidth multiline rows={2} placeholder="Why is this outcome being marked as completed, cancelled, or on hold?" value={form.status_reason || ''} onChange={e => setForm(f => ({ ...f, status_reason: e.target.value }))} />
             )}
-            {preselectedSu && carePlans.length > 0 && (
-              <FormControl fullWidth>
+            {preselectedSu && carePlanList.length > 0 && (
+              <FormControl size="small" fullWidth>
                 <InputLabel>Linked Care Plan</InputLabel>
                 <Select value={form.care_plan_id} label="Linked Care Plan" onChange={e => setForm(f => ({ ...f, care_plan_id: e.target.value }))}>
                   <MenuItem value="">None</MenuItem>
-                  {carePlans.map((cp: any) => <MenuItem key={cp.id} value={cp.id}>{cp.title}</MenuItem>)}
+                  {carePlanList.map((cp: any) => <MenuItem key={cp.id} value={cp.id}>{cp.title}</MenuItem>)}
                 </Select>
               </FormControl>
             )}

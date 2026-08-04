@@ -569,7 +569,7 @@ export class AIController {
 
     const note = noteResult.rows[0];
     const config = await AIRepository.getConfig(orgId);
-    if (!config) {
+    if (!config || !config.enabled || !config.apiKey) {
       return res.status(400).json({ error: { message: 'AI not configured. Add API keys in Settings > AI.' } });
     }
 
