@@ -96,7 +96,7 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
     api.get('/people?status=active').then(r => setPeople(r.data)).catch(() => {})
   }, [statusFilter, preselectedSu])
 
-  const openCreate = () => { setEditing(null); setForm({ ...initialForm, person_id: preselectedSu }); setDialogOpen(true) }
+  const openCreate = () => { setEditing(null); setForm({ ...initialForm, person_id: preselectedSu }); setFetchError(''); setDialogOpen(true) }
   const openEdit = (g: Goal) => {
     setEditing(g)
     setForm({
@@ -141,7 +141,9 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
       else { await api.post('/goals', payload) }
       setDialogOpen(false); fetchGoals()
     } catch (e: any) {
-      setFetchError(e?.response?.data?.message || 'Failed to save goal')
+      const msg = e?.response?.data?.message || 'Failed to save goal'
+      const fieldErrors = e?.response?.data?.errors
+      setFetchError(fieldErrors ? `${msg}: ${fieldErrors.map((f: any) => `${f.field} ${f.message}`).join(', ')}` : msg)
     }
     setSaving(false)
   }
@@ -159,7 +161,7 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
       try {
         const [mRes, pRes] = await Promise.all([
           api.get(`/goals/${goalId}/milestones`),
-          api.get(`/goals/${goalId}/progress`),
+          api.get(`/goals/${goalId}/progress-history`),
         ])
         setMilestones(prev => ({ ...prev, [goalId]: mRes.data }))
         setProgressHistory(prev => ({ ...prev, [goalId]: pRes.data }))
@@ -179,7 +181,7 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
 
   const handleToggleMilestone = async (goalId: string, milestone: Milestone) => {
     try {
-      await api.patch(`/goals/${goalId}/milestones/${milestone.id}`, { is_completed: !milestone.is_completed })
+      await api.patch(`/goals/milestones/${milestone.id}`, { is_completed: !milestone.is_completed })
       const res = await api.get(`/goals/${goalId}/milestones`)
       setMilestones(prev => ({ ...prev, [goalId]: res.data }))
       fetchGoals()
@@ -285,7 +287,7 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
                           <Grid item xs={12} md={6}>
                             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                               <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Milestones ({milestones[g.id]?.length || 0})</Typography>
-                              <Button size="small" startIcon={<AddIcon />} onClick={() => { setMilestoneGoalId(g.id); setMilestoneDialogOpen(true) }}>Add</Button>
+                              <Button size="small" startIcon={<AddIcon />} onClick={() => { setMilestoneGoalId(g.id); setFetchError(''); setMilestoneDialogOpen(true) }}>Add</Button>
                             </Stack>
                             {(milestones[g.id] || []).length === 0 ? (
                               <Typography variant="body2" color="#9CA3AF">No milestones yet</Typography>
@@ -344,6 +346,7 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'Edit Goal' : 'New Goal'}</DialogTitle>
         <DialogContent>
+          {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 2 }}>{fetchError}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField label="Title" fullWidth value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
             <TextField label="Description" fullWidth multiline rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
@@ -425,7 +428,8 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
       <Dialog open={milestoneDialogOpen} onClose={() => setMilestoneDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Add Milestone</DialogTitle>
         <DialogContent>
-          <TextField label="Milestone Title" fullWidth value={milestoneTitle} onChange={e => setMilestoneTitle(e.target.value)} sx={{ mt: 1 }} />
+          {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 1 }}>{fetchError}</Alert>}
+          <TextField label="Milestone Title" fullWidth value={milestoneTitle} onChange={e => setMilestoneTitle(e.target.value)} sx={{ mt: fetchError ? 0 : 1 }} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setMilestoneDialogOpen(false)}>Cancel</Button>
@@ -437,7 +441,8 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
       <Dialog open={progressDialogOpen} onClose={() => setProgressDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Record Progress</DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
+          {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 1 }}>{fetchError}</Alert>}
+          <Stack spacing={2} sx={{ mt: fetchError ? 0 : 1 }}>
             <TextField label="Progress (%)" type="number" fullWidth inputProps={{ min: 0, max: 100 }} value={progressValue} onChange={e => setProgressValue(parseInt(e.target.value) || 0)} />
             <TextField label="Note (optional)" fullWidth multiline rows={2} value={progressNote} onChange={e => setProgressNote(e.target.value)} />
           </Stack>
