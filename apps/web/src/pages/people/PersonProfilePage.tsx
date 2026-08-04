@@ -3093,13 +3093,21 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/care-pathways`, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', personId] }); setAddOpen(false); resetForm() },
-    onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add pathway'),
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || 'Failed to add pathway'
+      const fieldErrors = err.response?.data?.errors
+      setFormError(fieldErrors ? `${msg}: ${fieldErrors.map((f: any) => f.field + ' ' + f.message).join(', ')}` : msg)
+    },
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/people/care-pathways/${id}`, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', personId] }); setAddOpen(false); setEditId(null); resetForm() },
-    onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to update pathway'),
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || 'Failed to update pathway'
+      const fieldErrors = err.response?.data?.errors
+      setFormError(fieldErrors ? `${msg}: ${fieldErrors.map((f: any) => f.field + ' ' + f.message).join(', ')}` : msg)
+    },
   })
 
   const deleteMutation = useMutation({
@@ -3204,7 +3212,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
+            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending || !form.title} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
               {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save' : 'Add Pathway')}
             </Button>
           </DialogActions>

@@ -586,12 +586,12 @@ export class AIController {
       const su = personRes.rows[0];
 
       const carePlansRes = await pool.query(
-        'SELECT title, goals, interventions FROM care_plans WHERE person_id = $1 AND status = $2',
+        'SELECT title FROM care_plans WHERE person_id = $1 AND status = $2',
         [note.person_id, 'active']
       );
 
       const goalsRes = await pool.query(
-        'SELECT title, target_date, status FROM goals WHERE person_id = $1',
+        'SELECT title, target_date, status FROM person_goals WHERE person_id = $1',
         [note.person_id]
       );
 
@@ -603,7 +603,7 @@ export class AIController {
         .replace('{{dietary_requirements}}', 'None on file')
         .replace('{{gp_name}}', 'Unknown')
         .replace('{{gp_surgery}}', 'Unknown')
-        .replace('{{care_plans}}', carePlansRes.rows.map(cp => `${cp.title}: Goals - ${JSON.stringify(cp.goals || [])}, Interventions - ${JSON.stringify(cp.interventions || [])}`).join('\n') || 'No active care plans')
+        .replace('{{care_plans}}', carePlansRes.rows.map(cp => cp.title).join(', ') || 'No active care plans')
         .replace('{{recent_goals}}', goalsRes.rows.map(g => `${g.title} (${g.status}, due ${g.target_date || 'no date'})`).join('\n') || 'No goals set')
         .replace('{{staff_observations}}', staffInput)
         .replace('{{shift}}', note.shift)
