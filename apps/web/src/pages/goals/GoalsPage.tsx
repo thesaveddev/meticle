@@ -75,6 +75,8 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
   const [progressGoalId, setProgressGoalId] = useState('')
   const [progressValue, setProgressValue] = useState(50)
   const [progressNote, setProgressNote] = useState('')
+  const [deleteGoalId, setDeleteGoalId] = useState<string | null>(null)
+  const [carePlans, setCarePlans] = useState<any[]>([])
 
   const fetchGoals = async () => {
     setFetchError('')
@@ -94,6 +96,7 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
   useEffect(() => {
     fetchGoals()
     api.get('/people?status=active').then(r => setPeople(r.data)).catch(() => {})
+    if (preselectedSu) api.get(`/people/${preselectedSu}/care-plans?status=active`).then(r => setCarePlans(r.data)).catch(() => {})
   }, [statusFilter, preselectedSu])
 
   const openCreate = () => { setEditing(null); setForm({ ...initialForm, person_id: preselectedSu }); setFetchError(''); setDialogOpen(true) }
@@ -149,8 +152,7 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this goal?')) return
-    try { await api.delete(`/goals/${id}`); fetchGoals() }
+    try { await api.delete(`/goals/${id}`); fetchGoals(); setDeleteGoalId(null) }
     catch (e: any) { setFetchError(e?.response?.data?.message || 'Failed to delete goal') }
   }
 
@@ -183,7 +185,12 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
     try {
       await api.patch(`/goals/milestones/${milestone.id}`, { is_completed: !milestone.is_completed })
       const res = await api.get(`/goals/${goalId}/milestones`)
-      setMilestones(prev => ({ ...prev, [goalId]: res.data }))
+      const updatedMilestones = res.data
+      setMilestones(prev => ({ ...prev, [goalId]: updatedMilestones }))
+      const total = updatedMilestones.length
+      const completed = updatedMilestones.filter((m: Milestone) => m.is_completed).length
+      const newProgress = total > 0 ? Math.round((completed / total) * 100) : 0
+      await api.patch(`/goals/${goalId}`, { progress: newProgress })
       fetchGoals()
     } catch (e: any) { setFetchError(e?.response?.data?.message || 'Failed to update milestone') }
   }
@@ -193,7 +200,7 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
     try {
       await api.post(`/goals/${progressGoalId}/progress`, { progress: progressValue, note: progressNote || undefined })
       const [pRes, gRes] = await Promise.all([
-        api.get(`/goals/${progressGoalId}/progress`),
+        api.get(`/goals/${progressGoalId}/progress-history`),
         api.get(`/goals?${preselectedSu ? 'person_id=' + preselectedSu : ''}`),
       ])
       setProgressHistory(prev => ({ ...prev, [progressGoalId]: pRes.data }))
@@ -276,7 +283,7 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
                   <TableCell>
                     <IconButton size="small" onClick={() => { setProgressGoalId(g.id); setProgressValue(g.progress); setProgressDialogOpen(true) }}><CheckIcon fontSize="small" sx={{ color: '#0F4C81' }} /></IconButton>
                     <IconButton size="small" onClick={() => openEdit(g)}><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" onClick={() => handleDelete(g.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" onClick={() => setDeleteGoalId(g.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
                 </TableRow>
                 <TableRow key={`${g.id}-expand`}>
@@ -398,6 +405,15 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
             {form.status !== 'active' && (
               <TextField label="Status Reason" fullWidth multiline rows={2} placeholder="Why is this outcome being marked as completed, cancelled, or on hold?" value={form.status_reason || ''} onChange={e => setForm(f => ({ ...f, status_reason: e.target.value }))} />
             )}
+            {preselectedSu && carePlans.length > 0 && (
+              <FormControl fullWidth>
+                <InputLabel>Linked Care Plan</InputLabel>
+                <Select value={form.care_plan_id} label="Linked Care Plan" onChange={e => setForm(f => ({ ...f, care_plan_id: e.target.value }))}>
+                  <MenuItem value="">None</MenuItem>
+                  {carePlans.map((cp: any) => <MenuItem key={cp.id} value={cp.id}>{cp.title}</MenuItem>)}
+                </Select>
+              </FormControl>
+            )}
             <FormControl fullWidth>
               <InputLabel>CQC Domain</InputLabel>
               <Select value={form.cqc_domain} label="CQC Domain" onChange={e => setForm(f => ({ ...f, cqc_domain: e.target.value }))}>
@@ -450,6 +466,18 @@ export default function GoalsPage({ personId, personName }: { personId?: string;
         <DialogActions>
           <Button onClick={() => setProgressDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleRecordProgress}>Record</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Goal Confirmation */}
+      <Dialog open={!!deleteGoalId} onClose={() => setDeleteGoalId(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Delete Goal</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this goal? This action cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteGoalId(null)}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={() => deleteGoalId && handleDelete(deleteGoalId)}>Delete</Button>
         </DialogActions>
       </Dialog>
     </Box>
