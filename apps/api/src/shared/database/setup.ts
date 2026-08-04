@@ -932,6 +932,8 @@ const INITIAL_MIGRATION: Migration = {
   )`,
   `CREATE INDEX IF NOT EXISTS idx_care_assessments_su ON care_assessments(person_id)`,
   `CREATE INDEX IF NOT EXISTS idx_care_assessments_org ON care_assessments(organization_id)`,
+  `ALTER TABLE care_assessments ADD COLUMN IF NOT EXISTS file_url VARCHAR(500)`,
+  `ALTER TABLE care_assessments ADD COLUMN IF NOT EXISTS file_name VARCHAR(255)`,
   // Person extended details
   `ALTER TABLE people ADD COLUMN IF NOT EXISTS pharmacy_name TEXT`,
   `ALTER TABLE people ADD COLUMN IF NOT EXISTS pharmacy_phone TEXT`,
@@ -1376,6 +1378,8 @@ const INITIAL_MIGRATION: Migration = {
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE INDEX IF NOT EXISTS idx_carepathways_person ON person_care_pathways(person_id)`,
+  `ALTER TABLE person_care_pathways ADD COLUMN IF NOT EXISTS file_url VARCHAR(500)`,
+  `ALTER TABLE person_care_pathways ADD COLUMN IF NOT EXISTS file_name VARCHAR(255)`,
   `CREATE TABLE IF NOT EXISTS person_discharge_checklist (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,

@@ -2135,13 +2135,15 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
   const [selected, setSelected] = useState<any>(null)
   const [editAssessment, setEditAssessment] = useState<any>(null)
   const [deleteAssessmentId, setDeleteAssessmentId] = useState<string | null>(null)
-  const [form, setForm] = useState({ assessment_type: '', assessment_date: new Date().toISOString().split('T')[0], assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '' })
+  const [form, setForm] = useState({ assessment_type: '', assessment_date: new Date().toISOString().split('T')[0], assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '', file_url: '', file_name: '' })
   const [error, setError] = useState('')
+  const assessmentFileInputRef = useRef<HTMLInputElement>(null)
+  const [assessmentFileUploading, setAssessmentFileUploading] = useState(false)
   const { data: assessments, isLoading, isError } = useQuery({
     queryKey: ['assessments', personId],
     queryFn: () => api.get(`/people/${personId}/assessments`).then(r => r.data),
   })
-  const resetForm = () => setForm({ assessment_type: '', assessment_date: new Date().toISOString().split('T')[0], assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '' })
+  const resetForm = () => setForm({ assessment_type: '', assessment_date: new Date().toISOString().split('T')[0], assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '', file_url: '', file_name: '' })
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = { ...form }
@@ -2172,6 +2174,8 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
       recommendations: a.recommendations || '',
       status: a.status || 'draft',
       next_review_date: a.next_review_date?.split('T')[0] || '',
+      file_url: a.file_url || '',
+      file_name: a.file_name || '',
     })
     setOpen(true)
   }
@@ -2198,6 +2202,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
                 <TableCell sx={{ fontWeight: 700 }}>Assessor</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Next Review</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Attachment</TableCell>
                 <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -2209,6 +2214,14 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
                   <TableCell>{a.assessor_name || '—'}</TableCell>
                   <TableCell><Chip label={a.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[a.status] || '#6B7280'}20`, color: ASSESSMENT_STATUS_COLORS[a.status] || '#6B7280', fontWeight: 700, textTransform: 'capitalize' }} /></TableCell>
                   <TableCell>{a.next_review_date ? new Date(a.next_review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
+                  <TableCell>
+                    {a.file_url ? (
+                      <Stack direction="row" spacing={0.5} alignItems="center" onClick={e => e.stopPropagation()}>
+                        <IconButton size="small" title={a.file_name || 'Open file'} onClick={() => openFileInNewTab(a.file_url)}><FileIcon fontSize="small" /></IconButton>
+                        <Typography variant="caption" sx={{ maxWidth: 120 }} noWrap>{a.file_name || a.file_url.split('/').pop()}</Typography>
+                      </Stack>
+                    ) : '—'}
+                  </TableCell>
                   <TableCell align="right" onClick={e => e.stopPropagation()}>
                     <IconButton size="small" onClick={() => openEdit(a)}><EditIcon fontSize="small" /></IconButton>
                     <IconButton size="small" color="error" onClick={() => setDeleteAssessmentId(a.id)}><DeleteIcon fontSize="small" /></IconButton>
@@ -2234,6 +2247,16 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
               </Stack>
               <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Findings</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: '#F9FAFB', whiteSpace: 'pre-wrap' }}>{selected.findings || 'No findings recorded'}</Paper></Box>
               <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Recommendations</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: '#F9FAFB', whiteSpace: 'pre-wrap' }}>{selected.recommendations || 'No recommendations recorded'}</Paper></Box>
+              {selected.file_url && (
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Attachment</Typography>
+                  <Paper variant="outlined" sx={{ p: 1.5, bgcolor: '#F9FAFB', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FileIcon sx={{ color: '#0F4C81' }} />
+                    <Typography noWrap sx={{ flex: 1 }}>{selected.file_name || selected.file_url.split('/').pop()}</Typography>
+                    <Button size="small" variant="outlined" startIcon={<VisibilityIcon />} onClick={() => openFileInNewTab(selected.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
+                  </Paper>
+                </Box>
+              )}
             </Stack>
           )}
         </DialogContent>
@@ -2262,6 +2285,32 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
                 <MenuItem value="reviewed">Reviewed</MenuItem>
               </TextField>
               <TextField label="Next Review Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.next_review_date} onChange={e => setForm(p => ({ ...p, next_review_date: e.target.value }))} />
+              <Box>
+                <input type="file" ref={assessmentFileInputRef} hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.csv" onChange={async e => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setAssessmentFileUploading(true)
+                  try {
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    const res = await api.post('/settings/upload', fd)
+                    setForm(p => ({ ...p, file_url: res.data.url, file_name: res.data.originalName || file.name }))
+                  } catch { setError('Failed to upload file') }
+                  finally { setAssessmentFileUploading(false); e.target.value = '' }
+                }} />
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Button variant="outlined" size="small" onClick={() => assessmentFileInputRef.current?.click()}
+                    disabled={assessmentFileUploading} startIcon={assessmentFileUploading ? <CircularProgress size={16} /> : <UploadIcon />}
+                    sx={{ textTransform: 'none' }}>
+                    {form.file_url ? 'Change File' : 'Attach File'}
+                  </Button>
+                  {form.file_url && (
+                    <Chip label={form.file_name || form.file_url.split('/').pop() || 'File attached'} size="small"
+                      onDelete={() => setForm(p => ({ ...p, file_url: '', file_name: '' }))}
+                      icon={<FileIcon />} variant="outlined" sx={{ maxWidth: 240 }} />
+                  )}
+                </Stack>
+              </Box>
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
@@ -3087,6 +3136,37 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
   )
 }
 
+async function openFileInNewTab(url: string) {
+  try {
+    const token = localStorage.getItem('accessToken')
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const blob = await res.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const w = window.open(blobUrl, '_blank', 'noopener,noreferrer')
+    if (!w) {
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }
+  } catch {
+    const w = window.open(url, '_blank', 'noopener,noreferrer')
+    if (!w) {
+      const a = document.createElement('a')
+      a.href = url
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }
+  }
+}
+
 const PATHWAY_TYPES = ['hospital_admission', 'hospital_discharge', 'short_break', 'assessment_unit', 'transition', 'other']
 const PATHWAY_STATUS_OPTIONS = ['active', 'completed', 'cancelled']
 
@@ -3099,8 +3179,10 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [viewId, setViewId] = useState<string | null>(null)
-  const [form, setForm] = useState({ pathway_type: 'hospital_admission', title: '', start_date: new Date().toISOString().split('T')[0], end_date: '', location_name: '', referral_reason: '', discharge_notes: '', status: 'active' })
+  const [form, setForm] = useState({ pathway_type: 'hospital_admission', title: '', start_date: new Date().toISOString().split('T')[0], end_date: '', location_name: '', referral_reason: '', discharge_notes: '', status: 'active', file_url: '', file_name: '' })
   const [formError, setFormError] = useState('')
+  const pathwayFileInputRef = useRef<HTMLInputElement>(null)
+  const [pathwayFileUploading, setPathwayFileUploading] = useState(false)
   const queryClient = useQueryClient()
   const { showSnackbar } = useSnackbar()
 
@@ -3136,7 +3218,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
   })
 
   function resetForm() {
-    setForm({ pathway_type: 'hospital_admission', title: '', start_date: new Date().toISOString().split('T')[0], end_date: '', location_name: '', referral_reason: '', discharge_notes: '', status: 'active' })
+    setForm({ pathway_type: 'hospital_admission', title: '', start_date: new Date().toISOString().split('T')[0], end_date: '', location_name: '', referral_reason: '', discharge_notes: '', status: 'active', file_url: '', file_name: '' })
   }
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
@@ -3161,6 +3243,14 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
           </Stack>
           {p.referral_reason && <Typography variant="body2" color="#6B7280" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.referral_reason}</Typography>}
           {p.discharge_notes && <Typography variant="body2" color="#6B7280" sx={{ mt: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.discharge_notes}</Typography>}
+          {p.file_url && (
+            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.75 }} onClick={e => e.stopPropagation()}>
+              <IconButton size="small" title={p.file_name || 'Open file'} onClick={() => openFileInNewTab(p.file_url)} sx={{ p: 0.25 }}>
+                <FileIcon sx={{ fontSize: 15, color: '#0F4C81' }} />
+              </IconButton>
+              <Typography variant="caption" color="#6B7280" sx={{ maxWidth: 240 }} noWrap>{p.file_name || p.file_url.split('/').pop()}</Typography>
+            </Stack>
+          )}
         </Box>
         <Stack direction="row" spacing={0.5} onClick={(e) => e.stopPropagation()}>
           <IconButton size="small" onClick={() => {
@@ -3169,6 +3259,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
               start_date: p.start_date?.split('T')[0] || '', end_date: p.end_date?.split('T')[0] || '',
               location_name: p.location_name || '', referral_reason: p.referral_reason || '',
               discharge_notes: p.discharge_notes || '', status: p.status || 'active',
+              file_url: p.file_url || '', file_name: p.file_name || '',
             }); setEditId(p.id); setAddOpen(true)
           }}><EditIcon fontSize="small" /></IconButton>
           <IconButton size="small" onClick={() => deleteMutation.mutate(p.id)}><DeleteIcon fontSize="small" /></IconButton>
@@ -3236,6 +3327,32 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
               <TextField select label="Status" fullWidth value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                 {PATHWAY_STATUS_OPTIONS.map(s => <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>{s}</MenuItem>)}
               </TextField>
+              <Box>
+                <input type="file" ref={pathwayFileInputRef} hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.csv" onChange={async e => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setPathwayFileUploading(true)
+                  try {
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    const res = await api.post('/settings/upload', fd)
+                    setForm(f => ({ ...f, file_url: res.data.url, file_name: res.data.originalName || file.name }))
+                  } catch { setFormError('Failed to upload file') }
+                  finally { setPathwayFileUploading(false); e.target.value = '' }
+                }} />
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Button variant="outlined" size="small" onClick={() => pathwayFileInputRef.current?.click()}
+                    disabled={pathwayFileUploading} startIcon={pathwayFileUploading ? <CircularProgress size={16} /> : <UploadIcon />}
+                    sx={{ textTransform: 'none' }}>
+                    {form.file_url ? 'Change File' : 'Attach File'}
+                  </Button>
+                  {form.file_url && (
+                    <Chip label={form.file_name || form.file_url.split('/').pop() || 'File attached'} size="small"
+                      onDelete={() => setForm(f => ({ ...f, file_url: '', file_name: '' }))}
+                      icon={<FileIcon />} variant="outlined" sx={{ maxWidth: 240 }} />
+                  )}
+                </Stack>
+              </Box>
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
@@ -3281,6 +3398,16 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewPathway?.discharge_notes || '—'}</Typography>
             </Box>
             <Divider />
+            {viewPathway?.file_url && (
+              <Box>
+                <Typography variant="caption" color="#6B7280" fontWeight={700}>ATTACHMENT</Typography>
+                <Paper variant="outlined" sx={{ mt: 0.5, p: 1.5, bgcolor: '#F9FAFB', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <FileIcon sx={{ color: '#0F4C81' }} />
+                  <Typography noWrap sx={{ flex: 1 }}>{viewPathway.file_name || viewPathway.file_url.split('/').pop()}</Typography>
+                  <Button size="small" variant="outlined" startIcon={<VisibilityIcon />} onClick={() => openFileInNewTab(viewPathway.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
+                </Paper>
+              </Box>
+            )}
             <Stack direction="row" spacing={4}>
               <Box>
                 <Typography variant="caption" color="#6B7280" fontWeight={700}>RECORDED BY</Typography>
@@ -3303,6 +3430,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
                 start_date: viewPathway.start_date?.split('T')[0] || '', end_date: viewPathway.end_date?.split('T')[0] || '',
                 location_name: viewPathway.location_name || '', referral_reason: viewPathway.referral_reason || '',
                 discharge_notes: viewPathway.discharge_notes || '', status: viewPathway.status || 'active',
+                file_url: viewPathway.file_url || '', file_name: viewPathway.file_name || '',
               }); setEditId(viewPathway.id); setAddOpen(true)
             }}>Edit</Button>
           )}
