@@ -3098,6 +3098,7 @@ const PATHWAY_TYPE_COLORS: Record<string, string> = {
 function CarePathwaysTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [viewId, setViewId] = useState<string | null>(null)
   const [form, setForm] = useState({ pathway_type: 'hospital_admission', title: '', start_date: new Date().toISOString().split('T')[0], end_date: '', location_name: '', referral_reason: '', discharge_notes: '', status: 'active' })
   const [formError, setFormError] = useState('')
   const queryClient = useQueryClient()
@@ -3142,9 +3143,11 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
 
   const active = pathways.filter((p: any) => p.status === 'active')
   const completed = pathways.filter((p: any) => p.status === 'completed' || p.status === 'cancelled')
+  const viewPathway = pathways.find((p: any) => p.id === viewId)
 
   const renderCard = (p: any) => (
-    <Paper key={p.id} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+    <Paper key={p.id} onClick={() => setViewId(p.id)}
+      sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
         <Box sx={{ flex: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
@@ -3156,10 +3159,10 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
             <Typography variant="caption" color="#6B7280">{p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB') : '—'}{p.end_date ? ` → ${new Date(p.end_date).toLocaleDateString('en-GB')}` : ''}</Typography>
             {p.location_name && <Typography variant="caption" color="#6B7280">{p.location_name}</Typography>}
           </Stack>
-          {p.referral_reason && <Typography variant="body2" color="#6B7280">{p.referral_reason}</Typography>}
-          {p.discharge_notes && <Typography variant="body2" color="#6B7280" sx={{ mt: 0.5 }}>{p.discharge_notes}</Typography>}
+          {p.referral_reason && <Typography variant="body2" color="#6B7280" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.referral_reason}</Typography>}
+          {p.discharge_notes && <Typography variant="body2" color="#6B7280" sx={{ mt: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.discharge_notes}</Typography>}
         </Box>
-        <Stack direction="row" spacing={0.5}>
+        <Stack direction="row" spacing={0.5} onClick={(e) => e.stopPropagation()}>
           <IconButton size="small" onClick={() => {
             setForm({
               pathway_type: p.pathway_type || 'hospital_admission', title: p.title || '',
@@ -3242,6 +3245,68 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
             </Button>
           </DialogActions>
         </Box>
+      </Dialog>
+
+      <Dialog open={!!viewId} onClose={() => setViewId(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>
+          <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
+            <span>{viewPathway?.title}</span>
+            {viewPathway && <Chip label={viewPathway.pathway_type?.replace(/_/g, ' ')} size="small" sx={{ bgcolor: `${PATHWAY_TYPE_COLORS[viewPathway.pathway_type] || '#6B7280'}20`, color: PATHWAY_TYPE_COLORS[viewPathway.pathway_type] || '#6B7280', fontWeight: 700 }} />}
+            {viewPathway && <Chip label={viewPathway.status} size="small" color={viewPathway.status === 'active' ? 'success' : viewPathway.status === 'completed' ? 'info' : 'error'} />}
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.5} sx={{ mt: 1 }}>
+            <Stack direction="row" spacing={4}>
+              <Box>
+                <Typography variant="caption" color="#6B7280" fontWeight={700}>START DATE</Typography>
+                <Typography variant="body1" fontWeight={600}>{viewPathway?.start_date ? new Date(viewPathway.start_date).toLocaleDateString('en-GB') : '—'}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="#6B7280" fontWeight={700}>END DATE</Typography>
+                <Typography variant="body1" fontWeight={600}>{viewPathway?.end_date ? new Date(viewPathway.end_date).toLocaleDateString('en-GB') : '—'}</Typography>
+              </Box>
+            </Stack>
+            <Divider />
+            <Box>
+              <Typography variant="caption" color="#6B7280" fontWeight={700}>LOCATION</Typography>
+              <Typography variant="body1">{viewPathway?.location_name || '—'}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="#6B7280" fontWeight={700}>REFERRAL REASON</Typography>
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewPathway?.referral_reason || '—'}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="#6B7280" fontWeight={700}>DISCHARGE NOTES</Typography>
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewPathway?.discharge_notes || '—'}</Typography>
+            </Box>
+            <Divider />
+            <Stack direction="row" spacing={4}>
+              <Box>
+                <Typography variant="caption" color="#6B7280" fontWeight={700}>RECORDED BY</Typography>
+                <Typography variant="body1" fontWeight={600}>{viewPathway?.recorded_by_name || '—'}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="#6B7280" fontWeight={700}>CREATED</Typography>
+                <Typography variant="body1" fontWeight={600}>{viewPathway?.created_at ? new Date(viewPathway.created_at).toLocaleString('en-GB') : '—'}</Typography>
+              </Box>
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setViewId(null)}>Close</Button>
+          {viewPathway && (
+            <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }} onClick={() => {
+              setViewId(null)
+              setForm({
+                pathway_type: viewPathway.pathway_type || 'hospital_admission', title: viewPathway.title || '',
+                start_date: viewPathway.start_date?.split('T')[0] || '', end_date: viewPathway.end_date?.split('T')[0] || '',
+                location_name: viewPathway.location_name || '', referral_reason: viewPathway.referral_reason || '',
+                discharge_notes: viewPathway.discharge_notes || '', status: viewPathway.status || 'active',
+              }); setEditId(viewPathway.id); setAddOpen(true)
+            }}>Edit</Button>
+          )}
+        </DialogActions>
       </Dialog>
     </Box>
   )
