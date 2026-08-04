@@ -1100,7 +1100,7 @@ export default function PersonProfilePage() {
       {tab === 8 && <MemoryBookTab personId={id!} />}
 
       {/* Tab: Goals */}
-      {tab === 9 && <GoalsPage personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : ''} />}
+      {tab === 9 && <GoalsPage personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : ''} carePlans={user?.care_plans} />}
 
       {/* Tab: Care Assessments */}
       {tab === 10 && <CareAssessmentsTabInline personId={id!} />}
@@ -2134,6 +2134,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
   const [viewOpen, setViewOpen] = useState(false)
   const [selected, setSelected] = useState<any>(null)
   const [editAssessment, setEditAssessment] = useState<any>(null)
+  const [deleteAssessmentId, setDeleteAssessmentId] = useState<string | null>(null)
   const [form, setForm] = useState({ assessment_type: '', assessment_date: new Date().toISOString().split('T')[0], assessor_name: '', findings: '', recommendations: '', status: 'draft', next_review_date: '' })
   const [error, setError] = useState('')
   const { data: assessments, isLoading, isError } = useQuery({
@@ -2210,7 +2211,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
                   <TableCell>{a.next_review_date ? new Date(a.next_review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell align="right" onClick={e => e.stopPropagation()}>
                     <IconButton size="small" onClick={() => openEdit(a)}><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" color="error" onClick={() => { if (confirm('Delete this assessment?')) deleteMutation.mutate(a.id) }}><DeleteIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteAssessmentId(a.id)}><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -2270,6 +2271,21 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
             </Button>
           </DialogActions>
         </Box>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteAssessmentId} onClose={() => setDeleteAssessmentId(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Delete Assessment</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this assessment? This action cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setDeleteAssessmentId(null)}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={() => {
+            if (deleteAssessmentId) deleteMutation.mutate(deleteAssessmentId)
+            setDeleteAssessmentId(null)
+          }}>Delete</Button>
+        </DialogActions>
       </Dialog>
     </Box>
   )
@@ -3189,8 +3205,15 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => {
           e.preventDefault(); setFormError('')
-          if (editId) updateMutation.mutate({ id: editId, data: form })
-          else addMutation.mutate(form)
+          const payload = {
+            ...form,
+            end_date: form.end_date || null,
+            location_name: form.location_name || null,
+            referral_reason: form.referral_reason || null,
+            discharge_notes: form.discharge_notes || null,
+          }
+          if (editId) updateMutation.mutate({ id: editId, data: payload })
+          else addMutation.mutate(payload)
         }}>
           <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Pathway' : 'Add Care Pathway'}</DialogTitle>
           <DialogContent>
