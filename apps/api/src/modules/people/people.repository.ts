@@ -139,11 +139,11 @@ export class PersonRepository {
   private static readonly CLINICAL_SCORE_UPDATE_COLUMNS = new Set(['score_type', 'score', 'risk_level', 'recorded_date', 'notes']);
   private static readonly RISK_ASSESSMENT_UPDATE_COLUMNS = new Set(['type', 'risk_level', 'details', 'mitigation_actions', 'review_date', 'file_url', 'file_name', 'reviewed_by', 'reviewed_at']);
   private static readonly FAMILY_CONTACT_UPDATE_COLUMNS = new Set(['name', 'relationship', 'phone', 'email', 'is_emergency_contact']);
-  private static readonly ASSESSMENT_UPDATE_COLUMNS = new Set(['assessment_type', 'assessment_date', 'assessor_name', 'findings', 'recommendations', 'status', 'next_review_date', 'updated_at']);
+  private static readonly ASSESSMENT_UPDATE_COLUMNS = new Set(['assessment_type', 'assessment_date', 'assessor_name', 'findings', 'recommendations', 'status', 'next_review_date', 'file_url', 'file_name', 'updated_at']);
   private static readonly BODY_MAP_UPDATE_COLUMNS = new Set(['body_view', 'body_zone', 'zone_x', 'zone_y', 'condition_type', 'description', 'severity', 'recorded_date']);
   private static readonly MEMORY_BOOK_UPDATE_COLUMNS = new Set(['title', 'description', 'image_urls', 'recorded_date', 'support_level']);
   private static readonly CAPACITY_ASSESSMENT_UPDATE_COLUMNS = new Set(['assessment_date', 'decision_to_be_made', 'capacity_found', 'capacity_status', 'best_interest_decision', 'best_interest_meeting_date', 'independent_advocate', 'relevant_people_informed', 'review_date', 'updated_at']);
-  private static readonly CARE_PATHWAY_UPDATE_COLUMNS = new Set(['pathway_type', 'title', 'start_date', 'end_date', 'location_name', 'referral_reason', 'discharge_notes', 'status', 'updated_at']);
+  private static readonly CARE_PATHWAY_UPDATE_COLUMNS = new Set(['pathway_type', 'title', 'start_date', 'end_date', 'location_name', 'referral_reason', 'discharge_notes', 'status', 'file_url', 'file_name', 'updated_at']);
   // ---- People ----
   static async findAll(orgId: string, filters?: { status?: string; search?: string }) {
     let sql = `SELECT su.*, 
@@ -365,11 +365,11 @@ export class PersonRepository {
   }
 
   static async createAssessment(orgId: string, data: any) {
-    const { person_id, assessment_type, assessment_date, assessor_name, findings, recommendations, status, next_review_date, created_by } = data;
+    const { person_id, assessment_type, assessment_date, assessor_name, findings, recommendations, status, next_review_date, file_url, file_name, created_by } = data;
     const result = await query(
-      `INSERT INTO care_assessments (organization_id, person_id, assessment_type, assessment_date, assessor_name, findings, recommendations, status, next_review_date, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-      [orgId, person_id, assessment_type, assessment_date || new Date().toISOString().split('T')[0], assessor_name || null, findings || null, recommendations || null, status || 'draft', next_review_date || null, created_by || null]
+      `INSERT INTO care_assessments (organization_id, person_id, assessment_type, assessment_date, assessor_name, findings, recommendations, status, next_review_date, file_url, file_name, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [orgId, person_id, assessment_type, assessment_date || new Date().toISOString().split('T')[0], assessor_name || null, findings || null, recommendations || null, status || 'draft', next_review_date || null, file_url || null, file_name || null, created_by || null]
     );
     return result.rows[0];
   }
@@ -779,11 +779,11 @@ export class PersonRepository {
   }
 
   static async createCarePathway(data: any) {
-    const { person_id, pathway_type, title, start_date, end_date, location_name, referral_reason, discharge_notes, status, recorded_by } = data;
+    const { person_id, pathway_type, title, start_date, end_date, location_name, referral_reason, discharge_notes, status, file_url, file_name, recorded_by } = data;
     const result = await query(
-      `INSERT INTO person_care_pathways (person_id, pathway_type, title, start_date, end_date, location_name, referral_reason, discharge_notes, status, recorded_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-      [person_id, pathway_type, title, start_date, end_date || null, location_name || null, referral_reason || null, discharge_notes || null, status || 'active', recorded_by || null]
+      `INSERT INTO person_care_pathways (person_id, pathway_type, title, start_date, end_date, location_name, referral_reason, discharge_notes, status, file_url, file_name, recorded_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [person_id, pathway_type, title, start_date, end_date || null, location_name || null, referral_reason || null, discharge_notes || null, status || 'active', file_url || null, file_name || null, recorded_by || null]
     );
     return result.rows[0];
   }

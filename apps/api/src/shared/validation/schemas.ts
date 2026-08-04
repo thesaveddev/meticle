@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { isDisposableEmail } from '../utils/disposableEmail';
 
+// Coerce empty strings to null for optional string fields (e.g. cleared form inputs)
+const emptyToNull = (schema: z.ZodTypeAny) => z.preprocess(v => (v === '' ? null : v), schema.nullable().optional());
+
 // === Auth ===
 export const registerSchema = z.object({
   email: z.string().email().refine(v => !isDisposableEmail(v), 'Temporary email addresses are not allowed'),
@@ -555,6 +558,8 @@ export const createAssessmentSchema = z.object({
   recommendations: z.string().optional(),
   status: z.enum(['draft','completed','reviewed']).optional(),
   next_review_date: z.string().optional(),
+  file_url: emptyToNull(z.string().max(500)),
+  file_name: emptyToNull(z.string().max(255)),
 });
 
 export const updateAssessmentSchema = createAssessmentSchema.partial();
@@ -1074,8 +1079,6 @@ export const createCapacityAssessmentSchema = z.object({
 
 export const updateCapacityAssessmentSchema = createCapacityAssessmentSchema.partial();
 
-const emptyToNull = (schema: z.ZodTypeAny) => z.preprocess(v => (v === '' ? null : v), schema.nullable().optional());
-
 export const createCarePathwaySchema = z.object({
   pathway_type: z.enum(['hospital_admission','hospital_discharge','short_break','assessment_unit','transition','other']),
   title: z.string().min(1).max(255),
@@ -1085,6 +1088,8 @@ export const createCarePathwaySchema = z.object({
   referral_reason: emptyToNull(z.string().max(2000)),
   discharge_notes: emptyToNull(z.string().max(5000)),
   status: z.enum(['active','completed','cancelled']).optional(),
+  file_url: emptyToNull(z.string().max(500)),
+  file_name: emptyToNull(z.string().max(255)),
 });
 
 export const updateCarePathwaySchema = createCarePathwaySchema.partial();
