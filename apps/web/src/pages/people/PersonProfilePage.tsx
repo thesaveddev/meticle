@@ -901,7 +901,7 @@ export default function PersonProfilePage() {
           ) : (
             <Stack spacing={1.5}>
               {user.recent_notes.map((n: any) => (
-                <Paper key={n.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: n.shift === 'night' ? '#1E293B' : n.shift === 'evening' ? '#D97706' : '#0F4C81', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D1D5DB' } }} onClick={() => setViewNote(n)}>
+                <Paper key={n.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: n.shift === 'night' ? '#1E293B' : n.shift === 'evening' || n.shift === 'day_pm' ? '#D97706' : '#0F4C81', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D1D5DB' } }} onClick={() => setViewNote(n)}>
                   <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.75 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Chip label={n.shift} size="small" color={n.shift === 'day' ? 'primary' : 'default'}
@@ -1644,7 +1644,8 @@ export default function PersonProfilePage() {
                 <Stack direction="row" spacing={1}>
                   <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={noteForm.note_date} onChange={e => setNoteForm({ ...noteForm, note_date: e.target.value })} />
                   <TextField select label="Shift" fullWidth value={noteForm.shift} onChange={e => setNoteForm({ ...noteForm, shift: e.target.value })}>
-                    <MenuItem value="day">Day</MenuItem>
+                    <MenuItem value="day_am">Day AM</MenuItem>
+                    <MenuItem value="day_pm">Day PM</MenuItem>
                     <MenuItem value="night">Night</MenuItem>
                   </TextField>
                 </Stack>
@@ -1678,7 +1679,8 @@ export default function PersonProfilePage() {
                 <Stack direction="row" spacing={1}>
                   <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={noteForm.note_date} onChange={e => setNoteForm({ ...noteForm, note_date: e.target.value })} />
                   <TextField select label="Shift" fullWidth value={noteForm.shift} onChange={e => setNoteForm({ ...noteForm, shift: e.target.value })}>
-                    <MenuItem value="day">Day</MenuItem>
+                    <MenuItem value="day_am">Day AM</MenuItem>
+                    <MenuItem value="day_pm">Day PM</MenuItem>
                     <MenuItem value="night">Night</MenuItem>
                   </TextField>
                 </Stack>
@@ -1812,7 +1814,7 @@ export default function PersonProfilePage() {
           {viewNote && (
             <Stack spacing={2}>
               <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                <Chip label={viewNote.shift} size="small" color={viewNote.shift === 'day' ? 'primary' : 'default'} sx={{ textTransform: 'capitalize' }} />
+                <Chip label={viewNote.shift?.replace('_', ' ')} size="small" color={viewNote.shift === 'day_am' || viewNote.shift === 'day_pm' ? 'primary' : 'default'} sx={{ textTransform: 'capitalize' }} />
                 <Chip label={viewNote.category?.replace(/_/g, ' ')} size="small" variant="outlined" sx={{ textTransform: 'capitalize' }} />
                 {viewNote.support_level && SUPPORT_LEVEL_LABELS[viewNote.support_level] && (
                   <Chip label={SUPPORT_LEVEL_LABELS[viewNote.support_level]} size="small" color={SUPPORT_LEVEL_COLORS[viewNote.support_level] || 'default'} />
