@@ -55,7 +55,7 @@ interface StaffMember {
 interface StockItem {
   id: string; medication_name: string; dosage: string; unit: string
   batch_number: string; expiry_date: string; quantity: number; quantity_unit: string
-  reorder_level: number; location: string; person_id?: string; status?: string
+  reorder_level: number; location: string; person_id?: string; person_name?: string; status?: string
 }
 
 interface Delivery {
@@ -124,6 +124,7 @@ export default function EMedicationPage() {
   const [editStock, setEditStock] = useState<StockItem | null>(null)
   const [stockForm, setStockForm] = useState({ medication_name: '', dosage: '', unit: 'mg', batch_number: '', expiry_date: '', quantity: 0, quantity_unit: 'tablets', reorder_level: 10, location: '' })
   const [stockPerson, setStockPerson] = useState<any>(null)
+  const [stockFilterPerson, setStockFilterPerson] = useState<any>(null)
 
   // Stock adjustment state
   const [adjustDialog, setAdjustDialog] = useState(false)
@@ -223,9 +224,13 @@ export default function EMedicationPage() {
 
   // Stock
   const { data: stockData, isLoading: stockLoading, isError: stockError } = useQuery({
-    queryKey: ['emedication-stock', showArchivedStock],
+    queryKey: ['emedication-stock', showArchivedStock, stockFilterPerson?.id],
     queryFn: async () => {
-      const res = await api.get(`/emedication/stock${showArchivedStock ? '?includeArchived=true' : ''}`)
+      const params = new URLSearchParams()
+      if (showArchivedStock) params.set('includeArchived', 'true')
+      if (stockFilterPerson?.id) params.set('personId', stockFilterPerson.id)
+      const qs = params.toString() ? `?${params.toString()}` : ''
+      const res = await api.get(`/emedication/stock${qs}`)
       return res.data as StockItem[]
     },
     enabled: tab === 1
@@ -2229,9 +2234,20 @@ export default function EMedicationPage() {
       {/* ═══ TAB 1: Stock ═══ */}
       {tab === 1 && (
         <Paper sx={{ p: 2 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
             <Typography variant="h6">Stock Inventory</Typography>
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+              <Box sx={{ minWidth: 220 }}>
+                <Autocomplete
+                  options={people || []}
+                  getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
+                  value={stockFilterPerson}
+                  onChange={(_, v) => setStockFilterPerson(v)}
+                  renderInput={(params) => <TextField {...params} label="Filter by person" size="small" />}
+                  isOptionEqualToValue={(o, v) => o.id === v.id}
+                  clearOnEscape
+                />
+              </Box>
               <Chip
                 label={showArchivedStock ? 'Showing All' : 'Active Only'}
                 size="small"
@@ -2262,6 +2278,7 @@ export default function EMedicationPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Medication</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Dosage</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Batch</TableCell>
@@ -2278,6 +2295,7 @@ export default function EMedicationPage() {
                     const isLow = item.quantity <= item.reorder_level
                     return (
                       <TableRow key={item.id} hover sx={{ bgcolor: isLow ? '#FEF2F2' : undefined }}>
+                        <TableCell sx={{ fontWeight: 600 }}>{item.person_name || (item.person_id ? '—' : <Chip label="Shared" size="small" variant="outlined" sx={{ fontStyle: 'italic' }} />) as any}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{item.medication_name}</TableCell>
                         <TableCell>{item.dosage}{item.unit}</TableCell>
                         <TableCell><Typography variant="caption" fontFamily="monospace">{item.batch_number || '\u2014'}</Typography></TableCell>
