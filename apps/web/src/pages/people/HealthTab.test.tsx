@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import HealthTab from './HealthTab'
 
@@ -20,6 +20,10 @@ function renderHealthTab() {
   )
 }
 
+function clickTab(label: RegExp) {
+  fireEvent.click(screen.getByRole('tab', { name: label }))
+}
+
 beforeEach(() => {
   vi.mocked(api.get).mockImplementation((url: string) => {
     if (url.includes('/fluid/total')) return Promise.resolve({ data: { total_ml: 0 } })
@@ -27,30 +31,44 @@ beforeEach(() => {
   })
 })
 
-describe('HealthTab stacked sections', () => {
-  it('renders all four health sections together on a single page', async () => {
+describe('HealthTab inner tabs', () => {
+  it('renders four inner tabs and shows the Observations section by default', async () => {
     renderHealthTab()
+
+    expect(screen.getByRole('tab', { name: /Observations/i })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Fluid/i })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Bowel/i })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Dental/i })).toBeInTheDocument()
 
     await waitFor(() => {
       expect(screen.getByText('Health Observations')).toBeInTheDocument()
-      expect(screen.getByText('Bowel Movements')).toBeInTheDocument()
-      expect(screen.getByText('Dental Records')).toBeInTheDocument()
-      expect(screen.getByText('Fluid Intake')).toBeInTheDocument()
     })
   })
 
-  it('shows an empty state for every section when no data exists', async () => {
+  it('switches to each section and shows its empty state', async () => {
     renderHealthTab()
 
     await waitFor(() => {
       expect(screen.getByText('No observations recorded')).toBeInTheDocument()
-      expect(screen.getByText('No bowel movements recorded')).toBeInTheDocument()
-      expect(screen.getByText('No dental records')).toBeInTheDocument()
+    })
+
+    clickTab(/Fluid/i)
+    await waitFor(() => {
       expect(screen.getByText('No fluid intake recorded for this date')).toBeInTheDocument()
+    })
+
+    clickTab(/Bowel/i)
+    await waitFor(() => {
+      expect(screen.getByText('No bowel movements recorded')).toBeInTheDocument()
+    })
+
+    clickTab(/Dental/i)
+    await waitFor(() => {
+      expect(screen.getByText('No dental records')).toBeInTheDocument()
     })
   })
 
-  it('keeps all sections visible even when some sections have records', async () => {
+  it('shows only the active section while keeping the others one click away', async () => {
     vi.mocked(api.get).mockImplementation((url: string) => {
       if (url.includes('/observations')) {
         return Promise.resolve({
@@ -65,14 +83,23 @@ describe('HealthTab stacked sections', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Fine today')).toBeInTheDocument()
-      expect(screen.getByText('Health Observations')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Bowel Movements')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dental Records')).not.toBeInTheDocument()
+
+    clickTab(/Bowel/i)
+    await waitFor(() => {
       expect(screen.getByText('Bowel Movements')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Fine today')).not.toBeInTheDocument()
+
+    clickTab(/Dental/i)
+    await waitFor(() => {
       expect(screen.getByText('Dental Records')).toBeInTheDocument()
-      expect(screen.getByText('Fluid Intake')).toBeInTheDocument()
     })
   })
 
-  it('shows the fluid daily total from the API', async () => {
+  it('shows the fluid daily total from the API on the Fluid tab', async () => {
     vi.mocked(api.get).mockImplementation((url: string) => {
       if (url.includes('/fluid/total')) return Promise.resolve({ data: { total_ml: 1750 } })
       return Promise.resolve({ data: [] })
@@ -80,6 +107,7 @@ describe('HealthTab stacked sections', () => {
 
     renderHealthTab()
 
+    clickTab(/Fluid/i)
     await waitFor(() => {
       expect(screen.getByText(/1,?750 ml/)).toBeInTheDocument()
       expect(screen.getByText('Target: 2000 ml')).toBeInTheDocument()

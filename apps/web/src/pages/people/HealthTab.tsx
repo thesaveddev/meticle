@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Typography, Paper, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, CircularProgress } from '@mui/material'
+import { Box, Typography, Paper, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, CircularProgress, Tabs, Tab } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, MonitorHeart as MonitorHeartIcon, Waves as BowelIcon, Medication as DentalIcon, WaterDrop as FluidIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -358,28 +358,26 @@ function FluidSection({ personId }: { personId: string }) {
   )
 }
 
-export default function HealthTab({ personId }: { personId: string }) {
-  return (
-    <Stack spacing={4}>
-      <Box>
-        <ObservationsSection personId={personId} />
-      </Box>
-      <DividerLine />
-      <Box>
-        <FluidSection personId={personId} />
-      </Box>
-      <DividerLine />
-      <Box>
-        <BowelSection personId={personId} />
-      </Box>
-      <DividerLine />
-      <Box>
-        <DentalSection personId={personId} />
-      </Box>
-    </Stack>
-  )
-}
+type HealthSectionComponent = ({ personId }: { personId: string }) => JSX.Element
 
-function DividerLine() {
-  return <Box sx={{ borderBottom: '1px solid #E5E7EB' }} />
+const HEALTH_TABS: { label: string; icon: JSX.Element; Component: HealthSectionComponent }[] = [
+  { label: 'Observations', icon: <MonitorHeartIcon sx={{ fontSize: 18 }} />, Component: ObservationsSection },
+  { label: 'Fluid', icon: <FluidIcon sx={{ fontSize: 18 }} />, Component: FluidSection },
+  { label: 'Bowel', icon: <BowelIcon sx={{ fontSize: 18 }} />, Component: BowelSection },
+  { label: 'Dental', icon: <DentalIcon sx={{ fontSize: 18 }} />, Component: DentalSection },
+]
+
+export default function HealthTab({ personId }: { personId: string }) {
+  const [innerTab, setInnerTab] = useState(0)
+  const Active = HEALTH_TABS[innerTab].Component
+  return (
+    <Box>
+      <Tabs value={innerTab} onChange={(_, v) => setInnerTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: 1, borderColor: '#E5E7EB', mb: 2, minHeight: 44, '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 44 } }}>
+        {HEALTH_TABS.map((t) => (
+          <Tab key={t.label} icon={t.icon} iconPosition="start" label={t.label} />
+        ))}
+      </Tabs>
+      <Active personId={personId} />
+    </Box>
+  )
 }
