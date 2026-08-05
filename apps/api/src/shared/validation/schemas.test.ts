@@ -15,6 +15,7 @@ import {
   reviewLeaveRequestSchema,
   updatePlanSchema,
   createManagerDelegationSchema,
+  contactSchema,
 } from './schemas';
 
 describe('validation schemas', () => {
@@ -262,6 +263,44 @@ describe('validation schemas', () => {
     it('should reject missing delegate', () => {
       const result = createManagerDelegationSchema.safeParse({
         primary_manager_id: '123e4567-e89b-12d3-a456-426614174000',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('contactSchema', () => {
+    it('should accept valid submission', () => {
+      const result = contactSchema.safeParse({
+        name: 'Jane Doe',
+        email: 'jane@example.com',
+        company: 'Example Care Ltd',
+        message: 'I would like a demo.',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept submission without company', () => {
+      const result = contactSchema.safeParse({
+        name: 'Jane Doe',
+        email: 'jane@example.com',
+        message: 'I would like a demo.',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject invalid email', () => {
+      const result = contactSchema.safeParse({
+        name: 'Jane Doe',
+        email: 'not-an-email',
+        message: 'I would like a demo.',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject missing message', () => {
+      const result = contactSchema.safeParse({
+        name: 'Jane Doe',
+        email: 'jane@example.com',
       });
       expect(result.success).toBe(false);
     });

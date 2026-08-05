@@ -860,7 +860,7 @@ export default function PersonProfilePage() {
                 const isOverdue = cp.review_date && new Date(cp.review_date) < new Date()
                 return (
                 <Grid item xs={12} md={6} key={cp.id}>
-                  <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: cp.status === 'active' ? '#0F4C81' : '#9CA3AF', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } }}>
+                  <Paper onClick={() => viewCarePlan(cp)} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: cp.status === 'active' ? '#0F4C81' : '#9CA3AF', cursor: 'pointer', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box sx={{ minWidth: 0, flex: 1 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
@@ -870,15 +870,10 @@ export default function PersonProfilePage() {
                         {cp.description && <Typography variant="body2" color="#6B7280" sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{cp.description}</Typography>}
                       </Box>
                       <Stack direction="row" spacing={0.5} sx={{ ml: 1, flexShrink: 0 }}>
-                        <Tooltip title="View care plan">
-                          <IconButton size="small" onClick={() => viewCarePlan(cp)}>
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <IconButton size="small" onClick={() => { setPlanForm({ title: cp.title, category: cp.category, description: cp.description || '', risk_assessment: cp.risk_assessment || '', review_date: cp.review_date || '', mobility_level: cp.mobility_level || '', mobility_aids: cp.mobility_aids || '', communication_needs: cp.communication_needs || '', capacity_status: cp.capacity_status || '', sleep_pattern: cp.sleep_pattern || '', emergency_info: cp.emergency_info || '', personal_goals: cp.personal_goals || '', likes_dislikes: cp.likes_dislikes || '', cultural_needs: cp.cultural_needs || '', file_url: cp.file_url || '', file_name: cp.file_name || '', sections: cp.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(cp.id); setPlanTab(0); setAddPlanOpen(true) }}>
+                        <IconButton size="small" onClick={e => { e.stopPropagation(); setPlanForm({ title: cp.title, category: cp.category, description: cp.description || '', risk_assessment: cp.risk_assessment || '', review_date: cp.review_date || '', mobility_level: cp.mobility_level || '', mobility_aids: cp.mobility_aids || '', communication_needs: cp.communication_needs || '', capacity_status: cp.capacity_status || '', sleep_pattern: cp.sleep_pattern || '', emergency_info: cp.emergency_info || '', personal_goals: cp.personal_goals || '', likes_dislikes: cp.likes_dislikes || '', cultural_needs: cp.cultural_needs || '', file_url: cp.file_url || '', file_name: cp.file_name || '', sections: cp.sections || { ...EMPTY_PLAN_FORM.sections } }); setEditPlanId(cp.id); setPlanTab(0); setAddPlanOpen(true) }}>
                           <EditIcon fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" onClick={() => setDeleteConfirm({ type: 'plan', id: cp.id })}>
+                        <IconButton size="small" onClick={e => { e.stopPropagation(); setDeleteConfirm({ type: 'plan', id: cp.id }) }}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Stack>
@@ -2127,6 +2122,10 @@ export default function PersonProfilePage() {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
+          <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}
+            onClick={() => { const r = viewRisk; setViewRisk(null); setTimeout(() => { setRiskForm({ type: r.type, risk_level: r.risk_level, details: r.details || '', mitigation_actions: r.mitigation_actions || '', review_date: r.review_date ? r.review_date.slice(0, 10) : '', file_url: r.file_url || '', file_name: r.file_name || '' }); setEditRiskId(r.id); setAddRiskOpen(true) }, 100) }}>
+            Edit
+          </Button>
           <Button onClick={() => setViewRisk(null)}>Close</Button>
         </DialogActions>
       </Dialog>
@@ -2283,6 +2282,10 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
+          <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}
+            onClick={() => { const a = selected; setViewOpen(false); setTimeout(() => openEdit(a), 100) }}>
+            Edit
+          </Button>
           <Button onClick={() => setViewOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
@@ -3465,7 +3468,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
           )}
           </DialogActions>
       </Dialog>
-      <ConfirmDialog open={!!deleteTarget} title="Delete pathway" message="This will permanently remove this care pathway. This action cannot be undone." onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }} />
+      <ConfirmDialog open={!!deleteTarget} title="Delete pathway" message="This will permanently remove this care pathway. This action cannot be undone." confirmLabel="Delete" danger onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }} />
     </Box>
   )
 }
