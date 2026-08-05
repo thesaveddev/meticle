@@ -160,11 +160,11 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
     setExpandedGoalId(goalId)
     if (!milestones[goalId]) {
       try {
-        const [mRes, pRes] = await Promise.all([
-          api.get(`/goals/${goalId}/milestones`),
-          api.get(`/goals/${goalId}/progress-history`),
-        ])
+        const mRes = await api.get(`/goals/${goalId}/milestones`)
         setMilestones(prev => ({ ...prev, [goalId]: mRes.data }))
+      } catch { /* silently fail */ }
+      try {
+        const pRes = await api.get(`/goals/${goalId}/progress-history`)
         setProgressHistory(prev => ({ ...prev, [goalId]: pRes.data }))
       } catch { /* silently fail */ }
     }
@@ -350,7 +350,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       {/* Goal Create/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editing ? 'Edit Goal' : 'New Goal'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{editing ? 'Edit Goal' : 'New Goal'}</DialogTitle>
         <DialogContent>
           {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 2 }}>{fetchError}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -441,7 +441,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       {/* Milestone Add Dialog */}
       <Dialog open={milestoneDialogOpen} onClose={() => setMilestoneDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Add Milestone</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>Add Milestone</DialogTitle>
         <DialogContent>
           {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 1 }}>{fetchError}</Alert>}
           <TextField label="Milestone Title" fullWidth value={milestoneTitle} onChange={e => setMilestoneTitle(e.target.value)} sx={{ mt: fetchError ? 0 : 1 }} />
@@ -454,7 +454,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       {/* Progress Record Dialog */}
       <Dialog open={progressDialogOpen} onClose={() => setProgressDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Record Progress</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>Record Progress</DialogTitle>
         <DialogContent>
           {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 1 }}>{fetchError}</Alert>}
           <Stack spacing={2} sx={{ mt: fetchError ? 0 : 1 }}>
