@@ -37,7 +37,7 @@ export default function AboutPage() {
             <Grid item xs={12} md={6}>
               <Box sx={{ p: 6, bgcolor: '#0F4C81', borderRadius: 4, color: 'white', textAlign: 'center' }}>
                 <Typography variant="h3" sx={{ fontWeight: 900, mb: 2 }}>UK-Based</Typography>
-                <Typography sx={{ opacity: 0.9, mb: 3 }}>Headquartered in London, serving care providers nationwide</Typography>
+                <Typography sx={{ opacity: 0.9, mb: 3 }}>Serving care providers nationwide with UK data sovereignty</Typography>
                 <Divider sx={{ borderColor: 'rgba(255,255,255,0.2)', mb: 3 }} />
                 <Typography variant="h3" sx={{ fontWeight: 900, mb: 2 }}>Care-Operated</Typography>
                 <Typography sx={{ opacity: 0.9 }}>Built by former care managers who understand your challenges</Typography>
