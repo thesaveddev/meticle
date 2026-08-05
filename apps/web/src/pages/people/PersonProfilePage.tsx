@@ -3450,7 +3450,6 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setViewId(null)}>Close</Button>
           {viewPathway && (
             <Button startIcon={<EditIcon />} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }} onClick={() => {
               setViewId(null)
@@ -3463,6 +3462,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
               }); setEditId(viewPathway.id); setAddOpen(true)
             }}>Edit</Button>
           )}
+          <Button onClick={() => setViewId(null)}>Close</Button>
           </DialogActions>
       </Dialog>
       <ConfirmDialog open={!!deleteTarget} title="Delete pathway" message="This will permanently remove this care pathway. This action cannot be undone." confirmLabel="Delete" danger onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }} />
