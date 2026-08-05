@@ -470,7 +470,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       {/* Delete Goal Confirmation */}
       <Dialog open={!!deleteGoalId} onClose={() => setDeleteGoalId(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Delete Goal</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Delete Goal</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to delete this goal? This action cannot be undone.</Typography>
         </DialogContent>

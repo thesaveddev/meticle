@@ -81,7 +81,7 @@ function ConfirmDialog({ open, title, message, onConfirm, onCancel }: {
 }) {
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
-      <DialogTitle>{title}</DialogTitle>
+      <DialogTitle sx={{ color: 'error.main', fontWeight: 800 }}>{title}</DialogTitle>
       <DialogContent><Typography>{message}</Typography></DialogContent>
       <DialogActions>
         <Button onClick={onCancel}>Cancel</Button>
