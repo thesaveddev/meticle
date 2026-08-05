@@ -24,8 +24,13 @@ router.post('/:id/milestones', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER)
 router.patch('/milestones/:milestoneId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateMilestoneSchema), asyncHandler(GoalController.updateMilestone));
 router.delete('/milestones/:milestoneId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(GoalController.deleteMilestone));
 
+// Compat aliases for older clients (nested milestone paths, legacy progress path)
+router.patch('/:id/milestones/:milestoneId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateMilestoneSchema), asyncHandler(GoalController.updateMilestone));
+router.delete('/:id/milestones/:milestoneId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(GoalController.deleteMilestone));
+
 // Progress History
 router.get('/:id/progress-history', asyncHandler(GoalController.getProgressHistory));
+router.get('/:id/progress', asyncHandler(GoalController.getProgressHistory));
 router.post('/:id/progress', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(recordProgressSchema), asyncHandler(GoalController.recordProgress));
 
 export default router;
