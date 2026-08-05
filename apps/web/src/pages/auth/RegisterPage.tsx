@@ -1,6 +1,6 @@
 import { usePageMeta } from '../../components/PageMeta'
 import { useState, useEffect } from 'react'
-import { TextField, Button, Box, Typography, Container, Stack, Link, Alert, CircularProgress, MenuItem, InputAdornment, IconButton, Checkbox, FormControlLabel } from '@mui/material'
+import { TextField, Button, Box, Typography, Container, Stack, Link, Alert, CircularProgress, InputAdornment, IconButton, Checkbox, FormControlLabel } from '@mui/material'
 import { useForm } from 'react-hook-form'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
@@ -348,21 +348,6 @@ export default function RegisterPage() {
                 <Alert severity="success" sx={{ borderRadius: 2, py: 0 }}>
                   Email verified successfully
                 </Alert>
-              )}
-
-              {!invitation && (
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Account Type</Typography>
-                  <TextField
-                    select
-                    fullWidth
-                    defaultValue={UserRole.ORG_ADMIN}
-                    {...register('role')}
-                  >
-                    <MenuItem value={UserRole.ORG_ADMIN}>Care Organization / Manager</MenuItem>
-                    <MenuItem value={UserRole.CARE_WORKER}>Independent Healthcare Professional</MenuItem>
-                  </TextField>
-                </Box>
               )}
 
               <Box>

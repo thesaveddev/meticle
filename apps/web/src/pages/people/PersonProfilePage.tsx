@@ -986,7 +986,7 @@ export default function PersonProfilePage() {
                 </TableHead>
                 <TableBody>
                   {user.risk_assessments.map((ra: any) => (
-                    <TableRow key={ra.id} sx={{ '&:hover': { bgcolor: '#F9FAFB' } }}>
+                    <TableRow key={ra.id} onClick={() => setViewRisk(ra)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#F9FAFB' } }}>
                       <TableCell sx={{ textTransform: 'capitalize', fontWeight: 600 }}>{ra.type?.replace(/_/g, ' ')}</TableCell>
                       <TableCell>
                         <Chip icon={<WarningIcon sx={{ fontSize: 14 }} />} label={ra.risk_level} size="small"
@@ -995,13 +995,10 @@ export default function PersonProfilePage() {
                       <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>{ra.details || '—'}</Typography></TableCell>
                       <TableCell>{ra.review_date ? new Date(ra.review_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                       <TableCell>
-                        <IconButton size="small" onClick={() => setViewRisk(ra)} title="View details">
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => { setRiskForm({ type: ra.type, risk_level: ra.risk_level, details: ra.details || '', mitigation_actions: ra.mitigation_actions || '', review_date: ra.review_date ? ra.review_date.slice(0, 10) : '', file_url: ra.file_url || '', file_name: ra.file_name || '' }); setEditRiskId(ra.id); setAddRiskOpen(true) }} title="Edit">
+                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); setRiskForm({ type: ra.type, risk_level: ra.risk_level, details: ra.details || '', mitigation_actions: ra.mitigation_actions || '', review_date: ra.review_date ? ra.review_date.slice(0, 10) : '', file_url: ra.file_url || '', file_name: ra.file_name || '' }); setEditRiskId(ra.id); setAddRiskOpen(true) }} title="Edit">
                           <EditIcon fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" onClick={() => setDeleteConfirm({ type: 'risk', id: ra.id })} title="Delete">
+                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'risk', id: ra.id }) }} title="Delete">
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </TableCell>
