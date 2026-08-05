@@ -313,7 +313,8 @@ export class EMedicationController {
   static async listStock(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
     const includeArchived = req.query.includeArchived === 'true';
-    const stock = await EMedicationRepository.listStock(orgId, includeArchived);
+    const personId = req.query.personId as string | undefined;
+    const stock = await EMedicationRepository.listStock(orgId, includeArchived, personId);
     res.json(stock);
   }
 

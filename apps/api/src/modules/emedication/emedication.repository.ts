@@ -445,11 +445,17 @@ export class EMedicationRepository {
     return result.rows[0];
   }
 
-  static async listStock(orgId: string, includeArchived = false) {
-    const sql = includeArchived
-      ? `SELECT * FROM emedication_stock WHERE organization_id = $1 ORDER BY medication_name`
-      : `SELECT * FROM emedication_stock WHERE organization_id = $1 AND status = 'active' ORDER BY medication_name`;
-    const result = await query(sql, [orgId]);
+  static async listStock(orgId: string, includeArchived = false, personId?: string) {
+    const personName = `(SELECT first_name || ' ' || last_name FROM people WHERE id = emedication_stock.person_id) AS person_name`;
+    const base = `SELECT emedication_stock.*, ${personName} FROM emedication_stock WHERE organization_id = $1`;
+    const conditions: string[] = [];
+    const params: any[] = [orgId];
+    let idx = 2;
+    if (!includeArchived) { conditions.push(`status = 'active'`); }
+    if (personId) { conditions.push(`person_id = $${idx++}`); params.push(personId); }
+    const where = conditions.length ? ` AND ${conditions.join(' AND ')}` : '';
+    const sql = `${base}${where} ORDER BY medication_name`;
+    const result = await query(sql, params);
     return result.rows;
   }
 
