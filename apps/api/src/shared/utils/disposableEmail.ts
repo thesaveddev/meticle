@@ -116,14 +116,18 @@ export function mxHostIsDisposable(host: string): boolean {
  * parent domain IS in the blocklist. Check the domain's MX records for that
  * fingerprint. Fails open if DNS is unavailable so real signups aren't blocked.
  */
-export const _resolveMx = dns.resolveMx.bind(dns) as typeof dns.resolveMx;
+export const mxResolver: { resolveMx: typeof dns.resolveMx } = {
+  resolveMx: dns.resolveMx.bind(dns),
+};
+
+export const _resolveMx = mxResolver.resolveMx;
 
 export async function isDisposableEmailByMx(email: string): Promise<boolean> {
   const domain = email.split('@')[1]?.toLowerCase();
   if (!domain) return false;
   try {
     const mxs = await Promise.race([
-      _resolveMx(domain),
+      mxResolver.resolveMx(domain),
       sleep(3000).then(() => {
         throw new Error('dns-timeout');
       }),
