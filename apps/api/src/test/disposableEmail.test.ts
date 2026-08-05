@@ -61,7 +61,7 @@ describe('isDisposableEmailByMx', () => {
   });
 
   it('should return true when MX host is disposable', async () => {
-    vi.spyOn(mod, '_resolveMx').mockResolvedValue([
+    vi.spyOn(mod.mxResolver, 'resolveMx').mockResolvedValue([
       { exchange: 'prd-smtp.10minutemail.com', priority: 50, name: '' },
     ]);
     const result = await isDisposableEmailByMx('user@jbsze.com');
@@ -69,7 +69,7 @@ describe('isDisposableEmailByMx', () => {
   });
 
   it('should return false for normal domain', async () => {
-    vi.spyOn(mod, '_resolveMx').mockResolvedValue([
+    vi.spyOn(mod.mxResolver, 'resolveMx').mockResolvedValue([
       { exchange: 'aspmx.l.google.com', priority: 10, name: '' },
       { exchange: 'alt1.aspmx.l.google.com', priority: 20, name: '' },
     ]);
@@ -78,7 +78,7 @@ describe('isDisposableEmailByMx', () => {
   });
 
   it('should return false on DNS error (fail-open)', async () => {
-    vi.spyOn(mod, '_resolveMx').mockRejectedValue(new Error('ENOTFOUND'));
+    vi.spyOn(mod.mxResolver, 'resolveMx').mockRejectedValue(new Error('ENOTFOUND'));
     const result = await isDisposableEmailByMx('user@nonexistent-domain-xyz123.com');
     expect(result).toBe(false);
   });
