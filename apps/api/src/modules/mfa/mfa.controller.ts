@@ -38,13 +38,26 @@ export class MFAController {
       return res.status(400).json({ error: { message: 'MFA is already enabled. Disable it first to set up a new one.' } });
     }
 
-    const secret = speakeasy.generateSecret({ name: `Meticle (${req.user!.email})` });
+    // Reuse an existing secret so the QR always matches the stored secret.
+    // Regenerating on every call desyncs the user's authenticator app from the
+    // stored secret after a retry, re-login, or visiting the Settings MFA tab
+    // (each /mfa/setup call would mint a new secret and invalidate the last QR).
+    let secret = existing.rows[0]?.mfa_secret;
+    if (!secret) {
+      const generated = speakeasy.generateSecret({ name: `Meticle (${req.user!.email})` });
+      secret = generated.base32;
+      await pool.query('UPDATE users SET mfa_secret = $1 WHERE id = $2', [secret, userId]);
+    }
 
-    await pool.query('UPDATE users SET mfa_secret = $1 WHERE id = $2', [secret.base32, userId]);
+    const otpauthUrl = speakeasy.otpauthURL({
+      secret,
+      encoding: 'base32',
+      label: `Meticle (${req.user!.email})`,
+    });
 
-    const qrCode = await qrcode.toDataURL(secret.otpauth_url!);
+    const qrCode = await qrcode.toDataURL(otpauthUrl);
 
-    res.json({ secret: secret.base32, qrCode });
+    res.json({ secret, qrCode });
   }
 
   static async verify(req: Request, res: Response) {

@@ -30,4 +30,24 @@ describe('MFA flow', () => {
     });
     expect(verified).toBe(false);
   });
+
+  it('should rebuild the otpauth URL for a reused (stored) secret', () => {
+    const stored = speakeasy.generateSecret({ name: 'Meticle (test@x.com)' }).base32;
+    const url = speakeasy.otpauthURL({
+      secret: stored,
+      encoding: 'base32',
+      label: 'Meticle (test@x.com)',
+    });
+    expect(url).toContain('otpauth://');
+    expect(url).toContain(`secret=${stored}`);
+
+    const token = speakeasy.totp({ secret: stored, encoding: 'base32' });
+    const verified = speakeasy.totp.verify({
+      secret: stored,
+      encoding: 'base32',
+      token,
+      window: 1,
+    });
+    expect(verified).toBe(true);
+  });
 });

@@ -9,6 +9,7 @@ export default function MfaSetupPage() {
   const navigate = useNavigate()
   const setupToken = (location.state as any)?.mfaSetupToken
   const email = (location.state as any)?.email
+  usePageMeta({ title: 'Set Up Two-Factor Authentication | MeticleCare', description: 'Configure two-factor authentication for your MeticleCare account.', noindex: true })
 
   const [qrCode, setQrCode] = useState('')
   const [secret, setSecret] = useState('')
@@ -83,8 +84,6 @@ export default function MfaSetupPage() {
       </Box>
     )
   }
-
-  usePageMeta({ title: 'Set Up Two-Factor Authentication | MeticleCare', description: 'Configure two-factor authentication for your MeticleCare account.', noindex: true })
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
