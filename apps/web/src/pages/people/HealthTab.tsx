@@ -1,36 +1,46 @@
 import { useState } from 'react'
-import { Box, Typography, Paper, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, CircularProgress, Tabs, Tab } from '@mui/material'
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material'
+import { Box, Typography, Paper, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, CircularProgress } from '@mui/material'
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, MonitorHeart as MonitorHeartIcon, Waves as BowelIcon, Medication as DentalIcon, WaterDrop as FluidIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { SectionHeader, ConfirmDialog, EmptyRow } from '../../components/ui'
 
 const BRISTOL_LABELS: Record<number, string> = { 1: 'Type 1: Separate hard lumps', 2: 'Type 2: Sausage-shaped but lumpy', 3: 'Type 3: Sausage-shaped with cracks', 4: 'Type 4: Smooth, soft sausage', 5: 'Type 5: Soft blobs with clear edges', 6: 'Type 6: Fluffy, mushy pieces', 7: 'Type 7: Watery, no solid pieces' }
 const BRISTOL_COLORS: Record<number, string> = { 1: '#6B4226', 2: '#8B5E3C', 3: '#A0785A', 4: '#8FBC8F', 5: '#D4A76A', 6: '#D2B48C', 7: '#C4A882' }
 const SEVERITY_COLORS: Record<string, string> = { normal: '#16A34A', mild: '#D97706', moderate: '#DC2626', severe: '#7C3AED' }
 
-const HEALTH_SUB_TABS = ['Observations', 'Bowel Movements', 'Dental Records', 'Fluid Intake']
-
 const today = () => new Date().toISOString().split('T')[0]
+
+function useDeleteConfirm() {
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null)
+  return { deleteTarget, setDeleteTarget }
+}
 
 function ObservationsSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const { deleteTarget, setDeleteTarget } = useDeleteConfirm()
   const [form, setForm] = useState({ observation_date: today(), category: 'general', notes: '', severity: 'normal' })
   const { data, isLoading } = useQuery({ queryKey: ['health-obs', personId], queryFn: () => api.get(`/health/${personId}/observations`).then(r => r.data) })
   const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${personId}/observations`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-obs', personId] }); setAddOpen(false); setEditId(null); setForm({ observation_date: today(), category: 'general', notes: '', severity: 'normal' }) } })
   const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${personId}/observations/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-obs', personId] }); setAddOpen(false); setEditId(null); setForm({ observation_date: today(), category: 'general', notes: '', severity: 'normal' }) } })
-  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/observations/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ['health-obs', personId] }) })
+  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/observations/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-obs', personId] }); setDeleteTarget(null) } })
 
-  if (isLoading) return <CircularProgress size={24} />
+  if (isLoading) return <Box sx={{ py: 3 }}><CircularProgress size={24} /></Box>
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Health Observations</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Observation</Button>
-      </Stack>
+      <SectionHeader
+        title="Health Observations"
+        icon={<MonitorHeartIcon sx={{ fontSize: 20 }} />}
+        action={
+          <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
+            Add Observation
+          </Button>
+        }
+      />
       {(!data || data.length === 0) ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}><Typography color="#9CA3AF">No observations recorded</Typography></Paper>
+        <EmptyRow message="No observations recorded" />
       ) : (
         <Stack spacing={1.5}>
           {data.map((o: any) => (
@@ -42,8 +52,10 @@ function ObservationsSection({ personId }: { personId: string }) {
                   <Typography variant="caption" color="#6B7280">{new Date(o.observation_date).toLocaleDateString('en-GB')}</Typography>
                   {o.recorded_by_name && <Typography variant="caption" color="#9CA3AF">by {o.recorded_by_name}</Typography>}
                 </Stack>
-                <IconButton size="small" onClick={() => { setForm({ observation_date: o.observation_date?.split('T')[0] || o.observation_date, category: o.category, notes: o.notes || '', severity: o.severity }); setEditId(o.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
-                <IconButton size="small" onClick={() => delMut.mutate(o.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                <Stack direction="row" spacing={0}>
+                  <IconButton size="small" onClick={() => { setForm({ observation_date: o.observation_date?.split('T')[0] || o.observation_date, category: o.category, notes: o.notes || '', severity: o.severity }); setEditId(o.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" onClick={() => setDeleteTarget({ id: o.id, label: 'this observation' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                </Stack>
               </Stack>
               {o.notes && <Typography variant="body2" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>{o.notes}</Typography>}
             </Paper>
@@ -72,6 +84,16 @@ function ObservationsSection({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}><Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button><Button type="submit" variant="contained" disabled={addMut.isPending || updMut.isPending} sx={{ bgcolor: '#0F4C81' }}>{(addMut.isPending || updMut.isPending) ? <CircularProgress size={20} /> : 'Save'}</Button></DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete observation?"
+        message={<>This will permanently delete {deleteTarget?.label}. This action cannot be undone.</>}
+        confirmLabel="Delete"
+        danger
+        loading={delMut.isPending}
+        onConfirm={() => deleteTarget && delMut.mutate(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </Box>
   )
 }
@@ -80,21 +102,27 @@ function BowelSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const { deleteTarget, setDeleteTarget } = useDeleteConfirm()
   const [form, setForm] = useState({ recorded_date: today(), recorded_time: '', bristol_type: 4, consistency: '', color: '', notes: '' })
   const { data, isLoading } = useQuery({ queryKey: ['health-bowel', personId], queryFn: () => api.get(`/health/${personId}/bowel`).then(r => r.data) })
   const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${personId}/bowel`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-bowel', personId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', bristol_type: 4, consistency: '', color: '', notes: '' }) } })
   const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${personId}/bowel/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-bowel', personId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', bristol_type: 4, consistency: '', color: '', notes: '' }) } })
-  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/bowel/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ['health-bowel', personId] }) })
+  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/bowel/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-bowel', personId] }); setDeleteTarget(null) } })
 
-  if (isLoading) return <CircularProgress size={24} />
+  if (isLoading) return <Box sx={{ py: 3 }}><CircularProgress size={24} /></Box>
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Bowel Movements</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Record Movement</Button>
-      </Stack>
+      <SectionHeader
+        title="Bowel Movements"
+        icon={<BowelIcon sx={{ fontSize: 20 }} />}
+        action={
+          <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
+            Record Movement
+          </Button>
+        }
+      />
       {(!data || data.length === 0) ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}><Typography color="#9CA3AF">No bowel movements recorded</Typography></Paper>
+        <EmptyRow message="No bowel movements recorded" />
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
           <Table size="small">
@@ -115,7 +143,7 @@ function BowelSection({ personId }: { personId: string }) {
                   <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 250 }}>{b.notes || '-'}</Typography></TableCell>
                   <TableCell>
                     <IconButton size="small" onClick={() => { setForm({ recorded_date: b.recorded_date?.split('T')[0] || b.recorded_date, recorded_time: b.recorded_time || '', bristol_type: b.bristol_type || 4, consistency: b.consistency || '', color: b.color || '', notes: b.notes || '' }); setEditId(b.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" onClick={() => delMut.mutate(b.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" onClick={() => setDeleteTarget({ id: b.id, label: 'this bowel movement' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -150,6 +178,16 @@ function BowelSection({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}><Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button><Button type="submit" variant="contained" disabled={addMut.isPending || updMut.isPending} sx={{ bgcolor: '#0F4C81' }}>{(addMut.isPending || updMut.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save' : 'Record')}</Button></DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete bowel movement?"
+        message={<>This will permanently delete {deleteTarget?.label}. This action cannot be undone.</>}
+        confirmLabel="Delete"
+        danger
+        loading={delMut.isPending}
+        onConfirm={() => deleteTarget && delMut.mutate(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </Box>
   )
 }
@@ -158,21 +196,27 @@ function DentalSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const { deleteTarget, setDeleteTarget } = useDeleteConfirm()
   const [form, setForm] = useState({ checkup_date: today(), dentist_name: '', findings: '', actions_taken: '', next_checkup_date: '', notes: '' })
   const { data, isLoading } = useQuery({ queryKey: ['health-dental', personId], queryFn: () => api.get(`/health/${personId}/dental`).then(r => r.data) })
   const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${personId}/dental`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-dental', personId] }); setAddOpen(false); setEditId(null); setForm({ checkup_date: today(), dentist_name: '', findings: '', actions_taken: '', next_checkup_date: '', notes: '' }) } })
   const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${personId}/dental/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-dental', personId] }); setAddOpen(false); setEditId(null); setForm({ checkup_date: today(), dentist_name: '', findings: '', actions_taken: '', next_checkup_date: '', notes: '' }) } })
-  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/dental/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ['health-dental', personId] }) })
+  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/dental/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-dental', personId] }); setDeleteTarget(null) } })
 
-  if (isLoading) return <CircularProgress size={24} />
+  if (isLoading) return <Box sx={{ py: 3 }}><CircularProgress size={24} /></Box>
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Dental Records</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Record</Button>
-      </Stack>
+      <SectionHeader
+        title="Dental Records"
+        icon={<DentalIcon sx={{ fontSize: 20 }} />}
+        action={
+          <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
+            Add Record
+          </Button>
+        }
+      />
       {(!data || data.length === 0) ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}><Typography color="#9CA3AF">No dental records</Typography></Paper>
+        <EmptyRow message="No dental records" />
       ) : (
         <Stack spacing={1.5}>
           {data.map((r: any) => (
@@ -185,8 +229,10 @@ function DentalSection({ personId }: { personId: string }) {
                     {r.next_checkup_date && <Chip label={`Next: ${new Date(r.next_checkup_date).toLocaleDateString('en-GB')}`} size="small" color={new Date(r.next_checkup_date) <= new Date(Date.now() + 30*86400000) ? 'warning' : 'default'} variant="outlined" />}
                   </Stack>
                 </Box>
-                <IconButton size="small" onClick={() => { setForm({ checkup_date: r.checkup_date?.split('T')[0] || r.checkup_date, dentist_name: r.dentist_name || '', findings: r.findings || '', actions_taken: r.actions_taken || '', next_checkup_date: r.next_checkup_date?.split('T')[0] || r.next_checkup_date || '', notes: r.notes || '' }); setEditId(r.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
-                <IconButton size="small" onClick={() => delMut.mutate(r.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                <Stack direction="row" spacing={0}>
+                  <IconButton size="small" onClick={() => { setForm({ checkup_date: r.checkup_date?.split('T')[0] || r.checkup_date, dentist_name: r.dentist_name || '', findings: r.findings || '', actions_taken: r.actions_taken || '', next_checkup_date: r.next_checkup_date?.split('T')[0] || r.next_checkup_date || '', notes: r.notes || '' }); setEditId(r.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" onClick={() => setDeleteTarget({ id: r.id, label: 'this dental record' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                </Stack>
               </Stack>
               {r.findings && <Typography variant="body2" sx={{ mt: 1, color: '#6B7280' }}><strong>Findings:</strong> {r.findings}</Typography>}
               {r.actions_taken && <Typography variant="body2" sx={{ color: '#6B7280' }}><strong>Actions:</strong> {r.actions_taken}</Typography>}
@@ -210,6 +256,16 @@ function DentalSection({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}><Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button><Button type="submit" variant="contained" disabled={addMut.isPending || updMut.isPending} sx={{ bgcolor: '#0F4C81' }}>{(addMut.isPending || updMut.isPending) ? <CircularProgress size={20} /> : 'Save'}</Button></DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete dental record?"
+        message={<>This will permanently delete {deleteTarget?.label}. This action cannot be undone.</>}
+        confirmLabel="Delete"
+        danger
+        loading={delMut.isPending}
+        onConfirm={() => deleteTarget && delMut.mutate(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </Box>
   )
 }
@@ -218,25 +274,29 @@ function FluidSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const { deleteTarget, setDeleteTarget } = useDeleteConfirm()
   const [date, setDate] = useState(today())
   const [form, setForm] = useState({ recorded_date: today(), recorded_time: '', amount_ml: 200, fluid_type: 'Water', notes: '' })
   const { data, isLoading } = useQuery({ queryKey: ['health-fluid', personId, date], queryFn: () => api.get(`/health/${personId}/fluid?date=${date}`).then(r => r.data) })
   const { data: total } = useQuery({ queryKey: ['health-fluid-total', personId, date], queryFn: () => api.get(`/health/${personId}/fluid/total?date=${date}`).then(r => r.data) })
   const addMut = useMutation({ mutationFn: (d: any) => api.post(`/health/${personId}/fluid`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-fluid', personId] }); qc.invalidateQueries({ queryKey: ['health-fluid-total', personId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', amount_ml: 200, fluid_type: 'Water', notes: '' }) } })
   const updMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: any }) => api.patch(`/health/${personId}/fluid/${id}`, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-fluid', personId] }); qc.invalidateQueries({ queryKey: ['health-fluid-total', personId] }); setAddOpen(false); setEditId(null); setForm({ recorded_date: today(), recorded_time: '', amount_ml: 200, fluid_type: 'Water', notes: '' }) } })
-  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/fluid/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-fluid', personId] }); qc.invalidateQueries({ queryKey: ['health-fluid-total', personId] }) } })
+  const delMut = useMutation({ mutationFn: (id: string) => api.delete(`/health/${personId}/fluid/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ['health-fluid', personId] }); qc.invalidateQueries({ queryKey: ['health-fluid-total', personId] }); setDeleteTarget(null) } })
 
-  if (isLoading) return <CircularProgress size={24} />
+  if (isLoading) return <Box sx={{ py: 3 }}><CircularProgress size={24} /></Box>
   const totalMl = total?.total_ml || 0
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Fluid Intake</Typography>
-        <Stack direction="row" spacing={1}>
-          <TextField type="date" size="small" value={date} onChange={e => setDate(e.target.value)} sx={{ width: 160 }} />
-          <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Intake</Button>
-        </Stack>
-      </Stack>
+      <SectionHeader
+        title="Fluid Intake"
+        icon={<FluidIcon sx={{ fontSize: 20 }} />}
+        action={
+          <Stack direction="row" spacing={1}>
+            <TextField type="date" size="small" value={date} onChange={e => setDate(e.target.value)} sx={{ width: 160 }} />
+            <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Intake</Button>
+          </Stack>
+        }
+      />
       <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #E5E7EB', bgcolor: '#F0F9FF' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" fontWeight={700}>Daily Total: <strong style={{ fontSize: '1.1rem', color: '#0F4C81' }}>{totalMl} ml</strong></Typography>
@@ -247,7 +307,7 @@ function FluidSection({ personId }: { personId: string }) {
         </Stack>
       </Paper>
       {(!data || data.length === 0) ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}><Typography color="#9CA3AF">No fluid intake recorded for this date</Typography></Paper>
+        <EmptyRow message="No fluid intake recorded for this date" />
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
           <Table size="small">
@@ -261,7 +321,7 @@ function FluidSection({ personId }: { personId: string }) {
                   <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>{f.notes || '-'}</Typography></TableCell>
                   <TableCell>
                     <IconButton size="small" onClick={() => { setForm({ recorded_date: f.recorded_date?.split('T')[0] || f.recorded_date, recorded_time: f.recorded_time || '', amount_ml: f.amount_ml, fluid_type: f.fluid_type, notes: f.notes || '' }); setEditId(f.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" onClick={() => delMut.mutate(f.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" onClick={() => setDeleteTarget({ id: f.id, label: 'this fluid intake entry' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -284,22 +344,42 @@ function FluidSection({ personId }: { personId: string }) {
           <DialogActions sx={{ p: 3 }}><Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button><Button type="submit" variant="contained" disabled={addMut.isPending || updMut.isPending || !form.amount_ml} sx={{ bgcolor: '#0F4C81' }}>{(addMut.isPending || updMut.isPending) ? <CircularProgress size={20} /> : 'Save'}</Button></DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete fluid intake entry?"
+        message={<>This will permanently delete {deleteTarget?.label}. This action cannot be undone.</>}
+        confirmLabel="Delete"
+        danger
+        loading={delMut.isPending}
+        onConfirm={() => deleteTarget && delMut.mutate(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </Box>
   )
 }
 
 export default function HealthTab({ personId }: { personId: string }) {
-  const [subTab, setSubTab] = useState(0)
-
   return (
-    <Box>
-      <Tabs value={subTab} onChange={(_, v) => setSubTab(v)} sx={{ borderBottom: 1, borderColor: '#E5E7EB', mb: 3 }}>
-        {HEALTH_SUB_TABS.map(t => <Tab key={t} label={t} sx={{ textTransform: 'none', fontWeight: 700 }} />)}
-      </Tabs>
-      {subTab === 0 && <ObservationsSection personId={personId} />}
-      {subTab === 1 && <BowelSection personId={personId} />}
-      {subTab === 2 && <DentalSection personId={personId} />}
-      {subTab === 3 && <FluidSection personId={personId} />}
-    </Box>
+    <Stack spacing={4}>
+      <Box>
+        <ObservationsSection personId={personId} />
+      </Box>
+      <DividerLine />
+      <Box>
+        <BowelSection personId={personId} />
+      </Box>
+      <DividerLine />
+      <Box>
+        <DentalSection personId={personId} />
+      </Box>
+      <DividerLine />
+      <Box>
+        <FluidSection personId={personId} />
+      </Box>
+    </Stack>
   )
+}
+
+function DividerLine() {
+  return <Box sx={{ borderBottom: '1px solid #E5E7EB' }} />
 }

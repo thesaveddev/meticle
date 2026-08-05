@@ -20,19 +20,20 @@ import {
   SmartToy as SmartToyIcon, History as HistoryIcon,
   Warning as WarningIcon, DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
+  TextFields as TextFieldsIcon,
 } from '@mui/icons-material'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
-import { useThemeMode } from '../../context/ThemeContext'
+import { useThemeMode, ZOOM_OPTIONS } from '../../context/ThemeContext'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
   const { showSnackbar } = useSnackbar()
-  const { mode, toggleTheme, updateBranding } = useThemeMode()
+  const { mode, toggleTheme, updateBranding, zoomScale, setZoomScale } = useThemeMode()
   const [tab, setTab] = useState(0)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -757,6 +758,35 @@ export default function SettingsPage() {
           >
             Dark
           </Button>
+        </Stack>
+      </Paper>
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+          <TextFieldsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Text Size & Zoom
+        </Typography>
+        <Stack spacing={2} sx={{ maxWidth: 480 }}>
+          <Typography variant="body2" color="#6B7280">
+            Adjust the scale of the interface to make text and controls easier to read. Your preference is saved and applied on every device you use to sign in.
+          </Typography>
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Interface Scale</Typography>
+            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+              {ZOOM_OPTIONS.map(z => (
+                <Button
+                  key={z}
+                  size="small"
+                  variant={zoomScale === z ? 'contained' : 'outlined'}
+                  onClick={() => setZoomScale(z)}
+                  sx={{ minWidth: 64, textTransform: 'none' }}
+                >
+                  {z < 1 ? `${Math.round(z * 100)}%` : z === 1 ? '100%' : `${Math.round(z * 100)}%`}
+                </Button>
+              ))}
+            </Stack>
+            <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', mt: 1 }}>
+              {zoomScale < 1 ? 'Compact' : zoomScale === 1 ? 'Default' : zoomScale >= 1.5 ? 'Largest' : 'Enlarged'}
+            </Typography>
+          </Box>
         </Stack>
       </Paper>
     </Stack>

@@ -20,9 +20,10 @@ import {
   Description as FileIcon, Download as DownloadIcon, Close as CloseIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
+import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
 import HealthTab from './HealthTab'
 import BodyMapTab from './BodyMapTab'
 import MemoryBookTab from './MemoryBookTab'
@@ -86,13 +87,38 @@ const toDateInput = (v: any) => {
 
 const EDIT_DATE_FIELDS = ['date_of_birth', 'admission_date', 'dnacpr_date', 'dnacpr_review_date', 'advance_decision_date', 'discharge_date']
 
+const TAB_SLUGS: Record<number, string> = {
+  0: 'overview', 1: 'timeline', 2: 'care-plans', 3: 'daily-notes', 4: 'risk-assessments',
+  5: 'family-contacts', 6: 'health', 7: 'body-map', 8: 'memory-book', 9: 'goals',
+  10: 'care-assessments', 11: 'room-checks', 12: 'clinical-scores', 13: 'documents',
+  14: 'wellbeing', 15: 'communication', 16: 'capacity', 17: 'care-pathways',
+  18: 'discharge', 19: 'mood-chart', 20: 'audit-trail',
+}
+const SLUG_TO_TAB: Record<string, number> = Object.fromEntries(Object.entries(TAB_SLUGS).map(([k, v]) => [v, Number(k)]))
+
 export default function PersonProfilePage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { showSnackbar } = useSnackbar()
-  const [tab, setTab] = useState(0)
-  const [activeCategory, setActiveCategory] = useState(0)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [tab, setTab] = useState<number>(() => {
+    const slug = searchParams.get('tab')
+    return slug ? (SLUG_TO_TAB[slug] ?? 0) : 0
+  })
+
+  const handleTabChange = (v: number) => {
+    setTab(v)
+    const slug = TAB_SLUGS[v]
+    setSearchParams(slug && slug !== 'overview' ? { tab: slug } : {}, { replace: true })
+  }
+
+  useEffect(() => {
+    const slug = searchParams.get('tab')
+    const v = slug ? SLUG_TO_TAB[slug] : 0
+    if (v !== undefined && v !== tab) setTab(v)
+  }, [searchParams, tab])
+
   const [editOpen, setEditOpen] = useState(false)
   const [addPlanOpen, setAddPlanOpen] = useState(false)
   const [viewPlan, setViewPlan] = useState<any>(null)
@@ -467,6 +493,7 @@ export default function PersonProfilePage() {
     { label: 'Safety', tabs: [7, 16, 11] },
     { label: 'Records', tabs: [13, 8, 1, 18, 20] },
   ]
+  const activeCategory = Math.max(0, CATEGORIES.findIndex(cat => cat.tabs.includes(tab)))
   const TAB_LABELS: Record<number, string> = {
     0: 'Overview', 1: 'Timeline', 2: 'Care Plans', 3: 'Daily Notes', 4: 'Risk Assessments',
     5: 'Family & Contacts', 6: 'Health', 7: 'Body Map', 8: 'Memory Book', 9: 'Goals',
@@ -580,7 +607,7 @@ export default function PersonProfilePage() {
         <Stack direction="row" sx={{ bgcolor: '#F9FAFB', px: 1, py: 0.5, borderBottom: '1px solid #E5E7EB' }}>
           {CATEGORIES.map((cat, i) => (
             <Box key={cat.label}
-              onClick={() => { setActiveCategory(i); setTab(cat.tabs[0]) }}
+              onClick={() => handleTabChange(cat.tabs[0])}
               sx={{
                 px: 1.5, py: 0.75, cursor: 'pointer', borderRadius: 1.5,
                 bgcolor: activeCategory === i ? '#0F4C81' : 'transparent',
@@ -593,7 +620,7 @@ export default function PersonProfilePage() {
             </Box>
           ))}
         </Stack>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ minHeight: 40, '& .MuiTabs-indicator': { bgcolor: '#0F4C81', height: 3 } }}>
+        <Tabs value={tab} onChange={(_, v) => handleTabChange(v)} sx={{ minHeight: 40, '& .MuiTabs-indicator': { bgcolor: '#0F4C81', height: 3 } }}>
           {CATEGORIES[activeCategory].tabs.map(idx => (
             <Tab key={idx} value={idx} label={TAB_LABELS[idx]}
               sx={{ textTransform: 'none', fontWeight: 700, fontSize: 13, minHeight: 40, py: 1, px: 2 }} />
@@ -2183,15 +2210,10 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
   if (isError) return <Alert severity="error">Failed to load assessments</Alert>
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Care Assessments</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditAssessment(null); resetForm(); setOpen(true) }}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>New Assessment</Button>
-      </Stack>
+      <SectionHeader title="Care Assessments" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditAssessment(null); resetForm(); setOpen(true) }}
+        sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>New Assessment</Button>} />
       {(!assessments || assessments.length === 0) ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No assessments yet</Typography>
-        </Paper>
+        <EmptyRow message="No assessments yet" />
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
           <Table size="small">
@@ -2361,9 +2383,7 @@ function TimelineTab({ personId }: { personId: string }) {
     <Box>
       <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 3 }}>Person Timeline</Typography>
       {timeline.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No timeline events yet</Typography>
-        </Paper>
+        <EmptyRow message="No timeline events yet" />
       ) : (
         <Box sx={{ position: 'relative' }}>
           <Box sx={{ position: 'absolute', left: 19, top: 0, bottom: 0, width: 2, bgcolor: '#E5E7EB' }} />
@@ -2420,9 +2440,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
   })
 
   if (!roomNumber) return (
-    <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-      <Typography color="#9CA3AF">No room number assigned to this person. Room checks cannot be displayed.</Typography>
-    </Paper>
+    <EmptyRow message="No room number assigned to this person. Room checks cannot be displayed." />
   )
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
@@ -2430,15 +2448,10 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Room Checks for Room {roomNumber}</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setRcForm({ status: 'pass', cleanliness_rating: 5, safety_rating: 5, notes: '', check_date: new Date().toISOString().split('T')[0] }); setRcError(''); setAddOpen(true) }}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Record Check</Button>
-      </Stack>
+      <SectionHeader title={`Room Checks for Room ${roomNumber}`} action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setRcForm({ status: 'pass', cleanliness_rating: 5, safety_rating: 5, notes: '', check_date: new Date().toISOString().split('T')[0] }); setRcError(''); setAddOpen(true) }}
+        sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Record Check</Button>} />
       {checks.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No room checks recorded for this room</Typography>
-        </Paper>
+        <EmptyRow message="No room checks recorded for this room" />
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
           <Table size="small">
@@ -2529,23 +2542,19 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/people/clinical-scores/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clinical-scores', personId] }),
-    onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clinical-scores', personId] }); setDeleteTarget(null) },
+    onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteTarget(null) },
   })
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Clinical Scores</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Record Score</Button>
-      </Stack>
+      <SectionHeader title="Clinical Scores" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
+        sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Record Score</Button>} />
       {scores.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No clinical scores recorded</Typography>
-        </Paper>
+        <EmptyRow message="No clinical scores recorded" />
       ) : (
         <Stack spacing={1.5}>
           {scores.map((s: any) => (
@@ -2565,7 +2574,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
                     {s.recorded_by_name && <Typography variant="caption" color="#9CA3AF">by {s.recorded_by_name}</Typography>}
                   </Stack>
                 </Box>
-                <IconButton size="small" onClick={() => deleteMutation.mutate(s.id)}><DeleteIcon fontSize="small" /></IconButton>
+                <IconButton size="small" color="error" onClick={() => setDeleteTarget(s.id)}><DeleteIcon fontSize="small" /></IconButton>
               </Stack>
             </Paper>
           ))}
@@ -2608,6 +2617,16 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
           </DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete clinical score?"
+        message="This will permanently delete this clinical score. This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </Box>
   )
 }
@@ -2634,9 +2653,10 @@ function DocumentsTab({ personId }: { personId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/people/documents/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents', personId] }),
-    onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['documents', personId] }); setDeleteTarget(null) },
+    onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteTarget(null) },
   })
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   const viewDocument = async (fileUrl: string) => {
     try {
@@ -2673,15 +2693,10 @@ function DocumentsTab({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Documents</Typography>
-        <Button size="small" variant="contained" startIcon={<UploadIcon />} onClick={() => setAddOpen(true)}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Upload Document</Button>
-      </Stack>
+      <SectionHeader title="Documents" action={<Button size="small" variant="contained" startIcon={<UploadIcon />} onClick={() => setAddOpen(true)}
+        sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Upload Document</Button>} />
       {docs.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No documents uploaded yet</Typography>
-        </Paper>
+        <EmptyRow message="No documents uploaded yet" />
       ) : (
         <Stack spacing={1.5}>
           {docs.map((d: any) => (
@@ -2703,7 +2718,7 @@ function DocumentsTab({ personId }: { personId: string }) {
                     sx={{ textTransform: 'none', borderRadius: 2, fontSize: 12 }}>
                     View
                   </Button>
-                  <IconButton size="small" onClick={() => deleteMutation.mutate(d.id)}><DeleteIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" color="error" onClick={() => setDeleteTarget(d.id)}><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
               </Stack>
             </Paper>
@@ -2758,6 +2773,16 @@ function DocumentsTab({ personId }: { personId: string }) {
           </DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete document?"
+        message="This will permanently delete this document. This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </Box>
   )
 }
@@ -2789,9 +2814,10 @@ function WellbeingTabInline({ personId }: { personId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/people/wellbeing/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', personId] }); showSnackbar('Entry deleted') },
-    onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wellbeing', personId] }); setDeleteTarget(null); showSnackbar('Entry deleted') },
+    onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteTarget(null) },
   })
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
 
@@ -2804,11 +2830,8 @@ function WellbeingTabInline({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Wellbeing</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Record Entry</Button>
-      </Stack>
+      <SectionHeader title="Wellbeing" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
+        sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Record Entry</Button>} />
       {radarData.length >= 3 && (
         <Paper sx={{ p: 3, mb: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
           <Typography variant="caption" sx={{ fontWeight: 700, color: '#6B7280', mb: 1, display: 'block' }}>Latest Wellbeing Snapshot</Typography>
@@ -2823,9 +2846,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
         </Paper>
       )}
       {entries.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No wellbeing entries recorded</Typography>
-        </Paper>
+        <EmptyRow message="No wellbeing entries recorded" />
       ) : (
         <Stack spacing={2}>
           {Object.entries(grouped).map(([domain, items]) => (
@@ -2846,7 +2867,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
                         {e.recorded_by_name && <Typography variant="caption" color="#9CA3AF">by {e.recorded_by_name}</Typography>}
                       </Stack>
                     </Box>
-                    <IconButton size="small" onClick={() => deleteMutation.mutate(e.id)}><DeleteIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteTarget(e.id)}><DeleteIcon fontSize="small" /></IconButton>
                   </Box>
                 ))}
               </Stack>
@@ -2881,6 +2902,16 @@ function WellbeingTabInline({ personId }: { personId: string }) {
           </DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete wellbeing entry?"
+        message="This will permanently delete this wellbeing entry. This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </Box>
   )
 }
@@ -2908,23 +2939,19 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/people/communication-log/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['communication-log', personId] }); showSnackbar('Entry deleted') },
-    onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['communication-log', personId] }); setDeleteTarget(null); showSnackbar('Entry deleted') },
+    onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteTarget(null) },
   })
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Communication Log</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Entry</Button>
-      </Stack>
+      <SectionHeader title="Communication Log" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
+        sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Entry</Button>} />
       {entries.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No communication entries recorded</Typography>
-        </Paper>
+        <EmptyRow message="No communication entries recorded" />
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
           <Table size="small">
@@ -2956,7 +2983,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
                   <TableCell>{e.recorded_date ? new Date(e.recorded_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell>{e.recorded_by_name || '—'}</TableCell>
                   <TableCell>
-                    <IconButton size="small" onClick={() => deleteMutation.mutate(e.id)}><DeleteIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteTarget(e.id)}><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -2967,8 +2994,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Add Communication Entry</DialogTitle>
-          <DialogContent>
+          <DialogTitle sx={{ fontWeight: 800 }}>Add Communication Entry</DialogTitle>          <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
               <Stack direction="row" spacing={1}>
@@ -2996,6 +3022,16 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
           </DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete communication entry?"
+        message="This will permanently delete this communication entry. This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </Box>
   )
 }
@@ -3033,9 +3069,10 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/people/capacity/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', personId] }); showSnackbar('Assessment deleted') },
-    onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['capacity', personId] }); setDeleteTarget(null); showSnackbar('Assessment deleted') },
+    onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteTarget(null) },
   })
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   function resetForm() {
     setForm({ assessment_date: new Date().toISOString().split('T')[0], decision_to_be_made: '', capacity_found: null, capacity_status: 'not_assessed', best_interest_decision: '', best_interest_meeting_date: '', independent_advocate: '', relevant_people_informed: '', review_date: '' })
@@ -3045,15 +3082,10 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>MCA / Capacity Assessments</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>New Assessment</Button>
-      </Stack>
+      <SectionHeader title="MCA / Capacity Assessments" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}
+        sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>New Assessment</Button>} />
       {assessments.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No capacity assessments recorded</Typography>
-        </Paper>
+        <EmptyRow message="No capacity assessments recorded" />
       ) : (
         <Stack spacing={2}>
           {assessments.map((a: any) => (
@@ -3086,7 +3118,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
                       review_date: a.review_date?.split('T')[0] || '',
                     }); setEditId(a.id); setAddOpen(true)
                   }}><EditIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" onClick={() => deleteMutation.mutate(a.id)}><DeleteIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" color="error" onClick={() => setDeleteTarget(a.id)}><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
               </Stack>
             </Paper>
@@ -3132,6 +3164,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
           </DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog open={!!deleteTarget} title="Delete assessment" message="This will permanently remove this capacity assessment." onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }} />
     </Box>
   )
 }
@@ -3213,9 +3246,10 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/people/care-pathways/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', personId] }); showSnackbar('Pathway deleted') },
-    onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['care-pathways', personId] }); setDeleteTarget(null); showSnackbar('Pathway deleted') },
+    onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteTarget(null) },
   })
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   function resetForm() {
     setForm({ pathway_type: 'hospital_admission', title: '', start_date: new Date().toISOString().split('T')[0], end_date: '', location_name: '', referral_reason: '', discharge_notes: '', status: 'active', file_url: '', file_name: '' })
@@ -3262,7 +3296,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
               file_url: p.file_url || '', file_name: p.file_name || '',
             }); setEditId(p.id); setAddOpen(true)
           }}><EditIcon fontSize="small" /></IconButton>
-          <IconButton size="small" onClick={() => deleteMutation.mutate(p.id)}><DeleteIcon fontSize="small" /></IconButton>
+          <IconButton size="small" color="error" onClick={() => setDeleteTarget(p.id)}><DeleteIcon fontSize="small" /></IconButton>
         </Stack>
       </Stack>
     </Paper>
@@ -3270,15 +3304,10 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Care Pathways</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Pathway</Button>
-      </Stack>
+      <SectionHeader title="Care Pathways" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { resetForm(); setEditId(null); setAddOpen(true) }}
+        sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Pathway</Button>} />
       {pathways.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No care pathways recorded</Typography>
-        </Paper>
+        <EmptyRow message="No care pathways recorded" />
       ) : (
         <Stack spacing={3}>
           {active.length > 0 && (
@@ -3434,8 +3463,9 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
               }); setEditId(viewPathway.id); setAddOpen(true)
             }}>Edit</Button>
           )}
-        </DialogActions>
+          </DialogActions>
       </Dialog>
+      <ConfirmDialog open={!!deleteTarget} title="Delete pathway" message="This will permanently remove this care pathway. This action cannot be undone." onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }} />
     </Box>
   )
 }
@@ -3468,9 +3498,10 @@ function DischargeChecklistTabInline({ personId }: { personId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/people/discharge-checklist/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['discharge-checklist', personId] }); showSnackbar('Item deleted') },
-    onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['discharge-checklist', personId] }); setDeleteTarget(null); showSnackbar('Item deleted') },
+    onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteTarget(null) },
   })
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
 
@@ -3483,11 +3514,8 @@ function DischargeChecklistTabInline({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Discharge Checklist</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ item_text: '', category: 'documentation' }); setAddOpen(true) }}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Item</Button>
-      </Stack>
+      <SectionHeader title="Discharge Checklist" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ item_text: '', category: 'documentation' }); setAddOpen(true) }}
+        sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Item</Button>} />
       {total > 0 && (
         <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
           <Stack direction="row" spacing={2} alignItems="center">
@@ -3498,9 +3526,7 @@ function DischargeChecklistTabInline({ personId }: { personId: string }) {
         </Paper>
       )}
       {items.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No discharge checklist items</Typography>
-        </Paper>
+        <EmptyRow message="No discharge checklist items" />
       ) : (
         <Stack spacing={2}>
           {Object.entries(grouped).map(([category, catItems]) => (
@@ -3520,7 +3546,7 @@ function DischargeChecklistTabInline({ personId }: { personId: string }) {
                         <Typography variant="caption" color="#9CA3AF">Completed by {item.completed_by_name}{item.completed_at ? ` on ${new Date(item.completed_at).toLocaleDateString('en-GB')}` : ''}</Typography>
                       )}
                     </Box>
-                    <IconButton size="small" onClick={() => deleteMutation.mutate(item.id)}><DeleteIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteTarget(item.id)}><DeleteIcon fontSize="small" /></IconButton>
                   </Stack>
                 ))}
               </Stack>
@@ -3549,6 +3575,7 @@ function DischargeChecklistTabInline({ personId }: { personId: string }) {
           </DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog open={!!deleteTarget} title="Delete checklist item" message="This will permanently remove this checklist item." onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }} />
     </Box>
   )
 }
@@ -3602,9 +3629,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
           <Typography variant="caption" color="#6B7280" sx={{ mt: 0.5, display: 'block' }}>Record mood, engagement, sleep and other wellbeing scores to see trends here.</Typography>
         </Paper>
       ) : Object.keys(grouped).length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No entries in the last 30 days</Typography>
-        </Paper>
+        <EmptyRow message="No entries in the last 30 days" />
       ) : (
         <Stack spacing={3}>
           {Object.entries(grouped).map(([domain, items]) => {
@@ -3685,7 +3710,7 @@ function AuditTrailTabInline({ personId }: { personId: string }) {
     queryFn: () => api.get('/audit/logs', { params: { person_id: personId } }).then(r => r.data),
   })
   if (isLoading) return <CircularProgress size={24} sx={{ display: 'block', mx: 'auto', mt: 4 }} />
-  if (!logs.length) return <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}><Typography color="#9CA3AF">No audit trail entries</Typography></Paper>
+  if (!logs.length) return <EmptyRow message="No audit trail entries" />
   return (
     <Box>
       <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 2 }}>Audit Trail</Typography>
