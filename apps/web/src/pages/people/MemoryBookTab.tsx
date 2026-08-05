@@ -7,6 +7,7 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, CameraAlt, Image as ImageIcon, ChevronLeft, ChevronRight, Close as CloseIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { ConfirmDialog, SectionHeader } from '../../components/ui'
 
 const SUPPORT_LEVELS = [
   { value: '', label: 'None specified' },
@@ -99,8 +100,10 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/people/memory-book/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['memory-book', personId] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['memory-book', personId] }); setDeleteTarget(null) },
+    onError: () => setDeleteTarget(null),
   })
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   const closeDialog = useCallback(() => {
     setDialogOpen(false); setEditingEntry(null)
@@ -166,11 +169,8 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Memory Book</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={openCreate}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 2, px: 2 }}>Add Memory</Button>
-      </Stack>
+      <SectionHeader title="Memory Book" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={openCreate}
+        sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 2, px: 2 }}>Add Memory</Button>} />
 
       {entries.length === 0 ? (
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
@@ -230,7 +230,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
                   </CardContent>
                   <CardActions sx={{ pt: 0, justifyContent: 'flex-end' }}>
                     <IconButton size="small" onClick={(ev) => { ev.stopPropagation(); openEdit(e) }}><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" color="error" onClick={(ev) => { ev.stopPropagation(); if (window.confirm('Delete this memory?')) deleteMutation.mutate(e.id) }}>
+                    <IconButton size="small" color="error" onClick={(ev) => { ev.stopPropagation(); setDeleteTarget(e.id) }}>
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </CardActions>
@@ -367,6 +367,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
           </DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog open={!!deleteTarget} title="Delete memory" message="This will permanently remove this memory book entry and its photos." onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }} />
     </Box>
   )
 }

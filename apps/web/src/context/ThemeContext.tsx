@@ -3,6 +3,10 @@ import { ThemeProvider, createTheme, CssBaseline } from '@mui/material'
 
 type ThemeMode = 'light' | 'dark'
 
+export type ZoomScale = 0.85 | 0.9 | 0.95 | 1 | 1.1 | 1.25 | 1.5
+export const ZOOM_OPTIONS: ZoomScale[] = [0.85, 0.9, 0.95, 1, 1.1, 1.25, 1.5]
+export const DEFAULT_ZOOM: ZoomScale = 1
+
 interface BrandingColors {
   primary_color: string
   secondary_color: string
@@ -16,6 +20,8 @@ interface ThemeContextValue {
   branding: BrandingColors
   logoUrl: string
   updateBranding: (colors: BrandingColors, logo: string) => void
+  zoomScale: ZoomScale
+  setZoomScale: (z: ZoomScale) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
@@ -106,6 +112,7 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
 
 const STORAGE_KEY_MODE = 'theme-mode'
 const STORAGE_KEY_BRANDING = 'org-branding'
+export const STORAGE_KEY_ZOOM = 'zoom-scale'
 
 export function MeticleThemeProvider({ children }: { children: ReactNode }) {
   const theme = useMemo(() => createMeticleTheme('light'), [])
@@ -131,9 +138,18 @@ function loadBranding(): { colors: BrandingColors; logo: string } {
   }
 }
 
+function loadZoom(): ZoomScale {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_ZOOM)
+    if (saved && ZOOM_OPTIONS.includes(parseFloat(saved) as ZoomScale)) return parseFloat(saved) as ZoomScale
+  } catch {}
+  return DEFAULT_ZOOM
+}
+
 export function ThemeModeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>(loadMode)
   const [{ colors, logo }, setBrandingState] = useState(() => loadBranding())
+  const [zoomScale, setZoomScaleState] = useState<ZoomScale>(loadZoom)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_MODE, mode)
@@ -142,6 +158,13 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_BRANDING, JSON.stringify({ colors, logo }))
   }, [colors, logo])
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_ZOOM, String(zoomScale))
+    const root = document.documentElement
+    root.style.setProperty('--app-zoom', String(zoomScale))
+    ;(root.style as any).zoom = String(zoomScale)
+  }, [zoomScale])
 
   // Listen for branding updates from localStorage (cross-tab)
   useEffect(() => {
@@ -155,6 +178,7 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
 
   const toggleTheme = () => setModeState(m => (m === 'light' ? 'dark' : 'light'))
   const setMode = (m: ThemeMode) => setModeState(m)
+  const setZoomScale = (z: ZoomScale) => setZoomScaleState(z)
   const updateBranding = (newColors: BrandingColors, newLogo: string) => {
     setBrandingState({ colors: newColors, logo: newLogo })
   }
@@ -164,7 +188,7 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
   }, [mode, colors])
 
   return (
-    <ThemeContext.Provider value={{ mode, toggleTheme, setMode, branding: colors, logoUrl: logo, updateBranding }}>
+    <ThemeContext.Provider value={{ mode, toggleTheme, setMode, branding: colors, logoUrl: logo, updateBranding, zoomScale, setZoomScale }}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         {children}

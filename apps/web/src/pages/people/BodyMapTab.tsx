@@ -7,6 +7,7 @@ import {
 import { Delete as DeleteIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
 
 const CONDITION_COLORS: Record<string, string> = {
   bruise: '#7C3AED', wound: '#DC2626', rash: '#D97706', injection: '#0F4C81',
@@ -288,8 +289,10 @@ export default function BodyMapTab({ personId }: { personId: string }) {
   })
   const deleteM = useMutation({
     mutationFn: (id: string) => api.delete(`/people/body-map/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['body-map', personId] }); setDialogOpen(false) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['body-map', personId] }); setDialogOpen(false); setDeleteTarget(null) },
+    onError: () => setDeleteTarget(null),
   })
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   const openCreate = (z: Zone) => { setSelectedZone(z); setSelectedEntry(null); setForm({ condition_type: 'bruise', severity: 'mild', description: '', recorded_date: new Date().toISOString().split('T')[0], status: 'active' }); setError(''); setDialogOpen(true) }
   const openEdit = (e: BodyMapEntry) => { setSelectedEntry(e); setSelectedZone(null); setForm({ condition_type: e.condition_type, severity: e.severity, description: e.description || '', recorded_date: e.recorded_date, status: e.status }); setError(''); setDialogOpen(true) }
@@ -312,12 +315,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={800}>Body Map</Typography>
-        <Stack direction="row" spacing={1}>
-          <Chip label={`${entries.filter(e => e.status === 'active').length} Active`} size="small" color="error" variant="outlined" />
-        </Stack>
-      </Stack>
+      <SectionHeader title="Body Map" action={<Chip label={`${entries.filter(e => e.status === 'active').length} Active`} size="small" color="error" variant="outlined" />} />
 
       <Paper sx={{ borderRadius: 2, border: '1px solid #E5E7EB', mb: 3, overflow: 'hidden' }}>
         <Tabs value={view} onChange={(_, v) => setView(v)} sx={{ borderBottom: 1, borderColor: '#E5E7EB' }}>
@@ -432,9 +430,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
 
       {/* Entries list */}
       {entries.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography color="#9CA3AF">No body map entries yet. Click a body zone above to add one.</Typography>
-        </Paper>
+        <EmptyRow message="No body map entries yet. Click a body zone above to add one." />
       ) : (
         <Stack spacing={1.5}>
           {entries.map(e => (
@@ -493,7 +489,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            {selectedEntry && <IconButton onClick={() => { if (window.confirm('Delete?')) deleteM.mutate(selectedEntry.id) }} color="error" sx={{ mr: 'auto' }}><DeleteIcon /></IconButton>}
+            {selectedEntry && <IconButton onClick={() => setDeleteTarget(selectedEntry.id)} color="error" sx={{ mr: 'auto' }}><DeleteIcon /></IconButton>}
             <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={createM.isPending || updateM.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
               {createM.isPending || updateM.isPending ? <CircularProgress size={20} /> : 'Save'}
@@ -501,6 +497,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
           </DialogActions>
         </Box>
       </Dialog>
+      <ConfirmDialog open={!!deleteTarget} title="Delete body map entry" message="This will permanently remove this body map entry." onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget) deleteM.mutate(deleteTarget) }} />
     </Box>
   )
 }

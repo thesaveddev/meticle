@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Box, Drawer, AppBar, Toolbar, List, Typography, Divider, IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Menu, MenuItem, Badge, Stack, Paper, Button } from '@mui/material'
 import { 
   Dashboard as DashboardIcon, 
@@ -63,7 +63,11 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   })
   const [locationName, setLocationName] = useState('')
   const [modulePermissions, setModulePermissions] = useState<Record<string, string>>({})
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    const stored = localStorage.getItem('sidebarCollapsedGroups')
+    try { return stored ? new Set(JSON.parse(stored)) : new Set() } catch { return new Set() }
+  })
+  const mainRef = useRef<HTMLElement | null>(null)
   const userName = rawUser.first_name || rawUser.email?.split('@')[0] || 'Admin'
   const userRole = rawUser.role || UserRole.ORG_ADMIN
   const profilePic = rawUser.profile_picture_url || ''
@@ -261,6 +265,16 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     navigate(path)
   }
 
+  const handleNavigate = (path: string) => {
+    setMobileOpen(false)
+    navigate(path)
+    window.setTimeout(() => { mainRef.current?.focus() }, 0)
+  }
+
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsedGroups', JSON.stringify([...collapsedGroups]))
+  }, [collapsedGroups])
+
   const handleLogout = () => {
     localStorage.clear()
     updateBranding({ primary_color: METICLE_PRIMARY, secondary_color: METICLE_SECONDARY, accent_color: '#F8FAFC' }, '')
@@ -300,7 +314,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         {userRole === UserRole.SUPER_ADMIN && (
           <ListItem disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
-              onClick={() => navigate('/platform-admin')}
+              onClick={() => handleNavigate('/platform-admin')}
               selected={location.pathname === '/platform-admin'}
               disabled={sidebarDisabled}
               sx={{
@@ -330,6 +344,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           return (
           <Box key={group.label} sx={{ mb: 0.5 }}>
             <ListItemButton
+              aria-expanded={!isCollapsed}
               onClick={toggleGroup}
               sx={{
                 borderRadius: 1.5, py: 0.5, px: 1.5, mb: 0.25, minHeight: 32,
@@ -347,7 +362,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               return (
               <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton 
-                  onClick={disabled ? undefined : () => navigate(item.path)}
+                  onClick={disabled ? undefined : () => handleNavigate(item.path)}
                   selected={!disabled && location.pathname === item.path}
                   disabled={disabled}
                   sx={{ 
@@ -382,7 +397,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         {userRole === UserRole.SUPER_ADMIN && (
           <ListItem disablePadding>
             <ListItemButton sx={{ borderRadius: 2 }}
-              onClick={() => navigate('/learn')} selected={location.pathname === '/learn'}>
+              onClick={() => handleNavigate('/learn')} selected={location.pathname === '/learn'}>
               <ListItemIcon sx={{ minWidth: 40, color: location.pathname === '/learn' ? '#0F4C81' : '#6B7280' }}><SchoolIcon /></ListItemIcon>
               <ListItemText primary="Learn" primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
             </ListItemButton>
@@ -393,7 +408,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           return (
           <ListItem key={item.text} disablePadding>
             <ListItemButton disabled={disabled} sx={{ borderRadius: 2, '&.Mui-disabled': { opacity: 0.45 } }}
-              onClick={disabled ? undefined : () => navigate(item.path)} selected={!disabled && location.pathname === item.path}>
+              onClick={disabled ? undefined : () => handleNavigate(item.path)} selected={!disabled && location.pathname === item.path}>
               <ListItemIcon sx={{ minWidth: 40, color: !disabled && location.pathname === item.path ? branding.primary_color : theme.palette.text.secondary }}>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
             </ListItemButton>
@@ -410,8 +425,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         position="fixed"
         elevation={0}
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
           bgcolor: theme.palette.background.paper,
           borderBottom: `1px solid ${theme.palette.divider}`,
           color: theme.palette.text.primary
@@ -422,7 +437,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             color="inherit"
             edge="start"
             onClick={() => setMobileOpen(!mobileOpen)}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            sx={{ mr: 2, display: { md: 'none' } }}
           >
             <MenuIcon />
           </IconButton>
@@ -452,7 +467,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
 
       <Box
         component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
       >
         <Drawer
           variant="temporary"
@@ -460,7 +475,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           onClose={() => setMobileOpen(false)}
           ModalProps={{ keepMounted: true }}
           sx={{
-            display: { xs: 'block', sm: 'none' },
+            display: { xs: 'block', md: 'none' },
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: `1px solid ${theme.palette.divider}` },
           }}
         >
@@ -469,7 +484,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         <Drawer
           variant="permanent"
           sx={{
-            display: { xs: 'none', sm: 'block' },
+            display: { xs: 'none', md: 'block' },
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: `1px solid ${theme.palette.divider}` },
           }}
           open
@@ -480,7 +495,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
 
       <Box
         component="main"
-        sx={{ flexGrow: 1, p: 4, width: { sm: `calc(100% - ${drawerWidth}px)` }, pt: 12 }}
+        ref={mainRef}
+        tabIndex={-1}
+        sx={{ flexGrow: 1, p: 4, width: { md: `calc(100% - ${drawerWidth}px)` }, pt: 12, outline: 'none' }}
       >
         <RouteLoadingIndicator />
         <OfflineBanner />
