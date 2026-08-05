@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { Container, Typography, Grid, Box, Stack, Button, TextField, Paper, Alert, CircularProgress } from '@mui/material'
-import { Email, Phone, LocationOn, AccessTime } from '@mui/icons-material'
+import { Email, Phone, AccessTime } from '@mui/icons-material'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import api from '../../services/api'
 import PageMeta from '../../components/PageMeta'
 
 const contactMethods = [
   { icon: <Email sx={{ color: '#0F4C81' }} />, title: 'Email', detail: 'hello@meticlecare.com', sub: 'We reply within 4 hours' },
-  { icon: <Phone sx={{ color: '#0F4C81' }} />, title: 'Phone', detail: '+44 20 1234 5678', sub: 'Mon-Fri, 9am-5:30pm' },
-  { icon: <LocationOn sx={{ color: '#0F4C81' }} />, title: 'Office', detail: '71-75 Shelton Street, London, WC2H 9JQ', sub: 'By appointment only' },
+  { icon: <Phone sx={{ color: '#0F4C81' }} />, title: 'Phone', detail: '07586215433', sub: 'Mon-Fri, 9am-5:30pm' },
   { icon: <AccessTime sx={{ color: '#0F4C81' }} />, title: 'Support Hours', detail: '8:00am - 6:00pm GMT', sub: '24/7 emergency support for Enterprise plans' },
 ]
 
@@ -64,21 +63,25 @@ export default function ContactPage() {
                 <Typography variant="h5" sx={{ mb: 4, fontWeight: 800 }}>Send Us a Message</Typography>
                 {sent && <Alert severity="success" sx={{ mb: 3 }}>Thank you! We'll get back to you within 4 hours.</Alert>}
                 {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-                <Stack component="form" onSubmit={handleSubmit} spacing={3}>
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6}>
-                      <TextField label="Your Name" required fullWidth value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField label="Email" required type="email" fullWidth value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
-                    </Grid>
+                <Grid container component="form" onSubmit={handleSubmit} spacing={3}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField label="Your Name" required fullWidth value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
                   </Grid>
-                  <TextField label="Company / Organisation" fullWidth value={form.company} onChange={e => setForm(p => ({ ...p, company: e.target.value }))} />
-                  <TextField label="Message" required multiline rows={5} fullWidth value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))} />
-                  <Button type="submit" variant="contained" size="large" disabled={sending} sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 800, fontSize: '1rem' }}>
-                    {sending ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Send Message'}
-                  </Button>
-                </Stack>
+                  <Grid item xs={12} sm={6}>
+                    <TextField label="Email" required type="email" fullWidth value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField label="Company / Organisation" fullWidth value={form.company} onChange={e => setForm(p => ({ ...p, company: e.target.value }))} />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField label="Message" required multiline rows={5} fullWidth value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))} />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Button type="submit" variant="contained" size="large" fullWidth disabled={sending} sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 800, fontSize: '1rem' }}>
+                      {sending ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Send Message'}
+                    </Button>
+                  </Grid>
+                </Grid>
               </Paper>
             </Grid>
           </Grid>

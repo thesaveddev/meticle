@@ -60,6 +60,7 @@ import expensesRoutes from './modules/expenses/expenses.routes';
 import platformAdminRoutes from './modules/platform-admin/platform-admin.routes';
 import dsptRoutes from './modules/dspt/dspt.routes';
 import shiftAuditRoutes from './modules/shift-audit/shift-audit.routes';
+import contactRoutes from './modules/contact/contact.routes';
 import { BillingController } from './modules/billing/billing.controller';
 import { ComplianceController } from './modules/compliance/compliance.controller';
 import { ComplianceNotificationService } from './modules/compliance/compliance.notifications';
@@ -241,6 +242,7 @@ app.use('/tasks', taskRoutes);
 app.use('/room-checks', roomCheckRoutes);
 app.use('/mobile', mobileRoutes);
 app.use('/shift-audit', shiftAuditRoutes);
+app.use('/contact', contactRoutes); // public — website contact form
 
 // Prometheus metrics — restricted to localhost/internal IPs in production
 app.get('/metrics', asyncHandler(async (req: Request, res: Response) => {

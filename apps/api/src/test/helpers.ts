@@ -53,6 +53,7 @@ import reportingRoutes from '../modules/reporting/reporting.routes'
 import marketplaceRoutes from '../modules/marketplace/marketplace.routes'
 import mfaRoutes from '../modules/mfa/mfa.routes'
 import invitationRoutes from '../modules/organization/organization.routes'
+import contactRoutes from '../modules/contact/contact.routes'
 
 export function createTestApp(): Express {
   const app = express()
@@ -104,6 +105,7 @@ export function createTestApp(): Express {
   app.use('/tasks', taskRoutes)
   app.use('/room-checks', roomCheckRoutes)
   app.use('/mobile', mobileRoutes)
+  app.use('/contact', contactRoutes)
 
   app.get('/health/live', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 

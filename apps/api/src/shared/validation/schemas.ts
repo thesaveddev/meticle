@@ -1374,3 +1374,11 @@ export const recordAssessmentSchema = z.object({
   band_label: z.string().optional(),
   notes: z.string().max(2000).optional(),
 });
+
+// === Contact Form ===
+export const contactSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255),
+  email: z.string().email('A valid email is required').max(255),
+  company: z.string().max(255).optional(),
+  message: z.string().min(1, 'Message is required').max(5000),
+});

@@ -350,7 +350,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       {/* Goal Create/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>{editing ? 'Edit Goal' : 'New Goal'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{editing ? 'Edit Goal' : 'Add New Goal'}</DialogTitle>
         <DialogContent>
           {fetchError && <Alert severity="error" onClose={() => setFetchError('')} sx={{ mb: 2 }}>{fetchError}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
