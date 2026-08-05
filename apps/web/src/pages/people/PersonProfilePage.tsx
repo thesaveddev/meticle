@@ -2129,7 +2129,7 @@ export default function PersonProfilePage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Confirm Delete</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to delete this {deleteConfirm?.type}? This action cannot be undone.</Typography>
         </DialogContent>
@@ -2346,7 +2346,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteAssessmentId} onClose={() => setDeleteAssessmentId(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Delete Assessment</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>Delete Assessment</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to delete this assessment? This action cannot be undone.</Typography>
         </DialogContent>

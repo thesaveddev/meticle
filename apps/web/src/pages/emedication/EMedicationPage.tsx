@@ -2956,7 +2956,7 @@ export default function EMedicationPage() {
 
       {/* Confirmation Dialog */}
       <Dialog open={!!confirmDialog} onClose={() => setConfirmDialog(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Confirm</DialogTitle>
+        <DialogTitle sx={{ color: 'error.main', fontWeight: 800 }}>Confirm</DialogTitle>
         <DialogContent>
           <Typography>{confirmDialog?.message}</Typography>
         </DialogContent>

@@ -68,7 +68,7 @@ interface ConfirmDialogProps {
 export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', loading = false, danger = false, onConfirm, onCancel }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onClose={loading ? undefined : onCancel} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, color: 'text.primary' }}>{title}</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>{title}</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary">{message}</Typography>
       </DialogContent>

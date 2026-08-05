@@ -366,15 +366,15 @@ export default function HealthTab({ personId }: { personId: string }) {
       </Box>
       <DividerLine />
       <Box>
+        <FluidSection personId={personId} />
+      </Box>
+      <DividerLine />
+      <Box>
         <BowelSection personId={personId} />
       </Box>
       <DividerLine />
       <Box>
         <DentalSection personId={personId} />
-      </Box>
-      <DividerLine />
-      <Box>
-        <FluidSection personId={personId} />
       </Box>
     </Stack>
   )
