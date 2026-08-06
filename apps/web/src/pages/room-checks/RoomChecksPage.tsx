@@ -1,17 +1,48 @@
-import { useState } from 'react'
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Stack, TextField, MenuItem, TablePagination, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Alert, Rating, Autocomplete } from '@mui/material'
-import { Add as AddIcon, CameraAlt } from '@mui/icons-material'
+import { useState, useEffect } from 'react'
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Stack, TextField, MenuItem, TablePagination, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Alert, Rating, Autocomplete, IconButton } from '@mui/material'
+import { Add as AddIcon, CameraAlt, Edit as EditIcon, Delete as DeleteIcon, Close as CloseIcon, OpenInNew as OpenInNewIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { ConfirmDialog } from '../../components/ui'
+
+const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' | 'warning' }> = {
+  pass: { label: 'Pass', color: 'success' },
+  fail: { label: 'Fail', color: 'error' },
+  needs_attention: { label: 'Needs Attention', color: 'warning' },
+}
+
+const EMPTY_FORM = () => ({ location_id: '', room_number: '', check_date: new Date().toISOString().split('T')[0], status: 'pass', cleanliness_rating: 3, safety_rating: 3, notes: '' })
+
+function openFileInNewTab(url: string) {
+  const token = localStorage.getItem('accessToken')
+  fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => {
+    window.open(URL.createObjectURL(b), '_blank', 'noopener')
+  }).catch(() => {})
+}
 
 export default function RoomChecksPage() {
   const qc = useQueryClient()
   const [page, setPage] = useState(0); const [rows, setRows] = useState(10)
   const [filter, setFilter] = useState(''); const [locFilter, setLocFilter] = useState('')
   const [dialog, setDialog] = useState(false)
-  const [form, setForm] = useState({ location_id: '', room_number: '', check_date: new Date().toISOString().split('T')[0], status: 'pass', cleanliness_rating: 3, safety_rating: 3, notes: '' })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [view, setView] = useState<any>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [form, setForm] = useState(EMPTY_FORM())
   const [file, setFile] = useState<File | null>(null); const [preview, setPreview] = useState<string | null>(null)
-  const [error, setError] = useState(''); const [viewPhoto, setViewPhoto] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [photoBlob, setPhotoBlob] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!view?.photo_url) { setPhotoBlob(null); return }
+    const token = localStorage.getItem('accessToken')
+    let active = true
+    let blobUrl = ''
+    fetch(view.photo_url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => {
+      if (active) { blobUrl = URL.createObjectURL(b); setPhotoBlob(blobUrl) }
+    }).catch(() => { if (active) setPhotoBlob(view.photo_url) })
+    return () => { active = false; if (blobUrl) URL.revokeObjectURL(blobUrl) }
+  }, [view])
 
   const { data: checks = [], isLoading } = useQuery({
     queryKey: ['room-checks', filter, locFilter],
@@ -25,12 +56,13 @@ export default function RoomChecksPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const payload: any = { ...form, location_id: form.location_id || undefined, check_date: form.check_date || undefined }
       if (file) {
         const fd = new FormData(); fd.append('photo', file)
         const up = await api.post('/settings/upload', fd)
-        return api.post('/room-checks', { ...form, photo_url: up.data.url, check_date: form.check_date || undefined })
+        payload.photo_url = up.data.url
       }
-      return api.post('/room-checks', form)
+      return editingId ? api.patch(`/room-checks/${editingId}`, payload) : api.post('/room-checks', payload)
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['room-checks'] }); close() },
     onError: (e: any) => setError(e.response?.data?.message || 'Save failed'),
@@ -38,19 +70,20 @@ export default function RoomChecksPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/room-checks/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['room-checks'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['room-checks'] }); setDeleteTarget(null) },
   })
 
-  const close = () => { setDialog(false); setForm({ location_id: '', room_number: '', check_date: new Date().toISOString().split('T')[0], status: 'pass', cleanliness_rating: 3, safety_rating: 3, notes: '' }); setFile(null); setPreview(null); setError('') }
+  const close = () => { setDialog(false); setEditingId(null); setForm(EMPTY_FORM()); setFile(null); setPreview(null); setError('') }
 
-  const loadPhoto = (url: string) => {
-    const token = localStorage.getItem('accessToken')
-    fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => setViewPhoto(URL.createObjectURL(b))).catch(() => {})
+  const openEdit = (c: any) => {
+    setEditingId(c.id)
+    setForm({ location_id: c.location_id || '', room_number: c.room_number || '', check_date: c.check_date?.slice(0, 10) || new Date().toISOString().split('T')[0], status: c.status || 'pass', cleanliness_rating: c.cleanliness_rating || 3, safety_rating: c.safety_rating || 3, notes: c.notes || '' })
+    setFile(null); setPreview(null); setError('')
+    setView(null)
+    setDialog(true)
   }
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 8 }}><CircularProgress /></Box>
-
-  const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' | 'warning' }> = { pass: { label: 'Pass', color: 'success' }, fail: { label: 'Fail', color: 'error' }, needs_attention: { label: 'Needs Attention', color: 'warning' } }
 
   return (
     <Box>
@@ -87,7 +120,7 @@ export default function RoomChecksPage() {
           </TableRow></TableHead>
           <TableBody>
             {checks.slice(page * rows, page * rows + rows).map((c: any) => (
-              <TableRow key={c.id} hover>
+              <TableRow key={c.id} hover onClick={() => setView(c)} sx={{ cursor: 'pointer' }}>
                 <TableCell sx={{ fontWeight: 600 }}>{c.room_number}</TableCell>
                 <TableCell>{c.location_name || '—'}</TableCell>
                 <TableCell>{new Date(c.check_date).toLocaleDateString('en-GB')}</TableCell>
@@ -96,8 +129,10 @@ export default function RoomChecksPage() {
                 <TableCell><Chip label={STATUS_CONFIG[c.status]?.label || c.status} size="small" color={STATUS_CONFIG[c.status]?.color || 'default'} /></TableCell>
                 <TableCell>{c.checked_by_name || '—'}</TableCell>
                 <TableCell align="right">
-                  {c.photo_url && <Button size="small" onClick={() => loadPhoto(c.photo_url)} sx={{ textTransform: 'none', fontSize: '0.7rem' }}>Photo</Button>}
-                  <Button size="small" color="error" onClick={() => { if (window.confirm('Delete?')) deleteMutation.mutate(c.id) }} sx={{ textTransform: 'none', fontSize: '0.7rem' }}>Delete</Button>
+                  <Stack direction="row" spacing={0.5} justifyContent="flex-end" onClick={e => e.stopPropagation()}>
+                    <IconButton size="small" onClick={() => openEdit(c)}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteTarget(c.id)}><DeleteIcon fontSize="small" /></IconButton>
+                  </Stack>
                 </TableCell>
               </TableRow>
             ))}
@@ -107,9 +142,69 @@ export default function RoomChecksPage() {
         <TablePagination component="div" count={checks.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rows} onRowsPerPageChange={e => { setRows(parseInt(e.target.value, 10)); setPage(0) }} rowsPerPageOptions={[5, 10, 25]} />
       </TableContainer>
 
+      <Dialog open={!!view} onClose={() => setView(null)} maxWidth="sm" fullWidth>
+        {view && (
+          <>
+            <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                Room Check — {view.room_number}
+                <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', fontWeight: 500 }}>
+                  {view.location_name ? `${view.location_name} · ` : ''}{new Date(view.check_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </Typography>
+              </Box>
+              <IconButton size="small" onClick={() => setView(null)}><CloseIcon fontSize="small" /></IconButton>
+            </DialogTitle>
+            <DialogContent>
+              <Stack spacing={2.5}>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip label={STATUS_CONFIG[view.status]?.label || view.status} size="small" color={STATUS_CONFIG[view.status]?.color || 'default'} sx={{ fontWeight: 700 }} />
+                  {view.created_at && <Chip label={`Recorded ${new Date(view.created_at).toLocaleString('en-GB')}`} size="small" variant="outlined" />}
+                </Stack>
+                <Stack direction="row" spacing={3} flexWrap="wrap">
+                  <Box>
+                    <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Cleanliness</Typography>
+                    <Rating value={view.cleanliness_rating || 0} readOnly max={5} sx={{ display: 'block', mt: 0.25 }} />
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Safety</Typography>
+                    <Rating value={view.safety_rating || 0} readOnly max={5} sx={{ display: 'block', mt: 0.25 }} />
+                  </Box>
+                </Stack>
+                <Box>
+                  <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notes</Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{view.notes || '—'}</Typography>
+                </Box>
+                {view.checked_by_name && (
+                  <Box>
+                    <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Checked by</Typography>
+                    <Typography variant="body2" sx={{ mt: 0.25 }}>{view.checked_by_name}</Typography>
+                  </Box>
+                )}
+                {view.photo_url && photoBlob && (
+                  <Box>
+                    <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>Photo</Typography>
+                    <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
+                      <Box component="img" src={photoBlob} alt="Room check" sx={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block', bgcolor: '#F3F4F6' }} />
+                      <IconButton size="small" onClick={() => openFileInNewTab(view.photo_url)}
+                        sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: '#fff' } }}>
+                        <OpenInNewIcon fontSize="small" />
+                      </IconButton>
+                    </Paper>
+                  </Box>
+                )}
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ p: 3 }}>
+              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => openEdit(view)} sx={{ textTransform: 'none' }}>Edit</Button>
+              <Button onClick={() => setView(null)} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Close</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
       <Dialog open={dialog} onClose={close} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={e => { e.preventDefault(); saveMutation.mutate() }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>New Room Check</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 800 }}>{editingId ? 'Edit Room Check' : 'New Room Check'}</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -135,7 +230,7 @@ export default function RoomChecksPage() {
               <TextField label="Notes" multiline rows={2} fullWidth value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
               <input type="file" hidden id="rc-photo" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) { setFile(f); setPreview(URL.createObjectURL(f)) } e.target.value = '' }} />
               <Button variant="outlined" component="label" htmlFor="rc-photo" startIcon={<CameraAlt />} fullWidth sx={{ textTransform: 'none', py: 1.5, borderStyle: 'dashed' }}>
-                {file ? file.name : 'Take Photo (optional)'}
+                {file ? file.name : editingId ? 'Replace Photo (optional)' : 'Take Photo (optional)'}
               </Button>
               {preview && <Box component="img" src={preview} alt="Preview" sx={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 1 }} />}
             </Stack>
@@ -143,15 +238,21 @@ export default function RoomChecksPage() {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={close}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={saveMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
-              {saveMutation.isPending ? <CircularProgress size={20} /> : 'Save Check'}
+              {saveMutation.isPending ? <CircularProgress size={20} /> : editingId ? 'Save Changes' : 'Save Check'}
             </Button>
           </DialogActions>
         </Box>
       </Dialog>
 
-      <Dialog open={!!viewPhoto} onClose={() => setViewPhoto(null)} maxWidth="md">
-        {viewPhoto && <img src={viewPhoto} alt="Room check" style={{ maxWidth: '100%', maxHeight: '80vh' }} />}
-      </Dialog>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete room check"
+        message="This will permanently remove this room check record."
+        confirmLabel="Delete"
+        danger
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }}
+      />
     </Box>
   )
 }

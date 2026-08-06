@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Box, Typography, Paper, Stack, Chip, Button, CircularProgress, Alert,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
@@ -26,9 +26,11 @@ const IMG_W = 310; const IMG_H = 360
    Single 310x360 SVG containing two figures side by side: front (x 0-155) and back (x 155-310).
    The active view crops to one half via an <image> offset; zones are in a 155x360 space. ── */
 
-/* ── Clickable zone polygons — 60+ zones covering every body part ──
+/* ── Clickable zones — 60+ invisible hit areas covering every body part ──
    Coordinates are in a 155x360 space. Front zones overlay the image's left half
-   (front figure, x 0-155); back zones overlay its right half (x 155-310). */
+   (front figure, x 0-155); back zones overlay its right half (x 155-310).
+   Zones are drawn transparent so nothing overlays the silhouette; a floating
+   label follows the cursor on hover. */
 interface Zone { id: string; label: string; points: string }
 
 const ALL_ZONES: Zone[] = [
@@ -167,6 +169,14 @@ export default function BodyMapTab({ personId }: { personId: string }) {
   const [selectedEntry, setSelectedEntry] = useState<BodyMapEntry | null>(null)
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null)
   const [hoverZone, setHoverZone] = useState<string | null>(null)
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
+  const figureWrapRef = useRef<HTMLDivElement>(null)
+  const onFigureMove = (ev: React.MouseEvent) => {
+    const el = figureWrapRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    setHoverPos({ x: ev.clientX - r.left, y: ev.clientY - r.top })
+  }
   const [form, setForm] = useState({ condition_type: 'bruise', severity: 'mild', description: '', recorded_date: new Date().toISOString().split('T')[0], status: 'active' as string })
   const [error, setError] = useState('')
 
@@ -220,8 +230,14 @@ export default function BodyMapTab({ personId }: { personId: string }) {
           <Tab value="front" label="Front View" sx={{ textTransform: 'none', fontWeight: 700 }} />
           <Tab value="back" label="Back View" sx={{ textTransform: 'none', fontWeight: 700 }} />
         </Tabs>
-        <Box sx={{ display: 'flex', justifyContent: 'center', bgcolor: '#FAFBFC', py: 2, px: 1 }}>
-          <svg viewBox={VB} width={BODY_W * 1.7} height={BODY_H * 1.7} style={{ maxWidth: '100%', height: 'auto' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: '#FAFBFC', py: 2, px: 1, position: 'relative' }}>
+          <Typography variant="caption" color="#6B7280" sx={{ mb: 0.5 }}>
+            Click any body part to add a condition
+          </Typography>
+          <Box ref={figureWrapRef} onMouseMove={onFigureMove}
+            onMouseLeave={() => { setHoverZone(null); setHoverPos(null) }}
+            sx={{ position: 'relative', lineHeight: 0 }}>
+          <svg viewBox={VB} width={BODY_W * 1.7} height={BODY_H * 1.7} style={{ maxWidth: '100%', height: 'auto', display: 'block' }}>
             <defs>
               <filter id="bodyShadow" x="-10%" y="-10%" width="120%" height="130%">
                 <feDropShadow dx={1} dy={1} stdDeviation={2} floodColor="#000" floodOpacity={0.08} />
@@ -238,34 +254,17 @@ export default function BodyMapTab({ personId }: { personId: string }) {
               <path d="M75,85 L75,200" fill="none" stroke="#CBD5E1" strokeWidth={1.5} strokeDasharray="4 5" opacity={0.7} />
             )}
 
-            {/* Clickable zones */}
-            {zones.map(z => {
-              const has = zoneCounts[z.id]
-              return (
-                <polygon key={z.id} points={z.points}
-                  fill={hoverZone === z.id ? 'rgba(15,76,129,0.08)' : has ? `${CONDITION_COLORS[viewEntries.find(e => e.body_zone === z.id)!.condition_type]}08` : 'transparent'}
-                  stroke={hoverZone === z.id ? '#0F4C81' : has ? CONDITION_COLORS[viewEntries.find(e => e.body_zone === z.id)!.condition_type] : 'transparent'}
-                  strokeWidth={hoverZone === z.id ? 2 : has ? 1 : 0}
-                  strokeDasharray={has && !hoverZone ? '2 2' : 'none'}
-                  style={{ cursor: 'pointer', transition: 'all 0.1s' }}
-                  onMouseEnter={() => setHoverZone(z.id)}
-                  onMouseLeave={() => setHoverZone(null)}
-                  onClick={() => openCreate(z)}
-                />
-              )
-            })}
-
-            {/* Hover tooltip */}
-            {zones.map(z => {
-              if (hoverZone !== z.id) return null
-              const c = zoneCenter(z)
-              return (
-                <g key={`tt-${z.id}`}>
-                  <rect x={c.cx - 35} y={c.cy - 16} width={70} height={18} rx={4} fill="#0F4C81" opacity={0.9} />
-                  <text x={c.cx} y={c.cy - 3} textAnchor="middle" fontSize={9} fill="white" fontWeight={600}>{z.label}</text>
-                </g>
-              )
-            })}
+            {/* Clickable zones — invisible hit areas; nothing is drawn over the silhouette */}
+            {zones.map(z => (
+              <polygon key={z.id} points={z.points}
+                fill={hoverZone === z.id ? 'rgba(15,76,129,0.07)' : 'transparent'}
+                stroke="transparent" strokeWidth={0}
+                style={{ cursor: 'pointer', transition: 'fill 0.12s ease' }}
+                onMouseEnter={() => setHoverZone(z.id)}
+                onMouseLeave={() => setHoverZone(null)}
+                onClick={() => openCreate(z)}
+              />
+            ))}
 
             {/* Entry markers */}
             {viewEntries.map(e => {
@@ -298,6 +297,24 @@ export default function BodyMapTab({ personId }: { personId: string }) {
               </circle>
             })()}
           </svg>
+
+          {/* Floating zone label — follows the cursor, never drawn over the body */}
+          {hoverZone && hoverPos && (() => {
+            const z = zones.find(zz => zz.id === hoverZone)
+            if (!z) return null
+            const wrapW = figureWrapRef.current?.clientWidth ?? 260
+            const left = Math.min(Math.max(hoverPos.x + 14, 0), Math.max(wrapW - 130, 0))
+            const top = Math.max(hoverPos.y - 34, 4)
+            return (
+              <Box sx={{ position: 'absolute', left, top, zIndex: 5, pointerEvents: 'none',
+                bgcolor: '#0F4C81', color: '#fff', px: 1, py: 0.5, borderRadius: '6px',
+                fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap',
+                boxShadow: '0 2px 8px rgba(11,44,81,0.25)' }}>
+                {z.label}
+              </Box>
+            )
+          })()}
+        </Box>
         </Box>
 
         {/* Legend */}
