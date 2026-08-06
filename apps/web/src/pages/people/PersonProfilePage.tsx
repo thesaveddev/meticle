@@ -2432,6 +2432,10 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
   const queryClient = useQueryClient()
   const { showSnackbar } = useSnackbar()
   const [addOpen, setAddOpen] = useState(false)
+  const [rcEditId, setRcEditId] = useState<string | null>(null)
+  const [rcView, setRcView] = useState<any>(null)
+  const [rcDeleteTarget, setRcDeleteTarget] = useState<string | null>(null)
+  const [rcPhotoBlob, setRcPhotoBlob] = useState<string | null>(null)
   const [rcForm, setRcForm] = useState({ status: 'pass', cleanliness_rating: 5, safety_rating: 5, notes: '', check_date: new Date().toISOString().split('T')[0] })
   const [rcError, setRcError] = useState('')
 
@@ -2443,9 +2447,42 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
 
   const addCheckMutation = useMutation({
     mutationFn: (data: any) => api.post('/room-checks', data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['room-checks', roomNumber] }); setAddOpen(false); showSnackbar('Room check recorded') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['room-checks', roomNumber] }); setAddOpen(false); setRcEditId(null); showSnackbar('Room check recorded') },
     onError: (err: any) => setRcError(err.response?.data?.message || 'Failed to save'),
   })
+
+  const updateCheckMutation = useMutation({
+    mutationFn: (data: any) => api.patch(`/room-checks/${rcEditId}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['room-checks', roomNumber] }); setAddOpen(false); setRcEditId(null); showSnackbar('Room check updated') },
+    onError: (err: any) => setRcError(err.response?.data?.message || 'Failed to update'),
+  })
+
+  const deleteCheckMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/room-checks/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['room-checks', roomNumber] }); setRcDeleteTarget(null); showSnackbar('Room check deleted') },
+    onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setRcDeleteTarget(null) },
+  })
+
+  useEffect(() => {
+    if (!rcView?.photo_url) { setRcPhotoBlob(null); return }
+    const token = localStorage.getItem('accessToken')
+    let active = true
+    let blobUrl = ''
+    fetch(rcView.photo_url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => {
+      if (active) { blobUrl = URL.createObjectURL(b); setRcPhotoBlob(blobUrl) }
+    }).catch(() => { if (active) setRcPhotoBlob(rcView.photo_url) })
+    return () => { active = false; if (blobUrl) URL.revokeObjectURL(blobUrl) }
+  }, [rcView])
+
+  const rcResetForm = () => setRcForm({ status: 'pass', cleanliness_rating: 5, safety_rating: 5, notes: '', check_date: new Date().toISOString().split('T')[0] })
+
+  const rcOpenEdit = (c: any) => {
+    setRcEditId(c.id)
+    setRcForm({ status: c.status || 'pass', cleanliness_rating: c.cleanliness_rating || 5, safety_rating: c.safety_rating || 5, notes: c.notes || '', check_date: c.check_date?.slice(0, 10) || new Date().toISOString().split('T')[0] })
+    setRcError('')
+    setRcView(null)
+    setAddOpen(true)
+  }
 
   if (!roomNumber) return (
     <EmptyRow message="No room number assigned to this person. Room checks cannot be displayed." />
@@ -2456,7 +2493,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
 
   return (
     <Box>
-      <SectionHeader title={`Room Checks for Room ${roomNumber}`} action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setRcForm({ status: 'pass', cleanliness_rating: 5, safety_rating: 5, notes: '', check_date: new Date().toISOString().split('T')[0] }); setRcError(''); setAddOpen(true) }}
+      <SectionHeader title={`Room Checks for Room ${roomNumber}`} action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { rcResetForm(); setRcEditId(null); setRcError(''); setAddOpen(true) }}
         sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Record Check</Button>} />
       {checks.length === 0 ? (
         <EmptyRow message="No room checks recorded for this room" />
@@ -2471,10 +2508,11 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
               <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Checked By</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
             </TableRow></TableHead>
             <TableBody>
               {checks.map((c: any) => (
-                <TableRow key={c.id} hover>
+                <TableRow key={c.id} hover onClick={() => setRcView(c)} sx={{ cursor: 'pointer' }}>
                   <TableCell>{new Date(c.check_date).toLocaleDateString('en-GB')}</TableCell>
                   <TableCell>{c.location_name || '—'}</TableCell>
                   <TableCell><Rating value={c.cleanliness_rating || 0} readOnly size="small" max={5} /></TableCell>
@@ -2483,6 +2521,12 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
                     color={c.status === 'pass' ? 'success' : c.status === 'fail' ? 'error' : 'warning'} /></TableCell>
                   <TableCell>{c.checked_by_name || '—'}</TableCell>
                   <TableCell sx={{ maxWidth: 200 }}>{c.notes || '—'}</TableCell>
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={0.5} justifyContent="flex-end" onClick={e => e.stopPropagation()}>
+                      <IconButton size="small" onClick={() => rcOpenEdit(c)}><EditIcon fontSize="small" /></IconButton>
+                      <IconButton size="small" color="error" onClick={() => setRcDeleteTarget(c.id)}><DeleteIcon fontSize="small" /></IconButton>
+                    </Stack>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -2490,10 +2534,71 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
         </TableContainer>
       )}
 
-      {/* Add Room Check Dialog */}
-      <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="xs" fullWidth>
-        <Box component="form" onSubmit={e => { e.preventDefault(); addCheckMutation.mutate({ ...rcForm, room_number: roomNumber }) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Record Room Check</DialogTitle>
+      <Dialog open={!!rcView} onClose={() => setRcView(null)} maxWidth="sm" fullWidth>
+        {rcView && (
+          <>
+            <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                Room Check — {rcView.room_number || roomNumber}
+                <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', fontWeight: 500 }}>
+                  {rcView.location_name ? `${rcView.location_name} · ` : ''}{new Date(rcView.check_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </Typography>
+              </Box>
+              <IconButton size="small" onClick={() => setRcView(null)}><CloseIcon fontSize="small" /></IconButton>
+            </DialogTitle>
+            <DialogContent>
+              <Stack spacing={2.5}>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip label={rcView.status === 'pass' ? 'Pass' : rcView.status === 'fail' ? 'Fail' : 'Needs Attention'} size="small"
+                    color={rcView.status === 'pass' ? 'success' : rcView.status === 'fail' ? 'error' : 'warning'} sx={{ fontWeight: 700 }} />
+                  {rcView.created_at && <Chip label={`Recorded ${new Date(rcView.created_at).toLocaleString('en-GB')}`} size="small" variant="outlined" />}
+                </Stack>
+                <Stack direction="row" spacing={3} flexWrap="wrap">
+                  <Box>
+                    <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Cleanliness</Typography>
+                    <Rating value={rcView.cleanliness_rating || 0} readOnly max={5} sx={{ display: 'block', mt: 0.25 }} />
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Safety</Typography>
+                    <Rating value={rcView.safety_rating || 0} readOnly max={5} sx={{ display: 'block', mt: 0.25 }} />
+                  </Box>
+                </Stack>
+                <Box>
+                  <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notes</Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.25 }}>{rcView.notes || '—'}</Typography>
+                </Box>
+                {rcView.checked_by_name && (
+                  <Box>
+                    <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Checked by</Typography>
+                    <Typography variant="body2" sx={{ mt: 0.25 }}>{rcView.checked_by_name}</Typography>
+                  </Box>
+                )}
+                {rcView.photo_url && rcPhotoBlob && (
+                  <Box>
+                    <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>Photo</Typography>
+                    <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
+                      <Box component="img" src={rcPhotoBlob} alt="Room check" sx={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block', bgcolor: '#F3F4F6' }} />
+                      <IconButton size="small" onClick={() => { const url = rcView.photo_url; const token = localStorage.getItem('accessToken'); fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => window.open(URL.createObjectURL(b), '_blank', 'noopener')).catch(() => {}) }}
+                        sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: '#fff' } }}>
+                        <OpenInNewIcon fontSize="small" />
+                      </IconButton>
+                    </Paper>
+                  </Box>
+                )}
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ p: 3 }}>
+              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => rcOpenEdit(rcView)} sx={{ textTransform: 'none' }}>Edit</Button>
+              <Button onClick={() => setRcView(null)} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Close</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* Add / Edit Room Check Dialog */}
+      <Dialog open={addOpen} onClose={() => { setAddOpen(false); setRcEditId(null) }} maxWidth="xs" fullWidth>
+        <Box component="form" onSubmit={e => { e.preventDefault(); setRcError(''); const data = { ...rcForm, room_number: roomNumber }; if (rcEditId) updateCheckMutation.mutate(data); else addCheckMutation.mutate(data) }}>
+          <DialogTitle sx={{ fontWeight: 800 }}>{rcEditId ? 'Edit Room Check' : 'Record Room Check'}</DialogTitle>
           <DialogContent>
             {rcError && <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>{rcError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2518,14 +2623,18 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            <Button onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addCheckMutation.isPending}
+            <Button onClick={() => { setAddOpen(false); setRcEditId(null) }}>Cancel</Button>
+            <Button type="submit" variant="contained" disabled={addCheckMutation.isPending || updateCheckMutation.isPending}
               sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
-              {addCheckMutation.isPending ? <CircularProgress size={20} /> : 'Save Check'}
+              {(addCheckMutation.isPending || updateCheckMutation.isPending) ? <CircularProgress size={20} /> : rcEditId ? 'Save Changes' : 'Save Check'}
             </Button>
           </DialogActions>
         </Box>
       </Dialog>
+
+      <ConfirmDialog open={!!rcDeleteTarget} title="Delete room check" message="This will permanently remove this room check record." confirmLabel="Delete" danger
+        onCancel={() => setRcDeleteTarget(null)}
+        onConfirm={() => { if (rcDeleteTarget) deleteCheckMutation.mutate(rcDeleteTarget) }} />
     </Box>
   )
 }
