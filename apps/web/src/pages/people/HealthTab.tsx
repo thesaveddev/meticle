@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Box, Typography, Paper, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, CircularProgress, Tabs, Tab } from '@mui/material'
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, MonitorHeart as MonitorHeartIcon, Waves as BowelIcon, Medication as DentalIcon, WaterDrop as FluidIcon } from '@mui/icons-material'
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, MonitorHeart as MonitorHeartIcon, Waves as BowelIcon, Medication as DentalIcon, WaterDrop as FluidIcon, Close as CloseIcon, Visibility as VisibilityIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { SectionHeader, ConfirmDialog, EmptyRow } from '../../components/ui'
@@ -16,10 +16,37 @@ function useDeleteConfirm() {
   return { deleteTarget, setDeleteTarget }
 }
 
+function HealthEntryViewDialog({ open, onClose, title, chips, rows }: {
+  open: boolean; onClose: () => void; title: string;
+  chips?: React.ReactNode; rows: { label: string; value: React.ReactNode }[];
+}) {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center' }}>
+        {title}
+        <Box sx={{ flex: 1 }} />
+        <IconButton size="small" onClick={onClose}><CloseIcon fontSize="small" /></IconButton>
+      </DialogTitle>
+      <DialogContent>
+        {chips && <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>{chips}</Stack>}
+        <Stack spacing={2}>
+          {rows.map((r, i) => (
+            <Box key={i}>
+              <Typography variant="caption" color="#6B7280">{r.label}</Typography>
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{r.value || '—'}</Typography>
+            </Box>
+          ))}
+        </Stack>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function ObservationsSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [viewEntry, setViewEntry] = useState<any>(null)
   const { deleteTarget, setDeleteTarget } = useDeleteConfirm()
   const [form, setForm] = useState({ observation_date: today(), category: 'general', notes: '', severity: 'normal' })
   const { data, isLoading } = useQuery({ queryKey: ['health-obs', personId], queryFn: () => api.get(`/health/${personId}/observations`).then(r => r.data) })
@@ -53,6 +80,7 @@ function ObservationsSection({ personId }: { personId: string }) {
                   {o.recorded_by_name && <Typography variant="caption" color="#9CA3AF">by {o.recorded_by_name}</Typography>}
                 </Stack>
                 <Stack direction="row" spacing={0}>
+                  <IconButton size="small" onClick={() => setViewEntry(o)}><VisibilityIcon fontSize="small" /></IconButton>
                   <IconButton size="small" onClick={() => { setForm({ observation_date: o.observation_date?.split('T')[0] || o.observation_date, category: o.category, notes: o.notes || '', severity: o.severity }); setEditId(o.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
                   <IconButton size="small" onClick={() => setDeleteTarget({ id: o.id, label: 'this observation' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
@@ -94,6 +122,22 @@ function ObservationsSection({ personId }: { personId: string }) {
         onConfirm={() => deleteTarget && delMut.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)}
       />
+      <HealthEntryViewDialog
+        open={!!viewEntry}
+        onClose={() => setViewEntry(null)}
+        title="Health Observation"
+        chips={viewEntry ? (
+          <>
+            <Chip label={viewEntry.category} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81', fontWeight: 700, textTransform: 'capitalize' }} />
+            <Chip label={viewEntry.severity} size="small" sx={{ bgcolor: `${SEVERITY_COLORS[viewEntry.severity] || '#16A34A'}20`, color: SEVERITY_COLORS[viewEntry.severity] || '#16A34A', fontWeight: 700 }} />
+            <Chip label={new Date(viewEntry.observation_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />
+          </>
+        ) : undefined}
+        rows={[
+          { label: 'Notes', value: viewEntry?.notes },
+          { label: 'Recorded by', value: viewEntry ? `${viewEntry.recorded_by_name || '—'}${viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}` : '' },
+        ]}
+      />
     </Box>
   )
 }
@@ -102,6 +146,7 @@ function BowelSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [viewEntry, setViewEntry] = useState<any>(null)
   const { deleteTarget, setDeleteTarget } = useDeleteConfirm()
   const [form, setForm] = useState({ recorded_date: today(), recorded_time: '', bristol_type: 4, consistency: '', color: '', notes: '' })
   const { data, isLoading } = useQuery({ queryKey: ['health-bowel', personId], queryFn: () => api.get(`/health/${personId}/bowel`).then(r => r.data) })
@@ -142,6 +187,7 @@ function BowelSection({ personId }: { personId: string }) {
                   <TableCell>{b.consistency || '-'}</TableCell>
                   <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 250 }}>{b.notes || '-'}</Typography></TableCell>
                   <TableCell>
+                    <IconButton size="small" onClick={() => setViewEntry(b)}><VisibilityIcon fontSize="small" /></IconButton>
                     <IconButton size="small" onClick={() => { setForm({ recorded_date: b.recorded_date?.split('T')[0] || b.recorded_date, recorded_time: b.recorded_time || '', bristol_type: b.bristol_type || 4, consistency: b.consistency || '', color: b.color || '', notes: b.notes || '' }); setEditId(b.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
                     <IconButton size="small" onClick={() => setDeleteTarget({ id: b.id, label: 'this bowel movement' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
@@ -188,6 +234,24 @@ function BowelSection({ personId }: { personId: string }) {
         onConfirm={() => deleteTarget && delMut.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)}
       />
+      <HealthEntryViewDialog
+        open={!!viewEntry}
+        onClose={() => setViewEntry(null)}
+        title="Bowel Movement"
+        chips={viewEntry ? (
+          <>
+            <Chip label={new Date(viewEntry.recorded_date).toLocaleDateString('en-GB') + (viewEntry.recorded_time ? ` ${viewEntry.recorded_time.slice(0, 5)}` : '')} size="small" variant="outlined" />
+            {viewEntry.bristol_type && <Chip label={BRISTOL_LABELS[viewEntry.bristol_type]?.split(':')[0] || `Type ${viewEntry.bristol_type}`} size="small" variant="outlined" />}
+          </>
+        ) : undefined}
+        rows={[
+          { label: 'Bristol Type', value: viewEntry?.bristol_type ? BRISTOL_LABELS[viewEntry.bristol_type] : '' },
+          { label: 'Consistency', value: viewEntry?.consistency },
+          { label: 'Color', value: viewEntry?.color },
+          { label: 'Notes', value: viewEntry?.notes },
+          { label: 'Recorded by', value: viewEntry ? `${viewEntry.recorded_by_name || '—'}${viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}` : '' },
+        ]}
+      />
     </Box>
   )
 }
@@ -196,6 +260,7 @@ function DentalSection({ personId }: { personId: string }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [viewEntry, setViewEntry] = useState<any>(null)
   const { deleteTarget, setDeleteTarget } = useDeleteConfirm()
   const [form, setForm] = useState({ checkup_date: today(), dentist_name: '', findings: '', actions_taken: '', next_checkup_date: '', notes: '' })
   const { data, isLoading } = useQuery({ queryKey: ['health-dental', personId], queryFn: () => api.get(`/health/${personId}/dental`).then(r => r.data) })
@@ -230,6 +295,7 @@ function DentalSection({ personId }: { personId: string }) {
                   </Stack>
                 </Box>
                 <Stack direction="row" spacing={0}>
+                  <IconButton size="small" onClick={() => setViewEntry(r)}><VisibilityIcon fontSize="small" /></IconButton>
                   <IconButton size="small" onClick={() => { setForm({ checkup_date: r.checkup_date?.split('T')[0] || r.checkup_date, dentist_name: r.dentist_name || '', findings: r.findings || '', actions_taken: r.actions_taken || '', next_checkup_date: r.next_checkup_date?.split('T')[0] || r.next_checkup_date || '', notes: r.notes || '' }); setEditId(r.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
                   <IconButton size="small" onClick={() => setDeleteTarget({ id: r.id, label: 'this dental record' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
@@ -266,16 +332,41 @@ function DentalSection({ personId }: { personId: string }) {
         onConfirm={() => deleteTarget && delMut.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)}
       />
+      <HealthEntryViewDialog
+        open={!!viewEntry}
+        onClose={() => setViewEntry(null)}
+        title="Dental Record"
+        chips={viewEntry ? (
+          <>
+            <Chip label={viewEntry.dentist_name || 'Dental Checkup'} size="small" variant="outlined" />
+            {viewEntry.checkup_date && <Chip label={new Date(viewEntry.checkup_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />}
+            {viewEntry.next_checkup_date && <Chip label={`Next: ${new Date(viewEntry.next_checkup_date).toLocaleDateString('en-GB')}`} size="small" variant="outlined" />}
+          </>
+        ) : undefined}
+        rows={[
+          { label: 'Findings', value: viewEntry?.findings },
+          { label: 'Actions Taken', value: viewEntry?.actions_taken },
+          { label: 'Notes', value: viewEntry?.notes },
+          { label: 'Recorded by', value: viewEntry ? `${viewEntry.recorded_by_name || '—'}${viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}` : '' },
+        ]}
+      />
     </Box>
   )
 }
 
-function FluidSection({ personId }: { personId: string }) {
+function FluidSection({ personId, fluidTarget = 2000 }: { personId: string; fluidTarget?: number }) {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [viewEntry, setViewEntry] = useState<any>(null)
   const { deleteTarget, setDeleteTarget } = useDeleteConfirm()
   const [date, setDate] = useState(today())
+  const [editingTarget, setEditingTarget] = useState(false)
+  const [targetDraft, setTargetDraft] = useState(String(fluidTarget))
+  const targetMut = useMutation({
+    mutationFn: (ml: number) => api.patch(`/people/${personId}`, { fluid_daily_target: ml }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['person', personId] }); setEditingTarget(false) },
+  })
   const [form, setForm] = useState({ recorded_date: today(), recorded_time: '', amount_ml: 200, fluid_type: 'Water', notes: '' })
   const { data, isLoading } = useQuery({ queryKey: ['health-fluid', personId, date], queryFn: () => api.get(`/health/${personId}/fluid?date=${date}`).then(r => r.data) })
   const { data: total } = useQuery({ queryKey: ['health-fluid-total', personId, date], queryFn: () => api.get(`/health/${personId}/fluid/total?date=${date}`).then(r => r.data) })
@@ -301,9 +392,27 @@ function FluidSection({ personId }: { personId: string }) {
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" fontWeight={700}>Daily Total: <strong style={{ fontSize: '1.1rem', color: '#0F4C81' }}>{totalMl} ml</strong></Typography>
           <Box sx={{ width: 200, bgcolor: '#E5E7EB', borderRadius: 1, height: 8, overflow: 'hidden' }}>
-            <Box sx={{ width: `${Math.min((totalMl / 2000) * 100, 100)}%`, bgcolor: totalMl >= 1500 ? '#16A34A' : totalMl >= 1000 ? '#D97706' : '#DC2626', height: 8, borderRadius: 1, transition: 'width 0.3s' }} />
+            <Box sx={{ width: `${Math.min((totalMl / (fluidTarget || 2000)) * 100, 100)}%`, bgcolor: totalMl >= (fluidTarget || 2000) * 0.75 ? '#16A34A' : totalMl >= (fluidTarget || 2000) * 0.5 ? '#D97706' : '#DC2626', height: 8, borderRadius: 1, transition: 'width 0.3s' }} />
           </Box>
-          <Typography variant="caption" color="#6B7280">Target: 2000 ml</Typography>
+          {editingTarget ? (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <TextField
+                type="number" size="small" value={targetDraft}
+                onChange={e => setTargetDraft(e.target.value)}
+                InputProps={{ endAdornment: <Typography variant="caption" color="#6B7280">ml</Typography> }}
+                sx={{ width: 110 }}
+              />
+              <Button size="small" variant="contained" disabled={targetMut.isPending || !Number(targetDraft)} onClick={() => targetMut.mutate(Number(targetDraft))}
+                sx={{ bgcolor: '#0F4C81', textTransform: 'none', minWidth: 0, px: 1.5 }}>
+                {targetMut.isPending ? <CircularProgress size={16} /> : 'Save'}
+              </Button>
+              <IconButton size="small" onClick={() => { setEditingTarget(false); setTargetDraft(String(fluidTarget || 2000)) }}><CloseIcon sx={{ fontSize: 16 }} /></IconButton>
+            </Stack>
+          ) : (
+            <Button size="small" onClick={() => { setEditingTarget(true); setTargetDraft(String(fluidTarget || 2000)) }} sx={{ color: '#0F4C81', textTransform: 'none' }}>
+              <EditIcon sx={{ fontSize: 14, mr: 0.5 }} />Target: {fluidTarget || 2000} ml
+            </Button>
+          )}
         </Stack>
       </Paper>
       {(!data || data.length === 0) ? (
@@ -320,6 +429,7 @@ function FluidSection({ personId }: { personId: string }) {
                   <TableCell sx={{ fontWeight: 700 }}>{f.amount_ml} ml</TableCell>
                   <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>{f.notes || '-'}</Typography></TableCell>
                   <TableCell>
+                    <IconButton size="small" onClick={() => setViewEntry(f)}><VisibilityIcon fontSize="small" /></IconButton>
                     <IconButton size="small" onClick={() => { setForm({ recorded_date: f.recorded_date?.split('T')[0] || f.recorded_date, recorded_time: f.recorded_time || '', amount_ml: f.amount_ml, fluid_type: f.fluid_type, notes: f.notes || '' }); setEditId(f.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
                     <IconButton size="small" onClick={() => setDeleteTarget({ id: f.id, label: 'this fluid intake entry' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
@@ -354,11 +464,28 @@ function FluidSection({ personId }: { personId: string }) {
         onConfirm={() => deleteTarget && delMut.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)}
       />
+      <HealthEntryViewDialog
+        open={!!viewEntry}
+        onClose={() => setViewEntry(null)}
+        title="Fluid Intake"
+        chips={viewEntry ? (
+          <>
+            <Chip label={new Date(viewEntry.recorded_date).toLocaleDateString('en-GB') + (viewEntry.recorded_time ? ` ${viewEntry.recorded_time.slice(0, 5)}` : '')} size="small" variant="outlined" />
+            <Chip label={viewEntry.fluid_type} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81' }} />
+          </>
+        ) : undefined}
+        rows={[
+          { label: 'Amount', value: viewEntry ? `${viewEntry.amount_ml} ml` : '' },
+          { label: 'Notes', value: viewEntry?.notes },
+          { label: 'Recorded by', value: viewEntry ? `${viewEntry.recorded_by_name || '—'}${viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}` : '' },
+        ]}
+      />
     </Box>
   )
 }
 
-type HealthSectionComponent = ({ personId }: { personId: string }) => JSX.Element
+type HealthSectionProps = { personId: string; fluidTarget?: number }
+type HealthSectionComponent = (props: HealthSectionProps) => JSX.Element
 
 const HEALTH_TABS: { label: string; icon: JSX.Element; Component: HealthSectionComponent }[] = [
   { label: 'Observations', icon: <MonitorHeartIcon sx={{ fontSize: 18 }} />, Component: ObservationsSection },
@@ -367,7 +494,7 @@ const HEALTH_TABS: { label: string; icon: JSX.Element; Component: HealthSectionC
   { label: 'Dental', icon: <DentalIcon sx={{ fontSize: 18 }} />, Component: DentalSection },
 ]
 
-export default function HealthTab({ personId }: { personId: string }) {
+export default function HealthTab({ personId, fluidTarget }: HealthSectionProps) {
   const [innerTab, setInnerTab] = useState(0)
   const Active = HEALTH_TABS[innerTab].Component
   return (
@@ -377,7 +504,7 @@ export default function HealthTab({ personId }: { personId: string }) {
           <Tab key={t.label} icon={t.icon} iconPosition="start" label={t.label} />
         ))}
       </Tabs>
-      <Active personId={personId} />
+      <Active personId={personId} fluidTarget={fluidTarget} />
     </Box>
   )
 }

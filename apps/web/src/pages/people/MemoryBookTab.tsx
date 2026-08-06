@@ -305,7 +305,18 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={e => { e.preventDefault(); (editingEntry ? updateMutation : createMutation).mutate() }}>
+        <Box component="form" onSubmit={e => {
+          e.preventDefault()
+          if (editingEntry) {
+            const payload: any = { title: form.title }
+            if (form.description) payload.description = form.description
+            if (form.recorded_date) payload.recorded_date = form.recorded_date
+            if (form.support_level) payload.support_level = form.support_level
+            updateMutation.mutate(payload)
+          } else {
+            createMutation.mutate()
+          }
+        }}>
           <DialogTitle sx={{ fontWeight: 800 }}>{editingEntry ? 'Edit Memory' : 'Add Memory'}</DialogTitle>
           <DialogContent>
             {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>{error}</Alert>}
