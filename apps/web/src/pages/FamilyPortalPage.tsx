@@ -55,14 +55,22 @@ export default function FamilyPortalPage() {
 
   if (infoLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}><CircularProgress /></Box>
 
-  if (infoError || !info) return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#F9FAFB', p: 4 }}>
-      <Paper sx={{ p: 6, textAlign: 'center', maxWidth: 480, borderRadius: 3 }}>
-        <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>Link Expired or Invalid</Typography>
-        <Typography color="#6B7280" sx={{ mb: 3 }}>This portal link is no longer valid. Please contact the care provider for a new invitation.</Typography>
-      </Paper>
-    </Box>
-  )
+  if (infoError || !info) {
+    const status = (infoError as any)?.response?.status
+    const expired = status === 404
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#F9FAFB', p: 4 }}>
+        <Paper sx={{ p: 6, textAlign: 'center', maxWidth: 480, borderRadius: 3 }}>
+          <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>{expired ? 'Link Expired or Revoked' : 'Something Went Wrong'}</Typography>
+          <Typography color="#6B7280" sx={{ mb: 3 }}>
+            {expired
+              ? 'This portal link is no longer valid — it may have expired or been revoked. Please contact the care provider for a new invitation.'
+              : 'We couldn\u2019t load your portal right now. Please try again in a moment, or contact the care provider if the problem persists.'}
+          </Typography>
+        </Paper>
+      </Box>
+    )
+  }
 
   const su = info.person
 

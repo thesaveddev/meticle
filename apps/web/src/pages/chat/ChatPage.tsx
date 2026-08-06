@@ -24,7 +24,7 @@ import {
   Description as FileIcon,
   Check as CheckIcon,
   DoneAll as DoneAllIcon,
-  Visibility as ViewFileIcon,
+  OpenInNew as OpenInNewIcon,
   Download as DownloadIcon,
   GridView as GridViewIcon,
   ViewList as ViewListIcon,
@@ -884,7 +884,7 @@ export default function ChatPage() {
                                               {msg.file_name || 'File'}
                                             </Typography>
                                             <Typography variant="caption" sx={{ fontSize: 10, opacity: 0.7, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                              <ViewFileIcon sx={{ fontSize: 12 }} /> Click to preview
+                                              <OpenInNewIcon sx={{ fontSize: 12 }} /> Click to preview
                                             </Typography>
                                           </Box>
                                         </Stack>

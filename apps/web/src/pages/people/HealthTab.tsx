@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Box, Typography, Paper, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, CircularProgress, Tabs, Tab } from '@mui/material'
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, MonitorHeart as MonitorHeartIcon, Waves as BowelIcon, Medication as DentalIcon, WaterDrop as FluidIcon, Close as CloseIcon, Visibility as VisibilityIcon } from '@mui/icons-material'
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Close as CloseIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { SectionHeader, ConfirmDialog, EmptyRow } from '../../components/ui'
@@ -59,7 +59,6 @@ function ObservationsSection({ personId }: { personId: string }) {
     <Box>
       <SectionHeader
         title="Health Observations"
-        icon={<MonitorHeartIcon sx={{ fontSize: 20 }} />}
         action={
           <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
             Add Observation
@@ -71,7 +70,11 @@ function ObservationsSection({ personId }: { personId: string }) {
       ) : (
         <Stack spacing={1.5}>
           {data.map((o: any) => (
-            <Paper key={o.id} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: SEVERITY_COLORS[o.severity] || '#16A34A' }}>
+            <Paper
+              key={o.id}
+              onClick={() => setViewEntry(o)}
+              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: SEVERITY_COLORS[o.severity] || '#16A34A', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}
+            >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                   <Chip label={o.category} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81', fontWeight: 700, textTransform: 'capitalize' }} />
@@ -79,8 +82,7 @@ function ObservationsSection({ personId }: { personId: string }) {
                   <Typography variant="caption" color="#6B7280">{new Date(o.observation_date).toLocaleDateString('en-GB')}</Typography>
                   {o.recorded_by_name && <Typography variant="caption" color="#9CA3AF">by {o.recorded_by_name}</Typography>}
                 </Stack>
-                <Stack direction="row" spacing={0}>
-                  <IconButton size="small" onClick={() => setViewEntry(o)}><VisibilityIcon fontSize="small" /></IconButton>
+                <Stack direction="row" spacing={0} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                   <IconButton size="small" onClick={() => { setForm({ observation_date: o.observation_date?.split('T')[0] || o.observation_date, category: o.category, notes: o.notes || '', severity: o.severity }); setEditId(o.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
                   <IconButton size="small" onClick={() => setDeleteTarget({ id: o.id, label: 'this observation' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
@@ -159,7 +161,6 @@ function BowelSection({ personId }: { personId: string }) {
     <Box>
       <SectionHeader
         title="Bowel Movements"
-        icon={<BowelIcon sx={{ fontSize: 20 }} />}
         action={
           <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
             Record Movement
@@ -174,7 +175,7 @@ function BowelSection({ personId }: { personId: string }) {
             <TableHead><TableRow><TableCell sx={{ fontWeight: 700 }}>Date/Time</TableCell><TableCell sx={{ fontWeight: 700 }}>Type</TableCell><TableCell sx={{ fontWeight: 700 }}>Consistency</TableCell><TableCell sx={{ fontWeight: 700 }}>Notes</TableCell><TableCell sx={{ fontWeight: 700 }} width={60}></TableCell></TableRow></TableHead>
             <TableBody>
               {data.map((b: any) => (
-                <TableRow key={b.id}>
+                <TableRow key={b.id} hover sx={{ cursor: 'pointer' }} onClick={() => setViewEntry(b)}>
                   <TableCell>{new Date(b.recorded_date).toLocaleDateString('en-GB')}{b.recorded_time ? ` ${b.recorded_time.slice(0, 5)}` : ''}</TableCell>
                   <TableCell>
                     {b.bristol_type ? (
@@ -186,8 +187,7 @@ function BowelSection({ personId }: { personId: string }) {
                   </TableCell>
                   <TableCell>{b.consistency || '-'}</TableCell>
                   <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 250 }}>{b.notes || '-'}</Typography></TableCell>
-                  <TableCell>
-                    <IconButton size="small" onClick={() => setViewEntry(b)}><VisibilityIcon fontSize="small" /></IconButton>
+                  <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                     <IconButton size="small" onClick={() => { setForm({ recorded_date: b.recorded_date?.split('T')[0] || b.recorded_date, recorded_time: b.recorded_time || '', bristol_type: b.bristol_type || 4, consistency: b.consistency || '', color: b.color || '', notes: b.notes || '' }); setEditId(b.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
                     <IconButton size="small" onClick={() => setDeleteTarget({ id: b.id, label: 'this bowel movement' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
@@ -273,7 +273,6 @@ function DentalSection({ personId }: { personId: string }) {
     <Box>
       <SectionHeader
         title="Dental Records"
-        icon={<DentalIcon sx={{ fontSize: 20 }} />}
         action={
           <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
             Add Record
@@ -285,7 +284,11 @@ function DentalSection({ personId }: { personId: string }) {
       ) : (
         <Stack spacing={1.5}>
           {data.map((r: any) => (
-            <Paper key={r.id} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: r.next_checkup_date && new Date(r.next_checkup_date) <= new Date(Date.now() + 30*86400000) ? '#D97706' : '#0F4C81' }}>
+            <Paper
+              key={r.id}
+              onClick={() => setViewEntry(r)}
+              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: r.next_checkup_date && new Date(r.next_checkup_date) <= new Date(Date.now() + 30*86400000) ? '#D97706' : '#0F4C81', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}
+            >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>
                   <Typography variant="subtitle2" fontWeight={700}>{r.dentist_name || 'Dental Checkup'}</Typography>
@@ -294,8 +297,7 @@ function DentalSection({ personId }: { personId: string }) {
                     {r.next_checkup_date && <Chip label={`Next: ${new Date(r.next_checkup_date).toLocaleDateString('en-GB')}`} size="small" color={new Date(r.next_checkup_date) <= new Date(Date.now() + 30*86400000) ? 'warning' : 'default'} variant="outlined" />}
                   </Stack>
                 </Box>
-                <Stack direction="row" spacing={0}>
-                  <IconButton size="small" onClick={() => setViewEntry(r)}><VisibilityIcon fontSize="small" /></IconButton>
+                <Stack direction="row" spacing={0} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                   <IconButton size="small" onClick={() => { setForm({ checkup_date: r.checkup_date?.split('T')[0] || r.checkup_date, dentist_name: r.dentist_name || '', findings: r.findings || '', actions_taken: r.actions_taken || '', next_checkup_date: r.next_checkup_date?.split('T')[0] || r.next_checkup_date || '', notes: r.notes || '' }); setEditId(r.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
                   <IconButton size="small" onClick={() => setDeleteTarget({ id: r.id, label: 'this dental record' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
@@ -380,7 +382,6 @@ function FluidSection({ personId, fluidTarget = 2000 }: { personId: string; flui
     <Box>
       <SectionHeader
         title="Fluid Intake"
-        icon={<FluidIcon sx={{ fontSize: 20 }} />}
         action={
           <Stack direction="row" spacing={1}>
             <TextField type="date" size="small" value={date} onChange={e => setDate(e.target.value)} sx={{ width: 160 }} />
@@ -423,13 +424,12 @@ function FluidSection({ personId, fluidTarget = 2000 }: { personId: string; flui
             <TableHead><TableRow><TableCell sx={{ fontWeight: 700 }}>Time</TableCell><TableCell sx={{ fontWeight: 700 }}>Type</TableCell><TableCell sx={{ fontWeight: 700 }}>Amount</TableCell><TableCell sx={{ fontWeight: 700 }}>Notes</TableCell><TableCell sx={{ fontWeight: 700 }} width={60}></TableCell></TableRow></TableHead>
             <TableBody>
               {data.map((f: any) => (
-                <TableRow key={f.id}>
+                <TableRow key={f.id} hover sx={{ cursor: 'pointer' }} onClick={() => setViewEntry(f)}>
                   <TableCell>{f.recorded_time ? f.recorded_time.slice(0, 5) : '-'}</TableCell>
                   <TableCell><Chip label={f.fluid_type} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81' }} /></TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>{f.amount_ml} ml</TableCell>
                   <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>{f.notes || '-'}</Typography></TableCell>
-                  <TableCell>
-                    <IconButton size="small" onClick={() => setViewEntry(f)}><VisibilityIcon fontSize="small" /></IconButton>
+                  <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                     <IconButton size="small" onClick={() => { setForm({ recorded_date: f.recorded_date?.split('T')[0] || f.recorded_date, recorded_time: f.recorded_time || '', amount_ml: f.amount_ml, fluid_type: f.fluid_type, notes: f.notes || '' }); setEditId(f.id); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
                     <IconButton size="small" onClick={() => setDeleteTarget({ id: f.id, label: 'this fluid intake entry' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
@@ -487,11 +487,11 @@ function FluidSection({ personId, fluidTarget = 2000 }: { personId: string; flui
 type HealthSectionProps = { personId: string; fluidTarget?: number }
 type HealthSectionComponent = (props: HealthSectionProps) => JSX.Element
 
-const HEALTH_TABS: { label: string; icon: JSX.Element; Component: HealthSectionComponent }[] = [
-  { label: 'Observations', icon: <MonitorHeartIcon sx={{ fontSize: 18 }} />, Component: ObservationsSection },
-  { label: 'Fluid', icon: <FluidIcon sx={{ fontSize: 18 }} />, Component: FluidSection },
-  { label: 'Bowel', icon: <BowelIcon sx={{ fontSize: 18 }} />, Component: BowelSection },
-  { label: 'Dental', icon: <DentalIcon sx={{ fontSize: 18 }} />, Component: DentalSection },
+const HEALTH_TABS: { label: string; Component: HealthSectionComponent }[] = [
+  { label: 'Observations', Component: ObservationsSection },
+  { label: 'Fluid', Component: FluidSection },
+  { label: 'Bowel', Component: BowelSection },
+  { label: 'Dental', Component: DentalSection },
 ]
 
 export default function HealthTab({ personId, fluidTarget }: HealthSectionProps) {
@@ -501,7 +501,7 @@ export default function HealthTab({ personId, fluidTarget }: HealthSectionProps)
     <Box>
       <Tabs value={innerTab} onChange={(_, v) => setInnerTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: 1, borderColor: '#E5E7EB', mb: 2, minHeight: 44, '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 44 } }}>
         {HEALTH_TABS.map((t) => (
-          <Tab key={t.label} icon={t.icon} iconPosition="start" label={t.label} />
+          <Tab key={t.label} label={t.label} />
         ))}
       </Tabs>
       <Active personId={personId} fluidTarget={fluidTarget} />
