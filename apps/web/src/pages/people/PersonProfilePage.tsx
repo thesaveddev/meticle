@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Fragment } from 'react'
 import {
   Box, Typography, Paper, Stack, Chip, Button, Tabs, Tab, Avatar,
   Grid, TextField, CircularProgress, Alert, Dialog, DialogTitle,
@@ -16,8 +16,9 @@ import {
   CheckCircle as CheckCircleIcon, RadioButtonUnchecked as UncheckedIcon,
   People as PeopleIcon, AutoAwesome as AiIcon, Mic as MicIcon, Stop as StopIcon,
   Psychology as PsychologyIcon, Flag as FlagIcon, TrendingUp as TrendIcon,
-  Lightbulb as LightbulbIcon, Save as SaveIcon, Visibility as VisibilityIcon,
+  Lightbulb as LightbulbIcon, Save as SaveIcon,
   Description as FileIcon, Download as DownloadIcon, Close as CloseIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
@@ -29,7 +30,7 @@ import BodyMapTab from './BodyMapTab'
 import MemoryBookTab from './MemoryBookTab'
 import GoalsPage from '../goals/GoalsPage'
 import { LinearProgress, Rating } from '@mui/material'
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer as RechartsResponsiveContainer, BarChart, Bar, XAxis as RechartsXAxis, YAxis as RechartsYAxis, CartesianGrid as RechartsCartesianGrid, Tooltip as RechartsTooltip, Cell } from 'recharts'
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer as RechartsResponsiveContainer, Pie, PieChart, Tooltip as RechartsTooltip, Cell } from 'recharts'
 
 const RISK_COLORS: Record<string, string> = { low: '#16A34A', medium: '#D97706', high: '#DC2626', critical: '#7C3AED' }
 const CATEGORY_OPTIONS = ['personal_care', 'medication', 'mobility', 'nutrition', 'mental_health', 'behaviour', 'social', 'other']
@@ -1095,9 +1096,16 @@ export default function PersonProfilePage() {
               }
               if (pm.status === 'active' || pm.status === 'invited') {
                 return (
-                  <MenuItem onClick={() => { inlineCancelInviteMutation.mutate(pm.id); setContactMenuAnchor(null) }} disabled={inlineCancelInviteMutation.isPending}>
-                    <ListItemIcon><BlockIcon fontSize="small" color="warning" /></ListItemIcon><ListItemText sx={{ color: '#D97706' }}>Revoke Portal Access</ListItemText>
-                  </MenuItem>
+                  <Fragment key="portal-actions">
+                    {pm.access_token && (
+                      <MenuItem onClick={() => { const url = `${window.location.origin}/family-portal/${pm.access_token}`; navigator.clipboard?.writeText(url).then(() => showSnackbar('Portal link copied'), () => showSnackbar(url, 'info')); setContactMenuAnchor(null) }}>
+                        <ListItemIcon><FileIcon fontSize="small" sx={{ color: '#0F4C81' }} /></ListItemIcon><ListItemText>Copy Portal Link</ListItemText>
+                      </MenuItem>
+                    )}
+                    <MenuItem onClick={() => { inlineCancelInviteMutation.mutate(pm.id); setContactMenuAnchor(null) }} disabled={inlineCancelInviteMutation.isPending}>
+                      <ListItemIcon><BlockIcon fontSize="small" color="warning" /></ListItemIcon><ListItemText sx={{ color: '#D97706' }}>Revoke Portal Access</ListItemText>
+                    </MenuItem>
+                  </Fragment>
                 )
               }
               return null
@@ -2109,7 +2117,7 @@ export default function PersonProfilePage() {
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <FileIcon color="action" />
                       <Typography noWrap sx={{ flex: 1 }}>{viewRisk.file_name || viewRisk.file_url.split('/').pop()}</Typography>
-                      <Button variant="outlined" size="small" startIcon={<VisibilityIcon />} onClick={() => { viewFileInNewTab(viewRisk.file_url); setViewRisk(null) }}
+                      <Button variant="outlined" size="small" startIcon={<OpenInNewIcon />} onClick={() => { viewFileInNewTab(viewRisk.file_url); setViewRisk(null) }}
                         sx={{ textTransform: 'none' }}>View</Button>
                     </Stack>
                   </Paper>
@@ -2271,7 +2279,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
                   <Paper variant="outlined" sx={{ p: 1.5, bgcolor: '#F9FAFB', display: 'flex', alignItems: 'center', gap: 1 }}>
                     <FileIcon sx={{ color: '#0F4C81' }} />
                     <Typography noWrap sx={{ flex: 1 }}>{selected.file_name || selected.file_url.split('/').pop()}</Typography>
-                    <Button size="small" variant="outlined" startIcon={<VisibilityIcon />} onClick={() => openFileInNewTab(selected.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
+                    <Button size="small" variant="outlined" startIcon={<OpenInNewIcon />} onClick={() => openFileInNewTab(selected.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
                   </Paper>
                 </Box>
               )}
@@ -2525,6 +2533,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
 function ClinicalScoresTab({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [viewScore, setViewScore] = useState<any>(null)
   const [form, setForm] = useState({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] })
   const [formError, setFormError] = useState('')
   const queryClient = useQueryClient()
@@ -2565,8 +2574,10 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
       ) : (
         <Stack spacing={1.5}>
           {scores.map((s: any) => (
-            <Paper key={s.id} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4,
-              borderLeftColor: s.risk_level === 'high' || s.risk_level === 'severe' ? '#DC2626' : s.risk_level === 'medium' || s.risk_level === 'at_risk' ? '#D97706' : '#16A34A' }}>
+            <Paper key={s.id} onClick={() => setViewScore(s)}
+              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, cursor: 'pointer',
+              borderLeftColor: s.risk_level === 'high' || s.risk_level === 'severe' ? '#DC2626' : s.risk_level === 'medium' || s.risk_level === 'at_risk' ? '#D97706' : '#16A34A',
+              '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>
                   <Stack direction="row" spacing={1} alignItems="center">
@@ -2581,7 +2592,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
                     {s.recorded_by_name && <Typography variant="caption" color="#9CA3AF">by {s.recorded_by_name}</Typography>}
                   </Stack>
                 </Box>
-                <Stack direction="row" spacing={0}>
+                <Stack direction="row" spacing={0} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                   <IconButton size="small" onClick={() => { setEditId(s.id); setForm({ score_type: s.score_type, score: s.score != null ? String(s.score) : '', risk_level: s.risk_level || '', notes: s.notes || '', recorded_date: s.recorded_date?.split('T')[0] || s.recorded_date }); setFormError(''); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
                   <IconButton size="small" color="error" onClick={() => setDeleteTarget(s.id)}><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
@@ -2642,6 +2653,30 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
       />
+      <Dialog open={!!viewScore} onClose={() => setViewScore(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, textTransform: 'capitalize' }}>{viewScore?.score_type} Clinical Score</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              {viewScore?.score != null && <Chip label={`Score: ${viewScore.score}`} size="small" variant="outlined" />}
+              {viewScore?.risk_level && <Chip label={viewScore.risk_level.replace(/_/g, ' ')} size="small"
+                color={viewScore.risk_level === 'high' || viewScore.risk_level === 'severe' ? 'error' : viewScore.risk_level === 'medium' || viewScore.risk_level === 'at_risk' ? 'warning' : 'success'} />}
+              <Chip label={new Date(viewScore?.recorded_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />
+            </Stack>
+            <Box>
+              <Typography variant="caption" color="#6B7280">Notes</Typography>
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewScore?.notes || '—'}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="#6B7280">Recorded by</Typography>
+              <Typography variant="body1">{viewScore ? `${viewScore.recorded_by_name || '—'}${viewScore.created_at ? ` on ${new Date(viewScore.created_at).toLocaleString('en-GB')}` : ''}` : ''}</Typography>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setViewScore(null)} sx={{ textTransform: 'none' }}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
@@ -2811,6 +2846,7 @@ const DOMAIN_COLORS: Record<string, string> = {
 
 function WellbeingTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
+  const [viewEntry, setViewEntry] = useState<any>(null)
   const [form, setForm] = useState({ domain: 'mood', score: 5, notes: '' })
   const [formError, setFormError] = useState('')
   const queryClient = useQueryClient()
@@ -2864,32 +2900,71 @@ function WellbeingTabInline({ personId }: { personId: string }) {
         <EmptyRow message="No wellbeing entries recorded" />
       ) : (
         <Stack spacing={2}>
-          {Object.entries(grouped).map(([domain, items]) => (
-            <Paper key={domain} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
-              <Chip label={domain} size="small" sx={{ bgcolor: DOMAIN_COLORS[domain] || '#6B7280', color: 'white', mb: 1 }} />
-              <Stack spacing={1.5}>
-                {items.map((e: any) => (
-                  <Box key={e.id} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                        <Typography variant="subtitle2" fontWeight={700}>{e.score}/10</Typography>
-                        <LinearProgress variant="determinate" value={(e.score || 0) * 10}
-                          sx={{ flex: 1, height: 8, borderRadius: 4, bgcolor: '#E5E7EB', '& .MuiLinearProgress-bar': { bgcolor: (e.score || 0) >= 8 ? '#16A34A' : (e.score || 0) >= 5 ? '#D97706' : '#DC2626' } }} />
-                      </Stack>
-                      {e.notes && <Typography variant="body2" color="#6B7280">{e.notes}</Typography>}
-                      <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
-                        <Typography variant="caption" color="#9CA3AF">{e.recorded_date ? new Date(e.recorded_date).toLocaleDateString('en-GB') : ''}</Typography>
-                        {e.recorded_by_name && <Typography variant="caption" color="#9CA3AF">by {e.recorded_by_name}</Typography>}
-                      </Stack>
-                    </Box>
-                    <IconButton size="small" color="error" onClick={() => setDeleteTarget(e.id)}><DeleteIcon fontSize="small" /></IconButton>
-                  </Box>
-                ))}
-              </Stack>
-            </Paper>
-          ))}
+          {Object.entries(grouped).map(([domain, items]) => {
+            const domainColor = DOMAIN_COLORS[domain] || '#6B7280'
+            const latest = items.reduce((a: any, b: any) => new Date(a.recorded_date) > new Date(b.recorded_date) ? a : b)
+            return (
+              <Paper key={domain} sx={{ borderRadius: 2, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center"
+                  sx={{ px: 2, py: 1.25, borderBottom: '1px solid #E5E7EB', bgcolor: `${domainColor}0D` }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: domainColor }} />
+                    <Typography variant="subtitle2" fontWeight={800} sx={{ textTransform: 'capitalize' }}>{domain}</Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Typography variant="caption" color="#9CA3AF">{items.length} {items.length === 1 ? 'entry' : 'entries'}</Typography>
+                    <Chip label={`Latest ${latest.score}/10`} size="small" sx={{ bgcolor: `${domainColor}18`, color: domainColor, fontWeight: 700, fontSize: '0.7rem' }} />
+                  </Stack>
+                </Stack>
+                <Stack divider={<Divider />} spacing={0}>
+                  {items.map((e: any) => {
+                    const sc = (e.score || 0) >= 8 ? '#16A34A' : (e.score || 0) >= 5 ? '#D97706' : '#DC2626'
+                    return (
+                      <Box key={e.id} onClick={() => setViewEntry(e)}
+                        sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', '&:hover': { bgcolor: '#F8FAFC' } }}>
+                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: `${sc}18`, color: sc, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Typography variant="subtitle2" fontWeight={800}>{e.score}</Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          {e.notes && <Typography variant="body2" color="#374151" noWrap sx={{ maxWidth: '100%' }}>{e.notes}</Typography>}
+                          <Stack direction="row" spacing={2}>
+                            <Typography variant="caption" color="#9CA3AF">{e.recorded_date ? new Date(e.recorded_date).toLocaleDateString('en-GB') : ''}</Typography>
+                            {e.recorded_by_name && <Typography variant="caption" color="#9CA3AF">by {e.recorded_by_name}</Typography>}
+                          </Stack>
+                        </Box>
+                        <IconButton size="small" color="error" onClick={(ev: React.MouseEvent) => { ev.stopPropagation(); setDeleteTarget(e.id) }}><DeleteIcon fontSize="small" /></IconButton>
+                      </Box>
+                    )
+                  })}
+                </Stack>
+              </Paper>
+            )
+          })}
         </Stack>
       )}
+
+      <Dialog open={!!viewEntry} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, textTransform: 'capitalize' }}>{viewEntry?.domain} Entry</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Chip label={`${viewEntry?.score}/10`} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81', fontWeight: 700 }} />
+              {viewEntry?.recorded_date && <Chip label={new Date(viewEntry.recorded_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />}
+            </Stack>
+            <Box>
+              <Typography variant="caption" color="#6B7280">Notes</Typography>
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry?.notes || '—'}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="#6B7280">Recorded by</Typography>
+              <Typography variant="body1">{viewEntry ? `${viewEntry.recorded_by_name || '—'}${viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}` : ''}</Typography>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setViewEntry(null)} sx={{ textTransform: 'none' }}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate(form) }}>
@@ -2993,7 +3068,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
             </TableHead>
             <TableBody>
               {entries.map((e: any) => (
-                <TableRow key={e.id}>
+                <TableRow key={e.id} hover onClick={() => setViewEntry(e)} sx={{ cursor: 'pointer' }}>
                   <TableCell>
                     <Typography variant="body2" fontWeight={600}>{e.contact_name}</Typography>
                     {e.relationship && <Typography variant="caption" color="#6B7280">{e.relationship}</Typography>}
@@ -3008,8 +3083,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
                   <TableCell>{e.recorded_date ? new Date(e.recorded_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell>{e.recorded_by_name || '—'}</TableCell>
                   <TableCell>
-                    <Stack direction="row" spacing={0}>
-                      <IconButton size="small" onClick={() => setViewEntry(e)}><VisibilityIcon fontSize="small" /></IconButton>
+                    <Stack direction="row" spacing={0} onClick={e => e.stopPropagation()}>
                       <IconButton size="small" onClick={() => { setEditId(e.id); setForm({ contact_name: e.contact_name || '', relationship: e.relationship || '', contact_method: e.contact_method || 'phone', direction: e.direction || 'inbound', summary: e.summary || '', follow_up_actions: e.follow_up_actions || '', recorded_date: e.recorded_date?.split('T')[0] || e.recorded_date }); setFormError(''); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
                       <IconButton size="small" color="error" onClick={() => setDeleteTarget(e.id)}><DeleteIcon fontSize="small" /></IconButton>
                     </Stack>
@@ -3162,7 +3236,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
       ) : (
         <Stack spacing={2}>
           {assessments.map((a: any) => (
-            <Paper key={a.id} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+            <Paper key={a.id} onClick={() => setViewEntry(a)} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', transition: 'border-color .15s', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box sx={{ flex: 1 }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
@@ -3177,8 +3251,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
                   {a.independent_advocate && <Typography variant="body2" color="#6B7280">Advocate: {a.independent_advocate}</Typography>}
                   {a.review_date && <Typography variant="caption" color="#9CA3AF" sx={{ mt: 0.5, display: 'block' }}>Review: {new Date(a.review_date).toLocaleDateString('en-GB')}</Typography>}
                 </Box>
-                <Stack direction="row" spacing={0.5}>
-                  <IconButton size="small" onClick={() => setViewEntry(a)}><VisibilityIcon fontSize="small" /></IconButton>
+                <Stack direction="row" spacing={0.5} onClick={e => e.stopPropagation()}>
                   <IconButton size="small" onClick={() => {
                     setForm({
                       assessment_date: a.assessment_date?.split('T')[0] || new Date().toISOString().split('T')[0],
@@ -3581,7 +3654,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
                 <Paper variant="outlined" sx={{ mt: 0.5, p: 1.5, bgcolor: '#F9FAFB', display: 'flex', alignItems: 'center', gap: 1 }}>
                   <FileIcon sx={{ color: '#0F4C81' }} />
                   <Typography noWrap sx={{ flex: 1 }}>{viewPathway.file_name || viewPathway.file_url.split('/').pop()}</Typography>
-                  <Button size="small" variant="outlined" startIcon={<VisibilityIcon />} onClick={() => openFileInNewTab(viewPathway.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
+                  <Button size="small" variant="outlined" startIcon={<OpenInNewIcon />} onClick={() => openFileInNewTab(viewPathway.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
                 </Paper>
               </Box>
             )}
@@ -3731,6 +3804,7 @@ function DischargeChecklistTabInline({ personId }: { personId: string }) {
 function MoodChartTabInline({ personId }: { personId: string }) {
   const queryClient = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
+  const [viewEntry, setViewEntry] = useState<any>(null)
   const [view, setView] = useState<'chart' | 'table'>('chart')
   const [form, setForm] = useState({ domain: 'mood', score: 7, recorded_date: new Date().toISOString().split('T')[0], notes: '' })
   const [formError, setFormError] = useState('')
@@ -3764,6 +3838,12 @@ function MoodChartTabInline({ personId }: { personId: string }) {
 
   const scoreColor = (score: number) => score >= 8 ? '#16A34A' : score >= 5 ? '#D97706' : '#DC2626'
 
+  const band = (score: number) => score >= 8 ? 'High' : score >= 5 ? 'Moderate' : 'Low'
+  const BAND_COLORS: Record<string, string> = { High: '#16A34A', Moderate: '#D97706', Low: '#DC2626' }
+  const bandCounts: Record<string, number> = { High: 0, Moderate: 0, Low: 0 }
+  recentEntries.forEach((e: any) => { bandCounts[band(e.score)] += 1 })
+  const pieData = Object.entries(bandCounts).filter(([, c]) => c > 0).map(([name, value]) => ({ name, value, fill: BAND_COLORS[name] }))
+
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
@@ -3785,11 +3865,11 @@ function MoodChartTabInline({ personId }: { personId: string }) {
       </Stack>
 
       {view === 'table' ? (
-        <Paper sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
+        <Paper sx={{ borderRadius: 2, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
           <TableContainer>
             <Table size="small">
               <TableHead>
-                <TableRow>
+                <TableRow sx={{ bgcolor: '#F9FAFB' }}>
                   <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Domain</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Score</TableCell>
@@ -3800,7 +3880,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
                 {recentEntries.length === 0 ? (
                   <TableRow><TableCell colSpan={4} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No entries in the last 30 days</TableCell></TableRow>
                 ) : recentEntries.map((e: any) => (
-                  <TableRow key={e.id}>
+                  <TableRow key={e.id} hover onClick={() => setViewEntry(e)} sx={{ cursor: 'pointer' }}>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(e.recorded_date).toLocaleDateString('en-GB')}</TableCell>
                     <TableCell>
                       <Chip label={e.domain} size="small" sx={{ bgcolor: DOMAIN_COLORS[e.domain] || '#6B7280', color: 'white', fontWeight: 700 }} />
@@ -3824,41 +3904,110 @@ function MoodChartTabInline({ personId }: { personId: string }) {
         <EmptyRow message="No entries in the last 30 days" />
       ) : (
         <Stack spacing={3}>
-          {Object.entries(grouped).map(([domain, items]) => {
-            const chartData = items
-              .sort((a: any, b: any) => new Date(a.recorded_date).getTime() - new Date(b.recorded_date).getTime())
-              .map((e: any) => ({
-                date: new Date(e.recorded_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-                score: e.score,
-                notes: e.notes || '',
-              }))
-            return (
-              <Paper key={domain} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB' }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                  <Chip label={domain} size="small" sx={{ bgcolor: DOMAIN_COLORS[domain] || '#6B7280', color: 'white', fontWeight: 700 }} />
-                  <Typography variant="caption" color="#6B7280">{items.length} entries</Typography>
-                </Stack>
-                <RechartsResponsiveContainer width="100%" height={180}>
-                  <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                    <RechartsCartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <RechartsXAxis dataKey="date" tick={{ fontSize: 10, fill: '#9CA3AF' }} />
-                    <RechartsYAxis domain={[0, 10]} tick={{ fontSize: 10, fill: '#9CA3AF' }} />
-                    <RechartsTooltip
-                      contentStyle={{ borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12 }}
-                      formatter={(value: any) => [`${value}/10`, 'Score']}
-                    />
-                    <Bar dataKey="score" radius={[4, 4, 0, 0]} maxBarSize={32}>
-                      {chartData.map((entry: any, idx: number) => (
-                        <Cell key={idx} fill={scoreColor(entry.score)} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </RechartsResponsiveContainer>
-              </Paper>
-            )
-          })}
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #E5E7EB', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: 3 }}>
+            <Box sx={{ position: 'relative', width: 220, height: 220, flexShrink: 0 }}>
+              <RechartsResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={92} paddingAngle={3} strokeWidth={0}>
+                    {pieData.map((s: any) => <Cell key={s.name} fill={s.fill} />)}
+                  </Pie>
+                  <RechartsTooltip
+                    contentStyle={{ borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12 }}
+                    formatter={(value: any, name: any) => [`${value} entries`, name]}
+                  />
+                </PieChart>
+              </RechartsResponsiveContainer>
+              <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#0F4C81', lineHeight: 1 }}>{recentEntries.length}</Typography>
+                <Typography variant="caption" color="#9CA3AF">entries · 30d</Typography>
+              </Box>
+            </Box>
+            <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
+              <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap' }}>
+                {Object.entries(BAND_COLORS).map(([name, color]) => (
+                  <Box key={name} sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: '#F9FAFB', border: '1px solid #E5E7EB', minWidth: 96 }}>
+                    <Typography sx={{ fontWeight: 800, color, fontSize: 20, lineHeight: 1.2 }}>{bandCounts[name]}</Typography>
+                    <Typography variant="caption" color="#6B7280">{name}</Typography>
+                  </Box>
+                ))}
+              </Stack>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {pieData.map((s: any) => (
+                  <Box key={s.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <Box sx={{ width: 10, height: 10, borderRadius: 3, bgcolor: s.fill }} />
+                    <Typography variant="caption" color="#6B7280" sx={{ fontWeight: 600 }}>{s.name}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Stack>
+          </Paper>
+
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5 }}>Recent entries</Typography>
+            <Stack spacing={1}>
+              {recentEntries.slice(0, 12).map((e: any) => (
+                <Paper
+                  key={e.id}
+                  onClick={() => setViewEntry(e)}
+                  sx={{
+                    p: 1.5, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1.5,
+                    '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' },
+                  }}>
+                  <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: `${scoreColor(e.score)}18`, color: scoreColor(e.score), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
+                    {e.score}
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography variant="body2" sx={{ fontWeight: 700, textTransform: 'capitalize' }}>{e.domain}</Typography>
+                      <Box sx={{ width: 8, height: 8, borderRadius: 4, bgcolor: scoreColor(e.score) }} />
+                      <Typography variant="caption" color="#9CA3AF">{band(e.score)}</Typography>
+                    </Stack>
+                    <Typography variant="body2" color="#6B7280" noWrap sx={{ maxWidth: '100%' }}>{e.notes || 'No notes'}</Typography>
+                  </Box>
+                  <Typography variant="caption" color="#9CA3AF" sx={{ flexShrink: 0 }}>{new Date(e.recorded_date).toLocaleDateString('en-GB')}</Typography>
+                </Paper>
+              ))}
+            </Stack>
+          </Box>
         </Stack>
       )}
+
+      <Dialog open={!!viewEntry} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
+        {viewEntry && (
+          <>
+            <DialogTitle sx={{ fontWeight: 800 }}>Wellbeing Entry</DialogTitle>
+            <DialogContent>
+              <Stack spacing={2.5}>
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Chip label={viewEntry.domain} size="small" sx={{ bgcolor: DOMAIN_COLORS[viewEntry.domain] || '#6B7280', color: 'white', fontWeight: 700, textTransform: 'capitalize' }} />
+                  <Chip label={`${viewEntry.score}/10`} size="small" sx={{ bgcolor: `${scoreColor(viewEntry.score)}20`, color: scoreColor(viewEntry.score), fontWeight: 700 }} />
+                  <Chip label={band(viewEntry.score)} size="small" sx={{ bgcolor: `${BAND_COLORS[band(viewEntry.score)]}18`, color: BAND_COLORS[band(viewEntry.score)], fontWeight: 700 }} />
+                </Stack>
+                <Stack spacing={0.5}>
+                  <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Recorded</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {new Date(viewEntry.recorded_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    {viewEntry.created_at && <Typography component="span" variant="caption" color="#9CA3AF"> · {new Date(viewEntry.created_at).toLocaleString('en-GB')}</Typography>}
+                  </Typography>
+                </Stack>
+                <Stack spacing={0.5}>
+                  <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notes</Typography>
+                  <Typography variant="body2">{viewEntry.notes || 'No notes recorded.'}</Typography>
+                </Stack>
+                {viewEntry.created_by_name && (
+                  <Stack spacing={0.5}>
+                    <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Recorded by</Typography>
+                    <Typography variant="body2">{viewEntry.created_by_name}</Typography>
+                  </Stack>
+                )}
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ p: 3 }}>
+              <Button onClick={() => setViewEntry(null)} sx={{ textTransform: 'none' }}>Close</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={e => { e.preventDefault(); addMutation.mutate(form) }}>

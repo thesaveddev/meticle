@@ -230,7 +230,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
 
             {/* Body silhouette — the 310x360 asset holds both figures; offset -155 shows the back half */}
             <g filter="url(#bodyShadow)">
-              <image href={bodyMapUrl} x={view === 'back' ? -IMG_W : 0} y={0} width={IMG_W} height={IMG_H} />
+              <image href={bodyMapUrl} x={view === 'back' ? -BODY_W : 0} y={0} width={IMG_W} height={IMG_H} />
             </g>
 
             {/* Spine (back only) */}

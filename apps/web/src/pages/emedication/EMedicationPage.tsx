@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Grid, Alert, CircularProgress, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Tabs, Tab, Divider, FormControlLabel, Checkbox, Menu } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Schedule as ScheduleIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, RemoveRedEye as ViewArchivedIcon, ArrowDropDown as ArrowDropDownIcon } from '@mui/icons-material'
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Schedule as ScheduleIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, ArrowDropDown as ArrowDropDownIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 
@@ -1874,7 +1874,7 @@ export default function EMedicationPage() {
                     <Typography variant="caption" color="text.secondary">One month at a time</Typography>
                   </Box>
                   {selectedPerson && (
-                    <Button size="small" variant="outlined" startIcon={<ViewArchivedIcon />}
+                    <Button size="small" variant="outlined" startIcon={<ArchiveOutlined />}
                       onClick={() => navigate('/emedication/archived')}>
                       Archived
                     </Button>
@@ -1909,7 +1909,7 @@ export default function EMedicationPage() {
                       {selectedPerson ? 'No active charts.' : 'Select a person.'}
                     </Typography>
                     {selectedPerson && (
-                      <Button size="small" variant="text" startIcon={<ViewArchivedIcon />}
+                      <Button size="small" variant="text" startIcon={<ArchiveOutlined />}
                         onClick={() => navigate('/emedication/archived')} sx={{ mt: 1 }}>
                         View Archived Charts
                       </Button>

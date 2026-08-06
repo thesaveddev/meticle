@@ -38,7 +38,9 @@ async function sendMail(to: string, subject: string, html: string) {
   }
 }
 
-const baseUrl = () => 'https://meticlecare.com';
+const baseUrl = () =>
+  process.env.FRONTEND_URL ||
+  (process.env.NODE_ENV === 'production' ? 'https://meticlecare.com' : 'http://localhost:3000');
 
 export class EmailService {
   static async sendVerificationEmail(email: string, token: string) {

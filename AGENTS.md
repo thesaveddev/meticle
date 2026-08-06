@@ -15,6 +15,9 @@ Supported living + domiciliary care platform. Build is substantially complete â€
 - Email: branded HTML templates, queue with retry (DB-backed inbox)
 - Error messages inside modals (not behind); tables paginated; buttons have loading spinners
 - Guard: `npx tsc --noEmit` in both `apps/web` and `apps/api`
+- **No eye icons** (`VisibilityIcon`/`RemoveRedEye`/`Visibility` as a "view" affordance) anywhere except password show/hide toggles on auth forms; use `OpenInNewIcon`/`DownloadIcon` for file-open actions
+- **Cards and entries are clickable to view**: list rows/cards open a read-only detail dialog on click (hover cursor + border/shadow feedback); edit/delete buttons use `stopPropagation`; never add a separate "view" icon button
+- **Design work** (new UI, redesigns, polish): load `/taste` and `/impeccable` skills and follow their guidance (brand palette navy `#0F4C81`, emerald `#10B981`, bone `#F7F4EE`, ink `#1B2430`)
 
 ## Architecture
 - **Monorepo**: npm workspaces (`apps/api`, `apps/web`, `apps/marketing`, `packages/shared`)

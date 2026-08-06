@@ -27,8 +27,25 @@ export class BillingController {
 
     const stripe = getStripe();
     let stripeSubscription: any = null;
+    let stripeUnavailable = false;
     if (stripe && org.stripe_customer_id) {
-      const subs = await stripe.subscriptions.list({ customer: org.stripe_customer_id, limit: 1, status: 'all' });
+      let subs: Stripe.ApiList<Stripe.Subscription>;
+      try {
+        subs = await stripe.subscriptions.list({ customer: org.stripe_customer_id, limit: 1, status: 'all' });
+      } catch (err: any) {
+        logWarn('stripe subscription lookup')(err);
+        stripeUnavailable = true;
+        res.json({
+          plan: org.plan,
+          subscriptionStatus: org.subscription_status,
+          trialEndsAt: org.trial_ends_at,
+          daysRemaining,
+          stripeCustomerId: org.stripe_customer_id,
+          stripeSubscription: null,
+          stripeUnavailable,
+        });
+        return;
+      }
       if (subs.data.length > 0) {
         const sub = subs.data[0];
         stripeSubscription = {
@@ -66,6 +83,7 @@ export class BillingController {
       daysRemaining,
       stripeCustomerId: org.stripe_customer_id,
       stripeSubscription,
+      stripeUnavailable,
     });
   }
 
