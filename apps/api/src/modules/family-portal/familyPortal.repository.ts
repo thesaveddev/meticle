@@ -29,7 +29,7 @@ export class FamilyPortalRepository {
     const token = crypto.randomUUID();
     const result = await pool.query(
       `INSERT INTO family_members (organization_id, person_id, name, email, relationship, phone, access_token, token_expires_at, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + INTERVAL '90 days', $8)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + INTERVAL '14 days', $8)
        RETURNING *`,
       [data.organization_id, data.person_id, data.name, data.email, data.relationship || null, data.phone || null, token, data.created_by]
     );
@@ -66,7 +66,7 @@ export class FamilyPortalRepository {
   static async resendInvite(id: string, organizationId: string) {
     const token = crypto.randomUUID();
     const result = await pool.query(
-      `UPDATE family_members SET access_token = $3, token_expires_at = NOW() + INTERVAL '90 days', status = 'invited', updated_at = NOW()
+      `UPDATE family_members SET access_token = $3, token_expires_at = NOW() + INTERVAL '14 days', status = 'invited', updated_at = NOW()
        WHERE id = $1 AND organization_id = $2 RETURNING *`,
       [id, organizationId, token]
     );
@@ -76,7 +76,7 @@ export class FamilyPortalRepository {
   static async refreshToken(id: string, organizationId: string) {
     const token = crypto.randomUUID();
     const result = await pool.query(
-      `UPDATE family_members SET access_token = $3, token_expires_at = NOW() + INTERVAL '90 days', updated_at = NOW()
+      `UPDATE family_members SET access_token = $3, token_expires_at = NOW() + INTERVAL '14 days', updated_at = NOW()
        WHERE id = $1 AND organization_id = $2 RETURNING *`,
       [id, organizationId, token]
     );
@@ -102,7 +102,7 @@ export class FamilyPortalRepository {
        FROM family_members fm
        JOIN people su ON su.id = fm.person_id
        JOIN organizations o ON o.id = fm.organization_id
-       WHERE fm.access_token = $1 AND fm.status = 'active' AND fm.token_expires_at > NOW()`,
+       WHERE fm.access_token = $1 AND fm.status IN ('invited','active') AND fm.token_expires_at > NOW()`,
       [token]
     );
     return result.rows[0] || null;
@@ -124,7 +124,7 @@ export class FamilyPortalRepository {
 
   static async recordAccess(id: string) {
     await migrateQuery(
-      `UPDATE family_members SET last_accessed_at = NOW() WHERE id = $1`,
+      `UPDATE family_members SET status = 'active', last_accessed_at = NOW() WHERE id = $1`,
       [id]
     );
   }
