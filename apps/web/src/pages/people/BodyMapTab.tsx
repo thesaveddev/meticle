@@ -8,6 +8,7 @@ import { Delete as DeleteIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
+import bodyMapUrl from './body-map.svg'
 
 const CONDITION_COLORS: Record<string, string> = {
   bruise: '#7C3AED', wound: '#DC2626', rash: '#D97706', injection: '#0F4C81',
@@ -17,232 +18,129 @@ const CONDITION_COLORS: Record<string, string> = {
 const SEVERITY_COLORS: Record<string, string> = { mild: '#16A34A', moderate: '#D97706', severe: '#DC2626' }
 const STATUS_COLORS: Record<string, string> = { active: '#DC2626', healing: '#D97706', resolved: '#16A34A' }
 
-const VB = '0 0 250 600'
-const BODY_W = 250; const BODY_H = 600
+const VB = '0 0 155 360'
+const BODY_W = 155; const BODY_H = 360
+const IMG_W = 310; const IMG_H = 360
 
-/* ── Human body silhouette — front view, 8-head proportion ── */
-const FRONT_BODY_PATH = [
-  // Head (oval)
-  'M130,5 C155,5 165,22 163,40 C162,52 152,60 140,66 L130,75',
-  // Neck right
-  'L135,82',
-  // Right shoulder out
-  'C155,84 180,88 200,94',
-  // Right upper arm down
-  'C208,98 212,120 210,145',
-  // Right elbow area
-  'C208,168 205,185 202,202',
-  // Right forearm down
-  'C199,220 195,245 192,265',
-  // Right wrist
-  'C190,275 188,280 186,284',
-  // Right hand
-  'C184,290 180,293 178,290 C176,287 178,284 180,280',
-  // Right palm
-  'C182,276 182,270 182,262',
-  // Right inner arm up
-  'C180,248 178,228 176,210',
-  'C174,192 172,175 170,160',
-  'C166,138 160,118 150,104',
-  // Right armpit to chest
-  'C148,100 150,108 154,118',
-  // Right chest
-  'C158,132 162,150 162,168',
-  // Right waist
-  'C162,185 158,200 155,215',
-  // Right hip
-  'C155,230 158,245 160,258',
-  // Right thigh outer
-  'C162,278 165,310 165,345',
-  // Right knee
-  'C165,358 163,370 158,382',
-  // Right shin
-  'C155,395 152,420 148,450',
-  // Right calf
-  'C144,470 140,485 140,495',
-  // Right ankle
-  'C140,505 138,512 136,518',
-  // Right foot
-  'C134,526 132,535 130,540 L120,540 C118,535 118,528 120,518',
-  // Right foot inner
-  'C122,510 124,502 125,495',
-  // Right shin inner
-  'C126,470 130,445 134,420',
-  // Right knee inner
-  'C136,400 136,390 134,382',
-  // Right thigh inner
-  'C132,360 130,335 128,310',
-  'C125,290 123,270 122,255',
-  'C120,248 116,243 110,240',
-  // Crotch
-  'C105,238 100,238 95,240',
-  // Left inner thigh
-  'C88,243 83,248 80,255',
-  'C78,270 75,290 72,310',
-  'C70,335 68,360 66,382',
-  // Left knee inner
-  'C64,390 64,400 66,420',
-  // Left shin inner
-  'C70,442 74,465 76,490',
-  // Left foot inner
-  'C77,500 78,508 78,516',
-  // Left foot
-  'C78,524 78,533 80,540 L68,540',
-  // Left foot outer
-  'C66,535 66,528 64,520',
-  // Left ankle outer
-  'C62,510 60,500 58,488',
-  // Left shin outer
-  'C54,468 50,442 45,420',
-  // Left knee outer
-  'C40,400 38,385 38,368',
-  // Left thigh outer
-  'C40,345 38,318 38,288',
-  // Left hip
-  'C38,258 40,240 44,225',
-  // Left waist
-  'C42,210 38,195 38,178',
-  // Left chest
-  'C38,160 42,138 45,120',
-  // Left armpit
-  'C50,108 54,100 56,96',
-  // Left arm inner
-  'C52,106 48,120 44,140',
-  'C40,160 38,178 36,195',
-  'C34,215 32,235 30,255',
-  'C28,272 26,282 24,288',
-  // Left hand
-  'C22,292 18,295 16,292 C14,289 16,284 18,280',
-  // Left wrist
-  'C20,275 22,260 24,245',
-  // Left forearm outer
-  'C22,228 20,208 18,190',
-  // Left arm outer
-  'C15,170 12,150 10,130',
-  'C8,112 6,100 8,90',
-  // Left shoulder
-  'C12,84 30,80 50,78',
-  // Left shoulder to neck
-  'C78,76 100,75 125,74',
-  // Left neck
-  'L130,66 C120,60 110,52 105,40 C100,25 105,5 130,5 Z',
-].join(' ')
+/* ── Human body silhouette — Wikimedia "Human silhouette gender neutral" (public domain) ──
+   Single 310x360 SVG containing two figures side by side: front (x 0-155) and back (x 155-310).
+   The active view crops to one half via an <image> offset; zones are in a 155x360 space. ── */
 
-// Back view uses same silhouette, differentiated by styling
-
-/* ── Clickable zone polygons — 60+ zones covering every body part ── */
+/* ── Clickable zone polygons — 60+ zones covering every body part ──
+   Coordinates are in a 155x360 space. Front zones overlay the image's left half
+   (front figure, x 0-155); back zones overlay its right half (x 155-310). */
 interface Zone { id: string; label: string; points: string }
 
 const ALL_ZONES: Zone[] = [
   // Head & Face (front)
-  { id: 'head', label: 'Head / Face', points: '105,5 155,5 155,55 143,62 132,70 120,60 105,50' },
-  { id: 'forehead', label: 'Forehead', points: '108,5 152,5 152,28 108,28' },
-  { id: 'left_eye', label: 'L Eye / Temple', points: '105,28 130,28 130,44 108,44' },
-  { id: 'right_eye', label: 'R Eye / Temple', points: '130,28 155,28 155,44 130,44' },
-  { id: 'jaw_chin', label: 'Jaw / Chin', points: '108,44 152,44 148,58 130,68 112,58' },
-  { id: 'left_ear', label: 'L Ear', points: '100,28 108,28 108,44 100,44' },
-  { id: 'right_ear', label: 'R Ear', points: '152,28 160,28 160,44 152,44' },
-  { id: 'neck', label: 'Neck', points: '115,70 140,70 138,84 118,84' },
+  { id: 'head', label: 'Head / Face', points: '62,24 95,24 95,55 88,60 79,62 70,60 62,55' },
+  { id: 'forehead', label: 'Forehead', points: '64,24 93,24 93,42 64,42' },
+  { id: 'left_eye', label: 'L Eye / Temple', points: '62,42 78,42 78,50 62,50' },
+  { id: 'right_eye', label: 'R Eye / Temple', points: '79,42 95,42 95,50 79,50' },
+  { id: 'jaw_chin', label: 'Jaw / Chin', points: '63,50 94,50 90,60 79,62 66,60' },
+  { id: 'left_ear', label: 'L Ear', points: '58,30 63,30 63,50 58,50' },
+  { id: 'right_ear', label: 'R Ear', points: '94,30 99,30 99,50 94,50' },
+  { id: 'neck', label: 'Neck', points: '63,60 94,60 94,72 63,72' },
 
   // Torso — front
-  { id: 'left_shoulder', label: 'L Shoulder', points: '40,78 115,78 112,95 55,92' },
-  { id: 'right_shoulder', label: 'R Shoulder', points: '135,78 210,90 195,100 140,90' },
-  { id: 'left_collarbone', label: 'L Collarbone', points: '85,78 115,78 112,88 88,86' },
-  { id: 'right_collarbone', label: 'R Collarbone', points: '135,78 165,78 160,85 138,86' },
-  { id: 'chest_upper', label: 'Upper Chest', points: '65,92 185,98 180,130 70,125' },
-  { id: 'left_chest', label: 'L Chest', points: '65,92 130,96 125,130 70,125' },
-  { id: 'right_chest', label: 'R Chest', points: '130,96 185,98 180,130 125,130' },
-  { id: 'chest_lower', label: 'Lower Chest', points: '75,125 178,130 175,160 80,155' },
-  { id: 'left_ribs', label: 'L Ribs', points: '75,125 125,130 122,155 80,155' },
-  { id: 'right_ribs', label: 'R Ribs', points: '125,130 178,130 175,155 122,155' },
-  { id: 'upper_abdomen', label: 'Upper Abdomen', points: '82,155 172,162 168,195 86,190' },
-  { id: 'lower_abdomen', label: 'Lower Abdomen', points: '92,190 165,195 160,228 96,225' },
-  { id: 'navel', label: 'Navel', points: '112,195 138,195 138,212 112,212' },
-  { id: 'groin', label: 'Groin', points: '98,225 158,228 148,248 105,245' },
+  { id: 'left_shoulder', label: 'L Shoulder', points: '38,70 62,70 62,100 40,100' },
+  { id: 'right_shoulder', label: 'R Shoulder', points: '94,70 119,70 119,100 95,100' },
+  { id: 'left_collarbone', label: 'L Collarbone', points: '63,70 79,70 78,84 63,84' },
+  { id: 'right_collarbone', label: 'R Collarbone', points: '79,70 94,70 94,84 79,84' },
+  { id: 'chest_upper', label: 'Upper Chest', points: '46,90 113,90 113,125 46,125' },
+  { id: 'left_chest', label: 'L Chest', points: '46,90 79,95 78,125 46,125' },
+  { id: 'right_chest', label: 'R Chest', points: '79,95 113,90 113,125 78,125' },
+  { id: 'chest_lower', label: 'Lower Chest', points: '46,125 113,125 113,155 46,155' },
+  { id: 'left_ribs', label: 'L Ribs', points: '46,125 79,125 78,155 46,155' },
+  { id: 'right_ribs', label: 'R Ribs', points: '79,125 113,125 113,155 78,155' },
+  { id: 'upper_abdomen', label: 'Upper Abdomen', points: '47,155 112,155 112,180 47,180' },
+  { id: 'lower_abdomen', label: 'Lower Abdomen', points: '46,180 113,180 112,200 48,200' },
+  { id: 'navel', label: 'Navel', points: '70,165 88,165 88,178 70,178' },
+  { id: 'groin', label: 'Groin', points: '55,196 103,196 100,212 58,212' },
 
   // Arms — Left front
-  { id: 'left_upper_arm', label: 'L Upper Arm', points: '10,92 50,92 45,135 12,135' },
-  { id: 'left_bicep', label: 'L Bicep', points: '10,92 50,92 48,112 12,112' },
-  { id: 'left_tricep_back', label: 'L Tricep', points: '10,112 48,112 45,135 12,135' },
-  { id: 'left_elbow', label: 'L Elbow', points: '10,135 45,135 42,158 12,158' },
-  { id: 'left_forearm', label: 'L Forearm', points: '10,158 42,158 38,210 12,210' },
-  { id: 'left_wrist', label: 'L Wrist', points: '10,210 38,210 36,222 12,222' },
-  { id: 'left_hand', label: 'L Hand', points: '8,222 40,222 38,248 10,248' },
-  { id: 'left_palm', label: 'L Palm', points: '8,222 40,222 38,238 10,238' },
-  { id: 'left_fingers', label: 'L Fingers', points: '8,238 38,238 35,260 10,260' },
-  { id: 'left_thumb', label: 'L Thumb', points: '6,222 14,222 14,240 6,240' },
+  { id: 'left_upper_arm', label: 'L Upper Arm', points: '30,108 47,108 38,140 22,140' },
+  { id: 'left_bicep', label: 'L Bicep', points: '30,108 47,108 45,124 30,124' },
+  { id: 'left_tricep_back', label: 'L Tricep', points: '29,124 45,124 38,140 24,140' },
+  { id: 'left_elbow', label: 'L Elbow', points: '22,140 38,140 30,158 19,158' },
+  { id: 'left_forearm', label: 'L Forearm', points: '19,158 30,158 22,190 15,190' },
+  { id: 'left_wrist', label: 'L Wrist', points: '15,190 22,190 22,198 16,198' },
+  { id: 'left_hand', label: 'L Hand', points: '12,190 26,190 26,202 14,202' },
+  { id: 'left_palm', label: 'L Palm', points: '14,190 26,190 26,198 15,198' },
+  { id: 'left_fingers', label: 'L Fingers', points: '13,198 26,198 25,206 14,206' },
+  { id: 'left_thumb', label: 'L Thumb', points: '8,192 14,192 14,202 9,202' },
 
   // Arms — Right front
-  { id: 'right_upper_arm', label: 'R Upper Arm', points: '200,92 238,90 240,132 198,135' },
-  { id: 'right_bicep', label: 'R Bicep', points: '200,92 238,90 238,110 198,112' },
-  { id: 'right_tricep_back', label: 'R Tricep', points: '198,112 238,110 240,132 198,135' },
-  { id: 'right_elbow', label: 'R Elbow', points: '198,135 240,132 238,155 196,158' },
-  { id: 'right_forearm', label: 'R Forearm', points: '196,158 238,155 235,208 194,210' },
-  { id: 'right_wrist', label: 'R Wrist', points: '194,210 235,208 232,220 194,222' },
-  { id: 'right_hand', label: 'R Hand', points: '192,222 234,222 232,248 194,248' },
-  { id: 'right_palm', label: 'R Palm', points: '192,222 234,222 232,238 194,238' },
-  { id: 'right_fingers', label: 'R Fingers', points: '192,238 234,238 231,260 194,260' },
-  { id: 'right_thumb', label: 'R Thumb', points: '230,222 238,222 238,240 230,240' },
+  { id: 'right_upper_arm', label: 'R Upper Arm', points: '110,108 127,108 135,140 119,140' },
+  { id: 'right_bicep', label: 'R Bicep', points: '110,108 127,108 127,124 112,124' },
+  { id: 'right_tricep_back', label: 'R Tricep', points: '112,124 127,124 135,140 119,140' },
+  { id: 'right_elbow', label: 'R Elbow', points: '119,140 135,140 138,158 127,158' },
+  { id: 'right_forearm', label: 'R Forearm', points: '127,158 138,158 143,190 136,190' },
+  { id: 'right_wrist', label: 'R Wrist', points: '136,190 143,190 143,198 137,198' },
+  { id: 'right_hand', label: 'R Hand', points: '131,190 145,190 145,202 132,202' },
+  { id: 'right_palm', label: 'R Palm', points: '135,190 145,190 145,198 136,198' },
+  { id: 'right_fingers', label: 'R Fingers', points: '135,198 145,198 144,206 135,206' },
+  { id: 'right_thumb', label: 'R Thumb', points: '145,192 152,192 152,202 146,202' },
 
   // Hips — front
-  { id: 'left_hip', label: 'L Hip', points: '42,225 108,228 105,252 48,252' },
-  { id: 'right_hip', label: 'R Hip', points: '148,228 208,225 200,252 148,252' },
+  { id: 'left_hip', label: 'L Hip', points: '43,196 78,196 77,215 45,215' },
+  { id: 'right_hip', label: 'R Hip', points: '79,196 114,196 113,215 81,215' },
 
   // Thighs — Left front
-  { id: 'left_thigh_upper', label: 'L Upper Thigh', points: '40,255 112,255 108,300 44,300' },
-  { id: 'left_thigh_mid', label: 'L Mid Thigh', points: '44,300 108,300 105,340 48,340' },
-  { id: 'left_thigh_lower', label: 'L Lower Thigh', points: '48,340 105,340 100,378 52,378' },
+  { id: 'left_thigh_upper', label: 'L Upper Thigh', points: '44,200 77,200 76,240 47,240' },
+  { id: 'left_thigh_mid', label: 'L Mid Thigh', points: '46,240 76,240 75,275 48,275' },
+  { id: 'left_thigh_lower', label: 'L Lower Thigh', points: '48,275 75,275 64,300 52,300' },
 
   // Thighs — Right front
-  { id: 'right_thigh_upper', label: 'R Upper Thigh', points: '130,255 200,255 196,300 130,300' },
-  { id: 'right_thigh_mid', label: 'R Mid Thigh', points: '130,300 196,300 192,340 130,340' },
-  { id: 'right_thigh_lower', label: 'R Lower Thigh', points: '130,340 192,340 188,378 130,378' },
+  { id: 'right_thigh_upper', label: 'R Upper Thigh', points: '80,200 114,200 113,240 81,240' },
+  { id: 'right_thigh_mid', label: 'R Mid Thigh', points: '81,240 113,240 112,275 82,275' },
+  { id: 'right_thigh_lower', label: 'R Lower Thigh', points: '84,275 111,275 105,300 93,300' },
 
   // Knees
-  { id: 'left_knee', label: 'L Knee', points: '52,378 100,378 98,398 56,398' },
-  { id: 'right_knee', label: 'R Knee', points: '130,378 188,378 186,398 130,398' },
+  { id: 'left_knee', label: 'L Knee', points: '52,300 64,300 64,318 53,318' },
+  { id: 'right_knee', label: 'R Knee', points: '93,300 105,300 105,318 93,318' },
 
   // Lower legs
-  { id: 'left_shin_upper', label: 'L Upper Shin', points: '56,398 98,398 94,438 60,438' },
-  { id: 'left_shin_lower', label: 'L Lower Shin', points: '60,438 94,438 90,478 64,478' },
-  { id: 'right_shin_upper', label: 'R Upper Shin', points: '130,398 186,398 182,438 130,438' },
-  { id: 'right_shin_lower', label: 'R Lower Shin', points: '130,438 182,438 178,478 130,478' },
+  { id: 'left_shin_upper', label: 'L Upper Shin', points: '53,318 64,318 63,330 52,330' },
+  { id: 'left_shin_lower', label: 'L Lower Shin', points: '52,330 63,330 62,340 53,340' },
+  { id: 'right_shin_upper', label: 'R Upper Shin', points: '93,318 105,318 105,330 94,330' },
+  { id: 'right_shin_lower', label: 'R Lower Shin', points: '94,330 105,330 104,340 95,340' },
 
   // Calves
-  { id: 'left_calf', label: 'L Calf', points: '60,440 94,440 92,472 64,472' },
-  { id: 'right_calf', label: 'R Calf', points: '130,440 182,440 180,472 130,472' },
+  { id: 'left_calf', label: 'L Calf', points: '52,314 64,314 63,330 52,330' },
+  { id: 'right_calf', label: 'R Calf', points: '93,314 105,314 105,330 93,330' },
 
   // Ankles & feet
-  { id: 'left_ankle', label: 'L Ankle', points: '64,478 90,478 88,500 66,500' },
-  { id: 'right_ankle', label: 'R Ankle', points: '130,478 178,478 175,500 130,500' },
-  { id: 'left_heel', label: 'L Heel', points: '64,500 88,500 86,515 66,515' },
-  { id: 'right_heel', label: 'R Heel', points: '130,500 175,500 173,515 130,515' },
-  { id: 'left_foot_top', label: 'L Foot Top', points: '64,515 110,515 108,525 66,525' },
-  { id: 'right_foot_top', label: 'R Foot Top', points: '130,515 175,515 173,525 128,525' },
-  { id: 'left_toes', label: 'L Toes', points: '62,525 110,525 108,545 64,545' },
-  { id: 'right_toes', label: 'R Toes', points: '128,525 175,525 173,545 125,545' },
+  { id: 'left_ankle', label: 'L Ankle', points: '53,338 62,338 62,348 54,348' },
+  { id: 'right_ankle', label: 'R Ankle', points: '95,338 104,338 104,348 96,348' },
+  { id: 'left_heel', label: 'L Heel', points: '52,344 62,344 62,352 54,352' },
+  { id: 'right_heel', label: 'R Heel', points: '95,344 104,344 104,352 96,352' },
+  { id: 'left_foot_top', label: 'L Foot Top', points: '47,332 64,332 64,346 49,346' },
+  { id: 'right_foot_top', label: 'R Foot Top', points: '90,332 107,332 107,346 93,346' },
+  { id: 'left_toes', label: 'L Toes', points: '46,340 64,340 63,352 48,352' },
+  { id: 'right_toes', label: 'R Toes', points: '90,340 107,340 106,352 92,352' },
 
   // Back zones
-  { id: 'back_head', label: 'Back of Head', points: '105,5 155,5 155,55 105,50' },
-  { id: 'back_neck', label: 'Back of Neck', points: '115,70 140,70 138,84 118,84' },
-  { id: 'upper_back', label: 'Upper Back', points: '65,92 185,98 180,130 70,125' },
-  { id: 'left_shoulder_blade', label: 'L Shoulder Blade', points: '65,92 120,96 118,125 72,125' },
-  { id: 'right_shoulder_blade', label: 'R Shoulder Blade', points: '130,96 185,98 178,125 120,125' },
-  { id: 'mid_back', label: 'Mid Back', points: '75,125 178,130 175,160 80,155' },
-  { id: 'lower_back', label: 'Lower Back', points: '82,155 172,162 168,195 86,190' },
-  { id: 'sacral', label: 'Sacral / Tailbone', points: '92,190 165,195 160,228 96,225' },
-  { id: 'left_buttock', label: 'L Buttock', points: '42,225 108,228 105,252 48,252' },
-  { id: 'right_buttock', label: 'R Buttock', points: '148,228 208,225 200,252 148,252' },
-  { id: 'back_left_arm', label: 'L Arm Back', points: '10,92 50,92 45,135 12,135' },
-  { id: 'back_right_arm', label: 'R Arm Back', points: '200,92 238,90 240,132 198,135' },
-  { id: 'back_left_thigh', label: 'L Thigh Back', points: '40,255 112,255 108,340 48,340' },
-  { id: 'back_right_thigh', label: 'R Thigh Back', points: '130,255 200,255 196,340 130,340' },
-  { id: 'back_left_knee', label: 'L Knee Back', points: '52,378 100,378 98,398 56,398' },
-  { id: 'back_right_knee', label: 'R Knee Back', points: '130,378 188,378 186,398 130,398' },
-  { id: 'back_left_shin', label: 'L Shin Back', points: '56,398 98,398 94,478 64,478' },
-  { id: 'back_right_shin', label: 'R Shin Back', points: '130,398 186,398 182,478 130,478' },
-  { id: 'back_left_foot', label: 'L Foot Back', points: '64,515 110,515 108,545 64,545' },
-  { id: 'back_right_foot', label: 'R Foot Back', points: '128,525 175,525 173,545 125,545' },
+  { id: 'back_head', label: 'Back of Head', points: '59,24 92,24 92,55 85,60 76,62 66,60 59,55' },
+  { id: 'back_neck', label: 'Back of Neck', points: '61,60 90,60 90,70 61,70' },
+  { id: 'upper_back', label: 'Upper Back', points: '38,72 116,72 114,125 42,125' },
+  { id: 'left_shoulder_blade', label: 'L Shoulder Blade', points: '42,88 78,92 77,125 44,125' },
+  { id: 'right_shoulder_blade', label: 'R Shoulder Blade', points: '78,92 111,88 111,125 77,125' },
+  { id: 'mid_back', label: 'Mid Back', points: '44,125 110,125 109,160 45,160' },
+  { id: 'lower_back', label: 'Lower Back', points: '45,160 109,160 108,195 46,195' },
+  { id: 'sacral', label: 'Sacral / Tailbone', points: '50,195 105,195 102,210 55,210' },
+  { id: 'left_buttock', label: 'L Buttock', points: '40,196 75,196 74,215 43,215' },
+  { id: 'right_buttock', label: 'R Buttock', points: '77,196 111,196 110,215 75,215' },
+  { id: 'back_left_arm', label: 'L Arm Back', points: '27,108 44,108 42,180 13,180' },
+  { id: 'back_right_arm', label: 'R Arm Back', points: '108,108 124,108 140,180 126,180' },
+  { id: 'back_left_thigh', label: 'L Thigh Back', points: '40,196 75,196 73,300 49,300' },
+  { id: 'back_right_thigh', label: 'R Thigh Back', points: '77,196 111,196 108,300 90,300' },
+  { id: 'back_left_knee', label: 'L Knee Back', points: '50,300 62,300 62,320 51,320' },
+  { id: 'back_right_knee', label: 'R Knee Back', points: '90,300 101,300 101,320 90,320' },
+  { id: 'back_left_shin', label: 'L Shin Back', points: '51,320 62,320 61,340 50,340' },
+  { id: 'back_right_shin', label: 'R Shin Back', points: '90,320 101,320 101,340 89,340' },
+  { id: 'back_left_foot', label: 'L Foot Back', points: '45,328 62,328 62,342 48,342' },
+  { id: 'back_right_foot', label: 'R Foot Back', points: '90,328 107,328 106,342 92,342' },
 ]
 
 interface BodyMapEntry {
@@ -323,35 +221,21 @@ export default function BodyMapTab({ personId }: { personId: string }) {
           <Tab value="back" label="Back View" sx={{ textTransform: 'none', fontWeight: 700 }} />
         </Tabs>
         <Box sx={{ display: 'flex', justifyContent: 'center', bgcolor: '#FAFBFC', py: 2, px: 1 }}>
-          <svg viewBox={VB} width={BODY_W * 1.1} height={BODY_H * 1.1} style={{ maxWidth: '100%', height: 'auto' }}>
+          <svg viewBox={VB} width={BODY_W * 1.7} height={BODY_H * 1.7} style={{ maxWidth: '100%', height: 'auto' }}>
             <defs>
-              <filter id="bodyShadow">
+              <filter id="bodyShadow" x="-10%" y="-10%" width="120%" height="130%">
                 <feDropShadow dx={1} dy={1} stdDeviation={2} floodColor="#000" floodOpacity={0.08} />
               </filter>
             </defs>
 
-            {/* Body silhouette */}
+            {/* Body silhouette — the 310x360 asset holds both figures; offset -155 shows the back half */}
             <g filter="url(#bodyShadow)">
-              <path d={FRONT_BODY_PATH}
-                fill={view === 'front' ? '#FFF5F5' : '#F1F5F9'}
-                stroke={view === 'front' ? '#E0C0C0' : '#94A3B8'}
-                strokeWidth={2}
-                strokeLinejoin="round"
-              />
+              <image href={bodyMapUrl} x={view === 'back' ? -IMG_W : 0} y={0} width={IMG_W} height={IMG_H} />
             </g>
 
-            {/* Face details (front only) */}
-            {view === 'front' && (
-              <>
-                <circle cx="122" cy="28" r={3} fill="#CBD5E1" />
-                <circle cx="143" cy="28" r={3} fill="#CBD5E1" />
-                <path d="M108,42 Q118,46 132,44" fill="none" stroke="#CBD5E1" strokeWidth={1.5} strokeLinecap="round" />
-                <line x1="130" y1="62" x2="130" y2="68" stroke="#CBD5E1" strokeWidth={1} />
-              </>
-            )}
             {/* Spine (back only) */}
             {view === 'back' && (
-              <path d="M130,85 L130,220" fill="none" stroke="#CBD5E1" strokeWidth={1.5} strokeDasharray="4 5" opacity={0.7} />
+              <path d="M75,85 L75,200" fill="none" stroke="#CBD5E1" strokeWidth={1.5} strokeDasharray="4 5" opacity={0.7} />
             )}
 
             {/* Clickable zones */}

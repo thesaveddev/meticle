@@ -292,7 +292,7 @@ export class EmailService {
         `<p><strong>${orgName}</strong> has invited you to view care information for <strong>${personName}</strong> through the Meticle Family Portal.</p>` +
         `<p>Through this secure portal you can see:</p>` +
         `<ul><li>Daily care notes</li><li>Care plans</li><li>Goals and progress</li><li>Health observations</li></ul>` +
-        `<p style="margin-top:16px">This link expires in <strong>90 days</strong> and is unique to you. Do not share it.</p>`,
+        `<p style="margin-top:16px">This link expires in <strong>14 days</strong> and is unique to you. Do not share it.</p>`,
         { label: 'View Care Information', url }));
   }
 
