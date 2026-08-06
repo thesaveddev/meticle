@@ -1110,7 +1110,7 @@ export default function PersonProfilePage() {
       )}
 
       {/* Tab: Health */}
-      {tab === 6 && <HealthTab personId={id!} />}
+      {tab === 6 && <HealthTab personId={id!} fluidTarget={user?.fluid_daily_target} />}
 
       {/* Tab: Body Map */}
       {tab === 7 && <BodyMapTab personId={id!} />}
@@ -2524,6 +2524,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
 
 function ClinicalScoresTab({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] })
   const [formError, setFormError] = useState('')
   const queryClient = useQueryClient()
@@ -2536,8 +2537,14 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
 
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/clinical-scores`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clinical-scores', personId] }); setAddOpen(false); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clinical-scores', personId] }); setAddOpen(false); setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add score'),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/people/${personId}/clinical-scores/${id}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clinical-scores', personId] }); setAddOpen(false); setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] }) },
+    onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to update score'),
   })
 
   const deleteMutation = useMutation({
@@ -2551,7 +2558,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <SectionHeader title="Clinical Scores" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
+      <SectionHeader title="Clinical Scores" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditId(null); setForm({ score_type: 'waterlow', score: '', risk_level: '', notes: '', recorded_date: new Date().toISOString().split('T')[0] }); setFormError(''); setAddOpen(true) }}
         sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Record Score</Button>} />
       {scores.length === 0 ? (
         <EmptyRow message="No clinical scores recorded" />
@@ -2574,16 +2581,24 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
                     {s.recorded_by_name && <Typography variant="caption" color="#9CA3AF">by {s.recorded_by_name}</Typography>}
                   </Stack>
                 </Box>
-                <IconButton size="small" color="error" onClick={() => setDeleteTarget(s.id)}><DeleteIcon fontSize="small" /></IconButton>
+                <Stack direction="row" spacing={0}>
+                  <IconButton size="small" onClick={() => { setEditId(s.id); setForm({ score_type: s.score_type, score: s.score != null ? String(s.score) : '', risk_level: s.risk_level || '', notes: s.notes || '', recorded_date: s.recorded_date?.split('T')[0] || s.recorded_date }); setFormError(''); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" color="error" onClick={() => setDeleteTarget(s.id)}><DeleteIcon fontSize="small" /></IconButton>
+                </Stack>
               </Stack>
             </Paper>
           ))}
         </Stack>
       )}
 
-      <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate({ ...form, score: form.score ? parseFloat(form.score) : undefined }) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Record Clinical Score</DialogTitle>
+      <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
+        <Box component="form" onSubmit={(e: React.FormEvent) => {
+          e.preventDefault(); setFormError('')
+          const payload = { ...form, score: form.score ? parseFloat(form.score) : undefined }
+          if (editId) updateMutation.mutate({ id: editId, data: payload })
+          else addMutation.mutate(payload)
+        }}>
+          <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Clinical Score' : 'Record Clinical Score'}</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2610,9 +2625,9 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            <Button onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
-              {addMutation.isPending ? <CircularProgress size={20} /> : 'Save Score'}
+            <Button onClick={() => { setAddOpen(false); setEditId(null) }}>Cancel</Button>
+            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
+              {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save Changes' : 'Save')}
             </Button>
           </DialogActions>
         </Box>
@@ -2921,6 +2936,8 @@ const DIRECTION_OPTIONS = ['inbound', 'outbound']
 
 function CommunicationLogTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [viewEntry, setViewEntry] = useState<any>(null)
   const [form, setForm] = useState({ contact_name: '', relationship: '', contact_method: 'phone', direction: 'inbound', summary: '', follow_up_actions: '', recorded_date: new Date().toISOString().split('T')[0] })
   const [formError, setFormError] = useState('')
   const queryClient = useQueryClient()
@@ -2931,10 +2948,18 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
     queryFn: () => api.get(`/people/${personId}/communication-log`).then(r => r.data),
   })
 
+  const resetForm = () => setForm({ contact_name: '', relationship: '', contact_method: 'phone', direction: 'inbound', summary: '', follow_up_actions: '', recorded_date: new Date().toISOString().split('T')[0] })
+
   const addMutation = useMutation({
     mutationFn: (data: any) => api.post(`/people/${personId}/communication-log`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['communication-log', personId] }); setAddOpen(false); setForm({ contact_name: '', relationship: '', contact_method: 'phone', direction: 'inbound', summary: '', follow_up_actions: '', recorded_date: new Date().toISOString().split('T')[0] }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['communication-log', personId] }); setAddOpen(false); setEditId(null); resetForm() },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add entry'),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/people/communication-log/${id}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['communication-log', personId] }); setAddOpen(false); setEditId(null); resetForm(); showSnackbar('Entry updated') },
+    onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to update entry'),
   })
 
   const deleteMutation = useMutation({
@@ -2948,7 +2973,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
 
   return (
     <Box>
-      <SectionHeader title="Communication Log" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
+      <SectionHeader title="Communication Log" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setEditId(null); resetForm(); setFormError(''); setAddOpen(true) }}
         sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Entry</Button>} />
       {entries.length === 0 ? (
         <EmptyRow message="No communication entries recorded" />
@@ -2983,7 +3008,11 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
                   <TableCell>{e.recorded_date ? new Date(e.recorded_date).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell>{e.recorded_by_name || '—'}</TableCell>
                   <TableCell>
-                    <IconButton size="small" color="error" onClick={() => setDeleteTarget(e.id)}><DeleteIcon fontSize="small" /></IconButton>
+                    <Stack direction="row" spacing={0}>
+                      <IconButton size="small" onClick={() => setViewEntry(e)}><VisibilityIcon fontSize="small" /></IconButton>
+                      <IconButton size="small" onClick={() => { setEditId(e.id); setForm({ contact_name: e.contact_name || '', relationship: e.relationship || '', contact_method: e.contact_method || 'phone', direction: e.direction || 'inbound', summary: e.summary || '', follow_up_actions: e.follow_up_actions || '', recorded_date: e.recorded_date?.split('T')[0] || e.recorded_date }); setFormError(''); setAddOpen(true) }}><EditIcon fontSize="small" /></IconButton>
+                      <IconButton size="small" color="error" onClick={() => setDeleteTarget(e.id)}><DeleteIcon fontSize="small" /></IconButton>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
@@ -2992,9 +3021,9 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
         </TableContainer>
       )}
 
-      <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate(form) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Add Communication Entry</DialogTitle>          <DialogContent>
+      <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
+        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); if (editId) updateMutation.mutate({ id: editId, data: form }); else addMutation.mutate(form) }}>
+          <DialogTitle sx={{ fontWeight: 800 }}>{editId ? 'Edit Communication Entry' : 'Add Communication Entry'}</DialogTitle>          <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
               <Stack direction="row" spacing={1}>
@@ -3016,11 +3045,54 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
-              {addMutation.isPending ? <CircularProgress size={20} /> : 'Save'}
+            <Button type="submit" variant="contained" disabled={addMutation.isPending || updateMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
+              {(addMutation.isPending || updateMutation.isPending) ? <CircularProgress size={20} /> : (editId ? 'Save Changes' : 'Save')}
             </Button>
           </DialogActions>
         </Box>
+      </Dialog>
+
+      {/* View dialog */}
+      <Dialog open={!!viewEntry} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
+        {viewEntry && (
+          <>
+            <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center' }}>
+              Communication Entry
+              <Box sx={{ flex: 1 }} />
+              <IconButton size="small" onClick={() => setViewEntry(null)}><CloseIcon fontSize="small" /></IconButton>
+            </DialogTitle>
+            <DialogContent>
+              <Stack spacing={2}>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip label={viewEntry.contact_method?.replace(/_/g, ' ')} size="small" variant="outlined" />
+                  <Chip label={viewEntry.direction} size="small" color={viewEntry.direction === 'inbound' ? 'info' : 'primary'} variant="outlined" />
+                  {viewEntry.recorded_date && <Chip label={new Date(viewEntry.recorded_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />}
+                </Stack>
+                <Box>
+                  <Typography variant="caption" color="#6B7280">Contact</Typography>
+                  <Typography variant="body1" fontWeight={600}>{viewEntry.contact_name}{viewEntry.relationship ? ` — ${viewEntry.relationship}` : ''}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="#6B7280">Summary</Typography>
+                  <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry.summary || '—'}</Typography>
+                </Box>
+                {viewEntry.follow_up_actions && (
+                  <Box>
+                    <Typography variant="caption" color="#6B7280">Follow-up Actions</Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry.follow_up_actions}</Typography>
+                  </Box>
+                )}
+                <Typography variant="caption" color="#9CA3AF">Recorded by {viewEntry.recorded_by_name || '—'}{viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}</Typography>
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ p: 3 }}>
+              <Button onClick={() => { setViewEntry(null); setEditId(viewEntry.id); setForm({ contact_name: viewEntry.contact_name || '', relationship: viewEntry.relationship || '', contact_method: viewEntry.contact_method || 'phone', direction: viewEntry.direction || 'inbound', summary: viewEntry.summary || '', follow_up_actions: viewEntry.follow_up_actions || '', recorded_date: viewEntry.recorded_date?.split('T')[0] || viewEntry.recorded_date }); setFormError(''); setAddOpen(true) }} sx={{ textTransform: 'none' }}>
+                <EditIcon sx={{ fontSize: 16, mr: 0.5 }} />Edit
+              </Button>
+              <Button onClick={() => setViewEntry(null)} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Close</Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
       <ConfirmDialog
         open={!!deleteTarget}
@@ -3073,6 +3145,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
     onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteTarget(null) },
   })
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [viewEntry, setViewEntry] = useState<any>(null)
 
   function resetForm() {
     setForm({ assessment_date: new Date().toISOString().split('T')[0], decision_to_be_made: '', capacity_found: null, capacity_status: 'not_assessed', best_interest_decision: '', best_interest_meeting_date: '', independent_advocate: '', relevant_people_informed: '', review_date: '' })
@@ -3105,6 +3178,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
                   {a.review_date && <Typography variant="caption" color="#9CA3AF" sx={{ mt: 0.5, display: 'block' }}>Review: {new Date(a.review_date).toLocaleDateString('en-GB')}</Typography>}
                 </Box>
                 <Stack direction="row" spacing={0.5}>
+                  <IconButton size="small" onClick={() => setViewEntry(a)}><VisibilityIcon fontSize="small" /></IconButton>
                   <IconButton size="small" onClick={() => {
                     setForm({
                       assessment_date: a.assessment_date?.split('T')[0] || new Date().toISOString().split('T')[0],
@@ -3129,6 +3203,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
       <Dialog open={addOpen} onClose={() => { setAddOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
         <Box component="form" onSubmit={(e: React.FormEvent) => {
           e.preventDefault(); setFormError('')
+          if (form.capacity_found === null) { setFormError('Please record whether capacity was found (Yes / No) before saving.'); return }
           if (editId) updateMutation.mutate({ id: editId, data: form })
           else addMutation.mutate(form)
         }}>
@@ -3136,7 +3211,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField label="Assessment Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.assessment_date} onChange={e => setForm({ ...form, assessment_date: e.target.value })} />
+              <TextField label="Assessment Date" type="date" fullWidth required InputLabelProps={{ shrink: true }} value={form.assessment_date} onChange={e => setForm({ ...form, assessment_date: e.target.value })} />
               <TextField label="Decision to be Made" fullWidth multiline rows={2} required value={form.decision_to_be_made} onChange={e => setForm({ ...form, decision_to_be_made: e.target.value })} />
               <Box>
                 <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5 }}>Capacity Found</Typography>
@@ -3146,14 +3221,14 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
                   <Button variant={form.capacity_found === null ? 'contained' : 'outlined'} color="warning" size="small" onClick={() => setForm({ ...form, capacity_found: null })} sx={{ textTransform: 'none' }}>Not Assessed</Button>
                 </Stack>
               </Box>
-              <TextField select label="Capacity Status" fullWidth value={form.capacity_status} onChange={e => setForm({ ...form, capacity_status: e.target.value })}>
+              <TextField select label="Capacity Status" fullWidth required value={form.capacity_status} onChange={e => setForm({ ...form, capacity_status: e.target.value })}>
                 {CAPACITY_STATUSES.map(s => <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>{s.replace(/_/g, ' ')}</MenuItem>)}
               </TextField>
-              <TextField label="Best Interest Decision" fullWidth multiline rows={2} value={form.best_interest_decision} onChange={e => setForm({ ...form, best_interest_decision: e.target.value })} />
-              <TextField label="Best Interest Meeting Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.best_interest_meeting_date} onChange={e => setForm({ ...form, best_interest_meeting_date: e.target.value })} />
-              <TextField label="Independent Advocate" fullWidth value={form.independent_advocate} onChange={e => setForm({ ...form, independent_advocate: e.target.value })} />
-              <TextField label="Relevant People Informed" fullWidth multiline rows={2} value={form.relevant_people_informed} onChange={e => setForm({ ...form, relevant_people_informed: e.target.value })} />
-              <TextField label="Review Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.review_date} onChange={e => setForm({ ...form, review_date: e.target.value })} />
+              <TextField label="Best Interest Decision" fullWidth multiline rows={2} required value={form.best_interest_decision} onChange={e => setForm({ ...form, best_interest_decision: e.target.value })} />
+              <TextField label="Best Interest Meeting Date" type="date" fullWidth required InputLabelProps={{ shrink: true }} value={form.best_interest_meeting_date} onChange={e => setForm({ ...form, best_interest_meeting_date: e.target.value })} />
+              <TextField label="Independent Advocate" fullWidth required value={form.independent_advocate} onChange={e => setForm({ ...form, independent_advocate: e.target.value })} />
+              <TextField label="Relevant People Informed" fullWidth multiline rows={2} required value={form.relevant_people_informed} onChange={e => setForm({ ...form, relevant_people_informed: e.target.value })} />
+              <TextField label="Review Date" type="date" fullWidth required InputLabelProps={{ shrink: true }} value={form.review_date} onChange={e => setForm({ ...form, review_date: e.target.value })} />
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
@@ -3163,6 +3238,79 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
             </Button>
           </DialogActions>
         </Box>
+      </Dialog>
+      <Dialog open={!!viewEntry} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
+        {viewEntry && (
+          <>
+            <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center' }}>
+              Capacity Assessment
+              <Box sx={{ flex: 1 }} />
+              <IconButton size="small" onClick={() => setViewEntry(null)}><CloseIcon fontSize="small" /></IconButton>
+            </DialogTitle>
+            <DialogContent>
+              <Stack spacing={2}>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip label={viewEntry.assessment_date ? new Date(viewEntry.assessment_date).toLocaleDateString('en-GB') : '—'} size="small" variant="outlined" />
+                  <Chip label={viewEntry.capacity_found === true ? 'Has Capacity' : viewEntry.capacity_found === false ? 'Lacks Capacity' : 'Not Assessed'} size="small"
+                    sx={{ bgcolor: viewEntry.capacity_found === true ? '#16A34A20' : viewEntry.capacity_found === false ? '#DC262620' : '#6B728020', color: viewEntry.capacity_found === true ? '#16A34A' : viewEntry.capacity_found === false ? '#DC2626' : '#6B7280', fontWeight: 700 }} />
+                  <Chip label={viewEntry.capacity_status?.replace(/_/g, ' ')} size="small"
+                    sx={{ bgcolor: `${CAPACITY_STATUS_COLORS[viewEntry.capacity_status] || '#6B7280'}20`, color: CAPACITY_STATUS_COLORS[viewEntry.capacity_status] || '#6B7280', fontWeight: 700 }} />
+                </Stack>
+                <Box>
+                  <Typography variant="caption" color="#6B7280">Decision to be Made</Typography>
+                  <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry.decision_to_be_made || '—'}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="#6B7280">Best Interest Decision</Typography>
+                  <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry.best_interest_decision || '—'}</Typography>
+                </Box>
+                {viewEntry.best_interest_meeting_date && (
+                  <Box>
+                    <Typography variant="caption" color="#6B7280">Best Interest Meeting Date</Typography>
+                    <Typography variant="body1">{new Date(viewEntry.best_interest_meeting_date).toLocaleDateString('en-GB')}</Typography>
+                  </Box>
+                )}
+                <Box>
+                  <Typography variant="caption" color="#6B7280">Independent Advocate</Typography>
+                  <Typography variant="body1">{viewEntry.independent_advocate || '—'}</Typography>
+                </Box>
+                {viewEntry.relevant_people_informed && (
+                  <Box>
+                    <Typography variant="caption" color="#6B7280">Relevant People Informed</Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{viewEntry.relevant_people_informed}</Typography>
+                  </Box>
+                )}
+                {viewEntry.review_date && (
+                  <Box>
+                    <Typography variant="caption" color="#6B7280">Review Date</Typography>
+                    <Typography variant="body1">{new Date(viewEntry.review_date).toLocaleDateString('en-GB')}</Typography>
+                  </Box>
+                )}
+                <Typography variant="caption" color="#9CA3AF">Recorded by {viewEntry.recorded_by_name || '—'}{viewEntry.created_at ? ` on ${new Date(viewEntry.created_at).toLocaleString('en-GB')}` : ''}</Typography>
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ p: 3 }}>
+              <Button onClick={() => {
+                const a = viewEntry
+                setViewEntry(null)
+                setForm({
+                  assessment_date: a.assessment_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+                  decision_to_be_made: a.decision_to_be_made || '',
+                  capacity_found: a.capacity_found,
+                  capacity_status: a.capacity_status || 'not_assessed',
+                  best_interest_decision: a.best_interest_decision || '',
+                  best_interest_meeting_date: a.best_interest_meeting_date?.split('T')[0] || '',
+                  independent_advocate: a.independent_advocate || '',
+                  relevant_people_informed: a.relevant_people_informed || '',
+                  review_date: a.review_date?.split('T')[0] || '',
+                }); setEditId(a.id); setFormError(''); setAddOpen(true)
+              }} sx={{ textTransform: 'none' }}>
+                <EditIcon sx={{ fontSize: 16, mr: 0.5 }} />Edit
+              </Button>
+              <Button onClick={() => setViewEntry(null)} variant="contained" sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Close</Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
       <ConfirmDialog open={!!deleteTarget} title="Delete assessment" message="This will permanently remove this capacity assessment." onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }} />
     </Box>
@@ -3491,7 +3639,7 @@ function DischargeChecklistTabInline({ personId }: { personId: string }) {
   })
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, completed }: { id: string; completed: boolean }) => api.patch(`/people/discharge-checklist/${id}`, { completed }),
+    mutationFn: ({ id, completed }: { id: string; completed: boolean }) => api.patch(`/people/discharge-checklist/${id}`, { is_complete: completed }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['discharge-checklist', personId] }),
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to update', 'error'),
   })
@@ -3540,7 +3688,7 @@ function DischargeChecklistTabInline({ personId }: { personId: string }) {
                     </IconButton>
                     <Box sx={{ flex: 1 }}>
                       <Typography variant="body2" sx={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#9CA3AF' : 'inherit' }}>
-                        {item.item_text}
+                        {item.item}
                       </Typography>
                       {item.completed && item.completed_by_name && (
                         <Typography variant="caption" color="#9CA3AF">Completed by {item.completed_by_name}{item.completed_at ? ` on ${new Date(item.completed_at).toLocaleDateString('en-GB')}` : ''}</Typography>
@@ -3556,7 +3704,7 @@ function DischargeChecklistTabInline({ personId }: { personId: string }) {
       )}
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate(form) }}>
+        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate({ item: form.item_text, category: form.category }) }}>
           <DialogTitle sx={{ fontWeight: 800 }}>Add Checklist Item</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
@@ -3583,6 +3731,7 @@ function DischargeChecklistTabInline({ personId }: { personId: string }) {
 function MoodChartTabInline({ personId }: { personId: string }) {
   const queryClient = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
+  const [view, setView] = useState<'chart' | 'table'>('chart')
   const [form, setForm] = useState({ domain: 'mood', score: 7, recorded_date: new Date().toISOString().split('T')[0], notes: '' })
   const [formError, setFormError] = useState('')
 
@@ -3619,11 +3768,54 @@ function MoodChartTabInline({ personId }: { personId: string }) {
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Mood Chart — Last 30 Days</Typography>
-        <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ domain: 'mood', score: 7, recorded_date: new Date().toISOString().split('T')[0], notes: '' }); setFormError(''); setAddOpen(true) }}
-          sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Add Entry</Button>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" sx={{ border: '1px solid #E5E7EB', borderRadius: 2, overflow: 'hidden' }}>
+            <Button size="small" onClick={() => setView('chart')}
+              sx={{ textTransform: 'none', borderRadius: 0, px: 1.5, fontWeight: 700, color: view === 'chart' ? '#0F4C81' : '#9CA3AF', bgcolor: view === 'chart' ? '#E7EEF4' : 'transparent' }}>
+              Charts
+            </Button>
+            <Button size="small" onClick={() => setView('table')}
+              sx={{ textTransform: 'none', borderRadius: 0, px: 1.5, fontWeight: 700, color: view === 'table' ? '#0F4C81' : '#9CA3AF', bgcolor: view === 'table' ? '#E7EEF4' : 'transparent' }}>
+              Table
+            </Button>
+          </Stack>
+          <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ domain: 'mood', score: 7, recorded_date: new Date().toISOString().split('T')[0], notes: '' }); setFormError(''); setAddOpen(true) }}
+            sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Add Entry</Button>
+        </Stack>
       </Stack>
 
-      {entries.length === 0 ? (
+      {view === 'table' ? (
+        <Paper sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Domain</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Score</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {recentEntries.length === 0 ? (
+                  <TableRow><TableCell colSpan={4} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No entries in the last 30 days</TableCell></TableRow>
+                ) : recentEntries.map((e: any) => (
+                  <TableRow key={e.id}>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(e.recorded_date).toLocaleDateString('en-GB')}</TableCell>
+                    <TableCell>
+                      <Chip label={e.domain} size="small" sx={{ bgcolor: DOMAIN_COLORS[e.domain] || '#6B7280', color: 'white', fontWeight: 700 }} />
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={`${e.score}/10`} size="small" sx={{ bgcolor: `${scoreColor(e.score)}20`, color: scoreColor(e.score), fontWeight: 700 }} />
+                    </TableCell>
+                    <TableCell><Typography variant="body2">{e.notes || '-'}</Typography></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      ) : entries.length === 0 ? (
         <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
           <Typography color="#9CA3AF">No wellbeing data yet</Typography>
           <Typography variant="caption" color="#6B7280" sx={{ mt: 0.5, display: 'block' }}>Record mood, engagement, sleep and other wellbeing scores to see trends here.</Typography>
@@ -3704,6 +3896,22 @@ function MoodChartTabInline({ personId }: { personId: string }) {
   )
 }
 
+function summarizeAuditData(data: any): string {
+  if (!data) return ''
+  if (typeof data === 'string') return data
+  let obj = data
+  if (typeof obj === 'string') { try { obj = JSON.parse(obj) } catch { return data } }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return String(obj)
+  const parts: string[] = []
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === null || v === undefined || v === '') continue
+    let sv = typeof v === 'object' ? JSON.stringify(v) : String(v)
+    if (sv.length > 40) sv = `${sv.slice(0, 40)}…`
+    parts.push(`${k}: ${sv}`)
+  }
+  return parts.join(' · ')
+}
+
 function AuditTrailTabInline({ personId }: { personId: string }) {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['audit-trail', personId],
@@ -3725,18 +3933,22 @@ function AuditTrailTabInline({ personId }: { personId: string }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {logs.map((log: any) => (
-              <TableRow key={log.id}>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString('en-GB')}</TableCell>
-                <TableCell>{log.user_name || log.user_id}</TableCell>
-                <TableCell>
-                  <Chip label={log.action} size="small" color={log.action === 'create' ? 'success' : log.action === 'update' ? 'primary' : 'error'} variant="outlined" />
-                </TableCell>
-                <TableCell sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {log.details?.summary || `${log.entity_type} ${log.action}d`}
-                </TableCell>
-              </TableRow>
-            ))}
+            {logs.map((log: any) => {
+              const newData = summarizeAuditData(log.new_data)
+              const full = newData ? `${log.entity_type} — ${newData}` : `${log.entity_type} ${log.action}d`
+              return (
+                <TableRow key={log.id}>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString('en-GB')}</TableCell>
+                  <TableCell>{log.user_name || log.user_id}</TableCell>
+                  <TableCell>
+                    <Chip label={log.action} size="small" color={log.action === 'create' ? 'success' : log.action === 'update' ? 'primary' : 'error'} variant="outlined" />
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Tooltip title={full}><span>{full}</span></Tooltip>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </TableContainer>

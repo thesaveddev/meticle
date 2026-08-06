@@ -446,6 +446,7 @@ export const updatePersonSchema = z.object({
   support_level: z.string().nullable().optional(),
   location_id: z.string().uuid().nullable().optional(),
   min_staff_required: z.coerce.number().int().min(0).max(6).nullable().optional(),
+  fluid_daily_target: z.number().int().min(0).optional(),
 });
 
 export const createClinicalScoreSchema = z.object({

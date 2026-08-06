@@ -196,6 +196,7 @@ export class PersonRepository {
       'dnacpr_status', 'dnacpr_date', 'dnacpr_review_date', 'dnacpr_details',
       'advance_decision', 'advance_decision_date',
       'discharge_date', 'discharge_reason', 'discharge_summary', 'discharge_destination',
+      'fluid_daily_target',
     ]);
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     const dateFields = new Set(['date_of_birth', 'review_date', 'recorded_date', 'resolved_date', 'check_date', 'reassessment_date', 'next_review_date', 'assessment_date']);
@@ -726,6 +727,18 @@ export class PersonRepository {
 
   static async deleteCommunicationLog(id: string) {
     await query('DELETE FROM person_communication_log WHERE id = $1', [id]);
+  }
+
+  static async updateCommunicationLog(id: string, data: any) {
+    const fields: string[] = []; const values: any[] = []; let idx = 1;
+    for (const [key, val] of Object.entries(data)) {
+      if (!['contact_name', 'relationship', 'contact_method', 'direction', 'summary', 'follow_up_actions', 'recorded_date'].includes(key)) continue;
+      if (val !== undefined) { fields.push(`${key} = $${idx}`); values.push(val); idx++; }
+    }
+    if (fields.length === 0) return null;
+    values.push(id);
+    const result = await query(`UPDATE person_communication_log SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, values);
+    return result.rows[0] || null;
   }
 
   static async findCapacityAssessments(personId: string) {

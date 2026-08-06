@@ -6,7 +6,7 @@ import { requireRole } from '../../shared/middleware/requireRole';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { UserRole } from '@meticle/shared';
-import { createPersonSchema, updatePersonSchema, createCarePlanSchema, updateCarePlanSchema, createDailyNoteSchema, updateDailyNoteSchema, createRiskAssessmentSchema, updateRiskAssessmentSchema, createFamilyContactSchema, updateFamilyContactSchema, createAssessmentSchema, updateAssessmentSchema, createBodyMapEntrySchema, updateBodyMapEntrySchema, createMemoryBookEntrySchema, updateMemoryBookEntrySchema, createClinicalScoreSchema, updateClinicalScoreSchema, createDocumentSchema, createWellbeingSchema, createCommunicationLogSchema, createCapacityAssessmentSchema, updateCapacityAssessmentSchema, createCarePathwaySchema, updateCarePathwaySchema, createDischargeChecklistSchema, updateDischargeChecklistSchema } from '../../shared/validation/schemas';
+import { createPersonSchema, updatePersonSchema, createCarePlanSchema, updateCarePlanSchema, createDailyNoteSchema, updateDailyNoteSchema, createRiskAssessmentSchema, updateRiskAssessmentSchema, createFamilyContactSchema, updateFamilyContactSchema, createAssessmentSchema, updateAssessmentSchema, createBodyMapEntrySchema, updateBodyMapEntrySchema, createMemoryBookEntrySchema, updateMemoryBookEntrySchema, createClinicalScoreSchema, updateClinicalScoreSchema, createDocumentSchema, createWellbeingSchema, createCommunicationLogSchema, updateCommunicationLogSchema, createCapacityAssessmentSchema, updateCapacityAssessmentSchema, createCarePathwaySchema, updateCarePathwaySchema, createDischargeChecklistSchema, updateDischargeChecklistSchema } from '../../shared/validation/schemas';
 
 const router = Router();
 
@@ -73,6 +73,7 @@ router.delete('/wellbeing/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER
 
 router.get('/:personId/communication-log', asyncHandler(PersonController.listCommunicationLog));
 router.post('/:personId/communication-log', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createCommunicationLogSchema), asyncHandler(PersonController.createCommunicationLog));
+router.patch('/communication-log/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateCommunicationLogSchema), asyncHandler(PersonController.updateCommunicationLog));
 router.delete('/communication-log/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(PersonController.deleteCommunicationLog));
 
 router.get('/:personId/capacity', asyncHandler(PersonController.listCapacityAssessments));

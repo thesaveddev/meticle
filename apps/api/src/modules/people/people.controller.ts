@@ -533,6 +533,13 @@ export class PersonController {
     res.json({ message: 'Communication log deleted' });
   }
 
+  static async updateCommunicationLog(req: Request, res: Response) {
+    const updated = await PersonRepository.updateCommunicationLog(req.params.id, req.body);
+    if (!updated) throw new AppError(404, 'Communication log entry not found');
+    AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'communication_log', entity_id: req.params.id, new_data: req.body, ip_address: req.ip }).catch(() => {});
+    res.json(updated);
+  }
+
   static async listCapacityAssessments(req: Request, res: Response) {
     const user = req.user!;
     await requirePersonInOrg(user, req.params.personId);

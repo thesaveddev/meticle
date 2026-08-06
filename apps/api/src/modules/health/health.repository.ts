@@ -9,9 +9,10 @@ export class HealthRepository {
   // === Health Observations ===
   static async findObservations(personId: string, limit = 50) {
     const result = await query(`
-      SELECT ho.*, u.email AS recorded_by_name
+      SELECT ho.*, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS recorded_by_name
       FROM health_observations ho
       LEFT JOIN users u ON u.id = ho.recorded_by
+      LEFT JOIN staff_profiles sp ON sp.user_id = ho.recorded_by
       WHERE ho.person_id = $1
       ORDER BY ho.observation_date DESC, ho.created_at DESC
       LIMIT $2
@@ -46,8 +47,9 @@ export class HealthRepository {
 
   // === Bowel Movements ===
   static async findBowelMovements(personId: string, dateFrom?: string, dateTo?: string) {
-    let sql = `SELECT bm.*, u.email AS recorded_by_name FROM bowel_movements bm
+    let sql = `SELECT bm.*, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS recorded_by_name FROM bowel_movements bm
       LEFT JOIN users u ON u.id = bm.recorded_by
+      LEFT JOIN staff_profiles sp ON sp.user_id = bm.recorded_by
       WHERE bm.person_id = $1`;
     const params: any[] = [personId];
     let idx = 2;
@@ -86,8 +88,9 @@ export class HealthRepository {
   // === Dental Records ===
   static async findDentalRecords(personId: string) {
     const result = await query(`
-      SELECT dr.*, u.email AS recorded_by_name FROM dental_records dr
+      SELECT dr.*, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS recorded_by_name FROM dental_records dr
       LEFT JOIN users u ON u.id = dr.recorded_by
+      LEFT JOIN staff_profiles sp ON sp.user_id = dr.recorded_by
       WHERE dr.person_id = $1
       ORDER BY dr.checkup_date DESC
     `, [personId]);
@@ -121,8 +124,9 @@ export class HealthRepository {
 
   // === Fluid Intake ===
   static async findFluidIntake(personId: string, date?: string) {
-    let sql = `SELECT fi.*, u.email AS recorded_by_name FROM fluid_intake fi
+    let sql = `SELECT fi.*, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS recorded_by_name FROM fluid_intake fi
       LEFT JOIN users u ON u.id = fi.recorded_by
+      LEFT JOIN staff_profiles sp ON sp.user_id = fi.recorded_by
       WHERE fi.person_id = $1`;
     const params: any[] = [personId];
     if (date) { sql += ' AND fi.recorded_date = $2'; params.push(date); }
