@@ -175,22 +175,22 @@ export class EMedicationController {
 
     // Block marking as given when linked stock is empty
     let stockBefore: { quantity: number; reorder_level: number } | null = null;
-    let linkedStockItemId: string | null = null;
+    let stockItemId: string | null = null;
     if (status === 'given') {
       const itemResult = await query(`SELECT stock_item_id, name FROM emedication_items WHERE id = $1`, [emedication_item_id]);
-      linkedStockItemId = itemResult.rows[0]?.stock_item_id || null;
-      if (linkedStockItemId) {
-        const stock = await EMedicationRepository.getStockForItem(emedication_item_id);
-        if (stock && stock.quantity !== null && Number(stock.quantity) <= 0) {
+      const stock = await EMedicationRepository.getStockForItem(emedication_item_id);
+      if (stock) {
+        stockItemId = stock.id;
+        if (stock.quantity !== null && Number(stock.quantity) <= 0) {
           throw new AppError(409, `Cannot mark as given: no stock available for ${itemResult.rows[0]?.name || 'this medication'}. Log a delivery or stock adjustment first.`);
         }
-        if (stock && !stock.person_id) {
+        if (!stock.person_id) {
           const rec = await query(
             `SELECT er.person_id FROM emedication_items mi JOIN emedication_records er ON er.id = mi.emedication_record_id WHERE mi.id = $1`,
             [emedication_item_id]
           );
           if (rec.rows[0]?.person_id) {
-            await query(`UPDATE emedication_stock SET person_id = $2 WHERE id = $1 AND person_id IS NULL`, [linkedStockItemId, rec.rows[0].person_id]);
+            await query(`UPDATE emedication_stock SET person_id = $2 WHERE id = $1 AND person_id IS NULL`, [stockItemId, rec.rows[0].person_id]);
           }
         }
         stockBefore = { quantity: Number(stock?.quantity ?? 0), reorder_level: Number(stock?.reorder_level ?? 0) };
@@ -209,12 +209,12 @@ export class EMedicationController {
 
     const orgIdAdmin = EMedicationController.getOrgId(req);
 
-    if (status === 'given' && linkedStockItemId) {
-      const stockAfter = await EMedicationRepository.deductStockFromAdministration(linkedStockItemId);
+    if (status === 'given' && stockItemId) {
+      const stockAfter = await EMedicationRepository.deductStockFromAdministration(stockItemId);
       if (stockBefore && stockAfter &&
           stockBefore.quantity > stockBefore.reorder_level &&
           stockAfter.quantity <= stockAfter.reorder_level) {
-        await MedicationAlertService.notifyReorder(orgIdAdmin, linkedStockItemId, stockAfter);
+        await MedicationAlertService.notifyReorder(orgIdAdmin, stockItemId, stockAfter);
       }
     }
 
