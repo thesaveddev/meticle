@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Grid, Alert, CircularProgress, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Tabs, Tab, Divider, FormControlLabel, Checkbox, Menu } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Schedule as ScheduleIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, ArrowDropDown as ArrowDropDownIcon } from '@mui/icons-material'
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Schedule as ScheduleIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 
@@ -107,6 +107,7 @@ export default function EMedicationPage() {
   const [archiveTargetId, setArchiveTargetId] = useState<string | null>(null)
   const [itemDialog, setItemDialog] = useState(false)
   const [adminDialog, setAdminDialog] = useState(false)
+  const [showArchivedItems, setShowArchivedItems] = useState(false)
   const [editItem, setEditItem] = useState<MedicationItem | null>(null)
   const [adminTarget, setAdminTarget] = useState<{ itemId: string; date: string; time: string; existingAdmin?: Administration; isPrn?: boolean } | null>(null)
   const [adminForm, setAdminForm] = useState({ status: 'given' as AdminStatus, notes: '', staffUserId: '', prn_reason: '', prn_effectiveness: '', wastage_amount: '', wastage_reason: '', batch_number: '', expiry_date: '' })
@@ -233,7 +234,7 @@ export default function EMedicationPage() {
       const res = await api.get(`/emedication/stock${qs}`)
       return res.data as StockItem[]
     },
-    enabled: tab === 1
+    enabled: tab === 0 || tab === 1
   })
 
   // Deliveries
@@ -460,12 +461,10 @@ export default function EMedicationPage() {
     if (!adminTarget) return
     if (adminForm.status === 'given') {
       const item = chartData?.items.find((i: MedicationItem) => i.id === adminTarget.itemId)
-      if (item?.stock_item_id) {
-        const stock = (stockData || []).find((s: StockItem) => s.id === item.stock_item_id && s.status !== 'archived')
-        if (stock && stock.quantity !== null && Number(stock.quantity) <= 0) {
-          setAdminError(`No stock available for ${item.name} (${stock.quantity} ${stock.quantity_unit} remaining). Log a delivery or stock adjustment first.`)
-          return
-        }
+      const stock = getItemStock(item)
+      if (stock && stock.quantity !== null && Number(stock.quantity) <= 0) {
+        setAdminError(`No stock available for ${item?.name || 'this medication'} (${stock.quantity} ${stock.quantity_unit} remaining). Log a delivery or stock adjustment first.`)
+        return
       }
     }
     const scheduled = new Date(`${adminTarget.date}T${adminTime || adminTarget.time}:00`).toISOString()
@@ -567,6 +566,9 @@ export default function EMedicationPage() {
     const topicalRoutes = new Set(['topical', 'cream', 'ointment', 'gel', 'lotion'])
     const injectionRoutes = new Set(['im', 'intramuscular', 'iv', 'intravenous', 'sc', 'subcutaneous'])
     const patchRoutes = new Set(['transdermal', 'patch'])
+
+    const regularItems = (chartData.items || []).filter((i: any) => !i.is_prn)
+    const prnItems = (chartData.items || []).filter((i: any) => i.is_prn)
 
     const regularItemsTopical = regularItems.filter(i => topicalRoutes.has(i.route?.toLowerCase()))
     const regularItemsInject = regularItems.filter(i => injectionRoutes.has(i.route?.toLowerCase()))
@@ -1176,6 +1178,9 @@ export default function EMedicationPage() {
     const injectionRoutes = new Set(['im', 'intramuscular', 'iv', 'intravenous', 'sc', 'subcutaneous'])
     const patchRoutes = new Set(['transdermal', 'patch'])
 
+    const regularItems = (chartData.items || []).filter((i: any) => !i.is_prn)
+    const prnItems = (chartData.items || []).filter((i: any) => i.is_prn)
+
     const regularItemsTopical = regularItems.filter(i => topicalRoutes.has(i.route?.toLowerCase()))
     const regularItemsInject = regularItems.filter(i => injectionRoutes.has(i.route?.toLowerCase()))
     const regularItemsPatch = regularItems.filter(i => patchRoutes.has(i.route?.toLowerCase()))
@@ -1700,9 +1705,27 @@ export default function EMedicationPage() {
     setItemForm(p => ({ ...p, times: p.times.filter(x => x !== t) }))
   }
 
-  // Derive display data
-  const regularItems = chartData?.items.filter((i: any) => !i.is_prn) || []
-  const prnItems = chartData?.items.filter((i: any) => i.is_prn) || []
+  // Derive display data — archived (inactive) items are kept out of the active MAR
+  const regularItems = chartData?.items.filter((i: any) => !i.is_prn && i.is_active) || []
+  const prnItems = chartData?.items.filter((i: any) => i.is_prn && i.is_active) || []
+  const archivedItems = chartData?.items.filter((i: any) => !i.is_active) || []
+
+  // Resolve an item's active stock record (linked, or matched by identity for imported/PRN items)
+  const getItemStock = (item: MedicationItem | null | undefined): StockItem | undefined => {
+    if (!item) return undefined
+    const linked = (stockData || []).find((s: StockItem) => s.id === item.stock_item_id && s.status !== 'archived')
+    if (linked) return linked
+    return (stockData || []).find((s: StockItem) =>
+      s.status !== 'archived'
+      && s.person_id === chartData?.record.person_id
+      && s.medication_name === item.name
+      && s.dosage === item.dosage
+      && s.unit === item.unit)
+  }
+
+  const adminTargetItem = chartData?.items.find((i: MedicationItem) => i.id === adminTarget?.itemId)
+  const adminTargetStock = getItemStock(adminTargetItem)
+  const adminTargetOutOfStock = !!adminTargetStock && adminTargetStock.quantity !== null && Number(adminTargetStock.quantity) <= 0
 
   // Build per-day admin initials from chartData.adminMap
   const dayAdminsMap: Record<string, { initials: string; first_name: string; last_name: string }[]> = {}
@@ -1975,6 +1998,12 @@ export default function EMedicationPage() {
                             {importPrevMutation.isPending ? '...' : 'Import Prev Month'}
                           </Button>
                         )}
+                        {archivedItems.length > 0 && (
+                          <Button size="small" variant="outlined" color="inherit" startIcon={<ArchiveOutlined />}
+                            onClick={() => setShowArchivedItems(v => !v)}>
+                            {showArchivedItems ? 'Hide Archived' : `Archived (${archivedItems.length})`}
+                          </Button>
+                        )}
                         <Button size="small" variant="outlined" startIcon={<PrintIcon />} endIcon={<ArrowDropDownIcon />} onClick={(e) => setPrintAnchorEl(e.currentTarget)}>
                           Print
                         </Button>
@@ -2011,7 +2040,9 @@ export default function EMedicationPage() {
                   {/* MAR Grid - Flat (no collapsible groups) */}
                   {regularItems.length === 0 ? (
                     <Paper sx={{ p: 4, textAlign: 'center' }}>
-                      <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>No medication records found</Typography>
+                      <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                        {archivedItems.length > 0 ? 'No active medications on this chart.' : 'No medication records found'}
+                      </Typography>
                     </Paper>
                   ) : (
                     <Paper sx={{ overflow: 'hidden' }}>
@@ -2069,7 +2100,7 @@ export default function EMedicationPage() {
                                       <Typography variant="caption" color="text.secondary">{item.dosage}{item.unit}</Typography>
                                       <Chip label={item.route} size="small" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
                                       {(() => {
-                                        const stock = (stockData || []).find((s: StockItem) => s.id === item.stock_item_id && s.status !== 'archived')
+                                        const stock = getItemStock(item)
                                         if (stock && stock.quantity !== null && Number(stock.quantity) <= 0) {
                                           return <Chip label="No stock" size="small" color="error" sx={{ fontSize: '0.6rem', height: 18 }} />
                                         }
@@ -2176,6 +2207,13 @@ export default function EMedicationPage() {
                                   <Chip label={`${item.dosage} ${item.unit}`} size="small" variant="outlined" />
                                   <Chip label={item.route} size="small" variant="outlined" />
                                   <Chip label="PRN" size="small" color="warning" />
+                                  {(() => {
+                                    const stock = getItemStock(item)
+                                    if (stock && stock.quantity !== null && Number(stock.quantity) <= 0) {
+                                      return <Chip label="No stock" size="small" color="error" />
+                                    }
+                                    return null
+                                  })()}
                                   {!item.is_active && <Chip label="Archived" size="small" variant="outlined" color="default" />}
                                 </Stack>
                                 {item.instructions && (
@@ -2187,10 +2225,12 @@ export default function EMedicationPage() {
                                   const nowStr = new Date().toISOString().split('T')[0]
                                   const prnStart = item.start_date ? item.start_date.slice(0, 10) : ''
                                   const prnEnd = item.end_date ? item.end_date.slice(0, 10) : ''
+                                  const prnStock = getItemStock(item)
+                                  const prnNoStock = !!prnStock && prnStock.quantity !== null && Number(prnStock.quantity) <= 0
                                   const prnDisabled = !!(prnStart && nowStr < prnStart) || !!(prnEnd && nowStr > prnEnd)
-                                    || !item.is_active
+                                    || !item.is_active || prnNoStock
                                   return (
-                                    <Tooltip title={!item.is_active ? 'Archived' : prnDisabled ? 'Outside medication date range' : 'Log PRN administration'}>
+                                    <Tooltip title={prnNoStock ? 'Out of stock — log a delivery or stock adjustment first' : !item.is_active ? 'Archived' : prnDisabled ? 'Outside medication date range' : 'Log PRN administration'}>
                                       <span>
                                         <IconButton size="small" color="success" disabled={prnDisabled} onClick={() => {
                                           const now = new Date()
@@ -2218,6 +2258,59 @@ export default function EMedicationPage() {
                                   </>
                                 )}
                               </Stack>
+                            </Stack>
+                          </Paper>
+                        ))}
+                      </Stack>
+                    </Paper>
+                  )}
+
+                  {/* Archived Medications — inactive items with a restore path */}
+                  {showArchivedItems && archivedItems.length > 0 && (
+                    <Paper sx={{ p: 2, mt: 2 }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Archived Medications ({archivedItems.length})</Typography>
+                        <Button size="small" color="inherit" onClick={() => setShowArchivedItems(false)}>Hide</Button>
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                        Archived medications are hidden from the active MAR but retained for audit and print purposes.
+                      </Typography>
+                      <Stack spacing={1}>
+                        {archivedItems.map((item: MedicationItem) => (
+                          <Paper key={item.id} variant="outlined" sx={{ p: 1.5 }}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ opacity: 0.65 }}>
+                              <Box>
+                                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                  <MedIcon sx={{ fontSize: 16, color: '#9CA3AF' }} />
+                                  <Typography variant="body2" fontWeight={700} sx={{ textDecoration: 'line-through' }}>{item.name}</Typography>
+                                  <Chip label={`${item.dosage} ${item.unit}`} size="small" variant="outlined" />
+                                  <Chip label={item.route} size="small" variant="outlined" />
+                                  {item.is_prn && <Chip label="PRN" size="small" color="warning" />}
+                                  <Chip label="Archived" size="small" variant="outlined" color="default" />
+                                </Stack>
+                                {item.instructions && (
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>{item.instructions}</Typography>
+                                )}
+                              </Box>
+                              {canManage && (
+                                <Stack direction="row" spacing={0.5}>
+                                  <Tooltip title="Restore to active chart">
+                                    <Button size="small" startIcon={<UnarchiveIcon />} disabled={itemUpdateMutation.isPending}
+                                      onClick={() => itemUpdateMutation.mutate({ itemId: item.id, data: { is_active: true } })}>
+                                      Reactivate
+                                    </Button>
+                                  </Tooltip>
+                                  <Tooltip title="Edit">
+                                    <IconButton size="small" onClick={() => openItemDialog(item)}><EditIcon fontSize="small" /></IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Remove">
+                                    <IconButton size="small" color="error" onClick={() => setConfirmDialog({
+                                      message: 'Remove this medication from the chart?',
+                                      onConfirm: () => itemDeleteMutation.mutate(item.id)
+                                    })}><DeleteIcon fontSize="small" /></IconButton>
+                                  </Tooltip>
+                                </Stack>
+                              )}
                             </Stack>
                           </Paper>
                         ))}
@@ -2736,9 +2829,14 @@ export default function EMedicationPage() {
             >{adminError}</Alert>
           )}
           <Stack spacing={2} sx={{ mt: 1 }}>
+            {adminTargetOutOfStock && (
+              <Alert severity="error" sx={{ mb: 1 }}>
+                This medication is out of stock ({adminTargetStock?.quantity} {adminTargetStock?.quantity_unit} remaining). Log a delivery or stock adjustment before marking it as given.
+              </Alert>
+            )}
             <TextField select label="Status" fullWidth value={adminForm.status}
               onChange={(e) => setAdminForm(p => ({ ...p, status: e.target.value as AdminStatus }))} size="small">
-              {ADMIN_STATUSES.map(s => (<MenuItem key={s} value={s}>{STATUS_CONFIG[s].label}</MenuItem>))}
+              {ADMIN_STATUSES.map(s => (<MenuItem key={s} value={s} disabled={s === 'given' && adminTargetOutOfStock}>{STATUS_CONFIG[s].label}</MenuItem>))}
             </TextField>
 
             <TextField

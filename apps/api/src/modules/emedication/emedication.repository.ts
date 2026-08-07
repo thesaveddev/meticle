@@ -504,12 +504,27 @@ export class EMedicationRepository {
   }
 
   static async getStockForItem(itemId: string) {
-    const result = await query(
+    const direct = await query(
       `SELECT s.* FROM emedication_stock s
        JOIN emedication_items i ON i.stock_item_id = s.id
        WHERE i.id = $1 AND s.status = 'active'`,
       [itemId]);
-    return result.rows[0] || null;
+    if (direct.rows[0]) return direct.rows[0];
+    // Fallback for items not linked to a stock entry (e.g. imported from a previous month):
+    // match an active stock record by medication identity + person.
+    const fallback = await query(
+      `SELECT s.* FROM emedication_stock s
+       JOIN emedication_items i ON i.id = $1
+       JOIN emedication_records r ON r.id = i.emedication_record_id
+       WHERE s.status = 'active'
+         AND s.organization_id = r.organization_id
+         AND s.person_id = r.person_id
+         AND s.medication_name = i.name
+         AND s.dosage = i.dosage
+         AND s.unit = i.unit
+       LIMIT 1`,
+      [itemId]);
+    return fallback.rows[0] || null;
   }
 
   static async getLowStockForOrg(orgId: string) {
