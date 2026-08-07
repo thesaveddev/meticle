@@ -144,6 +144,8 @@ export class PersonRepository {
   private static readonly MEMORY_BOOK_UPDATE_COLUMNS = new Set(['title', 'description', 'image_urls', 'recorded_date', 'support_level']);
   private static readonly CAPACITY_ASSESSMENT_UPDATE_COLUMNS = new Set(['assessment_date', 'decision_to_be_made', 'capacity_found', 'capacity_status', 'best_interest_decision', 'best_interest_meeting_date', 'independent_advocate', 'relevant_people_informed', 'review_date', 'updated_at']);
   private static readonly CARE_PATHWAY_UPDATE_COLUMNS = new Set(['pathway_type', 'title', 'start_date', 'end_date', 'location_name', 'referral_reason', 'discharge_notes', 'status', 'file_url', 'file_name', 'updated_at']);
+  private static readonly TIME_AWAY_UPDATE_COLUMNS = new Set(['title', 'time_away_type', 'destination', 'start_date', 'end_date', 'notes']);
+  private static readonly DISCHARGE_CHECKLIST_UPDATE_COLUMNS = new Set(['item', 'category', 'quantity', 'unit', 'is_complete']);
   // ---- People ----
   static async findAll(orgId: string, filters?: { status?: string; search?: string }) {
     let sql = `SELECT su.*, 
@@ -605,12 +607,21 @@ export class PersonRepository {
           NULL, i.created_at
         FROM incidents i WHERE EXISTS (SELECT 1 FROM incident_involved_residents iir WHERE iir.incident_id = i.id AND iir.person_id = $1)
         UNION ALL
-        SELECT 'discharge_checklist' AS event_type, 'Discharge Checklist: ' || dc.item,
+        SELECT 'time_away' AS event_type, 'Time Away: ' || ta.title,
+          COALESCE('Destination: ' || ta.destination, ta.time_away_type),
+          COALESCE('(' || ta.start_date || ' to ' || ta.end_date || ')', NULL),
+          (SELECT first_name || ' ' || last_name FROM staff_profiles WHERE user_id = ta.created_by),
+          ta.created_at
+        FROM person_time_away ta WHERE ta.person_id = $1
+        UNION ALL
+        SELECT 'discharge_checklist' AS event_type, COALESCE('Time Away: ' || ta.title || ' — ', '') || dc.item,
           CASE WHEN dc.is_complete THEN 'Completed' ELSE 'Pending' END,
           dc.category,
           (SELECT first_name || ' ' || last_name FROM staff_profiles WHERE user_id = dc.completed_by),
           dc.created_at
-        FROM person_discharge_checklist dc WHERE dc.person_id = $1
+        FROM person_discharge_checklist dc
+        LEFT JOIN person_time_away ta ON ta.id = dc.time_away_id
+        WHERE dc.person_id = $1
       ) AS timeline
       ORDER BY created_at DESC
     `, [personId]);
@@ -819,6 +830,78 @@ export class PersonRepository {
     await query('DELETE FROM person_care_pathways WHERE id = $1', [id]);
   }
 
+  // ---- Time Away (planned absence / discharge) ----
+  static async findTimeAway(personId: string) {
+    const result = await query(
+      `SELECT ta.*,
+        (SELECT first_name || ' ' || last_name FROM staff_profiles WHERE user_id = ta.created_by) AS created_by_name,
+        COALESCE(json_agg(json_build_object(
+          'id', dc.id,
+          'item', dc.item,
+          'category', dc.category,
+          'quantity', dc.quantity,
+          'unit', dc.unit,
+          'is_complete', dc.is_complete,
+          'completed_at', dc.completed_at,
+          'completed_by', dc.completed_by,
+          'completed_by_name', (SELECT first_name || ' ' || last_name FROM staff_profiles WHERE user_id = dc.completed_by),
+          'created_at', dc.created_at
+        ) ORDER BY dc.created_at) FILTER (WHERE dc.id IS NOT NULL), '[]') AS items
+       FROM person_time_away ta
+       LEFT JOIN person_discharge_checklist dc ON dc.time_away_id = ta.id
+       WHERE ta.person_id = $1
+       GROUP BY ta.id
+       ORDER BY COALESCE(ta.start_date, ta.created_at::date) DESC, ta.created_at DESC`,
+      [personId]
+    );
+    return result.rows;
+  }
+
+  static async findTimeAwayById(id: string) {
+    const result = await query('SELECT * FROM person_time_away WHERE id = $1', [id]);
+    return result.rows[0] || null;
+  }
+
+  static async createTimeAway(data: any) {
+    const { person_id, title, time_away_type, destination, start_date, end_date, notes, created_by } = data;
+    const result = await query(
+      `INSERT INTO person_time_away (person_id, title, time_away_type, destination, start_date, end_date, notes, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [person_id, title, time_away_type || 'other', destination || null, start_date || null, end_date || null, notes || null, created_by || null]
+    );
+    return result.rows[0];
+  }
+
+  static async updateTimeAway(id: string, data: any) {
+    const fields: string[] = []; const params: any[] = []; let idx = 1;
+    const dateFields = new Set(['start_date', 'end_date']);
+    for (const [k, v] of Object.entries(data)) {
+      if (!PersonRepository.TIME_AWAY_UPDATE_COLUMNS.has(k)) continue;
+      const val = dateFields.has(k) && v === '' ? null : v;
+      fields.push(`${k} = $${idx++}`); params.push(val);
+    }
+    if (fields.length === 0) return this.findTimeAwayById(id);
+    params.push(id);
+    const result = await query(`UPDATE person_time_away SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, params);
+    return result.rows[0] || null;
+  }
+
+  static async deleteTimeAway(id: string) {
+    await query('DELETE FROM person_time_away WHERE id = $1', [id]);
+  }
+
+  // Items live in legacy-named person_discharge_checklist, scoped to a time-away record
+  static async findDischargeChecklistByTimeAway(timeAwayId: string) {
+    const result = await query(
+      `SELECT dc.*,
+        (SELECT first_name || ' ' || last_name FROM staff_profiles WHERE user_id = dc.completed_by) AS completed_by_name
+       FROM person_discharge_checklist dc WHERE dc.time_away_id = $1
+       ORDER BY dc.category, dc.created_at`,
+      [timeAwayId]
+    );
+    return result.rows;
+  }
+
   static async findDischargeChecklist(personId: string) {
     const result = await query(
       `SELECT dc.*,
@@ -831,19 +914,37 @@ export class PersonRepository {
   }
 
   static async createDischargeChecklistItem(data: any) {
-    const { person_id, item, category } = data;
+    const { person_id, time_away_id, item, category, quantity, unit } = data;
     const result = await query(
-      `INSERT INTO person_discharge_checklist (person_id, item, category) VALUES ($1,$2,$3) RETURNING *`,
-      [person_id, item, category]
+      `INSERT INTO person_discharge_checklist (person_id, time_away_id, item, category, quantity, unit)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [person_id, time_away_id || null, item, category || 'documentation', quantity ?? null, unit || null]
     );
     return result.rows[0];
   }
 
   static async updateDischargeChecklistItem(id: string, data: any) {
-    const result = await query(
-      `UPDATE person_discharge_checklist SET is_complete = $1, completed_at = CASE WHEN $1 THEN NOW() ELSE NULL END, completed_by = CASE WHEN $1 THEN $2 ELSE NULL END WHERE id = $3 RETURNING *`,
-      [data.is_complete, data.completed_by || null, id]
-    );
+    const fields: string[] = []; const params: any[] = []; let idx = 1;
+    for (const [k, v] of Object.entries(data)) {
+      if (!PersonRepository.DISCHARGE_CHECKLIST_UPDATE_COLUMNS.has(k)) continue;
+      if (k === 'is_complete') {
+        fields.push(`is_complete = $${idx++}`);
+        params.push(!!v);
+        fields.push(`completed_at = $${idx++}`);
+        params.push(v ? new Date().toISOString() : null);
+        fields.push(`completed_by = $${idx++}`);
+        params.push(v ? data.completed_by || null : null);
+      } else {
+        fields.push(`${k} = $${idx++}`);
+        params.push(v ?? null);
+      }
+    }
+    if (fields.length === 0) {
+      const result = await query('SELECT * FROM person_discharge_checklist WHERE id = $1', [id]);
+      return result.rows[0] || null;
+    }
+    params.push(id);
+    const result = await query(`UPDATE person_discharge_checklist SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, params);
     return result.rows[0] || null;
   }
 

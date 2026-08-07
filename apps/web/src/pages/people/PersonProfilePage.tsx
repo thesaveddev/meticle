@@ -18,7 +18,8 @@ import {
   Psychology as PsychologyIcon, Flag as FlagIcon, TrendingUp as TrendIcon,
   Lightbulb as LightbulbIcon, Save as SaveIcon,
   Description as FileIcon, Download as DownloadIcon, Close as CloseIcon,
-  OpenInNew as OpenInNewIcon,
+  OpenInNew as OpenInNewIcon, Luggage as LuggageIcon, Place as PlaceIcon,
+  CalendarMonth as CalendarMonthIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
@@ -93,9 +94,9 @@ const TAB_SLUGS: Record<number, string> = {
   5: 'family-contacts', 6: 'health', 7: 'body-map', 8: 'memory-book', 9: 'goals',
   10: 'care-assessments', 11: 'room-checks', 12: 'clinical-scores', 13: 'documents',
   14: 'wellbeing', 15: 'communication', 16: 'capacity', 17: 'care-pathways',
-  18: 'discharge', 19: 'mood-chart', 20: 'audit-trail',
+  18: 'time-away', 19: 'mood-chart', 20: 'audit-trail',
 }
-const SLUG_TO_TAB: Record<string, number> = Object.fromEntries(Object.entries(TAB_SLUGS).map(([k, v]) => [v, Number(k)]))
+const SLUG_TO_TAB: Record<string, number> = { ...Object.fromEntries(Object.entries(TAB_SLUGS).map(([k, v]) => [v, Number(k)])), discharge: 18 }
 
 export default function PersonProfilePage() {
   const { id } = useParams()
@@ -500,7 +501,7 @@ export default function PersonProfilePage() {
     5: 'Family & Contacts', 6: 'Health', 7: 'Body Map', 8: 'Memory Book', 9: 'Goals',
     10: 'Care Assessments', 11: 'Room Checks', 12: 'Clinical Scores', 13: 'Documents',
     14: 'Wellbeing', 15: 'Communication', 16: 'MCA/Capacity', 17: 'Care Pathways',
-    18: 'Discharge', 19: 'Mood Chart', 20: 'Audit Trail',
+    18: 'Time Away', 19: 'Mood Chart', 20: 'Audit Trail',
   }
 
   return (
@@ -1153,8 +1154,8 @@ export default function PersonProfilePage() {
       {/* Tab: Care Pathways */}
       {tab === 17 && <CarePathwaysTabInline personId={id!} />}
 
-      {/* Tab: Discharge Checklist */}
-      {tab === 18 && <DischargeChecklistTabInline personId={id!} />}
+      {/* Tab: Time Away */}
+      {tab === 18 && <TimeAwayTabInline personId={id!} />}
 
       {/* Tab: Mood Chart */}
       {tab === 19 && <MoodChartTabInline personId={id!} />}
@@ -2385,6 +2386,8 @@ function TimelineTab({ personId }: { personId: string }) {
     health: <HealthIcon sx={{ color: '#7C3AED' }} />,
     assessment: <PersonIcon sx={{ color: '#0891B2' }} />,
     incident: <WarningIcon sx={{ color: '#DC2626' }} />,
+    time_away: <LuggageIcon sx={{ color: '#D97706' }} />,
+    discharge_checklist: <LuggageIcon sx={{ color: '#0891B2' }} />,
   }
 
   return (
@@ -2859,26 +2862,24 @@ function DocumentsTab({ personId }: { personId: string }) {
       ) : (
         <Stack spacing={1.5}>
           {docs.map((d: any) => (
-            <Paper key={d.id} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+            <Paper key={d.id} onClick={() => viewDocument(d.file_url)}
+              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                <Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Typography variant="subtitle2" fontWeight={700}>{d.title}</Typography>
                     <Chip label={d.document_type?.replace(/_/g, ' ')} size="small" variant="outlined" />
                   </Stack>
                   {d.description && <Typography variant="body2" color="#6B7280" sx={{ mt: 0.5 }}>{d.description}</Typography>}
-                  <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
+                  <Stack direction="row" spacing={2} sx={{ mt: 0.5 }} alignItems="center">
                     <Typography variant="caption" color="#9CA3AF">{new Date(d.upload_date).toLocaleDateString('en-GB')}</Typography>
                     {d.uploaded_by_name && <Typography variant="caption" color="#9CA3AF">by {d.uploaded_by_name}</Typography>}
+                    <Typography variant="caption" color="#0F4C81" sx={{ display: 'flex', alignItems: 'center', gap: 0.3, fontWeight: 600 }}>
+                      <OpenInNewIcon sx={{ fontSize: 13 }} /> Open
+                    </Typography>
                   </Stack>
                 </Box>
-                <Stack direction="row" spacing={0.5}>
-                  <Button size="small" variant="outlined" onClick={() => viewDocument(d.file_url)}
-                    sx={{ textTransform: 'none', borderRadius: 2, fontSize: 12 }}>
-                    View
-                  </Button>
-                  <IconButton size="small" color="error" onClick={() => setDeleteTarget(d.id)}><DeleteIcon fontSize="small" /></IconButton>
-                </Stack>
+                <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteTarget(d.id) }}><DeleteIcon fontSize="small" /></IconButton>
               </Stack>
             </Paper>
           ))}
@@ -3800,112 +3801,273 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
   )
 }
 
-const DISCHARGE_CATEGORIES = ['documentation', 'medication', 'equipment', 'notification', 'property', 'financial', 'other']
+const TIME_AWAY_CATEGORIES = ['documentation', 'medication', 'equipment', 'notification', 'property', 'financial', 'other']
+const TIME_AWAY_TYPES: { value: string; label: string; color: string }[] = [
+  { value: 'family_visit', label: 'Family Visit', color: '#0891B2' },
+  { value: 'short_break', label: 'Short Break', color: '#D97706' },
+  { value: 'hospital_admission', label: 'Hospital Admission', color: '#DC2626' },
+  { value: 'hospital_discharge', label: 'Hospital Discharge', color: '#7C3AED' },
+  { value: 'trial_leave', label: 'Trial Leave', color: '#16A34A' },
+  { value: 'discharge', label: 'Permanent Discharge', color: '#6B7280' },
+  { value: 'other', label: 'Other', color: '#0F4C81' },
+]
 
-function DischargeChecklistTabInline({ personId }: { personId: string }) {
+function TimeAwayTabInline({ personId }: { personId: string }) {
   const [addOpen, setAddOpen] = useState(false)
-  const [form, setForm] = useState({ item_text: '', category: 'documentation' })
+  const [itemTarget, setItemTarget] = useState<string | null>(null)
+  const [form, setForm] = useState({ title: '', time_away_type: 'family_visit', destination: '', start_date: '', end_date: '', notes: '' })
+  const [itemForm, setItemForm] = useState({ item_text: '', category: 'documentation', quantity: '', unit: '' })
   const [formError, setFormError] = useState('')
+  const [deleteRecordTarget, setDeleteRecordTarget] = useState<any | null>(null)
+  const [deleteItemTarget, setDeleteItemTarget] = useState<string | null>(null)
+  const [viewRecord, setViewRecord] = useState<any | null>(null)
   const queryClient = useQueryClient()
   const { showSnackbar } = useSnackbar()
 
-  const { data: items = [], isLoading } = useQuery({
-    queryKey: ['discharge-checklist', personId],
-    queryFn: () => api.get(`/people/${personId}/discharge-checklist`).then(r => r.data),
+  const { data: records = [], isLoading } = useQuery({
+    queryKey: ['time-away', personId],
+    queryFn: () => api.get(`/people/${personId}/time-away`).then(r => r.data),
   })
 
   const addMutation = useMutation({
-    mutationFn: (data: any) => api.post(`/people/${personId}/discharge-checklist`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['discharge-checklist', personId] }); setAddOpen(false); setForm({ item_text: '', category: 'documentation' }) },
+    mutationFn: (data: any) => api.post(`/people/${personId}/time-away`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['time-away', personId] }); setAddOpen(false); setForm({ title: '', time_away_type: 'family_visit', destination: '', start_date: '', end_date: '', notes: '' }) },
+    onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add time away'),
+  })
+
+  const deleteRecordMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/people/time-away/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['time-away', personId] }); setDeleteRecordTarget(null); showSnackbar('Time away deleted') },
+    onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteRecordTarget(null) },
+  })
+
+  const addItemMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.post(`/people/time-away/${id}/checklist`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['time-away', personId] }); setItemTarget(null); setItemForm({ item_text: '', category: 'documentation', quantity: '', unit: '' }) },
     onError: (err: any) => setFormError(err.response?.data?.message || 'Failed to add item'),
   })
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, completed }: { id: string; completed: boolean }) => api.patch(`/people/discharge-checklist/${id}`, { is_complete: completed }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['discharge-checklist', personId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['time-away', personId] }),
     onError: (err: any) => showSnackbar(err.response?.data?.message || 'Failed to update', 'error'),
   })
 
-  const deleteMutation = useMutation({
+  const deleteItemMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/people/discharge-checklist/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['discharge-checklist', personId] }); setDeleteTarget(null); showSnackbar('Item deleted') },
-    onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteTarget(null) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['time-away', personId] }); setDeleteItemTarget(null); showSnackbar('Item deleted') },
+    onError: (err: any) => { showSnackbar(err.response?.data?.message || 'Failed to delete', 'error'); setDeleteItemTarget(null) },
   })
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>
 
-  const total = items.length
-  const completedCount = items.filter((i: any) => i.completed).length
-  const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0
-
-  const grouped: Record<string, any[]> = {}
-  items.forEach((i: any) => { const cat = i.category || 'other'; if (!grouped[cat]) grouped[cat] = []; grouped[cat].push(i) })
-
   return (
     <Box>
-      <SectionHeader title="Discharge Checklist" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ item_text: '', category: 'documentation' }); setAddOpen(true) }}
-        sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Item</Button>} />
-      {total > 0 && (
-        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <LinearProgress variant="determinate" value={pct}
-              sx={{ flex: 1, height: 10, borderRadius: 5, bgcolor: '#E5E7EB', '& .MuiLinearProgress-bar': { bgcolor: pct === 100 ? '#16A34A' : '#0F4C81' } }} />
-            <Typography variant="body2" fontWeight={700}>{completedCount}/{total} ({pct}%)</Typography>
-          </Stack>
-        </Paper>
-      )}
-      {items.length === 0 ? (
-        <EmptyRow message="No discharge checklist items" />
+      <SectionHeader title="Time Away" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setForm({ title: '', time_away_type: 'family_visit', destination: '', start_date: '', end_date: '', notes: '' }); setFormError(''); setAddOpen(true) }}
+        sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Add Time Away</Button>} />
+      {records.length === 0 ? (
+        <EmptyRow message="No time away planned yet. Add a weekend visit, hospital stay or short break." />
       ) : (
         <Stack spacing={2}>
-          {Object.entries(grouped).map(([category, catItems]) => (
-            <Paper key={category} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, textTransform: 'capitalize' }}>{category.replace(/_/g, ' ')}</Typography>
-              <Stack spacing={1}>
-                {catItems.map((item: any) => (
-                  <Stack key={item.id} direction="row" alignItems="center" spacing={1}>
-                    <IconButton size="small" onClick={() => toggleMutation.mutate({ id: item.id, completed: !item.completed })} disabled={toggleMutation.isPending}>
-                      {item.completed ? <CheckCircleIcon sx={{ color: '#16A34A' }} /> : <UncheckedIcon sx={{ color: '#9CA3AF' }} />}
-                    </IconButton>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#9CA3AF' : 'inherit' }}>
-                        {item.item}
-                      </Typography>
-                      {item.completed && item.completed_by_name && (
-                        <Typography variant="caption" color="#9CA3AF">Completed by {item.completed_by_name}{item.completed_at ? ` on ${new Date(item.completed_at).toLocaleDateString('en-GB')}` : ''}</Typography>
-                      )}
+          {records.map((record: any) => {
+            const items: any[] = record.items || []
+            const completedCount = items.filter((i: any) => i.is_complete).length
+            const pct = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0
+            const type = TIME_AWAY_TYPES.find(t => t.value === record.time_away_type) || TIME_AWAY_TYPES[TIME_AWAY_TYPES.length - 1]
+            const grouped: Record<string, any[]> = {}
+            items.forEach((i: any) => { const cat = i.category || 'other'; if (!grouped[cat]) grouped[cat] = []; grouped[cat].push(i) })
+            return (
+              <Paper key={record.id} onClick={() => setViewRecord(record)}
+                sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} spacing={1}>
+                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                    <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: type.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <LuggageIcon sx={{ color: 'white', fontSize: 20 }} />
                     </Box>
-                    <IconButton size="small" color="error" onClick={() => setDeleteTarget(item.id)}><DeleteIcon fontSize="small" /></IconButton>
+                    <Box>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                        <Typography variant="subtitle1" fontWeight={800}>{record.title}</Typography>
+                        <Chip size="small" label={type.label} sx={{ bgcolor: `${type.color}18`, color: type.color, fontWeight: 700, fontSize: 11 }} />
+                      </Stack>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
+                        {record.destination && (
+                          <Typography variant="caption" color="#6B7280" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <PlaceIcon sx={{ fontSize: 14, color: type.color }} /> {record.destination}
+                          </Typography>
+                        )}
+                        {(record.start_date || record.end_date) && (
+                          <Typography variant="caption" color="#6B7280" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <CalendarMonthIcon sx={{ fontSize: 14, color: type.color }} />
+                            {record.start_date ? new Date(record.start_date).toLocaleDateString('en-GB') : ''}{record.start_date && record.end_date ? ' to ' : ''}{record.end_date ? new Date(record.end_date).toLocaleDateString('en-GB') : ''}
+                          </Typography>
+                        )}
+                      </Stack>
+                      {record.created_by_name && <Typography variant="caption" color="#9CA3AF">Planned by {record.created_by_name}</Typography>}
+                    </Box>
                   </Stack>
-                ))}
-              </Stack>
-            </Paper>
-          ))}
+                  <Stack direction="row" spacing={0.5}>
+                    <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={(e) => { e.stopPropagation(); setItemTarget(record.id); setItemForm({ item_text: '', category: 'documentation', quantity: '', unit: '' }); setFormError(''); }} sx={{ textTransform: 'none', borderColor: '#D1D5DB', color: '#4B5563' }}>Add Item</Button>
+                    <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteRecordTarget(record) }}><DeleteIcon fontSize="small" /></IconButton>
+                  </Stack>
+                </Stack>
+                {items.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <LinearProgress variant="determinate" value={pct}
+                      sx={{ height: 8, borderRadius: 5, bgcolor: '#E5E7EB', '& .MuiLinearProgress-bar': { bgcolor: pct === 100 ? '#16A34A' : '#0F4C81' } }} />
+                    <Typography variant="caption" color="#6B7280" sx={{ mt: 0.5, display: 'block' }}>{completedCount}/{items.length} ready ({pct}%)</Typography>
+                    <Stack spacing={1} sx={{ mt: 1 }}>
+                      {Object.entries(grouped).map(([category, catItems]) => (
+                        <Box key={category}>
+                          <Typography variant="overline" sx={{ color: '#9CA3AF', fontWeight: 700 }}>{category.replace(/_/g, ' ')}</Typography>
+                          <Stack spacing={0.5}>
+                            {catItems.map((item: any) => (
+                              <Stack key={item.id} direction="row" alignItems="center" spacing={1} sx={{ bgcolor: '#F9FAFB', borderRadius: 1, px: 1, py: 0.5 }}>
+                                <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleMutation.mutate({ id: item.id, completed: !item.is_complete }) }} disabled={toggleMutation.isPending}>
+                                  {item.is_complete ? <CheckCircleIcon sx={{ color: '#16A34A' }} /> : <UncheckedIcon sx={{ color: '#9CA3AF' }} />}
+                                </IconButton>
+                                <Box sx={{ flex: 1 }}>
+                                  <Stack direction="row" spacing={0.5} alignItems="center">
+                                    <Typography variant="body2" sx={{ textDecoration: item.is_complete ? 'line-through' : 'none', color: item.is_complete ? '#9CA3AF' : 'inherit' }}>
+                                      {item.item}
+                                    </Typography>
+                                    {item.quantity != null && item.quantity !== '' && (
+                                      <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: '#EFF6FF', color: '#0F4C81', fontWeight: 700 }} />
+                                    )}
+                                  </Stack>
+                                  {item.is_complete && item.completed_by_name && (
+                                    <Typography variant="caption" color="#9CA3AF">Completed by {item.completed_by_name}{item.completed_at ? ` on ${new Date(item.completed_at).toLocaleDateString('en-GB')}` : ''}</Typography>
+                                  )}
+                                </Box>
+                                <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteItemTarget(item.id) }}><DeleteIcon fontSize="small" /></IconButton>
+                              </Stack>
+                            ))}
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+              </Paper>
+            )
+          })}
         </Stack>
       )}
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate({ item: form.item_text, category: form.category }) }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Add Checklist Item</DialogTitle>
+        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); addMutation.mutate({ title: form.title, time_away_type: form.time_away_type, destination: form.destination, start_date: form.start_date, end_date: form.end_date, notes: form.notes }) }}>
+          <DialogTitle sx={{ fontWeight: 800 }}>Add Time Away</DialogTitle>
           <DialogContent>
             {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField label="Item" fullWidth required value={form.item_text} onChange={e => setForm({ ...form, item_text: e.target.value })} />
-              <TextField select label="Category" fullWidth required value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                {DISCHARGE_CATEGORIES.map(c => <MenuItem key={c} value={c} sx={{ textTransform: 'capitalize' }}>{c.replace(/_/g, ' ')}</MenuItem>)}
+              <TextField label="Title" fullWidth required placeholder="e.g. Going to mum's house for the weekend" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+              <TextField select label="Type" fullWidth required value={form.time_away_type} onChange={e => setForm({ ...form, time_away_type: e.target.value })}>
+                {TIME_AWAY_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
               </TextField>
+              <TextField label="Destination" fullWidth placeholder="e.g. Mum's house, Croydon" value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField label="Start Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
+                <TextField label="End Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} />
+              </Stack>
+              <TextField label="Notes" fullWidth multiline rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setAddOpen(false)}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={addMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
-              {addMutation.isPending ? <CircularProgress size={20} /> : 'Add Item'}
+              {addMutation.isPending ? <CircularProgress size={20} /> : 'Add Time Away'}
             </Button>
           </DialogActions>
         </Box>
       </Dialog>
-      <ConfirmDialog open={!!deleteTarget} title="Delete checklist item" message="This will permanently remove this checklist item." onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }} />
+
+      <Dialog open={!!itemTarget} onClose={() => setItemTarget(null)} maxWidth="sm" fullWidth>
+        <Box component="form" onSubmit={(e: React.FormEvent) => { e.preventDefault(); setFormError(''); if (!itemTarget) return; addItemMutation.mutate({ id: itemTarget, data: { item: itemForm.item_text, category: itemForm.category, quantity: itemForm.quantity !== '' ? Number(itemForm.quantity) : null, unit: itemForm.unit } }) }}>
+          <DialogTitle sx={{ fontWeight: 800 }}>Add Checklist Item</DialogTitle>
+          <DialogContent>
+            {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <TextField label="Item" fullWidth required value={itemForm.item_text} onChange={e => setItemForm({ ...itemForm, item_text: e.target.value })} />
+              <TextField select label="Category" fullWidth required value={itemForm.category} onChange={e => setItemForm({ ...itemForm, category: e.target.value })}>
+                {TIME_AWAY_CATEGORIES.map(c => <MenuItem key={c} value={c} sx={{ textTransform: 'capitalize' }}>{c.replace(/_/g, ' ')}</MenuItem>)}
+              </TextField>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField label="Quantity (optional)" type="number" fullWidth placeholder="e.g. 30" value={itemForm.quantity} onChange={e => setItemForm({ ...itemForm, quantity: e.target.value })} />
+                <TextField label="Unit (optional)" fullWidth placeholder="e.g. pads, days, bags" value={itemForm.unit} onChange={e => setItemForm({ ...itemForm, unit: e.target.value })} />
+              </Stack>
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setItemTarget(null)}>Cancel</Button>
+            <Button type="submit" variant="contained" disabled={addItemMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
+              {addItemMutation.isPending ? <CircularProgress size={20} /> : 'Add Item'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      <Dialog open={!!viewRecord} onClose={() => setViewRecord(null)} maxWidth="sm" fullWidth>
+        {viewRecord && (() => {
+          const type = TIME_AWAY_TYPES.find(t => t.value === viewRecord.time_away_type) || TIME_AWAY_TYPES[TIME_AWAY_TYPES.length - 1]
+          const items: any[] = viewRecord.items || []
+          return (
+            <>
+              <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <LuggageIcon sx={{ color: type.color }} /> {viewRecord.title}
+              </DialogTitle>
+              <DialogContent>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Chip size="small" label={type.label} sx={{ bgcolor: `${type.color}18`, color: type.color, fontWeight: 700 }} />
+                    {viewRecord.destination && (
+                      <Typography variant="body2" color="#6B7280" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <PlaceIcon sx={{ fontSize: 16, color: type.color }} /> {viewRecord.destination}
+                      </Typography>
+                    )}
+                  </Stack>
+                  {(viewRecord.start_date || viewRecord.end_date) && (
+                    <Typography variant="body2" color="#6B7280" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <CalendarMonthIcon sx={{ fontSize: 16, color: type.color }} />
+                      {viewRecord.start_date ? new Date(viewRecord.start_date).toLocaleDateString('en-GB') : ''}{viewRecord.start_date && viewRecord.end_date ? ' to ' : ''}{viewRecord.end_date ? new Date(viewRecord.end_date).toLocaleDateString('en-GB') : ''}
+                    </Typography>
+                  )}
+                  {viewRecord.created_by_name && <Typography variant="caption" color="#9CA3AF">Planned by {viewRecord.created_by_name}</Typography>}
+                  {viewRecord.notes && (
+                    <Box>
+                      <Typography variant="caption" color="#6B7280">Notes</Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{viewRecord.notes}</Typography>
+                    </Box>
+                  )}
+                  <Divider />
+                  <Typography variant="subtitle2" fontWeight={800}>Checklist ({items.filter((i: any) => i.is_complete).length}/{items.length})</Typography>
+                  {items.length === 0 ? (
+                    <Typography variant="body2" color="#9CA3AF">No checklist items added yet.</Typography>
+                  ) : (
+                    <Stack spacing={0.5}>
+                      {items.map((item: any) => (
+                        <Stack key={item.id} direction="row" spacing={1} alignItems="center">
+                          {item.is_complete ? <CheckCircleIcon sx={{ color: '#16A34A', fontSize: 18 }} /> : <UncheckedIcon sx={{ color: '#9CA3AF', fontSize: 18 }} />}
+                          <Typography variant="body2" sx={{ textDecoration: item.is_complete ? 'line-through' : 'none', color: item.is_complete ? '#9CA3AF' : 'inherit' }}>
+                            {item.item}
+                          </Typography>
+                          {item.quantity != null && item.quantity !== '' && (
+                            <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: '#EFF6FF', color: '#0F4C81', fontWeight: 700 }} />
+                          )}
+                        </Stack>
+                      ))}
+                    </Stack>
+                  )}
+                </Stack>
+              </DialogContent>
+              <DialogActions sx={{ p: 3 }}>
+                <Button onClick={() => setViewRecord(null)}>Close</Button>
+              </DialogActions>
+            </>
+          )
+        })()}
+      </Dialog>
+
+      <ConfirmDialog open={!!deleteRecordTarget} title="Delete time away" message={`This will permanently remove "${deleteRecordTarget?.title}" and all its checklist items.`} confirmLabel="Delete" danger loading={deleteRecordMutation.isPending} onCancel={() => setDeleteRecordTarget(null)} onConfirm={() => { if (deleteRecordTarget) deleteRecordMutation.mutate(deleteRecordTarget.id) }} />
+      <ConfirmDialog open={!!deleteItemTarget} title="Delete checklist item" message="This will permanently remove this checklist item." confirmLabel="Delete" danger loading={deleteItemMutation.isPending} onCancel={() => setDeleteItemTarget(null)} onConfirm={() => { if (deleteItemTarget) deleteItemMutation.mutate(deleteItemTarget) }} />
     </Box>
   )
 }

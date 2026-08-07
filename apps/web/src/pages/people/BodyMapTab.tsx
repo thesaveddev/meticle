@@ -152,8 +152,15 @@ interface BodyMapEntry {
   recorded_date: string; created_by_name: string | null;
 }
 
-const FRONT_ZONES = ALL_ZONES.filter(z => !z.id.startsWith('back_'))
-const BACK_ZONES = ALL_ZONES.filter(z => z.id.startsWith('back_'))
+const BACK_ZONE_IDS = new Set<string>([
+  'back_head', 'back_neck', 'upper_back', 'left_shoulder_blade', 'right_shoulder_blade',
+  'mid_back', 'lower_back', 'sacral', 'left_buttock', 'right_buttock',
+  'back_left_arm', 'back_right_arm', 'back_left_thigh', 'back_right_thigh',
+  'back_left_knee', 'back_right_knee', 'back_left_shin', 'back_right_shin',
+  'back_left_foot', 'back_right_foot',
+])
+const BACK_ZONES = ALL_ZONES.filter(z => BACK_ZONE_IDS.has(z.id))
+const FRONT_ZONES = ALL_ZONES.filter(z => !BACK_ZONE_IDS.has(z.id))
 
 function zoneCenter(z: Zone): { cx: number; cy: number } {
   const nums = z.points.split(/[\s,]+/).map(Number)

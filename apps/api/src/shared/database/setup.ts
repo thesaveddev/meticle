@@ -125,6 +125,51 @@ const MIGRATION_015: Migration = {
   ],
 };
 
+const MIGRATION_016: Migration = {
+  name: '016_time_away',
+  strict: false,
+  statements: [
+    // Parent record for a titled period away (weekend visit, hospital stay, permanent discharge)
+    `CREATE TABLE IF NOT EXISTS person_time_away (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+      title VARCHAR(255) NOT NULL,
+      time_away_type VARCHAR(50) NOT NULL DEFAULT 'other' CHECK (time_away_type IN ('family_visit','short_break','hospital_admission','hospital_discharge','trial_leave','discharge','other')),
+      destination VARCHAR(255),
+      start_date DATE,
+      end_date DATE,
+      notes TEXT,
+      created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_time_away_person ON person_time_away(person_id)`,
+    // Items table (legacy name person_discharge_checklist) gains a parent link + optional quantity/unit
+    `ALTER TABLE person_discharge_checklist ADD COLUMN IF NOT EXISTS time_away_id UUID REFERENCES person_time_away(id) ON DELETE CASCADE`,
+    `ALTER TABLE person_discharge_checklist ADD COLUMN IF NOT EXISTS quantity NUMERIC(10,2)`,
+    `ALTER TABLE person_discharge_checklist ADD COLUMN IF NOT EXISTS unit VARCHAR(50)`,
+    `CREATE INDEX IF NOT EXISTS idx_discharge_checklist_time_away ON person_discharge_checklist(time_away_id)`,
+    // RLS: person_time_away inherits tenant isolation via FK traversal to people.organization_id
+    `DO $$ BEGIN
+       IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'person_time_away' AND policyname = 'tenant_isolation') THEN
+         ALTER TABLE person_time_away ENABLE ROW LEVEL SECURITY;
+         ALTER TABLE person_time_away FORCE ROW LEVEL SECURITY;
+         CREATE POLICY tenant_isolation ON person_time_away FOR ALL USING (
+           org_check((SELECT organization_id FROM people WHERE people.id = person_time_away.person_id))
+         );
+       END IF;
+     END $$`,
+    // Backfill: existing checklist items without a parent become a single "Discharge" record
+    `INSERT INTO person_time_away (person_id, title, time_away_type, destination, created_at)
+     SELECT DISTINCT dc.person_id, 'Discharge', 'discharge', 'Leaving the care home', NOW()
+     FROM person_discharge_checklist dc
+     WHERE dc.time_away_id IS NULL
+     ON CONFLICT DO NOTHING`,
+    `UPDATE person_discharge_checklist dc SET time_away_id = ta.id
+     FROM person_time_away ta
+     WHERE ta.person_id = dc.person_id AND dc.time_away_id IS NULL AND ta.title = 'Discharge' AND ta.time_away_type = 'discharge'`,
+  ],
+};
+
 const MIGRATION_009: Migration = {
   name: '009_care_plan_person_centred_sections',
   strict: false,
@@ -1399,17 +1444,36 @@ const INITIAL_MIGRATION: Migration = {
   `CREATE INDEX IF NOT EXISTS idx_carepathways_person ON person_care_pathways(person_id)`,
   `ALTER TABLE person_care_pathways ADD COLUMN IF NOT EXISTS file_url VARCHAR(500)`,
   `ALTER TABLE person_care_pathways ADD COLUMN IF NOT EXISTS file_name VARCHAR(255)`,
+  // Time away (leaves / discharges) — parent record for a titled period away from the care home
+  `CREATE TABLE IF NOT EXISTS person_time_away (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    time_away_type VARCHAR(50) NOT NULL DEFAULT 'other' CHECK (time_away_type IN ('family_visit','short_break','hospital_admission','hospital_discharge','trial_leave','discharge','other')),
+    destination VARCHAR(255),
+    start_date DATE,
+    end_date DATE,
+    notes TEXT,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_time_away_person ON person_time_away(person_id)`,
+  // Items table is legacy-named person_discharge_checklist but serves time-away checklists
   `CREATE TABLE IF NOT EXISTS person_discharge_checklist (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+    time_away_id UUID REFERENCES person_time_away(id) ON DELETE CASCADE,
     item VARCHAR(255) NOT NULL,
     category VARCHAR(50) NOT NULL CHECK (category IN ('documentation','medication','equipment','notification','property','financial','other')),
+    quantity NUMERIC(10,2),
+    unit VARCHAR(50),
     is_complete BOOLEAN DEFAULT FALSE,
     completed_at TIMESTAMPTZ,
     completed_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE INDEX IF NOT EXISTS idx_discharge_checklist_person ON person_discharge_checklist(person_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_discharge_checklist_time_away ON person_discharge_checklist(time_away_id)`,
 
   // Phase 2b: support_level for person onboarding, daily notes, memory book
   `ALTER TABLE people ADD COLUMN IF NOT EXISTS support_level VARCHAR(50) DEFAULT NULL`,
@@ -1628,7 +1692,7 @@ export const setupDatabase = async () => {
     }
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

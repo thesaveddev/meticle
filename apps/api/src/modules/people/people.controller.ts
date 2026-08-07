@@ -614,26 +614,77 @@ export class PersonController {
     res.json({ message: 'Care pathway deleted' });
   }
 
-  static async listDischargeChecklist(req: Request, res: Response) {
-    const user = req.user!;
-    await requirePersonInOrg(user, req.params.personId);
-    const items = await PersonRepository.findDischargeChecklist(req.params.personId);
-    res.json(items);
+  static async requireTimeAwayInOrg(user: any, timeAwayId: string) {
+    const rows = await pool.query(
+      'SELECT ta.id FROM person_time_away ta JOIN people p ON p.id = ta.person_id WHERE ta.id = $1 AND p.organization_id = $2',
+      [timeAwayId, user.organizationId]
+    );
+    if (rows.rows.length === 0) throw new AppError(404, 'Time away not found');
   }
 
-  static async createDischargeChecklist(req: Request, res: Response) {
+  static async requireChecklistItemInOrg(user: any, itemId: string) {
+    const rows = await pool.query(
+      `SELECT dc.id FROM person_discharge_checklist dc JOIN people p ON p.id = dc.person_id WHERE dc.id = $1 AND p.organization_id = $2`,
+      [itemId, user.organizationId]
+    );
+    if (rows.rows.length === 0) throw new AppError(404, 'Checklist item not found');
+  }
+
+  static async listTimeAway(req: Request, res: Response) {
+    const user = req.user!;
+    await requirePersonInOrg(user, req.params.personId);
+    const records = await PersonRepository.findTimeAway(req.params.personId);
+    res.json(records);
+  }
+
+  static async createTimeAway(req: Request, res: Response) {
     const user = req.user!;
     const { personId } = req.params;
     await requirePersonInOrg(user, personId);
+    const record = await PersonRepository.createTimeAway({ ...req.body, person_id: personId, created_by: user.userId });
+    AuditRepository.log({ user_id: user.userId, action: 'create', entity_type: 'time_away', entity_id: record.id, new_data: req.body, ip_address: req.ip }).catch(() => {});
+    res.status(201).json(record);
+  }
+
+  static async updateTimeAway(req: Request, res: Response) {
+    const user = req.user!;
+    await PersonController.requireTimeAwayInOrg(user, req.params.id);
+    const record = await PersonRepository.updateTimeAway(req.params.id, req.body);
+    if (!record) throw new AppError(404, 'Time away not found');
+    AuditRepository.log({ user_id: user.userId, action: 'update', entity_type: 'time_away', entity_id: req.params.id, new_data: req.body, ip_address: req.ip }).catch(() => {});
+    res.json(record);
+  }
+
+  static async deleteTimeAway(req: Request, res: Response) {
+    const user = req.user!;
+    await PersonController.requireTimeAwayInOrg(user, req.params.id);
+    await PersonRepository.deleteTimeAway(req.params.id);
+    AuditRepository.log({ user_id: user.userId, action: 'delete', entity_type: 'time_away', entity_id: req.params.id, ip_address: req.ip }).catch(() => {});
+    res.json({ message: 'Time away deleted' });
+  }
+
+  static async listTimeAwayChecklist(req: Request, res: Response) {
+    const user = req.user!;
+    await PersonController.requireTimeAwayInOrg(user, req.params.id);
+    const items = await PersonRepository.findDischargeChecklistByTimeAway(req.params.id);
+    res.json(items);
+  }
+
+  static async createTimeAwayChecklistItem(req: Request, res: Response) {
+    const user = req.user!;
+    await PersonController.requireTimeAwayInOrg(user, req.params.id);
+    const record = await PersonRepository.findTimeAwayById(req.params.id);
+    if (!record) throw new AppError(404, 'Time away not found');
     const item = await PersonRepository.createDischargeChecklistItem({
-      ...req.body, person_id: personId,
+      ...req.body, person_id: record.person_id, time_away_id: req.params.id,
     });
-    AuditRepository.log({ user_id: user.userId, action: 'create', entity_type: 'discharge_checklist', entity_id: item.id, ip_address: req.ip }).catch(() => {});
+    AuditRepository.log({ user_id: user.userId, action: 'create', entity_type: 'discharge_checklist', entity_id: item.id, new_data: req.body, ip_address: req.ip }).catch(() => {});
     res.status(201).json(item);
   }
 
   static async updateDischargeChecklist(req: Request, res: Response) {
     const user = req.user!;
+    await PersonController.requireChecklistItemInOrg(user, req.params.id);
     const item = await PersonRepository.updateDischargeChecklistItem(req.params.id, {
       ...req.body, completed_by: req.body.is_complete ? user.userId : null,
     });
@@ -643,8 +694,10 @@ export class PersonController {
   }
 
   static async deleteDischargeChecklist(req: Request, res: Response) {
+    const user = req.user!;
+    await PersonController.requireChecklistItemInOrg(user, req.params.id);
     await PersonRepository.deleteDischargeChecklistItem(req.params.id);
-    AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'discharge_checklist', entity_id: req.params.id, ip_address: req.ip }).catch(() => {});
+    AuditRepository.log({ user_id: user.userId, action: 'delete', entity_type: 'discharge_checklist', entity_id: req.params.id, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Checklist item deleted' });
   }
 }

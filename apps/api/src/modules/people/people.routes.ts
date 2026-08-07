@@ -6,7 +6,7 @@ import { requireRole } from '../../shared/middleware/requireRole';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { UserRole } from '@meticle/shared';
-import { createPersonSchema, updatePersonSchema, createCarePlanSchema, updateCarePlanSchema, createDailyNoteSchema, updateDailyNoteSchema, createRiskAssessmentSchema, updateRiskAssessmentSchema, createFamilyContactSchema, updateFamilyContactSchema, createAssessmentSchema, updateAssessmentSchema, createBodyMapEntrySchema, updateBodyMapEntrySchema, createMemoryBookEntrySchema, updateMemoryBookEntrySchema, createClinicalScoreSchema, updateClinicalScoreSchema, createDocumentSchema, createWellbeingSchema, createCommunicationLogSchema, updateCommunicationLogSchema, createCapacityAssessmentSchema, updateCapacityAssessmentSchema, createCarePathwaySchema, updateCarePathwaySchema, createDischargeChecklistSchema, updateDischargeChecklistSchema } from '../../shared/validation/schemas';
+import { createPersonSchema, updatePersonSchema, createCarePlanSchema, updateCarePlanSchema, createDailyNoteSchema, updateDailyNoteSchema, createRiskAssessmentSchema, updateRiskAssessmentSchema, createFamilyContactSchema, updateFamilyContactSchema, createAssessmentSchema, updateAssessmentSchema, createBodyMapEntrySchema, updateBodyMapEntrySchema, createMemoryBookEntrySchema, updateMemoryBookEntrySchema, createClinicalScoreSchema, updateClinicalScoreSchema, createDocumentSchema, createWellbeingSchema, createCommunicationLogSchema, updateCommunicationLogSchema, createCapacityAssessmentSchema, updateCapacityAssessmentSchema, createCarePathwaySchema, updateCarePathwaySchema, createTimeAwaySchema, updateTimeAwaySchema, createTimeAwayItemSchema, updateTimeAwayItemSchema } from '../../shared/validation/schemas';
 
 const router = Router();
 
@@ -86,10 +86,14 @@ router.post('/:personId/care-pathways', requireRole(UserRole.ORG_ADMIN, UserRole
 router.patch('/care-pathways/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateCarePathwaySchema), asyncHandler(PersonController.updateCarePathway));
 router.delete('/care-pathways/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(PersonController.deleteCarePathway));
 
-  router.get('/:personId/discharge-checklist', asyncHandler(PersonController.listDischargeChecklist));
+router.get('/:personId/time-away', asyncHandler(PersonController.listTimeAway));
+router.post('/:personId/time-away', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createTimeAwaySchema), asyncHandler(PersonController.createTimeAway));
+router.patch('/time-away/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateTimeAwaySchema), asyncHandler(PersonController.updateTimeAway));
+router.delete('/time-away/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(PersonController.deleteTimeAway));
 
-router.post('/:personId/discharge-checklist', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createDischargeChecklistSchema), asyncHandler(PersonController.createDischargeChecklist));
-router.patch('/discharge-checklist/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateDischargeChecklistSchema), asyncHandler(PersonController.updateDischargeChecklist));
+router.get('/time-away/:id/checklist', asyncHandler(PersonController.listTimeAwayChecklist));
+router.post('/time-away/:id/checklist', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createTimeAwayItemSchema), asyncHandler(PersonController.createTimeAwayChecklistItem));
+router.patch('/discharge-checklist/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateTimeAwayItemSchema), asyncHandler(PersonController.updateDischargeChecklist));
 router.delete('/discharge-checklist/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(PersonController.deleteDischargeChecklist));
 
 export default router;
