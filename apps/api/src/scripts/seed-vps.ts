@@ -906,22 +906,48 @@ async function seed() {
   }
   console.log('  ✓ 10 care pathways created')
 
-  // ── 33. Discharge checklists ──
+  // ── 33. Time Away records + checklists ──
   const checklistCategories = ['documentation', 'medication', 'equipment', 'notification', 'property', 'other']
+  const timeAwayRecords = [
+    { title: 'Going to mum\'s house for the weekend', type: 'family_visit', destination: 'Mum\'s house, Croydon', offset: 14, days: 2 },
+    { title: 'Weekend respite at Stonebridge', type: 'short_break', destination: 'Stonebridge Short Breaks Centre', offset: 5, days: 3 },
+    { title: 'Hospital admission for assessment', type: 'hospital_admission', destination: 'St Thomas\' Hospital, London', offset: 28, days: 7 },
+    { title: 'Moving to supported living at Rose Court', type: 'discharge', destination: 'Rose Court Supported Living', offset: 40, days: 0 },
+  ]
+  const timeAwayIds: { id: string; personId: string }[] = []
+  for (const rec of timeAwayRecords) {
+    const su = sus[Math.floor(Math.random() * sus.length)]
+    const start = new Date(); start.setDate(start.getDate() + rec.offset)
+    const end = new Date(start); end.setDate(end.getDate() + rec.days)
+    const id = uuid()
+    timeAwayIds.push({ id, personId: su.id })
+    await insert(`INSERT INTO person_time_away (id,person_id,title,time_away_type,destination,start_date,end_date,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [id, su.id, rec.title, rec.type, rec.destination, start.toISOString().split('T')[0], rec.days > 0 ? end.toISOString().split('T')[0] : null,
+       staff[Math.floor(Math.random() * 3)].userId, tsAgo(Math.floor(Math.random() * 30))])
+  }
   const checklistItems = [
-    'GP discharge summary completed', 'Medication supply arranged', 'Follow-up appointment booked',
-    'Family notified of discharge date', 'Personal belongings packed', 'Transport arranged',
-    'Care plan updated for discharge', 'District nurse notified', 'Equipment collected from home',
-    'Social worker informed', 'Community care team referral sent', 'Funding confirmed for ongoing care',
+    { item: 'GP discharge summary completed', qty: 1, unit: 'copy' },
+    { item: 'Medication supply arranged', qty: 2, unit: 'weeks' },
+    { item: 'Follow-up appointment booked', qty: null, unit: null },
+    { item: 'Family notified of dates', qty: 2, unit: 'people' },
+    { item: 'Personal belongings packed', qty: 3, unit: 'bags' },
+    { item: 'Transport arranged', qty: null, unit: null },
+    { item: 'Incontinence pads packed', qty: 30, unit: 'pads' },
+    { item: 'District nurse notified', qty: null, unit: null },
+    { item: 'Equipment collected from home', qty: 2, unit: 'items' },
+    { item: 'Social worker informed', qty: null, unit: null },
+    { item: 'Community care team referral sent', qty: null, unit: null },
+    { item: 'Funding confirmed for ongoing care', qty: 1, unit: 'letter' },
   ]
   for (let i = 0; i < 12; i++) {
-    const su = sus[Math.floor(Math.random() * sus.length)]
-    await insert(`INSERT INTO person_discharge_checklist (id,person_id,item,category,is_complete,completed_at,completed_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [uuid(), su.id, checklistItems[i % checklistItems.length], checklistCategories[i % checklistCategories.length],
-       i < 7, i < 7 ? tsAgo(Math.floor(Math.random() * 10)) : null, i < 7 ? staff[Math.floor(Math.random() * 3)].userId : null,
-       tsAgo(Math.floor(Math.random() * 30))])
+    const taw = timeAwayIds[Math.floor(Math.random() * timeAwayIds.length)]
+    const items = checklistItems[i % checklistItems.length]
+    await insert(`INSERT INTO person_discharge_checklist (id,person_id,time_away_id,item,category,quantity,unit,is_complete,completed_at,completed_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [uuid(), taw.personId, taw.id, items.item, checklistCategories[i % checklistCategories.length],
+       items.qty, items.unit, i < 7, i < 7 ? tsAgo(Math.floor(Math.random() * 10)) : null,
+       i < 7 ? staff[Math.floor(Math.random() * 3)].userId : null, tsAgo(Math.floor(Math.random() * 30))])
   }
-  console.log('  ✓ 12 discharge checklist items created')
+  console.log('  ✓ 4 time away records + 12 checklist items created')
 
   // ── 34. Notifications ──
   const notifTypes = ['compliance', 'training', 'leave', 'scheduling', 'system', 'incident', 'shift']

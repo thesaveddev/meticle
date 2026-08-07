@@ -728,24 +728,52 @@ async function seed() {
   }
   console.log('  ✓ 10 care pathways created')
 
-  // ── 35. Discharge Checklists (12) ──
+  // ── 35. Time Away (12 checklist items across 4 titled records) ──
   const checklistCategories = ['documentation', 'medication', 'equipment', 'notification', 'property', 'other']
+  const timeAwayRecords = [
+    { title: 'Going to mum\'s house for the weekend', type: 'family_visit', destination: 'Mum\'s house, Croydon', offset: 14, days: 2 },
+    { title: 'Weekend respite at Stonebridge', type: 'short_break', destination: 'Stonebridge Short Breaks Centre', offset: 5, days: 3 },
+    { title: 'Hospital admission for assessment', type: 'hospital_admission', destination: 'St Thomas\' Hospital, London', offset: 28, days: 7 },
+    { title: 'Moving to supported living at Rose Court', type: 'discharge', destination: 'Rose Court Supported Living', offset: 40, days: 0 },
+  ]
+  const timeAwayIds: string[] = []
+  for (const rec of timeAwayRecords) {
+    const su = sus[Math.floor(Math.random() * sus.length)]
+    const start = new Date(); start.setDate(start.getDate() + rec.offset)
+    const end = new Date(start); end.setDate(end.getDate() + rec.days)
+    const id = uuid()
+    timeAwayIds.push(id)
+    await pool.query(`INSERT INTO person_time_away (id,person_id,title,time_away_type,destination,start_date,end_date,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [id, su.id, rec.title, rec.type, rec.destination, start.toISOString().split('T')[0], rec.days > 0 ? end.toISOString().split('T')[0] : null, staff[Math.floor(Math.random() * staff.length)].userId])
+  }
   const checklistItems = [
-    'GP discharge summary completed', 'Medication supply arranged', 'Follow-up appointment booked',
-    'Family notified of discharge date', 'Personal belongings packed', 'Transport arranged',
-    'Care plan updated for discharge', 'District nurse notified', 'Equipment collected from home',
-    'Social worker informed', 'Community care team referral sent', 'Funding confirmed for ongoing care',
+    { item: 'GP discharge summary completed', qty: 1, unit: 'copy' },
+    { item: 'Medication supply arranged', qty: 2, unit: 'weeks' },
+    { item: 'Follow-up appointment booked', qty: null, unit: null },
+    { item: 'Family notified of dates', qty: 2, unit: 'people' },
+    { item: 'Personal belongings packed', qty: 3, unit: 'bags' },
+    { item: 'Transport arranged', qty: null, unit: null },
+    { item: 'Incontinence pads packed', qty: 30, unit: 'pads' },
+    { item: 'District nurse notified', qty: null, unit: null },
+    { item: 'Equipment collected from home', qty: 2, unit: 'items' },
+    { item: 'Social worker informed', qty: null, unit: null },
+    { item: 'Community care team referral sent', qty: null, unit: null },
+    { item: 'Funding confirmed for ongoing care', qty: 1, unit: 'letter' },
   ]
   for (let i = 0; i < 12; i++) {
     const su = sus[Math.floor(Math.random() * sus.length)]
-    await pool.query(`INSERT INTO person_discharge_checklist (id,person_id,item,category,is_complete,completed_at,completed_by) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [uuid(), su.id,
-       checklistItems[i % checklistItems.length],
+    const taw = timeAwayIds[Math.floor(Math.random() * timeAwayIds.length)]
+    const tawRow = await pool.query('SELECT person_id FROM person_time_away WHERE id = $1', [taw])
+    const items = checklistItems[i % checklistItems.length]
+    await pool.query(`INSERT INTO person_discharge_checklist (id,person_id,time_away_id,item,category,quantity,unit,is_complete,completed_at,completed_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [uuid(), tawRow.rows[0].person_id, taw,
+       items.item,
        checklistCategories[i % checklistCategories.length],
+       items.qty, items.unit,
        i < 7, i < 7 ? new Date().toISOString() : null,
        i < 7 ? staff[Math.floor(Math.random() * staff.length)].userId : null])
   }
-  console.log('  ✓ 12 discharge checklist items created')
+  console.log('  ✓ 4 time away records + 12 checklist items created')
 
   // ── 36. Notifications (20) ──
   const notifTypes = ['compliance', 'training', 'leave', 'scheduling', 'system', 'incident']

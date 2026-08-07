@@ -80,6 +80,7 @@ export class AuditRepository {
         OR al.entity_id IN (SELECT id FROM person_communication_log WHERE person_id = $${idx})
         OR al.entity_id IN (SELECT id FROM person_capacity_assessments WHERE person_id = $${idx})
         OR al.entity_id IN (SELECT id FROM person_care_pathways WHERE person_id = $${idx})
+        OR al.entity_id IN (SELECT id FROM person_time_away WHERE person_id = $${idx})
         OR al.entity_id IN (SELECT id FROM person_discharge_checklist WHERE person_id = $${idx})
         OR al.entity_id IN (SELECT id FROM health_observations WHERE person_id = $${idx})
         OR al.entity_id IN (SELECT id FROM bowel_movements WHERE person_id = $${idx})

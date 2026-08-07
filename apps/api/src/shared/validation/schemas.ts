@@ -1095,13 +1095,33 @@ export const createCarePathwaySchema = z.object({
 
 export const updateCarePathwaySchema = createCarePathwaySchema.partial();
 
-export const createDischargeChecklistSchema = z.object({
-  item: z.string().min(1).max(255),
-  category: z.enum(['documentation','medication','equipment','notification','property','financial','other']),
+export const TIME_AWAY_TYPES = ['family_visit','short_break','hospital_admission','hospital_discharge','trial_leave','discharge','other'] as const;
+export const TIME_AWAY_ITEM_CATEGORIES = ['documentation','medication','equipment','notification','property','financial','other'] as const;
+
+export const createTimeAwaySchema = z.object({
+  title: z.string().min(1).max(255),
+  time_away_type: z.enum(TIME_AWAY_TYPES).default('other'),
+  destination: emptyToNull(z.string().max(255)).optional(),
+  start_date: emptyToNull(z.string()).optional(),
+  end_date: emptyToNull(z.string()).optional(),
+  notes: emptyToNull(z.string().max(5000)).optional(),
 });
 
-export const updateDischargeChecklistSchema = z.object({
-  is_complete: z.boolean(),
+export const updateTimeAwaySchema = createTimeAwaySchema.partial();
+
+export const createTimeAwayItemSchema = z.object({
+  item: z.string().min(1).max(255),
+  category: z.enum(TIME_AWAY_ITEM_CATEGORIES).default('documentation'),
+  quantity: z.number().positive().max(1000000).nullable().optional(),
+  unit: emptyToNull(z.string().max(50)).optional(),
+});
+
+export const updateTimeAwayItemSchema = z.object({
+  item: z.string().min(1).max(255).optional(),
+  category: z.enum(TIME_AWAY_ITEM_CATEGORIES).optional(),
+  quantity: z.number().positive().max(1000000).nullable().optional(),
+  unit: emptyToNull(z.string().max(50)).optional(),
+  is_complete: z.boolean().optional(),
 });
 
 export const updateClinicalScoreSchema = z.object({
