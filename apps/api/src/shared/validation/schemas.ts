@@ -985,28 +985,42 @@ export const createStockItemSchema = z.object({
   person_id: z.string().uuid().optional(),
 });
 
-export const createDeliverySchema = z.object({
-  person_id: z.string().uuid(),
+export const deliveryItemSchema = z.object({
+  stock_id: z.string().uuid().optional(),
   medication_name: z.string().min(1).max(255),
-  dosage: z.string().min(1).max(100),
+  dosage: z.string().max(100).optional(),
+  unit: z.string().max(50).optional(),
+  batch_number: z.string().max(100).optional(),
+  expiry_date: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal('')]).optional(),
   quantity: z.number().min(0),
+  quantity_unit: z.string().max(50).optional(),
+});
+
+export const createDeliverySchema = z.object({
+  supplier: z.string().max(255).optional(),
+  delivery_note: z.string().max(255).optional(),
   delivery_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  received_by: z.string().max(255).optional(),
   notes: z.string().max(1000).optional(),
+  items: z.array(deliveryItemSchema).min(1).max(100),
 });
 
 export const createDailyCountSchema = z.object({
   person_id: z.string().uuid(),
   count_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   staff_name: z.string().min(1).max(255),
-  confirmed: z.boolean().optional(),
+  matches_physical: z.boolean().optional(),
+  notes: z.string().max(1000).optional(),
 });
 
 export const upsertDailyCountItemSchema = z.object({
   daily_count_id: z.string().uuid(),
-  emedication_item_id: z.string().uuid(),
+  medication_item_id: z.string().uuid(),
+  medication_name: z.string().min(1).max(255),
   expected_quantity: z.number().min(0),
   actual_quantity: z.number().min(0),
-  notes: z.string().max(500).optional(),
+  reason_for_mismatch: z.string().max(500).optional(),
+  escalate: z.boolean().optional(),
 });
 
 export const updateAdministrationSchema = z.object({

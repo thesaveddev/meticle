@@ -478,7 +478,15 @@ export class EMedicationController {
 
   static async createStockAdjustment(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
-    const adjustment = await EMedicationRepository.createStockAdjustment(orgId, req.body);
+    const stock = await query(`SELECT id FROM emedication_stock WHERE id = $1 AND organization_id = $2`, [req.params.stockItemId, orgId]);
+    if (stock.rows.length === 0) throw new AppError(404, 'Stock item not found');
+    const adjustment = await EMedicationRepository.createStockAdjustment(orgId, { ...req.body, stock_item_id: req.params.stockItemId });
+
+    await EMedicationAuditRepository.log({
+      organization_id: orgId, action: 'create_stock_adjustment', entity_type: 'stock',
+      entity_id: req.params.stockItemId, user_id: req.user!.userId, changes: req.body, ip_address: req.ip
+    });
+
     res.status(201).json(adjustment);
   }
 }
