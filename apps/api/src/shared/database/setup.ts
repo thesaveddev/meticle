@@ -170,6 +170,16 @@ const MIGRATION_016: Migration = {
   ],
 };
 
+const MIGRATION_017: Migration = {
+  name: '017_delivery_received_by_text',
+  strict: false,
+  statements: [
+    // received_by was a UUID FK to users but the UI collects a free-text name
+    `ALTER TABLE emedication_deliveries DROP CONSTRAINT IF EXISTS emedication_deliveries_received_by_fkey`,
+    `ALTER TABLE emedication_deliveries ALTER COLUMN received_by TYPE VARCHAR(255)`,
+  ],
+};
+
 const MIGRATION_009: Migration = {
   name: '009_care_plan_person_centred_sections',
   strict: false,
@@ -963,7 +973,7 @@ const INITIAL_MIGRATION: Migration = {
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     supplier VARCHAR(255), delivery_note VARCHAR(255),
     delivery_date DATE NOT NULL,
-    received_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    received_by VARCHAR(255),
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`,
@@ -1692,7 +1702,7 @@ export const setupDatabase = async () => {
     }
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

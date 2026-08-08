@@ -1060,7 +1060,7 @@ async function seed() {
   for (let d = 0; d < 4; d++) {
     const delId = uuid()
     await insert(`INSERT INTO emedication_deliveries (id,organization_id,supplier,delivery_note,delivery_date,received_by,notes,created_at) VALUES ($1,$2,'AAH Pharmaceuticals','DN-${1000 + d * 5}','${dateAgo(d * 30 + 15)}',$3,'Monthly delivery','${tsAgo(d * 30 + 15)}')`,
-      [delId, orgId, staff[2].userId])
+      [delId, orgId, staff[2].name.join(' ')])
     for (let di = 0; di < 3; di++) {
       const med = medNames[(d * 3 + di) % medNames.length]
       await insert(`INSERT INTO emedication_delivery_items (id,delivery_id,medication_name,dosage,unit,batch_number,expiry_date,quantity,quantity_unit,created_at) VALUES ($1,$2,$3,$4,$5,concat('B',floor(random()*9000)+1000),'${dateIn(120)}',56,'tablet',$6)`,

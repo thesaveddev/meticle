@@ -1,4 +1,4 @@
-import { query } from '../../shared/database';
+import { query, transaction } from '../../shared/database';
 
 export interface EMedicationRecord {
   id: string;
@@ -45,6 +45,21 @@ export interface EMedicationAdministration {
 
 export class EMedicationRepository {
   private static readonly STOCK_UPDATE_COLUMNS = new Set(['medication_name', 'dosage', 'unit', 'batch_number', 'expiry_date', 'quantity', 'quantity_unit', 'reorder_level', 'location', 'person_id', 'status']);
+
+  /** Normalise a medication item's `times` value (JSONB array, JSON string or legacy text) into an array without ever throwing. */
+  private static parseTimes(value: any): string[] {
+    if (Array.isArray(value)) return value;
+    if (value === null || value === undefined || value === '') return [];
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
   // ── Records ──
   static async findRecords(orgId: string, personId?: string) {
     let sql = `
@@ -437,11 +452,15 @@ export class EMedicationRepository {
   }
 
   // ── Stock ──
+  private static normalizeDate(value: any): string | null {
+    return value === '' || value === null || value === undefined ? null : value;
+  }
+
   static async createStockItem(orgId: string, data: any) {
     const result = await query(`
       INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, location, person_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-      [orgId, data.medication_name, data.dosage, data.unit, data.batch_number, data.expiry_date, data.quantity, data.quantity_unit, data.reorder_level, data.location, data.person_id || null]);
+      [orgId, data.medication_name, data.dosage, data.unit, data.batch_number, this.normalizeDate(data.expiry_date), data.quantity, data.quantity_unit, data.reorder_level, data.location, data.person_id || null]);
     return result.rows[0];
   }
 
@@ -463,7 +482,10 @@ export class EMedicationRepository {
     const fields: string[] = []; const values: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
       if (!EMedicationRepository.STOCK_UPDATE_COLUMNS.has(k)) continue;
-      if (v !== undefined) { fields.push(`${k} = $${idx++}`); values.push(v); }
+      if (v !== undefined) {
+        const value = k === 'expiry_date' ? EMedicationRepository.normalizeDate(v) : v;
+        fields.push(`${k} = $${idx++}`); values.push(value);
+      }
     }
     if (fields.length === 0) return null;
     values.push(id, orgId);
@@ -613,7 +635,7 @@ export class EMedicationRepository {
       medication_name: i.name,
       dosage: i.dosage,
       unit: i.unit,
-      times: typeof i.times === 'string' ? JSON.parse(i.times) : (i.times || []),
+      times: this.parseTimes(i.times),
       stock_quantity: 0
     }));
   }
@@ -641,27 +663,100 @@ export class EMedicationRepository {
   }
 
   // ── Deliveries ──
+  /**
+   * Apply a delivered item to the org's stock ledger:
+   * - existing stock row (matched on name, then name+dosage+unit) gets quantity added
+   * - otherwise a new stock record is created
+   * - a matching MAR item (if any, unlinked) is linked to the stock record
+   * Returns the stock row (or null when the item has no medication name).
+   */
+  private static async upsertStockForDeliveryItem(orgId: string, item: any): Promise<any | null> {
+    const name = (item.medication_name || '').trim();
+    if (!name) return null;
+    const qty = Number(item.quantity) || 0;
+
+    let match = await query(`
+      SELECT * FROM emedication_stock
+      WHERE organization_id = $1 AND LOWER(medication_name) = LOWER($2)
+        AND COALESCE(LOWER(dosage), '') = COALESCE(LOWER($3), '')
+        AND COALESCE(LOWER(unit), '') = COALESCE(LOWER($4), '')
+      ORDER BY created_at ASC LIMIT 1`,
+      [orgId, name, item.dosage || '', item.unit || '']);
+
+    if (match.rows.length === 0) {
+      match = await query(`
+        SELECT * FROM emedication_stock
+        WHERE organization_id = $1 AND LOWER(medication_name) = LOWER($2)
+        ORDER BY created_at ASC LIMIT 1`,
+        [orgId, name]);
+    }
+
+    if (match.rows.length > 0) {
+      const stock = match.rows[0];
+      await query(`
+        UPDATE emedication_stock
+        SET quantity = quantity + $1,
+            batch_number = COALESCE($2, batch_number),
+            expiry_date = COALESCE($3, expiry_date),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $4`,
+        [qty, item.batch_number || null, item.expiry_date || null, stock.id]);
+      return stock;
+    }
+
+    const created = await query(`
+      INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 'active') RETURNING *`,
+      [orgId, name, item.dosage || null, item.unit || 'mg', item.batch_number || null, item.expiry_date || null, qty, item.quantity_unit || 'tablet(s)']);
+
+    // Link the first active, unlinked MAR item with the same name to this stock record
+    await query(`
+      UPDATE emedication_items ei
+      SET stock_item_id = $1
+      WHERE ei.id = (
+        SELECT ei2.id FROM emedication_items ei2
+        JOIN emedication_records r ON ei2.emedication_record_id = r.id
+        WHERE r.organization_id = $2
+          AND LOWER(ei2.name) = LOWER($3)
+          AND ei2.stock_item_id IS NULL
+          AND ei2.is_active = TRUE
+        ORDER BY ei2.created_at ASC
+        LIMIT 1
+      )`,
+      [created.rows[0].id, orgId, name]);
+
+    return created.rows[0];
+  }
+
   static async createDelivery(orgId: string, data: any) {
     const { supplier, delivery_note, delivery_date, received_by, notes, items } = data;
-    const delivery = await query(`
-      INSERT INTO emedication_deliveries (organization_id, supplier, delivery_note, delivery_date, received_by, notes)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [orgId, supplier, delivery_note, delivery_date, received_by, notes]);
-    const createdItems: any[] = [];
-    if (items && items.length > 0) {
-      for (const item of items) {
-        const di = await query(`
-          INSERT INTO emedication_delivery_items (delivery_id, stock_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-          [delivery.rows[0].id, item.stock_id, item.medication_name, item.dosage, item.unit, item.batch_number, item.expiry_date, item.quantity, item.quantity_unit]);
-        createdItems.push(di.rows[0]);
+    return transaction(async () => {
+      const delivery = await query(`
+        INSERT INTO emedication_deliveries (organization_id, supplier, delivery_note, delivery_date, received_by, notes)
+        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [orgId, supplier, delivery_note, delivery_date, received_by, notes]);
+      const createdItems: any[] = [];
+      if (items && items.length > 0) {
+        for (const item of items) {
+          const stock = await this.upsertStockForDeliveryItem(orgId, item);
+          const di = await query(`
+            INSERT INTO emedication_delivery_items (delivery_id, stock_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+            [delivery.rows[0].id, stock?.id || null, item.medication_name, item.dosage, item.unit, item.batch_number, item.expiry_date || null, item.quantity, item.quantity_unit]);
+          createdItems.push(di.rows[0]);
+        }
       }
-    }
-    return { ...delivery.rows[0], items: createdItems };
+      return { ...delivery.rows[0], items: createdItems };
+    });
   }
 
   static async listDeliveries(orgId: string) {
-    const result = await query(`SELECT * FROM emedication_deliveries WHERE organization_id = $1 ORDER BY delivery_date DESC`, [orgId]);
+    const result = await query(`
+      SELECT d.*,
+        (SELECT COUNT(*) FROM emedication_delivery_items WHERE delivery_id = d.id)::int AS items_count
+      FROM emedication_deliveries d
+      WHERE d.organization_id = $1
+      ORDER BY d.delivery_date DESC`, [orgId]);
     return result.rows;
   }
 
