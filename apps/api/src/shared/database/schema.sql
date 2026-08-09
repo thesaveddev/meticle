@@ -852,6 +852,45 @@ CREATE TABLE IF NOT EXISTS emedication_records (
 CREATE INDEX IF NOT EXISTS idx_emedr_org ON emedication_records(organization_id);
 CREATE INDEX IF NOT EXISTS idx_emedr_person ON emedication_records(person_id);
 
+CREATE TABLE IF NOT EXISTS emedication_stock (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    medication_name VARCHAR(255) NOT NULL,
+    dosage VARCHAR(100), unit VARCHAR(50),
+    batch_number VARCHAR(100), expiry_date DATE,
+    quantity DECIMAL(10,2) NOT NULL DEFAULT 0,
+    quantity_unit VARCHAR(50) DEFAULT 'tablet(s)',
+    reorder_level DECIMAL(10,2) DEFAULT 10,
+    location VARCHAR(255),
+    person_id UUID REFERENCES people(id) ON DELETE SET NULL,
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'archived')),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_emed_stock_org ON emedication_stock(organization_id);
+
+CREATE TABLE IF NOT EXISTS emedication_deliveries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    supplier VARCHAR(255), delivery_note VARCHAR(255),
+    delivery_date DATE NOT NULL,
+    received_by VARCHAR(255),
+    notes TEXT,
+    person_id UUID REFERENCES people(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_emed_deliveries_person ON emedication_deliveries(person_id);
+
+CREATE TABLE IF NOT EXISTS emedication_delivery_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    delivery_id UUID NOT NULL REFERENCES emedication_deliveries(id) ON DELETE CASCADE,
+    stock_id UUID REFERENCES emedication_stock(id) ON DELETE SET NULL,
+    medication_name VARCHAR(255) NOT NULL, dosage VARCHAR(100), unit VARCHAR(50),
+    batch_number VARCHAR(100), expiry_date DATE,
+    quantity DECIMAL(10,2) NOT NULL, quantity_unit VARCHAR(50) DEFAULT 'tablet(s)',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS emedication_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     emedication_record_id UUID NOT NULL REFERENCES emedication_records(id) ON DELETE CASCADE,
@@ -864,6 +903,13 @@ CREATE TABLE IF NOT EXISTS emedication_items (
     instructions TEXT,
     is_prn BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
+    stock_item_id UUID REFERENCES emedication_stock(id) ON DELETE SET NULL,
+    start_date DATE,
+    end_date DATE,
+    is_controlled_drug BOOLEAN DEFAULT FALSE,
+    prescriber_name VARCHAR(255),
+    prescriber_phone VARCHAR(50),
+    prescription_ref VARCHAR(255),
     created_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -936,8 +982,9 @@ CREATE TABLE IF NOT EXISTS emedication_daily_counts (
     matches_physical BOOLEAN DEFAULT TRUE,
     notes TEXT,
     counted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    count_session VARCHAR(50) DEFAULT 'end_of_day',
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(person_id, count_date)
+    UNIQUE(person_id, count_date, count_session)
 );
 CREATE INDEX IF NOT EXISTS idx_emed_daily_counts_person ON emedication_daily_counts(person_id);
 

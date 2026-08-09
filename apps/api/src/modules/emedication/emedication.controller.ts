@@ -84,17 +84,34 @@ export class EMedicationController {
     const record = await EMedicationRepository.findRecordById(req.params.recordId, orgId);
     if (!record) throw new AppError(404, 'Medication record not found');
 
-    const { name, dosage, unit, route, frequency, times, instructions, is_prn, is_active } = req.body;
+    const { name, dosage, unit, route, frequency, times, instructions, is_prn, is_active, stock_item_id } = req.body;
     if (!name || !dosage || !frequency) {
       throw new AppError(400, 'name, dosage, and frequency are required');
     }
+
+    let linkedStockId: string | null = null;
+    let itemName = name;
+    let itemDosage = dosage;
+    let itemUnit = unit;
+
+    if (stock_item_id) {
+      const stock = await EMedicationRepository.findStockById(stock_item_id, orgId);
+      if (!stock) throw new AppError(400, 'Selected stock item not found in this organization');
+      if (stock.status === 'archived') throw new AppError(400, 'Selected stock item is archived');
+      linkedStockId = stock.id;
+      itemName = stock.medication_name;
+      itemDosage = stock.dosage;
+      itemUnit = stock.unit || unit || 'mg';
+    }
+
     const item = await EMedicationRepository.createItem(req.params.recordId, {
-      name, dosage, unit, route, frequency, times, instructions, is_prn, is_active,
+      name: itemName, dosage: itemDosage, unit: itemUnit, route, frequency, times, instructions,
+      is_prn, is_active, stock_item_id: linkedStockId,
       created_by: req.user!.userId
     });
 
-    if (!is_prn) {
-      const stockItem = await EMedicationRepository.findOrCreateStockForItem(orgId, record.person_id, { name, dosage, unit: unit || 'mg' });
+    if (!linkedStockId && !is_prn) {
+      const stockItem = await EMedicationRepository.findOrCreateStockForItem(orgId, record.person_id, { name: itemName, dosage: itemDosage, unit: itemUnit || 'mg' });
       await EMedicationRepository.updateItem(item.id, { stock_item_id: stockItem.id });
       item.stock_item_id = stockItem.id;
     }
@@ -102,7 +119,7 @@ export class EMedicationController {
     await EMedicationAuditRepository.log({
       organization_id: orgId, action: 'add_item', entity_type: 'item',
       entity_id: item.id, user_id: req.user!.userId,
-      changes: { name, dosage, unit, route, frequency, times, is_prn }, ip_address: req.ip
+      changes: { name: itemName, dosage: itemDosage, unit: itemUnit, route, frequency, times, is_prn, stock_item_id: linkedStockId }, ip_address: req.ip
     });
 
     res.status(201).json(item);

@@ -132,10 +132,10 @@ export class EMedicationRepository {
 
   static async createItem(recordId: string, data: Partial<EMedicationItem> & { created_by: string }) {
     const result = await query(`
-      INSERT INTO emedication_items (emedication_record_id, name, dosage, unit, route, frequency, times, instructions, is_prn, is_active, start_date, end_date, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      INSERT INTO emedication_items (emedication_record_id, name, dosage, unit, route, frequency, times, instructions, is_prn, is_active, stock_item_id, start_date, end_date, is_controlled_drug, prescriber_name, prescriber_phone, prescription_ref, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *`,
-      [recordId, data.name, data.dosage, data.unit || 'mg', data.route || 'oral', data.frequency, JSON.stringify(data.times || []), data.instructions || '', data.is_prn || false, data.is_active !== false, data.start_date || null, data.end_date || null, data.created_by]
+      [recordId, data.name, data.dosage, data.unit || 'mg', data.route || 'oral', data.frequency, JSON.stringify(data.times || []), data.instructions || '', data.is_prn || false, data.is_active !== false, data.stock_item_id || null, data.start_date || null, data.end_date || null, data.is_controlled_drug || false, data.prescriber_name || null, data.prescriber_phone || null, data.prescription_ref || null, data.created_by]
     );
     return result.rows[0];
   }
@@ -153,6 +153,11 @@ export class EMedicationRepository {
     if (data.instructions !== undefined) { fields.push(`instructions = $${idx++}`); values.push(data.instructions); }
     if (data.is_prn !== undefined) { fields.push(`is_prn = $${idx++}`); values.push(data.is_prn); }
     if (data.is_active !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.is_active); }
+    if (data.stock_item_id !== undefined) { fields.push(`stock_item_id = $${idx++}`); values.push(data.stock_item_id); }
+    if (data.is_controlled_drug !== undefined) { fields.push(`is_controlled_drug = $${idx++}`); values.push(data.is_controlled_drug); }
+    if (data.prescriber_name !== undefined) { fields.push(`prescriber_name = $${idx++}`); values.push(data.prescriber_name); }
+    if (data.prescriber_phone !== undefined) { fields.push(`prescriber_phone = $${idx++}`); values.push(data.prescriber_phone); }
+    if (data.prescription_ref !== undefined) { fields.push(`prescription_ref = $${idx++}`); values.push(data.prescription_ref); }
     if (data.start_date !== undefined) { fields.push(`start_date = $${idx++}`); values.push(data.start_date || null); }
     if (data.end_date !== undefined) { fields.push(`end_date = $${idx++}`); values.push(data.end_date || null); }
     fields.push(`updated_at = CURRENT_TIMESTAMP`);
@@ -480,6 +485,15 @@ export class EMedicationRepository {
     const sql = `${base}${where} ORDER BY medication_name`;
     const result = await query(sql, params);
     return result.rows;
+  }
+
+  static async findStockById(id: string, orgId: string) {
+    const result = await query(
+      `SELECT emedication_stock.*,
+        (SELECT first_name || ' ' || last_name FROM people WHERE id = emedication_stock.person_id) AS person_name
+       FROM emedication_stock WHERE id = $1 AND organization_id = $2`,
+      [id, orgId]);
+    return result.rows[0] || null;
   }
 
   static async updateStock(id: string, orgId: string, data: any) {

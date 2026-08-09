@@ -166,6 +166,8 @@ export default function EMedicationPage() {
   const [adminTime, setAdminTime] = useState('')
   const [recordForm, setRecordForm] = useState({ title: '', start_date: '', end_date: '' })
   const [itemForm, setItemForm] = useState({ name: '', dosage: '', unit: 'mg', route: 'oral', frequency: 'once daily', times: [] as string[], instructions: '', is_prn: false, is_active: true, start_date: '', end_date: '', is_controlled_drug: false, prescriber_name: '', prescriber_phone: '', prescription_ref: '' })
+  const [itemStockSource, setItemStockSource] = useState<'from_stock' | 'new'>('new')
+  const [selectedStockItem, setSelectedStockItem] = useState<StockItem | null>(null)
   const [timeInput, setTimeInput] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
@@ -383,12 +385,13 @@ export default function EMedicationPage() {
 
   const itemCreateMutation = useMutation({
     mutationFn: ({ recordId, data }: { recordId: string; data: any }) => api.post(`/emedication/records/${recordId}/items`, data),
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['emedication-chart'] })
       queryClient.invalidateQueries({ queryKey: ['emedication-stock'] })
-      setItemDialog(false); setEditItem(null)
+      setItemDialog(false); setEditItem(null); setSelectedStockItem(null); setItemStockSource('new')
       setItemForm({ name: '', dosage: '', unit: 'mg', route: 'oral', frequency: 'once daily', times: [], instructions: '', is_prn: false, is_active: true, start_date: '', end_date: '', is_controlled_drug: false, prescriber_name: '', prescriber_phone: '', prescription_ref: '' })
-      setSuccessMsg('Medication added - stock entry auto-created'); setTimeout(() => setSuccessMsg(''), 3000)
+      const linked = (res.data as any)?.stock_item_id
+      setSuccessMsg(linked ? 'Medication added from stock' : 'Medication added - stock entry auto-created'); setTimeout(() => setSuccessMsg(''), 3000)
     }
   })
 
@@ -652,6 +655,7 @@ export default function EMedicationPage() {
     const data: any = { ...itemForm }
     if (!data.start_date) delete data.start_date
     if (!data.end_date) delete data.end_date
+    if (itemStockSource === 'from_stock' && selectedStockItem && !editItem) data.stock_item_id = selectedStockItem.id
     if (editItem) {
       itemUpdateMutation.mutate({ itemId: editItem.id, data })
     } else if (activeRecord) {
@@ -662,6 +666,8 @@ export default function EMedicationPage() {
   const openItemDialog = (item?: MedicationItem) => {
     if (item) {
       setEditItem(item)
+      setSelectedStockItem(null)
+      setItemStockSource('new')
       setItemForm({
         name: item.name, dosage: item.dosage, unit: item.unit, route: item.route,
         frequency: item.frequency, times: item.times, instructions: item.instructions || '',
@@ -675,6 +681,8 @@ export default function EMedicationPage() {
       })
     } else {
       setEditItem(null)
+      setSelectedStockItem(null)
+      setItemStockSource('new')
       setItemForm({ name: '', dosage: '', unit: 'mg', route: 'oral', frequency: 'once daily', times: [], instructions: '', is_prn: false, is_active: true, start_date: '', end_date: '', is_controlled_drug: false, prescriber_name: '', prescriber_phone: '', prescription_ref: '' })
     }
     setItemDialog(true)
@@ -3082,12 +3090,41 @@ export default function EMedicationPage() {
             <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMsg('')}>{errorMsg}</Alert>
           )}
           <Stack spacing={2} sx={{ mt: 1 }}>
+            {!editItem && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2">Medication source</Typography>
+                <Stack direction="row" spacing={1}>
+                  <Button size="small" variant={itemStockSource === 'from_stock' ? 'contained' : 'outlined'}
+                    onClick={() => setItemStockSource('from_stock')}>From stock</Button>
+                  <Button size="small" variant={itemStockSource === 'new' ? 'contained' : 'outlined'}
+                    onClick={() => { setItemStockSource('new'); setSelectedStockItem(null) }}>New medication</Button>
+                </Stack>
+                {itemStockSource === 'from_stock' ? (
+                  <Autocomplete
+                    options={(stockData || []).filter((s: StockItem) => s.status !== 'archived')}
+                    getOptionLabel={(s: StockItem) => `${s.medication_name} ${s.dosage} ${s.unit} — ${s.quantity} ${s.quantity_unit}${s.person_name ? ` (${s.person_name})` : ' (shared)'}`}
+                    onChange={(_, v: StockItem | null) => {
+                      setSelectedStockItem(v)
+                      setErrorMsg('')
+                      setItemForm(p => ({ ...p, name: v?.medication_name || '', dosage: v?.dosage || '', unit: v?.unit || p.unit }))
+                    }}
+                    renderInput={(params) => <TextField {...params} label="Search stock" size="small" placeholder="Type to search the stock room..." />}
+                    isOptionEqualToValue={(o, v) => o.id === v.id}
+                  />
+                ) : (
+                  <Typography variant="caption" color="text.secondary">Add a new medication — a stock entry will be auto-created so it can be counted.</Typography>
+                )}
+              </Stack>
+            )}
             <TextField label="Medication Name" fullWidth value={itemForm.name}
+              disabled={!editItem && itemStockSource === 'from_stock'}
               onChange={(e) => setItemForm(p => ({ ...p, name: e.target.value }))} size="small" required />
             <Stack direction="row" spacing={1}>
               <TextField label="Dosage" fullWidth value={itemForm.dosage}
+                disabled={!editItem && itemStockSource === 'from_stock'}
                 onChange={(e) => setItemForm(p => ({ ...p, dosage: e.target.value }))} size="small" required />
               <TextField select label="Unit" value={itemForm.unit}
+                disabled={!editItem && itemStockSource === 'from_stock'}
                 onChange={(e) => setItemForm(p => ({ ...p, unit: e.target.value }))} size="small" sx={{ minWidth: 100 }}>
                 {['mg', 'ml', 'mcg', 'g', 'tablet(s)', 'capsule(s)', 'drop(s)', 'puff(s)', 'patch(es)', 'suppository'].map(u => (
                   <MenuItem key={u} value={u}>{u}</MenuItem>
