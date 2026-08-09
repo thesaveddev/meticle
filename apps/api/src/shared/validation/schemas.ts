@@ -926,6 +926,7 @@ export const addMedicationItemSchema = z.object({
   name: z.string().min(1).max(255),
   dosage: z.string().min(1).max(100),
   unit: z.string().max(50).optional(),
+  stock_item_id: z.string().uuid().optional(),
   route: z.string().max(100).optional(),
   frequency: z.string().min(1).max(100),
   times: z.array(z.string()).optional(),
