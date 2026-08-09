@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Grid, Alert, CircularProgress, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Tabs, Tab, Divider, FormControlLabel, Checkbox, Menu } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon } from '@mui/icons-material'
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon, Schedule as ScheduleIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 
@@ -2180,9 +2180,6 @@ export default function EMedicationPage() {
           {overdueData && overdueData.length > 0 && (
             <Chip icon={<WarningIcon />} label={`${overdueData.length} overdue`} color="error" size="small" />
           )}
-          {tab === 1 && lowStockItems.length > 0 && (
-            <Chip icon={<WarningIcon />} label={`${lowStockItems.length} low stock`} color="warning" size="small" />
-          )}
         </Stack>
       </Stack>
 
@@ -2727,6 +2724,28 @@ export default function EMedicationPage() {
             <Typography variant="h6" sx={{ fontWeight: 800, color: EMR.ink }}>Stock Inventory</Typography>
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
               <Chip
+                size="small"
+                variant="outlined"
+                label={`${(stockData || []).length} line${(stockData || []).length !== 1 ? 's' : ''}`}
+                onClick={() => { setStockLevelFilter('all'); setStockExpiryFilter('all'); setStockLocation('all'); setStockSearch('') }}
+              />
+              <Chip
+                size="small"
+                icon={<WarningIcon />}
+                label={`${lowStockItems.length} low`}
+                color={lowStockItems.length > 0 ? 'warning' : 'default'}
+                variant={stockLevelFilter === 'low' ? 'filled' : 'outlined'}
+                onClick={() => setStockLevelFilter(stockLevelFilter === 'low' ? 'all' : 'low')}
+              />
+              <Chip
+                size="small"
+                icon={<ScheduleIcon />}
+                label={`${expiringStockItems.length} expiring`}
+                color={expiringStockItems.length > 0 ? 'warning' : 'default'}
+                variant={stockExpiryFilter === 'expiring' ? 'filled' : 'outlined'}
+                onClick={() => setStockExpiryFilter(stockExpiryFilter === 'expiring' ? 'all' : 'expiring')}
+              />
+              <Chip
                 label={showArchivedStock ? 'Showing All' : 'Active Only'}
                 size="small"
                 color={showArchivedStock ? 'warning' : 'default'}
@@ -2780,33 +2799,6 @@ export default function EMedicationPage() {
               </TextField>
             </Stack>
           </Paper>
-
-          {/* KPI strip */}
-          <Box sx={{
-            display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-            border: `1px solid ${EMR.hairline}`, borderRadius: 1, mb: 2, overflow: 'hidden', bgcolor: EMR.paper
-          }}>
-            <Box sx={{ p: 2 }}>
-              <Typography variant="caption" sx={{ color: EMR.mist, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.62rem' }}>Total Lines</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: EMR.ink, mt: 0.25 }}>{(stockData || []).length}</Typography>
-            </Box>
-            <Box sx={{ p: 2, borderLeft: { sm: `1px solid ${EMR.hairline}` }, borderTop: { xs: `1px solid ${EMR.hairline}`, sm: 'none' } }}>
-              <Typography variant="caption" sx={{ color: '#B45309', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.62rem' }}>Low Stock</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#B45309', mt: 0.25 }}>{lowStockItems.length}</Typography>
-            </Box>
-            <Box sx={{ p: 2, borderLeft: { sm: `1px solid ${EMR.hairline}` }, borderTop: { xs: `1px solid ${EMR.hairline}`, sm: 'none' } }}>
-              <Typography variant="caption" sx={{ color: EMR.mist, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.62rem' }}>Expiring ≤ 90 Days</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: EMR.ink, mt: 0.25 }}>{expiringStockItems.length}</Typography>
-            </Box>
-          </Box>
-
-          {/* Low stock alert */}
-          {lowStockItems.length > 0 && (
-            <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
-              {lowStockItems.length} item{lowStockItems.length > 1 ? 's' : ''} below reorder level:{' '}
-              {lowStockItems.map((s: StockItem) => `${s.medication_name} (${s.quantity} ${s.quantity_unit})`).join(', ')}
-            </Alert>
-          )}
 
           {stockLoading ? (
             <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress size={24} /></Box>
