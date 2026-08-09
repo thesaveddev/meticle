@@ -105,21 +105,21 @@ describe('Layout sidebar navigation', () => {
   })
 
   it('expands a previously collapsed group when toggled again', async () => {
-    window.localStorage.setItem('sidebarCollapsedGroups', JSON.stringify(['Scheduling']))
+    window.localStorage.setItem('sidebarCollapsedGroups', JSON.stringify(['Staffing']))
     renderLayout('/dashboard')
 
     await waitFor(() => {
       expect(screen.getByTestId('page-dashboard')).toBeInTheDocument()
     })
 
-    const groupButton = screen.getByRole('button', { name: /Scheduling/i })
+    const groupButton = screen.getByRole('button', { name: /Staffing/i })
     expect(groupButton).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(groupButton)
 
     await waitFor(() => {
       const stored = JSON.parse(window.localStorage.getItem('sidebarCollapsedGroups') || '[]')
-      expect(stored).not.toContain('Scheduling')
+      expect(stored).not.toContain('Staffing')
     })
-    expect(screen.getByRole('button', { name: /Scheduling/i })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: /Staffing/i })).toHaveAttribute('aria-expanded', 'true')
   })
 })

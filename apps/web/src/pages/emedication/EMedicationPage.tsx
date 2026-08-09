@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Grid, Alert, CircularProgress, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Tabs, Tab, Divider, FormControlLabel, Checkbox, Menu } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon, Schedule as ScheduleIcon } from '@mui/icons-material'
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon, Schedule as ScheduleIcon, WarningAmberOutlined } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 
@@ -613,10 +613,13 @@ export default function EMedicationPage() {
 
   const countSaveMutation = useMutation({
     mutationFn: (data: any) => api.post('/emedication/daily-counts/upsert', data),
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
+      const escalatedCount = (variables?.items || []).filter((it: any) => it.escalate).length
       queryClient.invalidateQueries({ queryKey: ['emedication-daily-counts'] })
       setCountDialog(false)
-      setSuccessMsg('Daily count logged'); setTimeout(() => setSuccessMsg(''), 3000)
+      setSuccessMsg(escalatedCount > 0
+        ? `Daily count logged — ${escalatedCount} medication${escalatedCount !== 1 ? 's' : ''} escalated for manager review`
+        : 'Daily count logged'); setTimeout(() => setSuccessMsg(''), 3000)
       if (countPerson) await loadCountData(countPerson, countDate, countSession)
     },
     onError: (err: any) => setErrorMsg(apiErrorMsg(err, 'Failed to save the count. Please check the values and try again.'))
@@ -2325,10 +2328,21 @@ export default function EMedicationPage() {
                   }}>
                     <MedIcon sx={{ fontSize: 28, color: EMR.navy }} />
                   </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: EMR.ink }}>No chart for this month</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Use the arrows in the sidebar to browse months, or select another person.
-                  </Typography>
+                  {!selectedPerson ? (
+                    <>
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: EMR.ink }}>Select a person to view their MAR</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        Choose a service user above to open their medication administration record and log administrations.
+                      </Typography>
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: EMR.ink }}>No chart for this month</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        Use the arrows in the sidebar to browse months, or select another person.
+                      </Typography>
+                    </>
+                  )}
                 </Paper>
               ) : chartLoading ? (
                 <Paper sx={{ p: 4, textAlign: 'center', border: `1px solid ${EMR.hairline}`, boxShadow: 'none' }}><CircularProgress size={24} /></Paper>
@@ -3011,6 +3025,7 @@ export default function EMedicationPage() {
                       <TableCell sx={{ fontWeight: 700 }}>Counted At</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Medications Checked</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Overall Match</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Review</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -3039,6 +3054,14 @@ export default function EMedicationPage() {
                         <TableCell>
                           <Chip label={c.matches_physical ? 'Yes' : 'No'} size="small"
                             color={c.matches_physical ? 'success' : 'error'} />
+                        </TableCell>
+                        <TableCell>
+                          {c.has_escalation ? (
+                            <Chip label="Escalated" size="small" color="warning" variant="outlined"
+                              icon={<WarningAmberOutlined sx={{ fontSize: '0.9rem !important' }} />} />
+                          ) : (
+                            <Typography variant="body2" color="text.disabled">{'\u2014'}</Typography>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
