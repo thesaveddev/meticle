@@ -16,6 +16,7 @@ import {
   BeachAccess as LeaveIcon, Group as GroupIcon,
   Save as SaveIcon, UploadFile as UploadFileIcon,
   Link as LinkIcon, Schedule as ScheduleIcon, Notifications as NotificationsIcon,
+  Medication as MedicationIcon,
   Lock as SecurityIcon, Palette as PaletteIcon,
   SmartToy as SmartToyIcon, History as HistoryIcon,
   Warning as WarningIcon, DarkMode as DarkModeIcon,
@@ -1129,6 +1130,31 @@ export default function SettingsPage() {
         </Stack>
         <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Medication Alert Settings
+        </Button>
+      </Paper>
+
+      <Paper sx={{ p: 4, mt: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+          <MedicationIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Daily Medication Counts
+        </Typography>
+        <TextField
+          select
+          label="Count convention"
+          size="small"
+          sx={{ width: 320 }}
+          value={orgSettings.emedication_count_convention || 'end_of_day'}
+          onChange={e => setOrgSettings((p: any) => ({ ...p, emedication_count_convention: e.target.value }))}
+        >
+          <MenuItem value="end_of_day">Once a day — End of Day</MenuItem>
+          <MenuItem value="am_pm">Twice a day — AM &amp; PM</MenuItem>
+          <MenuItem value="after_each">After each administration</MenuItem>
+        </TextField>
+        <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 1 }}>
+          Sets the default count type when logging daily medication counts on the eMAR page.
+          Choose the frequency your home uses to reconcile physical stock against expected quantities.
+        </Typography>
+        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <SaveIcon sx={{ mr: 1 }} /> Save Count Convention
         </Button>
       </Paper>
     </Stack>
