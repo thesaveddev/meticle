@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Grid, Alert, CircularProgress, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Tabs, Tab, Divider, FormControlLabel, Checkbox, Menu } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon } from '@mui/icons-material'
@@ -96,11 +96,13 @@ interface StockItem {
   id: string; medication_name: string; dosage: string; unit: string
   batch_number: string; expiry_date: string; quantity: number; quantity_unit: string
   reorder_level: number; location: string; person_id?: string; person_name?: string; status?: string
+  is_controlled_drug?: boolean
 }
 
 interface Delivery {
   id: string; supplier: string; delivery_note: string; delivery_date: string
   received_by: string; notes: string; created_at: string; items?: DeliveryItem[]; items_count?: number
+  person_id?: string; person_name?: string
 }
 
 interface DeliveryItem {
@@ -115,6 +117,16 @@ interface AuditLog {
 }
 
 const todayStr = () => new Date().toISOString().split('T')[0]
+
+const toDatetimeLocal = (iso?: string) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const COUNT_TYPES = ['am', 'pm', 'administration', 'end_of_day']
 
 function getAdminDisplay(admins: Administration[] | undefined): Administration | undefined {
   if (!admins || admins.length === 0) return undefined
@@ -172,16 +184,16 @@ export default function EMedicationPage() {
   const [adjustStockItem, setAdjustStockItem] = useState<StockItem | null>(null)
   const [adjustForm, setAdjustForm] = useState({ adjustment_type: 'damaged', quantity_adjusted: 1, reason: '', adjusted_by: '' })
 
-  // Daily counts state
+  // Daily counts state (modal-based logging)
   const [showArchivedStock, setShowArchivedStock] = useState(false)
-  // Daily count state (inline form, no dialog)
   const [countPerson, setCountPerson] = useState<any>(null)
   const [countMedications, setCountMedications] = useState<any[]>([])
   const [countItemsForm, setCountItemsForm] = useState<Record<string, { actual_quantity: number; reason_for_mismatch: string; escalate: boolean }>>({})
   const [countLoading, setCountLoading] = useState(false)
   const [countNoRecords, setCountNoRecords] = useState(false)
-  const [editDailyCountId, setEditDailyCountId] = useState<string | null>(null)
-  const [editDailyCountItems, setEditDailyCountItems] = useState<any[]>([])
+  const [countDialog, setCountDialog] = useState(false)
+  const [countedBy, setCountedBy] = useState(`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.email)
+  const [countedAt, setCountedAt] = useState(toDatetimeLocal(new Date().toISOString()))
 
   // Delivery state
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
@@ -191,6 +203,25 @@ export default function EMedicationPage() {
   const [deliveryItemForm, setDeliveryItemForm] = useState({ medication_name: '', dosage: '', unit: 'mg', batch_number: '', expiry_date: '', quantity: 0, quantity_unit: 'tablets' })
   const [deliveryDetail, setDeliveryDetail] = useState<Delivery | null>(null)
   const [deliveryDetailLoading, setDeliveryDetailLoading] = useState(false)
+  const [editDelivery, setEditDelivery] = useState<Delivery | null>(null)
+  const [deliveryPerson, setDeliveryPerson] = useState<any>(null)
+  const [deliveryShared, setDeliveryShared] = useState(false)
+  const [deliveryPersonMeds, setDeliveryPersonMeds] = useState<any[]>([])
+  const [deliveryItemMed, setDeliveryItemMed] = useState<any>(null)
+  const [deliveryAuditLogs, setDeliveryAuditLogs] = useState<AuditLog[]>([])
+  const [deliveryAuditLoading, setDeliveryAuditLoading] = useState(false)
+
+  // Stock filter state
+  const [stockLevelFilter, setStockLevelFilter] = useState('all')
+  const [stockExpiryFilter, setStockExpiryFilter] = useState('all')
+  const [stockSearch, setStockSearch] = useState('')
+  const [stockLocation, setStockLocation] = useState('all')
+  const [stockDetail, setStockDetail] = useState<StockItem | null>(null)
+
+  // Daily count state
+  const [countDate, setCountDate] = useState(todayStr())
+  const [countSession, setCountSession] = useState('end_of_day')
+  const [editingCount, setEditingCount] = useState<any>(null)
 
   // Fetch people
   const { data: people, isError: suError } = useQuery({
@@ -304,6 +335,21 @@ export default function EMedicationPage() {
     enabled: tab === 4
   })
 
+  // Org settings (medication count convention for the daily count tab)
+  const { data: orgSettings } = useQuery({
+    queryKey: ['org-settings-emedication'],
+    queryFn: async () => { const res = await api.get('/settings/org'); return res.data as any },
+    enabled: tab === 3,
+    staleTime: 60_000,
+  })
+  const countConvention = orgSettings?.emedication_count_convention || 'end_of_day'
+
+  const countSessionLabel = (s: string) =>
+    s === 'end_of_day' ? 'End of Day' : s === 'am' ? 'AM' : s === 'pm' ? 'PM' : s === 'administration' ? 'Administration' : `After ${s}`
+
+  // Default count type follows the org convention (AM-PM → AM, after-each → Administration)
+  const defaultCountSession = countConvention === 'am_pm' ? 'am' : countConvention === 'after_each' ? 'administration' : 'end_of_day'
+
   // Mutations
   const recordCreateMutation = useMutation({
     mutationFn: (data: any) => api.post('/emedication/records', data),
@@ -392,37 +438,86 @@ export default function EMedicationPage() {
     }
   })
 
+  // Load a person's meds (with stock-backed expected quantities) + any already-recorded
+  // count for a date/session into the count form.
+  const loadCountData = async (person: any, date: string, session: string) => {
+    if (!person) {
+      setCountMedications([]); setCountItemsForm({}); setCountNoRecords(false); setEditingCount(null)
+      return
+    }
+    setCountLoading(true)
+    setCountNoRecords(false)
+    setEditingCount(null)
+    try {
+      const medsRes = await api.get(`/emedication/daily-counts/medications?personId=${person.id}`)
+      const meds = (medsRes.data as any[]) || []
+      if (meds.length === 0) {
+        setCountNoRecords(true)
+        setCountMedications([])
+        setCountItemsForm({})
+        return
+      }
+      const init: Record<string, { actual_quantity: number; reason_for_mismatch: string; escalate: boolean }> = {}
+      for (const m of meds) {
+        init[m.medication_item_id] = { actual_quantity: 0, reason_for_mismatch: '', escalate: false }
+      }
+      setCountMedications(meds)
+      setCountItemsForm(init)
+      try {
+        const params = new URLSearchParams({ personId: person.id, date, session })
+        const countsRes = await api.get(`/emedication/daily-counts?${params.toString()}`)
+        const existing = (countsRes.data as any[])?.[0]
+        if (existing) {
+          const itemsRes = await api.get(`/emedication/daily-counts/${existing.id}/items`)
+          setEditingCount(existing)
+          if (existing.staff_name) setCountedBy(existing.staff_name)
+          if (existing.counted_at) setCountedAt(toDatetimeLocal(existing.counted_at))
+          for (const it of itemsRes.data) {
+            if (init[it.medication_item_id]) {
+              init[it.medication_item_id] = {
+                actual_quantity: it.actual_quantity,
+                reason_for_mismatch: it.reason_for_mismatch || '',
+                escalate: it.escalate || false,
+              }
+            }
+          }
+          setCountItemsForm({ ...init })
+        }
+      } catch { /* no existing count yet */ }
+    } catch {
+      setCountNoRecords(true)
+      setCountMedications([])
+      setCountItemsForm({})
+    }
+    setCountLoading(false)
+  }
+
   const handleSaveDailyCount = async () => {
     if (!countPerson) return
     try {
-      const res = await countCreateMutation.mutateAsync({
-        person_id: countPerson.id,
-        count_date: todayStr(),
-        staff_name: `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.email,
-        matches_physical: countMedications.every((m: any) =>
-          (countItemsForm[m.medication_item_id]?.actual_quantity ?? 0) === (m.times?.length || 0)
-        ),
-      })
-      const dailyCountId = (res as any).data?.id || (res as any).id
-      for (const med of countMedications) {
-        const formData = countItemsForm[med.medication_item_id]
-        if (formData) {
-          await api.post('/emedication/daily-counts/items', {
-            daily_count_id: dailyCountId,
-            medication_item_id: med.medication_item_id,
-            medication_name: med.medication_name,
-            expected_quantity: med.times?.length || 0,
-            actual_quantity: formData.actual_quantity,
-            reason_for_mismatch: formData.reason_for_mismatch || undefined,
-            escalate: formData.escalate || undefined,
-          })
+      const items = countMedications.map((med: any) => {
+        const f = countItemsForm[med.medication_item_id] || { actual_quantity: 0, reason_for_mismatch: '', escalate: false }
+        return {
+          medication_item_id: med.medication_item_id,
+          medication_name: med.medication_name,
+          expected_quantity: med.expected_quantity ?? med.stock_quantity ?? 0,
+          actual_quantity: f.actual_quantity,
+          reason_for_mismatch: f.reason_for_mismatch || undefined,
+          escalate: f.escalate || undefined,
         }
-      }
+      })
+      await api.post('/emedication/daily-counts/upsert', {
+        person_id: countPerson.id,
+        count_date: countDate,
+        count_session: countSession,
+        staff_name: countedBy || `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.email,
+        counted_at: countedAt ? new Date(countedAt).toISOString() : new Date().toISOString(),
+        items,
+      })
       queryClient.invalidateQueries({ queryKey: ['emedication-daily-counts'] })
-      setCountMedications([])
-      setCountItemsForm({})
-      setCountPerson(null)
+      setCountDialog(false)
       setSuccessMsg('Daily count logged'); setTimeout(() => setSuccessMsg(''), 3000)
+      await loadCountData(countPerson, countDate, countSession)
     } catch (err: any) {
       setErrorMsg(err?.response?.data?.error?.message || 'Failed to save the count. Please check the values and try again.')
     }
@@ -473,9 +568,31 @@ export default function EMedicationPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emedication-deliveries'] })
       queryClient.invalidateQueries({ queryKey: ['emedication-stock'] })
-      setDeliveryDialog(false)
+      setDeliveryDialog(false); setEditDelivery(null); setDeliveryPerson(null); setDeliveryShared(false)
       setDeliveryForm({ supplier: '', delivery_note: '', delivery_date: todayStr(), received_by: '', notes: '', items: [] })
       setSuccessMsg('Delivery created'); setTimeout(() => setSuccessMsg(''), 3000)
+    }
+  })
+
+  const deliveryUpdateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.patch(`/emedication/deliveries/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['emedication-deliveries'] })
+      queryClient.invalidateQueries({ queryKey: ['emedication-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['emedication-chart'] })
+      setDeliveryDialog(false); setEditDelivery(null); setDeliveryPerson(null); setDeliveryShared(false)
+      setDeliveryForm({ supplier: '', delivery_note: '', delivery_date: todayStr(), received_by: '', notes: '', items: [] })
+      setSuccessMsg('Delivery updated'); setTimeout(() => setSuccessMsg(''), 3000)
+    }
+  })
+
+  const deliveryDeleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/emedication/deliveries/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['emedication-deliveries'] })
+      queryClient.invalidateQueries({ queryKey: ['emedication-stock'] })
+      setDeliveryDetail(null)
+      setSuccessMsg('Delivery deleted — stock reversed'); setTimeout(() => setSuccessMsg(''), 3000)
     }
   })
 
@@ -1818,6 +1935,29 @@ export default function EMedicationPage() {
     return days <= 90
   })
 
+  // Stock filters (client-side over the loaded list)
+  const stockLocations = useMemo(
+    () => Array.from(new Set((stockData || []).map((s: StockItem) => s.location).filter(Boolean))) as string[],
+    [stockData]
+  )
+  const filteredStock = useMemo(() => (stockData || []).filter((s: StockItem) => {
+    if (stockLevelFilter === 'low' && !(s.quantity <= s.reorder_level)) return false
+    if (stockLevelFilter === 'out' && !(s.quantity <= 0)) return false
+    if (stockLevelFilter === 'ok' && !(s.quantity > s.reorder_level)) return false
+    if (stockExpiryFilter === 'expiring') {
+      if (!s.expiry_date) return false
+      const days = (new Date(s.expiry_date).getTime() - Date.now()) / 86400000
+      if (days > 90 || days < 0) return false
+    }
+    if (stockExpiryFilter === 'expired') {
+      if (!s.expiry_date) return false
+      if (new Date(s.expiry_date) >= new Date(`${todayStr()}T00:00:00`)) return false
+    }
+    if (stockSearch && !`${s.medication_name} ${s.dosage} ${s.unit} ${s.batch_number || ''}`.toLowerCase().includes(stockSearch.toLowerCase())) return false
+    if (stockLocation !== 'all' && s.location !== stockLocation) return false
+    return true
+  }), [stockData, stockLevelFilter, stockExpiryFilter, stockSearch, stockLocation])
+
   const maxForwardMonth = (() => {
     const d = new Date()
     d.setMonth(d.getMonth() + 3)
@@ -1870,21 +2010,85 @@ export default function EMedicationPage() {
     setAdjustDialog(true)
   }
 
+  // ── Delivery handlers ──
+  const loadDeliveryPersonMeds = async (person: any) => {
+    if (!person) { setDeliveryPersonMeds([]); setDeliveryItemMed(null); return }
+    try {
+      const recordsRes = await api.get(`/emedication/records?personId=${person.id}`)
+      const activeRecords = (recordsRes.data as any[]).filter((r: any) => r.status === 'active')
+      const meds: any[] = []
+      for (const r of activeRecords) {
+        try {
+          const recRes = await api.get(`/emedication/records/${r.id}`)
+          const items = (recRes.data?.items || []).filter((i: any) => i.is_active)
+          for (const i of items) meds.push({ ...i, record_title: r.title })
+        } catch { /* skip broken record */ }
+      }
+      setDeliveryPersonMeds(meds)
+    } catch { setDeliveryPersonMeds([]) }
+  }
+
   const addDeliveryItem = () => {
     if (!deliveryItemForm.medication_name || !deliveryItemForm.quantity) return
     setDeliveryForm(p => ({
       ...p, items: [...p.items, { ...deliveryItemForm, id: Date.now().toString() }]
     }))
     setDeliveryItemForm({ medication_name: '', dosage: '', unit: 'mg', batch_number: '', expiry_date: '', quantity: 0, quantity_unit: 'tablets' })
+    setDeliveryItemMed(null)
   }
 
   const removeDeliveryItem = (id: string) => {
     setDeliveryForm(p => ({ ...p, items: p.items.filter((i: any) => i.id !== id) }))
   }
 
+  const openDeliveryDialog = (delivery?: Delivery) => {
+    setEditDelivery(delivery || null)
+    setDeliveryItemMed(null)
+    setDeliveryShared(!!delivery && !delivery.person_id)
+    if (delivery) {
+      const person = delivery.person_id ? (people || []).find((p: any) => p.id === delivery.person_id) || null : null
+      setDeliveryPerson(person)
+      loadDeliveryPersonMeds(person)
+      setDeliveryForm({
+        supplier: delivery.supplier || '',
+        delivery_note: delivery.delivery_note || '',
+        delivery_date: delivery.delivery_date ? delivery.delivery_date.slice(0, 10) : todayStr(),
+        received_by: delivery.received_by || '',
+        notes: delivery.notes || '',
+        items: (delivery.items || []).map((it: any) => ({ ...it, id: it.id })),
+      })
+    } else {
+      setDeliveryPerson(null)
+      setDeliveryPersonMeds([])
+      setDeliveryForm({ supplier: '', delivery_note: '', delivery_date: todayStr(), received_by: '', notes: '', items: [] })
+    }
+    setDeliveryDialog(true)
+  }
+
+  const handleSaveDelivery = () => {
+    const payload: any = {
+      person_id: deliveryPerson?.id || undefined,
+      supplier: deliveryForm.supplier,
+      delivery_note: deliveryForm.delivery_note,
+      delivery_date: deliveryForm.delivery_date,
+      received_by: deliveryForm.received_by,
+      notes: deliveryForm.notes,
+      items: deliveryForm.items.map((i: any) => {
+        const { id: _id, ...rest } = i
+        return rest
+      }),
+    }
+    if (editDelivery) {
+      deliveryUpdateMutation.mutate({ id: editDelivery.id, data: payload })
+    } else {
+      deliveryCreateMutation.mutate(payload)
+    }
+  }
+
   const openDeliveryDetail = async (d: Delivery) => {
     setDeliveryDetail(d)
     setDeliveryDetailLoading(true)
+    setDeliveryAuditLogs([])
     try {
       const res = await api.get(`/emedication/deliveries/${d.id}`)
       setDeliveryDetail(res.data)
@@ -1893,6 +2097,14 @@ export default function EMedicationPage() {
     } finally {
       setDeliveryDetailLoading(false)
     }
+    setDeliveryAuditLoading(true)
+    try {
+      const logsRes = await api.get(`/emedication/audit-logs?entity_type=delivery&entity_id=${d.id}`)
+      setDeliveryAuditLogs(logsRes.data)
+    } catch {
+      setDeliveryAuditLogs([])
+    }
+    setDeliveryAuditLoading(false)
   }
 
   return (
@@ -2459,17 +2671,6 @@ export default function EMedicationPage() {
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 800, color: EMR.ink }}>Stock Inventory</Typography>
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-              <Box sx={{ minWidth: 220 }}>
-                <Autocomplete
-                  options={people || []}
-                  getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
-                  value={stockFilterPerson}
-                  onChange={(_, v) => setStockFilterPerson(v)}
-                  renderInput={(params) => <TextField {...params} label="Filter by person" size="small" />}
-                  isOptionEqualToValue={(o, v) => o.id === v.id}
-                  clearOnEscape
-                />
-              </Box>
               <Chip
                 label={showArchivedStock ? 'Showing All' : 'Active Only'}
                 size="small"
@@ -2482,6 +2683,48 @@ export default function EMedicationPage() {
               </Button>
             </Stack>
           </Stack>
+
+          {/* Filter bar */}
+          <Paper variant="outlined" sx={{ p: 1.5, mb: 2, bgcolor: EMR.paper, borderColor: EMR.hairline }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
+              <Box sx={{ minWidth: 200, flex: 1 }}>
+                <TextField size="small" fullWidth placeholder="Search medication, batch…" value={stockSearch}
+                  onChange={(e) => setStockSearch(e.target.value)}
+                  InputProps={{ endAdornment: stockSearch ? (
+                    <InputAdornment position="end"><IconButton size="small" onClick={() => setStockSearch('')}><CloseIcon fontSize="small" /></IconButton></InputAdornment>
+                  ) : undefined }} />
+              </Box>
+              <Box sx={{ minWidth: 150 }}>
+                <Autocomplete
+                  options={people || []}
+                  getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
+                  value={stockFilterPerson}
+                  onChange={(_, v) => setStockFilterPerson(v)}
+                  renderInput={(params) => <TextField {...params} label="Filter by person" size="small" />}
+                  isOptionEqualToValue={(o, v) => o.id === v.id}
+                  clearOnEscape
+                />
+              </Box>
+              <TextField select size="small" label="Stock level" value={stockLevelFilter}
+                onChange={(e) => setStockLevelFilter(e.target.value)} sx={{ minWidth: 140 }}>
+                <MenuItem value="all">All levels</MenuItem>
+                <MenuItem value="low">Low (≤ reorder)</MenuItem>
+                <MenuItem value="out">Out of stock</MenuItem>
+                <MenuItem value="ok">Healthy</MenuItem>
+              </TextField>
+              <TextField select size="small" label="Expiry" value={stockExpiryFilter}
+                onChange={(e) => setStockExpiryFilter(e.target.value)} sx={{ minWidth: 150 }}>
+                <MenuItem value="all">Any expiry</MenuItem>
+                <MenuItem value="expiring">Expiring ≤ 90 days</MenuItem>
+                <MenuItem value="expired">Expired</MenuItem>
+              </TextField>
+              <TextField select size="small" label="Location" value={stockLocation}
+                onChange={(e) => setStockLocation(e.target.value)} sx={{ minWidth: 150 }}>
+                <MenuItem value="all">All locations</MenuItem>
+                {stockLocations.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
+              </TextField>
+            </Stack>
+          </Paper>
 
           {/* KPI strip */}
           <Box sx={{
@@ -2516,6 +2759,10 @@ export default function EMedicationPage() {
             <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
               No stock items yet — add a stock item or log a delivery to get started.
             </Typography>
+          ) : filteredStock.length === 0 ? (
+            <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+              No stock items match the current filters.
+            </Typography>
           ) : (
             <TableContainer>
               <Table size="small">
@@ -2534,10 +2781,11 @@ export default function EMedicationPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {stockData.map((item: StockItem) => {
+                  {filteredStock.map((item: StockItem) => {
                     const isLow = item.quantity <= item.reorder_level
                     return (
-                      <TableRow key={item.id} hover sx={{ bgcolor: isLow ? '#FFFBEB' : undefined }}>
+                      <TableRow key={item.id} hover onClick={() => setStockDetail(item)}
+                        sx={{ cursor: 'pointer', bgcolor: isLow ? '#FFFBEB' : undefined, '&:hover': { boxShadow: (t) => `inset 0 0 0 1px ${t.palette.primary.main}55` } }}>
                         <TableCell sx={{ fontWeight: 600 }}>{item.person_name || (item.person_id ? '—' : <Chip label="Shared" size="small" variant="outlined" sx={{ fontStyle: 'italic' }} />) as any}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{item.medication_name}</TableCell>
                         <TableCell>{item.dosage}{item.unit}</TableCell>
@@ -2552,18 +2800,18 @@ export default function EMedicationPage() {
                         <TableCell>{item.quantity_unit}</TableCell>
                         <TableCell>{item.reorder_level}</TableCell>
                         <TableCell>{item.location || '\u2014'}</TableCell>
-                        <TableCell align="right">
+                        <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                             <Tooltip title="Adjust stock (damaged/expired/lost/returned)">
-                              <IconButton size="small" color="warning" onClick={() => openAdjustDialog(item)}>
+                              <IconButton size="small" color="warning" onClick={(e) => { e.stopPropagation(); openAdjustDialog(item) }}>
                                 <WarningIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip title="Edit"><IconButton size="small" onClick={() => openStockDialog(item)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                            <Tooltip title="Archive"><IconButton size="small" color="error" onClick={() => setConfirmDialog({
+                            <Tooltip title="Edit"><IconButton size="small" onClick={(e) => { e.stopPropagation(); openStockDialog(item) }}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                            <Tooltip title="Archive"><IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setConfirmDialog({
                               message: 'Archive this stock item? It will no longer appear in active stock lists.',
                               onConfirm: () => stockArchiveMutation.mutate(item.id)
-                            })}><ArchiveOutlined fontSize="small" /></IconButton></Tooltip>
+                            }) }}><ArchiveOutlined fontSize="small" /></IconButton></Tooltip>
                           </Stack>
                         </TableCell>
                       </TableRow>
@@ -2598,6 +2846,7 @@ export default function EMedicationPage() {
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Supplier</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Delivery Note</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Received By</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Items</TableCell>
@@ -2614,6 +2863,7 @@ export default function EMedicationPage() {
                     >
                       <TableCell>{new Date(d.delivery_date).toLocaleDateString()}</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{d.supplier}</TableCell>
+                      <TableCell>{d.person_name || (d.person_id ? '\u2014' : <Chip label="Shared" size="small" variant="outlined" sx={{ fontStyle: 'italic' }} />) as any}</TableCell>
                       <TableCell><Typography variant="caption" fontFamily="monospace">{d.delivery_note || '\u2014'}</Typography></TableCell>
                       <TableCell>{d.received_by || '\u2014'}</TableCell>
                       <TableCell>{d.items_count ?? d.items?.length ?? 0} item{((d.items_count ?? d.items?.length ?? 0)) !== 1 ? 's' : ''}</TableCell>
@@ -2630,7 +2880,7 @@ export default function EMedicationPage() {
       {/* ═══ TAB 3: Daily Counts ═══ */}
       {tab === 3 && (
         <>
-          {/* SU Filter - inline, no button */}
+          {/* Person selector + log controls */}
           <Paper sx={{ p: 2, mb: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 800, color: EMR.ink }}>Daily Medication Counts</Typography>
             <Autocomplete
@@ -2639,129 +2889,60 @@ export default function EMedicationPage() {
               value={countPerson}
               onChange={async (_, v) => {
                 setCountPerson(v)
-                setCountMedications([])
-                setCountItemsForm({})
-                setCountNoRecords(false)
-                if (v?.id) {
-                  setCountLoading(true)
-                  try {
-                    const recordsRes = await api.get(`/emedication/records?personId=${v.id}`)
-                    const activeRecords = (recordsRes.data as any[]).filter((r: any) => r.status === 'active')
-                    let chosenMeds: any[] | null = null
-                    for (const r of activeRecords) {
-                      try {
-                        const medsRes = await api.get(`/emedication/records/${r.id}/medication-quantities`)
-                        if ((medsRes.data as any[]).length > 0) {
-                          chosenMeds = medsRes.data
-                          break
-                        }
-                      } catch { /* record may have corrupt data — try the next one */ }
-                    }
-                    if (chosenMeds && chosenMeds.length > 0) {
-                      setCountMedications(chosenMeds)
-                      const init: Record<string, { actual_quantity: number; reason_for_mismatch: string; escalate: boolean }> = {}
-                      for (const m of chosenMeds) {
-                        init[m.medication_item_id] = { actual_quantity: 0, reason_for_mismatch: '', escalate: false }
-                      }
-                      setCountItemsForm(init)
-                    } else {
-                      setCountNoRecords(true)
-                    }
-                  } catch { setCountNoRecords(true) }
-                  setCountLoading(false)
+                if (!v?.id) {
+                  setCountMedications([])
+                  setCountItemsForm({})
+                  setCountNoRecords(false)
+                  return
                 }
+                setCountedBy(`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.email)
+                setCountedAt(toDatetimeLocal(new Date().toISOString()))
+                setCountSession(defaultCountSession)
+                setCountDate(todayStr())
+                await loadCountData(v, todayStr(), defaultCountSession)
               }}
               renderInput={(params) => <TextField {...params} label="Search Person" size="small" />}
               sx={{ maxWidth: 400 }}
             />
-          </Paper>
 
-          {/* Loading state */}
-          {countLoading && (
-            <Paper sx={{ p: 2, mb: 2, textAlign: 'center', border: `1px solid ${EMR.hairline}`, boxShadow: 'none' }}>
-              <CircularProgress size={24} />
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Loading medications...</Typography>
-            </Paper>
-          )}
-
-          {/* No active records message */}
-          {countNoRecords && !countLoading && (
-            <Paper sx={{ p: 2, mb: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none' }}>
-              <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                No active MAR records found for this person.
-              </Typography>
-            </Paper>
-          )}
-
-          {/* Current-day per-med form */}
-          {countPerson && countMedications.length > 0 && (
-            <Paper sx={{ p: 2, mb: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
-              {errorMsg && (
-                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMsg('')}>{errorMsg}</Alert>
-              )}
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                <Typography variant="subtitle1" fontWeight={700}>
-                  Today's Count — {new Date().toLocaleDateString()}
+            {countPerson && !countLoading && !countNoRecords && countMedications.length > 0 && (
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }} sx={{ mt: 2 }} flexWrap="wrap" useFlexGap>
+                <TextField select label="Count type" size="small" sx={{ minWidth: 180 }}
+                  value={COUNT_TYPES.includes(countSession) ? countSession : defaultCountSession}
+                  onChange={(e) => { setCountSession(e.target.value); loadCountData(countPerson, countDate, e.target.value) }}>
+                  {COUNT_TYPES.map((t) => <MenuItem key={t} value={t}>{countSessionLabel(t)}</MenuItem>)}
+                </TextField>
+                <TextField label="Date" type="date" size="small" value={countDate} sx={{ minWidth: 160 }}
+                  onChange={(e) => { setCountDate(e.target.value); loadCountData(countPerson, e.target.value, countSession) }}
+                  InputLabelProps={{ shrink: true }} inputProps={{ max: todayStr() }} />
+                <Typography variant="caption" color="text.secondary">
+                  {countMedications.length} medication{countMedications.length !== 1 ? 's' : ''} · expected quantities from current stock
                 </Typography>
+                <Button variant="contained" size="small" startIcon={<AddIcon />}
+                  onClick={() => { setCountDialog(true); setErrorMsg('') }}>
+                  {countDate === todayStr() ? "Log Today's Count" : 'Log Count'}
+                </Button>
               </Stack>
-              {countMedications.map((med: any) => {
-                const expected = med.times?.length || 0
-                const actual = countItemsForm[med.medication_item_id]?.actual_quantity ?? 0
-                const isMismatch = actual !== expected
-                return (
-                  <Paper key={med.medication_item_id} variant="outlined" sx={{ p: 1.5, mb: 1.5 }}>
-                    <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
-                      <Box sx={{ flex: 1, minWidth: 200 }}>
-                        <Typography variant="body2" fontWeight={600}>{med.medication_name}</Typography>
-                        <Typography variant="caption" color="text.secondary">{med.dosage}{med.unit}</Typography>
-                      </Box>
-                      <TextField label="Expected" type="number" size="small" sx={{ width: 110 }}
-                        value={expected} InputProps={{ readOnly: true }} />
-                      <TextField label="Actual" type="number" size="small" sx={{ width: 110 }}
-                        value={actual}
-                        onChange={(e) => setCountItemsForm(p => ({
-                          ...p,
-                          [med.medication_item_id]: { ...p[med.medication_item_id], actual_quantity: Number(e.target.value) }
-                        }))} />
-                    </Stack>
-                    {isMismatch && (
-                      <Stack direction="row" spacing={2} sx={{ mt: 1.5 }} alignItems="center" flexWrap="wrap">
-                        <TextField select label="Reason for Mismatch" size="small" sx={{ minWidth: 200 }}
-                          value={countItemsForm[med.medication_item_id]?.reason_for_mismatch || ''}
-                          onChange={(e) => setCountItemsForm(p => ({
-                            ...p,
-                            [med.medication_item_id]: { ...p[med.medication_item_id], reason_for_mismatch: e.target.value }
-                          }))}>
-                          {['', 'Wastage', 'Count discrepancy', 'Damaged', 'Lost', 'Other'].map(o => (
-                            <MenuItem key={o} value={o}>{o || 'Select reason'}</MenuItem>
-                          ))}
-                        </TextField>
-                        <FormControlLabel
-                          control={<Checkbox checked={countItemsForm[med.medication_item_id]?.escalate || false}
-                            onChange={(e) => setCountItemsForm(p => ({
-                              ...p,
-                              [med.medication_item_id]: { ...p[med.medication_item_id], escalate: e.target.checked }
-                            }))} />}
-                          label="Escalate to Manager"
-                        />
-                      </Stack>
-                    )}
-                  </Paper>
-                )
-              })}
-              <Button variant="contained" onClick={handleSaveDailyCount}
-                disabled={!countPerson || countCreateMutation.isPending}>
-                {countCreateMutation.isPending ? 'Saving...' : "Save Today's Count"}
-              </Button>
-            </Paper>
-          )}
+            )}
+
+            {countLoading && (
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 2 }}>
+                <CircularProgress size={20} />
+                <Typography variant="body2" color="text.secondary">Loading medications and stock…</Typography>
+              </Stack>
+            )}
+
+            {countNoRecords && !countLoading && countPerson && (
+              <Alert severity="info" sx={{ mt: 2 }}>No active MAR records found for this person.</Alert>
+            )}
+          </Paper>
 
           {/* History table */}
           <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
             <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, color: EMR.ink }}>Count History</Typography>
             {!dailyCounts || dailyCounts.length === 0 ? (
               <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                No daily counts logged yet — complete a count above to record the first one.
+                No daily counts logged yet — select a person and log a count to record the first one.
               </Typography>
             ) : (
               <TableContainer>
@@ -2769,30 +2950,40 @@ export default function EMedicationPage() {
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Count Type</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Staff Name</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Counted By</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Counted At</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Medications Checked</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Overall Match</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {dailyCounts.map((c: any) => (
-                      <TableRow key={c.id} hover>
+                      <TableRow key={c.id} hover
+                        onClick={() => {
+                          const person = (people || []).find((p: any) => p.id === c.person_id) || { id: c.person_id, first_name: c.person_name?.split(' ')[0] || '', last_name: c.person_name?.split(' ')[1] || '' }
+                          const date = c.count_date?.slice?.(0, 10) || todayStr()
+                          const session = c.count_session || defaultCountSession
+                          setCountPerson(person)
+                          setCountDate(date)
+                          setCountSession(session)
+                          setCountedBy(c.staff_name || countedBy)
+                          setCountedAt(toDatetimeLocal(c.counted_at) || toDatetimeLocal(new Date().toISOString()))
+                          setErrorMsg('')
+                          setCountDialog(true)
+                          loadCountData(person, date, session)
+                        }}
+                        sx={{ cursor: 'pointer', '&:hover': { boxShadow: (t) => `inset 0 0 0 1px ${t.palette.primary.main}55` } }}>
                         <TableCell>{new Date(c.count_date).toLocaleDateString()}</TableCell>
+                        <TableCell><Chip label={countSessionLabel(c.count_session || 'end_of_day')} size="small" variant="outlined" /></TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{c.person_name || '\u2014'}</TableCell>
                         <TableCell>{c.staff_name || '\u2014'}</TableCell>
+                        <TableCell>{c.counted_at ? new Date(c.counted_at).toLocaleString() : '\u2014'}</TableCell>
                         <TableCell>{c.items_count || 0} meds</TableCell>
                         <TableCell>
                           <Chip label={c.matches_physical ? 'Yes' : 'No'} size="small"
                             color={c.matches_physical ? 'success' : 'error'} />
-                        </TableCell>
-                        <TableCell>
-                          <Button size="small" variant="text" onClick={async () => {
-                            const res = await api.get(`/emedication/daily-counts/${c.id}/items`)
-                            setEditDailyCountItems(res.data)
-                            setEditDailyCountId(c.id)
-                          }}>View Items</Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -3166,11 +3357,104 @@ export default function EMedicationPage() {
         </DialogActions>
       </Dialog>
 
+      {/* Stock Detail Dialog */}
+      <Dialog open={!!stockDetail} onClose={() => setStockDetail(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Stock Item</DialogTitle>
+        <DialogContent dividers>
+          {stockDetail && (
+            <Stack spacing={2}>
+              <Stack direction="row" flexWrap="wrap" spacing={3} useFlexGap>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Person</Typography>
+                  <Typography variant="body1" fontWeight={600}>{stockDetail.person_name || (stockDetail.person_id ? '\u2014' : 'Shared stock')}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Medication</Typography>
+                  <Typography variant="body1" fontWeight={600}>{stockDetail.medication_name} {stockDetail.dosage}{stockDetail.unit}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Quantity</Typography>
+                  <Typography variant="body1" fontWeight={800}
+                    color={stockDetail.quantity <= stockDetail.reorder_level ? '#B45309' : 'text.primary'}>
+                    {stockDetail.quantity} {stockDetail.quantity_unit}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Reorder Level</Typography>
+                  <Typography variant="body1" fontWeight={600}>{stockDetail.reorder_level}</Typography>
+                </Box>
+              </Stack>
+              <Stack direction="row" flexWrap="wrap" spacing={3} useFlexGap>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Batch Number</Typography>
+                  <Typography variant="body1" fontWeight={600} fontFamily="monospace">{stockDetail.batch_number || '\u2014'}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Expiry</Typography>
+                  <Typography variant="body1" fontWeight={600}>
+                    {stockDetail.expiry_date ? new Date(stockDetail.expiry_date).toLocaleDateString() : '\u2014'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Location</Typography>
+                  <Typography variant="body1" fontWeight={600}>{stockDetail.location || '\u2014'}</Typography>
+                </Box>
+                {stockDetail.is_controlled_drug !== undefined && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Controlled Drug</Typography>
+                    <Typography variant="body1" fontWeight={600}>{stockDetail.is_controlled_drug ? 'Yes' : 'No'}</Typography>
+                  </Box>
+                )}
+              </Stack>
+              {stockDetail.quantity <= stockDetail.reorder_level && (
+                <Alert severity="warning" icon={<WarningIcon />}>
+                  Below reorder level — consider logging a delivery or raising stock.
+                </Alert>
+              )}
+              {stockDetail.status === 'archived' && (
+                <Alert severity="info">This item is archived and no longer appears in active stock lists.</Alert>
+              )}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {stockDetail && (
+            <>
+              <Button color="error" onClick={() => setConfirmDialog({
+                message: 'Archive this stock item? It will no longer appear in active stock lists.',
+                onConfirm: () => { stockArchiveMutation.mutate(stockDetail.id); setStockDetail(null) }
+              })}>Archive</Button>
+              <Button color="warning" onClick={() => { openAdjustDialog(stockDetail); setStockDetail(null) }}>Adjust</Button>
+              <Button onClick={() => { openStockDialog(stockDetail); setStockDetail(null) }}>Edit</Button>
+            </>
+          )}
+          <Button onClick={() => setStockDetail(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Delivery Dialog */}
-      <Dialog open={deliveryDialog} onClose={() => setDeliveryDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Log Delivery</DialogTitle>
+      <Dialog open={deliveryDialog} onClose={() => { setDeliveryDialog(false); setEditDelivery(null); setDeliveryPerson(null) }} maxWidth="md" fullWidth>
+        <DialogTitle>{editDelivery ? 'Edit Delivery' : 'Log Delivery'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+              <Box sx={{ flex: 1, minWidth: 260 }}>
+                <Autocomplete
+                  options={people || []}
+                  getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
+                  value={deliveryPerson}
+                  onChange={(_, v) => { setDeliveryPerson(v); loadDeliveryPersonMeds(v) }}
+                  renderInput={(params) => <TextField {...params} label="For person (optional — leave blank for shared stock)" size="small" />}
+                  isOptionEqualToValue={(o, v) => o.id === v.id}
+                  clearOnEscape
+                  fullWidth
+                />
+              </Box>
+              <FormControlLabel
+                control={<Checkbox checked={!!deliveryShared} onChange={(e) => setDeliveryShared(e.target.checked)} />}
+                label="Shared stock"
+              />
+            </Stack>
             <Stack direction="row" spacing={1}>
               <TextField label="Supplier" fullWidth value={deliveryForm.supplier}
                 onChange={(e) => setDeliveryForm(p => ({ ...p, supplier: e.target.value }))} size="small" required />
@@ -3192,7 +3476,11 @@ export default function EMedicationPage() {
             {deliveryForm.items.map((item: any) => (
               <Paper key={item.id} variant="outlined" sx={{ p: 1 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="body2" fontWeight={600}>{item.medication_name} {item.dosage}{item.unit}</Typography>
+                  <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+                    <Typography variant="body2" fontWeight={600}>{item.medication_name} {item.dosage}{item.unit}</Typography>
+                    {item.batch_number && <Chip label={item.batch_number} size="small" variant="outlined" />}
+                    {item.expiry_date && <Chip label={`Exp ${new Date(item.expiry_date).toLocaleDateString()}`} size="small" variant="outlined" />}
+                  </Stack>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Chip label={`${item.quantity} ${item.quantity_unit}`} size="small" />
                     <IconButton size="small" color="error" onClick={() => removeDeliveryItem(item.id)}><CloseIcon fontSize="small" /></IconButton>
@@ -3201,15 +3489,40 @@ export default function EMedicationPage() {
               </Paper>
             ))}
             <Paper variant="outlined" sx={{ p: 1.5 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>Add Item</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                Add Item
+              </Typography>
+              {deliveryPersonMeds && deliveryPersonMeds.length > 0 && (
+                <Autocomplete
+                  size="small"
+                  sx={{ mb: 1 }}
+                  options={deliveryPersonMeds}
+                  getOptionLabel={(o: any) => `${o.medication_name}${o.dosage ? ` ${o.dosage}` : ''}${o.unit ? o.unit : ''}`}
+                  value={deliveryItemMed}
+                  onChange={(_, v) => {
+                    setDeliveryItemMed(v)
+                    if (v) {
+                      setDeliveryItemForm(p => ({
+                        ...p,
+                        medication_name: v.medication_name,
+                        dosage: v.dosage || '',
+                        unit: v.unit || '',
+                        medication_item_id: v.id,
+                      }))
+                    }
+                  }}
+                  renderInput={(params) => <TextField {...params} label="Pick from person's MAR…" size="small" />}
+                  isOptionEqualToValue={(o, v) => o.id === v.id}
+                />
+              )}
               <Stack spacing={1}>
                 <TextField label="Medication Name" fullWidth value={deliveryItemForm.medication_name}
                   onChange={(e) => setDeliveryItemForm(p => ({ ...p, medication_name: e.target.value }))} size="small" />
                 <Stack direction="row" spacing={1}>
                   <TextField label="Dosage" fullWidth value={deliveryItemForm.dosage}
                     onChange={(e) => setDeliveryItemForm(p => ({ ...p, dosage: e.target.value }))} size="small" />
-                  <TextField select label="Unit" value={deliveryItemForm.unit}
-                    onChange={(e) => setDeliveryItemForm(p => ({ ...p, unit: e.target.value }))} size="small" sx={{ minWidth: 80 }}>
+                  <TextField select label="Dose Unit" value={deliveryItemForm.unit}
+                    onChange={(e) => setDeliveryItemForm(p => ({ ...p, unit: e.target.value }))} size="small" sx={{ minWidth: 110 }}>
                     {['mg', 'ml', 'mcg', 'g'].map(u => (<MenuItem key={u} value={u}>{u}</MenuItem>))}
                   </TextField>
                 </Stack>
@@ -3233,10 +3546,10 @@ export default function EMedicationPage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeliveryDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => deliveryCreateMutation.mutate(deliveryForm)}
-            disabled={!deliveryForm.supplier || deliveryCreateMutation.isPending || deliveryForm.items.length === 0}>
-            {deliveryCreateMutation.isPending ? 'Saving...' : 'Save Delivery'}
+          <Button onClick={() => { setDeliveryDialog(false); setEditDelivery(null); setDeliveryPerson(null) }}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveDelivery}
+            disabled={!deliveryForm.supplier || (deliveryCreateMutation.isPending || deliveryUpdateMutation.isPending) || deliveryForm.items.length === 0}>
+            {(deliveryCreateMutation.isPending || deliveryUpdateMutation.isPending) ? 'Saving...' : 'Save Delivery'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -3254,6 +3567,10 @@ export default function EMedicationPage() {
                   <Box>
                     <Typography variant="caption" color="text.secondary">Supplier</Typography>
                     <Typography variant="body1" fontWeight={600}>{deliveryDetail.supplier || '\u2014'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Person</Typography>
+                    <Typography variant="body1" fontWeight={600}>{deliveryDetail.person_name || (deliveryDetail.person_id ? '\u2014' : 'Shared stock')}</Typography>
                   </Box>
                   <Box>
                     <Typography variant="caption" color="text.secondary">Delivery Date</Typography>
@@ -3309,11 +3626,53 @@ export default function EMedicationPage() {
                     <Typography color="text.secondary" variant="body2">No items recorded for this delivery.</Typography>
                   )}
                 </Box>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>Audit Trail</Typography>
+                  {deliveryAuditLoading ? (
+                    <CircularProgress size={20} />
+                  ) : deliveryAuditLogs && deliveryAuditLogs.length > 0 ? (
+                    <TableContainer component={Paper} variant="outlined">
+                      <Table size="small">
+                        <TableBody>
+                          {deliveryAuditLogs.map((log: AuditLog) => (
+                            <TableRow key={log.id}>
+                              <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString()}</TableCell>
+                              <TableCell>{log.user_name}</TableCell>
+                              <TableCell>
+                                <Chip label={log.action.replace(/_/g, ' ')} size="small"
+                                  color={log.action.includes('delete') ? 'error' : log.action.includes('create') ? 'success' : 'default'} />
+                              </TableCell>
+                              <TableCell>
+                                {log.changes && typeof log.changes === 'object' ? (
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace', fontSize: '0.65rem' }}>
+                                    {Object.entries(log.changes).slice(0, 3).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                                    {Object.keys(log.changes).length > 3 ? ` +${Object.keys(log.changes).length - 3} more` : ''}
+                                  </Typography>
+                                ) : <Typography variant="caption" color="text.secondary">{'\u2014'}</Typography>}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  ) : (
+                    <Typography color="text.secondary" variant="body2">No audit entries recorded for this delivery.</Typography>
+                  )}
+                </Box>
               </Stack>
             )
           )}
         </DialogContent>
         <DialogActions>
+          {deliveryDetail && (
+            <Button color="error" onClick={() => setConfirmDialog({
+              message: 'Delete this delivery? Stock quantities created from this delivery will be adjusted.',
+              onConfirm: () => { deliveryDeleteMutation.mutate(deliveryDetail.id); setDeliveryDetail(null) }
+            })}>Delete</Button>
+          )}
+          {deliveryDetail && (
+            <Button onClick={() => { openDeliveryDialog(deliveryDetail); setDeliveryDetail(null) }}>Edit</Button>
+          )}
           <Button onClick={() => setDeliveryDetail(null)}>Close</Button>
         </DialogActions>
       </Dialog>
@@ -3333,44 +3692,113 @@ export default function EMedicationPage() {
         </DialogActions>
       </Dialog>
 
-      {/* View Daily Count Items Dialog */}
-      <Dialog open={!!editDailyCountId} onClose={() => { setEditDailyCountId(null); setEditDailyCountItems([]) }} maxWidth="sm" fullWidth>
-        <DialogTitle>Daily Count Items</DialogTitle>
-        <DialogContent>
-          {editDailyCountItems.length === 0 ? (
-            <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>No items recorded for this count.</Typography>
-          ) : (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Medication</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Expected</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Actual</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Reason</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {editDailyCountItems.map((item: any) => (
-                    <TableRow key={item.id} hover>
-                      <TableCell sx={{ fontWeight: 600 }}>{item.medication_name}</TableCell>
-                      <TableCell align="right">{item.expected_quantity}</TableCell>
-                      <TableCell align="right">
-                        <Typography color={item.actual_quantity !== item.expected_quantity ? 'error' : 'text.primary'} fontWeight={600}>
-                          {item.actual_quantity}
-                        </Typography>
-                      </TableCell>
-                      <TableCell><Typography variant="caption" color="text.secondary">{item.reason_for_mismatch || '\u2014'}</Typography></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => { setEditDailyCountId(null); setEditDailyCountItems([]) }}>Close</Button>
-        </DialogActions>
+      {/* Daily Count Form Dialog */}
+      <Dialog open={countDialog} onClose={() => { setCountDialog(false); setErrorMsg('') }} maxWidth="md" fullWidth>
+        {countPerson && (
+          <>
+            <DialogTitle sx={{ fontWeight: 800, color: EMR.ink }}>
+              {editingCount ? 'Update Daily Count' : 'Log Daily Count'}
+              <Typography variant="caption" display="block" color="text.secondary" fontWeight={500}>
+                {countPerson.first_name} {countPerson.last_name} · {countDate ? new Date(`${countDate}T00:00:00`).toLocaleDateString() : ''} · {countSessionLabel(COUNT_TYPES.includes(countSession) ? countSession : defaultCountSession)}
+              </Typography>
+            </DialogTitle>
+            <DialogContent dividers>
+              {errorMsg && (
+                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMsg('')}>{errorMsg}</Alert>
+              )}
+
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+                <TextField label="Count date" type="date" size="small" value={countDate}
+                  onChange={(e) => { setCountDate(e.target.value); if (countPerson) loadCountData(countPerson, e.target.value, countSession) }} InputLabelProps={{ shrink: true }}
+                  inputProps={{ max: todayStr() }} />
+                <TextField select label="Count type" size="small" value={COUNT_TYPES.includes(countSession) ? countSession : defaultCountSession}
+                  onChange={(e) => { setCountSession(e.target.value); if (countPerson) loadCountData(countPerson, countDate, e.target.value) }} sx={{ minWidth: 150 }}>
+                  {COUNT_TYPES.map((s) => <MenuItem key={s} value={s}>{countSessionLabel(s)}</MenuItem>)}
+                </TextField>
+                <TextField label="Counted by" size="small" value={countedBy} sx={{ minWidth: 220 }}
+                  onChange={(e) => setCountedBy(e.target.value)} />
+                <TextField label="Counted at" type="datetime-local" size="small" value={countedAt} sx={{ minWidth: 200 }}
+                  onChange={(e) => setCountedAt(e.target.value)} InputLabelProps={{ shrink: true }} />
+              </Stack>
+
+              {countMedications.length === 0 ? (
+                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>No active medications to count.</Typography>
+              ) : (
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700 }}>Medication</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="right">Expected</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="right">Actual</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Mismatch Reason</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Escalate</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {countMedications.map((med: any) => {
+                        const expected = med.times?.length || 0
+                        const f = countItemsForm[med.medication_item_id] || { actual_quantity: 0, reason_for_mismatch: '', escalate: false }
+                        const isMismatch = (f.actual_quantity ?? 0) !== expected
+                        return (
+                          <TableRow key={med.medication_item_id} hover sx={isMismatch ? { bgcolor: (t) => t.palette.error.light + '14' } : {}}>
+                            <TableCell>
+                              <Typography variant="body2" fontWeight={600}>{med.medication_name}</Typography>
+                              <Typography variant="caption" color="text.secondary">{med.dosage}{med.unit}</Typography>
+                            </TableCell>
+                            <TableCell align="right">{expected}</TableCell>
+                            <TableCell align="right">
+                              <TextField type="number" size="small" sx={{ width: 90 }}
+                                value={f.actual_quantity}
+                                onChange={(e) => setCountItemsForm(p => ({
+                                  ...p,
+                                  [med.medication_item_id]: { ...p[med.medication_item_id], actual_quantity: Number(e.target.value) }
+                                }))} />
+                            </TableCell>
+                            <TableCell>
+                              <TextField select size="small" sx={{ minWidth: 170 }} disabled={!isMismatch}
+                                value={f.reason_for_mismatch || ''}
+                                onChange={(e) => setCountItemsForm(p => ({
+                                  ...p,
+                                  [med.medication_item_id]: { ...p[med.medication_item_id], reason_for_mismatch: e.target.value }
+                                }))}>
+                                {['', 'Wastage', 'Count discrepancy', 'Damaged', 'Lost', 'Other'].map(o => (
+                                  <MenuItem key={o} value={o}>{o || 'Select reason'}</MenuItem>
+                                ))}
+                              </TextField>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Checkbox checked={f.escalate || false} disabled={!isMismatch}
+                                onChange={(e) => setCountItemsForm(p => ({
+                                  ...p,
+                                  [med.medication_item_id]: { ...p[med.medication_item_id], escalate: e.target.checked }
+                                }))} />
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+
+              {countMedications.length > 0 && (
+                <Stack direction="row" spacing={1} sx={{ mt: 2 }} flexWrap="wrap" useFlexGap>
+                  <Chip label={`${countMedications.filter(m => (countItemsForm[m.medication_item_id]?.actual_quantity ?? 0) === (m.times?.length || 0)).length} match`} size="small" color="success" variant="outlined" />
+                  <Chip label={`${countMedications.filter(m => (countItemsForm[m.medication_item_id]?.actual_quantity ?? 0) !== (m.times?.length || 0)).length} mismatch`} size="small" color="error" variant="outlined" />
+                  <Chip label={`${countMedications.filter(m => countItemsForm[m.medication_item_id]?.escalate).length} escalated`} size="small" color="warning" variant="outlined" />
+                </Stack>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => { setCountDialog(false); setErrorMsg('') }}>Cancel</Button>
+              <Button variant="contained" onClick={handleSaveDailyCount}
+                disabled={!countDate || !COUNT_TYPES.includes(countSession) || countCreateMutation.isPending}>
+                {countCreateMutation.isPending ? 'Saving...' : editingCount ? 'Update Count' : 'Save Count'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
 
       {/* Archive Confirmation Dialog */}

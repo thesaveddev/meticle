@@ -1129,6 +1129,17 @@ const INITIAL_MIGRATION: Migration = {
   // eMAR: add omitted status to administration statuses
   `ALTER TABLE emedication_administrations DROP CONSTRAINT IF EXISTS emedication_administrations_status_check`,
   `ALTER TABLE emedication_administrations ADD CONSTRAINT emedication_administrations_status_check CHECK (status IN ('given', 'refused', 'missed', 'omitted', 'not_available', 'n/a', 'pending'))`,
+  // eMAR: deliveries can be scoped to an individual's stock
+  `ALTER TABLE emedication_deliveries ADD COLUMN IF NOT EXISTS person_id UUID REFERENCES people(id) ON DELETE SET NULL`,
+  `CREATE INDEX IF NOT EXISTS idx_emed_deliveries_person ON emedication_deliveries(person_id)`,
+  // eMAR: org-level medication count convention (once a day / AM-PM / after each administration)
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS emedication_count_convention VARCHAR(20) DEFAULT 'end_of_day' CHECK (emedication_count_convention IN ('end_of_day', 'am_pm', 'after_each'))`,
+  // eMAR: daily counts can record multiple sessions per day (e.g. AM + PM)
+  `ALTER TABLE emedication_daily_counts ADD COLUMN IF NOT EXISTS count_session VARCHAR(50) DEFAULT 'end_of_day'`,
+  `ALTER TABLE emedication_daily_counts DROP CONSTRAINT IF EXISTS emedication_daily_counts_person_id_count_date_key`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_emed_daily_counts_person_date_session ON emedication_daily_counts(person_id, count_date, count_session)`,
+  // eMAR: record when a daily count was performed
+  `ALTER TABLE emedication_daily_counts ADD COLUMN IF NOT EXISTS counted_at TIMESTAMPTZ`,
   // AI Integration: ai_config JSONB on organizations
   `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS ai_config JSONB DEFAULT '{"enabled":false,"provider":"openai","apiKey":"","model":"gpt-4o-mini","enabledFeatures":[]}'::jsonb`,
   // AI Integration: additional audit log columns (already created above)

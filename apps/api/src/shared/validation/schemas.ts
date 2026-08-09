@@ -665,6 +665,7 @@ export const updateOrgSettingsSchema = z.object({
   reorder_alert_enabled: z.boolean().optional(),
   late_med_alert_enabled: z.boolean().optional(),
   late_med_alert_delay_minutes: z.number().int().min(1).max(1440).optional(),
+  emedication_count_convention: z.enum(['end_of_day', 'am_pm', 'after_each']).optional(),
 });
 
 export const createComplianceConfigSchema = z.object({
@@ -985,7 +986,22 @@ export const createStockItemSchema = z.object({
   person_id: z.string().uuid().optional(),
 });
 
+export const deliveryNewMedicationSchema = z.object({
+  route: z.string().max(50).optional(),
+  frequency: z.string().min(1).max(100),
+  times: z.array(z.string()).max(24).optional(),
+  instructions: z.string().max(1000).optional(),
+  is_prn: z.boolean().optional(),
+  is_controlled_drug: z.boolean().optional(),
+  prescriber_name: z.string().max(255).optional(),
+  prescriber_phone: z.string().max(50).optional(),
+  prescription_ref: z.string().max(255).optional(),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
 export const deliveryItemSchema = z.object({
+  id: z.string().uuid().optional(),
   stock_id: z.string().uuid().optional(),
   medication_name: z.string().min(1).max(255),
   dosage: z.string().max(100).optional(),
@@ -994,9 +1010,11 @@ export const deliveryItemSchema = z.object({
   expiry_date: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal('')]).optional(),
   quantity: z.number().min(0),
   quantity_unit: z.string().max(50).optional(),
+  new_medication: deliveryNewMedicationSchema.optional(),
 });
 
 export const createDeliverySchema = z.object({
+  person_id: z.string().uuid().optional(),
   supplier: z.string().max(255).optional(),
   delivery_note: z.string().max(255).optional(),
   delivery_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -1011,16 +1029,31 @@ export const createDailyCountSchema = z.object({
   staff_name: z.string().min(1).max(255),
   matches_physical: z.boolean().optional(),
   notes: z.string().max(1000).optional(),
+  count_session: z.string().max(50).optional(),
+  counted_at: z.string().max(50).optional(),
 });
 
-export const upsertDailyCountItemSchema = z.object({
-  daily_count_id: z.string().uuid(),
+export const dailyCountItemInputSchema = z.object({
   medication_item_id: z.string().uuid(),
   medication_name: z.string().min(1).max(255),
   expected_quantity: z.number().min(0),
   actual_quantity: z.number().min(0),
   reason_for_mismatch: z.string().max(500).optional(),
   escalate: z.boolean().optional(),
+});
+
+export const upsertDailyCountSchema = z.object({
+  person_id: z.string().uuid(),
+  count_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  count_session: z.string().max(50).optional(),
+  staff_name: z.string().min(1).max(255),
+  counted_at: z.string().max(50).optional(),
+  notes: z.string().max(1000).optional(),
+  items: z.array(dailyCountItemInputSchema).min(1).max(200),
+});
+
+export const upsertDailyCountItemSchema = dailyCountItemInputSchema.extend({
+  daily_count_id: z.string().uuid(),
 });
 
 export const updateAdministrationSchema = z.object({

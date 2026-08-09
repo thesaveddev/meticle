@@ -17,7 +17,8 @@ export class SettingsController {
                 compliance_digest_enabled, predictive_alerts_enabled,
                 auto_evidence_pack_enabled, auto_evidence_pack_frequency,
                 daily_shift_audit_enabled, daily_shift_audit_time,
-                reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes
+                reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes,
+                emedication_count_convention
        FROM organizations WHERE id = $1`,
       [orgId]
     );
@@ -39,7 +40,7 @@ export class SettingsController {
     const orgId = user.organizationId;
 
     // MANAGERs may only change medication/alert related safety settings
-    const managerAllowed = new Set(['daily_shift_audit_enabled', 'daily_shift_audit_time', 'reorder_alert_enabled', 'late_med_alert_enabled', 'late_med_alert_delay_minutes']);
+    const managerAllowed = new Set(['daily_shift_audit_enabled', 'daily_shift_audit_time', 'reorder_alert_enabled', 'late_med_alert_enabled', 'late_med_alert_delay_minutes', 'emedication_count_convention']);
     if (user.role === 'MANAGER') {
       const filtered: any = {};
       for (const k of Object.keys(req.body)) {
@@ -51,7 +52,7 @@ export class SettingsController {
       req.body = filtered;
     }
 
-    const { leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes } = req.body;
+    const { leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention } = req.body;
     const result = await pool.query(
       `UPDATE organizations SET
         leave_start_month = COALESCE($1, leave_start_month),
@@ -71,9 +72,10 @@ export class SettingsController {
         daily_shift_audit_time = COALESCE($15::TIME, daily_shift_audit_time),
         reorder_alert_enabled = COALESCE($16, reorder_alert_enabled),
         late_med_alert_enabled = COALESCE($17, late_med_alert_enabled),
-        late_med_alert_delay_minutes = COALESCE($18, late_med_alert_delay_minutes)
-       WHERE id = $19 RETURNING *`,
-      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time || null, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes, orgId]
+        late_med_alert_delay_minutes = COALESCE($18, late_med_alert_delay_minutes),
+        emedication_count_convention = COALESCE($19, emedication_count_convention)
+       WHERE id = $20 RETURNING *`,
+      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time || null, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention || null, orgId]
     );
 
     AuditRepository.log({

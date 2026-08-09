@@ -935,6 +935,7 @@ CREATE TABLE IF NOT EXISTS emedication_daily_counts (
     staff_name TEXT NOT NULL,
     matches_physical BOOLEAN DEFAULT TRUE,
     notes TEXT,
+    counted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(person_id, count_date)
 );

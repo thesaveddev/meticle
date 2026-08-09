@@ -374,8 +374,28 @@ export class EMedicationController {
     const { recordId } = req.params;
     const record = await EMedicationRepository.findRecordById(recordId, orgId);
     if (!record) throw new AppError(404, 'Medication record not found');
-    const meds = await EMedicationRepository.getMedicationExpectedQuantities(recordId);
+    const meds = await EMedicationRepository.getMedicationExpectedQuantities(recordId, orgId);
     res.json(meds);
+  }
+
+  static async getMedicationsForDailyCount(req: Request, res: Response) {
+    const orgId = EMedicationController.getOrgId(req);
+    const { personId } = req.query as any;
+    if (!personId) throw new AppError(400, 'personId is required');
+    const meds = await EMedicationRepository.getMedicationsForDailyCount(orgId, personId);
+    res.json(meds);
+  }
+
+  static async upsertDailyCount(req: Request, res: Response) {
+    const orgId = EMedicationController.getOrgId(req);
+    const count = await EMedicationRepository.upsertDailyCountWithItems(orgId, req.body);
+
+    await EMedicationAuditRepository.log({
+      organization_id: orgId, action: 'upsert_daily_count', entity_type: 'daily_count',
+      entity_id: count.id, user_id: req.user!.userId, changes: req.body, ip_address: req.ip
+    });
+
+    res.json(count);
   }
 
   static async listDailyCountItems(req: Request, res: Response) {
@@ -385,6 +405,14 @@ export class EMedicationController {
 
   static async upsertDailyCountItem(req: Request, res: Response) {
     const item = await EMedicationRepository.upsertDailyCountItem(req.body);
+
+    const orgId = EMedicationController.getOrgId(req);
+    await EMedicationAuditRepository.log({
+      organization_id: orgId, action: 'upsert_daily_count_item', entity_type: 'daily_count',
+      entity_id: item.daily_count_id, user_id: req.user!.userId,
+      changes: { ...req.body, daily_count_item_id: item.id }, ip_address: req.ip
+    });
+
     res.json(item);
   }
 
@@ -404,7 +432,7 @@ export class EMedicationController {
 
   static async createDelivery(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
-    const delivery = await EMedicationRepository.createDelivery(orgId, req.body);
+    const delivery = await EMedicationRepository.createDelivery(orgId, req.body, req.user!.userId);
 
     await EMedicationAuditRepository.log({
       organization_id: orgId, action: 'create_delivery', entity_type: 'delivery',
@@ -412,6 +440,30 @@ export class EMedicationController {
     });
 
     res.status(201).json(delivery);
+  }
+
+  static async updateDelivery(req: Request, res: Response) {
+    const orgId = EMedicationController.getOrgId(req);
+    const delivery = await EMedicationRepository.updateDelivery(orgId, req.params.id, req.body, req.user!.userId);
+
+    await EMedicationAuditRepository.log({
+      organization_id: orgId, action: 'update_delivery', entity_type: 'delivery',
+      entity_id: delivery.id, user_id: req.user!.userId, changes: req.body, ip_address: req.ip
+    });
+
+    res.json(delivery);
+  }
+
+  static async deleteDelivery(req: Request, res: Response) {
+    const orgId = EMedicationController.getOrgId(req);
+    await EMedicationRepository.deleteDelivery(orgId, req.params.id);
+
+    await EMedicationAuditRepository.log({
+      organization_id: orgId, action: 'delete_delivery', entity_type: 'delivery',
+      entity_id: req.params.id, user_id: req.user!.userId, changes: {}, ip_address: req.ip
+    });
+
+    res.json({ message: 'Delivery deleted and stock reversed' });
   }
 
   // ── Import Medications from Previous Month ──
@@ -453,8 +505,8 @@ export class EMedicationController {
   // ── Daily Counts ──
   static async listDailyCounts(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
-    const { personId } = req.query as any;
-    const counts = await EMedicationRepository.findDailyCounts(orgId, personId);
+    const { personId, date, session } = req.query as any;
+    const counts = await EMedicationRepository.findDailyCounts(orgId, personId, date, session);
     res.json(counts);
   }
 

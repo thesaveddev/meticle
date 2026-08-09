@@ -28,6 +28,10 @@ export interface EMedicationItem {
   stock_item_id: string | null;
   start_date: string | null;
   end_date: string | null;
+  is_controlled_drug?: boolean;
+  prescriber_name?: string | null;
+  prescriber_phone?: string | null;
+  prescription_ref?: string | null;
   created_by: string;
   created_at: string;
 }
@@ -567,7 +571,7 @@ export class EMedicationRepository {
   }
 
   // ── Daily Counts ──
-  static async findDailyCounts(orgId: string, personId?: string): Promise<any[]> {
+  static async findDailyCounts(orgId: string, personId?: string, countDate?: string, countSession?: string): Promise<any[]> {
     let sql = `
       SELECT dc.*,
         (SELECT first_name || ' ' || last_name FROM people WHERE id = dc.person_id) AS person_name,
@@ -575,21 +579,85 @@ export class EMedicationRepository {
       FROM emedication_daily_counts dc
       WHERE dc.organization_id = $1`;
     const params: any[] = [orgId];
-    if (personId) {
-      sql += ` AND dc.person_id = $2`;
-      params.push(personId);
-    }
+    let idx = 2;
+    if (personId) { sql += ` AND dc.person_id = $${idx++}`; params.push(personId); }
+    if (countDate) { sql += ` AND dc.count_date = $${idx++}`; params.push(countDate); }
+    if (countSession) { sql += ` AND dc.count_session = $${idx++}`; params.push(countSession); }
     sql += ` ORDER BY dc.count_date DESC`;
     const result = await query(sql, params);
     return result.rows;
   }
 
   static async createDailyCount(orgId: string, data: any): Promise<any> {
+    const session = data.count_session || 'end_of_day';
+    const countedAt = data.counted_at || new Date().toISOString();
+    const existing = await query(
+      `SELECT * FROM emedication_daily_counts
+       WHERE organization_id = $1 AND person_id = $2 AND count_date = $3 AND count_session = $4`,
+      [orgId, data.person_id, data.count_date, session]);
+    if (existing.rows.length > 0) {
+      const result = await query(`
+        UPDATE emedication_daily_counts
+        SET staff_name = $1, matches_physical = $2, notes = $3, counted_at = COALESCE($4, counted_at)
+        WHERE id = $5 RETURNING *`,
+        [data.staff_name, data.matches_physical !== false, data.notes || null, countedAt, existing.rows[0].id]);
+      return result.rows[0];
+    }
     const result = await query(
-      `INSERT INTO emedication_daily_counts (organization_id, person_id, count_date, staff_name, matches_physical, notes)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [orgId, data.person_id, data.count_date, data.staff_name, data.matches_physical !== false, data.notes || null]);
+      `INSERT INTO emedication_daily_counts (organization_id, person_id, count_date, count_session, staff_name, matches_physical, notes, counted_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [orgId, data.person_id, data.count_date, session, data.staff_name, data.matches_physical !== false, data.notes || null, countedAt]);
     return result.rows[0];
+  }
+
+  /**
+   * Atomic save of a daily count and all its per-medication items in one
+   * transaction. Replaces the whole count when one already exists for the
+   * person/date/session. matches_physical is derived from the items so a
+   * mismatched count can still be saved (with escalation flags) as required.
+   */
+  static async upsertDailyCountWithItems(orgId: string, data: any): Promise<any> {
+    return transaction(async (client) => {
+      const session = data.count_session || 'end_of_day';
+      const countedAt = data.counted_at || new Date().toISOString();
+      const itemsInput = data.items || [];
+      const matches = itemsInput.length > 0
+        ? itemsInput.every((it: any) => Number(it.actual_quantity) === Number(it.expected_quantity))
+        : true;
+
+      let count: any;
+      const existing = await client.query(
+        `SELECT id FROM emedication_daily_counts
+         WHERE organization_id = $1 AND person_id = $2 AND count_date = $3 AND count_session = $4`,
+        [orgId, data.person_id, data.count_date, session]);
+      if (existing.rows.length > 0) {
+        const upd = await client.query(`
+          UPDATE emedication_daily_counts
+          SET staff_name = $1, matches_physical = $2, notes = $3, counted_at = $4
+          WHERE id = $5 RETURNING *`,
+          [data.staff_name, matches, data.notes || null, countedAt, existing.rows[0].id]);
+        count = upd.rows[0];
+        await client.query(`DELETE FROM emedication_daily_count_items WHERE daily_count_id = $1`, [count.id]);
+      } else {
+        const ins = await client.query(
+          `INSERT INTO emedication_daily_counts (organization_id, person_id, count_date, count_session, staff_name, matches_physical, notes, counted_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+          [orgId, data.person_id, data.count_date, session, data.staff_name, matches, data.notes || null, countedAt]);
+        count = ins.rows[0];
+      }
+
+      const savedItems: any[] = [];
+      for (const it of itemsInput) {
+        const r = await client.query(`
+          INSERT INTO emedication_daily_count_items
+            (daily_count_id, medication_item_id, medication_name, expected_quantity, actual_quantity, reason_for_mismatch, escalate)
+          VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+          [count.id, it.medication_item_id, it.medication_name, Number(it.expected_quantity) || 0, Number(it.actual_quantity) || 0, it.reason_for_mismatch || null, it.escalate || false]);
+        savedItems.push(r.rows[0]);
+      }
+
+      return { ...count, items: savedItems };
+    });
   }
 
   // ── Daily Count Items (per-medication) ──
@@ -627,17 +695,68 @@ export class EMedicationRepository {
     return result.rows[0];
   }
 
-  static async getMedicationExpectedQuantities(recordId: string): Promise<any[]> {
+  /**
+   * All active stock rows that back a given medication for a person:
+   * same name/dosage/unit, scoped to the person OR shared stock (person_id NULL).
+   * Used so the expected quantity in a daily count always matches the sum of the
+   * rows shown in the Stock tab.
+   */
+  static async getStockRowsForMedication(orgId: string, name: string, dosage: string, unit: string, personId: string): Promise<any[]> {
+    const result = await query(`
+      SELECT id, quantity, quantity_unit, batch_number, expiry_date, person_id, status, reorder_level
+      FROM emedication_stock
+      WHERE organization_id = $1 AND status = 'active'
+        AND LOWER(medication_name) = LOWER($2)
+        AND COALESCE(LOWER(dosage), '') = COALESCE(LOWER($3), '')
+        AND COALESCE(LOWER(unit), '') = COALESCE(LOWER($4), '')
+        AND (person_id = $5 OR person_id IS NULL)
+      ORDER BY created_at ASC`, [orgId, name, dosage, unit, personId]);
+    return result.rows;
+  }
+
+  static async getMedicationExpectedQuantities(recordId: string, orgId: string): Promise<any[]> {
     const items = await this.findItems(recordId);
     const regularItems = items.filter((i: any) => !i.is_prn && i.is_active);
-    return regularItems.map((i: any) => ({
-      medication_item_id: i.id,
-      medication_name: i.name,
-      dosage: i.dosage,
-      unit: i.unit,
-      times: this.parseTimes(i.times),
-      stock_quantity: 0
-    }));
+    const record = await this.findRecordById(recordId, orgId);
+    const personId = record?.person_id;
+    const result: any[] = [];
+    for (const i of regularItems) {
+      const rows = personId ? await this.getStockRowsForMedication(orgId, i.name, i.dosage, i.unit, personId) : [];
+      const total = rows.reduce((sum: number, r: any) => sum + Number(r.quantity || 0), 0);
+      result.push({
+        medication_item_id: i.id,
+        medication_name: i.name,
+        dosage: i.dosage,
+        unit: i.unit,
+        times: this.parseTimes(i.times),
+        stock_quantity: total,
+        expected_quantity: Math.round(total),
+        stock_rows: rows.length,
+        stock_batches: rows.map((r: any) => ({ id: r.id, quantity: Number(r.quantity), quantity_unit: r.quantity_unit, batch_number: r.batch_number, expiry_date: r.expiry_date, person_id: r.person_id })),
+        stock_low: rows.some((r: any) => Number(r.quantity) <= Number(r.reorder_level)),
+      });
+    }
+    return result;
+  }
+
+  /** Aggregated medication list for a person across all their active records (deduped by identity). */
+  static async getMedicationsForDailyCount(orgId: string, personId: string): Promise<any[]> {
+    const records = await query(
+      `SELECT id FROM emedication_records
+       WHERE organization_id = $1 AND person_id = $2 AND status = 'active'
+       ORDER BY start_date DESC`, [orgId, personId]);
+    const seen = new Set<string>();
+    const result: any[] = [];
+    for (const r of records.rows) {
+      const meds = await this.getMedicationExpectedQuantities(r.id, orgId);
+      for (const m of meds) {
+        const key = `${(m.medication_name || '').toLowerCase()}|${(m.dosage || '').toLowerCase()}|${(m.unit || '').toLowerCase()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        result.push({ ...m, record_id: r.id });
+      }
+    }
+    return result;
   }
 
   // ── Stock Adjustments ──
@@ -665,12 +784,13 @@ export class EMedicationRepository {
   // ── Deliveries ──
   /**
    * Apply a delivered item to the org's stock ledger:
-   * - existing stock row (matched on name, then name+dosage+unit) gets quantity added
+   * - an existing stock row (matched on name, then name+dosage+unit, scoped to the
+   *   person when the delivery is person-scoped) gets the quantity added
    * - otherwise a new stock record is created
-   * - a matching MAR item (if any, unlinked) is linked to the stock record
+   * - a matching MAR item (if any, unlinked, for the person when scoped) is linked
    * Returns the stock row (or null when the item has no medication name).
    */
-  private static async upsertStockForDeliveryItem(orgId: string, item: any): Promise<any | null> {
+  private static async upsertStockForDeliveryItem(orgId: string, item: any, personId?: string | null): Promise<any | null> {
     const name = (item.medication_name || '').trim();
     if (!name) return null;
     const qty = Number(item.quantity) || 0;
@@ -680,15 +800,17 @@ export class EMedicationRepository {
       WHERE organization_id = $1 AND LOWER(medication_name) = LOWER($2)
         AND COALESCE(LOWER(dosage), '') = COALESCE(LOWER($3), '')
         AND COALESCE(LOWER(unit), '') = COALESCE(LOWER($4), '')
+        AND (person_id IS NOT DISTINCT FROM $5)
       ORDER BY created_at ASC LIMIT 1`,
-      [orgId, name, item.dosage || '', item.unit || '']);
+      [orgId, name, item.dosage || '', item.unit || '', personId || null]);
 
     if (match.rows.length === 0) {
       match = await query(`
         SELECT * FROM emedication_stock
         WHERE organization_id = $1 AND LOWER(medication_name) = LOWER($2)
+          AND (person_id IS NOT DISTINCT FROM $3)
         ORDER BY created_at ASC LIMIT 1`,
-        [orgId, name]);
+        [orgId, name, personId || null]);
     }
 
     if (match.rows.length > 0) {
@@ -705,11 +827,11 @@ export class EMedicationRepository {
     }
 
     const created = await query(`
-      INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 'active') RETURNING *`,
-      [orgId, name, item.dosage || null, item.unit || 'mg', item.batch_number || null, item.expiry_date || null, qty, item.quantity_unit || 'tablet(s)']);
+      INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, status, person_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 'active', $9) RETURNING *`,
+      [orgId, name, item.dosage || null, item.unit || 'mg', item.batch_number || null, item.expiry_date || null, qty, item.quantity_unit || 'tablet(s)', personId || null]);
 
-    // Link the first active, unlinked MAR item with the same name to this stock record
+    // Link the first active, unlinked MAR item with the same name (scoped to the person for person-scoped deliveries)
     await query(`
       UPDATE emedication_items ei
       SET stock_item_id = $1
@@ -720,39 +842,159 @@ export class EMedicationRepository {
           AND LOWER(ei2.name) = LOWER($3)
           AND ei2.stock_item_id IS NULL
           AND ei2.is_active = TRUE
+          ${personId ? `AND r.person_id = $4` : ''}
         ORDER BY ei2.created_at ASC
         LIMIT 1
       )`,
-      [created.rows[0].id, orgId, name]);
+      personId ? [created.rows[0].id, orgId, name, personId] : [created.rows[0].id, orgId, name]);
 
     return created.rows[0];
   }
 
-  static async createDelivery(orgId: string, data: any) {
-    const { supplier, delivery_note, delivery_date, received_by, notes, items } = data;
+  /** Locate the person's active MAR chart for the given month (YYYY-MM-DD). */
+  static async findRecordForMonth(orgId: string, personId: string, date: string) {
+    const d = new Date(date + 'T00:00:00');
+    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const title = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()} MAR`;
+    const result = await query(
+      `SELECT * FROM emedication_records WHERE organization_id = $1 AND person_id = $2 AND title = $3 AND status = 'active'`,
+      [orgId, personId, title]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Apply a delivery item to stock, optionally creating a brand-new MAR medication.
+   * When `item.new_medication` is present (and the delivery is person-scoped), a new
+   * medication is added to the person's MAR chart and a linked person-scoped stock
+   * record is created — so the delivery is reflected on both the MAR and the ledger.
+   */
+  private static async applyDeliveryItem(orgId: string, item: any, personId: string | null, userId: string, deliveryDate: string): Promise<{ stock: any; new_item_id?: string } | null> {
+    if (item.new_medication && personId) {
+      await this.ensureMonthlyMar(orgId, personId, userId);
+      let record = await this.findRecordForMonth(orgId, personId, deliveryDate);
+      if (!record) {
+        const recs = await this.findRecords(orgId, personId);
+        record = recs.find((r: any) => r.status === 'active') || null;
+      }
+      if (!record) throw new Error('No active MAR chart exists for this person. Create a chart first.');
+
+      const med = item.new_medication;
+      const createdItem = await this.createItem(record.id, {
+        name: (item.medication_name || '').trim(),
+        dosage: item.dosage || '',
+        unit: item.unit || 'mg',
+        route: med.route || 'oral',
+        frequency: med.frequency,
+        times: med.times || [],
+        instructions: med.instructions || '',
+        is_prn: med.is_prn || false,
+        is_active: true,
+        start_date: med.start_date || deliveryDate,
+        end_date: med.end_date || null,
+        is_controlled_drug: med.is_controlled_drug || false,
+        prescriber_name: med.prescriber_name || null,
+        prescriber_phone: med.prescriber_phone || null,
+        prescription_ref: med.prescription_ref || null,
+        created_by: userId,
+      });
+
+      const qty = Number(item.quantity) || 0;
+      const stock = await query(`
+        INSERT INTO emedication_stock (organization_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit, reorder_level, status, person_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 10, 'active', $9) RETURNING *`,
+        [orgId, (item.medication_name || '').trim(), item.dosage || null, item.unit || 'mg', item.batch_number || null, item.expiry_date || null, qty, item.quantity_unit || 'tablet(s)', personId]);
+      await this.updateItem(createdItem.id, { stock_item_id: stock.rows[0].id });
+      return { stock: stock.rows[0], new_item_id: createdItem.id };
+    }
+
+    const stock = await this.upsertStockForDeliveryItem(orgId, item, personId);
+    return { stock };
+  }
+
+  private static async insertDeliveryItem(deliveryId: string, item: any, stockId: string | null) {
+    const result = await query(`
+      INSERT INTO emedication_delivery_items (delivery_id, stock_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [deliveryId, stockId, item.medication_name, item.dosage, item.unit, item.batch_number, item.expiry_date || null, item.quantity, item.quantity_unit]);
+    return result.rows[0];
+  }
+
+  private static async reverseDeliveryItemStock(deliveryItem: any) {
+    if (deliveryItem.stock_id) {
+      await query(`
+        UPDATE emedication_stock SET quantity = GREATEST(0, quantity - $1), updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2`,
+        [deliveryItem.quantity, deliveryItem.stock_id]);
+    }
+  }
+
+  static async createDelivery(orgId: string, data: any, userId: string) {
+    const { supplier, delivery_note, delivery_date, received_by, notes, person_id, items } = data;
     return transaction(async () => {
       const delivery = await query(`
-        INSERT INTO emedication_deliveries (organization_id, supplier, delivery_note, delivery_date, received_by, notes)
-        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [orgId, supplier, delivery_note, delivery_date, received_by, notes]);
+        INSERT INTO emedication_deliveries (organization_id, supplier, delivery_note, delivery_date, received_by, notes, person_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [orgId, supplier, delivery_note, delivery_date, received_by, notes, person_id || null]);
       const createdItems: any[] = [];
       if (items && items.length > 0) {
         for (const item of items) {
-          const stock = await this.upsertStockForDeliveryItem(orgId, item);
-          const di = await query(`
-            INSERT INTO emedication_delivery_items (delivery_id, stock_id, medication_name, dosage, unit, batch_number, expiry_date, quantity, quantity_unit)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-            [delivery.rows[0].id, stock?.id || null, item.medication_name, item.dosage, item.unit, item.batch_number, item.expiry_date || null, item.quantity, item.quantity_unit]);
-          createdItems.push(di.rows[0]);
+          const applied = await this.applyDeliveryItem(orgId, item, person_id || null, userId, delivery_date);
+          createdItems.push(await this.insertDeliveryItem(delivery.rows[0].id, item, applied?.stock?.id || null));
         }
       }
       return { ...delivery.rows[0], items: createdItems };
     });
   }
 
+  /**
+   * Update a delivery: header fields plus a full reconciliation of its items.
+   * Stock effects are reversed for the previous items, then every payload item is
+   * re-applied (new medications included) so the ledger stays accurate.
+   */
+  static async updateDelivery(orgId: string, id: string, data: any, userId: string) {
+    const { supplier, delivery_note, delivery_date, received_by, notes, person_id, items } = data;
+    return transaction(async () => {
+      const existing = await this.getDelivery(id, orgId);
+      if (!existing) throw new Error('Delivery not found');
+
+      for (const di of existing.items) {
+        await this.reverseDeliveryItemStock(di);
+      }
+      await query(`DELETE FROM emedication_delivery_items WHERE delivery_id = $1`, [id]);
+
+      const updated = await query(`
+        UPDATE emedication_deliveries
+        SET supplier = $1, delivery_note = $2, delivery_date = $3, received_by = $4,
+            notes = $5, person_id = $6
+        WHERE id = $7 AND organization_id = $8 RETURNING *`,
+        [supplier, delivery_note, delivery_date, received_by, notes, person_id || null, id, orgId]);
+
+      const createdItems: any[] = [];
+      if (items && items.length > 0) {
+        for (const item of items) {
+          const applied = await this.applyDeliveryItem(orgId, item, person_id || null, userId, delivery_date);
+          createdItems.push(await this.insertDeliveryItem(id, item, applied?.stock?.id || null));
+        }
+      }
+      return { ...updated.rows[0], items: createdItems };
+    });
+  }
+
+  static async deleteDelivery(orgId: string, id: string) {
+    return transaction(async () => {
+      const existing = await this.getDelivery(id, orgId);
+      if (!existing) throw new Error('Delivery not found');
+      for (const di of existing.items) {
+        await this.reverseDeliveryItemStock(di);
+      }
+      await query(`DELETE FROM emedication_deliveries WHERE id = $1 AND organization_id = $2`, [id, orgId]);
+    });
+  }
+
   static async listDeliveries(orgId: string) {
     const result = await query(`
       SELECT d.*,
+        (SELECT first_name || ' ' || last_name FROM people WHERE id = d.person_id) AS person_name,
         (SELECT COUNT(*) FROM emedication_delivery_items WHERE delivery_id = d.id)::int AS items_count
       FROM emedication_deliveries d
       WHERE d.organization_id = $1
@@ -761,7 +1003,10 @@ export class EMedicationRepository {
   }
 
   static async getDelivery(id: string, orgId: string) {
-    const delivery = await query(`SELECT * FROM emedication_deliveries WHERE id = $1 AND organization_id = $2`, [id, orgId]);
+    const delivery = await query(`
+      SELECT d.*,
+        (SELECT first_name || ' ' || last_name FROM people WHERE id = d.person_id) AS person_name
+      FROM emedication_deliveries d WHERE d.id = $1 AND d.organization_id = $2`, [id, orgId]);
     if (delivery.rows.length === 0) return null;
     const items = await query(`SELECT * FROM emedication_delivery_items WHERE delivery_id = $1`, [id]);
     return { ...delivery.rows[0], items: items.rows };
