@@ -145,6 +145,8 @@ export default function EMedicationPage() {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
   const userRole = currentUser.role
   const canManage = userRole === 'ORG_ADMIN' || userRole === 'MANAGER'
+  const apiErrorMsg = (err: any, fallback: string) =>
+    err?.response?.data?.message || err?.response?.data?.error?.message || err?.message || fallback
 
   const [tab, setTab] = useState(0)
   const [selectedPerson, setSelectedPerson] = useState<any>(null)
@@ -327,21 +329,25 @@ export default function EMedicationPage() {
   })
 
   // Deliveries
-  const { data: deliveriesData, isLoading: deliveriesLoading } = useQuery({
+  const { data: deliveriesData, isLoading: deliveriesLoading, isError: deliveriesError } = useQuery({
     queryKey: ['emedication-deliveries'],
     queryFn: async () => { const res = await api.get('/emedication/deliveries'); return res.data as Delivery[] },
-    enabled: tab === 2
+    enabled: tab === 2,
+    retry: 1,
+    staleTime: 30_000
   })
 
   // Daily Counts
-  const { data: dailyCounts } = useQuery({
+  const { data: dailyCounts, isError: dailyCountsError } = useQuery({
     queryKey: ['emedication-daily-counts', countPerson?.id],
     queryFn: async () => {
       const params = countPerson?.id ? `?personId=${countPerson.id}` : ''
       const res = await api.get(`/emedication/daily-counts${params}`)
       return res.data as any[]
     },
-    enabled: tab === 3
+    enabled: tab === 3,
+    retry: 1,
+    staleTime: 15_000
   })
 
   // Audit logs
@@ -437,14 +443,14 @@ export default function EMedicationPage() {
       setSuccessMsg('Administration logged'); setTimeout(() => setSuccessMsg(''), 3000)
     },
     onError: (err: any) => {
-      setAdminError(err?.response?.data?.error?.message || err?.message || 'Failed to save administration')
+      setAdminError(apiErrorMsg(err, 'Failed to save administration'))
     }
   })
 
   const competenceMutation = useMutation({
     mutationFn: (staffProfileId: string) => api.patch(`/emedication/staff/${staffProfileId}/medication-competence`, { medication_competent: true }),
     onSuccess: () => { setAdminError(''); setSuccessMsg('Staff marked as competent'); setTimeout(() => setSuccessMsg(''), 3000) },
-    onError: (err: any) => setAdminError(err?.response?.data?.error?.message || 'Failed to update competence')
+    onError: (err: any) => setAdminError(apiErrorMsg(err, 'Failed to update competence'))
   })
 
   const importPrevMutation = useMutation({
@@ -613,7 +619,7 @@ export default function EMedicationPage() {
       setSuccessMsg('Daily count logged'); setTimeout(() => setSuccessMsg(''), 3000)
       if (countPerson) await loadCountData(countPerson, countDate, countSession)
     },
-    onError: (err: any) => setErrorMsg(err?.response?.data?.error?.message || 'Failed to save the count. Please check the values and try again.')
+    onError: (err: any) => setErrorMsg(apiErrorMsg(err, 'Failed to save the count. Please check the values and try again.'))
   })
 
   // Handlers
@@ -2203,10 +2209,10 @@ export default function EMedicationPage() {
       <Paper sx={{ mb: 2.5, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ '& .MuiTab-root': { fontWeight: 700 } }}>
           <Tab label="MAR Chart" icon={<MedIcon />} iconPosition="start" />
-          <Tab label="Stock" icon={<InventoryIcon />} iconPosition="start" />
-          <Tab label="Deliveries" icon={<DeliveryIcon />} iconPosition="start" />
-          <Tab label="Daily Counts" icon={<CheckIcon />} iconPosition="start" />
-          <Tab label="Audit Log" icon={<AuditIcon />} iconPosition="start" />
+          {canManage && <Tab label="Stock" icon={<InventoryIcon />} iconPosition="start" />}
+          {canManage && <Tab label="Deliveries" icon={<DeliveryIcon />} iconPosition="start" />}
+          {canManage && <Tab label="Daily Counts" icon={<CheckIcon />} iconPosition="start" />}
+          {canManage && <Tab label="Audit Log" icon={<AuditIcon />} iconPosition="start" />}
         </Tabs>
       </Paper>
 
@@ -2884,6 +2890,10 @@ export default function EMedicationPage() {
           </Stack>
           {deliveriesLoading ? (
             <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress size={24} /></Box>
+          ) : deliveriesError ? (
+            <Alert severity="error" sx={{ py: 3 }}>
+              Could not load deliveries. {apiErrorMsg(deliveriesError, '')}
+            </Alert>
           ) : !deliveriesData || deliveriesData.length === 0 ? (
             <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
               No deliveries logged yet — log one to add stock for the people in your service.
@@ -2989,7 +2999,11 @@ export default function EMedicationPage() {
           {/* History table */}
           <Paper sx={{ p: 2, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
             <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, color: EMR.ink }}>Count History</Typography>
-            {!dailyCounts || dailyCounts.length === 0 ? (
+            {dailyCountsError ? (
+              <Alert severity="error" sx={{ py: 3 }}>
+                Could not load count history. {apiErrorMsg(dailyCountsError, '')}
+              </Alert>
+            ) : !dailyCounts || dailyCounts.length === 0 ? (
               <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
                 No daily counts logged yet — select a person and log a count to record the first one.
               </Typography>
@@ -3202,9 +3216,11 @@ export default function EMedicationPage() {
             </Stack>
             <Stack direction="row" spacing={1}>
               <TextField label="Start Date" type="date" fullWidth value={itemForm.start_date}
-                onChange={(e) => setItemForm(p => ({ ...p, start_date: e.target.value }))} size="small" InputLabelProps={{ shrink: true }} />
+                onChange={(e) => setItemForm(p => ({ ...p, start_date: e.target.value }))} size="small" InputLabelProps={{ shrink: true }}
+                helperText="Leave blank for continuous administration" />
               <TextField label="End Date" type="date" fullWidth value={itemForm.end_date}
-                onChange={(e) => setItemForm(p => ({ ...p, end_date: e.target.value }))} size="small" InputLabelProps={{ shrink: true }} />
+                onChange={(e) => setItemForm(p => ({ ...p, end_date: e.target.value }))} size="small" InputLabelProps={{ shrink: true }}
+                helperText="Leave blank for continuous administration" />
             </Stack>
             <Box>
               <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Administration Times</Typography>
@@ -3359,11 +3375,14 @@ export default function EMedicationPage() {
         <DialogTitle>{editStock ? 'Edit Stock Item' : 'Add Stock Item'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="caption" color="text.secondary">
+              Fields marked <Box component="span" color="error.main">*</Box> are required. Everything else is optional &mdash; leave Person blank for shared stock.
+            </Typography>
             <TextField label="Medication Name" fullWidth value={stockForm.medication_name}
               onChange={(e) => setStockForm(p => ({ ...p, medication_name: e.target.value }))} size="small" required />
             <Stack direction="row" spacing={1}>
               <TextField label="Dosage" fullWidth value={stockForm.dosage}
-                onChange={(e) => setStockForm(p => ({ ...p, dosage: e.target.value }))} size="small" />
+                onChange={(e) => setStockForm(p => ({ ...p, dosage: e.target.value }))} size="small" required />
               <TextField select label="Unit" value={stockForm.unit}
                 onChange={(e) => setStockForm(p => ({ ...p, unit: e.target.value }))} size="small" sx={{ minWidth: 90 }}>
                 {['mg', 'ml', 'mcg', 'g'].map(u => (<MenuItem key={u} value={u}>{u}</MenuItem>))}
@@ -3394,14 +3413,14 @@ export default function EMedicationPage() {
               getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
               value={stockPerson}
               onChange={(_, v) => setStockPerson(v)}
-              renderInput={(params) => <TextField {...params} label="Person" size="small" required />}
+              renderInput={(params) => <TextField {...params} label="Person (optional — blank = shared stock)" size="small" />}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setStockDialog(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleStockSave}
-            disabled={!stockForm.medication_name || !stockPerson || stockCreateMutation.isPending || stockUpdateMutation.isPending}>
+            disabled={!stockForm.medication_name || !stockForm.dosage || stockCreateMutation.isPending || stockUpdateMutation.isPending}>
             {editStock ? 'Update' : 'Add'}
           </Button>
         </DialogActions>

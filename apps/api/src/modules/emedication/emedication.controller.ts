@@ -84,7 +84,7 @@ export class EMedicationController {
     const record = await EMedicationRepository.findRecordById(req.params.recordId, orgId);
     if (!record) throw new AppError(404, 'Medication record not found');
 
-    const { name, dosage, unit, route, frequency, times, instructions, is_prn, is_active, stock_item_id } = req.body;
+    const { name, dosage, unit, route, frequency, times, instructions, is_prn, is_active, stock_item_id, start_date, end_date } = req.body;
     if (!name || !dosage || !frequency) {
       throw new AppError(400, 'name, dosage, and frequency are required');
     }
@@ -111,7 +111,7 @@ export class EMedicationController {
 
     const item = await EMedicationRepository.createItem(req.params.recordId, {
       name: itemName, dosage: itemDosage, unit: itemUnit, route, frequency, times, instructions,
-      is_prn, is_active, stock_item_id: linkedStockId,
+      is_prn, is_active, stock_item_id: linkedStockId, start_date, end_date,
       created_by: req.user!.userId
     });
 
@@ -124,7 +124,7 @@ export class EMedicationController {
     await EMedicationAuditRepository.log({
       organization_id: orgId, action: 'add_item', entity_type: 'item',
       entity_id: item.id, user_id: req.user!.userId,
-      changes: { name: itemName, dosage: itemDosage, unit: itemUnit, route, frequency, times, is_prn, stock_item_id: linkedStockId }, ip_address: req.ip
+      changes: { name: itemName, dosage: itemDosage, unit: itemUnit, route, frequency, times, is_prn, stock_item_id: linkedStockId, start_date, end_date }, ip_address: req.ip
     });
 
     res.status(201).json(item);
@@ -170,6 +170,19 @@ export class EMedicationController {
     if (!emedication_item_id || !scheduled_time || !status) {
       throw new AppError(400, 'emedication_item_id, scheduled_time, and status are required');
     }
+
+    // Block logging administrations outside the medication's prescribed date range
+    const itemRow = await query(`SELECT stock_item_id, name, start_date, end_date FROM emedication_items WHERE id = $1`, [emedication_item_id]);
+    if (!itemRow.rows[0]) throw new AppError(404, 'Medication item not found');
+    const adminDate = String(scheduled_time).slice(0, 10);
+    const itemStart = itemRow.rows[0].start_date ? String(itemRow.rows[0].start_date).slice(0, 10) : null;
+    const itemEnd = itemRow.rows[0].end_date ? String(itemRow.rows[0].end_date).slice(0, 10) : null;
+    if (itemStart && adminDate < itemStart) {
+      throw new AppError(409, `Cannot log this administration: ${itemRow.rows[0].name || 'This medication'} does not start until ${itemStart}`);
+    }
+    if (itemEnd && adminDate > itemEnd) {
+      throw new AppError(409, `Cannot log this administration: ${itemRow.rows[0].name || 'This medication'} finished on ${itemEnd}`);
+    }
     const staffUserId = staff_user_id || req.user!.userId;
     let staffProfileId: string | null = await EMedicationController.getStaffProfileId(staffUserId);
     if (!staffProfileId) {
@@ -200,12 +213,11 @@ export class EMedicationController {
     let stockBefore: { quantity: number; reorder_level: number } | null = null;
     let stockItemId: string | null = null;
     if (status === 'given') {
-      const itemResult = await query(`SELECT stock_item_id, name FROM emedication_items WHERE id = $1`, [emedication_item_id]);
       const stock = await EMedicationRepository.getStockForItem(emedication_item_id);
       if (stock) {
         stockItemId = stock.id;
         if (stock.quantity !== null && Number(stock.quantity) <= 0) {
-          throw new AppError(409, `Cannot mark as given: no stock available for ${itemResult.rows[0]?.name || 'this medication'}. Log a delivery or stock adjustment first.`);
+          throw new AppError(409, `Cannot mark as given: no stock available for ${itemRow.rows[0]?.name || 'this medication'}. Log a delivery or stock adjustment first.`);
         }
         if (!stock.person_id) {
           const rec = await query(
