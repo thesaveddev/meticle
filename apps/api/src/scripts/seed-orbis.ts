@@ -868,6 +868,7 @@ async function seed() {
 
   // ── 42. eMAR Records (4) ──
   const marIds = [uuid(), uuid(), uuid(), uuid()]
+  const marItemIds: string[] = []
   const medNames = [
     { name: 'Paracetamol 500mg', freq: '4 times daily', route: 'oral', prn: false },
     { name: 'Omeprazole 20mg', freq: 'Once daily', route: 'oral', prn: false },
@@ -891,6 +892,7 @@ async function seed() {
     for (let medIdx = mi * 3; medIdx < mi * 3 + 3; medIdx++) {
       const med = medNames[medIdx % medNames.length]
       const itemId = uuid()
+      marItemIds.push(itemId)
       await pool.query(`INSERT INTO emedication_items (id,emedication_record_id,name,dosage,unit,route,frequency,times,is_prn) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
         [itemId, marIds[mi], med.name,
          med.name.includes('mg') ? med.name.match(/\d+/)?.[0] + ' mg' : med.name.includes('mcg') ? med.name.match(/\d+/)?.[0] + ' mcg' : '1 dose',
@@ -910,6 +912,26 @@ async function seed() {
     }
   }
   console.log('  ✓ 4 eMAR records with medications + administrations created')
+
+  // Daily medication counts (per-session) for the first MAR person
+  const countPerson = sus[0]
+  const countStaff = `${staff[0].name.join(' ')}`
+  const countDates = [new Date().toISOString().split('T')[0], new Date().toISOString().split('T')[0], new Date(Date.now() - 86400000).toISOString().split('T')[0]]
+  const countSessions = ['end_of_day', 'am', 'pm']
+  for (let c = 0; c < countDates.length; c++) {
+    const countId = uuid()
+    const hasMismatch = c === 1
+    await pool.query(`INSERT INTO emedication_daily_counts (id,organization_id,person_id,count_date,count_session,staff_name,matches_physical,notes,counted_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [countId, orgId, countPerson.id, countDates[c], countSessions[c], countStaff, !hasMismatch, hasMismatch ? 'One medication below expected — escalated for review' : 'All stock verified', new Date(Date.now() - (countDates.length - 1 - c) * 6 * 3600000).toISOString()])
+    for (let i = 0; i < Math.min(3, marItemIds.length); i++) {
+      const med = medNames[i % medNames.length]
+      const expected = 4
+      const actual = hasMismatch && i === 0 ? expected - 1 : expected
+      await pool.query(`INSERT INTO emedication_daily_count_items (id,daily_count_id,medication_item_id,medication_name,expected_quantity,actual_quantity,reason_for_mismatch,escalate) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [uuid(), countId, marItemIds[i], med.name, expected, actual, hasMismatch && i === 0 ? 'Count discrepancy' : null, hasMismatch && i === 0])
+    }
+  }
+  console.log('  ✓ 3 daily medication counts (incl. escalated mismatch) created')
 
   // ── 43. Evidence Mappings (15) ──
   const sourceTypes = ['training', 'documents', 'competency', 'care_plans', 'incidents', 'satisfaction']

@@ -3,6 +3,7 @@ import { EMedicationRepository, EMedicationAuditRepository } from './emedication
 import { AppError } from '../../shared/middleware/error.middleware';
 import { query } from '../../shared/database';
 import { MedicationAlertService } from './medication-alert.service';
+import { NotificationsController } from '../notifications/notifications.controller';
 
 export class EMedicationController {
   static getOrgId(req: Request): string {
@@ -394,6 +395,28 @@ export class EMedicationController {
       organization_id: orgId, action: 'upsert_daily_count', entity_type: 'daily_count',
       entity_id: count.id, user_id: req.user!.userId, changes: req.body, ip_address: req.ip
     });
+
+    // Escalated mismatches flag managers/admins for review
+    const escalated = (req.body.items || []).filter((it: any) => it.escalate);
+    if (escalated.length > 0) {
+      try {
+        const person = await query(`SELECT first_name, last_name FROM people WHERE id = $1`, [req.body.person_id]);
+        const personName = person.rows[0] ? `${person.rows[0].first_name || ''} ${person.rows[0].last_name || ''}`.trim() : 'a service user';
+        const medList = [...new Set(escalated.map((it: any) => it.medication_name))].join(', ');
+        const managers = await query(
+          `SELECT id FROM users WHERE organization_id = $1 AND role IN ('ORG_ADMIN', 'MANAGER') AND status = 'active'`,
+          [orgId]
+        );
+        for (const m of managers.rows) {
+          NotificationsController.createNotification(
+            m.id,
+            'Medication Count Escalated',
+            `Daily count for ${personName} on ${req.body.count_date} flagged ${escalated.length} medication(s) for review: ${medList}.`,
+            'general'
+          ).catch(() => {});
+        }
+      } catch { /* escalation notification non-critical */ }
+    }
 
     res.json(count);
   }

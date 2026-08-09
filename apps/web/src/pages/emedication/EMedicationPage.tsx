@@ -492,35 +492,27 @@ export default function EMedicationPage() {
     setCountLoading(false)
   }
 
-  const handleSaveDailyCount = async () => {
+  const handleSaveDailyCount = () => {
     if (!countPerson) return
-    try {
-      const items = countMedications.map((med: any) => {
-        const f = countItemsForm[med.medication_item_id] || { actual_quantity: 0, reason_for_mismatch: '', escalate: false }
-        return {
-          medication_item_id: med.medication_item_id,
-          medication_name: med.medication_name,
-          expected_quantity: med.expected_quantity ?? med.stock_quantity ?? 0,
-          actual_quantity: f.actual_quantity,
-          reason_for_mismatch: f.reason_for_mismatch || undefined,
-          escalate: f.escalate || undefined,
-        }
-      })
-      await api.post('/emedication/daily-counts/upsert', {
-        person_id: countPerson.id,
-        count_date: countDate,
-        count_session: countSession,
-        staff_name: countedBy || `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.email,
-        counted_at: countedAt ? new Date(countedAt).toISOString() : new Date().toISOString(),
-        items,
-      })
-      queryClient.invalidateQueries({ queryKey: ['emedication-daily-counts'] })
-      setCountDialog(false)
-      setSuccessMsg('Daily count logged'); setTimeout(() => setSuccessMsg(''), 3000)
-      await loadCountData(countPerson, countDate, countSession)
-    } catch (err: any) {
-      setErrorMsg(err?.response?.data?.error?.message || 'Failed to save the count. Please check the values and try again.')
-    }
+    const items = countMedications.map((med: any) => {
+      const f = countItemsForm[med.medication_item_id] || { actual_quantity: 0, reason_for_mismatch: '', escalate: false }
+      return {
+        medication_item_id: med.medication_item_id,
+        medication_name: med.medication_name,
+        expected_quantity: med.expected_quantity ?? med.stock_quantity ?? 0,
+        actual_quantity: f.actual_quantity,
+        reason_for_mismatch: f.reason_for_mismatch || undefined,
+        escalate: f.escalate || undefined,
+      }
+    })
+    countSaveMutation.mutate({
+      person_id: countPerson.id,
+      count_date: countDate,
+      count_session: countSession,
+      staff_name: countedBy || `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.email,
+      counted_at: countedAt ? new Date(countedAt).toISOString() : new Date().toISOString(),
+      items,
+    })
   }
 
   // Stock mutations
@@ -596,9 +588,15 @@ export default function EMedicationPage() {
     }
   })
 
-  const countCreateMutation = useMutation({
-    mutationFn: (data: any) => api.post('/emedication/daily-counts', data),
-    onError: (err: any) => setErrorMsg(err?.response?.data?.error?.message || 'Failed to save the count. Please try again.')
+  const countSaveMutation = useMutation({
+    mutationFn: (data: any) => api.post('/emedication/daily-counts/upsert', data),
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ['emedication-daily-counts'] })
+      setCountDialog(false)
+      setSuccessMsg('Daily count logged'); setTimeout(() => setSuccessMsg(''), 3000)
+      if (countPerson) await loadCountData(countPerson, countDate, countSession)
+    },
+    onError: (err: any) => setErrorMsg(err?.response?.data?.error?.message || 'Failed to save the count. Please check the values and try again.')
   })
 
   // Handlers
@@ -3793,8 +3791,8 @@ export default function EMedicationPage() {
             <DialogActions>
               <Button onClick={() => { setCountDialog(false); setErrorMsg('') }}>Cancel</Button>
               <Button variant="contained" onClick={handleSaveDailyCount}
-                disabled={!countDate || !COUNT_TYPES.includes(countSession) || countCreateMutation.isPending}>
-                {countCreateMutation.isPending ? 'Saving...' : editingCount ? 'Update Count' : 'Save Count'}
+                disabled={!countDate || !COUNT_TYPES.includes(countSession) || countSaveMutation.isPending}>
+                {countSaveMutation.isPending ? 'Saving...' : editingCount ? 'Update Count' : 'Save Count'}
               </Button>
             </DialogActions>
           </>
