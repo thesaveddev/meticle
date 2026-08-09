@@ -196,6 +196,7 @@ export default function EMedicationPage() {
   const [countLoading, setCountLoading] = useState(false)
   const [countNoRecords, setCountNoRecords] = useState(false)
   const [countDialog, setCountDialog] = useState(false)
+  const [countReadOnly, setCountReadOnly] = useState(false)
   const [countedBy, setCountedBy] = useState(`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.email)
   const [countedAt, setCountedAt] = useState(toDatetimeLocal(new Date().toISOString()))
 
@@ -2332,7 +2333,7 @@ export default function EMedicationPage() {
                     <>
                       <Typography variant="h6" sx={{ fontWeight: 700, color: EMR.ink }}>Select a person to view their MAR</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                        Choose a service user above to open their medication administration record and log administrations.
+                        Choose a person above to open their medication administration record and log administrations.
                       </Typography>
                     </>
                   ) : (
@@ -2984,7 +2985,7 @@ export default function EMedicationPage() {
                   {countMedications.length} medication{countMedications.length !== 1 ? 's' : ''} · expected quantities from current stock
                 </Typography>
                 <Button variant="contained" size="small" startIcon={<AddIcon />}
-                  onClick={() => { setCountDialog(true); setErrorMsg('') }}>
+                  onClick={() => { setCountReadOnly(false); setCountDialog(true); setErrorMsg('') }}>
                   {countDate === todayStr() ? "Log Today's Count" : 'Log Count'}
                 </Button>
               </Stack>
@@ -3041,6 +3042,7 @@ export default function EMedicationPage() {
                           setCountedBy(c.staff_name || countedBy)
                           setCountedAt(toDatetimeLocal(c.counted_at) || toDatetimeLocal(new Date().toISOString()))
                           setErrorMsg('')
+                          setCountReadOnly(true)
                           setCountDialog(true)
                           loadCountData(person, date, session)
                         }}
@@ -3829,11 +3831,11 @@ export default function EMedicationPage() {
       </Dialog>
 
       {/* Daily Count Form Dialog */}
-      <Dialog open={countDialog} onClose={() => { setCountDialog(false); setErrorMsg('') }} maxWidth="md" fullWidth>
+      <Dialog open={countDialog} onClose={() => { setCountDialog(false); setCountReadOnly(false); setErrorMsg('') }} maxWidth="md" fullWidth>
         {countPerson && (
           <>
             <DialogTitle sx={{ fontWeight: 800, color: EMR.ink }}>
-              {editingCount ? 'Update Daily Count' : 'Log Daily Count'}
+              {countReadOnly ? 'Daily Count Details' : editingCount ? 'Update Daily Count' : 'Log Daily Count'}
               <Typography variant="caption" display="block" color="text.secondary" fontWeight={500}>
                 {countPerson.first_name} {countPerson.last_name} · {countDate ? new Date(`${countDate}T00:00:00`).toLocaleDateString() : ''} · {countSessionLabel(COUNT_TYPES.includes(countSession) ? countSession : defaultCountSession)}
               </Typography>
@@ -3842,18 +3844,27 @@ export default function EMedicationPage() {
               {errorMsg && (
                 <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMsg('')}>{errorMsg}</Alert>
               )}
+              {countReadOnly && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Read-only view of a previously logged count. Use the count form to log or edit a count.
+                </Alert>
+              )}
 
               <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
                 <TextField label="Count date" type="date" size="small" value={countDate}
+                  disabled={countReadOnly}
                   onChange={(e) => { setCountDate(e.target.value); if (countPerson) loadCountData(countPerson, e.target.value, countSession) }} InputLabelProps={{ shrink: true }}
                   inputProps={{ max: todayStr() }} />
                 <TextField select label="Count type" size="small" value={COUNT_TYPES.includes(countSession) ? countSession : defaultCountSession}
+                  disabled={countReadOnly}
                   onChange={(e) => { setCountSession(e.target.value); if (countPerson) loadCountData(countPerson, countDate, e.target.value) }} sx={{ minWidth: 150 }}>
                   {COUNT_TYPES.map((s) => <MenuItem key={s} value={s}>{countSessionLabel(s)}</MenuItem>)}
                 </TextField>
                 <TextField label="Counted by" size="small" value={countedBy} sx={{ minWidth: 220 }}
+                  disabled={countReadOnly}
                   onChange={(e) => setCountedBy(e.target.value)} />
                 <TextField label="Counted at" type="datetime-local" size="small" value={countedAt} sx={{ minWidth: 200 }}
+                  disabled={countReadOnly}
                   onChange={(e) => setCountedAt(e.target.value)} InputLabelProps={{ shrink: true }} />
               </Stack>
 
@@ -3886,13 +3897,14 @@ export default function EMedicationPage() {
                             <TableCell align="right">
                               <TextField type="number" size="small" sx={{ width: 90 }}
                                 value={f.actual_quantity}
+                                disabled={countReadOnly}
                                 onChange={(e) => setCountItemsForm(p => ({
                                   ...p,
                                   [med.medication_item_id]: { ...p[med.medication_item_id], actual_quantity: Number(e.target.value) }
                                 }))} />
                             </TableCell>
                             <TableCell>
-                              <TextField select size="small" sx={{ minWidth: 170 }} disabled={!isMismatch}
+                              <TextField select size="small" sx={{ minWidth: 170 }} disabled={!isMismatch || countReadOnly}
                                 value={f.reason_for_mismatch || ''}
                                 onChange={(e) => setCountItemsForm(p => ({
                                   ...p,
@@ -3904,7 +3916,7 @@ export default function EMedicationPage() {
                               </TextField>
                             </TableCell>
                             <TableCell align="center">
-                              <Checkbox checked={f.escalate || false} disabled={!isMismatch}
+                              <Checkbox checked={f.escalate || false} disabled={!isMismatch || countReadOnly}
                                 onChange={(e) => setCountItemsForm(p => ({
                                   ...p,
                                   [med.medication_item_id]: { ...p[med.medication_item_id], escalate: e.target.checked }
@@ -3927,11 +3939,17 @@ export default function EMedicationPage() {
               )}
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => { setCountDialog(false); setErrorMsg('') }}>Cancel</Button>
-              <Button variant="contained" onClick={handleSaveDailyCount}
-                disabled={!countDate || !COUNT_TYPES.includes(countSession) || countSaveMutation.isPending}>
-                {countSaveMutation.isPending ? 'Saving...' : editingCount ? 'Update Count' : 'Save Count'}
-              </Button>
+              {countReadOnly ? (
+                <Button onClick={() => { setCountDialog(false); setCountReadOnly(false); setErrorMsg('') }}>Close</Button>
+              ) : (
+                <>
+                  <Button onClick={() => { setCountDialog(false); setCountReadOnly(false); setErrorMsg('') }}>Cancel</Button>
+                  <Button variant="contained" onClick={handleSaveDailyCount}
+                    disabled={!countDate || !COUNT_TYPES.includes(countSession) || countSaveMutation.isPending}>
+                    {countSaveMutation.isPending ? 'Saving...' : editingCount ? 'Update Count' : 'Save Count'}
+                  </Button>
+                </>
+              )}
             </DialogActions>
           </>
         )}
