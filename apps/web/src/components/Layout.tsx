@@ -91,8 +91,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       ],
     },
     {
-      label: 'Scheduling',
+      label: 'Staffing',
       items: [
+        { text: 'Staff Directory', icon: <PeopleIcon />, path: '/staff', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
         { text: 'Rota Planner', icon: <ScheduleIcon />, path: '/scheduling', module: 'scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Agencies', icon: <BusinessIcon />, path: '/agencies', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
@@ -105,12 +106,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         { text: 'Compliance', icon: <ComplianceIcon />, path: '/compliance', module: 'compliance', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Policies', icon: <PolicyIcon />, path: '/policies', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-      ],
-    },
-    {
-      label: 'Staff',
-      items: [
-        { text: 'Staff Directory', icon: <PeopleIcon />, path: '/staff', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
       ],
     },
     {

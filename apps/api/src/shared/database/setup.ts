@@ -191,6 +191,24 @@ const MIGRATION_018: Migration = {
   ],
 };
 
+const MIGRATION_019: Migration = {
+  name: '019_emed_daily_count_sessions',
+  strict: false,
+  statements: [
+    // Legacy databases created before per-session daily counts lack count_session/counted_at
+    // (setup.ts only adds them for fresh DBs; migrations must backfill existing ones).
+    `ALTER TABLE emedication_daily_counts ADD COLUMN IF NOT EXISTS count_session VARCHAR(50) DEFAULT 'end_of_day'`,
+    `ALTER TABLE emedication_daily_counts ADD COLUMN IF NOT EXISTS counted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`,
+    // Replace the legacy UNIQUE(person_id, count_date) constraint so AM/PM counts can coexist.
+    // 012 renames service_user_id -> person_id but the constraint may carry either auto-name.
+    `ALTER TABLE emedication_daily_counts DROP CONSTRAINT IF EXISTS emedication_daily_counts_person_id_count_date_key`,
+    `ALTER TABLE emedication_daily_counts DROP CONSTRAINT IF EXISTS emedication_daily_counts_service_user_id_count_date_key`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS uq_emed_daily_counts_person_date_session ON emedication_daily_counts(person_id, count_date, count_session)`,
+    // Escalation flag on per-medication count items (schema.sql-only for fresh DBs)
+    `ALTER TABLE emedication_daily_count_items ADD COLUMN IF NOT EXISTS escalate BOOLEAN DEFAULT FALSE`,
+  ],
+};
+
 const MIGRATION_009: Migration = {
   name: '009_care_plan_person_centred_sections',
   strict: false,
@@ -1724,7 +1742,7 @@ export const setupDatabase = async () => {
     }
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018, MIGRATION_019]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)
