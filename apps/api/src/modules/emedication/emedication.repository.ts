@@ -130,6 +130,19 @@ export class EMedicationRepository {
     return result.rows;
   }
 
+  /** Find an active MAR item on a record with the same name/dosage/unit identity. */
+  static async findActiveItemByName(recordId: string, name: string, dosage: string, unit: string) {
+    const result = await query(`
+      SELECT * FROM emedication_items
+      WHERE emedication_record_id = $1
+        AND LOWER(TRIM(name)) = LOWER(TRIM($2))
+        AND COALESCE(LOWER(TRIM(dosage)), '') = COALESCE(LOWER(TRIM($3)), '')
+        AND COALESCE(LOWER(TRIM(unit)), '') = COALESCE(LOWER(TRIM($4)), '')
+        AND is_active = TRUE
+      LIMIT 1`, [recordId, name, dosage, unit]);
+    return result.rows[0] || null;
+  }
+
   static async createItem(recordId: string, data: Partial<EMedicationItem> & { created_by: string }) {
     const result = await query(`
       INSERT INTO emedication_items (emedication_record_id, name, dosage, unit, route, frequency, times, instructions, is_prn, is_active, stock_item_id, start_date, end_date, is_controlled_drug, prescriber_name, prescriber_phone, prescription_ref, created_by)

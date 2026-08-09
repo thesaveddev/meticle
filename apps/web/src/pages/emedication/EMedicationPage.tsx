@@ -210,6 +210,7 @@ export default function EMedicationPage() {
   const [deliveryShared, setDeliveryShared] = useState(false)
   const [deliveryPersonMeds, setDeliveryPersonMeds] = useState<any[]>([])
   const [deliveryItemMed, setDeliveryItemMed] = useState<any>(null)
+  const [deliveryItemMode, setDeliveryItemMode] = useState<'new' | 'mar'>('new')
   const [deliveryAuditLogs, setDeliveryAuditLogs] = useState<AuditLog[]>([])
   const [deliveryAuditLoading, setDeliveryAuditLoading] = useState(false)
 
@@ -310,6 +311,19 @@ export default function EMedicationPage() {
       return res.data as StockItem[]
     },
     enabled: tab === 0 || tab === 1
+  })
+
+  // Stock scoped to the person whose MAR is being viewed, for the "From stock" source
+  // when adding a medication to a chart. Includes shared stock (person_id NULL).
+  const { data: itemStockData, isLoading: itemStockLoading } = useQuery({
+    queryKey: ['emedication-stock', 'item-dialog', selectedPerson?.id],
+    queryFn: async () => {
+      const res = await api.get('/emedication/stock')
+      return (res.data as StockItem[]).filter((s: StockItem) =>
+        s.status !== 'archived' &&
+        (s.person_id === selectedPerson?.id || !s.person_id))
+    },
+    enabled: itemDialog && !editItem && !!selectedPerson
   })
 
   // Deliveries
@@ -659,6 +673,15 @@ export default function EMedicationPage() {
     if (editItem) {
       itemUpdateMutation.mutate({ itemId: editItem.id, data })
     } else if (activeRecord) {
+      const dup = (chartData?.items || []).find((i: MedicationItem) =>
+        i.is_active &&
+        String(i.name || '').trim().toLowerCase() === String(data.name || '').trim().toLowerCase() &&
+        String(i.dosage || '').trim().toLowerCase() === String(data.dosage || '').trim().toLowerCase() &&
+        String(i.unit || '').trim().toLowerCase() === String(data.unit || '').trim().toLowerCase())
+      if (dup) {
+        setErrorMsg(`${data.name} ${data.dosage}${data.unit || ''} is already on this MAR chart`)
+        return
+      }
       itemCreateMutation.mutate({ recordId: activeRecord.id, data })
     }
   }
@@ -682,7 +705,7 @@ export default function EMedicationPage() {
     } else {
       setEditItem(null)
       setSelectedStockItem(null)
-      setItemStockSource('new')
+      setItemStockSource('from_stock')
       setItemForm({ name: '', dosage: '', unit: 'mg', route: 'oral', frequency: 'once daily', times: [], instructions: '', is_prn: false, is_active: true, start_date: '', end_date: '', is_controlled_drug: false, prescriber_name: '', prescriber_phone: '', prescription_ref: '' })
     }
     setItemDialog(true)
@@ -1893,6 +1916,22 @@ export default function EMedicationPage() {
       && s.unit === item.unit)
   }
 
+  // Medications already on the active MAR (name|dosage|unit identity) — used to
+  // stop the same medication being added twice from stock.
+  const marItemKeys = useMemo(() => {
+    const s = new Set<string>()
+    for (const i of chartData?.items || []) {
+      if (i.is_active) s.add(`${(i.name || '').toLowerCase()}|${(i.dosage || '').toLowerCase()}|${(i.unit || '').toLowerCase()}`)
+    }
+    return s
+  }, [chartData])
+
+  // Stock the current person can link to when adding a medication: their own
+  // person-scoped rows plus shared stock, minus anything already on their MAR.
+  const fromStockOptions = useMemo(() =>
+    (itemStockData || []).filter(s => !marItemKeys.has(`${(s.medication_name || '').toLowerCase()}|${(s.dosage || '').toLowerCase()}|${(s.unit || '').toLowerCase()}`)),
+    [itemStockData, marItemKeys])
+
   const adminTargetItem = chartData?.items.find((i: MedicationItem) => i.id === adminTarget?.itemId)
   const adminTargetStock = getItemStock(adminTargetItem)
   const adminTargetOutOfStock = !!adminTargetStock && adminTargetStock.quantity !== null && Number(adminTargetStock.quantity) <= 0
@@ -2027,7 +2066,7 @@ export default function EMedicationPage() {
         try {
           const recRes = await api.get(`/emedication/records/${r.id}`)
           const items = (recRes.data?.items || []).filter((i: any) => i.is_active)
-          for (const i of items) meds.push({ ...i, record_title: r.title })
+          for (const i of items) meds.push({ ...i, medication_name: i.name, record_title: r.title })
         } catch { /* skip broken record */ }
       }
       setDeliveryPersonMeds(meds)
@@ -2036,11 +2075,14 @@ export default function EMedicationPage() {
 
   const addDeliveryItem = () => {
     if (!deliveryItemForm.medication_name || !deliveryItemForm.quantity) return
+    const item: any = { ...deliveryItemForm, id: Date.now().toString() }
+    if (deliveryItemMode === 'mar' && deliveryItemMed) item.medication_item_id = deliveryItemMed.id
     setDeliveryForm(p => ({
-      ...p, items: [...p.items, { ...deliveryItemForm, id: Date.now().toString() }]
+      ...p, items: [...p.items, item]
     }))
     setDeliveryItemForm({ medication_name: '', dosage: '', unit: 'mg', batch_number: '', expiry_date: '', quantity: 0, quantity_unit: 'tablets' })
     setDeliveryItemMed(null)
+    setDeliveryItemMode('new')
   }
 
   const removeDeliveryItem = (id: string) => {
@@ -2050,6 +2092,7 @@ export default function EMedicationPage() {
   const openDeliveryDialog = (delivery?: Delivery) => {
     setEditDelivery(delivery || null)
     setDeliveryItemMed(null)
+    setDeliveryItemMode('new')
     setDeliveryShared(!!delivery && !delivery.person_id)
     if (delivery) {
       const person = delivery.person_id ? (people || []).find((p: any) => p.id === delivery.person_id) || null : null
@@ -3100,17 +3143,26 @@ export default function EMedicationPage() {
                     onClick={() => { setItemStockSource('new'); setSelectedStockItem(null) }}>New medication</Button>
                 </Stack>
                 {itemStockSource === 'from_stock' ? (
-                  <Autocomplete
-                    options={(stockData || []).filter((s: StockItem) => s.status !== 'archived')}
-                    getOptionLabel={(s: StockItem) => `${s.medication_name} ${s.dosage} ${s.unit} — ${s.quantity} ${s.quantity_unit}${s.person_name ? ` (${s.person_name})` : ' (shared)'}`}
-                    onChange={(_, v: StockItem | null) => {
-                      setSelectedStockItem(v)
-                      setErrorMsg('')
-                      setItemForm(p => ({ ...p, name: v?.medication_name || '', dosage: v?.dosage || '', unit: v?.unit || p.unit }))
-                    }}
-                    renderInput={(params) => <TextField {...params} label="Search stock" size="small" placeholder="Type to search the stock room..." />}
-                    isOptionEqualToValue={(o, v) => o.id === v.id}
-                  />
+                  <>
+                    <Autocomplete
+                      options={fromStockOptions}
+                      getOptionLabel={(s: StockItem) => `${s.medication_name} ${s.dosage} ${s.unit} — ${s.quantity} ${s.quantity_unit}${s.person_name ? ` (${s.person_name})` : ' (shared)'}`}
+                      onChange={(_, v: StockItem | null) => {
+                        setSelectedStockItem(v)
+                        setErrorMsg('')
+                        setItemForm(p => ({ ...p, name: v?.medication_name || '', dosage: v?.dosage || '', unit: v?.unit || p.unit }))
+                      }}
+                      renderInput={(params) => <TextField {...params} label="Search stock" size="small" placeholder="Type to search the person's stock..." />}
+                      isOptionEqualToValue={(o, v) => o.id === v.id}
+                    />
+                    {itemStockLoading ? (
+                      <Typography variant="caption" color="text.secondary">Loading stock…</Typography>
+                    ) : fromStockOptions.length === 0 ? (
+                      <Typography variant="caption" color="text.secondary">
+                        No stock available for {selectedPerson ? `${selectedPerson.first_name} ${selectedPerson.last_name}` : 'this person'} that isn't already on this MAR chart — switch to "New medication" to add one.
+                      </Typography>
+                    ) : null}
+                  </>
                 ) : (
                   <Typography variant="caption" color="text.secondary">Add a new medication — a stock entry will be auto-created so it can be counted.</Typography>
                 )}
@@ -3478,7 +3530,7 @@ export default function EMedicationPage() {
                   options={people || []}
                   getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}`}
                   value={deliveryPerson}
-                  onChange={(_, v) => { setDeliveryPerson(v); loadDeliveryPersonMeds(v) }}
+                  onChange={(_, v) => { setDeliveryPerson(v); setDeliveryItemMode('new'); setDeliveryItemMed(null); loadDeliveryPersonMeds(v) }}
                   renderInput={(params) => <TextField {...params} label="For person (optional — leave blank for shared stock)" size="small" />}
                   isOptionEqualToValue={(o, v) => o.id === v.id}
                   clearOnEscape
@@ -3499,8 +3551,17 @@ export default function EMedicationPage() {
             <Stack direction="row" spacing={1}>
               <TextField label="Delivery Date" type="date" fullWidth value={deliveryForm.delivery_date}
                 onChange={(e) => setDeliveryForm(p => ({ ...p, delivery_date: e.target.value }))} size="small" InputLabelProps={{ shrink: true }} />
-              <TextField label="Received By" fullWidth value={deliveryForm.received_by}
-                onChange={(e) => setDeliveryForm(p => ({ ...p, received_by: e.target.value }))} size="small" />
+              <Autocomplete
+                fullWidth
+                size="small"
+                freeSolo
+                options={staffList || []}
+                getOptionLabel={(o: any) => typeof o === 'string' ? o : `${o.first_name || ''} ${o.last_name || ''}`.trim()}
+                value={deliveryForm.received_by}
+                onChange={(_, v) => setDeliveryForm(p => ({ ...p, received_by: typeof v === 'string' ? v : `${v?.first_name || ''} ${v?.last_name || ''}`.trim() }))}
+                isOptionEqualToValue={(o, v) => typeof v === 'string' ? `${o.first_name || ''} ${o.last_name || ''}`.trim() === v : o.user_id === v.user_id || o.id === v.id}
+                renderInput={(params) => <TextField {...params} label="Received By" />}
+              />
             </Stack>
             <TextField label="Notes" fullWidth value={deliveryForm.notes}
               onChange={(e) => setDeliveryForm(p => ({ ...p, notes: e.target.value }))} size="small" multiline rows={2} />
@@ -3527,33 +3588,39 @@ export default function EMedicationPage() {
               <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
                 Add Item
               </Typography>
-              {deliveryPersonMeds && deliveryPersonMeds.length > 0 && (
-                <Autocomplete
-                  size="small"
-                  sx={{ mb: 1 }}
-                  options={deliveryPersonMeds}
-                  getOptionLabel={(o: any) => `${o.medication_name}${o.dosage ? ` ${o.dosage}` : ''}${o.unit ? o.unit : ''}`}
-                  value={deliveryItemMed}
-                  onChange={(_, v) => {
-                    setDeliveryItemMed(v)
-                    if (v) {
-                      setDeliveryItemForm(p => ({
-                        ...p,
-                        medication_name: v.medication_name,
-                        dosage: v.dosage || '',
-                        unit: v.unit || '',
-                        medication_item_id: v.id,
-                      }))
+              {deliveryPerson ? (
+                <TextField select label="Medication" size="small" fullWidth sx={{ mb: 1 }}
+                  value={deliveryItemMode === 'mar' && deliveryItemMed ? deliveryItemMed.id : '__new__'}
+                  onChange={(e) => {
+                    if (e.target.value === '__new__') {
+                      setDeliveryItemMode('new')
+                      setDeliveryItemMed(null)
+                      setDeliveryItemForm(p => ({ ...p, medication_name: '', dosage: '', unit: 'mg' }))
+                    } else {
+                      const med = deliveryPersonMeds.find((m: any) => m.id === e.target.value)
+                      if (med) {
+                        setDeliveryItemMode('mar')
+                        setDeliveryItemMed(med)
+                        setDeliveryItemForm(p => ({ ...p, medication_name: med.medication_name, dosage: med.dosage || '', unit: med.unit || 'mg', batch_number: '', expiry_date: '', quantity: 0 }))
+                      }
                     }
-                  }}
-                  renderInput={(params) => <TextField {...params} label="Pick from person's MAR…" size="small" />}
-                  isOptionEqualToValue={(o, v) => o.id === v.id}
-                />
+                  }}>
+                  <MenuItem value="__new__">+ Add new medication</MenuItem>
+                  {deliveryPersonMeds.map((m: any) => (
+                    <MenuItem key={m.id} value={m.id}>
+                      {m.medication_name}{m.dosage ? ` ${m.dosage}` : ''}{m.unit ? ` ${m.unit}` : ''}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              ) : (
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                  Select a person above to pick a medication from their MAR, or enter a new one below.
+                </Typography>
               )}
               <Stack spacing={1}>
-                <TextField label="Medication Name" fullWidth value={deliveryItemForm.medication_name}
-                  onChange={(e) => setDeliveryItemForm(p => ({ ...p, medication_name: e.target.value }))} size="small" />
                 <Stack direction="row" spacing={1}>
+                  <TextField label="Medication Name" fullWidth value={deliveryItemForm.medication_name}
+                    onChange={(e) => setDeliveryItemForm(p => ({ ...p, medication_name: e.target.value }))} size="small" />
                   <TextField label="Dosage" fullWidth value={deliveryItemForm.dosage}
                     onChange={(e) => setDeliveryItemForm(p => ({ ...p, dosage: e.target.value }))} size="small" />
                   <TextField select label="Dose Unit" value={deliveryItemForm.unit}
@@ -3772,7 +3839,7 @@ export default function EMedicationPage() {
                     </TableHead>
                     <TableBody>
                       {countMedications.map((med: any) => {
-                        const expected = med.times?.length || 0
+                        const expected = med.expected_quantity ?? med.stock_quantity ?? med.times?.length ?? 0
                         const f = countItemsForm[med.medication_item_id] || { actual_quantity: 0, reason_for_mismatch: '', escalate: false }
                         const isMismatch = (f.actual_quantity ?? 0) !== expected
                         return (
@@ -3819,8 +3886,8 @@ export default function EMedicationPage() {
 
               {countMedications.length > 0 && (
                 <Stack direction="row" spacing={1} sx={{ mt: 2 }} flexWrap="wrap" useFlexGap>
-                  <Chip label={`${countMedications.filter(m => (countItemsForm[m.medication_item_id]?.actual_quantity ?? 0) === (m.times?.length || 0)).length} match`} size="small" color="success" variant="outlined" />
-                  <Chip label={`${countMedications.filter(m => (countItemsForm[m.medication_item_id]?.actual_quantity ?? 0) !== (m.times?.length || 0)).length} mismatch`} size="small" color="error" variant="outlined" />
+                  <Chip label={`${countMedications.filter(m => (countItemsForm[m.medication_item_id]?.actual_quantity ?? 0) === (m.expected_quantity ?? m.stock_quantity ?? m.times?.length ?? 0)).length} match`} size="small" color="success" variant="outlined" />
+                  <Chip label={`${countMedications.filter(m => (countItemsForm[m.medication_item_id]?.actual_quantity ?? 0) !== (m.expected_quantity ?? m.stock_quantity ?? m.times?.length ?? 0)).length} mismatch`} size="small" color="error" variant="outlined" />
                   <Chip label={`${countMedications.filter(m => countItemsForm[m.medication_item_id]?.escalate).length} escalated`} size="small" color="warning" variant="outlined" />
                 </Stack>
               )}
