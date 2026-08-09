@@ -104,6 +104,11 @@ export class EMedicationController {
       itemUnit = stock.unit || unit || 'mg';
     }
 
+    const dup = await EMedicationRepository.findActiveItemByName(req.params.recordId, itemName, itemDosage, itemUnit || 'mg');
+    if (dup) {
+      throw new AppError(409, `${itemName} ${itemDosage}${itemUnit || ''} is already on this MAR chart`);
+    }
+
     const item = await EMedicationRepository.createItem(req.params.recordId, {
       name: itemName, dosage: itemDosage, unit: itemUnit, route, frequency, times, instructions,
       is_prn, is_active, stock_item_id: linkedStockId,
