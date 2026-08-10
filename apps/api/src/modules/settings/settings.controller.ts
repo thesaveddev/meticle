@@ -107,7 +107,7 @@ export class SettingsController {
 
   static async createLocation(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
-    const { name, address, manager_id } = req.body;
+    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff } = req.body;
     if (manager_id) {
       const user = await pool.query('SELECT role FROM users WHERE id = $1', [manager_id]);
       if (user.rows.length > 0 && user.rows[0].role !== 'MANAGER' && user.rows[0].role !== 'ORG_ADMIN') {
@@ -115,9 +115,11 @@ export class SettingsController {
       }
     }
     const result = await pool.query(
-      'INSERT INTO locations (organization_id, name, address, manager_id) VALUES ($1, $2, $3, $4) RETURNING *',
-      [orgId, name, address, manager_id || null]
+      `INSERT INTO locations (organization_id, name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [orgId, name, address, manager_id || null, minimum_staff_per_day ?? null, min_day_staff ?? null, min_night_staff ?? null, min_sleep_staff ?? null]
     );
+    SettingsController.checkLocationManagerCoverage(orgId);
     res.status(201).json(result.rows[0]);
   }
 
@@ -142,6 +144,7 @@ export class SettingsController {
       [name, address, manager_id || null, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, id, user.organizationId]
     );
     if (result.rows.length === 0) throw new AppError(404, 'Location not found');
+    SettingsController.checkLocationManagerCoverage(user.organizationId);
     res.json(result.rows[0]);
   }
 
@@ -150,7 +153,54 @@ export class SettingsController {
     const { id } = req.params;
     const result = await pool.query('DELETE FROM locations WHERE id = $1 AND organization_id = $2 RETURNING id', [id, user.organizationId]);
     if (result.rows.length === 0) throw new AppError(404, 'Location not found');
+    SettingsController.checkLocationManagerCoverage(user.organizationId);
     res.json({ message: 'Deleted' });
+  }
+
+  /**
+   * Alert ORG_ADMINs whenever a location has no manager assigned. Runs after
+   * location mutations and on a scheduled basis (index.ts). Deduplicated so a
+   * given admin only gets one alert per location per week.
+   */
+  static async checkLocationManagerCoverage(orgId?: string) {
+    try {
+      const result = await pool.query(
+        `SELECT l.organization_id, l.id AS location_id, l.name AS location_name
+         FROM locations l
+         WHERE l.manager_id IS NULL
+           AND ($1::uuid IS NULL OR l.organization_id = $1)`,
+        [orgId || null]
+      );
+      if (result.rows.length === 0) return 0;
+
+      let notified = 0;
+      for (const row of result.rows) {
+        const admins = await pool.query(
+          `SELECT id FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND status = 'active'`,
+          [row.organization_id]
+        );
+        for (const admin of admins.rows) {
+          const recent = await pool.query(
+            `SELECT 1 FROM notifications
+             WHERE user_id = $1 AND title = $2
+               AND created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'
+             LIMIT 1`,
+            [admin.id, 'Location needs a manager']
+          );
+          if (recent.rows.length > 0) continue;
+          await NotificationsController.createNotification(
+            admin.id,
+            'Location needs a manager',
+            `"${row.location_name}" has no manager assigned. Every location should have a MANAGER so cover, leave approvals and medication escalations are reviewed. Assign one in Settings → Locations.`,
+            'general'
+          );
+          notified++;
+        }
+      }
+      return notified;
+    } catch {
+      return 0;
+    }
   }
 
   // === Location Certificates ===

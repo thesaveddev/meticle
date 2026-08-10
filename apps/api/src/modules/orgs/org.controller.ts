@@ -23,8 +23,8 @@ export class OrgController {
     const user = req.user!;
     const { orgId } = req.params;
     if (orgId !== user.organizationId) throw new AppError(403, 'Access denied');
-    const { name, address } = req.body;
-    const location = await OrgRepository.createLocation(orgId, name, address);
+    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff } = req.body;
+    const location = await OrgRepository.createLocation(orgId, name, address, manager_id, { minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff });
     res.status(201).json(location);
   }
 

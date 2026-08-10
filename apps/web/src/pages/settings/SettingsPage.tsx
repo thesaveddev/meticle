@@ -116,37 +116,37 @@ export default function SettingsPage() {
         setProfile({ first_name: user.first_name || '', last_name: user.last_name || '', birth_date: '', phone: '', address: '', city: '', country: '', postal_code: '', profile_picture_url: user.profile_picture_url || '' })
       }
       if (isOrgAdmin) {
-        try {
-          const [orgRes, locRes, staffRes, compRes, delRes, compRecordRes, compProfileRes, orgDetRes] = await Promise.all([
-            api.get('/settings/org'),
-            api.get('/settings/locations'),
-            api.get('/settings/staff'),
-            api.get('/settings/compliance-config'),
-            api.get('/settings/delegations'),
-            api.get('/settings/compliance-records'),
-            api.get('/settings/compliance-profiles'),
-            api.get(`/organizations/${orgId}`),
-          ])
-          setOrgSettings(orgRes.data)
-          setLocations(locRes.data)
-          setStaffList(staffRes.data)
-          setComplianceConfigs(compRes.data)
-          setDelegations(delRes.data)
-          setComplianceRecords(compRecordRes.data)
-          setComplianceProfiles(compProfileRes.data)
-          setOrgDetails(orgDetRes.data)
+        const [orgRes, locRes, staffRes, compRes, delRes, compRecordRes, compProfileRes, orgDetRes] = await Promise.allSettled([
+          api.get('/settings/org'),
+          api.get('/settings/locations'),
+          api.get('/settings/staff'),
+          api.get('/settings/compliance-config'),
+          api.get('/settings/delegations'),
+          api.get('/settings/compliance-records'),
+          api.get('/settings/compliance-profiles'),
+          api.get(`/organizations/${orgId}`),
+        ])
+        if (orgRes.status === 'fulfilled') setOrgSettings(orgRes.value.data)
+        if (locRes.status === 'fulfilled') setLocations(locRes.value.data)
+        if (staffRes.status === 'fulfilled') setStaffList(staffRes.value.data)
+        if (compRes.status === 'fulfilled') setComplianceConfigs(compRes.value.data)
+        if (delRes.status === 'fulfilled') setDelegations(delRes.value.data)
+        if (compRecordRes.status === 'fulfilled') setComplianceRecords(compRecordRes.value.data)
+        if (compProfileRes.status === 'fulfilled') setComplianceProfiles(compProfileRes.value.data)
+        if (orgDetRes.status === 'fulfilled') {
+          setOrgDetails(orgDetRes.value.data)
           setBrandingColors({
-            primary_color: orgDetRes.data.primary_color || '#0F4C81',
-            secondary_color: orgDetRes.data.secondary_color || '#6B7280',
-            accent_color: orgDetRes.data.accent_color || '#F8FAFC',
+            primary_color: orgDetRes.value.data.primary_color || '#0F4C81',
+            secondary_color: orgDetRes.value.data.secondary_color || '#6B7280',
+            accent_color: orgDetRes.value.data.accent_color || '#F8FAFC',
           })
-          setBrandingLogo(orgDetRes.data.logo_url || '')
-          // Load AI config
-          try {
-            const aiRes = await api.get('/ai/config')
-            setAIConfig(aiRes.data.config)
-          } catch { /* ai not yet configured */ }
-        } catch { /* silent */ }
+          setBrandingLogo(orgDetRes.value.data.logo_url || '')
+        }
+        // Load AI config
+        try {
+          const aiRes = await api.get('/ai/config')
+          setAIConfig(aiRes.data.config)
+        } catch { /* ai not yet configured */ }
       }
       // Check MFA status
       try {
@@ -202,10 +202,13 @@ export default function SettingsPage() {
     onError: (err: any) => { setDeactError(err.response?.data?.message || 'Failed to deactivate account.') },
   })
 
-  // Org settings handlers
-  const saveOrgSettings = async () => {
+  // Org settings handlers.
+  // Each section's Save button sends ONLY its own fields, so saving one section
+  // can never clobber others with stale values (e.g. a stale force_mfa from an
+  // old tab silently re-enabling org-wide MFA).
+  const saveOrgSettings = async (fields?: Record<string, any>) => {
     try {
-      const res = await api.patch('/settings/org', orgSettings)
+      const res = await api.patch('/settings/org', fields ?? orgSettings)
       setOrgSettings(res.data)
       showSnackbar("Settings saved.", "success")
     } catch (err: any) {
@@ -977,7 +980,7 @@ export default function SettingsPage() {
               helperText="Full-time weekly hours used as baseline for proportional calculation" />
           </Grid>
         </Grid>
-        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ leave_start_month: orgSettings.leave_start_month, default_hours_per_leave_day: orgSettings.default_hours_per_leave_day, base_leave_hours: orgSettings.base_leave_hours, base_contracted_hours: orgSettings.base_contracted_hours })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Organization Settings
         </Button>
       </Paper>
@@ -996,7 +999,7 @@ export default function SettingsPage() {
             When enabled, staff who have not set up multi-factor authentication will be required to set it up before they can log in. Existing MFA users are unaffected.
           </Typography>
         </Stack>
-        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ force_mfa: orgSettings.force_mfa })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Security Settings
         </Button>
       </Paper>
@@ -1025,7 +1028,7 @@ export default function SettingsPage() {
             </Typography>
           </Grid>
         </Grid>
-        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ minimum_compliance_percent: orgSettings.minimum_compliance_percent, overtime_requires_approval: orgSettings.overtime_requires_approval })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Staffing Rules
         </Button>
       </Paper>
@@ -1069,7 +1072,7 @@ export default function SettingsPage() {
         <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 0.5 }}>
           When enabled, evidence packs will be automatically generated and emailed to all org administrators on the selected schedule.
         </Typography>
-        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ compliance_digest_enabled: orgSettings.compliance_digest_enabled, predictive_alerts_enabled: orgSettings.predictive_alerts_enabled, auto_evidence_pack_enabled: orgSettings.auto_evidence_pack_enabled, auto_evidence_pack_frequency: orgSettings.auto_evidence_pack_frequency })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Compliance Notification Settings
         </Button>
       </Paper>
@@ -1093,7 +1096,7 @@ export default function SettingsPage() {
           When enabled, location managers receive a daily shift audit email at the configured time
           summarizing shift coverage, staffing levels, and medication administration for the day.
         </Typography>
-        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ daily_shift_audit_enabled: orgSettings.daily_shift_audit_enabled, daily_shift_audit_time: orgSettings.daily_shift_audit_time })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Shift Audit Settings
         </Button>
       </Paper>
@@ -1128,7 +1131,7 @@ export default function SettingsPage() {
             onChange={e => setOrgSettings((p: any) => ({ ...p, late_med_alert_delay_minutes: Math.max(1, Math.min(1440, Number(e.target.value))) }))}
             InputProps={{ inputProps: { min: 1, max: 1440 } }} />
         </Stack>
-        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ reorder_alert_enabled: orgSettings.reorder_alert_enabled, late_med_alert_enabled: orgSettings.late_med_alert_enabled, late_med_alert_delay_minutes: orgSettings.late_med_alert_delay_minutes })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Medication Alert Settings
         </Button>
       </Paper>
@@ -1153,7 +1156,7 @@ export default function SettingsPage() {
           Sets the default count type when logging daily medication counts on the eMAR page.
           Choose the frequency your home uses to reconcile physical stock against expected quantities.
         </Typography>
-        <Button variant="contained" onClick={saveOrgSettings} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+        <Button variant="contained" onClick={() => saveOrgSettings({ emedication_count_convention: orgSettings.emedication_count_convention })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Count Convention
         </Button>
       </Paper>
@@ -1167,6 +1170,11 @@ export default function SettingsPage() {
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditLoc({ name: '', address: '', manager_id: '', minimum_staff_per_day: 1 }); setLocDialog(true) }}
           sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Location</Button>
       </Stack>
+      {locations.some(l => !l.manager_id) && (
+        <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
+          {locations.filter(l => !l.manager_id).length} location{locations.filter(l => !l.manager_id).length !== 1 ? 's' : ''} {locations.filter(l => !l.manager_id).length !== 1 ? 'have' : 'has'} no manager assigned. Every location should have a MANAGER so cover, leave approvals and medication escalations are reviewed. Org admins are notified automatically.
+        </Alert>
+      )}
       <Paper>
         <TableContainer>
           <Table size="small">
@@ -1219,15 +1227,18 @@ export default function SettingsPage() {
               onChange={e => setEditLoc((p: any) => ({ ...p, minimum_staff_per_day: Number(e.target.value) }))}
               helperText="Minimum safe staffing level for this location each day" />
             <Autocomplete
-              options={staffList.filter((s: any) => s.role === 'MANAGER' || s.role === 'ORG_ADMIN')}
+              options={staffList}
               value={staffList.find(s => s.id === editLoc.manager_id) || null}
               onChange={(_, v) => setEditLoc((p: any) => ({ ...p, manager_id: v?.id || null }))}
-              getOptionLabel={(o) => `${o.first_name} ${o.last_name} (${o.role})`}
-              renderInput={(params) => <TextField {...params} label="Manager" size="small" />}
+              getOptionLabel={(o) => `${o.first_name} ${o.last_name}${o.role ? ` (${o.role})` : ''}`}
+              renderInput={(params) => (
+                <TextField {...params} label="Manager" size="small"
+                  helperText="Every location needs a MANAGER. Staff who aren't managers yet can be upgraded on save." />
+              )}
               isOptionEqualToValue={(o, v) => o.id === v.id}
               fullWidth
               size="small"
-              noOptionsText="No staff found"
+              noOptionsText="No staff found — add staff from the Staff directory first"
             />
           </Stack>
         </DialogContent>

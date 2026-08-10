@@ -145,9 +145,9 @@ function App() {
           <Route path="/room-checks" element={<ModuleGuard module="staff_directory"><RoomChecksPage /></ModuleGuard>} />
           <Route path="/mobile/check-in" element={<CheckInPage />} />
           <Route path="/mobile/voice-notes" element={<VoiceNotesPage />} />
-          <Route path="/medications" element={<ModuleGuard module="staff_directory"><EMedicationPage /></ModuleGuard>} />
-          <Route path="/emedication" element={<ModuleGuard module="staff_directory"><EMedicationPage /></ModuleGuard>} />
-          <Route path="/emedication/archived" element={<ModuleGuard module="staff_directory"><ArchivedMarPage /></ModuleGuard>} />
+          <Route path="/medications" element={<ModuleGuard module="dashboard"><EMedicationPage /></ModuleGuard>} />
+          <Route path="/emedication" element={<ModuleGuard module="dashboard"><EMedicationPage /></ModuleGuard>} />
+          <Route path="/emedication/archived" element={<ModuleGuard module="dashboard"><ArchivedMarPage /></ModuleGuard>} />
           <Route path="/tasks" element={<ModuleGuard module="staff_directory"><TasksPage /></ModuleGuard>} />
           <Route path="/platform-admin" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><PlatformAdminPage /></AuthGuard>} />
           <Route path="/platform-admin/organizations/:id" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><AdminOrganizationDetailPage /></AuthGuard>} />
