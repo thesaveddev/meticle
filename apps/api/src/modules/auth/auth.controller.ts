@@ -156,7 +156,7 @@ export class AuthController {
 
       // Auto-create Headquarters location for ORG_ADMIN
       if (userRole === UserRole.ORG_ADMIN) {
-        await OrgRepository.createLocation(orgId, 'Headquarters', undefined, migrateQuery);
+        await OrgRepository.createLocation(orgId, 'Headquarters', undefined, undefined, undefined, migrateQuery);
       }
     }
 

@@ -77,10 +77,11 @@ export class OrgRepository {
     }
   }
 
-  static async createLocation(orgId: string, name: string, address?: string, qFn: QFn = appQuery): Promise<LocationRow> {
+  static async createLocation(orgId: string, name: string, address?: string, managerId?: string | null, staffLevels: { minimum_staff_per_day?: number; min_day_staff?: number; min_night_staff?: number; min_sleep_staff?: number } = {}, qFn: QFn = appQuery): Promise<LocationRow> {
     const result = await qFn(
-      'INSERT INTO locations (organization_id, name, address) VALUES ($1, $2, $3) RETURNING *',
-      [orgId, name, address]
+      `INSERT INTO locations (organization_id, name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [orgId, name, address, managerId || null, staffLevels.minimum_staff_per_day ?? null, staffLevels.min_day_staff ?? null, staffLevels.min_night_staff ?? null, staffLevels.min_sleep_staff ?? null]
     );
     return result.rows[0];
   }

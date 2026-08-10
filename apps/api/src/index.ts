@@ -391,6 +391,19 @@ setInterval(() => {
     .catch(err => logger.error(err, 'Late medication alert check failed'));
 }, 5 * 60 * 1000);
 
+// Alert org admins about locations with no manager (every 6 hours, plus on location mutations)
+const LOCATION_COVERAGE_INTERVAL = 6 * 60 * 60 * 1000;
+setTimeout(() => {
+  SettingsController.checkLocationManagerCoverage()
+    .then(count => { if (count > 0) logger.info({ notified: count }, 'Location manager coverage alerts sent'); })
+    .catch(err => logger.error(err, 'Location manager coverage check failed'));
+  setInterval(() => {
+    SettingsController.checkLocationManagerCoverage()
+      .then(count => { if (count > 0) logger.info({ notified: count }, 'Location manager coverage alerts sent'); })
+      .catch(err => logger.error(err, 'Location manager coverage check failed'));
+  }, LOCATION_COVERAGE_INTERVAL);
+}, 30_000);
+
 // Start email queue processor
 import { EmailQueue } from './shared/utils/email.queue';
 EmailQueue.startProcessor();

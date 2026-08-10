@@ -2210,9 +2210,9 @@ export default function EMedicationPage() {
       <Paper sx={{ mb: 2.5, border: `1px solid ${EMR.hairline}`, boxShadow: 'none', borderRadius: 2 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ '& .MuiTab-root': { fontWeight: 700 } }}>
           <Tab label="MAR Chart" icon={<MedIcon />} iconPosition="start" />
-          {canManage && <Tab label="Stock" icon={<InventoryIcon />} iconPosition="start" />}
-          {canManage && <Tab label="Deliveries" icon={<DeliveryIcon />} iconPosition="start" />}
-          {canManage && <Tab label="Daily Counts" icon={<CheckIcon />} iconPosition="start" />}
+          <Tab label="Stock" icon={<InventoryIcon />} iconPosition="start" />
+          <Tab label="Deliveries" icon={<DeliveryIcon />} iconPosition="start" />
+          <Tab label="Daily Counts" icon={<CheckIcon />} iconPosition="start" />
           {canManage && <Tab label="Audit Log" icon={<AuditIcon />} iconPosition="start" />}
         </Tabs>
       </Paper>

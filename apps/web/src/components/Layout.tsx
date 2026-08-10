@@ -157,6 +157,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       } catch { /* silent */ }
     }
     fetchUnreadCount()
+    // Poll fallback so the bell stays accurate even if the socket is down.
+    const unreadPoll = setInterval(fetchUnreadCount, 60000)
 
     const fetchPermissions = async () => {
       try {
@@ -173,7 +175,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       Notification.requestPermission()
     }
 
-    const socket = connectSocket(token)
+    const socket = connectSocket(() => localStorage.getItem('accessToken'))
     socket.on('notification', (notif: any) => {
       setNotifications(prev => [notif, ...prev])
       setUnreadCount(c => c + 1)
@@ -200,6 +202,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     window.addEventListener('chatUnreadUpdate', handleChatUnread as EventListener)
 
     return () => {
+      clearInterval(unreadPoll)
       socket.off('notification')
       socket.off('unread_count')
       disconnectSocket()
