@@ -209,6 +209,17 @@ const MIGRATION_019: Migration = {
   ],
 };
 
+const MIGRATION_020: Migration = {
+  name: '020_emedication_count_convention',
+  strict: false,
+  statements: [
+    // Org-level medication count convention was added to INITIAL_MIGRATION (001_initial) after
+    // existing DBs had already applied it, so the name-based runner never re-ran the statement.
+    // Versioned backfill so settings GET/PATCH no longer 500 on the missing column.
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS emedication_count_convention VARCHAR(20) DEFAULT 'end_of_day' CHECK (emedication_count_convention IN ('end_of_day', 'am_pm', 'after_each'))`,
+  ],
+};
+
 const MIGRATION_009: Migration = {
   name: '009_care_plan_person_centred_sections',
   strict: false,
@@ -1742,7 +1753,7 @@ export const setupDatabase = async () => {
     }
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018, MIGRATION_019]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018, MIGRATION_019, MIGRATION_020]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)
