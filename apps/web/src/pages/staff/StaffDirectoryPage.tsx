@@ -6,7 +6,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Menu, MenuItem, ListItemIcon, ListItemText,
   FormControl, InputLabel, Select, InputAdornment,
-  TablePagination, TableFooter
+  TablePagination, TableFooter, Avatar,
 } from '@mui/material'
 import {
   Add as AddIcon, MoreVert as MoreVertIcon,
@@ -14,13 +14,16 @@ import {
   Edit as EditIcon, PersonAdd as PersonAddIcon,
   Block as BlockIcon, CheckCircle as CheckCircleIcon,
   CloudUpload as UploadIcon, LockReset as ResetPwdIcon,
-  Security as SecurityIcon
+  Security as SecurityIcon, Search as SearchIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
 import * as XLSX from 'xlsx'
 import api from '../../services/api'
+import { PageHeader, StatusBadge, NAVY } from '../../components/ui'
+
+type BadgeTone = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'primary' | 'purple'
 
 const ROLE_OPTIONS = [
   { value: 'MANAGER', label: 'Manager' },
@@ -39,7 +42,21 @@ const ROLE_LABEL: Record<string, string> = {
   ORG_ADMIN: 'Org Admin',
   MANAGER: 'Manager',
   CARE_WORKER: 'Care Worker',
-  COMPLIANCE_OFFICER: 'Compliance',
+  COMPLIANCE_OFFICER: 'Compliance Officer',
+}
+
+const ROLE_TONE: Record<string, BadgeTone> = {
+  ORG_ADMIN: 'primary',
+  MANAGER: 'info',
+  CARE_WORKER: 'neutral',
+  COMPLIANCE_OFFICER: 'purple',
+}
+
+const STATUS_TONE: Record<string, BadgeTone> = {
+  active: 'success',
+  pending: 'warning',
+  inactive: 'neutral',
+  deactivated: 'error',
 }
 
 const EMPLOYMENT_TYPE_LABEL: Record<string, string> = {
@@ -58,21 +75,6 @@ const EMPLOYMENT_TYPE_OPTIONS = [
   { value: 'bank', label: 'Bank' },
   { value: 'relief', label: 'Relief' },
 ]
-
-const EMPLOYMENT_TYPE_COLOR: Record<string, 'default' | 'primary' | 'secondary' | 'info' | 'warning'> = {
-  full_time: 'default',
-  part_time: 'primary',
-  agency: 'secondary',
-  bank: 'info',
-  relief: 'warning',
-}
-
-const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'default' | 'error' | 'warning'; variant?: 'outlined' | 'filled' }> = {
-  active: { label: 'Active', color: 'success' },
-  inactive: { label: 'Inactive', color: 'default' },
-  deactivated: { label: 'Deactivated', color: 'error' },
-  pending: { label: 'Pending', color: 'warning', variant: 'outlined' },
-}
 
 const isValidEmail = (e: string) => /^\S+@\S+\.\S+$/.test(e.trim())
 
@@ -380,7 +382,7 @@ export default function StaffDirectoryPage() {
 
   const handleRemoveStaff = () => {
     if (!activeMenuUser) return
-    setConfirmTitle('Remove Staff Member')
+    setConfirmTitle('Remove staff member')
     setConfirmMessage(`Are you sure you want to remove ${activeMenuUser.first_name || activeMenuUser.email} from the organisation?`)
     setConfirmAction(() => () => {
       removeStaffMutation.mutate(activeMenuUser.id)
@@ -392,7 +394,7 @@ export default function StaffDirectoryPage() {
 
   const handleCancelInvitation = () => {
     if (!activeMenuUser) return
-    setConfirmTitle('Cancel Invitation')
+    setConfirmTitle('Cancel invitation')
     setConfirmMessage(`Are you sure you want to cancel the invitation for ${activeMenuUser.email}?`)
     setConfirmAction(() => () => {
       cancelInviteMutation.mutate(activeMenuUser.id)
@@ -426,81 +428,59 @@ export default function StaffDirectoryPage() {
     handleMenuClose()
   }
 
-  const roleChip = (role: string, isInvitation: boolean) => {
-    const label = ROLE_LABEL[role] || role || '—'
-    return (
-      <Chip
-        label={label}
-        size="small"
-        color={isInvitation ? 'warning' : 'default'}
-        variant={isInvitation ? 'outlined' : 'filled'}
-      />
-    )
-  }
-
-  const statusChip = (status: string, isInvitation: boolean) => {
-    const key = isInvitation ? 'pending' : status
-    const cfg = STATUS_CONFIG[key] || STATUS_CONFIG.inactive
-    return (
-      <Chip
-        label={cfg.label}
-        color={cfg.color}
-        size="small"
-        variant={isInvitation ? 'outlined' : cfg.variant || 'filled'}
-      />
-    )
-  }
-
   const isAdminOrManager = currentUserRole === UserRole.ORG_ADMIN || currentUserRole === UserRole.MANAGER
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4">Staff Directory</Typography>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <Select
-              value={employmentFilter}
-              onChange={(e) => setEmploymentFilter(e.target.value)}
-              displayEmpty
+      <PageHeader
+        title="Staff directory"
+        subtitle={`${staff.length + admins.length} team members${invitations.length > 0 ? ` · ${invitations.length} pending invitation${invitations.length === 1 ? '' : 's'}` : ''}`}
+        actions={
+          <>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <Select
+                value={employmentFilter}
+                onChange={(e) => setEmploymentFilter(e.target.value)}
+                displayEmpty
+              >
+                {EMPLOYMENT_TYPE_OPTIONS.map(opt => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              variant="outlined"
+              size="small"
+              sx={{ width: 250 }}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: '#9CA3AF' }} /></InputAdornment>,
+              }}
+            />
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setAddDialogOpen(true)}
+              sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}
             >
-              {EMPLOYMENT_TYPE_OPTIONS.map(opt => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            placeholder="Search by name or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            variant="outlined"
-            size="small"
-            sx={{ width: 250 }}
-            InputProps={{
-              startAdornment: <InputAdornment position="start"><RefreshIcon fontSize="small" sx={{ opacity: 0.4 }} /></InputAdornment>,
-            }}
-          />
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setAddDialogOpen(true)}
-          >
-            Add Staff Member
-          </Button>
-        </Stack>
-      </Stack>
+              Add staff member
+            </Button>
+          </>
+        }
+      />
 
       {successAlert && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessAlert('')}>{successAlert}</Alert>
       )}
 
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Employment Type</TableCell>
+            <TableRow sx={{ '& th': { bgcolor: '#F8FAFC', fontWeight: 700, color: 'text.secondary', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' } }}>
+              <TableCell>Member</TableCell>
+              <TableCell>Employment</TableCell>
               <TableCell>Role</TableCell>
               <TableCell>Compliance</TableCell>
               <TableCell>Status</TableCell>
@@ -510,13 +490,15 @@ export default function StaffDirectoryPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                  <CircularProgress size={24} />
+                <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
+                  <CircularProgress size={24} sx={{ color: NAVY }} />
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7}>No members found.</TableCell>
+                <TableCell colSpan={6} sx={{ py: 6, textAlign: 'center', color: '#9CA3AF' }}>
+                  No members found.
+                </TableCell>
               </TableRow>
             ) : (
               paginated.map((m: any) => {
@@ -527,29 +509,29 @@ export default function StaffDirectoryPage() {
                   <TableRow
                     key={`${m._type}-${m.id}`}
                     sx={{
-                      bgcolor: isAdmin ? 'rgba(15,76,129,0.04)' : 'inherit',
+                      bgcolor: isAdmin ? 'rgba(15,76,129,0.03)' : 'inherit',
                       cursor: !isInvitation ? 'pointer' : 'default',
-                      '&:hover': !isInvitation ? { bgcolor: 'rgba(15,76,129,0.02)' } : {},
+                      '&:hover': !isInvitation ? { bgcolor: '#F8FAFC' } : {},
                     }}
                     onClick={() => {
                       if (!isInvitation) navigate(`/staff/${m.id}`)
                     }}
                   >
                     <TableCell>
-                      <Stack direction="row" alignItems="center" spacing={1}>
-                        <Typography variant="body2">
-                          {isInvitation ? '—' : `${m.first_name || ''} ${m.last_name || ''}`}
-                        </Typography>
-                        {isAdmin && (
-                          <Chip
-                            label="Admin"
-                            size="small"
-                            sx={{ bgcolor: '#0F4C81', color: 'white', fontSize: '0.65rem', height: 20 }}
-                          />
-                        )}
+                      <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Avatar sx={{ width: 36, height: 36, bgcolor: isInvitation ? '#E5E7EB' : NAVY, fontSize: 14, fontWeight: 800, color: isInvitation ? '#9CA3AF' : '#fff' }}>
+                          {isInvitation ? '—' : `${(m.first_name || '?')[0]}${(m.last_name || '') ? (m.last_name)[0] : ''}`.toUpperCase()}
+                        </Avatar>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                            {isInvitation ? 'Pending invitation' : `${m.first_name || ''} ${m.last_name || ''}`.trim() || '—'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>
+                            {m.email}
+                          </Typography>
+                        </Box>
                       </Stack>
                     </TableCell>
-                    <TableCell>{m.email || '—'}</TableCell>
                     <TableCell>
                       {isInvitation || !m.employment_type ? (
                         <Typography variant="caption" color="#9CA3AF">—</Typography>
@@ -557,15 +539,17 @@ export default function StaffDirectoryPage() {
                         <Chip
                           label={EMPLOYMENT_TYPE_LABEL[m.employment_type] || m.employment_type}
                           size="small"
-                          color={EMPLOYMENT_TYPE_COLOR[m.employment_type] || 'default'}
                           variant="outlined"
+                          sx={{ height: 22, fontSize: 12 }}
                         />
                       )}
                     </TableCell>
-                    <TableCell>{roleChip(m.role, isInvitation)}</TableCell>
+                    <TableCell>
+                      <StatusBadge label={ROLE_LABEL[m.role] || m.role || '—'} tone={ROLE_TONE[m.role] || 'neutral'} />
+                    </TableCell>
                     <TableCell>
                       {isInvitation ? (
-                        '—'
+                        <Typography variant="caption" color="#9CA3AF">—</Typography>
                       ) : staffHasCompliance ? (
                         <Stack direction="row" alignItems="center" spacing={1}>
                           <Box sx={{
@@ -580,7 +564,9 @@ export default function StaffDirectoryPage() {
                         <Typography variant="caption" color="#9CA3AF">—</Typography>
                       )}
                     </TableCell>
-                    <TableCell>{statusChip(m.status, isInvitation)}</TableCell>
+                    <TableCell>
+                      <StatusBadge label={isInvitation ? 'Pending' : (m.status || '—')} tone={isInvitation ? 'warning' : (STATUS_TONE[m.status] || 'neutral')} />
+                    </TableCell>
                     <TableCell align="right">
                       {isAdmin && currentUserRole !== UserRole.ORG_ADMIN ? null : (
                         <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, m) }}>
@@ -593,19 +579,19 @@ export default function StaffDirectoryPage() {
               })
             )}
           </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TablePagination
+                count={filtered.length}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[5, 10, 25, 50]}
+              />
+            </TableRow>
+          </TableFooter>
         </Table>
-        <TableFooter>
-          <TableRow>
-            <TablePagination
-              count={filtered.length}
-              page={page}
-              rowsPerPage={rowsPerPage}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              rowsPerPageOptions={[5, 10, 25, 50]}
-            />
-          </TableRow>
-        </TableFooter>
       </TableContainer>
 
       <Menu
@@ -669,7 +655,7 @@ export default function StaffDirectoryPage() {
       </Menu>
 
       <Dialog open={addDialogOpen} onClose={() => { setAddDialogOpen(false); setAddDialogError(''); }} maxWidth="sm" fullWidth>
-        <DialogTitle>Add Team Members</DialogTitle>
+        <DialogTitle>Add team members</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {addDialogError && <Alert severity="warning" onClose={() => setAddDialogError('')}>{addDialogError}</Alert>}
@@ -724,7 +710,7 @@ export default function StaffDirectoryPage() {
               size="small"
               href="/templates/staff-invite-template.csv"
               target="_blank"
-              sx={{ textTransform: 'none', color: '#0F4C81' }}
+              sx={{ textTransform: 'none', color: NAVY }}
             >
               Download Template
             </Button>
@@ -764,6 +750,7 @@ export default function StaffDirectoryPage() {
             variant="contained"
             onClick={handleSendInvitations}
             disabled={inviteEntries.length === 0 || inviteMutation.isPending}
+            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}
           >
             {inviteMutation.isPending ? 'Sending...' : `Send Invitations (${inviteEntries.length})`}
           </Button>
@@ -771,7 +758,7 @@ export default function StaffDirectoryPage() {
       </Dialog>
 
       <Dialog open={changeRoleOpen} onClose={() => setChangeRoleOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Change Role</DialogTitle>
+        <DialogTitle>Change role</DialogTitle>
         <DialogContent>
           <FormControl fullWidth size="small" sx={{ mt: 1 }}>
             <InputLabel>Role</InputLabel>
@@ -788,7 +775,7 @@ export default function StaffDirectoryPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setChangeRoleOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveRole} disabled={changeRoleMutation.isPending}>
+          <Button variant="contained" onClick={handleSaveRole} disabled={changeRoleMutation.isPending} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>
             Save
           </Button>
         </DialogActions>

@@ -320,7 +320,7 @@ export class StaffController {
 
     // Get compliance records for this staff member
     const recordsResult = await pool.query(
-      'SELECT cr.id, cr.requirement_id, cr.status, cr.last_checked_at, cr.notes FROM compliance_records cr WHERE cr.staff_id = $1',
+      'SELECT cr.id, cr.requirement_id, cr.status, cr.last_checked_at, cr.notes, cr.issued_at, cr.expires_at, cr.file_url FROM compliance_records cr WHERE cr.staff_id = $1',
       [staffId]
     );
 
@@ -336,6 +336,9 @@ export class StaffController {
         status: record?.status || 'incomplete',
         last_checked_at: record?.last_checked_at || null,
         notes: record?.notes || '',
+        issued_at: record?.issued_at || null,
+        expires_at: record?.expires_at || null,
+        file_url: record?.file_url || null,
       };
     });
 
