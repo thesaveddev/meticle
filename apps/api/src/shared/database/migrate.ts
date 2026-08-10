@@ -17,9 +17,9 @@ export async function ensureMigrationsTable(): Promise<void> {
   `);
 }
 
-export async function getAppliedMigrations(): Promise<Set<string>> {
-  const result = await query(`SELECT name FROM ${MIGRATIONS_TABLE}`);
-  return new Set(result.rows.map((r: { name: string }) => r.name));
+export async function getAppliedMigrations(): Promise<Map<string, string>> {
+  const result = await query(`SELECT name, checksum FROM ${MIGRATIONS_TABLE}`);
+  return new Map(result.rows.map((r: { name: string; checksum: string }) => [r.name, r.checksum]));
 }
 
 function computeChecksum(statements: string[]): string {
@@ -52,8 +52,20 @@ export async function runMigrations(migrations: Migration[]): Promise<void> {
   const applied = await getAppliedMigrations();
 
   for (const migration of migrations) {
-    if (applied.has(migration.name)) {
-      logger.debug(`Migration ${migration.name} already applied, skipping`);
+    const appliedChecksum = applied.get(migration.name);
+    if (appliedChecksum !== undefined) {
+      // A checksum change on an already-applied migration means statements were edited
+      // after the migration ran. The runner cannot safely re-apply them (it skips by name),
+      // so surface the drift loudly instead of silently running without the new DDL.
+      const checksum = computeChecksum(migration.statements);
+      if (checksum !== appliedChecksum) {
+        logger.error(
+          { migration: migration.name, previousChecksum: appliedChecksum, currentChecksum: checksum },
+          'Migration already applied but checksum differs — statements were modified after apply and will NOT re-run. Ship a new numbered migration instead.'
+        );
+      } else {
+        logger.debug(`Migration ${migration.name} already applied, skipping`);
+      }
       continue;
     }
 
