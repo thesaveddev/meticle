@@ -4,20 +4,34 @@ import { AppError } from '../../shared/middleware/error.middleware';
 
 const MODULES = [
   'dashboard',
+  'people',
+  'emedication',
   'staff_directory',
-  'compliance',
   'scheduling',
   'marketplace',
-  'reporting',
-  'settings',
+  'agencies',
   'leave',
+  'compliance',
+  'training',
+  'policies',
+  'incidents',
+  'reporting',
+  'outcomes',
+  'chat',
+  'tasks',
+  'appointments',
+  'expenses',
+  'room_checks',
+  'settings',
+  'billing',
+  'learn',
 ];
 
 const ROLE_DEFAULTS: Record<string, Record<string, string>> = {
-  ORG_ADMIN: { dashboard: 'edit', staff_directory: 'edit', compliance: 'edit', scheduling: 'edit', marketplace: 'edit', reporting: 'edit', settings: 'edit', leave: 'edit' },
-  MANAGER: { dashboard: 'edit', staff_directory: 'edit', compliance: 'edit', scheduling: 'edit', marketplace: 'edit', reporting: 'edit', settings: 'view', leave: 'edit' },
-  CARE_WORKER: { dashboard: 'view', staff_directory: 'none', compliance: 'view', scheduling: 'view', marketplace: 'view', reporting: 'none', settings: 'view', leave: 'view' },
-  COMPLIANCE_OFFICER: { dashboard: 'view', staff_directory: 'view', compliance: 'edit', scheduling: 'none', marketplace: 'none', reporting: 'view', settings: 'view', leave: 'view' },
+  ORG_ADMIN: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', outcomes: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'edit', room_checks: 'edit', settings: 'edit', billing: 'edit', learn: 'edit' },
+  MANAGER: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', outcomes: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'view', room_checks: 'edit', settings: 'view', billing: 'view', learn: 'view' },
+  CARE_WORKER: { dashboard: 'view', people: 'none', emedication: 'view', staff_directory: 'none', scheduling: 'view', marketplace: 'view', agencies: 'none', leave: 'view', compliance: 'view', training: 'none', policies: 'none', incidents: 'none', reporting: 'none', outcomes: 'none', chat: 'view', tasks: 'none', appointments: 'view', expenses: 'view', room_checks: 'none', settings: 'view', billing: 'none', learn: 'view' },
+  COMPLIANCE_OFFICER: { dashboard: 'view', people: 'view', emedication: 'view', staff_directory: 'view', scheduling: 'none', marketplace: 'none', agencies: 'none', leave: 'view', compliance: 'edit', training: 'edit', policies: 'view', incidents: 'view', reporting: 'view', outcomes: 'view', chat: 'view', tasks: 'view', appointments: 'view', expenses: 'none', room_checks: 'view', settings: 'view', billing: 'none', learn: 'view' },
 };
 
 export class PermissionsController {

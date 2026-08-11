@@ -128,27 +128,27 @@ function App() {
           <Route path="/insights" element={<ModuleGuard module="reporting"><InsightsPage /></ModuleGuard>} />
           <Route path="/organizations" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN]}><OrganizationPage /></AuthGuard>} />
           <Route path="/settings" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="settings"><SettingsPage /></ModuleGuard></AuthGuard>} />
-          <Route path="/billing" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN]}><BillingPage /></AuthGuard>} />
+          <Route path="/billing" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN]}><ModuleGuard module="billing"><BillingPage /></ModuleGuard></AuthGuard>} />
           <Route path="/leave" element={<ModuleGuard module="leave"><LeaveManagerPage /></ModuleGuard>} />
           <Route path="/shift-marketplace" element={<ModuleGuard module="marketplace"><ShiftMarketplacePage /></ModuleGuard>} />
-          <Route path="/agencies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><AgenciesPage /></AuthGuard>} />
-          <Route path="/expenses" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ExpensesPage /></AuthGuard>} />
-          <Route path="/people" element={<ModuleGuard module="staff_directory"><PersonDirectoryPage /></ModuleGuard>} />
-          <Route path="/people/:id" element={<ModuleGuard module="staff_directory"><PersonProfilePage /></ModuleGuard>} />
-          <Route path="/incidents" element={<ModuleGuard module="staff_directory"><IncidentDirectoryPage /></ModuleGuard>} />
-          <Route path="/incidents/:id" element={<ModuleGuard module="staff_directory"><IncidentDetailPage /></ModuleGuard>} />
-          <Route path="/training" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><TrainingMatrixPage /></AuthGuard>} />
-          <Route path="/chat" element={<ModuleGuard module="dashboard"><ChatPage /></ModuleGuard>} />
-          <Route path="/appointments" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="staff_directory"><AppointmentsPage /></ModuleGuard></AuthGuard>} />
-          <Route path="/policies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><PoliciesPage /></ModuleGuard></AuthGuard>} />
-          <Route path="/outcomes" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><OutcomesPage /></ModuleGuard></AuthGuard>} />
-          <Route path="/room-checks" element={<ModuleGuard module="staff_directory"><RoomChecksPage /></ModuleGuard>} />
+          <Route path="/agencies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="agencies"><AgenciesPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/expenses" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="expenses"><ExpensesPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/people" element={<ModuleGuard module="people"><PersonDirectoryPage /></ModuleGuard>} />
+          <Route path="/people/:id" element={<ModuleGuard module="people"><PersonProfilePage /></ModuleGuard>} />
+          <Route path="/incidents" element={<ModuleGuard module="incidents"><IncidentDirectoryPage /></ModuleGuard>} />
+          <Route path="/incidents/:id" element={<ModuleGuard module="incidents"><IncidentDetailPage /></ModuleGuard>} />
+          <Route path="/training" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="training"><TrainingMatrixPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/chat" element={<ModuleGuard module="chat"><ChatPage /></ModuleGuard>} />
+          <Route path="/appointments" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="appointments"><AppointmentsPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/policies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="policies"><PoliciesPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/outcomes" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="outcomes"><OutcomesPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/room-checks" element={<ModuleGuard module="room_checks"><RoomChecksPage /></ModuleGuard>} />
           <Route path="/mobile/check-in" element={<CheckInPage />} />
           <Route path="/mobile/voice-notes" element={<VoiceNotesPage />} />
-          <Route path="/medications" element={<ModuleGuard module="dashboard"><EMedicationPage /></ModuleGuard>} />
-          <Route path="/emedication" element={<ModuleGuard module="dashboard"><EMedicationPage /></ModuleGuard>} />
-          <Route path="/emedication/archived" element={<ModuleGuard module="dashboard"><ArchivedMarPage /></ModuleGuard>} />
-          <Route path="/tasks" element={<ModuleGuard module="staff_directory"><TasksPage /></ModuleGuard>} />
+          <Route path="/medications" element={<ModuleGuard module="emedication"><EMedicationPage /></ModuleGuard>} />
+          <Route path="/emedication" element={<ModuleGuard module="emedication"><EMedicationPage /></ModuleGuard>} />
+          <Route path="/emedication/archived" element={<ModuleGuard module="emedication"><ArchivedMarPage /></ModuleGuard>} />
+          <Route path="/tasks" element={<ModuleGuard module="tasks"><TasksPage /></ModuleGuard>} />
           <Route path="/platform-admin" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><PlatformAdminPage /></AuthGuard>} />
           <Route path="/platform-admin/organizations/:id" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><AdminOrganizationDetailPage /></AuthGuard>} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
