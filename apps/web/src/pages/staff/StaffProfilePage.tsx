@@ -91,7 +91,8 @@ export default function StaffProfilePage() {
     queryKey: ['org-member', userId],
     queryFn: async () => {
       const res = await api.get('/staff/org-members')
-      const all = [res.data.admin, ...res.data.staff].filter(Boolean)
+      const admins = res.data.admins?.length ? res.data.admins : (res.data.admin ? [res.data.admin] : [])
+      const all = [...admins, ...(res.data.staff || [])].filter(Boolean)
       return all.find((m: any) => m.id === userId)
     },
   })
@@ -303,7 +304,8 @@ export default function StaffProfilePage() {
   const totalAssessments = competencyRecords?.length || 0
 
   const statusTone: BadgeTone = STATUS_TONE[m.status] || 'neutral'
-  const roleTone: BadgeTone = ROLE_TONE[m.role] || 'neutral'
+  const effectiveRole = permissionsData?.role || m.role || ''
+  const roleTone: BadgeTone = ROLE_TONE[effectiveRole] || 'neutral'
 
   const tabs = [
     { id: TAB_OVERVIEW, label: 'Overview', icon: <PersonIcon /> },
@@ -337,7 +339,7 @@ export default function StaffProfilePage() {
                 {profile?.first_name || m.first_name || ''} {profile?.last_name || m.last_name || ''}
               </Typography>
               <Stack direction="row" spacing={1}>
-                <StatusBadge label={ROLE_LABEL[m.role] || m.role || '—'} tone={roleTone} />
+                <StatusBadge label={ROLE_LABEL[effectiveRole] || effectiveRole || '—'} tone={roleTone} />
                 {m.status && m.status !== 'active' && <StatusBadge label={m.status} tone={statusTone} />}
               </Stack>
             </Stack>
@@ -594,7 +596,7 @@ export default function StaffProfilePage() {
                 <FormControl size="small" sx={{ minWidth: 220, flex: 1 }}>
                   <InputLabel>Role</InputLabel>
                   <Select
-                    value={changeRoleValue || m.role || 'CARE_WORKER'}
+                    value={changeRoleValue || effectiveRole || 'CARE_WORKER'}
                     label="Role"
                     disabled={!isOrgAdmin || isSelf}
                     onChange={(e) => setChangeRoleValue(e.target.value)}
@@ -606,8 +608,8 @@ export default function StaffProfilePage() {
                 </FormControl>
                 <Button
                   variant="contained"
-                  disabled={!isOrgAdmin || isSelf || changeRoleMutation.isPending || !changeRoleValue || changeRoleValue === m.role}
-                  onClick={() => changeRoleMutation.mutate(changeRoleValue || m.role)}
+                  disabled={!isOrgAdmin || isSelf || changeRoleMutation.isPending || !changeRoleValue || changeRoleValue === effectiveRole}
+                  onClick={() => changeRoleMutation.mutate(changeRoleValue || effectiveRole)}
                   sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}
                 >
                   {changeRoleMutation.isPending ? 'Saving...' : 'Save role'}

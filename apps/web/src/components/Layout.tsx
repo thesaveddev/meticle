@@ -86,8 +86,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     {
       label: 'Care Management',
       items: [
-        { text: 'People', icon: <PeopleIcon />, path: '/people', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'People', icon: <PeopleIcon />, path: '/people', module: 'people', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
       ],
     },
     {
@@ -96,7 +96,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         { text: 'Staff Directory', icon: <PeopleIcon />, path: '/staff', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
         { text: 'Rota Planner', icon: <ScheduleIcon />, path: '/scheduling', module: 'scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Agencies', icon: <BusinessIcon />, path: '/agencies', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+        { text: 'Agencies', icon: <BusinessIcon />, path: '/agencies', module: 'agencies', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
         { text: 'Leave Manager', icon: <LeaveIcon />, path: '/leave', module: 'leave', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
       ],
     },
@@ -104,32 +104,32 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Compliance & Safety',
       items: [
         { text: 'Compliance', icon: <ComplianceIcon />, path: '/compliance', module: 'compliance', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
-        { text: 'Policies', icon: <PolicyIcon />, path: '/policies', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-        { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+        { text: 'Policies', icon: <PolicyIcon />, path: '/policies', module: 'policies', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+        { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'incidents', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
       ],
     },
     {
       label: 'Analytics',
       items: [
         { text: 'Reports', icon: <ReportsIcon />, path: '/reporting', module: 'reporting', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-        { text: 'Outcomes', icon: <OutcomeIcon />, path: '/outcomes', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+        { text: 'Outcomes', icon: <OutcomeIcon />, path: '/outcomes', module: 'outcomes', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
       ],
     },
     {
       label: 'Communication',
       items: [
-        { text: 'Communication', icon: <ChatIcon />, path: '/chat', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-        { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-        { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Communication', icon: <ChatIcon />, path: '/chat', module: 'chat', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+        { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'tasks', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'appointments', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+        { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'expenses', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
       ],
     },
   ]
 
   const bottomItems = [
-    { text: 'Billing', icon: <BillingIcon />, path: '/billing', module: 'settings', roles: [UserRole.ORG_ADMIN] },
+    { text: 'Billing', icon: <BillingIcon />, path: '/billing', module: 'billing', roles: [UserRole.ORG_ADMIN] },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings', module: 'settings', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-    { text: 'Learn', icon: <SchoolIcon />, path: '/learn', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+    { text: 'Learn', icon: <SchoolIcon />, path: '/learn', module: 'learn', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
   ]
 
   const sidebarDisabled = !subLoading && !isActive
