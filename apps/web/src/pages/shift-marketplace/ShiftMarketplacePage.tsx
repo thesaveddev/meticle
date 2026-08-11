@@ -13,7 +13,7 @@ export default function ShiftMarketplacePage() {
   const [pendingClaims, setPendingClaims] = useState<any[]>([])
   const [locations, setLocations] = useState<any[]>([])
   const [agencies, setAgencies] = useState<any[]>([])
-  const [selectedLocation, setSelectedLocation] = useState('')
+  const [selectedLocation, setSelectedLocation] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -26,7 +26,7 @@ export default function ShiftMarketplacePage() {
   const fetchOpenShifts = async () => {
     try {
       const params = new URLSearchParams()
-      if (selectedLocation) params.set('location_id', selectedLocation)
+      if (selectedLocation && selectedLocation !== 'all') params.set('location_id', selectedLocation)
       const res = await api.get(`/shifts/open?${params}`)
       setShifts(res.data)
     } catch {}
@@ -183,7 +183,7 @@ export default function ShiftMarketplacePage() {
           <FormControl size="small" sx={{ mr: 2, minWidth: 180 }}>
             <InputLabel>Location</InputLabel>
             <Select value={selectedLocation} label="Location" onChange={e => setSelectedLocation(e.target.value)}>
-              <MenuItem value="">All Locations</MenuItem>
+              <MenuItem value="all">All Locations</MenuItem>
               {locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
             </Select>
           </FormControl>
