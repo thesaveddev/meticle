@@ -161,7 +161,7 @@ export class SchedulingRepository {
     await query('DELETE FROM shifts WHERE id = $1', [id]);
   }
 
-  static async assignStaff(shiftId: string, staffId: string) {
+  static async assignStaff(shiftId: string, staffId: string, isOvertimeOverride?: boolean) {
     return transaction(async (client) => {
       const shiftResult = await client.query(
         `SELECT s.*, l.name as location_name, l.organization_id
@@ -226,7 +226,7 @@ export class SchedulingRepository {
       );
       if (alreadyAssigned.rows.length > 0) throw new AppError(409, 'Staff member is already assigned to this shift');
 
-      const isOvertime = await this.checkOvertimeExceeded(staffId, shift.start_time, shift.end_time);
+      const isOvertime = isOvertimeOverride !== undefined ? isOvertimeOverride : await this.checkOvertimeExceeded(staffId, shift.start_time, shift.end_time);
 
       const result = await client.query(
         'INSERT INTO shift_assignments (shift_id, staff_id, is_overtime) VALUES ($1, $2, $3) RETURNING *',
@@ -386,10 +386,15 @@ export class SchedulingRepository {
     return result.rows;
   }
 
-  static async getOpenShifts(orgId: string, locationId?: string) {
-    const now = new Date();
-    const end = new Date(now);
-    end.setDate(end.getDate() + 14);
+  static async getOpenShifts(orgId: string, locationId?: string, dateFrom?: string, dateTo?: string) {
+    const defaultFrom = new Date();
+    defaultFrom.setHours(0, 0, 0, 0);
+    const defaultTo = new Date(defaultFrom);
+    defaultTo.setDate(defaultTo.getDate() + 14);
+    // Shift window starts at the beginning of today so overtime posted for today shows
+    // even when its start time has already passed. Passing a date range overrides it.
+    const from = dateFrom ? new Date(`${dateFrom}T00:00:00`) : defaultFrom;
+    const to = dateTo ? new Date(`${dateTo}T23:59:59.999`) : defaultTo;
     let sql = `
       SELECT s.*, l.name as location_name, d.name as department_name,
         su.first_name as su_first_name, su.last_name as su_last_name,
@@ -402,7 +407,7 @@ export class SchedulingRepository {
         AND s.status IN ('open', 'pending')
         AND s.start_time >= $2
         AND s.start_time <= $3`;
-    const params: any[] = [orgId, now.toISOString(), end.toISOString()];
+    const params: any[] = [orgId, from.toISOString(), to.toISOString()];
     let idx = 4;
     if (locationId) { sql += ` AND s.location_id = $${idx++}`; params.push(locationId); }
     sql += ' ORDER BY s.start_time';
@@ -463,12 +468,14 @@ export class SchedulingRepository {
       `SELECT sa.id as assignment_id, sa.status as assignment_status, sa.created_at as claimed_at, sa.is_overtime,
               s.id as shift_id, s.start_time, s.end_time, s.status as shift_status, s.shift_type,
               l.name as location_name, d.name as department_name,
-              su.first_name as su_first_name, su.last_name as su_last_name
+              su.first_name as su_first_name, su.last_name as su_last_name,
+              sp.id as staff_id, sp.first_name, sp.last_name
        FROM shift_assignments sa
        JOIN shifts s ON sa.shift_id = s.id
        JOIN locations l ON s.location_id = l.id
        LEFT JOIN departments d ON s.department_id = d.id
        LEFT JOIN people su ON s.person_id = su.id
+       JOIN staff_profiles sp ON sa.staff_id = sp.id
        WHERE sa.staff_id = $1 AND l.organization_id = $2
        ORDER BY s.start_time DESC`,
       [staffProfileId, orgId]
@@ -494,6 +501,31 @@ export class SchedulingRepository {
       params.push(managedLocationIds);
     }
     sql += ' ORDER BY sa.created_at DESC';
+    const result = await query(sql, params);
+    return result.rows;
+  }
+
+  /** All claims org-wide for admins/managers: pending, rejected, and approved overtime claims (not the routine roster). */
+  static async getAllClaims(orgId: string, managedLocationIds?: string[]) {
+    let sql = `SELECT sa.id as assignment_id, sa.status as assignment_status, sa.created_at as claimed_at, sa.is_overtime,
+              s.id as shift_id, s.start_time, s.end_time, s.status as shift_status, s.shift_type,
+              l.id as location_id, l.name as location_name, d.name as department_name,
+              su.first_name as su_first_name, su.last_name as su_last_name,
+              sp.id as staff_id, sp.first_name, sp.last_name
+       FROM shift_assignments sa
+       JOIN shifts s ON sa.shift_id = s.id
+       JOIN locations l ON s.location_id = l.id
+       LEFT JOIN departments d ON s.department_id = d.id
+       LEFT JOIN people su ON s.person_id = su.id
+       JOIN staff_profiles sp ON sa.staff_id = sp.id
+       WHERE l.organization_id = $1
+         AND (sa.status IN ('pending', 'rejected') OR (sa.status = 'assigned' AND s.shift_type IS NOT NULL))`;
+    const params: any[] = [orgId];
+    if (managedLocationIds && managedLocationIds.length > 0) {
+      sql += ` AND l.id = ANY($${params.length + 1}::uuid[])`;
+      params.push(managedLocationIds);
+    }
+    sql += ' ORDER BY sa.created_at DESC LIMIT 500';
     const result = await query(sql, params);
     return result.rows;
   }
@@ -643,13 +675,13 @@ export class SchedulingRepository {
         if (current.rows.length === 0 || current.rows[0].status !== 'open') throw new AppError(409, 'Shift is not available for claiming');
         await client.query("UPDATE shifts SET status = 'pending' WHERE id = $1", [shiftId]);
         const assignment = await client.query(
-          "INSERT INTO shift_assignments (shift_id, staff_id, status) VALUES ($1, $2, 'pending') RETURNING *",
+          "INSERT INTO shift_assignments (shift_id, staff_id, status, is_overtime) VALUES ($1, $2, 'pending', true) RETURNING *",
           [shiftId, staffId]
         );
         return { ...assignment.rows[0], requires_approval: true };
       });
     } else {
-      const assignment = await this.assignStaff(shiftId, staffId);
+      const assignment = await this.assignStaff(shiftId, staffId, true);
       return { ...assignment, requires_approval: false };
     }
   }
@@ -687,10 +719,10 @@ export class SchedulingRepository {
   static async swapOvertimeClaim(shiftId: string, currentStaffId: string, newStaffId: string) {
     return transaction(async (client) => {
       const assignment = await client.query(
-        "UPDATE shift_assignments SET staff_id = $1 WHERE shift_id = $2 AND staff_id = $3 AND status = 'assigned' RETURNING *",
+        "UPDATE shift_assignments SET staff_id = $1 WHERE shift_id = $2 AND staff_id = $3 AND status IN ('assigned', 'pending') RETURNING *",
         [newStaffId, shiftId, currentStaffId]
       );
-      if (assignment.rows.length === 0) throw new AppError(404, 'Approved overtime claim not found');
+      if (assignment.rows.length === 0) throw new AppError(404, 'Overtime claim not found');
       return assignment.rows[0];
     });
   }
@@ -768,6 +800,38 @@ export class SchedulingRepository {
       );
       if (assignment.rows.length === 0) throw new AppError(404, 'Approved overtime claim not found');
       await client.query("UPDATE shifts SET status = 'open' WHERE id = $1", [shiftId]);
+      return assignment.rows[0];
+    });
+  }
+
+  /** Admin/manager: cancel an overtime claim (pending or approved) and return the shift to the pool. */
+  static async cancelOvertimeClaim(shiftId: string, staffId: string) {
+    return transaction(async (client) => {
+      const assignment = await client.query(
+        "UPDATE shift_assignments SET status = 'rejected' WHERE shift_id = $1 AND staff_id = $2 AND status IN ('pending', 'assigned') RETURNING *",
+        [shiftId, staffId]
+      );
+      if (assignment.rows.length === 0) throw new AppError(404, 'Overtime claim not found');
+      const remaining = await client.query(
+        "SELECT COUNT(*) as cnt FROM shift_assignments WHERE shift_id = $1 AND status IN ('pending', 'assigned') AND id != $2",
+        [shiftId, assignment.rows[0].id]
+      );
+      if (parseInt(remaining.rows[0]?.cnt) === 0) {
+        await client.query("UPDATE shifts SET status = 'open' WHERE id = $1", [shiftId]);
+      }
+      return assignment.rows[0];
+    });
+  }
+
+  /** Admin/manager: convert an overtime claim to a regular rostered shift (is_overtime=false). Pending claims are approved as regular. */
+  static async convertOvertimeClaim(shiftId: string, staffId: string) {
+    return transaction(async (client) => {
+      const assignment = await client.query(
+        "UPDATE shift_assignments SET status = 'assigned', is_overtime = FALSE WHERE shift_id = $1 AND staff_id = $2 AND status IN ('pending', 'assigned') RETURNING *",
+        [shiftId, staffId]
+      );
+      if (assignment.rows.length === 0) throw new AppError(404, 'Overtime claim not found');
+      await client.query("UPDATE shifts SET status = 'filled' WHERE id = $1", [shiftId]);
       return assignment.rows[0];
     });
   }
@@ -977,7 +1041,7 @@ export class SchedulingRepository {
     return result.rows[0]?.last_date || null
   }
 
-  static async sendToAgency(shiftId: string, orgId: string, data: { agency_id: string; agency_cost?: string; agency_contact_name?: string; agency_contact_phone?: string }) {
+  static async sendToAgency(shiftId: string, orgId: string, data: { agency_id: string; agency_cost?: string; agency_contact_name?: string; agency_contact_phone?: string; agency_shift_reference?: string; agency_notes?: string }) {
     // If no cost provided, auto-calculate from agency rate for this shift type
     let cost = data.agency_cost;
     if (!cost || cost === '') {
@@ -1000,11 +1064,12 @@ export class SchedulingRepository {
     const result = await query(
       `UPDATE shifts s SET
         agency_id = $1, agency_cost = $2, agency_contact_name = $3,
-        agency_contact_phone = $4, agency_sent_at = CURRENT_TIMESTAMP,
+        agency_contact_phone = $4, agency_shift_reference = $7, agency_notes = $8,
+        agency_sent_at = CURRENT_TIMESTAMP,
         agency_covered = false, status = 'filled'
        FROM locations l
        WHERE s.location_id = l.id AND l.organization_id = $6 AND s.id = $5 RETURNING s.*`,
-      [data.agency_id, cost || null, data.agency_contact_name || null, data.agency_contact_phone || null, shiftId, orgId]
+      [data.agency_id, cost || null, data.agency_contact_name || null, data.agency_contact_phone || null, shiftId, orgId, data.agency_shift_reference || null, data.agency_notes || null]
     );
     return result.rows[0] || null;
   }

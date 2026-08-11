@@ -18,6 +18,7 @@ router.post('/templates', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, User
 router.get('/my-shifts', asyncHandler(SchedulingController.getMyShifts));
 router.get('/my-claims', asyncHandler(SchedulingController.getMyClaims));
 router.get('/pending-claims', asyncHandler(SchedulingController.getPendingClaims));
+router.get('/all-claims', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(SchedulingController.getAllClaims));
 router.get('/approved-claims', asyncHandler(SchedulingController.getApprovedClaims));
 router.get('/unclaimed', asyncHandler(SchedulingController.getUnclaimedOpenShifts));
 router.get('/', asyncHandler(SchedulingController.getShifts));
@@ -35,6 +36,8 @@ router.patch('/:shiftId/approve-claim/:staffId', requireRole(UserRole.ORG_ADMIN,
 router.patch('/:shiftId/reject-claim/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.rejectOvertimeClaim));
 router.delete('/:shiftId/assign/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.unassignStaff));
 router.delete('/:shiftId/revoke-claim/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.revokeOvertimeClaim));
+router.delete('/:shiftId/cancel-claim/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.cancelOvertimeClaim));
+router.post('/:shiftId/convert-claim/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.convertOvertimeClaim));
 router.post('/:shiftId/swap-claim/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.swapOvertimeClaim));
 router.get('/staff/:staffId/shifts', asyncHandler(SchedulingController.getStaffShifts));
 

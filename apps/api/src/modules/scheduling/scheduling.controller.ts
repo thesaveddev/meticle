@@ -133,47 +133,48 @@ export class SchedulingController {
 
     const assignment = await SchedulingRepository.claimOpenShift(id, staffId, orgId);
 
-    if (assignment.requires_approval) {
-      const locationName = shiftInfo ? (await pool.query('SELECT name FROM locations WHERE id = $1', [shiftInfo.location_id])).rows[0]?.name || 'Unknown' : 'Unknown';
-      const date = new Date(shiftInfo.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-      const time = `${new Date(shiftInfo.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} - ${new Date(shiftInfo.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+    // Notify location managers (and their delegates) whenever an overtime is claimed —
+    // email + in-app, whether or not approval is required.
+    const locationName = shiftInfo ? (await pool.query('SELECT name FROM locations WHERE id = $1', [shiftInfo.location_id])).rows[0]?.name || 'Unknown' : 'Unknown';
+    const date = shiftInfo ? new Date(shiftInfo.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    const time = shiftInfo ? `${new Date(shiftInfo.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} - ${new Date(shiftInfo.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : '';
 
-      const staffName = `${staffProfile.first_name || ''} ${staffProfile.last_name || ''}`.trim() || 'A staff member';
+    const staffName = `${staffProfile.first_name || ''} ${staffProfile.last_name || ''}`.trim() || 'A staff member';
 
-      const managerIds = new Set<string>();
-      if (shiftInfo) {
-        const shiftLocRes = await pool.query(
-          `SELECT l.manager_id FROM locations l JOIN shifts s ON s.location_id = l.id WHERE s.id = $1`,
-          [id]
-        );
-        if (shiftLocRes.rows[0]?.manager_id) managerIds.add(shiftLocRes.rows[0].manager_id);
-      }
-      const staffLocRes = await pool.query(
-        'SELECT location_id FROM staff_profiles WHERE id = $1',
-        [staffId]
+    const managerIds = new Set<string>();
+    if (shiftInfo) {
+      const shiftLocRes = await pool.query(
+        `SELECT l.manager_id FROM locations l JOIN shifts s ON s.location_id = l.id WHERE s.id = $1`,
+        [id]
       );
-      if (staffLocRes.rows[0]?.location_id) {
-        const sLocRes = await pool.query('SELECT manager_id FROM locations WHERE id = $1', [staffLocRes.rows[0].location_id]);
-        if (sLocRes.rows[0]?.manager_id) managerIds.add(sLocRes.rows[0].manager_id);
-      }
-      managerIds.delete(userId);
+      if (shiftLocRes.rows[0]?.manager_id) managerIds.add(shiftLocRes.rows[0].manager_id);
+    }
+    const staffLocRes = await pool.query(
+      'SELECT location_id FROM staff_profiles WHERE id = $1',
+      [staffId]
+    );
+    if (staffLocRes.rows[0]?.location_id) {
+      const sLocRes = await pool.query('SELECT manager_id FROM locations WHERE id = $1', [staffLocRes.rows[0].location_id]);
+      if (sLocRes.rows[0]?.manager_id) managerIds.add(sLocRes.rows[0].manager_id);
+    }
+    managerIds.delete(userId);
 
-      const delegateIds = new Set<string>();
-      for (const mgrId of managerIds) {
-        const delRes = await pool.query(
-          `SELECT delegate_manager_id FROM manager_delegations
-           WHERE primary_manager_id = $1 AND is_active = true
-             AND (ends_at IS NULL OR ends_at > CURRENT_TIMESTAMP)`,
-          [mgrId]
-        );
-        for (const d of delRes.rows) delegateIds.add(d.delegate_manager_id);
-      }
-      for (const id of [...managerIds, ...delegateIds]) {
-        await NotificationsController.createNotification(id, 'Overtime Claim', `${staffName} has claimed a shift at ${locationName} on ${date} (${time}) and needs your approval.`, 'warning');
-        const mgrEmailRes = await pool.query('SELECT email FROM users WHERE id = $1', [id]);
-        if (mgrEmailRes.rows[0]?.email) {
-          await EmailService.sendOvertimeClaimedEmail(mgrEmailRes.rows[0].email, staffName, locationName, date, time);
-        }
+    const delegateIds = new Set<string>();
+    for (const mgrId of managerIds) {
+      const delRes = await pool.query(
+        `SELECT delegate_manager_id FROM manager_delegations
+         WHERE primary_manager_id = $1 AND is_active = true
+           AND (ends_at IS NULL OR ends_at > CURRENT_TIMESTAMP)`,
+        [mgrId]
+      );
+      for (const d of delRes.rows) delegateIds.add(d.delegate_manager_id);
+    }
+    const claimNote = assignment.requires_approval ? ' and needs your approval' : '';
+    for (const id of [...managerIds, ...delegateIds]) {
+      await NotificationsController.createNotification(id, 'Overtime Claim', `${staffName} has claimed a shift at ${locationName} on ${date} (${time})${claimNote}.`, 'warning');
+      const mgrEmailRes = await pool.query('SELECT email FROM users WHERE id = $1', [id]);
+      if (mgrEmailRes.rows[0]?.email) {
+        await EmailService.sendOvertimeClaimedEmail(mgrEmailRes.rows[0].email, staffName, locationName, date, time);
       }
     }
 
@@ -221,6 +222,60 @@ export class SchedulingController {
       );
     }
     logDelegationAction(user.userId, 'REVOKE_OVERTIME', 'shift', shiftId, `Revoked approved overtime for staff ${staffId}`);
+    res.json(result);
+  }
+
+  static async cancelOvertimeClaim(req: Request, res: Response) {
+    const user = req.user!;
+    const { shiftId, staffId } = req.params;
+    await requireShiftInOrg(user, shiftId);
+    await requireSameOrgForStaff(user, staffId);
+    const shiftInfo = await SchedulingRepository.getShiftById(shiftId);
+    if (shiftInfo) {
+      await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, shiftInfo.location_id);
+    }
+    const result = await SchedulingRepository.cancelOvertimeClaim(shiftId, staffId);
+    const locRes = await pool.query('SELECT name FROM locations WHERE id = $1', [shiftInfo.location_id]);
+    const locationName = locRes.rows[0]?.name || 'Unknown';
+    const date = new Date(shiftInfo.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+    const staffUserRes = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [staffId]);
+    if (staffUserRes.rows[0]) {
+      await NotificationsController.createNotification(
+        staffUserRes.rows[0].user_id,
+        'Overtime Cancelled',
+        `Your overtime claim at ${locationName} on ${date} has been cancelled by management.`,
+        'error'
+      );
+    }
+    logDelegationAction(user.userId, 'CANCEL_OVERTIME', 'shift', shiftId, `Cancelled overtime claim for staff ${staffId}`);
+    res.json(result);
+  }
+
+  static async convertOvertimeClaim(req: Request, res: Response) {
+    const user = req.user!;
+    const { shiftId, staffId } = req.params;
+    await requireShiftInOrg(user, shiftId);
+    await requireSameOrgForStaff(user, staffId);
+    const shiftInfo = await SchedulingRepository.getShiftById(shiftId);
+    if (shiftInfo) {
+      await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, shiftInfo.location_id);
+    }
+    const result = await SchedulingRepository.convertOvertimeClaim(shiftId, staffId);
+    const locRes = await pool.query('SELECT name FROM locations WHERE id = $1', [shiftInfo.location_id]);
+    const locationName = locRes.rows[0]?.name || 'Unknown';
+    const date = new Date(shiftInfo.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+    const staffUserRes = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [staffId]);
+    if (staffUserRes.rows[0]) {
+      await NotificationsController.createNotification(
+        staffUserRes.rows[0].user_id,
+        'Overtime Converted',
+        `Your overtime claim at ${locationName} on ${date} has been converted to a regular rostered shift.`,
+        'info'
+      );
+    }
+    logDelegationAction(user.userId, 'CONVERT_OVERTIME', 'shift', shiftId, `Converted overtime claim to regular shift for staff ${staffId}`);
     res.json(result);
   }
 
@@ -375,9 +430,19 @@ export class SchedulingController {
   static async getOpenShifts(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
     const locationId = req.query.location_id as string | undefined;
-    const shifts = await SchedulingRepository.getOpenShifts(orgId, locationId);
+    const dateFrom = req.query.date_from as string | undefined;
+    const dateTo = req.query.date_to as string | undefined;
+    const shifts = await SchedulingRepository.getOpenShifts(orgId, locationId, dateFrom, dateTo);
     const byShift = await SchedulingRepository.getAssignmentsBatch(shifts.map((s: any) => s.id));
     res.json(shifts.map((s: any) => ({ ...s, assignments: byShift[s.id] || [] })));
+  }
+
+  static async getAllClaims(req: Request, res: Response) {
+    const user = req.user!;
+    const orgId = user.organizationId!;
+    const managedIds = await SchedulingRepository.getManagedLocationIds(user.userId, user.role, orgId);
+    const claims = await SchedulingRepository.getAllClaims(orgId, managedIds);
+    res.json(claims);
   }
 
   static async getMyClaims(req: Request, res: Response) {
@@ -697,11 +762,11 @@ export class SchedulingController {
   static async sendToAgency(req: Request, res: Response) {
     const user = req.user!;
     const { id } = req.params;
-    const { agency_id, agency_cost, agency_contact_name, agency_contact_phone } = req.body;
+    const { agency_id, agency_cost, agency_contact_name, agency_contact_phone, agency_shift_reference, agency_notes } = req.body;
     await requireShiftInOrg(user, id);
     if (!agency_id) throw new AppError(400, 'Agency ID is required');
     const shift = await SchedulingRepository.sendToAgency(id, user.organizationId!, {
-      agency_id, agency_cost, agency_contact_name, agency_contact_phone
+      agency_id, agency_cost, agency_contact_name, agency_contact_phone, agency_shift_reference, agency_notes
     });
     if (!shift) throw new AppError(404, 'Shift not found');
     res.json(shift);
