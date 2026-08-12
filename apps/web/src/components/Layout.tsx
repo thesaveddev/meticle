@@ -56,7 +56,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const theme = useTheme()
 
   const [rawUser, setRawUser] = useState<any>(() => {
-    const s = localStorage.getItem('user'); try { return s ? JSON.parse(s) : {} } catch { return {} }
+    const s = localStorage.getItem('user')
+    try { const p = s ? JSON.parse(s) : {}; return p && typeof p === 'object' ? p : {} } catch { return {} }
   })
   const [orgName, setOrgName] = useState(() => {
     const s = localStorage.getItem('organization'); try { return s ? JSON.parse(s).name : null } catch { return null }
@@ -68,10 +69,10 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     try { return stored ? new Set(JSON.parse(stored)) : new Set() } catch { return new Set() }
   })
   const mainRef = useRef<HTMLElement | null>(null)
-  const userName = rawUser.first_name || rawUser.email?.split('@')[0] || 'Admin'
-  const userRole = rawUser.role || UserRole.ORG_ADMIN
-  const profilePic = rawUser.profile_picture_url || ''
-  const userInitial = rawUser.first_name?.[0] || rawUser.email?.[0] || '?'
+  const userName = rawUser?.first_name || rawUser?.email?.split('@')[0] || 'Admin'
+  const userRole = rawUser?.role || UserRole.ORG_ADMIN
+  const profilePic = rawUser?.profile_picture_url || ''
+  const userInitial = rawUser?.first_name?.[0] || rawUser?.email?.[0] || '?'
 
   interface NavItem { text: string; icon: JSX.Element; path: string; module: string; roles: UserRole[] }
   interface NavGroup { label: string; items: NavItem[] }
@@ -226,11 +227,12 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       const res = await api.get('/auth/me')
       const u = res.data.user
       const org = res.data.organization
+      if (!u || typeof u !== 'object') return
       localStorage.setItem('user', JSON.stringify(u))
-      localStorage.setItem('organization', JSON.stringify(org))
+      if (org && typeof org === 'object') localStorage.setItem('organization', JSON.stringify(org))
       setRawUser(u)
       setOrgName(org?.name || null)
-      setLocationName(u?.location_name || '')
+      setLocationName(u.location_name || '')
       if (org?.primary_color || org?.logo_url) {
         updateBranding({
           primary_color: org.primary_color || '#0F4C81',

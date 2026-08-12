@@ -4,7 +4,7 @@ import { CheckCircle, Cancel, WarningAmber as WarningIcon, Schedule, Person, Und
 import api from '../../services/api'
 
 export default function OvertimeClaimsPage() {
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+  const currentUser = (() => { const s = localStorage.getItem('user'); try { const p = s ? JSON.parse(s) : {}; return p && typeof p === 'object' ? p : {} } catch { return {} } })()
   const isAdminOrManager = currentUser.role === 'ORG_ADMIN' || currentUser.role === 'MANAGER'
 
   const [tab, setTab] = useState(0)

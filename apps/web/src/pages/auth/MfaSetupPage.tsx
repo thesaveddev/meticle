@@ -73,7 +73,8 @@ export default function MfaSetupPage() {
             </Stack>
             <Button fullWidth variant="contained" onClick={() => {
               const raw = localStorage.getItem('user')
-              const u = raw ? JSON.parse(raw) : null
+              let u: any = null
+              try { u = raw ? JSON.parse(raw) : null } catch { u = null }
               navigate(u?.role === 'SUPER_ADMIN' ? '/platform-admin' : '/dashboard')
             }}
               sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' }, py: 1.5, fontWeight: 700 }}>

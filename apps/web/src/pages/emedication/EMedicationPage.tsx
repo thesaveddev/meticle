@@ -142,7 +142,7 @@ function formatMonthLabel(ym: string) {
 export default function EMedicationPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+  const currentUser = (() => { const s = localStorage.getItem('user'); try { const p = s ? JSON.parse(s) : {}; return p && typeof p === 'object' ? p : {} } catch { return {} } })()
   const userRole = currentUser.role
   const canManage = userRole === 'ORG_ADMIN' || userRole === 'MANAGER'
   const apiErrorMsg = (err: any, fallback: string) =>
