@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Box, Typography, Paper, Button, Stack, Chip, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel,
-  FormControlLabel, Checkbox,
+  FormControlLabel, Checkbox, LinearProgress, Skeleton,
   Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip,
   Card, CardContent, CircularProgress, ToggleButton, ToggleButtonGroup,
   Autocomplete,
@@ -10,19 +10,24 @@ import {
 import {
   ChevronLeft, ChevronRight, Add as AddIcon,
   Delete as DeleteIcon,
-  PersonAdd as AssignIcon,
   Schedule as ScheduleIcon,
   Warning as WarningIcon, CheckCircle as CheckIcon,
-  HowToReg as ClaimIcon,
-  SwapHoriz as SwapHorizIcon, ArrowBack as ArrowBackIcon,
+  ArrowBack as ArrowBackIcon,
   AutoAwesome as AutoAwesomeIcon,
+  Today as TodayIcon,
+  ViewWeek as ViewWeekIcon, ViewTimeline as ViewTimelineIcon, Group as GroupIcon,
 } from '@mui/icons-material'
 import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
 import { fetchUserPermissions } from '../../utils/permissions'
+import DayBoardView from './rota/DayBoardView'
+import TimelineView from './rota/TimelineView'
+import RosterView from './rota/RosterView'
+import ShiftDetailDialog from './rota/ShiftDetailDialog'
+import { rotaHelpers } from './rota/helpers'
+import type { RotaViewMode } from './rota/types'
 
-const HOURS = Array.from({ length: 24 }, (_, i) => i)
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const { toLocalDateStr } = rotaHelpers
 
 const toLocalISO = (dateStr: string, timeStr: string) => {
   const d = new Date(`${dateStr}T${timeStr}:00`)
@@ -32,23 +37,30 @@ const toLocalISO = (dateStr: string, timeStr: string) => {
   return `${dateStr}T${timeStr}:00${sign}${pad(Math.floor(offset / 60))}:${pad(offset % 60)}`
 }
 
-const toLocalDateStr = (date: Date) => {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
 const localDateToISOStart = (date: Date) => {
   return toLocalISO(toLocalDateStr(date), '00:00')
 }
 
 const localDateToISOStartEncoded = (date: Date) => encodeURIComponent(localDateToISOStart(date))
 
-const isShiftPast = (shift: any) => new Date(shift.end_time) < new Date()
-const isDayPast = (date: Date) => {
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  return date < today
+function RotaSkeleton() {
+  return (
+    <Box>
+      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+        {[0, 1, 2].map(i => <Skeleton key={i} variant="rounded" width={220} height={34} />)}
+      </Stack>
+      <Stack direction="row" spacing={1} sx={{ overflowX: 'auto' }}>
+        {Array.from({ length: 7 }).map((_, d) => (
+          <Paper key={d} variant="outlined" sx={{ flex: '1 1 0', minWidth: 165, p: 1 }}>
+            <Skeleton variant="text" width="45%" sx={{ mb: 1 }} />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} variant="rounded" height={42} sx={{ mb: 1, bgcolor: '#F1F5F9' }} />
+            ))}
+          </Paper>
+        ))}
+      </Stack>
+    </Box>
+  )
 }
 
 export default function RotaPlannerPage() {
@@ -66,8 +78,11 @@ export default function RotaPlannerPage() {
   const [minStaffCounts, setMinStaffCounts] = useState<any[]>([])
   const [people, setPeople] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const hasLoadedRef = useRef(false)
+  const fetchDataRef = useRef<() => Promise<void>>(async () => {})
 
   const rawUser = useMemo(() => {
     const s = localStorage.getItem('user'); try { return s ? JSON.parse(s) : {} } catch { return {} }
@@ -82,17 +97,19 @@ export default function RotaPlannerPage() {
   const [assignDialog, setAssignDialog] = useState(false)
   const [assignShiftId, setAssignShiftId] = useState('')
   const [assignStaffId, setAssignStaffId] = useState('')
+  const [viewMode, setViewMode] = useState<RotaViewMode>('board')
+  const [detailShift, setDetailShift] = useState<any>(null)
   const [pendingClaims, setPendingClaims] = useState<any[]>([])
   const [selectedLocationId, setSelectedLocationId] = useState('')
   const [managedLocationIds, setManagedLocationIds] = useState<string[]>([])
   const [canEdit, setCanEdit] = useState(rawUser.role === UserRole.ORG_ADMIN || rawUser.role === UserRole.MANAGER)
   const isAdminOrManager = rawUser.role === UserRole.ORG_ADMIN || rawUser.role === UserRole.MANAGER
 
-  const canEditLocation = (locationId: string) => {
+  const canEditLocation = useCallback((locationId: string) => {
     if (rawUser.role === 'ORG_ADMIN' || rawUser.role === 'SUPER_ADMIN') return true
     if (rawUser.role === 'MANAGER') return managedLocationIds.includes(locationId)
     return false
-  }
+  }, [rawUser.role, managedLocationIds])
 
   const isReadOnly = useMemo(() => {
     if (!selectedLocationId) return false
@@ -328,7 +345,7 @@ export default function RotaPlannerPage() {
     fetchData()
   }
 
-  const openSwapDialog = async (shiftId: string, shiftDate?: string) => {
+  const openSwapDialog = useCallback(async (shiftId: string, shiftDate?: string) => {
     setSwapShiftId(shiftId)
     setSwapToStaffId('')
     setSwapToShiftId('')
@@ -362,7 +379,7 @@ export default function RotaPlannerPage() {
       setSwapRangeEnd(defaultEnd)
     }
     setSwapDialog(true)
-  }
+  }, [])
 
   const handleSwapSelectStaff = async (staffId: string) => {
     setSwapToStaffId(staffId)
@@ -412,8 +429,104 @@ export default function RotaPlannerPage() {
       return d
     }), [weekStart])
 
+  // ---- Precomputed indices (parsed once per fetch, O(1) grid lookups) ----
+  const normalizedShifts = useMemo(() =>
+    shifts.map((s: any) => {
+      const st = new Date(s.start_time)
+      const et = new Date(s.end_time)
+      return {
+        ...s,
+        _startDate: toLocalDateStr(st),
+        _endDate: toLocalDateStr(et),
+        _startHour: st.getHours(),
+        _endHour: et.getHours(),
+        _startLabel: st.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+        _endLabel: et.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      }
+    }), [shifts])
+
+  const careNeedsByLoc = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const su of people) {
+      if (su.status !== 'active' || !su.location_id) continue
+      let add = 0
+      if (su.support_level === 'one_to_one') add = 1
+      else if (su.support_level === 'two_to_one') add = 2
+      else if (su.support_level === 'three_to_one') add = 3
+      else if (su.support_level === 'complex') add = Number(su.min_staff_required) || 1
+      if (add > 0) m.set(su.location_id, (m.get(su.location_id) || 0) + add)
+    }
+    return m
+  }, [people])
+
+  const minStaffById = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const x of minStaffCounts) m.set(x.location_id, x.minimum_staff_per_day ?? 1)
+    return m
+  }, [minStaffCounts])
+
+  const shiftTypeMinById = useMemo(() => {
+    const m = new Map<string, { day: number; night: number; sleep: number }>()
+    for (const x of minStaffCounts) m.set(x.location_id, { day: x.min_day_staff ?? 1, night: x.min_night_staff ?? 1, sleep: x.min_sleep_staff ?? 0 })
+    return m
+  }, [minStaffCounts])
+
+  const assignedStaffIdsByDate = useMemo(() => {
+    const m = new Map<string, Set<string>>()
+    for (const s of normalizedShifts) {
+      let set = m.get(s._startDate)
+      if (!set) { set = new Set(); m.set(s._startDate, set) }
+      for (const a of s.assignments || []) set.add(a.staff_id)
+    }
+    return m
+  }, [normalizedShifts])
+
+  const staffCountByDayLoc = useMemo(() => {
+    const m = new Map<string, Map<string, Set<string>>>()
+    const touch = (d: string, locId: string, staffId: string) => {
+      let lm = m.get(d)
+      if (!lm) { lm = new Map(); m.set(d, lm) }
+      let set = lm.get(locId)
+      if (!set) { set = new Set(); lm.set(locId, set) }
+      set.add(staffId)
+    }
+    for (const s of normalizedShifts) {
+      for (const a of s.assignments || []) {
+        touch(s._startDate, s.location_id, a.staff_id)
+        if (s._endDate !== s._startDate) touch(s._endDate, s.location_id, a.staff_id)
+      }
+    }
+    const counts = new Map<string, Map<string, number>>()
+    for (const [d, lm] of m) {
+      const cm = new Map<string, number>()
+      for (const [loc, set] of lm) cm.set(loc, set.size)
+      counts.set(d, cm)
+    }
+    return counts
+  }, [normalizedShifts])
+
+  const viewShifts = useMemo(() =>
+    selectedLocationId
+      ? normalizedShifts.filter(s => s.location_id === selectedLocationId)
+      : normalizedShifts,
+  [normalizedShifts, selectedLocationId])
+
+  const weekDayStats = useMemo(() =>
+    weekDates.map(d => {
+      const dateStr = toLocalDateStr(d)
+      const locCounts = staffCountByDayLoc.get(dateStr)
+      return locations.map(loc => {
+        const cnt = locCounts?.get(loc.id) ?? 0
+        const min = minStaffById.get(loc.id) ?? 1
+        const care = careNeedsByLoc.get(loc.id) ?? 0
+        const need = Math.max(min, care)
+        return { loc, cnt, min, care, need, ok: cnt >= need }
+      })
+    }), [weekDates, locations, staffCountByDayLoc, minStaffById, careNeedsByLoc])
+
   const fetchData = async () => {
-    setLoading(true)
+    if (!hasLoadedRef.current) setLoading(true)
+    else setRefreshing(true)
     try {
       const safeGet = async (url: string, fallback: any = null) => {
         try { return (await api.get(url)).data } catch { return fallback }
@@ -469,11 +582,14 @@ export default function RotaPlannerPage() {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load data')
     } finally {
+      hasLoadedRef.current = true
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
   useEffect(() => { fetchData() }, [weekStart])
+  useEffect(() => { fetchDataRef.current = fetchData })
 
   useEffect(() => {
     if (rawUser.id) {
@@ -484,32 +600,9 @@ export default function RotaPlannerPage() {
     }
   }, [rawUser.id])
 
-  const getShiftsForDayHour = (date: Date, hour: number) => {
-    const dateStr = toLocalDateStr(date)
-    return shifts.filter((s: any) => {
-      if (selectedLocationId && s.location_id !== selectedLocationId) return false
-      const startDateStr = toLocalDateStr(new Date(s.start_time))
-      const endDateStr = toLocalDateStr(new Date(s.end_time))
-      const startHour = new Date(s.start_time).getHours()
-      const endHour = new Date(s.end_time).getHours()
-      if (startDateStr === dateStr) {
-        if (startDateStr === endDateStr) return startHour <= hour && endHour > hour
-        return startHour <= hour
-      }
-      if (endDateStr === dateStr) return hour < endHour
-      return false
-    })
-  }
+  const getAssignedStaffIdsForDate = (dateStr: string) => assignedStaffIdsByDate.get(dateStr) ?? new Set<string>()
 
-  const getShiftsForDay = (date: Date) => {
-    const dateStr = toLocalDateStr(date)
-    return shifts.filter((s: any) => {
-      if (selectedLocationId && s.location_id !== selectedLocationId) return false
-      const startDateStr = toLocalDateStr(new Date(s.start_time))
-      const endDateStr = toLocalDateStr(new Date(s.end_time))
-      return startDateStr === dateStr || endDateStr === dateStr
-    })
-  }
+  const getCareStaffingNeeds = (locationId: string) => careNeedsByLoc.get(locationId) ?? 0
 
   const currentStaffId = useMemo(() => {
     const entry = staffList.find((s: any) => s.user_id === rawUser.id)
@@ -532,40 +625,6 @@ export default function RotaPlannerPage() {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to respond to swap request')
     }
-  }
-
-  const getAssignedStaffIdsForDate = (dateStr: string) => {
-    const assigned = new Set<string>()
-    for (const s of shifts) {
-      if (toLocalDateStr(new Date(s.start_time)) === dateStr) {
-        for (const a of (s.assignments || [])) {
-          assigned.add(a.staff_id)
-        }
-      }
-    }
-    return assigned
-  }
-
-  const getStaffCountForLocation = (date: Date, locationId: string) => {
-    const dayShifts = getShiftsForDay(date).filter(s => s.location_id === locationId)
-    const assignedStaff = new Set<string>()
-    for (const s of dayShifts) {
-      for (const a of (s.assignments || [])) {
-        assignedStaff.add(a.staff_id)
-      }
-    }
-    return assignedStaff.size
-  }
-
-  const getCareStaffingNeeds = (locationId: string) => {
-    const locUsers = people.filter((su: any) => su.status === 'active' && su.location_id === locationId)
-    return locUsers.reduce((sum: number, su: any) => {
-      if (su.support_level === 'one_to_one') return sum + 1
-      if (su.support_level === 'two_to_one') return sum + 2
-      if (su.support_level === 'three_to_one') return sum + 3
-      if (su.support_level === 'complex') return sum + (Number(su.min_staff_required) || 1)
-      return sum
-    }, 0)
   }
 
   const handleCreateShift = async () => {
@@ -598,14 +657,14 @@ export default function RotaPlannerPage() {
     }
   }
 
-  const handleDeleteShift = async (id: string) => {
+  const handleDeleteShift = useCallback(async (id: string) => {
     try {
       await api.delete(`/shifts/${id}`)
       setShifts(prev => prev.filter(s => s.id !== id))
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to delete shift')
     }
-  }
+  }, [])
 
   const handleAssign = async () => {
     try {
@@ -618,25 +677,25 @@ export default function RotaPlannerPage() {
     }
   }
 
-  const handleUnassign = async (shiftId: string, staffId: string) => {
+  const handleUnassign = useCallback(async (shiftId: string, staffId: string) => {
     try {
       await api.delete(`/shifts/${shiftId}/assign/${staffId}`)
-      fetchData()
+      fetchDataRef.current()
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to unassign staff')
     }
-  }
+  }, [])
 
-  const handleToggleCoverage = async (shiftId: string, currentlyCovered: boolean) => {
+  const handleToggleCoverage = useCallback(async (shiftId: string, currentlyCovered: boolean) => {
     try {
       await api.patch(`/shifts/${shiftId}/agency-coverage`, { covered: !currentlyCovered })
-      fetchData()
+      fetchDataRef.current()
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update coverage')
     }
-  }
+  }, [])
 
-  const handleClaimShift = async (shiftId: string) => {
+  const handleClaimShift = useCallback(async (shiftId: string) => {
     setError('')
     setSuccess('')
     try {
@@ -648,11 +707,11 @@ export default function RotaPlannerPage() {
       } else {
         setSuccess('Shift claimed as overtime')
       }
-      fetchData()
+      fetchDataRef.current()
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to claim shift')
     }
-  }
+  }, [])
 
   const handleApproveClaim = async (shiftId: string, staffId: string) => {
     setError('')
@@ -678,7 +737,7 @@ export default function RotaPlannerPage() {
     }
   }
 
-  const openShiftDialog = (date?: Date) => {
+  const openShiftDialog = useCallback((date?: Date) => {
     const d = date || new Date()
     const defaultLocId = selectedLocationId && canEditLocation(selectedLocationId)
       ? selectedLocationId
@@ -697,17 +756,27 @@ export default function RotaPlannerPage() {
     })
     setShiftDialogError('')
     setShiftDialog(true)
-  }
+  }, [selectedLocationId, rawUser.role, managedLocationIds, locations, canEditLocation])
 
-  const getMinStaffForLocation = (locationId: string) => {
-    return minStaffCounts.find(m => m.location_id === locationId)?.minimum_staff_per_day ?? 1
-  }
+  const openShiftDialogAt = useCallback((date: Date, hour: number) => {
+    setShiftForm(p => ({ ...p, location_id: locations[0]?.id || '', start_date: toLocalDateStr(date), start_time: `${hour.toString().padStart(2, '0')}:00` }))
+    setShiftDialog(true)
+  }, [locations])
+
+  const openAssignDialog = useCallback((shiftId: string) => {
+    setAssignShiftId(shiftId)
+    setAssignStaffId('')
+    setAssignDialog(true)
+  }, [])
+
+  const getMinStaffForLocation = (locationId: string) => minStaffById.get(locationId) ?? 1
 
   const getShiftTypeMin = (locationId: string, shiftType: string) => {
-    const loc = minStaffCounts.find(m => m.location_id === locationId)
-    if (shiftType === 'sleep') return loc?.min_sleep_staff ?? 0
-    if (shiftType === 'wake_night') return loc?.min_night_staff ?? 1
-    return loc?.min_day_staff ?? 1
+    const m = shiftTypeMinById.get(locationId)
+    if (!m) return shiftType === 'sleep' ? 0 : 1
+    if (shiftType === 'sleep') return m.sleep
+    if (shiftType === 'wake_night') return m.night
+    return m.day
   }
 
   const openStaffingDialog = () => {
@@ -779,6 +848,19 @@ export default function RotaPlannerPage() {
             <IconButton onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate() + 7); setWeekStart(d) }}>
               <ChevronRight />
             </IconButton>
+            <Tooltip title="Jump to this week">
+              <IconButton size="small" onClick={() => {
+                const now = new Date()
+                const day = now.getDay()
+                const diff = now.getDate() - day + (day === 0 ? -6 : 1)
+                const d = new Date(now)
+                d.setDate(diff)
+                d.setHours(0, 0, 0, 0)
+                setWeekStart(d)
+              }}>
+                <TodayIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
           </Stack>
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <Select value={selectedLocationId} onChange={e => setSelectedLocationId(e.target.value)}
@@ -798,25 +880,27 @@ export default function RotaPlannerPage() {
       </Paper>
 
       {loading ? (
-        <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>Loading rota...</Typography>
+        <RotaSkeleton />
       ) : (
         <>
+          {refreshing && (
+            <LinearProgress sx={{ mb: 2, height: 3, borderRadius: 2, bgcolor: '#DBEAFE', '& .MuiLinearProgress-bar': { bgcolor: '#0F4C81' } }} />
+          )}
+
           {/* Staffing level summary row */}
           {locations.length > 0 && (
             <Box sx={{ mb: 2 }}>
               <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
                 {locations.map(loc => {
-                  const dayShiftCounts = weekDates.map(d => getStaffCountForLocation(d, loc.id))
-                  const minRequired = getMinStaffForLocation(loc.id)
-                  const careNeeds = getCareStaffingNeeds(loc.id)
-                  const required = Math.max(minRequired, careNeeds)
-                  const allAbove = dayShiftCounts.every(c => c >= required)
-                  const shortDays = dayShiftCounts.filter(c => c < required).length
+                  const stats = weekDayStats.map(d => d.find(x => x.loc.id === loc.id)!)
+                  const required = stats[0]?.need ?? 1
+                  const allAbove = stats.every(x => x.ok)
+                  const shortDays = stats.filter(x => !x.ok).length
                   return (
                     <Chip key={loc.id} size="small" icon={allAbove ? <CheckIcon /> : <WarningIcon />}
                       label={allAbove
-                        ? `${loc.name}: Covered (need ${required}/day${careNeeds > minRequired ? ` incl. ${careNeeds} care-needs` : ''})`
-                        : `${loc.name}: ${shortDays} day${shortDays > 1 ? 's' : ''} short (need ${required}/day${careNeeds > minRequired ? ` incl. ${careNeeds} care-needs` : ''})`}
+                        ? `${loc.name}: Covered (need ${required}/day${stats[0]?.care > stats[0]?.min ? ` incl. ${stats[0]?.care} care-needs` : ''})`
+                        : `${loc.name}: ${shortDays} day${shortDays > 1 ? 's' : ''} short (need ${required}/day${stats[0]?.care > stats[0]?.min ? ` incl. ${stats[0]?.care} care-needs` : ''})`}
                       color={allAbove ? 'success' : 'warning'} variant="outlined" />
                   )
                 })}
@@ -902,197 +986,106 @@ export default function RotaPlannerPage() {
             </Paper>
           )}
 
-          <TableContainer component={Paper} sx={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 600 }}>
-            <Table size="small" sx={{ minWidth: 900 }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700, bgcolor: '#F8FAFC', minWidth: 80, position: 'sticky', left: 0, top: 0, zIndex: 3 }}>
-                    Time
-                  </TableCell>
-                  {weekDates.map((d, i) => {
-                    const dayLocations = locations.map(loc => {
-                      const cnt = getStaffCountForLocation(d, loc.id)
-                      const min = getMinStaffForLocation(loc.id)
-                      const care = getCareStaffingNeeds(loc.id)
-                      const need = Math.max(min, care)
-                      return { loc, cnt, min, care, need, ok: cnt >= need }
-                    })
-                    return (
-                      <TableCell key={i} sx={{
-                        fontWeight: 700, textAlign: 'center', minWidth: 130, position: 'sticky', top: 0, zIndex: 2,
-                        bgcolor: d.toDateString() === new Date().toDateString() ? '#E7EEF4' : '#F8FAFC',
-                        '& .add-shift-btn': { opacity: 0 },
-                        '&:hover .add-shift-btn': { opacity: 1 },
-                      }}>
-                        <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
-                          {DAYS[i]}
-                        </Typography>
-                        <Typography variant="caption" color="#6B7280">
-                          {d.getDate()} {d.toLocaleDateString('en-GB', { month: 'short' })}
-                        </Typography>
-                        {dayLocations.filter(x => !x.ok).length > 0 && (
-                          <Tooltip title={dayLocations.filter(x => !x.ok).map(x => `${x.loc.name}: ${x.cnt}/${x.need}${x.care > x.min ? ` (${x.care} care-needs)` : ''}`).join(', ')}>
-                            <WarningIcon sx={{ fontSize: 12, color: '#D97706', ml: 0.5, verticalAlign: 'middle' }} />
-                          </Tooltip>
-                        )}
-                        {canEdit && !isReadOnly && !isDayPast(d) && (
-                          <Tooltip title="Add shift for this day">
-                            <IconButton size="small" className="add-shift-btn" onClick={() => openShiftDialog(d)}
-                              sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', bgcolor: '#0F4C81', color: 'white', width: 28, height: 28, zIndex: 4, transition: 'opacity 0.15s', '&:hover': { bgcolor: '#0A3A61' } }}
-                              aria-label={`Add shift for ${DAYS[i]}`}>
-                              <AddIcon sx={{ fontSize: 12 }} />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </TableCell>
-                    )
-                  })}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {HOURS.map(hour => (
-                  <TableRow key={hour} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
-                    <TableCell sx={{ fontWeight: 600, color: '#6B7280', fontSize: '0.75rem', position: 'sticky', left: 0, bgcolor: 'white', zIndex: 1, top: 0 }}>
-                      {hour.toString().padStart(2, '0')}:00
-                    </TableCell>
-                    {weekDates.map((d, di) => {
-                      const dayShifts = getShiftsForDayHour(d, hour)
+          {/* View switcher */}
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+            <ToggleButtonGroup
+              size="small"
+              value={viewMode}
+              exclusive
+              onChange={(_, v) => { if (v) setViewMode(v) }}
+              sx={{ '& .MuiToggleButton-root': { px: 1.25, py: 0.5, fontSize: '0.72rem', fontWeight: 700, textTransform: 'none' } }}
+            >
+              <ToggleButton value="board" sx={{ '&.Mui-selected': { bgcolor: '#0F4C81', color: '#fff' } }}>
+                <ViewWeekIcon sx={{ fontSize: 15, mr: 0.5 }} />Board
+              </ToggleButton>
+              <ToggleButton value="timeline" sx={{ '&.Mui-selected': { bgcolor: '#0F4C81', color: '#fff' } }}>
+                <ViewTimelineIcon sx={{ fontSize: 15, mr: 0.5 }} />Timeline
+              </ToggleButton>
+              <ToggleButton value="roster" sx={{ '&.Mui-selected': { bgcolor: '#0F4C81', color: '#fff' } }}>
+                <GroupIcon sx={{ fontSize: 15, mr: 0.5 }} />Roster
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
 
-  const cellDateStr = toLocalDateStr(d)
-  return (
-                        <TableCell key={di} sx={{
-                          textAlign: 'center', p: 0.5, minWidth: 130, position: 'relative',
-                          bgcolor: d.toDateString() === new Date().toDateString() ? '#F8FAFC' : 'inherit',
-                          borderLeft: '1px solid #F3F4F6',
-                          verticalAlign: 'top',
-                          '& .add-shift-btn': { opacity: 0 },
-                          '&:hover .add-shift-btn': { opacity: 1 },
-                        }}>
-                          {canEdit && !isReadOnly && !isDayPast(d) && (
-                            <Tooltip title="Add shift at this time">
-                              <IconButton size="small" className="add-shift-btn" onClick={() => {
-                                setShiftForm(p => ({ ...p, location_id: locations[0]?.id || '', start_date: cellDateStr, start_time: `${hour.toString().padStart(2, '0')}:00` }))
-                                setShiftDialog(true)
-                              }}
-                                sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', bgcolor: '#0F4C81', color: 'white', width: 24, height: 24, zIndex: 4, transition: 'opacity 0.15s', '&:hover': { bgcolor: '#0A3A61' } }}
-                                aria-label={`Add shift at ${hour.toString().padStart(2, '0')}:00`}>
-                                <AddIcon sx={{ fontSize: 12 }} />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          <Stack spacing={0.3}>
-                            {dayShifts.map((s: any) => (
-                              <Card key={s.id} variant="outlined" sx={{
-                                borderRadius: 1, bgcolor: s.assignments?.length > 0 ? '#D1FAE5' : '#FEF3C7',
-                                border: s.assignments?.length > 0 ? '1px solid #A7F3D0' : '1px solid #FDE68A',
-                              }}>
-                                <CardContent sx={{ p: 0.5, '&:last-child': { pb: 0.5 } }}>
-                                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                    <Stack direction="row" spacing={0.3} alignItems="center">
-                                      <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 700 }}>
-                                        {s.location_name || '—'}
-                                      </Typography>
-                                      {s.shift_type && s.shift_type !== 'day' && (
-                                        <Chip label={s.shift_type === 'sleep' ? 'Sleep' : 'Wake Night'}
-                                          size="small" sx={{ height: 14, fontSize: '0.45rem', bgcolor: s.shift_type === 'sleep' ? '#E9D5FF' : '#1E1B4B', color: s.shift_type === 'sleep' ? '#581C87' : '#F8FAFC' }} />
-                                      )}
-                                    </Stack>
-                                    <Stack direction="row" spacing={0.2}>
-                                      {canEditLocation(s.location_id) && !isShiftPast(s) && (
-                                        <Tooltip title="Assign Staff">
-                                          <IconButton size="small" sx={{ p: 0.2 }}
-                                            onClick={() => { setAssignShiftId(s.id); setAssignStaffId(''); setAssignDialog(true) }}
-                                            aria-label="Assign staff">
-                                            <AssignIcon sx={{ fontSize: 12 }} />
-                                          </IconButton>
-                                        </Tooltip>
-                                      )}
-                                      {canEditLocation(s.location_id) && !isShiftPast(s) && (
-                                        <Tooltip title="Delete">
-                                          <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleDeleteShift(s.id)} aria-label="Delete shift">
-                                            <DeleteIcon sx={{ fontSize: 12, color: '#DC2626' }} />
-                                          </IconButton>
-                                        </Tooltip>
-                                      )}
-                                    </Stack>
-                                  </Stack>
-                                  {s.su_first_name && (
-                                    <Typography variant="caption" sx={{ fontSize: '0.5rem', color: '#0F4C81', fontWeight: 600, display: 'block' }}>
-                                      {s.su_first_name} {s.su_last_name || ''}
-                                    </Typography>
-                                  )}
-                                  <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#6B7280' }}>
-                                    {new Date(s.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                                    {' - '}
-                                    {new Date(s.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                                    {s.assignments?.length === 0 && (
-                                      <Chip label="Open" size="small" sx={{ ml: 0.5, height: 14, fontSize: '0.45rem', bgcolor: '#FEF3C7', color: '#92400E' }} />
-                                    )}
-                                  </Typography>
-                                  {s.agency_id && (
-                                    <Stack direction="row" spacing={0.3} alignItems="center" sx={{ mt: 0.2 }}>
-                                      <Chip label="Agency" size="small" sx={{ height: 14, fontSize: '0.45rem', bgcolor: '#DBEAFE', color: '#1E40AF' }} />
-                                      {canEditLocation(s.location_id) ? (
-                                        <ToggleButtonGroup size="small" value={s.agency_covered ? 'covered' : 'uncovered'} exclusive
-                                          onChange={() => handleToggleCoverage(s.id, s.agency_covered)}
-                                          sx={{ height: 16, '& .MuiToggleButton-root': { px: 0.3, py: 0, fontSize: '0.4rem', lineHeight: 1, border: '1px solid #D1D5DB', textTransform: 'none', fontWeight: 700 } }}>
-                                          <ToggleButton value="covered" sx={{ bgcolor: s.agency_covered ? '#D1FAE5' : 'transparent', color: s.agency_covered ? '#065F46' : '#9CA3AF', '&:hover': { bgcolor: '#A7F3D0' } }}>
-                                            Yes
-                                          </ToggleButton>
-                                          <ToggleButton value="uncovered" sx={{ bgcolor: !s.agency_covered ? '#FEF3C7' : 'transparent', color: !s.agency_covered ? '#92400E' : '#9CA3AF', '&:hover': { bgcolor: '#FDE68A' } }}>
-                                            No
-                                          </ToggleButton>
-                                        </ToggleButtonGroup>
-                                      ) : (
-                                        <Chip label={s.agency_covered ? 'Covered' : 'Uncovered'} size="small"
-                                          sx={{ height: 14, fontSize: '0.45rem', bgcolor: s.agency_covered ? '#D1FAE5' : '#FEF3C7', color: s.agency_covered ? '#065F46' : '#92400E' }} />
-                                      )}
-                                    </Stack>
-                                  )}
-                                  {s.assignments?.map((a: any) => (
-                                    <Chip key={a.id} size="small"
-                                      label={
-                                        <Stack direction="row" spacing={0.3} alignItems="center">
-                                          <span>{a.first_name} {a.last_name?.[0] || ''}</span>
-                                          {a.is_overtime && (
-                                            <Chip label="OT" size="small" sx={{ height: 12, fontSize: '0.4rem', bgcolor: '#FEF3C7', color: '#92400E', fontWeight: 700 }} />
-                                          )}
-                                          {currentStaffId === a.staff_id && !isShiftPast(s) && (
-                                            <SwapHorizIcon sx={{ fontSize: 10, ml: 0.2, cursor: 'pointer', color: '#0F4C81' }}
-                                              onClick={(e) => { e.stopPropagation(); openSwapDialog(s.id, s.start_time) }} />
-                                          )}
-                                        </Stack>
-                                      }
-                                      onDelete={canEditLocation(s.location_id) && !isShiftPast(s) ? (() => handleUnassign(s.id, a.staff_id)) : undefined}
-                                      sx={{ height: 18, fontSize: '0.5rem', mt: 0.2, '& .MuiChip-deleteIcon': { fontSize: 10 } }} />
-                                  ))}
-                                  {s.assignments?.length === 0 && canClaim && currentStaffId && !isShiftPast(s) && !getAssignedStaffIdsForDate(s.start_time?.split('T')[0] || '').has(currentStaffId) && (
-                                    <Button size="small" variant="outlined" color="warning"
-                                      startIcon={<ClaimIcon sx={{ fontSize: 10 }} />}
-                                      onClick={() => handleClaimShift(s.id)}
-                                      sx={{ mt: 0.2, fontSize: '0.5rem', minWidth: 0, py: 0, px: 0.5, height: 18, textTransform: 'none', fontWeight: 700, lineHeight: 1 }}>
-                                      Claim OT
-                                    </Button>
-                                  )}
-                                  {!canEdit && s.assignments?.length === 0 && (
-                                    <Typography variant="caption" sx={{ fontSize: '0.5rem', color: '#9CA3AF', display: 'block', mt: 0.2 }}>
-                                      Open shift — contact manager to claim
-                                    </Typography>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </Stack>
-                        </TableCell>
-                      )
-                    })}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          {viewMode === 'board' && (
+            <DayBoardView
+              weekDates={weekDates}
+              shifts={viewShifts}
+              staffList={staffList}
+              locations={locations}
+              weekDayStats={weekDayStats}
+              selectedLocationId={selectedLocationId}
+              canEdit={canEdit}
+              isReadOnly={isReadOnly}
+              canClaim={canClaim}
+              currentStaffId={currentStaffId}
+              canEditLocation={canEditLocation}
+              assignedStaffIdsByDate={assignedStaffIdsByDate}
+              onOpenShiftDialog={openShiftDialog}
+              onOpenShiftDialogAt={openShiftDialogAt}
+              onAssign={openAssignDialog}
+              onDeleteShift={handleDeleteShift}
+              onToggleCoverage={handleToggleCoverage}
+              onClaimShift={handleClaimShift}
+              onUnassign={handleUnassign}
+              onSwap={openSwapDialog}
+              onOpenDetail={setDetailShift}
+            />
+          )}
+          {viewMode === 'timeline' && (
+            <TimelineView
+              weekDates={weekDates}
+              shifts={viewShifts}
+              staffList={staffList}
+              locations={locations}
+              weekDayStats={weekDayStats}
+              selectedLocationId={selectedLocationId}
+              canEdit={canEdit}
+              isReadOnly={isReadOnly}
+              canClaim={canClaim}
+              currentStaffId={currentStaffId}
+              canEditLocation={canEditLocation}
+              assignedStaffIdsByDate={assignedStaffIdsByDate}
+              onOpenShiftDialog={openShiftDialog}
+              onOpenShiftDialogAt={openShiftDialogAt}
+              onAssign={openAssignDialog}
+              onDeleteShift={handleDeleteShift}
+              onToggleCoverage={handleToggleCoverage}
+              onClaimShift={handleClaimShift}
+              onUnassign={handleUnassign}
+              onSwap={openSwapDialog}
+              onOpenDetail={setDetailShift}
+            />
+          )}
+          {viewMode === 'roster' && (
+            <RosterView
+              weekDates={weekDates}
+              shifts={viewShifts}
+              staffList={staffList}
+              locations={locations}
+              weekDayStats={weekDayStats}
+              selectedLocationId={selectedLocationId}
+              canEdit={canEdit}
+              isReadOnly={isReadOnly}
+              canClaim={canClaim}
+              currentStaffId={currentStaffId}
+              canEditLocation={canEditLocation}
+              assignedStaffIdsByDate={assignedStaffIdsByDate}
+              onOpenShiftDialog={openShiftDialog}
+              onOpenShiftDialogAt={openShiftDialogAt}
+              onAssign={openAssignDialog}
+              onDeleteShift={handleDeleteShift}
+              onToggleCoverage={handleToggleCoverage}
+              onClaimShift={handleClaimShift}
+              onUnassign={handleUnassign}
+              onSwap={openSwapDialog}
+              onOpenDetail={setDetailShift}
+            />
+          )}
         </>
       )}
+
+      <ShiftDetailDialog shift={detailShift} open={Boolean(detailShift)} onClose={() => setDetailShift(null)} />
 
       <Dialog open={shiftDialog} onClose={() => { if (!shiftSaving) setShiftDialog(false) }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Create Shift</DialogTitle>
@@ -1361,9 +1354,7 @@ export default function RotaPlannerPage() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Coverage Warnings</Typography>
                   <Stack spacing={1}>
                     {aiAnalysis.coverage_warnings.map((w: any, i: number) => (
-                      <Paper key={i} variant="outlined" sx={{
-                        p: 1.5, borderLeft: `3px solid ${w.severity === 'high' ? '#DC2626' : w.severity === 'medium' ? '#F59E0B' : '#3B82F6'}`,
-                      }}>
+                      <Paper key={i} variant="outlined" sx={{ p: 1.5 }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
                           <Typography variant="body2" fontWeight={600}>{w.day} — {w.location}</Typography>
                           <Chip label={w.severity} size="small" sx={{
@@ -1384,7 +1375,7 @@ export default function RotaPlannerPage() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Overtime Risks</Typography>
                   <Stack spacing={1}>
                     {aiAnalysis.overtime_risks.map((r: any, i: number) => (
-                      <Paper key={i} variant="outlined" sx={{ p: 1.5, borderLeft: '3px solid #F59E0B' }}>
+                      <Paper key={i} variant="outlined" sx={{ p: 1.5 }}>
                         <Typography variant="body2" fontWeight={600}>{r.staff_name}</Typography>
                         <Typography variant="caption" color="text.secondary">
                           {r.current_hours}h / {r.contracted_hours}h contracted — {r.message}
@@ -1400,7 +1391,7 @@ export default function RotaPlannerPage() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Staffing Suggestions</Typography>
                   <Stack spacing={1}>
                     {aiAnalysis.staffing_suggestions.map((s: any, i: number) => (
-                      <Paper key={i} variant="outlined" sx={{ p: 1.5, borderLeft: '3px solid #16A34A' }}>
+                      <Paper key={i} variant="outlined" sx={{ p: 1.5 }}>
                         <Typography variant="body2" fontWeight={600}>{s.shift_details}</Typography>
                         {s.recommended_staff?.length > 0 && (
                           <Box sx={{ mt: 0.5 }}>
