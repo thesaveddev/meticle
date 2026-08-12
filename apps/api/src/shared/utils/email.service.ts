@@ -42,6 +42,14 @@ const baseUrl = () =>
   process.env.FRONTEND_URL ||
   (process.env.NODE_ENV === 'production' ? 'https://meticlecare.com' : 'http://localhost:3000');
 
+const fmtTime = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
+
+const fmtDate = (date?: string | null) =>
+  date
+    ? new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+    : 'your shift';
+
 export class EmailService {
   static async sendVerificationEmail(email: string, token: string) {
     const url = `${baseUrl()}/verify-email?token=${token}`;
@@ -211,13 +219,53 @@ export class EmailService {
   }
 
   // ── Shifts ──
-  static async sendShiftStartEmail(staffEmail: string, staffName: string, date: string, shifts: any[], incidents?: any[], appointments?: any[]) {
-    const shiftList = shifts.map((s: any) => `<tr><td style="padding:4px 12px">${s.time || s.start_time}</td><td style="padding:4px 12px">${s.location}</td><td style="padding:4px 12px">${s.type || ''}</td></tr>`).join('');
-    const incList = incidents?.length ? `<p style="margin-top:12px"><strong>Recent Incidents:</strong></p><ul>${incidents.map((i: any) => `<li>${i.title} (${i.severity})</li>`).join('')}</ul>` : '';
-    const appList = appointments?.length ? `<p style="margin-top:12px"><strong>Today's Appointments:</strong></p><ul>${appointments.map((a: any) => `<li>${a.title} — ${a.person_name || ''}</li>`).join('')}</ul>` : '';
-    await sendMail(staffEmail, `Your Rota for ${date}`,
-      buildEmailHtml('Today\'s Plan', `Hi ${staffName},`,
-        `<p>Here's your plan for ${date}:</p><table>${shiftList}</table>${incList}${appList}`,
+  static async sendShiftStartEmail(staffEmail: string, staffName: string, date: string, shifts: any[], people?: any[], incidents?: any[], appointments?: any[]) {
+    const shiftRows = shifts.map((s: any) => {
+      const type = s.shift_type ? s.shift_type.charAt(0).toUpperCase() + s.shift_type.slice(1).replace('_', ' ') : 'Day';
+      const person = s.person_first_name
+        ? `${s.person_first_name} ${s.person_last_name}${s.person_room ? ` <span style="font-weight:400;color:#9CA3AF">(Room ${s.person_room})</span>` : ''}`
+        : '<span style="color:#9CA3AF">—</span>';
+      return `<tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #F0EDE6;white-space:nowrap">${fmtTime(s.start_time)} — ${fmtTime(s.end_time)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #F0EDE6">${s.location_name || '—'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #F0EDE6">${type}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #F0EDE6">${person}</td>
+      </tr>`;
+    }).join('');
+
+    const peopleRows = (people || []).filter((p: any) => p).map((p: any) => {
+      const bits: string[] = [];
+      if (p.support_level) bits.push(`Support: <strong>${p.support_level}</strong>`);
+      if (p.dnacpr_status) bits.push(`DNACPR: <strong>${p.dnacpr_status}</strong>`);
+      if (p.allergies?.length) bits.push(`Allergies: ${p.allergies.join(', ')}`);
+      if (p.flags?.length) bits.push(`Flags: ${p.flags.join(', ')}`);
+      return `<tr>
+        <td style="padding:6px 12px;vertical-align:top;font-weight:600;white-space:nowrap">${p.first_name} ${p.last_name}${p.room_number ? ` <span style="font-weight:400;color:#9CA3AF">(Room ${p.room_number})</span>` : ''}</td>
+        <td style="padding:6px 12px">${bits.join(' · ') || '<span style="color:#9CA3AF">—</span>'}</td>
+      </tr>`;
+    }).join('');
+
+    const appList = appointments?.length
+      ? `<p style="margin-top:20px;font-weight:600">Today's appointments</p><ul style="margin:8px 0 0;padding-left:20px;color:#374151">${appointments.map((a: any) => `<li><strong>${fmtTime(a.start_time)}</strong> — ${a.title}${a.first_name ? ` (${a.first_name} ${a.last_name})` : ''}</li>`).join('')}</ul>`
+      : '';
+    const incList = incidents?.length
+      ? `<p style="margin-top:20px;font-weight:600">Recent incidents</p><ul style="margin:8px 0 0;padding-left:20px;color:#374151">${incidents.map((i: any) => `<li><strong>${i.title}</strong> — ${i.severity}</li>`).join('')}</ul>`
+      : '';
+
+    await sendMail(staffEmail, `Your shift preview for ${fmtDate(date)}`,
+      buildEmailHtml('Shift Preview', `Hi ${staffName},`,
+        `<p>Here's what you need to know before your shift on <strong>${fmtDate(date)}</strong>:</p>
+         <table border="0" cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #F0EDE6;border-radius:8px;margin-top:12px">
+           <tr style="background:#F7F4EE">
+             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280">Time</th>
+             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280">Location</th>
+             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280">Type</th>
+             <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280">Person</th>
+           </tr>${shiftRows}
+         </table>
+         ${peopleRows ? `<p style="margin-top:20px;font-weight:600">People to look out for</p><table border="0" cellpadding="0" cellspacing="0" style="width:100%">${peopleRows}</table>` : ''}
+         ${appList}${incList}
+         <p style="margin-top:24px">You can view the full rota at any time.</p>`,
         { label: 'View Rota', url: `${baseUrl()}/scheduling` }));
   }
 
