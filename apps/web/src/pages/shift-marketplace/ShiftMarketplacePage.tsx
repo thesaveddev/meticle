@@ -35,7 +35,7 @@ const DetailRow = ({ icon, label, value }: { icon?: ReactNode; label: string; va
 )
 
 export default function ShiftMarketplacePage() {
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+  const currentUser = (() => { const s = localStorage.getItem('user'); try { const p = s ? JSON.parse(s) : {}; return p && typeof p === 'object' ? p : {} } catch { return {} } })()
   const isAdminOrManager = currentUser.role === 'ORG_ADMIN' || currentUser.role === 'MANAGER'
 
   const [tab, setTab] = useState(0)

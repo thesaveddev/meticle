@@ -16,7 +16,8 @@ export function useSubscriptionStatus(): SubscriptionStatus {
 
   const check = useCallback(async () => {
     const raw = localStorage.getItem('user')
-    const user = raw ? JSON.parse(raw) : null
+    let user: any = null
+    try { user = raw ? JSON.parse(raw) : null } catch { user = null }
     if (!user) { setLoading(false); return }
     // Platform admins bypass subscription checks
     if (user.role === UserRole.SUPER_ADMIN) { setLoading(false); setStatus('active'); return }

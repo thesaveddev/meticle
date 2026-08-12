@@ -197,7 +197,7 @@ export default function ChatPage() {
   const emojiRef = useRef<HTMLDivElement>(null)
   const msgContainerRef = useRef<HTMLDivElement>(null)
 
-  const rawUser = JSON.parse(localStorage.getItem('user') || '{}')
+  const rawUser = (() => { const s = localStorage.getItem('user'); try { const p = s ? JSON.parse(s) : {}; return p && typeof p === 'object' ? p : {} } catch { return {} } })()
   const currentUserId = rawUser.id || rawUser.userId
 
   const activeChannelData = channels.find(c => c.id === activeChannel)
