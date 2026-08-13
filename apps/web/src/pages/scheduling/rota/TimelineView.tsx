@@ -1,5 +1,4 @@
-import { useMemo, useState } from 'react'
-import type { MouseEvent } from 'react'
+import { useMemo, useState, type MouseEvent } from 'react'
 import { Box, Typography, Stack, Tooltip, Chip } from '@mui/material'
 import { Add as AddIcon, Warning as WarningIcon, Check as CheckIcon } from '@mui/icons-material'
 import type { RotaViewProps } from './types'

@@ -43,6 +43,8 @@ export default function ResetPasswordPage() {
     }
   }
 
+  usePageMeta({ title: 'Reset Password | MeticleCare', description: 'Set a new password for your MeticleCare account.', noindex: true })
+
   if (!token) {
     return (
       <Container maxWidth="xs" sx={{ mt: 10 }}>
@@ -50,8 +52,6 @@ export default function ResetPasswordPage() {
       </Container>
     )
   }
-
-  usePageMeta({ title: 'Reset Password | MeticleCare', description: 'Set a new password for your MeticleCare account.', noindex: true })
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', bgcolor: '#020617' }}>
