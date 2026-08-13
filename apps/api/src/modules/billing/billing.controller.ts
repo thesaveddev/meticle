@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { getStripe, getOrCreateCustomer, getOrCreatePrice } from '../../shared/services/stripe.service';
+import { selectDunningMilestone, HARD_DECLINES } from './dunning';
 import { AuditRepository } from '../audit/audit.repository';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { EmailService } from '../../shared/utils/email.service';
@@ -15,7 +16,7 @@ export class BillingController {
     const orgId = req.params.id || userOrgId;
     if (orgId !== userOrgId) throw new AppError(403, 'Access denied');
     const result = await pool.query(
-      `SELECT plan, COALESCE(subscription_status, 'trial') as subscription_status, trial_ends_at, COALESCE(stripe_customer_id, '') as stripe_customer_id FROM organizations WHERE id = $1`,
+      `SELECT plan, COALESCE(subscription_status, 'trial') as subscription_status, trial_ends_at, current_period_end, COALESCE(stripe_customer_id, '') as stripe_customer_id FROM organizations WHERE id = $1`,
       [orgId]
     );
     if (result.rows.length === 0) throw new AppError(404, 'Organization not found');
@@ -39,9 +40,11 @@ export class BillingController {
           plan: org.plan,
           subscriptionStatus: org.subscription_status,
           trialEndsAt: org.trial_ends_at,
+          currentPeriodEnd: org.current_period_end,
           daysRemaining,
           stripeCustomerId: org.stripe_customer_id,
           stripeSubscription: null,
+          hasUnpaidInvoice: false,
           stripeUnavailable,
         });
         return;
@@ -64,6 +67,16 @@ export class BillingController {
           );
           org.subscription_status = stripeMapped;
         }
+        // Persist the period end so background reminders / win-back emails can fire
+        const subPeriodEnd = (sub as any).current_period_end;
+        if (subPeriodEnd) {
+          const isoEnd = new Date(subPeriodEnd * 1000).toISOString();
+          await pool.query(
+            `UPDATE organizations SET current_period_end = $1 WHERE id = $2`,
+            [isoEnd, orgId]
+          );
+          org.current_period_end = isoEnd;
+        }
       } else {
         // No Stripe subscription found but DB thinks it's active — mark expired
         if (org.subscription_status === 'active' || org.subscription_status === 'past_due') {
@@ -76,13 +89,24 @@ export class BillingController {
       }
     }
 
+    // Expose whether there's an open (unpaid) invoice so the UI can offer a manual retry
+    let hasUnpaidInvoice = false;
+    if (stripe && org.stripe_customer_id) {
+      try {
+        const openInvoices = await stripe.invoices.list({ customer: org.stripe_customer_id, status: 'open', limit: 1 });
+        hasUnpaidInvoice = openInvoices.data.length > 0;
+      } catch { /* best-effort */ }
+    }
+
     res.json({
       plan: org.plan,
       subscriptionStatus: org.subscription_status,
       trialEndsAt: org.trial_ends_at,
+      currentPeriodEnd: org.current_period_end,
       daysRemaining,
       stripeCustomerId: org.stripe_customer_id,
       stripeSubscription,
+      hasUnpaidInvoice,
       stripeUnavailable,
     });
   }
@@ -275,6 +299,14 @@ export class BillingController {
       return;
     }
 
+    // Stripe can deliver the same event multiple times — process each event exactly once
+    // so receipts / dunning emails are never duplicated.
+    const dupCheck = await pool.query('SELECT 1 FROM stripe_webhook_events WHERE event_id = $1', [event.id]);
+    if (dupCheck.rows.length > 0) {
+      res.json({ received: true, duplicate: true });
+      return;
+    }
+
     const notifyAdmins = async (orgId: string, title: string, msg: string, sendEmail?: { subject: string; html: string }) => {
       const admins = await pool.query(
         "SELECT id, email, COALESCE(first_name, '') as first_name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN'",
@@ -312,9 +344,35 @@ export class BillingController {
           }
           // Payment succeeded after failures — reset tracking and reactivate
           await pool.query(
-            `UPDATE organizations SET failed_payment_count = 0, first_payment_failed_at = NULL, last_payment_failed_at = NULL, subscription_status = 'active' WHERE id = $1 AND subscription_status = 'past_due'`,
+            `UPDATE organizations SET failed_payment_count = 0, first_payment_failed_at = NULL, last_payment_failed_at = NULL, dunning_email_milestones = '{}', subscription_status = 'active' WHERE id = $1 AND subscription_status = 'past_due'`,
             [orgId]
           );
+          // Persist the period end for reminder/win-back jobs
+          const periodEnd = invoice.lines?.data?.[0]?.period?.end;
+          if (periodEnd) {
+            await pool.query(
+              `UPDATE organizations SET current_period_end = to_timestamp($1) WHERE id = $2`,
+              [periodEnd, orgId]
+            );
+          }
+          // Send the customer a receipt — only for paid subscription invoices (amount > 0)
+          if ((invoice as any).subscription && (invoice.amount_paid || 0) > 0) {
+            const admins = await pool.query(
+              "SELECT email, COALESCE(first_name, '') as name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND status = 'active'",
+              [orgId]
+            );
+            const amount = (invoice.amount_paid || 0) / 100;
+            const currency = (invoice.currency || 'gbp').toUpperCase();
+            for (const admin of admins.rows) {
+              EmailService.sendPaymentReceiptEmail(admin.email, admin.name || admin.email, invoice.metadata?.orgName || 'your organisation', {
+                amount,
+                currency,
+                invoiceNumber: invoice.number || invoice.id,
+                planName: invoice.lines?.data?.[0]?.description || 'Meticle subscription',
+                nextBillingDate: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+              }).catch(logWarn('payment receipt email'));
+            }
+          }
         }
         break;
       }
@@ -322,96 +380,97 @@ export class BillingController {
         const failedInvoice = event.data.object as Stripe.Invoice;
         const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer as string) as Stripe.Customer;
         const orgIdFailed = failedInvoice.metadata?.orgId || failedCustomer.metadata?.orgId;
-        if (orgIdFailed) {
-          // Track failure
+        if (!orgIdFailed) break;
+        // Track failure
+        await pool.query(
+          `UPDATE organizations SET
+            failed_payment_count = COALESCE(failed_payment_count, 0) + 1,
+            last_payment_failed_at = NOW(),
+            first_payment_failed_at = COALESCE(first_payment_failed_at, NOW())
+          WHERE id = $1`,
+          [orgIdFailed]
+        );
+
+        const orgRow = await pool.query(
+          'SELECT failed_payment_count, first_payment_failed_at, dunning_email_milestones FROM organizations WHERE id = $1',
+          [orgIdFailed]
+        );
+        const attemptCount = failedInvoice.attempt_count || 0;
+        const firstFailedAt = orgRow.rows[0]?.first_payment_failed_at;
+        const daysSinceFirstFailure = firstFailedAt
+          ? Math.floor((Date.now() - new Date(firstFailedAt).getTime()) / 86400000)
+          : 0;
+        const milestones: number[] = orgRow.rows[0]?.dunning_email_milestones || [];
+
+        const amount = (failedInvoice.amount_due || 0) / 100;
+        const currency = (failedInvoice.currency || 'gbp').toUpperCase();
+        const payErr = (failedInvoice as any).last_payment_error?.payment_method_details?.card;
+        const lastFour = payErr?.last4;
+        const brand = payErr?.brand;
+        const cardInfo = lastFour ? `${brand || 'Card'} ending in ${lastFour}` : 'your card';
+
+        // Decline-code aware dunning (industry standard): hard declines mean the card
+        // can never pay — skip the retry-and-wait tone and escalate immediately.
+        const declineCode = (failedInvoice as any).last_payment_error?.decline_code;
+
+        // Next retry time from Stripe's Smart Retries (auto-retries run silently first)
+        const nextAttempt = failedInvoice.next_payment_attempt
+          ? new Date(failedInvoice.next_payment_attempt * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : null;
+
+        // Escalating dunning email sequence — one email per milestone day (0, 3, 7, 14)
+        const dunning = selectDunningMilestone({ daysSinceFirstFailure, declineCode, sentMilestones: milestones });
+        if (dunning) {
           await pool.query(
-            `UPDATE organizations SET
-              failed_payment_count = COALESCE(failed_payment_count, 0) + 1,
-              last_payment_failed_at = NOW(),
-              first_payment_failed_at = COALESCE(first_payment_failed_at, NOW())
-            WHERE id = $1`,
+            `UPDATE organizations SET dunning_email_milestones = array_append(COALESCE(dunning_email_milestones, '{}'::int[]), $1) WHERE id = $2`,
+            [dunning.milestoneDay, orgIdFailed]
+          );
+          const admins = await pool.query(
+            "SELECT email, COALESCE(first_name, '') as name, COALESCE((SELECT name FROM organizations WHERE id = $1), '') as org_name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND status = 'active'",
             [orgIdFailed]
           );
-
-          const orgRow = await pool.query(
-            'SELECT failed_payment_count, first_payment_failed_at FROM organizations WHERE id = $1',
-            [orgIdFailed]
-          );
-          const attemptCount = failedInvoice.attempt_count || 0;
-          const firstFailedAt = orgRow.rows[0]?.first_payment_failed_at;
-          const daysSinceFirstFailure = firstFailedAt
-            ? Math.floor((Date.now() - new Date(firstFailedAt).getTime()) / 86400000)
-            : 0;
-
-          const amount = (failedInvoice.amount_due || 0) / 100;
-          const currency = (failedInvoice.currency || 'gbp').toUpperCase();
-          const payErr = (failedInvoice as any).last_payment_error?.payment_method_details?.card;
-          const lastFour = payErr?.last4;
-          const brand = payErr?.brand;
-          const cardInfo = lastFour ? `${brand || 'Card'} ending in ${lastFour}` : 'your card';
-
-          // Next retry time from Stripe's Smart Retries
-          const nextAttempt = failedInvoice.next_payment_attempt
-            ? new Date(failedInvoice.next_payment_attempt * 1000)
-            : null;
-          const disableDate = firstFailedAt
-            ? new Date(new Date(firstFailedAt).getTime() + 3 * 86400000)
-            : null;
-
-          // In-app notification
+          for (const admin of admins.rows) {
+            EmailService.sendPaymentFailedEmail(admin.email, admin.name || admin.email, admin.org_name, {
+              amount,
+              currency,
+              cardInfo,
+              attemptCount,
+              nextAttempt,
+              daysSinceFirstFailure: dunning.urgency,
+            }).catch(logWarn('payment failed email'));
+          }
           notifyAdmins(
             orgIdFailed,
-            'Payment Failed',
-            `Payment for ${amount} ${currency} failed using ${cardInfo}. We'll retry automatically. Update your payment method to avoid service interruption.`
+            dunning.hardDecline ? 'Payment Failed — Card Declined' : 'Payment Failed',
+            `Payment for ${amount} ${currency} failed using ${cardInfo}${dunning.hardDecline ? '. This card cannot be used — please add a new one.' : ". We'll retry automatically. Update your payment method to avoid service interruption."}`
           );
+        }
 
-          // Email notification with retry schedule + disable warning
-          if (daysSinceFirstFailure < 3) {
-            const nextRetryStr = nextAttempt
-              ? nextAttempt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-              : 'soon';
-            const disableStr = disableDate
-              ? disableDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-              : 'within 3 days';
-
-            const emailHtml = buildEmailHtml(
-              'Payment Failed - Meticle',
-              'Payment Failed',
-              `<p>We attempted to charge <strong>${currency} ${amount.toFixed(2)}</strong> to <strong>${cardInfo}</strong> for your Meticle subscription but the payment was declined.</p>
-<p><strong>Next retry:</strong> ${nextRetryStr}</p>
-<p><strong>Account will be disabled:</strong> ${disableStr}</p>
-<p>To avoid service interruption, please update your billing method or contact your bank.</p>`,
-              { label: 'Update Billing Method', url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/billing` }
-            );
-            notifyAdmins(
-              orgIdFailed,
-              'Payment Failed',
-              `Payment for ${amount} ${currency} failed using ${cardInfo}. We'll retry automatically.`,
-              { subject: `Payment Failed — ${currency} ${amount.toFixed(2)} — Meticle`, html: emailHtml }
-            );
+        // After 5 failed attempts or 7 days since first failure, move to the past_due
+        // grace state. Access is still kept (grace period) while dunning continues.
+        if (attemptCount >= 5 || daysSinceFirstFailure >= 7) {
+          await pool.query(
+            `UPDATE organizations SET subscription_status = 'past_due' WHERE id = $1`,
+            [orgIdFailed]
+          );
+        }
+        break;
+      }
+      case 'invoice.payment_action_required': {
+        const actionInvoice = event.data.object as Stripe.Invoice;
+        const actionCustomer = await stripe.customers.retrieve(actionInvoice.customer as string) as Stripe.Customer;
+        const orgIdAction = actionInvoice.metadata?.orgId || actionCustomer.metadata?.orgId;
+        if (orgIdAction && (actionInvoice.amount_due || 0) > 0) {
+          const amount = (actionInvoice.amount_due || 0) / 100;
+          const currency = (actionInvoice.currency || 'gbp').toUpperCase();
+          const admins = await pool.query(
+            "SELECT email, COALESCE(first_name, '') as name, COALESCE((SELECT name FROM organizations WHERE id = $1), '') as org_name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND status = 'active'",
+            [orgIdAction]
+          );
+          for (const admin of admins.rows) {
+            EmailService.sendPaymentActionRequiredEmail(admin.email, admin.name || admin.email, admin.org_name, { amount, currency }).catch(logWarn('payment action required email'));
           }
-
-          // After 5 failed attempts or 3 days since first failure, suspend the account
-          if (attemptCount >= 5 || daysSinceFirstFailure >= 3) {
-            await pool.query(
-              `UPDATE organizations SET subscription_status = 'past_due' WHERE id = $1`,
-              [orgIdFailed]
-            );
-            const suspendHtml = buildEmailHtml(
-              'Subscription Suspended - Meticle',
-              'Subscription Suspended',
-              `<p>After repeated failed payment attempts, your Meticle subscription has been <strong>suspended</strong>.</p>
-<p>All staff access has been restricted to billing and learning resources only.</p>
-<p>Please update your billing information immediately to restore full access.</p>`,
-              { label: 'Restore Access', url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/billing` }
-            );
-            notifyAdmins(
-              orgIdFailed,
-              'Subscription Suspended',
-              'Your subscription has been suspended due to repeated payment failures. Please update your billing information to restore access.',
-              { subject: 'Subscription Suspended — Meticle', html: suspendHtml }
-            );
-          }
+          notifyAdmins(orgIdAction, 'Payment Action Required', `Your bank needs you to confirm a ${currency} ${amount.toFixed(2)} payment to keep your subscription active.`);
         }
         break;
       }
@@ -419,10 +478,10 @@ export class BillingController {
         const sub = event.data.object as Stripe.Subscription;
         const orgIdSub = sub.metadata?.organizationId;
         if (orgIdSub) {
-          const status = sub.status === 'active' ? 'active' : sub.status === 'past_due' ? 'past_due' : 'canceled';
+          const status = sub.status === 'active' ? 'active' : sub.status === 'past_due' ? 'past_due' : sub.status === 'canceled' ? 'canceled' : null;
           await pool.query(
-            `UPDATE organizations SET subscription_status = $1 WHERE id = $2`,
-            [status, orgIdSub]
+            `UPDATE organizations SET subscription_status = COALESCE($1, subscription_status), current_period_end = COALESCE(to_timestamp($3), current_period_end) WHERE id = $2`,
+            [status, orgIdSub, (sub as any).current_period_end || null]
           );
         }
         break;
@@ -431,14 +490,21 @@ export class BillingController {
         const deletedSub = event.data.object as Stripe.Subscription;
         const orgIdDel = deletedSub.metadata?.organizationId;
         if (orgIdDel) {
+          // Keep current_period_end so the win-back email can still fire
           await pool.query(
-            `UPDATE organizations SET subscription_status = 'canceled' WHERE id = $1`,
-            [orgIdDel]
+            `UPDATE organizations SET subscription_status = 'canceled', current_period_end = COALESCE(to_timestamp($2), current_period_end) WHERE id = $1`,
+            [orgIdDel, (deletedSub as any).current_period_end || null]
           );
         }
         break;
       }
     }
+
+    // Mark the event as processed — if anything above throws, we 500 and Stripe retries
+    await pool.query(
+      'INSERT INTO stripe_webhook_events (event_id, event_type) VALUES ($1, $2)',
+      [event.id, event.type]
+    );
 
     res.json({ received: true });
   }
@@ -449,7 +515,7 @@ export class BillingController {
     if (!stripe) throw new AppError(400, 'Stripe not configured');
 
     const org = await pool.query(
-      'SELECT stripe_customer_id FROM organizations WHERE id = $1',
+      'SELECT stripe_customer_id, name FROM organizations WHERE id = $1',
       [orgId]
     );
     const customerId = org.rows[0]?.stripe_customer_id;
@@ -465,17 +531,98 @@ export class BillingController {
     if (invoices.data.length === 0) throw new AppError(400, 'No unpaid invoices found');
 
     const invoice = invoices.data[0];
+    const amount = (invoice.amount_due || 0) / 100;
+    const currency = (invoice.currency || 'gbp').toUpperCase();
+
+    const admins = await pool.query(
+      "SELECT email, COALESCE(first_name, '') as name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND status = 'active'",
+      [orgId]
+    );
+    const notifyAdminsOfResult = async (subject: string, html: string) => {
+      for (const admin of admins.rows) {
+        EmailService.sendQueued(admin.email, subject, html).catch(logWarn('payment retry email'));
+      }
+    };
+
+    // Prefer the org's default card if the invoice has none attached
+    const defaultPm = await pool.query(
+      'SELECT stripe_payment_method_id FROM payment_methods WHERE organization_id = $1 AND is_default = TRUE LIMIT 1',
+      [orgId]
+    );
+
+    let paid: Stripe.Invoice;
     try {
-      const paid = await stripe.invoices.pay(invoice.id);
-      // Sync DB immediately — don't wait for webhook
-      await pool.query(
-        `UPDATE organizations SET subscription_status = 'active', failed_payment_count = 0, first_payment_failed_at = NULL, last_payment_failed_at = NULL WHERE id = $1`,
-        [orgId]
-      );
-      res.json({ message: 'Payment successful', status: paid.status });
+      const payParams: any = {};
+      if (defaultPm.rows[0]?.stripe_payment_method_id) {
+        payParams.payment_method = defaultPm.rows[0].stripe_payment_method_id;
+      }
+      paid = await stripe.invoices.pay(invoice.id, payParams);
     } catch (err: any) {
-      throw new AppError(402, err.message || 'Payment failed');
+      // Card declined (or similar) — email the failed result immediately
+      const declineReason = (err as any)?.payment_intent?.last_payment_error?.message || err.message || 'Payment failed';
+      const payErr = (err as any)?.payment_intent?.last_payment_error?.payment_method_details?.card;
+      const cardInfo = payErr?.last4 ? `${payErr.brand || 'Card'} ending in ${payErr.last4}` : 'your card on file';
+      const html = buildEmailHtml(
+        'Payment Update',
+        "Your payment didn't go through",
+        `<p>We tried to charge <strong>${currency} ${amount.toFixed(2)}</strong> to <strong>${cardInfo}</strong> and the bank declined it.</p>` +
+        `<p><strong>Reason:</strong> ${declineReason}</p>` +
+        `<p>Your data is safe. You can retry at any time from the Billing page — updating your card first usually fixes this.</p>`,
+        { label: 'Retry Payment', url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/billing` }
+      );
+      await notifyAdminsOfResult(`Payment still failing — ${currency} ${amount.toFixed(2)}`, html);
+      throw new AppError(402, declineReason);
     }
+
+    // 3D Secure / bank authentication required — hand the client secret back so the
+    // customer can confirm the payment in-browser (Stripe.js confirmCardPayment).
+    const paymentIntent = (paid as any).payment_intent
+      ? typeof (paid as any).payment_intent === 'string'
+        ? await stripe.paymentIntents.retrieve((paid as any).payment_intent)
+        : (paid as any).payment_intent
+      : null;
+    if (paid.status !== 'paid' || (paymentIntent as any)?.status === 'requires_action') {
+      const clientSecret = (paymentIntent as any)?.client_secret || null;
+      if (clientSecret) {
+        const html = buildEmailHtml(
+          'Payment Action Required',
+          'Your bank needs you to confirm a payment',
+          `<p>To keep your Meticle subscription running, your bank needs you to confirm the payment of <strong>${currency} ${amount.toFixed(2)}</strong>.</p>` +
+          `<p>Open the Billing page and click <strong>Retry Payment</strong> to complete the confirmation pop-up.</p>`,
+          { label: 'Complete Payment', url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/billing` }
+        );
+        await notifyAdminsOfResult('Action required: confirm your Meticle payment', html);
+      }
+      res.json({ requiresAction: true, clientSecret, message: 'Your bank requires you to confirm this payment.' });
+      return;
+    }
+
+    // Payment succeeded — sync DB immediately (don't wait for the webhook)
+    await pool.query(
+      `UPDATE organizations SET subscription_status = 'active', failed_payment_count = 0, first_payment_failed_at = NULL, last_payment_failed_at = NULL, dunning_email_milestones = '{}' WHERE id = $1`,
+      [orgId]
+    );
+    const periodEnd = paid.lines?.data?.[0]?.period?.end;
+    if (periodEnd) {
+      await pool.query(
+        `UPDATE organizations SET current_period_end = to_timestamp($1) WHERE id = $2`,
+        [periodEnd, orgId]
+      );
+    }
+
+    // Email the successful result (receipt) to every ORG_ADMIN
+    for (const admin of admins.rows) {
+      EmailService.sendPaymentReceiptEmail(admin.email, admin.name || admin.email, org.rows[0]?.name, {
+        amount: (paid.amount_paid || amount) / 100,
+        currency,
+        invoiceNumber: paid.number || paid.id,
+        planName: paid.lines?.data?.[0]?.description || 'Meticle subscription',
+        nextBillingDate: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+        isRetry: true,
+      }).catch(logWarn('payment retry receipt email'));
+    }
+
+    res.json({ message: 'Payment successful', status: paid.status });
   }
 
   static async getAddons(req: Request, res: Response) {

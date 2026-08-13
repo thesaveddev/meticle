@@ -412,6 +412,141 @@ export class EmailService {
     }
   }
 
+  // ── Subscription Renewal ──
+  static async sendSubscriptionExpiringEmail(email: string, name: string, orgName: string, daysLeft: number, hasCard: boolean) {
+    const org = orgName || 'your organisation';
+    const url = `${baseUrl()}/billing`;
+    const plural = daysLeft !== 1;
+    const headline = plural ? `Your subscription ends in ${daysLeft} days` : 'Your subscription ends tomorrow';
+    await sendMail(email,
+      plural ? `Your Meticle subscription ends in ${daysLeft} days — keep your team running` : `Your Meticle subscription ends tomorrow — keep your team running`,
+      buildEmailHtml('Subscription Renewal', headline,
+        `<p>Hi ${name},</p>` +
+        `<p>Your Meticle subscription for <strong>${org}</strong> ${plural ? `ends in <strong>${daysLeft} days</strong>` : '<strong>ends tomorrow</strong>'}.</p>` +
+        `<p>Your subscription keeps your team on top of:</p>` +
+        `<ul><li>Rota planning and shift management</li>` +
+        `<li>eMAR medication records</li>` +
+        `<li>CQC readiness scoring and evidence packs</li>` +
+        `<li>Incident reporting and compliance tracking</li></ul>` +
+        `<p>If your subscription lapses, your team's access will pause. <strong>Nothing is deleted</strong> — all your data stays safe and ready to pick back up the moment you renew.</p>` +
+        `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
+        { label: hasCard ? 'View Billing' : 'Add Payment Card', url }));
+  }
+
+  static async sendSubscriptionExpiredEmail(email: string, name: string, orgName: string) {
+    const org = orgName || 'your organisation';
+    const url = `${baseUrl()}/billing`;
+    await sendMail(email, 'Your Meticle subscription has ended — reactivate to restore access',
+      buildEmailHtml('Subscription Ended', `Your subscription for ${org} has ended`,
+        `<p>Hi ${name},</p>` +
+        `<p>Your Meticle subscription for <strong>${org}</strong> has ended, so your team's access has been paused.</p>` +
+        `<p><strong>Good news — nothing has been deleted.</strong> Your rota, eMAR medication records, CQC evidence packs, care notes and compliance data are all safe and waiting for you.</p>` +
+        `<p>Reactivating takes under a minute and gives your whole team full access back immediately:</p>` +
+        `<ul><li>Rota planning and shift management</li>` +
+        `<li>eMAR medication records</li>` +
+        `<li>CQC readiness scoring and evidence packs</li>` +
+        `<li>Incident reporting and compliance tracking</li></ul>` +
+        `<p>We'd love to have you back.</p>` +
+        `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
+        { label: 'Reactivate Now', url }));
+  }
+
+  // ── Payment receipts & recovery (industry-standard dunning) ──
+  static async sendPaymentReceiptEmail(email: string, name: string, orgName: string, opts: {
+    amount: number
+    currency: string
+    invoiceNumber: string
+    planName: string
+    nextBillingDate?: string | null
+    isRetry?: boolean
+  }) {
+    const url = `${baseUrl()}/billing`;
+    const org = orgName || 'your organisation';
+    const next = opts.nextBillingDate
+      ? new Date(opts.nextBillingDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+      : 'your next billing date';
+    await sendMail(email,
+      `Receipt for ${opts.currency} ${opts.amount.toFixed(2)} — Meticle`,
+      buildEmailHtml('Payment Receipt', `${opts.isRetry ? 'Payment received' : 'Thank you for your payment'}`,
+        `<p>Hi ${name},</p>` +
+        `<p>Your payment for <strong>${org}</strong> went through successfully.</p>` +
+        `<table border="0" cellpadding="0" cellspacing="0" style="margin:12px 0;background:#F9FAFB;border-radius:12px;padding:16px;width:100%">` +
+        `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Plan</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${opts.planName}</td></tr>` +
+        `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Invoice</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${opts.invoiceNumber}</td></tr>` +
+        `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:#0F4C81;text-align:right">${opts.currency} ${opts.amount.toFixed(2)}</td></tr>` +
+        `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Next billing date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${next}</td></tr>` +
+        `</table>` +
+        `<p style="font-size:13px;color:#9CA3AF">Questions about this charge? Reply to this email and we'll help.</p>`,
+        { label: 'View Billing', url }));
+  }
+
+  static async sendPaymentFailedEmail(email: string, name: string, orgName: string, opts: {
+    amount: number
+    currency: string
+    cardInfo: string
+    attemptCount: number
+    nextAttempt?: string | null
+    daysSinceFirstFailure: number
+    manualRetry?: boolean
+  }) {
+    const url = `${baseUrl()}/billing`;
+    const org = orgName || 'your organisation';
+    const currency = opts.currency;
+    const amount = opts.amount.toFixed(2);
+    const retryStr = opts.nextAttempt ? `We'll retry automatically on <strong>${opts.nextAttempt}</strong>.` : (opts.manualRetry ? 'You can retry at any time from the Billing page.' : "We'll retry automatically.");
+    // Escalating urgency per dunning best practice (day 0 → friendly, day 14 → final)
+    let heading = "We couldn't process your payment";
+    let body: string;
+    let subject: string;
+    if (opts.daysSinceFirstFailure >= 14) {
+      heading = 'Final notice: your subscription will pause';
+      subject = `Final notice: your Meticle subscription will pause`;
+      body = `<p>Hi ${name},</p>` +
+        `<p>It's been two weeks since our first failed attempt to charge <strong>${currency} ${amount}</strong> for <strong>${org}</strong>. Your access will be paused soon unless the payment goes through.</p>` +
+        `<p><strong>Your data is safe</strong> — nothing is deleted, and you can reactivate at any time.</p>` +
+        `<p>Updating your card takes about 30 seconds:</p>`;
+    } else if (opts.daysSinceFirstFailure >= 7) {
+      heading = 'Action needed — your payment is still failing';
+      subject = `Action needed: payment for ${org} is still failing`;
+      body = `<p>Hi ${name},</p>` +
+        `<p>We've tried several times to charge <strong>${currency} ${amount}</strong> for <strong>${org}</strong> and the payment is still failing (${opts.cardInfo}).</p>` +
+        `<p>Your account is now in a <strong>grace period</strong>. Access continues for now, but will pause if the payment can't be resolved. ${retryStr}</p>` +
+        `<p>One click fixes this:</p>`;
+    } else if (opts.daysSinceFirstFailure >= 3) {
+      heading = 'We tried your card again — action still needed';
+      subject = `We tried your card again for ${org}`;
+      body = `<p>Hi ${name},</p>` +
+        `<p>We tried charging <strong>${currency} ${amount}</strong> for <strong>${org}</strong> again and it didn't go through (${opts.cardInfo}).</p>` +
+        `<p>This happens all the time — usually it's an expired card, a spending limit, or a temporary bank hold. ${retryStr}</p>` +
+        `<p>Your subscription is still active for now.</p>` +
+        `<p>Here's the fastest fix:</p>`;
+    } else {
+      subject = `Quick update: your Meticle payment didn't go through`;
+      body = `<p>Hi ${name},</p>` +
+        `<p>Our charge of <strong>${currency} ${amount}</strong> for <strong>${org}</strong> didn't go through (${opts.cardInfo}).</p>` +
+        `<p>This happens all the time — usually it's an expired card, a spending limit, or a temporary bank hold. ${retryStr}</p>` +
+        `<p>Your access continues while we sort this out. Updating your card takes about 30 seconds:</p>`;
+    }
+    await sendMail(email, subject,
+      buildEmailHtml('Payment Update', heading, body,
+        { label: opts.manualRetry ? 'Retry Payment' : 'Update Payment Method', url }));
+  }
+
+  static async sendPaymentActionRequiredEmail(email: string, name: string, orgName: string, opts: {
+    amount: number
+    currency: string
+  }) {
+    const url = `${baseUrl()}/billing`;
+    const org = orgName || 'your organisation';
+    await sendMail(email,
+      `Action required: confirm your ${opts.currency} ${opts.amount.toFixed(2)} Meticle payment`,
+      buildEmailHtml('Payment Action Required', 'Your bank needs you to confirm a payment',
+        `<p>Hi ${name},</p>` +
+        `<p>To keep your <strong>${org}</strong> subscription running, your bank needs you to confirm a recent payment of <strong>${opts.currency} ${opts.amount.toFixed(2)}</strong> (3D Secure authentication).</p>` +
+        `<p>This usually takes under a minute and your subscription stays active once confirmed.</p>`,
+        { label: 'Complete Payment', url }));
+  }
+
   // -- Daily Shift Audit --
   static async sendShiftAuditEmail(
     email: string,

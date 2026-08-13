@@ -539,6 +539,44 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             )}
           </Paper>
         )}
+        {!subLoading && isActive && subStatus === 'past_due' && rawUser.role !== UserRole.SUPER_ADMIN && (
+          <Paper
+            elevation={0}
+            sx={{
+              bgcolor: '#FFFBEB',
+              border: '1px solid #FDE68A',
+              borderLeft: 4,
+              borderLeftColor: '#F59E0B',
+              p: 2,
+              mb: 3,
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#B45309' }}>
+                Payment Past Due
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#D97706', mt: 0.5 }}>
+                There was a problem renewing your subscription. Access continues for now, but your account may be suspended if payment isn't updated.
+                {rawUser.role === UserRole.ORG_ADMIN ? ' Please update your billing information.' : ' Please contact your organization admin.'}
+              </Typography>
+            </Box>
+            {rawUser.role === UserRole.ORG_ADMIN && (
+              <Button
+                variant="contained"
+                size="small"
+                sx={{ bgcolor: '#F59E0B', '&:hover': { bgcolor: '#D97706' }, whiteSpace: 'nowrap', flexShrink: 0 }}
+                onClick={() => navigate('/billing')}
+              >
+                Update Billing
+              </Button>
+            )}
+          </Paper>
+        )}
         {children || <Outlet />}
       </Box>
 

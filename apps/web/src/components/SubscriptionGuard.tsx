@@ -8,7 +8,7 @@ export interface SubscriptionStatus {
   loading: boolean
 }
 
-const ACTIVE_STATUSES = ['active', 'trial']
+const ACTIVE_STATUSES = ['active', 'trial', 'past_due']
 
 export function useSubscriptionStatus(): SubscriptionStatus {
   const [status, setStatus] = useState<string>('')

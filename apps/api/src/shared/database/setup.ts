@@ -229,6 +229,42 @@ const MIGRATION_021: Migration = {
   ],
 };
 
+const MIGRATION_022: Migration = {
+  name: '022_subscription_expiry_tracking',
+  strict: false,
+  statements: [
+    // Persist the Stripe subscription period end so background jobs can send 7/3/1-day
+    // renewal reminders + win-back emails for paid subscriptions (was live-read only).
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS current_period_end TIMESTAMP WITH TIME ZONE`,
+    // trial_reminders was trial-only; widen it to subscriptions and dedupe per kind.
+    `ALTER TABLE trial_reminders ADD COLUMN IF NOT EXISTS kind VARCHAR(20) NOT NULL DEFAULT 'trial' CHECK (kind IN ('trial', 'subscription'))`,
+    `DO $$ BEGIN
+       ALTER TABLE trial_reminders DROP CONSTRAINT IF EXISTS trial_reminders_organization_id_reminder_days_key;
+       IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'trial_reminders_org_kind_days_uniq') THEN
+         ALTER TABLE trial_reminders ADD CONSTRAINT trial_reminders_org_kind_days_uniq UNIQUE (organization_id, kind, reminder_days);
+       END IF;
+     END $$`,
+  ],
+};
+
+const MIGRATION_023: Migration = {
+  name: '023_stripe_webhook_dedupe',
+  strict: false,
+  statements: [
+    // Stripe webhook events can be delivered multiple times; dedupe so receipts and
+    // dunning emails are sent exactly once per event. App role gets DML via the
+    // ALTER DEFAULT PRIVILEGES set in 004_create_app_role.
+    `CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+       event_id TEXT PRIMARY KEY,
+       event_type TEXT NOT NULL,
+       processed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+     )`,
+    // Track which dunning-email milestones (days since first failure) have been sent,
+    // so the escalating failed-payment sequence fires once per stage.
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS dunning_email_milestones INTEGER[] DEFAULT '{}'`,
+  ],
+};
+
 const MIGRATION_009: Migration = {
   name: '009_care_plan_person_centred_sections',
   strict: false,
@@ -1762,7 +1798,7 @@ export const setupDatabase = async () => {
     }
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018, MIGRATION_019, MIGRATION_020, MIGRATION_021]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018, MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)
