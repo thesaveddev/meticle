@@ -87,8 +87,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return res.status(401).json({ statusCode: 401, message: 'Your permissions have changed. Please log in again.' });
     }
 
-    // Subscription enforcement — exempt auth, billing, mfa, health, onboarding, and platform admin
-    const subExemptPaths = ['/auth', '/billing', '/mfa', '/health', '/onboarding', '/platform-admin'];
+    // Subscription enforcement — exempt auth, billing, mfa, health, onboarding, learning, and platform admin
+    const subExemptPaths = ['/auth', '/billing', '/mfa', '/health', '/onboarding', '/platform-admin', '/learn'];
     const isExempt = subExemptPaths.some(p => req.originalUrl.startsWith(p));
     if (!isExempt && decoded.organizationId) {
       const orgResult = await query(
@@ -100,7 +100,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         const status = org.subscription_status;
         const trialEnded = org.trial_ends_at && new Date(org.trial_ends_at) < new Date();
         let blocked = false;
-        if (status === 'active') {
+        if (status === 'active' || status === 'past_due') {
+          // past_due is a grace period — Stripe is retrying; keep access so teams aren't hard-locked
           blocked = false;
         } else if (status === 'trial' || !status) {
           blocked = !!trialEnded;

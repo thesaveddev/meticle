@@ -221,7 +221,7 @@ function CardDisplay({ pm, onSetDefault, onRemove }: { pm: any; onSetDefault: ()
 }
 
 function BillingPageInner() {
-  const [subscription, setSubscription] = useState<{ plan: string; subscriptionStatus: string; trialEndsAt: string; daysRemaining: number } | null>(null)
+  const [subscription, setSubscription] = useState<{ plan: string; subscriptionStatus: string; trialEndsAt: string; currentPeriodEnd: string | null; daysRemaining: number; hasUnpaidInvoice?: boolean; stripeUnavailable?: boolean } | null>(null)
   const [invoices, setInvoices] = useState<any[]>([])
   const [paymentMethods, setPaymentMethods] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -231,6 +231,7 @@ function BillingPageInner() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [addCardOpen, setAddCardOpen] = useState(false)
   const [removeCardDialog, setRemoveCardDialog] = useState('')
+  const [retrying, setRetrying] = useState(false)
 
   const userStr = localStorage.getItem('user')
   let user: any = null
@@ -328,25 +329,44 @@ function BillingPageInner() {
         <Alert severity="warning" sx={{ mb: 4, borderRadius: 2 }}>
           <Typography variant="subtitle2" fontWeight={700}>Your subscription is no longer active</Typography>
           <Typography variant="body2">Add a payment card to restore access to the platform.</Typography>
-          {subStatus === 'past_due' && (
+          {subStatus === 'past_due' || subscription?.hasUnpaidInvoice ? (
             <Button
               variant="contained"
               size="small"
+              disabled={retrying}
               sx={{ mt: 1.5, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, textTransform: 'none' }}
               onClick={async () => {
+                setRetrying(true)
+                setMessage('')
                 try {
-                  await api.post('/billing/retry-payment')
-                  setMessage('Payment successful!')
-                  loadBillingData()
-                  window.dispatchEvent(new Event('subscriptionUpdated'))
-                } catch {
-                  setMessage('Retry failed — check your payment method.')
+                  const { data } = await api.post('/billing/retry-payment')
+                  if (data.requiresAction && data.clientSecret && stripePromise) {
+                    setMessage('Your bank requires you to confirm this payment — please complete the pop-up.')
+                    const stripe = await stripePromise
+                    if (!stripe) { setMessage('Payment not confirmed — try again in a moment.'); return }
+                    const result = await stripe.confirmCardPayment(data.clientSecret)
+                    if (result.error) {
+                      setMessage(`Payment not confirmed: ${result.error.message}`)
+                    } else {
+                      setMessage('Payment successful!')
+                      loadBillingData()
+                      window.dispatchEvent(new Event('subscriptionUpdated'))
+                    }
+                  } else {
+                    setMessage('Payment successful!')
+                    loadBillingData()
+                    window.dispatchEvent(new Event('subscriptionUpdated'))
+                  }
+                } catch (err: any) {
+                  setMessage(err?.response?.data?.message || 'Retry failed — check your payment method.')
+                } finally {
+                  setRetrying(false)
                 }
               }}
             >
-              Retry Payment
+              {retrying ? <CircularProgress size={18} color="inherit" /> : 'Retry Payment'}
             </Button>
-          )}
+          ) : null}
         </Alert>
       )}
 
@@ -367,7 +387,9 @@ function BillingPageInner() {
           <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
             <Typography variant="body2" color="#6B7280">Next Billing Date</Typography>
             <Typography variant="h5" sx={{ fontWeight: 800 }}>
-              {subscription?.trialEndsAt ? new Date(subscription.trialEndsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+              {(subscription?.currentPeriodEnd || subscription?.trialEndsAt)
+                ? new Date(subscription.currentPeriodEnd || subscription.trialEndsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                : '—'}
             </Typography>
           </Paper>
         </Grid>
