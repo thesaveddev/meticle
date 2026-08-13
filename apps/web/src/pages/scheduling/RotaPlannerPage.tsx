@@ -225,7 +225,7 @@ export default function RotaPlannerPage() {
 
       // Calculate period
       const now = new Date()
-      let periodEnd = new Date(now)
+      const periodEnd = new Date(now)
       if (genPeriod === 'week') periodEnd.setDate(periodEnd.getDate() + 7)
       else if (genPeriod === '2weeks') periodEnd.setDate(periodEnd.getDate() + 14)
       else if (genPeriod === 'month') periodEnd.setMonth(periodEnd.getMonth() + 1)
@@ -562,7 +562,7 @@ export default function RotaPlannerPage() {
       const myLocationId = myStaffProfile?.location_id || rawUser.location_id || ''
 
       if (rawUser.role === 'MANAGER') {
-        let managedLocIds: string[] = []
+        const managedLocIds: string[] = []
         if (myStaffProfile?.location_id) managedLocIds.push(myStaffProfile.location_id)
         const managedLocs = (locData || []).filter((l: any) => l.manager_id === rawUser.id)
         for (const l of managedLocs) { if (!managedLocIds.includes(l.id)) managedLocIds.push(l.id) }

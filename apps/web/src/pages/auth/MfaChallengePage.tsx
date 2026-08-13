@@ -15,6 +15,8 @@ export default function MfaChallengePage() {
   const [error, setError] = useState('')
   const [showLostAccess, setShowLostAccess] = useState(false)
 
+  usePageMeta({ title: 'Two-Factor Authentication | MeticleCare', description: 'Enter your MeticleCare verification code.', noindex: true })
+
   if (!mfaToken) {
     navigate('/login')
     return null
@@ -38,8 +40,6 @@ export default function MfaChallengePage() {
       setLoading(false)
     }
   }
-
-  usePageMeta({ title: 'Two-Factor Authentication | MeticleCare', description: 'Enter your MeticleCare verification code.', noindex: true })
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>

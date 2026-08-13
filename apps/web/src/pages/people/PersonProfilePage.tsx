@@ -4,7 +4,7 @@ import {
   Grid, TextField, CircularProgress, Alert, Dialog, DialogTitle,
   DialogContent, DialogActions, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, MenuItem, Divider,
-  Menu, ListItemIcon, ListItemText, Tooltip,
+  Menu, ListItemIcon, ListItemText, Tooltip, LinearProgress, Rating,
 } from '@mui/material'
 import {
   ArrowBack, Add as AddIcon, Edit as EditIcon,
@@ -30,7 +30,6 @@ import HealthTab from './HealthTab'
 import BodyMapTab from './BodyMapTab'
 import MemoryBookTab from './MemoryBookTab'
 import GoalsPage from '../goals/GoalsPage'
-import { LinearProgress, Rating } from '@mui/material'
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer as RechartsResponsiveContainer, Pie, PieChart, Tooltip as RechartsTooltip, Cell } from 'recharts'
 
 const RISK_COLORS: Record<string, string> = { low: '#16A34A', medium: '#D97706', high: '#DC2626', critical: '#7C3AED' }
