@@ -4,7 +4,7 @@ import {
   TableContainer, TableHead, TableRow, Chip, Dialog, DialogTitle, DialogContent,
   DialogActions, TextField, MenuItem, Stack, IconButton,
   Alert, FormControl, InputLabel, Select, Tooltip, Switch, FormControlLabel,
-  Popover, List, ListItem, ListItemText, Divider, CircularProgress,
+  Popover, List, ListItem, ListItemText, Divider, CircularProgress, TablePagination,
 } from '@mui/material'
 import {
   Add as AddIcon, CheckCircle as ApproveIcon,
@@ -12,6 +12,7 @@ import {
   Info as InfoIcon, ChevronLeft, ChevronRight, Delete as DeleteIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
+import { ConfirmDialog } from '../../components/ui'
 
 interface LeaveType {
   id: string; name: string; color: string; days_allowed: number; hours_allowed: number; duration_type: string
@@ -34,6 +35,15 @@ interface LeaveBalance {
 }
 
 interface Location { id: string; name: string }
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+// Build a YYYY-MM-DD string from a local Date (timezone-safe).
+const toYMD = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+// Parse a YYYY-MM-DD string as local midnight (not UTC) so comparisons are stable.
+const parseYMD = (s: string) => new Date(`${s}T00:00:00`)
+const fmtDay = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+const requestDays = (r: { start_date: string; end_date: string }) =>
+  Math.ceil((parseYMD(r.end_date).getTime() - parseYMD(r.start_date).getTime()) / 86400000) + 1
 
 export default function LeaveManagerPage() {
   const [tab, setTab] = useState(0)
@@ -66,6 +76,12 @@ export default function LeaveManagerPage() {
   const [allLoading, setAllLoading] = useState(false)
   const [calendarLoading, setCalendarLoading] = useState(false)
   const [fetchError, setFetchError] = useState('')
+  const [myPage, setMyPage] = useState(0)
+  const [allPage, setAllPage] = useState(0)
+  const [reviewingId, setReviewingId] = useState('')
+  const [cancellingId, setCancellingId] = useState('')
+  const [cancelTarget, setCancelTarget] = useState<LeaveRequest | null>(null)
+  const [detailRequest, setDetailRequest] = useState<LeaveRequest | null>(null)
 
   let rawUser: any = {}
   try {
@@ -158,8 +174,8 @@ export default function LeaveManagerPage() {
       payload.reason = formData.reason
     }
     try {
-      await api.post('/leave/my-requests', payload)
-      setSuccess('Leave request submitted')
+      const res = await api.post('/leave/my-requests', payload)
+      setSuccess(res.data?.status === 'approved' ? 'Leave request submitted and auto-approved' : 'Leave request submitted')
       setOpenDialog(false)
       const leaveStartDate = payload.start_date
       setFormData({ leave_type_id: '', start_date: '', end_date: '', reason: '', hours_requested: '', duration_type: 'days' })
@@ -185,6 +201,9 @@ export default function LeaveManagerPage() {
   }
 
   const handleReview = async (id: string, status: string) => {
+    setReviewingId(id)
+    setError('')
+    setSuccess('')
     try {
       await api.patch(`/leave/requests/${id}/review`, { status })
       setDayPopover(null)
@@ -195,14 +214,28 @@ export default function LeaveManagerPage() {
       setCalendarStats(statsRes.data)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to review leave request')
+    } finally {
+      setReviewingId('')
     }
   }
 
   const handleCancel = async (id: string) => {
+    setCancellingId(id)
+    setError('')
+    setSuccess('')
     try {
       await api.patch(`/leave/requests/${id}/cancel`)
+      setCancelTarget(null)
+      setSuccess('Leave request cancelled')
       fetchData()
-    } catch { console.warn('Failed to cancel leave request') }
+      fetchAllRequests()
+      const statsRes = await api.get(`/leave/calendar-stats?month=${calendarMonth.getMonth() + 1}&year=${calendarMonth.getFullYear()}`)
+      setCalendarStats(statsRes.data)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to cancel leave request')
+    } finally {
+      setCancellingId('')
+    }
   }
 
   const handleRemoveDelegation = async (id: string) => {
@@ -254,8 +287,8 @@ export default function LeaveManagerPage() {
   const calendarEvents = allApprovedRequests
     .flatMap(r => {
       const events = []
-      const start = new Date(r.start_date)
-      const end = new Date(r.end_date)
+      const start = parseYMD(r.start_date)
+      const end = parseYMD(r.end_date)
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const label = r.duration_type === 'hours' && r.hours_requested
           ? `${r.leave_type_name} (${r.hours_requested}h)`
@@ -274,13 +307,13 @@ export default function LeaveManagerPage() {
   const getDayRequests = (date: Date) => {
     const allReqs = isAdminOrManager ? [...myRequests, ...allRequests] : myRequests
     return allReqs.filter(r => {
-      const s = new Date(r.start_date), e = new Date(r.end_date)
+      const s = parseYMD(r.start_date), e = parseYMD(r.end_date)
       return date >= s && date <= e
     }).map(r => ({
       ...r,
       duration: r.duration_type === 'hours' && r.hours_requested
         ? `${r.hours_requested}h`
-        : `${Math.ceil((new Date(r.end_date).getTime() - new Date(r.start_date).getTime()) / 86400000) + 1}d`,
+        : `${requestDays(r)}d`,
     }))
   }
 
@@ -446,23 +479,35 @@ export default function LeaveManagerPage() {
               <TableBody>
                 {myRequests.length === 0 ? (
                   <TableRow><TableCell colSpan={6} align="center" sx={{ py: 4, color: '#9CA3AF' }}>No leave requests yet</TableCell></TableRow>
-                ) : myRequests.map(r => {
-                  const days = Math.ceil((new Date(r.end_date).getTime() - new Date(r.start_date).getTime()) / 86400000) + 1
+                ) : myRequests.slice(myPage * 10, myPage * 10 + 10).map(r => {
+                  const days = requestDays(r)
                   const duration = r.duration_type === 'hours' && r.hours_requested
                     ? `${r.hours_requested}h`
                     : `${days}d`
+                  const canCancelFutureApproved = r.status === 'approved' && parseYMD(r.start_date) > new Date()
                   return (
-                    <TableRow key={r.id} hover>
+                    <TableRow key={r.id} hover
+                      onClick={() => setDetailRequest(r)}
+                      sx={{ cursor: 'pointer' }}>
                       <TableCell>
                         <Chip label={r.leave_type_name} size="small" sx={{ bgcolor: (r.leave_type_color || '#0F4C81') + '20', color: r.leave_type_color || '#0F4C81', fontWeight: 600 }} />
                       </TableCell>
-                      <TableCell>{new Date(r.start_date).toLocaleDateString()}{r.end_date !== r.start_date ? ` - ${new Date(r.end_date).toLocaleDateString()}` : ''}</TableCell>
+                      <TableCell>{fmtDay(parseYMD(r.start_date))}{r.end_date !== r.start_date ? ` - ${fmtDay(parseYMD(r.end_date))}` : ''}</TableCell>
                       <TableCell>{duration}</TableCell>
                       <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.reason || '-'}</TableCell>
                       <TableCell>{statusChip(r.status)}</TableCell>
-                      <TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}>
                         {r.status === 'pending' && (
-                          <Button size="small" color="error" onClick={() => handleCancel(r.id)}>Cancel</Button>
+                          <Button size="small" color="error" disabled={cancellingId === r.id}
+                            onClick={() => handleCancel(r.id)}>
+                            {cancellingId === r.id ? <CircularProgress size={14} color="inherit" sx={{ mr: 0.5 }} /> : null}
+                            Cancel
+                          </Button>
+                        )}
+                        {canCancelFutureApproved && (
+                          <Button size="small" color="error" onClick={() => setCancelTarget(r)}>
+                            Cancel
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
@@ -470,6 +515,11 @@ export default function LeaveManagerPage() {
                 })}
               </TableBody>
             </Table>
+            {myRequests.length > 10 && (
+              <TablePagination component="div" count={myRequests.length} page={myPage}
+                onPageChange={(_e, p) => setMyPage(p)} rowsPerPage={10} rowsPerPageOptions={[10]}
+                onRowsPerPageChange={undefined} />
+            )}
           </TableContainer>
         )}
 
@@ -515,26 +565,38 @@ export default function LeaveManagerPage() {
                 <TableBody>
                   {allRequests.length === 0 ? (
                     <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4, color: '#9CA3AF' }}>No leave requests found</TableCell></TableRow>
-                  ) : allRequests.map(r => {
-                    const days = Math.ceil((new Date(r.end_date).getTime() - new Date(r.start_date).getTime()) / 86400000) + 1
+                  ) : allRequests.slice(allPage * 10, allPage * 10 + 10).map(r => {
+                    const days = requestDays(r)
                     const duration = r.duration_type === 'hours' && r.hours_requested
                       ? `${r.hours_requested}h`
                       : `${days}d`
                     return (
-                      <TableRow key={r.id} hover>
+                      <TableRow key={r.id} hover
+                        onClick={() => setDetailRequest(r)}
+                        sx={{ cursor: 'pointer' }}>
                         <TableCell sx={{ fontWeight: 600 }}>{r.first_name} {r.last_name}</TableCell>
                         <TableCell>
                         <Chip label={r.leave_type_name} size="small" sx={{ bgcolor: (r.leave_type_color || '#0F4C81') + '20', color: r.leave_type_color || '#0F4C81', fontWeight: 600 }} />
                         </TableCell>
-                        <TableCell>{new Date(r.start_date).toLocaleDateString()}{r.end_date !== r.start_date ? ` - ${new Date(r.end_date).toLocaleDateString()}` : ''}</TableCell>
+                        <TableCell>{fmtDay(parseYMD(r.start_date))}{r.end_date !== r.start_date ? ` - ${fmtDay(parseYMD(r.end_date))}` : ''}</TableCell>
                         <TableCell>{duration}</TableCell>
                         <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.reason || '-'}</TableCell>
                         <TableCell>{statusChip(r.status)}</TableCell>
-                        <TableCell>
+                        <TableCell onClick={e => e.stopPropagation()}>
                           {r.status === 'pending' && (
                             <Stack direction="row" spacing={1}>
-                              <Tooltip title="Approve"><IconButton size="small" color="success" onClick={() => handleReview(r.id, 'approved')}><ApproveIcon /></IconButton></Tooltip>
-                              <Tooltip title="Reject"><IconButton size="small" color="error" onClick={() => handleReview(r.id, 'rejected')}><RejectIcon /></IconButton></Tooltip>
+                              <Tooltip title="Approve">
+                                <IconButton size="small" color="success" disabled={reviewingId === r.id}
+                                  onClick={() => handleReview(r.id, 'approved')}>
+                                  {reviewingId === r.id ? <CircularProgress size={16} /> : <ApproveIcon />}
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Reject">
+                                <IconButton size="small" color="error" disabled={reviewingId === r.id}
+                                  onClick={() => handleReview(r.id, 'rejected')}>
+                                  {reviewingId === r.id ? <CircularProgress size={16} /> : <RejectIcon />}
+                                </IconButton>
+                              </Tooltip>
                             </Stack>
                           )}
                         </TableCell>
@@ -544,6 +606,11 @@ export default function LeaveManagerPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            {allRequests.length > 10 && (
+              <TablePagination component="div" count={allRequests.length} page={allPage}
+                onPageChange={(_e, p) => setAllPage(p)} rowsPerPage={10} rowsPerPageOptions={[10]}
+                onRowsPerPageChange={undefined} />
+            )}
           </>)}
           </Box>
         )}
@@ -596,7 +663,7 @@ export default function LeaveManagerPage() {
                 if (!day) return <Box key={`empty-${i}`} sx={{ width: '14.285%', minHeight: 90, border: '1px solid #F3F4F6' }} />
                 const events = calendarEvents.filter(e => e.date.toDateString() === day.toDateString())
                 const isToday = day.toDateString() === new Date().toDateString()
-                const stats = calendarStats.find(s => s.date === day.toISOString().split('T')[0])
+                const stats = calendarStats.find(s => s.date === toYMD(day))
                 return (
                   <Box key={i} sx={{
                     width: '14.285%', minHeight: 90, p: 0.5, borderRadius: 0,
@@ -608,7 +675,7 @@ export default function LeaveManagerPage() {
                     onClick={(e) => {
                       const dayReqs = getDayRequests(day)
                       if (dayReqs.length > 0 || (stats && (stats.staff_on_leave > 0 || stats.pending_count > 0))) {
-                        setDayPopover({ anchor: e.currentTarget, date: day.toISOString().split('T')[0], events: dayReqs, stats })
+                        setDayPopover({ anchor: e.currentTarget, date: toYMD(day), events: dayReqs, stats })
                       }
                     }}
                   >
@@ -693,9 +760,15 @@ export default function LeaveManagerPage() {
                           {e.status === 'pending' && isAdminOrManager && (
                             <Stack direction="row" spacing={0.5} sx={{ mt: 0.3 }}>
                               <Button size="small" variant="contained" color="success" sx={{ height: 22, fontSize: '0.6rem', py: 0 }}
-                                onClick={() => handleReview(e.id, 'approved')}>Approve</Button>
+                                disabled={reviewingId === e.id}
+                                onClick={() => handleReview(e.id, 'approved')}>
+                                {reviewingId === e.id ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : 'Approve'}
+                              </Button>
                               <Button size="small" variant="contained" color="error" sx={{ height: 22, fontSize: '0.6rem', py: 0 }}
-                                onClick={() => handleReview(e.id, 'rejected')}>Reject</Button>
+                                disabled={reviewingId === e.id}
+                                onClick={() => handleReview(e.id, 'rejected')}>
+                                {reviewingId === e.id ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : 'Reject'}
+                              </Button>
                             </Stack>
                           )}
                         </Stack>
@@ -833,6 +906,96 @@ export default function LeaveManagerPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={Boolean(detailRequest)} onClose={() => setDetailRequest(null)} maxWidth="sm" fullWidth>
+        {detailRequest && (
+          <>
+            <DialogTitle sx={{ fontWeight: 800 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <span>{detailRequest.first_name} {detailRequest.last_name}</span>
+                {statusChip(detailRequest.status)}
+              </Stack>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Stack spacing={1.5}>
+                <Box>
+                  <Typography variant="caption" color="#6B7280" sx={{ fontWeight: 700 }}>LEAVE TYPE</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <Chip label={detailRequest.leave_type_name} size="small"
+                      sx={{ bgcolor: (detailRequest.leave_type_color || '#0F4C81') + '20', color: detailRequest.leave_type_color || '#0F4C81', fontWeight: 600 }} />
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="#6B7280" sx={{ fontWeight: 700 }}>DATES</Typography>
+                  <Typography variant="body2">{fmtDay(parseYMD(detailRequest.start_date))}
+                    {detailRequest.end_date !== detailRequest.start_date ? ` - ${fmtDay(parseYMD(detailRequest.end_date))}` : ''}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="#6B7280" sx={{ fontWeight: 700 }}>DURATION</Typography>
+                  <Typography variant="body2">
+                    {detailRequest.duration_type === 'hours' && detailRequest.hours_requested
+                      ? `${detailRequest.hours_requested}h`
+                      : `${requestDays(detailRequest)} day(s)`}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="#6B7280" sx={{ fontWeight: 700 }}>REASON</Typography>
+                  <Typography variant="body2">{detailRequest.reason || '-'}</Typography>
+                </Box>
+                {detailRequest.notes && (
+                  <Box>
+                    <Typography variant="caption" color="#6B7280" sx={{ fontWeight: 700 }}>REVIEWER NOTES</Typography>
+                    <Typography variant="body2" color="#4B5563">{detailRequest.notes}</Typography>
+                  </Box>
+                )}
+                <Box>
+                  <Typography variant="caption" color="#6B7280" sx={{ fontWeight: 700 }}>REVIEWER</Typography>
+                  <Typography variant="body2">
+                    {detailRequest.reviewer_first_name || detailRequest.reviewer_last_name
+                      ? `${detailRequest.reviewer_first_name || ''} ${detailRequest.reviewer_last_name || ''}`.trim()
+                      : 'Not reviewed yet'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="#6B7280" sx={{ fontWeight: 700 }}>REQUESTED</Typography>
+                  <Typography variant="body2">{new Date(detailRequest.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Typography>
+                </Box>
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button onClick={() => setDetailRequest(null)}>Close</Button>
+              {detailRequest.status === 'pending' && isAdminOrManager && (
+                <Stack direction="row" spacing={1}>
+                  <Button color="success" variant="contained" disabled={reviewingId === detailRequest.id}
+                    onClick={() => handleReview(detailRequest.id, 'approved')}>
+                    Approve
+                  </Button>
+                  <Button color="error" variant="contained" disabled={reviewingId === detailRequest.id}
+                    onClick={() => handleReview(detailRequest.id, 'rejected')}>
+                    Reject
+                  </Button>
+                </Stack>
+              )}
+              {detailRequest.status === 'pending' && (
+                <Button color="error" disabled={cancellingId === detailRequest.id}
+                  onClick={() => handleCancel(detailRequest.id)}>Cancel Request</Button>
+              )}
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(cancelTarget)}
+        title="Cancel leave request?"
+        message={`This will withdraw ${cancelTarget?.leave_type_name} leave for ${cancelTarget ? fmtDay(parseYMD(cancelTarget.start_date)) : ''}${cancelTarget && cancelTarget.end_date !== cancelTarget.start_date ? ` - ${fmtDay(parseYMD(cancelTarget.end_date))}` : ''}. Any leave already approved will have its balance reversed.`}
+        confirmLabel="Cancel Leave"
+        cancelLabel="Keep Request"
+        danger
+        loading={cancellingId === cancelTarget?.id}
+        onConfirm={() => cancelTarget && handleCancel(cancelTarget.id)}
+        onCancel={() => setCancelTarget(null)}
+      />
     </Box>
   )
 }

@@ -148,12 +148,14 @@ export async function createLeaveType(overrides: Record<string, any> = {}) {
   const daysAllowed = overrides.days_allowed ?? 28
   const hoursAllowed = overrides.hours_allowed ?? 0
   const durationType = overrides.duration_type || 'days'
+  const isPaid = overrides.is_paid ?? true
+  const requiresApproval = overrides.requires_approval ?? true
 
   const result = await query(
-    `INSERT INTO leave_types (id, organization_id, name, color, days_allowed, hours_allowed, duration_type)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO leave_types (id, organization_id, name, color, days_allowed, hours_allowed, duration_type, is_paid, requires_approval)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
-    [id, organizationId, name, color, daysAllowed, hoursAllowed, durationType]
+    [id, organizationId, name, color, daysAllowed, hoursAllowed, durationType, isPaid, requiresApproval]
   )
   return result.rows[0]
 }

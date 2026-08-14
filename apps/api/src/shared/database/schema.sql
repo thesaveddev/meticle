@@ -285,6 +285,8 @@ CREATE TABLE IF NOT EXISTS leave_types (
     days_allowed DECIMAL(5,1) DEFAULT 0,
     hours_allowed DECIMAL(6,1) DEFAULT 0,
     duration_type VARCHAR(10) NOT NULL DEFAULT 'days' CHECK (duration_type IN ('days', 'hours')),
+    is_paid BOOLEAN NOT NULL DEFAULT TRUE,
+    requires_approval BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (organization_id, name)
