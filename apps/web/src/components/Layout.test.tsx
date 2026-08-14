@@ -11,7 +11,7 @@ vi.mock('../services/socket', () => ({
   connectSocket: () => ({ on: vi.fn(), off: vi.fn() }),
   disconnectSocket: vi.fn(),
   getSocket: () => null,
-  onReconnect: vi.fn(),
+  onReconnect: vi.fn(() => vi.fn()),
 }))
 vi.mock('./SubscriptionGuard', () => ({
   useSubscriptionStatus: () => ({ status: 'active', isActive: true, loading: false }),

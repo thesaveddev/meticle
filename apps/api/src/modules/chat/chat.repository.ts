@@ -101,16 +101,37 @@ export class ChatRepository {
     // Update channel updated_at
     await query('UPDATE chat_channels SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [channelId]);
 
-    // Fetch full message with user info
+    return this.getFullMessage(result.rows[0].id);
+  }
+
+  static async getFullMessage(messageId: string) {
     const fullMsg = await query(
       `SELECT cm.*, u.email, sp.first_name, sp.last_name, sp.profile_picture_url
        FROM chat_messages cm
        JOIN users u ON cm.sender_id = u.id
        LEFT JOIN staff_profiles sp ON u.id = sp.user_id
        WHERE cm.id = $1`,
-      [result.rows[0].id]
+      [messageId]
     );
-    return fullMsg.rows[0];
+    return fullMsg.rows[0] || null;
+  }
+
+  static async updateMessage(messageId: string, content: string) {
+    const result = await query(
+      `UPDATE chat_messages SET content = $1, edited_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id`,
+      [content, messageId]
+    );
+    if (result.rows.length === 0) return null;
+    return this.getFullMessage(messageId);
+  }
+
+  static async deleteMessage(messageId: string) {
+    const result = await query('DELETE FROM chat_messages WHERE id = $1 RETURNING channel_id', [messageId]);
+    return result.rows[0]?.channel_id || null;
+  }
+
+  static async leaveChannel(channelId: string, userId: string) {
+    await query('DELETE FROM chat_members WHERE channel_id = $1 AND user_id = $2', [channelId, userId]);
   }
 
   static async markRead(channelId: string, userId: string) {
@@ -126,6 +147,90 @@ export class ChatRepository {
       [channelId, userId]
     );
     return result.rows[0]?.last_read_at || null;
+  }
+
+  static async getMemberReads(channelId: string, excludeUserId: string) {
+    const result = await query(
+      `SELECT cm.user_id, cm.last_read_at, u.email, sp.first_name, sp.last_name
+       FROM chat_members cm
+       JOIN users u ON cm.user_id = u.id
+       LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+       WHERE cm.channel_id = $1 AND cm.user_id <> $2`,
+      [channelId, excludeUserId]
+    );
+    return result.rows;
+  }
+
+  static async searchMessages(organizationId: string, userId: string, searchTerm: string, limit = 30) {
+    const result = await query(
+      `SELECT cm.*, cc.name as channel_name, cc.type as channel_type,
+        u.email, sp.first_name, sp.last_name, sp.profile_picture_url
+       FROM chat_messages cm
+       JOIN chat_channels cc ON cc.id = cm.channel_id
+       JOIN chat_members mem ON mem.channel_id = cc.id AND mem.user_id = $2
+       JOIN users u ON cm.sender_id = u.id
+       LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+       WHERE cc.organization_id = $1 AND cm.content ILIKE '%' || $3 || '%'
+       ORDER BY cm.created_at DESC
+       LIMIT $4`,
+      [organizationId, userId, searchTerm, limit]
+    );
+    return result.rows;
+  }
+
+  // ── Reactions ──────────────────────────────────────────────
+  static async addReaction(messageId: string, userId: string, emoji: string) {
+    const result = await query(
+      `INSERT INTO chat_reactions (message_id, user_id, emoji) VALUES ($1, $2, $3)
+       ON CONFLICT (message_id, user_id, emoji) DO NOTHING RETURNING id`,
+      [messageId, userId, emoji]
+    );
+    return result.rows.length > 0;
+  }
+
+  static async removeReaction(messageId: string, userId: string, emoji: string) {
+    await query(
+      `DELETE FROM chat_reactions WHERE message_id = $1 AND user_id = $2 AND emoji = $3`,
+      [messageId, userId, emoji]
+    );
+  }
+
+  static async getReactions(messageId: string, userId: string) {
+    const result = await query(
+      `SELECT r.emoji, COUNT(*)::int as count,
+        json_agg(json_build_object('user_id', u.id, 'first_name', sp.first_name, 'last_name', sp.last_name, 'email', u.email)) as users,
+        BOOL_OR(r.user_id = $2) as reacted_by_me
+       FROM chat_reactions r
+       JOIN users u ON r.user_id = u.id
+       LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+       WHERE r.message_id = $1
+       GROUP BY r.emoji
+       ORDER BY r.emoji`,
+      [messageId, userId]
+    );
+    return result.rows;
+  }
+
+  static async getReactionsForMessages(messageIds: string[], userId: string): Promise<Record<string, any[]>> {
+    if (messageIds.length === 0) return {};
+    const result = await query(
+      `SELECT r.message_id, r.emoji, COUNT(*)::int as count,
+        json_agg(json_build_object('user_id', u.id, 'first_name', sp.first_name, 'last_name', sp.last_name, 'email', u.email)) as users,
+        BOOL_OR(r.user_id = $2) as reacted_by_me
+       FROM chat_reactions r
+       JOIN users u ON r.user_id = u.id
+       LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+       WHERE r.message_id = ANY($1)
+       GROUP BY r.message_id, r.emoji
+       ORDER BY r.emoji`,
+      [messageIds, userId]
+    );
+    const map: Record<string, any[]> = {};
+    for (const row of result.rows) {
+      if (!map[row.message_id]) map[row.message_id] = [];
+      map[row.message_id].push(row);
+    }
+    return map;
   }
 
   static async ensureGeneralChannel(organizationId: string, userId: string) {

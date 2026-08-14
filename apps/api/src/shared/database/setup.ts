@@ -265,6 +265,32 @@ const MIGRATION_023: Migration = {
   ],
 };
 
+const MIGRATION_024: Migration = {
+  name: '024_chat_reactions',
+  strict: false,
+  statements: [
+    `CREATE TABLE IF NOT EXISTS chat_reactions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      message_id UUID NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      emoji VARCHAR(32) NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(message_id, user_id, emoji)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_chat_reactions_message ON chat_reactions(message_id)`,
+    // RLS: org via message_id -> chat_messages -> channel_id -> chat_channels -> org
+    `DO $$ BEGIN
+       IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'chat_reactions' AND policyname = 'tenant_isolation') THEN
+         ALTER TABLE chat_reactions ENABLE ROW LEVEL SECURITY;
+         ALTER TABLE chat_reactions FORCE ROW LEVEL SECURITY;
+         CREATE POLICY tenant_isolation ON chat_reactions FOR ALL USING (
+           org_check((SELECT organization_id FROM chat_channels WHERE chat_channels.id = (SELECT channel_id FROM chat_messages WHERE chat_messages.id = chat_reactions.message_id)))
+         );
+       END IF;
+     END $$`,
+  ],
+};
+
 const MIGRATION_009: Migration = {
   name: '009_care_plan_person_centred_sections',
   strict: false,
@@ -1798,7 +1824,7 @@ export const setupDatabase = async () => {
     }
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018, MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018, MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { ChatRepository } from './chat.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
-import { getIO } from '../../shared/socket';
+import { getIO, invalidateUserCaches } from '../../shared/socket';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { EmailService } from '../../shared/utils/email.service';
 import { query } from '../../shared/database';
@@ -124,6 +124,18 @@ export class ChatController {
 
     const io = getIO();
     io.to(`channel:${channelId}`).emit('chat:member_left', { channelId, userId });
+    // Force the removed member's sockets out of the channel room and refresh caches
+    for (const s of io.sockets.sockets.values()) {
+      if (s.data.user?.userId === userId) {
+        s.leave(`channel:${channelId}`);
+        const list = s.data.joinedChannels as string[] | undefined;
+        if (Array.isArray(list)) {
+          const idx = list.indexOf(channelId);
+          if (idx !== -1) list.splice(idx, 1);
+        }
+      }
+    }
+    invalidateUserCaches(userId);
 
     res.json({ message: 'Member removed' });
   }
@@ -141,17 +153,25 @@ export class ChatController {
 
     const lastReadAt = await ChatRepository.getMemberLastRead(channelId, userId);
 
+    // Attach reactions to each message
+    const reactions = await ChatRepository.getReactionsForMessages(messages.map((m: any) => m.id), userId);
+    const messagesWithReactions = messages.map((m: any) => ({ ...m, reactions: reactions[m.id] || [] }));
+
     // For DM channels, get the other member's last_read_at so senders can see read status
     let otherLastReadAt = null;
+    let memberReads: any[] = [];
     if (channel.type === 'dm') {
       const members = await ChatRepository.getMembers(channelId);
       const otherMember = members.find((m: any) => m.user_id !== userId);
       if (otherMember) {
         otherLastReadAt = await ChatRepository.getMemberLastRead(channelId, otherMember.user_id);
       }
+    } else {
+      // Group/general channels: expose each other member's read time so the UI can show "seen by X"
+      memberReads = await ChatRepository.getMemberReads(channelId, userId);
     }
 
-    res.json({ messages, last_read_at: lastReadAt, other_last_read_at: otherLastReadAt });
+    res.json({ messages: messagesWithReactions, last_read_at: lastReadAt, other_last_read_at: otherLastReadAt, member_reads: memberReads });
   }
 
   static async sendMessage(req: Request, res: Response) {
@@ -203,6 +223,23 @@ export class ChatController {
       }
     }
 
+    // @mentions: notify specifically-mentioned members
+    if (content) {
+      try {
+        const mentioned = await this.extractMentions(content, orgId!);
+        for (const uid of mentioned) {
+          if (uid === userId) continue;
+          await NotificationsController.createNotification(
+            uid,
+            `${senderName} mentioned you`,
+            content.substring(0, 140),
+            'chat'
+          );
+          io.to(`user:${uid}`).emit('chat:mention', { channelId, messageId: message.id, senderName });
+        }
+      } catch { /* silent */ }
+    }
+
     // Emit total unread count per recipient for global notification dot
     for (const m of members) {
       if (m.user_id !== userId) {
@@ -225,10 +262,134 @@ export class ChatController {
     res.status(201).json(message);
   }
 
+  static async extractMentions(content: string, organizationId: string) {
+    const members = await ChatRepository.getOrgMembers(organizationId);
+    const mentioned: string[] = [];
+    const atWords = new Set(
+      content.split(/\s+/)
+        .filter((w: string) => w.startsWith('@') && w.length > 1)
+        .map((w: string) => w.slice(1).toLowerCase())
+    );
+    for (const m of members) {
+      const first = (m.first_name || '').toLowerCase();
+      const last = (m.last_name || '').toLowerCase();
+      const full = `${m.first_name || ''} ${m.last_name || ''}`.toLowerCase().trim();
+      if ((first && atWords.has(first)) || (last && atWords.has(last)) || (full && atWords.has(full))) {
+        mentioned.push(m.id);
+      }
+    }
+    return mentioned;
+  }
+
+  static async editMessage(req: Request, res: Response) {
+    const { channelId, messageId } = req.params;
+    const userId = req.user!.userId;
+    const { content } = req.body;
+
+    if (!content?.trim()) throw new AppError(400, 'Message content is required');
+
+    const message = await ChatRepository.getFullMessage(messageId);
+    if (!message || message.channel_id !== channelId) throw new AppError(404, 'Message not found');
+    if (message.sender_id !== userId) throw new AppError(403, 'You can only edit your own messages');
+
+    const updated = await ChatRepository.updateMessage(messageId, content);
+    const io = getIO();
+    io.to(`channel:${channelId}`).emit('chat:message_updated', updated);
+
+    res.json(updated);
+  }
+
+  static async deleteMessage(req: Request, res: Response) {
+    const { channelId, messageId } = req.params;
+    const userId = req.user!.userId;
+
+    const message = await ChatRepository.getFullMessage(messageId);
+    if (!message || message.channel_id !== channelId) throw new AppError(404, 'Message not found');
+    if (message.sender_id !== userId) throw new AppError(403, 'You can only delete your own messages');
+
+    await ChatRepository.deleteMessage(messageId);
+    const io = getIO();
+    io.to(`channel:${channelId}`).emit('chat:message_deleted', { channelId, messageId });
+
+    res.json({ message: 'Message deleted' });
+  }
+
+  static async leaveGroup(req: Request, res: Response) {
+    const { channelId } = req.params;
+    const userId = req.user!.userId;
+    const orgId = req.user!.organizationId;
+
+    const channel = await ChatRepository.getChannel(channelId, orgId!);
+    if (!channel) throw new AppError(404, 'Channel not found');
+    if (channel.type !== 'group') throw new AppError(400, 'You can only leave group channels');
+
+    await ChatRepository.leaveChannel(channelId, userId);
+    const io = getIO();
+    io.to(`channel:${channelId}`).emit('chat:member_left', { channelId, userId });
+    // Force the leaver's sockets out of the channel room and refresh caches
+    for (const s of io.sockets.sockets.values()) {
+      if (s.data.user?.userId === userId) {
+        s.leave(`channel:${channelId}`);
+        const list = s.data.joinedChannels as string[] | undefined;
+        if (Array.isArray(list)) {
+          const idx = list.indexOf(channelId);
+          if (idx !== -1) list.splice(idx, 1);
+        }
+      }
+    }
+    invalidateUserCaches(userId);
+
+    res.json({ message: 'Left group' });
+  }
+
+  static async searchMessages(req: Request, res: Response) {
+    const orgId = req.user!.organizationId;
+    const userId = req.user!.userId;
+    const { q } = req.query;
+
+    if (!q || typeof q !== 'string' || !q.trim()) {
+      res.json([]);
+      return;
+    }
+
+    const results = await ChatRepository.searchMessages(orgId!, userId, q.trim());
+    res.json(results);
+  }
+
+  static async toggleReaction(req: Request, res: Response) {
+    const { channelId, messageId } = req.params;
+    const userId = req.user!.userId;
+    const { emoji } = req.body;
+
+    if (!emoji || typeof emoji !== 'string' || emoji.length > 32) {
+      throw new AppError(400, 'A valid emoji is required');
+    }
+
+    const message = await ChatRepository.getFullMessage(messageId);
+    if (!message || message.channel_id !== channelId) throw new AppError(404, 'Message not found');
+
+    const reactions = await ChatRepository.getReactions(messageId, userId);
+    const existing = reactions.find((r: any) => r.emoji === emoji);
+    if (existing?.reacted_by_me) {
+      await ChatRepository.removeReaction(messageId, userId, emoji);
+    } else {
+      await ChatRepository.addReaction(messageId, userId, emoji);
+    }
+
+    const updated = await ChatRepository.getReactions(messageId, userId);
+    const io = getIO();
+    io.to(`channel:${channelId}`).emit('chat:reactions', { channelId, messageId, reactions: updated });
+
+    res.json({ reactions: updated });
+  }
+
   static async markRead(req: Request, res: Response) {
     const { channelId } = req.params;
     const userId = req.user!.userId;
     await ChatRepository.markRead(channelId, userId);
+    // Notify channel members so read receipts update live without a reload
+    const io = getIO();
+    io.to(`channel:${channelId}`).emit('chat:read', { channelId, userId });
     res.json({ message: 'Read' });
   }
 

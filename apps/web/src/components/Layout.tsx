@@ -32,7 +32,7 @@ import {
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
 import api from '../services/api'
-import { connectSocket, disconnectSocket } from '../services/socket'
+import { connectSocket, disconnectSocket, onReconnect } from '../services/socket'
 import OfflineBanner from './OfflineBanner'
 import RouteLoadingIndicator from './RouteLoadingIndicator'
 import { useSubscriptionStatus } from './SubscriptionGuard'
@@ -177,6 +177,10 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     }
 
     const socket = connectSocket(() => localStorage.getItem('accessToken'))
+    // After a genuine reconnect, resync unread counts and notifications
+    const offReconnect = onReconnect(() => {
+      fetchUnreadCount()
+    })
     socket.on('notification', (notif: any) => {
       setNotifications(prev => [notif, ...prev])
       setUnreadCount(c => c + 1)
@@ -203,6 +207,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     window.addEventListener('chatUnreadUpdate', handleChatUnread as EventListener)
 
     return () => {
+      offReconnect()
       clearInterval(unreadPoll)
       socket.off('notification')
       socket.off('unread_count')

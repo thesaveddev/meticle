@@ -70,7 +70,7 @@ import { authenticate } from './shared/middleware/auth.middleware';
 import { asyncHandler } from './shared/middleware/asyncHandler';
 import { uploadDir } from './shared/middleware/upload.middleware';
 import { rlsMiddleware } from './shared/middleware/rls.middleware';
-import { initSocketServer } from './shared/socket';
+import { initSocketServer, closeSocketServer } from './shared/socket';
 import { setupSwagger } from './shared/swagger';
 import { healthCheck } from './shared/database';
 import { metricsMiddleware, getMetrics } from './shared/metrics';
@@ -283,15 +283,17 @@ function shutdown(signal: string) {
   logger.warn({ signal }, 'Shutting down gracefully...');
   httpServer.close(() => {
     logger.info('HTTP server closed');
-    import('./shared/database').then(({ default: pool }) => {
-      pool.end().then(() => {
-        logger.info('Database pool closed');
-        import('./shared/redis').then(({ closeRedis }) => {
-          closeRedis();
-          process.exit(0);
-        }).catch(() => process.exit(0));
+    closeSocketServer().then(() => {
+      import('./shared/database').then(({ default: pool }) => {
+        pool.end().then(() => {
+          logger.info('Database pool closed');
+          import('./shared/redis').then(({ closeRedis }) => {
+            closeRedis();
+            process.exit(0);
+          }).catch(() => process.exit(0));
+        });
       });
-    });
+    }).catch(() => process.exit(0));
   });
   // Force exit after 10s
   setTimeout(() => {
@@ -409,3 +411,4 @@ import { EmailQueue } from './shared/utils/email.queue';
 EmailQueue.startProcessor();
 
 export default app;
+
