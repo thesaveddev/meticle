@@ -92,6 +92,7 @@ export default function RotaPlannerPage() {
   const [shiftDialog, setShiftDialog] = useState(false)
   const [shiftDialogError, setShiftDialogError] = useState('')
   const [shiftSaving, setShiftSaving] = useState(false)
+  const [editingShiftId, setEditingShiftId] = useState<string | null>(null)
   const [shiftForm, setShiftForm] = useState({ location_id: '', department_id: '', start_date: '', start_time: '09:00', end_time: '17:00', assigned_staff_ids: [] as string[], person_id: '', shift_type: 'day' })
 
   const [assignDialog, setAssignDialog] = useState(false)
@@ -647,11 +648,42 @@ export default function RotaPlannerPage() {
         shift_type: shiftForm.shift_type,
       })
       setShiftDialog(false)
+      setEditingShiftId(null)
       setShiftForm({ location_id: '', department_id: '', start_date: '', start_time: '09:00', end_time: '17:00', assigned_staff_ids: [], person_id: '', shift_type: 'day' })
       setSuccess(shiftForm.assigned_staff_ids.length > 0 ? 'Shift created and staff assigned' : 'Open shift created')
       fetchData()
     } catch (err: any) {
       setShiftDialogError(err.response?.data?.message || 'Failed to create shift')
+    } finally {
+      setShiftSaving(false)
+    }
+  }
+
+  const handleUpdateShift = async () => {
+    if (!editingShiftId) return
+    setShiftDialogError('')
+    setShiftSaving(true)
+    try {
+      const startDateTime = toLocalISO(shiftForm.start_date, shiftForm.start_time)
+      const endDate = shiftForm.end_time <= shiftForm.start_time
+        ? toLocalDateStr(new Date(new Date(shiftForm.start_date).getTime() + 86400000))
+        : shiftForm.start_date
+      const endDateTime = toLocalISO(endDate, shiftForm.end_time)
+      await api.patch(`/shifts/${editingShiftId}`, {
+        location_id: shiftForm.location_id,
+        department_id: shiftForm.department_id || undefined,
+        start_time: startDateTime,
+        end_time: endDateTime,
+        person_id: shiftForm.person_id || undefined,
+        shift_type: shiftForm.shift_type,
+      })
+      setShiftDialog(false)
+      setEditingShiftId(null)
+      setShiftForm({ location_id: '', department_id: '', start_date: '', start_time: '09:00', end_time: '17:00', assigned_staff_ids: [], person_id: '', shift_type: 'day' })
+      setSuccess('Shift updated')
+      fetchData()
+    } catch (err: any) {
+      setShiftDialogError(err.response?.data?.message || 'Failed to update shift')
     } finally {
       setShiftSaving(false)
     }
@@ -744,6 +776,7 @@ export default function RotaPlannerPage() {
       : (rawUser.role === 'MANAGER' && managedLocationIds.length > 0
         ? managedLocationIds[0]
         : locations[0]?.id || '')
+    setEditingShiftId(null)
     setShiftForm({
       location_id: defaultLocId,
       department_id: '',
@@ -757,6 +790,24 @@ export default function RotaPlannerPage() {
     setShiftDialogError('')
     setShiftDialog(true)
   }, [selectedLocationId, rawUser.role, managedLocationIds, locations, canEditLocation])
+
+  const openEditShiftDialog = useCallback((shift: any) => {
+    const st = new Date(shift.start_time)
+    const et = new Date(shift.end_time)
+    setEditingShiftId(shift.id)
+    setShiftForm({
+      location_id: shift.location_id,
+      department_id: shift.department_id || '',
+      start_date: toLocalDateStr(st),
+      start_time: st.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      end_time: et.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      assigned_staff_ids: (shift.assignments || []).map((a: any) => a.staff_id),
+      person_id: shift.person_id || '',
+      shift_type: shift.shift_type || 'day',
+    })
+    setShiftDialogError('')
+    setShiftDialog(true)
+  }, [])
 
   const openShiftDialogAt = useCallback((date: Date, hour: number) => {
     setShiftForm(p => ({ ...p, location_id: locations[0]?.id || '', start_date: toLocalDateStr(date), start_time: `${hour.toString().padStart(2, '0')}:00` }))
@@ -1085,10 +1136,27 @@ export default function RotaPlannerPage() {
         </>
       )}
 
-      <ShiftDetailDialog shift={detailShift} open={Boolean(detailShift)} onClose={() => setDetailShift(null)} />
+      <ShiftDetailDialog
+        shift={detailShift}
+        open={Boolean(detailShift)}
+        onClose={() => setDetailShift(null)}
+        canEdit={canEdit}
+        isReadOnly={isReadOnly}
+        canClaim={canClaim}
+        currentStaffId={currentStaffId}
+        canEditLocation={canEditLocation}
+        assignedStaffIdsByDate={assignedStaffIdsByDate}
+        onEdit={openEditShiftDialog}
+        onAssign={openAssignDialog}
+        onSwap={openSwapDialog}
+        onDeleteShift={handleDeleteShift}
+        onToggleCoverage={handleToggleCoverage}
+        onClaimShift={handleClaimShift}
+        onUnassign={handleUnassign}
+      />
 
       <Dialog open={shiftDialog} onClose={() => { if (!shiftSaving) setShiftDialog(false) }} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Create Shift</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>{editingShiftId ? 'Edit Shift' : 'Create Shift'}</DialogTitle>
         <DialogContent>
           {shiftDialogError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setShiftDialogError('')}>{shiftDialogError}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1110,6 +1178,7 @@ export default function RotaPlannerPage() {
               <InputLabel>Assign Staff (optional)</InputLabel>
               <Select
                 multiple
+                disabled={Boolean(editingShiftId)}
                 value={shiftForm.assigned_staff_ids}
                 label="Assign Staff (optional)"
                 onChange={e => setShiftForm(p => ({ ...p, assigned_staff_ids: e.target.value as string[] }))}
@@ -1134,7 +1203,7 @@ export default function RotaPlannerPage() {
                 })()}
               </Select>
               <Typography variant="caption" color="#6B7280" sx={{ mt: 0.5 }}>
-                Leave empty to create an open shift that staff can claim as overtime
+                {editingShiftId ? 'Assignments are managed from the shift actions' : 'Leave empty to create an open shift that staff can claim as overtime'}
               </Typography>
             </FormControl>
             <FormControl fullWidth size="small">
@@ -1160,9 +1229,9 @@ export default function RotaPlannerPage() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setShiftDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleCreateShift} disabled={shiftSaving} sx={{ bgcolor: '#0F4C81' }}>
+          <Button variant="contained" onClick={editingShiftId ? handleUpdateShift : handleCreateShift} disabled={shiftSaving} sx={{ bgcolor: '#0F4C81' }}>
             {shiftSaving ? <CircularProgress size={20} sx={{ color: '#fff', mr: 1 }} /> : null}
-            {shiftForm.assigned_staff_ids.length > 0 ? 'Create & Assign' : 'Create Open Shift'}
+            {editingShiftId ? 'Save Changes' : (shiftForm.assigned_staff_ids.length > 0 ? 'Create & Assign' : 'Create Open Shift')}
           </Button>
         </DialogActions>
       </Dialog>
