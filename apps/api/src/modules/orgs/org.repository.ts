@@ -180,13 +180,14 @@ export class OrgRepository {
     subscription_status: string;
     onboarding_step: number;
     onboarding_completed: boolean;
+    onboarding_dismissed_at: string | null;
     force_mfa: boolean;
     logo_url: string;
     primary_color: string;
     secondary_color: string;
     accent_color: string;
   }>): Promise<OrganizationRow> {
-    const allowedFields = new Set(['name', 'status', 'plan', 'regulator', 'onboarding_step', 'onboarding_completed', 'force_mfa', 'logo_url', 'primary_color', 'secondary_color', 'accent_color', 'auto_approve_documents', 'compliance_digest_enabled', 'predictive_alerts_enabled']);
+    const allowedFields = new Set(['name', 'status', 'plan', 'regulator', 'onboarding_step', 'onboarding_completed', 'onboarding_dismissed_at', 'force_mfa', 'logo_url', 'primary_color', 'secondary_color', 'accent_color', 'auto_approve_documents', 'compliance_digest_enabled', 'predictive_alerts_enabled']);
     const fields = Object.keys(updates).filter(f => allowedFields.has(f));
     if (fields.length === 0) {
       return this.getOrgById(id) as Promise<OrganizationRow>;

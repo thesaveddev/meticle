@@ -291,6 +291,16 @@ const MIGRATION_024: Migration = {
   ],
 };
 
+const MIGRATION_025: Migration = {
+  name: '025_onboarding_dismissed',
+  strict: false,
+  statements: [
+    // Server-side record of the dashboard welcome/onboarding card being dismissed,
+    // so the "don't show again" choice survives logout (localStorage is cleared).
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS onboarding_dismissed_at TIMESTAMP WITH TIME ZONE`,
+  ],
+};
+
 const MIGRATION_009: Migration = {
   name: '009_care_plan_person_centred_sections',
   strict: false,
@@ -1824,7 +1834,7 @@ export const setupDatabase = async () => {
     }
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018, MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018, MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)
