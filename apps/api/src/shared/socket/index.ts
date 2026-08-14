@@ -57,8 +57,10 @@ function getClientIp(socket: Socket): string {
  * Decide whether a socket.io connection origin is allowed. The allowlist is
  * built from CORS_ORIGINS (comma-separated) plus FRONTEND_URL plus the default
  * dev origins, so a misconfigured deployment degrades instead of silently
- * rejecting every real connection. Loopback origins (localhost/127.0.0.1/[::1])
- * are always accepted outside production; CORS_ORIGINS='*' disables checks.
+ * rejecting every real connection. Loopback and private-LAN origins
+ * (localhost/127.x/[::1]/10.x/192.168.x/172.16-31.x) are always accepted
+ * outside production for local and same-network development; CORS_ORIGINS='*'
+ * disables checks.
  */
 function isOriginAllowed(origin: string): boolean {
   if (!origin) return true;
@@ -77,8 +79,12 @@ function isOriginAllowed(origin: string): boolean {
 
   if (process.env.NODE_ENV !== 'production') {
     try {
-      const hostname = new URL(origin).hostname;
-      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true;
+      const hostname = new URL(origin).hostname.replace(/^\[|\]$/g, '');
+      const isLoopback = hostname === 'localhost' || hostname === '::1' || hostname.startsWith('127.');
+      const isPrivateLan =
+        /^(10\.|192\.168\.)/.test(hostname) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
+      if (isLoopback || isPrivateLan) return true;
     } catch {
       // Malformed origin — fall through to rejection.
     }
