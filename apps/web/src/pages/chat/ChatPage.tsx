@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Box, Typography, TextField, Button, IconButton, Avatar, Paper, Stack,
   Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, List,
-  ListItemAvatar, ListItemText, Badge, Divider, CircularProgress, Chip,
+  ListItemAvatar, ListItemText, Badge, CircularProgress, Chip,
   Tooltip, ListItemButton, Tab, Tabs, Menu, MenuItem, TableContainer,
   Table, TableHead, TableRow, TableCell, TableBody, Alert, Snackbar,
 
@@ -30,7 +30,31 @@ import {
   ViewList as ViewListIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
-import { getSocket } from '../../services/socket'
+import { getSocket, onReconnect } from '../../services/socket'
+
+/* MeticleCare operational world — chat window
+   THESIS: one conversation console for the care team; the chat is a framed window seated on warm bone, not a floating gray slab.
+   OWN-WORLD: deep navy #0F4C81 carries identity and self-messages; a single emerald #10B981 accent marks presence and unread; ink #1B2430 text on bone #F7F4EE / white grounds with #E7E1D6 editorial hairlines; Inter only; flat surfaces.
+   STORY: a care manager opens one calm console, sees who is on shift, and the team's working day continues in one thread.
+   FIRST VIEWPORT: a bone desk seats a white window with a chrome sidebar (channels), a quiet thread on bone, and a navy composer.
+   FORM: framed-window operational world.
+   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md */
+
+const NAVY = '#0F4C81'
+const NAVY_DEEP = '#0A3A63'
+const EMERALD = '#10B981'
+const EMERALD_DEEP = '#047857'
+const INK = '#1B2430'
+const MIST = '#5B6672'
+const BONE = '#F7F4EE'
+const HAIRLINE = '#E7E1D6'
+const WINDOW_BORDER = '#E0D9CA'
+const OUTLINE = '#C9C2B4'
+const CHROME = '#FCFAF6'
+const WHITE = '#FFFFFF'
+const DANGER = '#DC2626'
+const WINDOW_SHADOW = '0 32px 64px -28px rgba(20, 32, 45, 0.35)'
+const SEAT_SHADOW = '0 1px 2px rgba(20, 32, 45, 0.06)'
 
 const EMOJIS = ['😀','😃','😄','😁','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥴','😵','🤯','🥳','😎','🧐','😕','😟','🙁','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','👋','✋','👌','🤌','🤏','👍','👎','👊','✊','🤛','🤜','👏','🙌','🤲','🤝','🙏','💪','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','🔥','⭐','🌟','✨','💯','✅','❌','❗','❓','💬','📁','📂','📎','🔗','🎉','🎊','🎈','🚀','📌','🎯']
 
@@ -38,15 +62,38 @@ const FILE_PREVIEW_TYPES = new Set(['image/jpeg','image/png','image/gif','image/
 
 const URL_REGEX = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]}>'"])/gi
 
+const MENTION_REGEX = /(^|[\s(])(@[A-Za-z0-9][A-Za-z0-9 .'\-]*)/gi
+
 function renderMessageText(text: string) {
-  const parts: { type: 'text' | 'url'; value: string }[] = []
+  const parts: { type: 'text' | 'url' | 'mention'; value: string }[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
-  const regex = new RegExp(URL_REGEX.source, 'gi')
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) parts.push({ type: 'text', value: text.slice(lastIndex, match.index) })
-    parts.push({ type: 'url', value: match[0] })
-    lastIndex = match.index + match[0].length
+
+  const markers: { index: number; end: number; type: 'url' | 'mention'; value: string }[] = []
+
+  const urlRegex = new RegExp(URL_REGEX.source, 'gi')
+  while ((match = urlRegex.exec(text)) !== null) {
+    markers.push({ index: match.index, end: match.index + match[0].length, type: 'url', value: match[0] })
+  }
+  const mentionRegex = new RegExp(MENTION_REGEX.source, 'gi')
+  while ((match = mentionRegex.exec(text)) !== null) {
+    const prefix = match[1]
+    const mentionStart = match.index + prefix.length
+    markers.push({ index: mentionStart, end: mentionStart + match[2].length, type: 'mention', value: match[2] })
+  }
+  markers.sort((a, b) => a.index - b.index)
+
+  // Drop nested markers (mention that overlaps a URL)
+  const clean: typeof markers = []
+  for (const marker of markers) {
+    if (clean.length > 0 && marker.index < clean[clean.length - 1].end) continue
+    clean.push(marker)
+  }
+
+  for (const marker of clean) {
+    if (marker.index > lastIndex) parts.push({ type: 'text', value: text.slice(lastIndex, marker.index) })
+    parts.push({ type: marker.type, value: marker.value })
+    lastIndex = marker.end
   }
   if (lastIndex < text.length) parts.push({ type: 'text', value: text.slice(lastIndex) })
   return parts
@@ -95,20 +142,20 @@ function LinkPreview({ url, isMine }: { url: string; isMine: boolean }) {
   return (
     <Box component="a" href={url} target="_blank" rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      sx={{ display: 'flex', flexDirection: 'row', mt: 0.75, borderRadius: 1.5, overflow: 'hidden', border: '1px solid', borderColor: isMine ? 'rgba(255,255,255,0.2)' : '#E5E7EB', textDecoration: 'none', color: 'inherit', maxWidth: 360, '&:hover': { opacity: 0.9 } }}>
+      sx={{ display: 'flex', flexDirection: 'row', mt: 0.75, borderRadius: 1.5, overflow: 'hidden', border: '1px solid', borderColor: isMine ? 'rgba(255,255,255,0.25)' : WINDOW_BORDER, textDecoration: 'none', color: 'inherit', maxWidth: 360, '&:hover': { opacity: 0.9 } }}>
       {image && (
-        <Box sx={{ width: 100, minHeight: 80, bgcolor: '#F3F4F6', flexShrink: 0, overflow: 'hidden' }}>
+        <Box sx={{ width: 100, minHeight: 80, bgcolor: isMine ? 'rgba(255,255,255,0.08)' : BONE, flexShrink: 0, overflow: 'hidden' }}>
           <Box component="img" src={image} alt=""
             sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
             onError={(e: any) => { e.target.style.display = 'none' }} />
         </Box>
       )}
       <Box sx={{ p: 1, flex: 1, minWidth: 0, opacity: failed ? 0.6 : 1 }}>
-        <Typography variant="caption" fontWeight={700} sx={{ display: 'block', lineHeight: 1.3, fontSize: 12, color: isMine ? '#fff' : '#1F2937' }} noWrap>{title}</Typography>
+        <Typography variant="caption" fontWeight={700} sx={{ display: 'block', lineHeight: 1.3, fontSize: 12, color: isMine ? WHITE : INK }} noWrap>{title}</Typography>
         {description && (
-          <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.3, mt: 0.25, fontSize: 11, color: isMine ? 'rgba(255,255,255,0.7)' : '#6B7280' }} noWrap>{description}</Typography>
+          <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.3, mt: 0.25, fontSize: 11, color: isMine ? 'rgba(255,255,255,0.75)' : MIST }} noWrap>{description}</Typography>
         )}
-        <Typography variant="caption" sx={{ display: 'block', mt: 0.25, fontSize: 10, color: isMine ? 'rgba(255,255,255,0.5)' : '#9CA3AF' }} noWrap>{hostname}</Typography>
+        <Typography variant="caption" sx={{ display: 'block', mt: 0.25, fontSize: 10, color: isMine ? 'rgba(255,255,255,0.75)' : MIST }} noWrap>{hostname}</Typography>
       </Box>
     </Box>
   )
@@ -189,6 +236,18 @@ export default function ChatPage() {
   const [filesViewMode, setFilesViewMode] = useState<'list' | 'grid'>('list')
   const [inputLinkPreview, setInputLinkPreview] = useState<{ title: string; description: string; image: string; url: string } | null>(null)
   const [inputLinkLoading, setInputLinkLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searching, setSearching] = useState(false)
+  const [olderLoading, setOlderLoading] = useState(false)
+  const [hasOlder, setHasOlder] = useState(false)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+  const [deleteConfirmMsg, setDeleteConfirmMsg] = useState<any | null>(null)
+  const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null)
+  const [reactionPickerAnchor, setReactionPickerAnchor] = useState<any | null>(null)
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
+  const [memberReads, setMemberReads] = useState<any[]>([])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -251,9 +310,31 @@ export default function ChatPage() {
       const res = await api.get(`/chat/channels/${channelId}/messages`)
       setMessages(res.data.messages || res.data)
       setOtherLastRead(res.data.other_last_read_at || null)
+      setMemberReads(res.data.member_reads || [])
+      setHasOlder((res.data.messages || res.data).length >= 50)
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }, [])
+
+  const loadOlderMessages = useCallback(async (channelId: string) => {
+    if (!channelId || olderLoading || messages.length === 0) return
+    try {
+      setOlderLoading(true)
+      const oldest = messages[0]
+      const res = await api.get(`/chat/channels/${channelId}/messages`, { params: { before: oldest.created_at, limit: 50 } })
+      const older = res.data.messages || res.data
+      if (older.length > 0) {
+        setMessages(prev => {
+          const existing = new Set(prev.map((m: any) => m.id))
+          return [...older.filter((m: any) => !existing.has(m.id)), ...prev]
+        })
+        setHasOlder(older.length >= 50)
+      } else {
+        setHasOlder(false)
+      }
+    } catch { /* ignore */ }
+    finally { setOlderLoading(false) }
+  }, [olderLoading, messages])
 
   const loadOrgMembers = useCallback(async () => {
     try {
@@ -321,11 +402,29 @@ export default function ChatPage() {
     const socket = getSocket()
     if (!socket) return
 
-    // Re-join active channel on socket reconnect
+    // Re-join active channel on socket (re)connect
     const handleConnect = () => {
       if (activeChannel) socket.emit('chat:join', activeChannel)
     }
     socket.on('connect', handleConnect)
+
+    // After a genuine reconnect, re-fetch unread + messages so nothing is stale
+    const handleReconnect = () => {
+      loadChannels()
+      loadOrgMembers()
+      if (activeChannel) {
+        loadMessages(activeChannel)
+        loadChannelMembers(activeChannel)
+        loadSharedFiles(activeChannel)
+      }
+    }
+    const offReconnect = onReconnect(handleReconnect)
+
+    // Presence snapshot restores online state for every member after (re)connect
+    const handlePresenceSnapshot = (data: { onlineUserIds: string[] }) => {
+      setOnlineUsers(new Set(data.onlineUserIds || []))
+    }
+    socket.on('presence:snapshot', handlePresenceSnapshot)
 
     const handleMessage = (msg: any) => {
       setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg])
@@ -376,6 +475,28 @@ export default function ChatPage() {
     socket.on('user:online', handleOnline)
     socket.on('user:offline', handleOffline)
 
+    // Live read receipts: another member read the channel — update the seen-by list
+    const handleRead = (data: { channelId: string; userId: string }) => {
+      if (data.channelId !== activeChannel || data.userId === currentUserId) return
+      setMemberReads(prev => {
+        const existing = prev.find(r => r.user_id === data.userId)
+        if (existing) {
+          return prev.map(r => r.user_id === data.userId ? { ...r, last_read_at: new Date().toISOString() } : r)
+        }
+        return [...prev, { user_id: data.userId, last_read_at: new Date().toISOString() }]
+      })
+    }
+    socket.on('chat:read', handleRead)
+
+    // A member left (or was removed) — drop their typing indicator and presence
+    const handleMemberLeft = (data: { channelId: string; userId: string }) => {
+      setTypingUsers(prev => prev[data.channelId]
+        ? { ...prev, [data.channelId]: prev[data.channelId].filter(t => t.userId !== data.userId) }
+        : prev)
+      if (activeChannel === data.channelId) loadChannelMembers(activeChannel)
+    }
+    socket.on('chat:member_left', handleMemberLeft)
+
     const handleFileAdded = (data: { channelId: string }) => {
       if (activeChannel && data.channelId === activeChannel) {
         loadSharedFiles(activeChannel)
@@ -383,15 +504,41 @@ export default function ChatPage() {
     }
     socket.on('chat:file_added', handleFileAdded)
 
+    const handleMessageUpdated = (msg: any) => {
+      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, ...msg } : m))
+      if (activeChannel && msg.channel_id === activeChannel) {
+        setChannels(prev => prev.map(c => c.id === msg.channel_id ? { ...c, last_message: msg.content || c.last_message } : c))
+      }
+    }
+    const handleMessageDeleted = (data: { channelId: string; messageId: string }) => {
+      setMessages(prev => prev.filter(m => m.id !== data.messageId))
+      if (activeChannel && data.channelId === activeChannel) {
+        loadChannels()
+      }
+    }
+    const handleReactions = (data: { channelId: string; messageId: string; reactions: any[] }) => {
+      setMessages(prev => prev.map(m => m.id === data.messageId ? { ...m, reactions: data.reactions } : m))
+    }
+    socket.on('chat:message_updated', handleMessageUpdated)
+    socket.on('chat:message_deleted', handleMessageDeleted)
+    socket.on('chat:reactions', handleReactions)
+
     return () => {
+      offReconnect()
       socket.off('connect', handleConnect)
+      socket.off('presence:snapshot', handlePresenceSnapshot)
       socket.off('chat:message', handleMessage)
       socket.off('chat:typing', handleTyping)
       socket.off('user:online', handleOnline)
       socket.off('user:offline', handleOffline)
+      socket.off('chat:read', handleRead)
+      socket.off('chat:member_left', handleMemberLeft)
       socket.off('chat:file_added', handleFileAdded)
+      socket.off('chat:message_updated', handleMessageUpdated)
+      socket.off('chat:message_deleted', handleMessageDeleted)
+      socket.off('chat:reactions', handleReactions)
     }
-  }, [activeChannel, currentUserId, orgMembers, markAsRead])
+  }, [activeChannel, currentUserId, orgMembers, markAsRead, loadChannels, loadMessages, loadChannelMembers, loadSharedFiles, loadOrgMembers])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -422,6 +569,23 @@ export default function ChatPage() {
     }, 700)
     return () => { clearTimeout(timer); setInputLinkLoading(false) }
   }, [messageText])
+
+  // Debounced message search across member channels
+  useEffect(() => {
+    const q = searchQuery.trim()
+    if (!q) { setSearchResults([]); setSearching(false); return }
+    setSearching(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get('/chat/search', { params: { q } })
+        setSearchResults(res.data || [])
+      } catch { setSearchResults([]) }
+      setSearching(false)
+    }, 300)
+    return () => { clearTimeout(timer); setSearching(false) }
+  }, [searchQuery])
+
+  const isSearching = searchQuery.trim().length > 0
 
   const handleFileSelect = () => {
     setUploadError('')
@@ -526,6 +690,63 @@ export default function ChatPage() {
     } catch { /* ignore */ }
   }
 
+  const startEditing = (msg: any) => {
+    setEditingMessageId(msg.id)
+    setEditText(msg.content || '')
+  }
+
+  const saveEdit = async (msg: any) => {
+    if (!editText.trim() || editText === msg.content) { setEditingMessageId(null); return }
+    try {
+      const res = await api.patch(`/chat/channels/${msg.channel_id}/messages/${msg.id}`, { content: editText.trim() })
+      setMessages(prev => prev.map(m => m.id === res.data.id ? { ...m, ...res.data } : m))
+      setEditingMessageId(null)
+    } catch (err: any) {
+      setSendError(err.response?.data?.message || 'Failed to edit message')
+    }
+  }
+
+  const confirmDeleteMessage = async () => {
+    if (!deleteConfirmMsg) return
+    try {
+      await api.delete(`/chat/channels/${deleteConfirmMsg.channel_id}/messages/${deleteConfirmMsg.id}`)
+      setMessages(prev => prev.filter(m => m.id !== deleteConfirmMsg.id))
+      loadChannels()
+    } catch (err: any) {
+      setSendError(err.response?.data?.message || 'Failed to delete message')
+    }
+    setDeleteConfirmMsg(null)
+  }
+
+  const handleToggleReaction = async (msg: any, emoji: string) => {
+    try {
+      const res = await api.post(`/chat/channels/${msg.channel_id}/messages/${msg.id}/reactions`, { emoji })
+      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, reactions: res.data.reactions } : m))
+    } catch { /* ignore */ }
+    setReactionPickerFor(null)
+    setReactionPickerAnchor(null)
+  }
+
+  const openReactionPicker = (e: React.MouseEvent, msgId: string) => {
+    e.stopPropagation()
+    setReactionPickerFor(msgId)
+    setReactionPickerAnchor(e.currentTarget)
+  }
+
+  const handleLeaveGroup = async () => {
+    if (!activeChannel) return
+    try {
+      await api.delete(`/chat/channels/${activeChannel}/leave`)
+      const removedId = activeChannel
+      setChannels(prev => prev.filter(c => c.id !== removedId))
+      const remaining = channels.filter(c => c.id !== removedId)
+      setActiveChannel(remaining.length > 0 ? remaining[0].id : null)
+      setActiveTab(0)
+      setLeaveConfirmOpen(false)
+      setShowMembers(false)
+    } catch { /* ignore */ }
+  }
+
   const handleSharedFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !activeChannel) return
@@ -569,8 +790,21 @@ export default function ChatPage() {
 
   const isMessageSeen = (msg: any) => {
     if (msg.sender_id !== currentUserId) return false
-    if (!otherLastRead) return false
-    return new Date(msg.created_at) <= new Date(otherLastRead)
+    if (activeChannelType === 'dm') {
+      if (!otherLastRead) return false
+      return new Date(msg.created_at) <= new Date(otherLastRead)
+    }
+    // Group/general channels: seen by any other member who has read past this message
+    if (!memberReads.length) return false
+    return memberReads.some(r => r.last_read_at && new Date(msg.created_at) <= new Date(r.last_read_at))
+  }
+
+  const getSeenByNames = (msg: any) => {
+    if (activeChannelType === 'dm') return 'Seen'
+    const readers = memberReads
+      .filter(r => r.last_read_at && new Date(msg.created_at) <= new Date(r.last_read_at))
+      .map(r => `${r.first_name || ''} ${r.last_name || ''}`.trim() || r.email?.split('@')[0] || 'Someone')
+    return readers.length > 0 ? `Seen by ${readers.join(', ')}` : 'Seen'
   }
 
   const openFilePreview = async (url: string, name: string) => {
@@ -609,14 +843,19 @@ export default function ChatPage() {
     } catch { /* silent */ }
   }
 
+  const channelAvatarSx = { bgcolor: BONE, border: `1px solid ${HAIRLINE}`, color: NAVY }
+  const ownAvatarSx = { bgcolor: NAVY, color: WHITE, border: `1px solid ${NAVY_DEEP}` }
+
   const SidebarSection = ({ title, sectionKey, icon, items, avatarFn, nameFn }: any) => (
     <>
       <ListItemButton dense sx={{ px: 2, py: 0.75 }} onClick={() => toggleSection(sectionKey)}>
         <Stack direction="row" alignItems="center" spacing={0.75} sx={{ width: '100%' }}>
           {icon}
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>{title}</Typography>
-          <Chip label={items.length} size="small" sx={{ height: 18, fontSize: 11, '& .MuiChip-label': { px: 0.5 } }} />
-          {expandedSections[sectionKey] ? <ExpandLessIcon sx={{ fontSize: 16 }} /> : <ExpandMoreIcon sx={{ fontSize: 16 }} />}
+          <Typography variant="caption" fontWeight={800} sx={{ flex: 1, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: MIST }}>{title}</Typography>
+          {items.length > 0 && (
+            <Typography variant="caption" sx={{ fontSize: 10.5, fontWeight: 700, color: MIST }}>{items.length}</Typography>
+          )}
+          {expandedSections[sectionKey] ? <ExpandLessIcon sx={{ fontSize: 16, color: MIST }} /> : <ExpandMoreIcon sx={{ fontSize: 16, color: MIST }} />}
         </Stack>
       </ListItemButton>
       {expandedSections[sectionKey] && items.map((ch: any) => {
@@ -625,16 +864,21 @@ export default function ChatPage() {
         const otherUserId = isDM && ch.members ? ch.members.find((m: any) => m.user_id !== currentUserId)?.user_id : null
         const isOnline = otherUserId && onlineUsers.has(otherUserId)
         const onlineCount = ch.type === 'general' || ch.type === 'group' ? getOnlineCount(ch) : 0
+        const isActive = activeChannel === ch.id
+        const unread = ch.unread_count > 0 && !isActive
         return (
           <ListItemButton key={ch.id}
-            selected={activeChannel === ch.id}
+            selected={isActive}
             onClick={() => { setActiveChannel(ch.id); setActiveTab(0) }}
-            sx={{ borderRadius: 1, mx: 0.75, my: 0.25, py: 0.75 }}
+            sx={{
+              borderRadius: 1, mx: 0.75, my: 0.25, py: 0.75, px: 1,
+              '&.Mui-selected': { bgcolor: BONE, '&:hover': { bgcolor: BONE } },
+            }}
           >
             <ListItemAvatar sx={{ minWidth: 36 }}>
               <Badge overlap="circular" anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                badgeContent={isDM && isOnline ? <Box sx={{ width: 10, height: 10, bgcolor: '#22C55E', borderRadius: '50%', border: '2px solid #fff' }} /> : null}>
-                <Avatar src={avatar || undefined} sx={{ bgcolor: ch.type === 'general' ? '#0F4C81' : ch.type === 'dm' ? '#0891B2' : '#7C3AED', width: 32, height: 32, fontSize: 13 }}>
+                badgeContent={isDM && isOnline ? <Box sx={{ width: 10, height: 10, bgcolor: EMERALD, borderRadius: '50%', border: `2px solid ${CHROME}` }} /> : null}>
+                <Avatar src={avatar || undefined} sx={{ width: 32, height: 32, fontSize: 12, bgcolor: ch.type === 'general' ? NAVY : BONE, color: ch.type === 'general' ? WHITE : NAVY, border: `1px solid ${ch.type === 'general' ? NAVY_DEEP : HAIRLINE}` }}>
                   {initials}
                 </Avatar>
               </Badge>
@@ -642,24 +886,26 @@ export default function ChatPage() {
             <ListItemText
               primary={
                 <Stack direction="row" alignItems="center" spacing={0.75}>
-                  <Typography variant="body2" fontWeight={activeChannel === ch.id ? 700 : 500} noWrap sx={{ fontSize: 13.5 }}>{nameFn(ch)}</Typography>
-                  {isDM && isOnline && <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22C55E' }} />}
+                  <Typography variant="body2" fontWeight={isActive ? 800 : unread ? 700 : 500} noWrap sx={{ fontSize: 13.5, color: isActive ? NAVY : INK }}>{nameFn(ch)}</Typography>
+                  {isDM && isOnline && <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: EMERALD, flexShrink: 0 }} />}
                   {(ch.type === 'general' || ch.type === 'group') && onlineCount > 0 && (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10 }}>{onlineCount} online</Typography>
+                    <Typography variant="caption" sx={{ fontSize: 10, color: MIST, fontWeight: 500 }}>{onlineCount} online</Typography>
                   )}
                 </Stack>
               }
               secondary={ch.last_message ? ch.last_message.substring(0, 26) + (ch.last_message.length > 26 ? '...' : '') : 'No messages yet'}
-              secondaryTypographyProps={{ fontSize: 11.5, noWrap: true, color: ch.unread_count > 0 && ch.id !== activeChannel ? 'text.primary' : 'text.secondary' }}
+              secondaryTypographyProps={{ fontSize: 11.5, noWrap: true, color: unread ? INK : MIST, fontWeight: unread ? 600 : 400 }}
             />
-            <Stack alignItems="flex-end" spacing={0.25} sx={{ ml: 0.5 }}>
+            <Stack alignItems="flex-end" spacing={0.5} sx={{ ml: 0.5 }}>
               {ch.last_message_at && (
-                <Typography variant="caption" sx={{ fontSize: 10, color: 'text.disabled', whiteSpace: 'nowrap' }}>
+                <Typography variant="caption" sx={{ fontSize: 10, color: MIST, whiteSpace: 'nowrap' }}>
                   {timeAgo(ch.last_message_at)}
                 </Typography>
               )}
-              {ch.unread_count > 0 && ch.id !== activeChannel && (
-                <Badge badgeContent={ch.unread_count} color="primary" sx={{ '& .MuiBadge-badge': { fontSize: 10, minWidth: 16, height: 16, p: 0 } }} />
+              {unread && (
+                <Box sx={{ minWidth: 18, height: 18, borderRadius: '50%', bgcolor: EMERALD_DEEP, color: WHITE, display: 'flex', alignItems: 'center', justifyContent: 'center', px: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontSize: 10, fontWeight: 800, lineHeight: 1 }}>{ch.unread_count > 99 ? '99+' : ch.unread_count}</Typography>
+                </Box>
               )}
             </Stack>
           </ListItemButton>
@@ -669,85 +915,153 @@ export default function ChatPage() {
   )
 
   return (
-    <Box sx={{ display: 'flex', height: 'calc(100vh - 112px)', gap: 0, overflow: 'hidden', bgcolor: '#F0F2F5', borderRadius: 2 }}>
+    <Box className="chat-root" sx={{ display: 'flex', height: 'calc(100vh - 112px)', gap: 0, overflow: 'hidden', bgcolor: BONE, p: { xs: 0, md: 1.5 }, boxSizing: 'border-box' }}>
+      {/* Reveal message action buttons on hover + one authored motion (typing pulse) */}
+      <style>{`
+        .message-group:hover .msg-actions, .message-group:focus-within .msg-actions { opacity: 1 !important; }
+        .chat-root *:focus-visible { outline: 2px solid ${EMERALD}; outline-offset: 2px; border-radius: 4px; }
+        @keyframes chatTypingPulse { 0%, 100% { opacity: 0.35; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.1); } }
+        .chat-typing-dot { animation: chatTypingPulse 1.2s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .chat-typing-dot { animation: none; opacity: 1; transform: none; } }
+      `}</style>
+
+      {/* Framed window */}
+      <Paper elevation={0} sx={{ flex: 1, minWidth: 0, display: 'flex', overflow: 'hidden', borderRadius: { xs: 0, md: 3 }, border: { xs: 'none', md: `1px solid ${WINDOW_BORDER}` }, boxShadow: { xs: 'none', md: WINDOW_SHADOW } }}>
+
       {/* Sidebar */}
       {drawerOpen && (
-        <Paper sx={{ width: 300, minWidth: 300, display: 'flex', flexDirection: 'column', borderRadius: 0, borderRight: '1px solid', borderColor: 'divider', bgcolor: '#FAFBFC' }} elevation={0}>
-          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: '#fff' }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <ForumIcon sx={{ color: '#0F4C81', fontSize: 22 }} />
-                <Typography variant="h6" fontWeight={700} sx={{ fontSize: 18 }}>Chat</Typography>
-                {totalUnread > 0 && <Chip label={totalUnread} size="small" color="error" sx={{ height: 20, minWidth: 20, fontSize: 11, '& .MuiChip-label': { px: 0.5 } }} />}
+        <Paper sx={{ width: 300, minWidth: 300, display: 'flex', flexDirection: 'column', borderRadius: 0, border: 'none', borderRight: `1px solid ${HAIRLINE}`, bgcolor: CHROME }} elevation={0}>
+          <Box sx={{ px: 2.5, pt: 2.5, pb: 2, borderBottom: `1px solid ${HAIRLINE}`, bgcolor: CHROME }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+              <Stack direction="row" spacing={1.25} alignItems="center">
+                <Box sx={{ width: 12, height: 12, borderRadius: 0.5, bgcolor: NAVY, flexShrink: 0 }} />
+                <Typography variant="h6" fontWeight={900} sx={{ fontSize: 18, color: INK, letterSpacing: '-0.02em' }}>Chat</Typography>
+                {totalUnread > 0 && (
+                  <Box sx={{ minWidth: 20, height: 20, borderRadius: '50%', bgcolor: EMERALD_DEEP, color: WHITE, display: 'flex', alignItems: 'center', justifyContent: 'center', px: 0.5 }}>
+                    <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 800, lineHeight: 1 }}>{totalUnread > 99 ? '99+' : totalUnread}</Typography>
+                  </Box>
+                )}
               </Stack>
               <Stack direction="row" spacing={0.5}>
-                <Tooltip title="New Direct Message">
-                  <IconButton size="small" onClick={() => setDmDialog(true)} sx={{ bgcolor: '#F3F4F6', '&:hover': { bgcolor: '#E5E7EB' } }}>
-                    <PersonIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Create Group">
-                  <IconButton size="small" onClick={() => setGroupDialog(true)} sx={{ bgcolor: '#F3F4F6', '&:hover': { bgcolor: '#E5E7EB' } }}>
-                    <AddIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                <Button size="small" onClick={() => setDmDialog(true)}
+                  startIcon={<PersonIcon sx={{ fontSize: 16 }} />}
+                  sx={{ color: NAVY, fontWeight: 700, fontSize: 12, textTransform: 'none', px: 1, '&:hover': { bgcolor: BONE } }}>
+                  New message
+                </Button>
+                <Button size="small" onClick={() => setGroupDialog(true)}
+                  startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+                  sx={{ color: NAVY, fontWeight: 700, fontSize: 12, textTransform: 'none', px: 1, '&:hover': { bgcolor: BONE } }}>
+                  New group
+                </Button>
               </Stack>
             </Stack>
-            <TextField size="small" placeholder="Search conversations..." fullWidth
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#F3F4F6', fontSize: 13 } }} />
+            <TextField size="small" placeholder="Search conversations" fullWidth
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              InputProps={{
+                endAdornment: searchQuery ? (
+                  <IconButton size="small" aria-label="Clear search" onClick={() => setSearchQuery('')}><CloseIcon sx={{ fontSize: 16, color: MIST }} /></IconButton>
+                ) : undefined,
+              }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, fontSize: 13 }, '& .MuiOutlinedInput-notchedOutline': { border: 'none' } }} />
           </Box>
-          <List sx={{ flex: 1, overflow: 'auto', py: 0.5 }}>
-            {generalChannels.length > 0 && <SidebarSection title="General" sectionKey="general" icon={<TagIcon sx={{ fontSize: 16, color: '#0F4C81' }} />} items={generalChannels} avatarFn={() => ({ initials: '#', avatar: '' })} nameFn={(ch: any) => ch.name} />}
-            {groupChannels.length > 0 && <><Divider sx={{ my: 0.5 }} /><SidebarSection title="Groups" sectionKey="groups" icon={<GroupsIcon sx={{ fontSize: 16, color: '#7C3AED' }} />} items={groupChannels} avatarFn={(ch: any) => ({ initials: ch.name?.[0]?.toUpperCase() || 'G', avatar: '' })} nameFn={(ch: any) => ch.name} /></>}
-            {dmChannels.length > 0 && <><Divider sx={{ my: 0.5 }} /><SidebarSection title="Direct Messages" sectionKey="dms" icon={<ForumIcon sx={{ fontSize: 16, color: '#0891B2' }} />} items={dmChannels} avatarFn={getChannelAvatar} nameFn={getChannelName} /></>}
-            {channels.length === 0 && <Typography color="text.secondary" sx={{ p: 2, textAlign: 'center', fontSize: 13 }}>No conversations yet</Typography>}
+          <List sx={{ flex: 1, overflow: 'auto', py: 1 }}>
+            {isSearching ? (
+              <>
+                {searching ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}><CircularProgress size={22} sx={{ color: NAVY }} /></Box>
+                ) : searchResults.length > 0 ? (
+                  <>
+                    <Typography variant="caption" sx={{ display: 'block', px: 2, py: 0.5, fontWeight: 800, textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.08em', color: MIST }}>
+                      Message results
+                    </Typography>
+                    {searchResults.map((r: any) => {
+                      const rIsMine = r.sender_id === currentUserId
+                      const rName = rIsMine ? 'You' : `${r.first_name || ''} ${r.last_name || ''}`.trim() || r.email?.split('@')[0] || 'Unknown'
+                      return (
+                        <ListItemButton key={r.id} dense
+                          onClick={() => { setActiveChannel(r.channel_id); setActiveTab(0); setSearchQuery(''); setSearchResults([]) }}
+                          sx={{ borderRadius: 1, mx: 0.75, my: 0.25, py: 0.5 }}>
+                          <ListItemText
+                            primary={<Stack direction="row" spacing={0.75} alignItems="center"><Chip label={r.channel_name || 'Channel'} size="small" sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(15,76,129,0.08)', color: NAVY, fontWeight: 700 }} /><Typography variant="body2" fontWeight={600} noWrap sx={{ fontSize: 12.5, color: INK }}>{rName}</Typography></Stack>}
+                            secondary={<Typography variant="caption" sx={{ fontSize: 11.5, color: MIST }} noWrap>{r.content?.substring(0, 60) || (r.file_name ? '📎 ' + r.file_name : '')}</Typography>}
+                            secondaryTypographyProps={{ component: 'div' }} />
+                          <Typography variant="caption" sx={{ fontSize: 10, color: MIST, whiteSpace: 'nowrap' }}>{timeAgo(r.created_at)}</Typography>
+                        </ListItemButton>
+                      )
+                    })}
+                  </>
+                ) : (
+                  <Typography sx={{ p: 2, textAlign: 'center', fontSize: 13, color: MIST }}>No messages match your search</Typography>
+                )}
+              </>
+            ) : (
+              <>
+                {generalChannels.length > 0 && <SidebarSection title="General" sectionKey="general" icon={<TagIcon sx={{ fontSize: 16, color: NAVY }} />} items={generalChannels} avatarFn={() => ({ initials: '#', avatar: '' })} nameFn={(ch: any) => ch.name} />}
+                {groupChannels.length > 0 && <><Box sx={{ mx: 2, borderTop: `1px solid ${HAIRLINE}`, my: 1 }} /><SidebarSection title="Groups" sectionKey="groups" icon={<GroupsIcon sx={{ fontSize: 16, color: NAVY }} />} items={groupChannels} avatarFn={(ch: any) => ({ initials: ch.name?.[0]?.toUpperCase() || 'G', avatar: '' })} nameFn={(ch: any) => ch.name} /></>}
+                {dmChannels.length > 0 && <><Box sx={{ mx: 2, borderTop: `1px solid ${HAIRLINE}`, my: 1 }} /><SidebarSection title="Direct messages" sectionKey="dms" icon={<ForumIcon sx={{ fontSize: 16, color: NAVY }} />} items={dmChannels} avatarFn={getChannelAvatar} nameFn={getChannelName} /></>}
+                {channels.length === 0 && (
+                  <Box sx={{ px: 3, py: 6, textAlign: 'center' }}>
+                    <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: EMERALD, mx: 'auto', mb: 1.5 }} />
+                    <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: INK }}>No conversations yet</Typography>
+                    <Typography sx={{ fontSize: 12, color: MIST, mt: 0.5, lineHeight: 1.5 }}>Start a direct message or create a group for your team.</Typography>
+                  </Box>
+                )}
+              </>
+            )}
           </List>
         </Paper>
       )}
 
       {/* Main area */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: WHITE }}>
         {/* Header */}
-        <Paper sx={{ p: 1.5, borderRadius: 0, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: '#fff' }} elevation={0}>
+        <Paper sx={{ px: 2.5, py: 1.5, borderRadius: 0, border: 'none', borderBottom: `1px solid ${HAIRLINE}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: CHROME }} elevation={0}>
           <Stack direction="row" spacing={1.5} alignItems="center">
-            {!drawerOpen && <IconButton size="small" onClick={() => setDrawerOpen(true)}><ArrowBackIcon /></IconButton>}
+            {!drawerOpen && <IconButton size="small" aria-label="Open channel list" onClick={() => setDrawerOpen(true)}><ArrowBackIcon sx={{ color: NAVY }} /></IconButton>}
             {activeChannelType === 'general' || activeChannelType === 'group' ? (
-              <Avatar sx={{ bgcolor: activeChannelType === 'general' ? '#0F4C81' : '#7C3AED', width: 38, height: 38, fontSize: 15 }}>
+              <Avatar sx={{ bgcolor: activeChannelType === 'general' ? NAVY : BONE, color: activeChannelType === 'general' ? WHITE : NAVY, border: `1px solid ${activeChannelType === 'general' ? NAVY_DEEP : HAIRLINE}`, width: 38, height: 38, fontSize: 15 }}>
                 {activeChannelType === 'general' ? '#' : activeChannelName?.[0]?.toUpperCase() || 'C'}
               </Avatar>
             ) : (
               <Avatar src={activeChannelData ? getChannelAvatar(activeChannelData).avatar || undefined : undefined}
-                sx={{ bgcolor: '#D97706', width: 38, height: 38, fontSize: 15 }}>
+                sx={{ bgcolor: BONE, color: NAVY, border: `1px solid ${HAIRLINE}`, width: 38, height: 38, fontSize: 15 }}>
                 {activeChannelData ? getChannelAvatar(activeChannelData).initials : '?'}
               </Avatar>
             )}
             <Box>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="subtitle2" fontWeight={700} sx={{ lineHeight: 1.2 }}>{activeChannelName || 'Select a conversation'}</Typography>
+                <Typography variant="subtitle2" fontWeight={800} sx={{ lineHeight: 1.2, fontSize: 15, color: INK }}>{activeChannelName || 'Select a conversation'}</Typography>
                 {(activeChannelType === 'general' || activeChannelType === 'group') && getOnlineCount(activeChannelData) > 0 && (
-                  <Chip label={`${getOnlineCount(activeChannelData)} online`} size="small" sx={{ height: 20, fontSize: 11, bgcolor: '#DCFCE7', color: '#166534', fontWeight: 600 }} />
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: EMERALD }} />
+                    <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 700, color: MIST }}>{getOnlineCount(activeChannelData)} online</Typography>
+                  </Stack>
                 )}
                 {activeChannelType === 'dm' && onlineUsers.has(channelMembers.find((m: any) => m.user_id !== currentUserId)?.user_id) && (
-                  <Chip label="Online" size="small" sx={{ height: 20, fontSize: 11, bgcolor: '#DCFCE7', color: '#166534', fontWeight: 600 }} />
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: EMERALD }} />
+                    <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 700, color: MIST }}>Online</Typography>
+                  </Stack>
                 )}
               </Stack>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{ fontSize: 11.5, color: MIST }}>
                 {activeChannelType === 'general' ? 'General channel' : activeChannelType === 'group' ? `${channelMembers.length} members` : activeChannelType === 'dm' ? 'Direct message' : ''}
               </Typography>
             </Box>
           </Stack>
-          <Stack direction="row" spacing={0.5} alignItems="center">
+          <Stack direction="row" spacing={1} alignItems="center">
             {(activeChannelType === 'group' || activeChannelType === 'general') && channelMembers.length > 0 && (
               <Stack direction="row" spacing={-0.75} alignItems="center" sx={{ mr: 1 }}>
                 {channelMembers.slice(0, 6).map((m: any, i: number) => (
                   <Tooltip key={m.user_id} title={`${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email}>
-                    <Avatar sx={{ width: 28, height: 28, fontSize: 10, bgcolor: ['#0F4C81','#7C3AED','#D97706','#059669','#DC2626','#6B7280'][i % 6], border: '2px solid #fff', ml: i === 0 ? 0 : -0.75, zIndex: 6 - i }}>
+                    <Avatar sx={{ width: 28, height: 28, fontSize: 10, bgcolor: BONE, color: NAVY, border: `2px solid ${CHROME}`, ml: i === 0 ? 0 : -0.75, zIndex: 6 - i }}>
                       {(m.first_name?.[0] || m.email?.[0] || '?').toUpperCase()}
                     </Avatar>
                   </Tooltip>
                 ))}
                 {channelMembers.length > 6 && (
-                  <Avatar sx={{ width: 28, height: 28, fontSize: 10, bgcolor: '#374151', border: '2px solid #fff', ml: -0.75, zIndex: 0 }}>
+                  <Avatar sx={{ width: 28, height: 28, fontSize: 10, bgcolor: NAVY, color: WHITE, border: `2px solid ${CHROME}`, ml: -0.75, zIndex: 0 }}>
                     +{channelMembers.length - 6}
                   </Avatar>
                 )}
@@ -756,12 +1070,12 @@ export default function ChatPage() {
             {/* Only show View Members for groups/general, NOT DMs */}
             {activeChannelType !== 'dm' && (
               <Tooltip title="View Members">
-                <IconButton size="small" onClick={() => { setShowMembers(true); loadChannelMembers(activeChannel!) }} disabled={!activeChannel} sx={{ bgcolor: '#F3F4F6' }}>
+                <IconButton size="small" aria-label="View members" onClick={() => { setShowMembers(true); loadChannelMembers(activeChannel!) }} disabled={!activeChannel} sx={{ color: NAVY, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, '&:hover': { bgcolor: BONE } }}>
                   <GroupsIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             )}
-            <IconButton size="small" onClick={() => setDrawerOpen(prev => !prev)} sx={{ bgcolor: '#F3F4F6' }}>
+            <IconButton size="small" aria-label="Toggle channel list" onClick={() => setDrawerOpen(prev => !prev)} sx={{ color: NAVY, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, '&:hover': { bgcolor: BONE } }}>
               <ForumIcon fontSize="small" />
             </IconButton>
           </Stack>
@@ -769,8 +1083,10 @@ export default function ChatPage() {
 
         {/* Tab bar */}
         {activeChannel && (
-          <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', bgcolor: '#fff', px: 2 }}>
-            <Tabs value={activeTab} onChange={(_, v) => { setActiveTab(v); if (v === 1) loadSharedFiles(activeChannel!) }} sx={{ minHeight: 40, '& .MuiTab-root': { minHeight: 40, py: 0.5, textTransform: 'none', fontWeight: 600, fontSize: 13 } }}>
+          <Box sx={{ borderBottom: `1px solid ${HAIRLINE}`, bgcolor: CHROME, px: 2 }}>
+            <Tabs value={activeTab} onChange={(_, v) => { setActiveTab(v); if (v === 1) loadSharedFiles(activeChannel!) }}
+              TabIndicatorProps={{ sx: { bgcolor: EMERALD, height: 2 } }}
+              sx={{ minHeight: 40, '& .MuiTab-root': { minHeight: 40, py: 0.5, textTransform: 'none', fontWeight: 600, fontSize: 13, color: MIST, '&.Mui-selected': { color: NAVY, fontWeight: 800 } } }}>
               <Tab label="Messages" />
               <Tab label={`Files (${sharedFiles.length})`} />
             </Tabs>
@@ -781,19 +1097,30 @@ export default function ChatPage() {
         {activeTab === 0 ? (
           <>
             {/* Messages */}
-            <Paper ref={msgContainerRef} sx={{ flex: 1, overflow: 'auto', p: 2.5, borderRadius: 0, display: 'flex', flexDirection: 'column', bgcolor: '#fff' }} elevation={0}>
+            <Paper ref={msgContainerRef} sx={{ flex: 1, overflow: 'auto', p: { xs: 1.5, md: 2.5 }, borderRadius: 0, border: 'none', display: 'flex', flexDirection: 'column', bgcolor: BONE }} elevation={0}>
               {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}><CircularProgress size={24} /></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}><CircularProgress size={24} sx={{ color: NAVY }} /></Box>
               ) : messages.length === 0 ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, flexDirection: 'column', gap: 1 }}>
-                  <ForumIcon sx={{ fontSize: 48, color: '#D1D5DB' }} />
-                  <Typography color="text.secondary" sx={{ fontSize: 14 }}>No messages yet. Start the conversation!</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, flexDirection: 'column', gap: 1.5, px: 3 }}>
+                  <Box sx={{ width: 12, height: 12, borderRadius: 0.5, bgcolor: EMERALD }} />
+                  <Typography sx={{ fontSize: 15, fontWeight: 800, color: INK }}>Start the conversation</Typography>
+                  <Typography sx={{ fontSize: 13, color: MIST, textAlign: 'center', lineHeight: 1.5, maxWidth: 320 }}>No messages yet. Send the first note to get the team talking.</Typography>
                 </Box>
               ) : (() => {
                 const unreadIdx = otherLastRead
                   ? messages.findIndex(msg => new Date(msg.created_at) > new Date(otherLastRead))
                   : -1
-                return messages.map((msg, i) => {
+                return <>
+                  {hasOlder && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+                      <Button size="small" variant="outlined" onClick={() => loadOlderMessages(activeChannel!)} disabled={olderLoading}
+                        startIcon={olderLoading ? <CircularProgress size={14} /> : <ExpandMoreIcon sx={{ transform: 'rotate(180deg)' }} />}
+                        sx={{ borderRadius: 1, fontSize: 12, textTransform: 'none', color: INK, borderColor: OUTLINE, '&:hover': { borderColor: NAVY, color: NAVY } }}>
+                        {olderLoading ? 'Loading...' : 'Load earlier messages'}
+                      </Button>
+                    </Box>
+                  )}
+                {messages.map((msg, i) => {
                   const isUnreadStart = i === unreadIdx
                   const isMine = msg.sender_id === currentUserId
                   const showAvatar = i === 0 || messages[i - 1]?.sender_id !== msg.sender_id
@@ -801,34 +1128,32 @@ export default function ChatPage() {
                   const prevDate = i > 0 ? new Date(messages[i - 1].created_at) : null
                   const showDateDivider = !prevDate || msgDate.toDateString() !== prevDate.toDateString()
                   const seen = isMine && isMessageSeen(msg)
-                  const colors = ['#E0F2FE','#FCE7F3','#EDE9FE','#D1FAE5','#FEF3C7','#FEE2E2']
-                  const cIdx = msg.sender_id.charCodeAt(0) % colors.length
                   return (
                     <Box key={msg.id}>
                       {isUnreadStart && (
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ my: 1.5 }}>
-                          <Divider sx={{ flex: 1 }} />
-                          <Chip label="New messages" size="small" color="primary" sx={{ fontSize: 11, fontWeight: 600, bgcolor: '#DBEAFE', color: '#1E40AF' }} />
-                          <Divider sx={{ flex: 1 }} />
+                        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ my: 1.5 }}>
+                          <Box sx={{ flex: 1, borderTop: `1px solid rgba(16,185,129,0.45)` }} />
+                          <Typography variant="caption" sx={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: EMERALD_DEEP }}>New messages</Typography>
+                          <Box sx={{ flex: 1, borderTop: `1px solid rgba(16,185,129,0.45)` }} />
                         </Stack>
                       )}
                       {showDateDivider && (
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ my: 1.5 }}>
-                          <Divider sx={{ flex: 1 }} />
-                          <Chip label={formatDate(msg.created_at)} size="small" variant="outlined" sx={{ fontSize: 11, fontWeight: 600 }} />
-                          <Divider sx={{ flex: 1 }} />
+                        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ my: 1.5 }}>
+                          <Box sx={{ flex: 1, borderTop: `1px solid ${HAIRLINE}` }} />
+                          <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 700, color: MIST }}>{formatDate(msg.created_at)}</Typography>
+                          <Box sx={{ flex: 1, borderTop: `1px solid ${HAIRLINE}` }} />
                         </Stack>
                       )}
                       <Box sx={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start', mb: 0.75 }}
                         className="message-group">
-                        <Stack direction={isMine ? 'row-reverse' : 'row'} spacing={1} alignItems="flex-end" sx={{ maxWidth: '72%' }}>
+                        <Stack direction={isMine ? 'row-reverse' : 'row'} spacing={1} alignItems="flex-end" sx={{ maxWidth: '74%' }}>
                           {showAvatar ? (
                             isMine ? (
-                              <Avatar src={rawUser.profile_picture_url || undefined} sx={{ width: 30, height: 30, fontSize: 12, bgcolor: '#0F4C81', border: '2px solid #E5E7EB' }}>
+                              <Avatar src={rawUser.profile_picture_url || undefined} sx={{ width: 30, height: 30, fontSize: 12, ...ownAvatarSx }}>
                                 {(rawUser.first_name?.[0] || rawUser.email?.[0] || '?').toUpperCase()}
                               </Avatar>
                             ) : (
-                              <Avatar src={msg.profile_picture_url || undefined} sx={{ width: 30, height: 30, fontSize: 12, bgcolor: colors[cIdx], border: '2px solid #E5E7EB' }}>
+                              <Avatar src={msg.profile_picture_url || undefined} sx={{ width: 30, height: 30, fontSize: 12, ...channelAvatarSx }}>
                                 {getMemberAvatar(msg)}
                               </Avatar>
                             )
@@ -837,80 +1162,137 @@ export default function ChatPage() {
                           )}
                           <Box sx={{ maxWidth: '100%' }}>
                             {showAvatar && (
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25, textAlign: isMine ? 'right' : 'left', fontWeight: 600, fontSize: 11 }}>
+                              <Typography variant="caption" sx={{ display: 'block', mb: 0.25, textAlign: isMine ? 'right' : 'left', fontWeight: 700, fontSize: 11, color: isMine ? NAVY : INK }}>
                                 {isMine ? 'You' : getMemberName(msg)}
                               </Typography>
                             )}
-                            <Paper sx={{
-                              px: msg.content ? 1.5 : 0.75, py: msg.content ? 0.75 : 0.5,
-                              borderRadius: 2,
-                              bgcolor: isMine ? '#0F4C81' : '#F3F4F6',
-                              color: isMine ? '#fff' : '#1F2937',
-                              borderBottomRightRadius: isMine && !showAvatar ? 1 : 2,
-                              borderBottomLeftRadius: !isMine && !showAvatar ? 1 : 2,
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
-                              position: 'relative',
-                            }} elevation={0}>
-                              {msg.content && (
-                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.45, fontSize: 13.5 }}>
-                                  {renderMessageText(msg.content).map((part, i) =>
-                                    part.type === 'url' ? (
-                                      <Typography key={i} component="a" href={part.value} target="_blank" rel="noopener noreferrer"
-                                        onClick={(e) => e.stopPropagation()}
-                                        sx={{ color: isMine ? '#BBDEFB' : '#2563EB', textDecoration: 'underline', fontWeight: 500, '&:hover': { opacity: 0.8 } }}>
-                                        {part.value}
-                                      </Typography>
-                                    ) : (
-                                      <span key={i}>{part.value}</span>
-                                    )
-                                  )}
-                                </Typography>
-                              )}
-                              {msg.content && renderMessageText(msg.content).filter(p => p.type === 'url').map((part, i) => (
-                                <LinkPreview key={`preview-${i}`} url={part.value} isMine={isMine} />
-                              ))}
-                              {msg.file_url && (
-                                <Box sx={{ mt: msg.content ? 0.75 : 0 }}>
-                                  {FILE_PREVIEW_TYPES.has(msg.file_type || '') || msg.file_url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff|tif|pdf)$/i) ? (
-                                    <Box sx={{ cursor: 'pointer' }} onClick={() => openFilePreview(msg.file_url, msg.file_name || 'File')}>
-                                      {msg.file_url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i) ? (
-                                        <SecureImg src={msg.file_url} alt={msg.file_name}
-                                          sx={{ maxWidth: 200, maxHeight: 150, borderRadius: 1, objectFit: 'cover', display: 'block', bgcolor: '#F3F4F6' }} />
-                                      ) : (
-                                        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ bgcolor: isMine ? 'rgba(255,255,255,0.1)' : '#E5E7EB', borderRadius: 1, p: 0.75 }}>
-                                          <FileIcon sx={{ fontSize: 20, color: isMine ? '#fff' : '#6B7280' }} />
-                                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                                            <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                                              {msg.file_name || 'File'}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ fontSize: 10, opacity: 0.7, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                              <OpenInNewIcon sx={{ fontSize: 12 }} /> Click to preview
-                                            </Typography>
-                                          </Box>
-                                        </Stack>
-                                      )}
-                                    </Box>
-                                  ) : (
-                                    <Stack direction="row" spacing={0.75} alignItems="center">
-                                      <AttachFileIcon sx={{ fontSize: 16, color: isMine ? '#BBDEFB' : '#6B7280' }} />
-                                      <Typography variant="caption" component="a" href={msg.file_url} target="_blank" rel="noopener"
-                                        sx={{ color: isMine ? '#BBDEFB' : '#0F4C81', textDecoration: 'underline', fontWeight: 500, fontSize: 12 }}>
-                                        {msg.file_name || 'View file'}
-                                      </Typography>
-                                    </Stack>
+                            {editingMessageId === msg.id ? (
+                              <Stack direction="row" spacing={0.5} alignItems="flex-start">
+                                <TextField size="small" fullWidth multiline maxRows={4} autoFocus
+                                  value={editText}
+                                  onChange={e => setEditText(e.target.value)}
+                                  sx={{ bgcolor: WHITE, '& .MuiOutlinedInput-root': { borderRadius: 1, fontSize: 13.5 } }} />
+                                <Stack spacing={0.5}>
+                                  <IconButton size="small" aria-label="Save edit" onClick={() => saveEdit(msg)} sx={{ bgcolor: NAVY, color: WHITE, '&:hover': { bgcolor: NAVY_DEEP } }}>
+                                    <CheckIcon sx={{ fontSize: 18 }} />
+                                  </IconButton>
+                                  <IconButton size="small" aria-label="Cancel edit" onClick={() => setEditingMessageId(null)} sx={{ bgcolor: WHITE, border: `1px solid ${HAIRLINE}` }}>
+                                    <CloseIcon sx={{ fontSize: 18 }} />
+                                  </IconButton>
+                                </Stack>
+                              </Stack>
+                            ) : (
+                              <Paper sx={{
+                                px: msg.content ? 1.5 : 0.75, py: msg.content ? 0.75 : 0.5,
+                                borderRadius: 1,
+                                bgcolor: isMine ? NAVY : WHITE,
+                                color: isMine ? WHITE : INK,
+                                border: isMine ? 'none' : `1px solid ${HAIRLINE}`,
+                                borderBottomRightRadius: isMine && !showAvatar ? 0.5 : 1,
+                                borderBottomLeftRadius: !isMine && !showAvatar ? 0.5 : 1,
+                                boxShadow: SEAT_SHADOW,
+                                position: 'relative',
+                              }} elevation={0}>
+                                <Box sx={{ position: 'absolute', top: -22, right: 0, display: 'flex', gap: 0.25, opacity: 0, transition: 'opacity 0.15s' }}
+                                  className="msg-actions">
+                                  <IconButton size="small" title="Add reaction" aria-label="Add reaction" onClick={(e) => openReactionPicker(e, msg.id)}
+                                    sx={{ width: 26, height: 26, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, boxShadow: SEAT_SHADOW, '&:hover': { bgcolor: BONE } }}>
+                                    <MoodIcon sx={{ fontSize: 15, color: MIST }} />
+                                  </IconButton>
+                                  {isMine && (
+                                    <>
+                                      <IconButton size="small" title="Edit" aria-label="Edit message" onClick={(e) => { e.stopPropagation(); startEditing(msg) }}
+                                        sx={{ width: 26, height: 26, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, boxShadow: SEAT_SHADOW, '&:hover': { bgcolor: BONE } }}>
+                                        <TagIcon sx={{ fontSize: 14, color: MIST }} />
+                                      </IconButton>
+                                      <IconButton size="small" title="Delete" aria-label="Delete message" onClick={(e) => { e.stopPropagation(); setDeleteConfirmMsg(msg) }}
+                                        sx={{ width: 26, height: 26, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, boxShadow: SEAT_SHADOW, '&:hover': { bgcolor: '#FDE8E8' } }}>
+                                        <DeleteIcon sx={{ fontSize: 14, color: DANGER }} />
+                                      </IconButton>
+                                    </>
                                   )}
                                 </Box>
-                              )}
-                            </Paper>
+                                {msg.content && (
+                                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.45, fontSize: 13.5 }}>
+                                    {renderMessageText(msg.content).map((part, i) =>
+                                      part.type === 'url' ? (
+                                        <Typography key={i} component="a" href={part.value} target="_blank" rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          sx={{ color: isMine ? WHITE : NAVY, textDecoration: 'underline', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
+                                          {part.value}
+                                        </Typography>
+                                      ) : part.type === 'mention' ? (
+                                        <Typography key={i} component="span"
+                                          sx={{ color: isMine ? WHITE : NAVY, backgroundColor: isMine ? 'rgba(255,255,255,0.16)' : 'rgba(15,76,129,0.08)', borderRadius: 0.5, px: 0.25, fontWeight: 700 }}>
+                                          {part.value}
+                                        </Typography>
+                                      ) : (
+                                        <span key={i}>{part.value}</span>
+                                      )
+                                    )}
+                                  </Typography>
+                                )}
+                                {msg.edited_at && (
+                                  <Typography variant="caption" sx={{ display: 'block', mt: 0.25, fontSize: 10, opacity: 0.6, fontStyle: 'italic' }}>
+                                    (edited)
+                                  </Typography>
+                                )}
+                                {msg.content && renderMessageText(msg.content).filter(p => p.type === 'url').map((part, i) => (
+                                  <LinkPreview key={`preview-${i}`} url={part.value} isMine={isMine} />
+                                ))}
+                                {msg.file_url && (
+                                  <Box sx={{ mt: msg.content ? 0.75 : 0 }}>
+                                    {FILE_PREVIEW_TYPES.has(msg.file_type || '') || msg.file_url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff|tif|pdf)$/i) ? (
+                                      <Box sx={{ cursor: 'pointer' }} onClick={() => openFilePreview(msg.file_url, msg.file_name || 'File')}>
+                                        {msg.file_url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i) ? (
+                                          <SecureImg src={msg.file_url} alt={msg.file_name}
+                                            sx={{ maxWidth: 200, maxHeight: 150, borderRadius: 1, objectFit: 'cover', display: 'block', bgcolor: BONE, border: `1px solid ${HAIRLINE}` }} />
+                                        ) : (
+                                          <Stack direction="row" spacing={0.75} alignItems="center" sx={{ bgcolor: isMine ? 'rgba(255,255,255,0.12)' : WHITE, borderRadius: 1, p: 0.75, border: isMine ? 'none' : `1px solid ${HAIRLINE}` }}>
+                                            <FileIcon sx={{ fontSize: 20, color: isMine ? WHITE : NAVY }} />
+                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                              <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', color: isMine ? WHITE : INK }}>
+                                                {msg.file_name || 'File'}
+                                              </Typography>
+                                              <Typography variant="caption" sx={{ fontSize: 10, opacity: 0.75, display: 'flex', alignItems: 'center', gap: 0.5, color: isMine ? WHITE : MIST }}>
+                                                <OpenInNewIcon sx={{ fontSize: 12 }} /> Click to preview
+                                              </Typography>
+                                            </Box>
+                                          </Stack>
+                                        )}
+                                      </Box>
+                                    ) : (
+                                      <Stack direction="row" spacing={0.75} alignItems="center">
+                                        <AttachFileIcon sx={{ fontSize: 16, color: isMine ? 'rgba(255,255,255,0.7)' : MIST }} />
+                                        <Typography variant="caption" component="a" href={msg.file_url} target="_blank" rel="noopener"
+                                          sx={{ color: isMine ? WHITE : NAVY, textDecoration: 'underline', fontWeight: 600, fontSize: 12 }}>
+                                          {msg.file_name || 'View file'}
+                                        </Typography>
+                                      </Stack>
+                                    )}
+                                  </Box>
+                                )}
+                              </Paper>
+                            )}
+                            {!editingMessageId && msg.reactions && msg.reactions.length > 0 && (
+                              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5, justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
+                                {msg.reactions.map((r: any) => (
+                                  <Chip key={r.emoji} size="small" clickable
+                                    label={`${r.emoji} ${r.count}`}
+                                    onClick={() => handleToggleReaction(msg, r.emoji)}
+                                    sx={{ height: 22, fontSize: 12, bgcolor: r.reacted_by_me ? 'rgba(16,185,129,0.12)' : WHITE, color: r.reacted_by_me ? EMERALD_DEEP : INK, border: `1px solid ${r.reacted_by_me ? 'rgba(16,185,129,0.4)' : HAIRLINE}`, fontWeight: r.reacted_by_me ? 800 : 500, '& .MuiChip-label': { px: 0.75 } }} />
+                                ))}
+                              </Stack>
+                            )}
                             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.25, justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
-                              <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>{formatTime(msg.created_at)}</Typography>
+                              <Typography variant="caption" sx={{ fontSize: 10, color: MIST }}>{formatTime(msg.created_at)}</Typography>
                               {isMine && seen && (
-                                <Tooltip title="Seen">
-                                  <DoneAllIcon sx={{ fontSize: 13, color: '#3B82F6' }} />
+                                <Tooltip title={getSeenByNames(msg)}>
+                                  <DoneAllIcon sx={{ fontSize: 13, color: EMERALD }} />
                                 </Tooltip>
                               )}
-                              {isMine && !seen && msg.sender_id === currentUserId && otherLastRead && (
-                                <CheckIcon sx={{ fontSize: 13, color: '#9CA3AF' }} />
+                              {isMine && !seen && msg.sender_id === currentUserId && (activeChannelType === 'dm' ? otherLastRead : memberReads.length > 0) && (
+                                <CheckIcon sx={{ fontSize: 13, color: MIST }} />
                               )}
                             </Stack>
                           </Box>
@@ -918,13 +1300,14 @@ export default function ChatPage() {
                       </Box>
                     </Box>
                   )
-                })
+                })}
+              </>
               })()
             }
               {typingText && (
-                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 1, mt: 0.5 }}>
-                  <CircularProgress size={12} sx={{ color: '#9CA3AF' }} />
-                  <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: 12 }}>{typingText}</Typography>
+                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ ml: 1, mt: 0.5 }}>
+                  <Box className="chat-typing-dot" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: EMERALD }} />
+                  <Typography variant="caption" sx={{ fontSize: 12, color: MIST, fontStyle: 'italic' }}>{typingText}</Typography>
                 </Stack>
               )}
               <div ref={messagesEndRef} />
@@ -932,37 +1315,37 @@ export default function ChatPage() {
 
             {/* Live input link preview */}
             {inputLinkPreview && (
-              <Box sx={{ px: 1.5, pt: 1.5, bgcolor: '#fff', borderTop: '1px solid', borderColor: 'divider' }}>
+              <Box sx={{ px: 1.5, pt: 1.5, bgcolor: WHITE, borderTop: `1px solid ${HAIRLINE}` }}>
                 <Box component="a" href={inputLinkPreview.url} target="_blank" rel="noopener noreferrer"
-                  sx={{ display: 'flex', flexDirection: 'row', borderRadius: 1.5, overflow: 'hidden', border: '1px solid #E5E7EB', textDecoration: 'none', color: 'inherit', maxWidth: 360, bgcolor: '#FAFBFC', '&:hover': { opacity: 0.9 } }}>
+                  sx={{ display: 'flex', flexDirection: 'row', borderRadius: 1.5, overflow: 'hidden', border: `1px solid ${HAIRLINE}`, textDecoration: 'none', color: 'inherit', maxWidth: 360, bgcolor: WHITE, '&:hover': { opacity: 0.9 } }}>
                   {inputLinkPreview.image && (
-                    <Box sx={{ width: 80, minHeight: 64, bgcolor: '#F3F4F6', flexShrink: 0, overflow: 'hidden' }}>
+                    <Box sx={{ width: 80, minHeight: 64, bgcolor: BONE, flexShrink: 0, overflow: 'hidden' }}>
                       <Box component="img" src={inputLinkPreview.image} alt=""
                         sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         onError={(e: any) => { e.target.style.display = 'none' }} />
                     </Box>
                   )}
                   <Box sx={{ p: 0.75, flex: 1, minWidth: 0 }}>
-                    <Typography variant="caption" fontWeight={700} sx={{ display: 'block', lineHeight: 1.3, fontSize: 11, color: '#374151' }} noWrap>{inputLinkPreview.title}</Typography>
+                    <Typography variant="caption" fontWeight={700} sx={{ display: 'block', lineHeight: 1.3, fontSize: 11, color: INK }} noWrap>{inputLinkPreview.title}</Typography>
                     {inputLinkPreview.description && (
-                      <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.3, mt: 0.125, fontSize: 10, color: '#6B7280' }} noWrap>{inputLinkPreview.description}</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.3, mt: 0.125, fontSize: 10, color: MIST }} noWrap>{inputLinkPreview.description}</Typography>
                     )}
-                    <Typography variant="caption" sx={{ display: 'block', mt: 0.125, fontSize: 9, color: '#9CA3AF' }} noWrap>{(() => { try { return new URL(inputLinkPreview.url).hostname } catch { return inputLinkPreview.url } })()}</Typography>
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.125, fontSize: 9, color: MIST }} noWrap>{(() => { try { return new URL(inputLinkPreview.url).hostname } catch { return inputLinkPreview.url } })()}</Typography>
                   </Box>
                 </Box>
               </Box>
             )}
             {inputLinkLoading && (
-              <Box sx={{ px: 1.5, pt: 1.5, bgcolor: '#fff', borderTop: '1px solid', borderColor: 'divider' }}>
-                <Typography variant="caption" color="text.disabled" sx={{ fontSize: 11 }}>Loading preview...</Typography>
+              <Box sx={{ px: 1.5, pt: 1.5, bgcolor: WHITE, borderTop: `1px solid ${HAIRLINE}` }}>
+                <Typography variant="caption" sx={{ fontSize: 11, color: MIST }}>Loading preview...</Typography>
               </Box>
             )}
             {/* Input */}
-            <Paper sx={{ p: 1.5, borderTop: '1px solid', borderColor: 'divider', bgcolor: '#fff' }} elevation={0}>
+            <Paper sx={{ p: 1.5, border: 'none', borderTop: `1px solid ${HAIRLINE}`, bgcolor: WHITE }} elevation={0}>
               <Stack direction="row" spacing={1} alignItems="flex-end">
                 <Tooltip title="Attach file">
                   <span>
-                    <IconButton size="small" onClick={handleFileSelect} disabled={!activeChannel}>
+                    <IconButton size="small" aria-label="Attach file" onClick={handleFileSelect} disabled={!activeChannel} sx={{ color: NAVY, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, '&:hover': { bgcolor: BONE } }}>
                       <AttachFileIcon />
                     </IconButton>
                   </span>
@@ -971,27 +1354,27 @@ export default function ChatPage() {
                   onChange={(e) => { if (e.target.files?.length) handleSend() }} />
                 <Box sx={{ position: 'relative', flex: 1 }}>
                   <TextField fullWidth size="small" multiline maxRows={3} autoFocus
-                    placeholder={activeChannel ? 'Type a message...' : 'Select a conversation'}
+                    placeholder={activeChannel ? 'Write a message...' : 'Select a conversation'}
                     value={messageText}
                     onChange={e => { setMessageText(e.target.value); handleTyping() }}
                     onKeyDown={handleKeyDown}
                     disabled={!activeChannel}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#F9FAFB', pr: 5 } }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: BONE, pr: 5 }, '& .MuiOutlinedInput-notchedOutline': { border: `1px solid ${HAIRLINE}` } }}
                     InputProps={{
                       endAdornment: activeChannel && (
                         <Box sx={{ position: 'absolute', right: 8, bottom: 6 }}>
-                          <IconButton size="small" onClick={() => setShowEmoji(!showEmoji)}>
-                            <MoodIcon sx={{ fontSize: 20, color: '#9CA3AF' }} />
+                          <IconButton size="small" aria-label="Emoji picker" onClick={() => setShowEmoji(!showEmoji)}>
+                            <MoodIcon sx={{ fontSize: 20, color: showEmoji ? EMERALD : MIST }} />
                           </IconButton>
                         </Box>
                       )
                     }}
                   />
                   {showEmoji && (
-                    <Paper ref={emojiRef} sx={{ position: 'absolute', bottom: '100%', right: 0, mb: 1, p: 1, maxWidth: 320, maxHeight: 200, overflow: 'auto', borderRadius: 2, boxShadow: 3, zIndex: 10 }} elevation={3}>
+                    <Paper ref={emojiRef} sx={{ position: 'absolute', bottom: '100%', right: 0, mb: 1, p: 1, maxWidth: 320, maxHeight: 200, overflow: 'auto', borderRadius: 2, border: `1px solid ${HAIRLINE}`, boxShadow: WINDOW_SHADOW, zIndex: 10 }} elevation={0}>
                       <Stack direction="row" flexWrap="wrap" spacing={0.5} useFlexGap>
                         {EMOJIS.map(e => (
-                          <Typography key={e} sx={{ cursor: 'pointer', fontSize: 22, lineHeight: 1.4, '&:hover': { transform: 'scale(1.3)', transition: '0.15s' } }} onClick={() => insertEmoji(e)}>{e}</Typography>
+                          <Typography key={e} role="button" tabIndex={0} aria-label={`Insert ${e}`} sx={{ cursor: 'pointer', fontSize: 22, lineHeight: 1.4, '&:hover': { transform: 'scale(1.3)', transition: '0.15s' } }} onClick={() => insertEmoji(e)} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); insertEmoji(e) } }}>{e}</Typography>
                         ))}
                       </Stack>
                     </Paper>
@@ -999,63 +1382,66 @@ export default function ChatPage() {
                 </Box>
                 <Button variant="contained" onClick={handleSend}
                   disabled={sending || (!messageText.trim() && !fileInputRef.current?.files?.length) || !activeChannel}
-                  sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' }, minWidth: 40, px: 2, borderRadius: 2, height: 40 }}>
-                  {sending ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <SendIcon />}
+                  startIcon={sending ? <CircularProgress size={16} sx={{ color: WHITE }} /> : <SendIcon />}
+                  sx={{ bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP }, minWidth: 40, px: 2, borderRadius: 1, height: 40, textTransform: 'none', fontWeight: 700 }}>
+                  Send
                 </Button>
               </Stack>
             </Paper>
           </>
         ) : (
           /* Files tab */
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: '#fff' }}>
-            <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: WHITE }}>
+            <Box sx={{ p: 2, borderBottom: `1px solid ${HAIRLINE}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="subtitle2" fontWeight={700}>Shared Files</Typography>
-                <Chip label={sharedFiles.length} size="small" sx={{ height: 20, fontSize: 11 }} />
-                <IconButton size="small" onClick={() => setFilesViewMode('list')} sx={{ color: filesViewMode === 'list' ? '#0F4C81' : '#9CA3AF' }}>
+                <Typography variant="subtitle2" fontWeight={800} sx={{ fontSize: 14, color: INK }}>Shared files</Typography>
+                <Chip label={sharedFiles.length} size="small" sx={{ height: 20, fontSize: 11, bgcolor: 'rgba(15,76,129,0.08)', color: NAVY, fontWeight: 700 }} />
+                <IconButton size="small" aria-label="List view" onClick={() => setFilesViewMode('list')} sx={{ color: filesViewMode === 'list' ? NAVY : MIST, border: `1px solid ${filesViewMode === 'list' ? NAVY : HAIRLINE}`, '&:hover': { bgcolor: BONE } }}>
                   <ViewListIcon fontSize="small" />
                 </IconButton>
-                <IconButton size="small" onClick={() => setFilesViewMode('grid')} sx={{ color: filesViewMode === 'grid' ? '#0F4C81' : '#9CA3AF' }}>
+                <IconButton size="small" aria-label="Grid view" onClick={() => setFilesViewMode('grid')} sx={{ color: filesViewMode === 'grid' ? NAVY : MIST, border: `1px solid ${filesViewMode === 'grid' ? NAVY : HAIRLINE}`, '&:hover': { bgcolor: BONE } }}>
                   <GridViewIcon fontSize="small" />
                 </IconButton>
               </Stack>
-              <Button variant="outlined" size="small" component="label" startIcon={<AttachFileIcon />} disabled={uploadingFile}>
-                {uploadingFile ? 'Uploading...' : 'Upload File'}
+              <Button variant="outlined" size="small" component="label" startIcon={<AttachFileIcon />} disabled={uploadingFile}
+                sx={{ color: NAVY, borderColor: OUTLINE, textTransform: 'none', fontWeight: 700, '&:hover': { borderColor: NAVY } }}>
+                {uploadingFile ? 'Uploading...' : 'Upload file'}
                 <input type="file" ref={sharedFileInputRef} hidden onChange={handleSharedFileUpload} />
               </Button>
             </Box>
             <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
               {filesLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress size={24} /></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress size={24} sx={{ color: NAVY }} /></Box>
               ) : sharedFiles.length === 0 ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 1, py: 6 }}>
-                  <FileIcon sx={{ fontSize: 48, color: '#D1D5DB' }} />
-                  <Typography color="text.secondary">No shared files yet. Upload documents, policies, plans, and minutes for the team.</Typography>
+                  <FileIcon sx={{ fontSize: 48, color: HAIRLINE }} />
+                  <Typography sx={{ fontSize: 14, fontWeight: 700, color: INK }}>No shared files yet</Typography>
+                  <Typography sx={{ fontSize: 12.5, color: MIST, maxWidth: 360, textAlign: 'center', lineHeight: 1.5 }}>Upload documents, policies, plans, and minutes for the team.</Typography>
                 </Box>
               ) : filesViewMode === 'grid' ? (
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 2 }}>
                   {sharedFiles.map(f => {
                     const isImage = f.file_url?.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i)
                     return (
-                      <Paper key={f.id} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', cursor: 'pointer', position: 'relative', '&:hover': { boxShadow: 3, '& .download-overlay': { opacity: 1 } } }} onClick={() => openFilePreview(f.file_url, f.file_name)}>
-                        <Box sx={{ height: 140, bgcolor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                      <Paper key={f.id} variant="outlined" sx={{ borderRadius: 1.5, overflow: 'hidden', cursor: 'pointer', position: 'relative', borderColor: WINDOW_BORDER, '&:hover': { borderColor: NAVY, '& .download-overlay': { opacity: 1 } } }} onClick={() => openFilePreview(f.file_url, f.file_name)}>
+                        <Box sx={{ height: 140, bgcolor: BONE, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                           {isImage ? (
                             <SecureImg src={f.file_url} alt={f.file_name} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
-                            <FileIcon sx={{ fontSize: 48, color: '#9CA3AF' }} />
+                            <FileIcon sx={{ fontSize: 48, color: MIST }} />
                           )}
                         </Box>
-                        <IconButton className="download-overlay"
+                        <IconButton className="download-overlay" aria-label={`Download ${f.file_name}`}
                           onClick={(e) => { e.stopPropagation(); handleDownload(f.file_url, f.file_name) }}
-                          sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'rgba(255,255,255,0.9)', opacity: 0, transition: 'opacity 0.2s', '&:hover': { bgcolor: '#fff' } }}>
-                          <DownloadIcon fontSize="small" />
+                          sx={{ position: 'absolute', top: 4, right: 4, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, opacity: 0, transition: 'opacity 0.2s', '&:hover': { bgcolor: BONE } }}>
+                          <DownloadIcon fontSize="small" sx={{ color: NAVY }} />
                         </IconButton>
                         <Box sx={{ p: 1.25 }}>
-                          <Typography variant="body2" fontWeight={600} noWrap sx={{ fontSize: 13 }}>{f.file_name}</Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11, display: 'block' }}>
+                          <Typography variant="body2" fontWeight={700} noWrap sx={{ fontSize: 13, color: INK }}>{f.file_name}</Typography>
+                          <Typography variant="caption" sx={{ fontSize: 11, display: 'block', color: MIST }}>
                             {`${f.first_name || ''} ${f.last_name || ''}`.trim() || f.email || 'Unknown'}
                           </Typography>
-                          <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
+                          <Typography variant="caption" sx={{ fontSize: 10, color: MIST }}>
                             {f.file_size ? formatFileSize(f.file_size) : ''}{f.file_size && f.created_at ? ' · ' : ''}{f.created_at ? formatDate(f.created_at) : ''}
                           </Typography>
                         </Box>
@@ -1064,37 +1450,37 @@ export default function ChatPage() {
                   })}
                 </Box>
               ) : (
-                <TableContainer component={Paper} variant="outlined">
+                <TableContainer component={Paper} variant="outlined" sx={{ borderColor: WINDOW_BORDER }}>
                   <Table size="small">
-                    <TableHead>
+                    <TableHead sx={{ bgcolor: BONE }}>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Uploaded By</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Size</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+                        <TableCell sx={{ fontWeight: 800, fontSize: 12, color: INK }}>Name</TableCell>
+                        <TableCell sx={{ fontWeight: 800, fontSize: 12, color: INK }}>Uploaded by</TableCell>
+                        <TableCell sx={{ fontWeight: 800, fontSize: 12, color: INK }}>Size</TableCell>
+                        <TableCell sx={{ fontWeight: 800, fontSize: 12, color: INK }}>Date</TableCell>
+                        <TableCell sx={{ fontWeight: 800, fontSize: 12, color: INK }}>Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {sharedFiles.map(f => (
-                        <TableRow key={f.id} hover>
+                        <TableRow key={f.id} hover sx={{ '&:hover': { bgcolor: BONE } }}>
                           <TableCell>
                             <Stack direction="row" spacing={1} alignItems="center">
-                              <FileIcon sx={{ fontSize: 20, color: '#6B7280' }} />
+                              <FileIcon sx={{ fontSize: 20, color: NAVY }} />
                               <Typography variant="body2" component="a" onClick={() => openFilePreview(f.file_url, f.file_name)}
-                                sx={{ color: '#0F4C81', textDecoration: 'underline', fontWeight: 500, cursor: 'pointer' }}>
+                                sx={{ color: NAVY, textDecoration: 'underline', fontWeight: 600, cursor: 'pointer' }}>
                                 {f.file_name}
                               </Typography>
                             </Stack>
                           </TableCell>
-                          <TableCell>{`${f.first_name || ''} ${f.last_name || ''}`.trim() || f.email}</TableCell>
-                          <TableCell>{f.file_size ? formatFileSize(f.file_size) : '—'}</TableCell>
-                          <TableCell>{formatDate(f.created_at)}</TableCell>
+                          <TableCell sx={{ color: INK }}>{`${f.first_name || ''} ${f.last_name || ''}`.trim() || f.email}</TableCell>
+                          <TableCell sx={{ color: MIST }}>{f.file_size ? formatFileSize(f.file_size) : '—'}</TableCell>
+                          <TableCell sx={{ color: MIST }}>{formatDate(f.created_at)}</TableCell>
                           <TableCell>
-                            <IconButton size="small" onClick={() => handleDownload(f.file_url, f.file_name)}>
-                              <DownloadIcon fontSize="small" />
+                            <IconButton size="small" aria-label={`Download ${f.file_name}`} onClick={() => handleDownload(f.file_url, f.file_name)}>
+                              <DownloadIcon fontSize="small" sx={{ color: NAVY }} />
                             </IconButton>
-                            <IconButton size="small" color="error" onClick={() => handleDeleteSharedFile(f.id)}>
+                            <IconButton size="small" color="error" aria-label={`Delete ${f.file_name}`} onClick={() => handleDeleteSharedFile(f.id)}>
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </TableCell>
@@ -1108,22 +1494,22 @@ export default function ChatPage() {
           </Box>
         )}
       </Box>
+      </Paper>
 
       {/* File Preview Dialog */}
       <Dialog open={!!filePreview} onClose={() => { if (filePreview?.url.startsWith('blob:')) URL.revokeObjectURL(filePreview.url); setFilePreview(null); setFileTextContent(null) }} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: CHROME, borderBottom: `1px solid ${HAIRLINE}` }}>
           <Stack direction="row" spacing={1} alignItems="center">
-            <FileIcon />
-            <Typography variant="h6" fontWeight={700}>{filePreview?.name || 'File Preview'}</Typography>
+            <FileIcon sx={{ color: NAVY }} />
+            <Typography variant="h6" fontWeight={800} sx={{ fontSize: 16, color: INK }}>{filePreview?.name || 'File Preview'}</Typography>
           </Stack>
           <Stack direction="row" spacing={0.5}>
-            <IconButton component="a" href={filePreview?.url} download={filePreview?.name}><DownloadIcon /></IconButton>
-            <IconButton onClick={() => { if (filePreview?.url.startsWith('blob:')) URL.revokeObjectURL(filePreview.url); setFilePreview(null); setFileTextContent(null) }}>
-              <CloseIcon />
+            <IconButton component="a" href={filePreview?.url} download={filePreview?.name} aria-label="Download"><DownloadIcon sx={{ color: NAVY }} /></IconButton>
+            <IconButton onClick={() => { if (filePreview?.url.startsWith('blob:')) URL.revokeObjectURL(filePreview.url); setFilePreview(null); setFileTextContent(null) }} aria-label="Close preview">
             </IconButton>
           </Stack>
         </DialogTitle>
-        <DialogContent sx={{ minHeight: 400, display: 'flex', justifyContent: 'center', alignItems: 'center', bgcolor: '#F9FAFB' }}>
+        <DialogContent sx={{ minHeight: 400, display: 'flex', justifyContent: 'center', alignItems: 'center', bgcolor: BONE }}>
           {filePreview?.type === 'application/pdf' ? (
             <Box sx={{ width: '100%', height: '70vh' }}>
               <iframe src={filePreview.url} title={filePreview.name} width="100%" height="100%" style={{ border: 'none' }} />
@@ -1132,16 +1518,16 @@ export default function ChatPage() {
             <Box component="img" src={filePreview.url} alt={filePreview.name}
               sx={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 1 }} />
           ) : fileTextContent !== null ? (
-            <Box sx={{ width: '100%', height: '70vh', overflow: 'auto', bgcolor: '#1F2937', borderRadius: 1, p: 2 }}>
+            <Box sx={{ width: '100%', height: '70vh', overflow: 'auto', bgcolor: INK, borderRadius: 1, p: 2 }}>
               <pre style={{ color: '#E5E7EB', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: '"Fira Code","Consolas","Monaco","Courier New",monospace', fontSize: 13, lineHeight: 1.5 }}>
                 {fileTextContent}
               </pre>
             </Box>
           ) : (
             <Stack spacing={2} alignItems="center">
-              <FileIcon sx={{ fontSize: 64, color: '#9CA3AF' }} />
-              <Typography color="text.secondary">Preview not available for this file type</Typography>
-              <Button variant="contained" component="a" href={filePreview?.url} download={filePreview?.name} startIcon={<DownloadIcon />}>
+              <FileIcon sx={{ fontSize: 64, color: MIST }} />
+              <Typography sx={{ color: MIST }}>Preview not available for this file type</Typography>
+              <Button variant="contained" component="a" href={filePreview?.url} download={filePreview?.name} startIcon={<DownloadIcon />} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP } }}>
                 Download
               </Button>
             </Stack>
@@ -1151,50 +1537,50 @@ export default function ChatPage() {
 
       {/* Create Group Dialog */}
       <Dialog open={groupDialog} onClose={() => setGroupDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, bgcolor: '#FAFBFC' }}>Create Group</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, bgcolor: CHROME, borderBottom: `1px solid ${HAIRLINE}`, fontSize: 16, color: INK }}>Create group</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Stack spacing={2.5}>
-            <TextField label="Group Name" fullWidth size="small" value={groupName} onChange={e => setGroupName(e.target.value)} helperText="Give your group a descriptive name" />
+            <TextField label="Group name" fullWidth size="small" value={groupName} onChange={e => setGroupName(e.target.value)} helperText="Give your group a descriptive name" />
             <Autocomplete multiple options={orgMembers.filter(m => m.id !== currentUserId)}
               getOptionLabel={(o) => `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email}
               value={groupMembers} onChange={(_, v) => setGroupMembers(v)}
-              renderInput={(params) => <TextField {...params} label="Add Members" size="small" helperText="Select team members to add" />}
+              renderInput={(params) => <TextField {...params} label="Add members" size="small" helperText="Select team members to add" />}
               renderOption={(props, option) => (
                 <li {...props} key={option.id}>
                   <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Avatar sx={{ width: 28, height: 28, fontSize: 12, bgcolor: '#7C3AED' }}>{(option.first_name?.[0] || option.email?.[0] || '?').toUpperCase()}</Avatar>
-                    <Box><Typography variant="body2" fontWeight={600}>{`${option.first_name || ''} ${option.last_name || ''}`.trim() || option.email}</Typography><Typography variant="caption" color="text.secondary">{option.role}</Typography></Box>
+                    <Avatar sx={{ width: 28, height: 28, fontSize: 12, bgcolor: BONE, color: NAVY, border: `1px solid ${HAIRLINE}` }}>{(option.first_name?.[0] || option.email?.[0] || '?').toUpperCase()}</Avatar>
+                    <Box><Typography variant="body2" fontWeight={600} sx={{ color: INK }}>{`${option.first_name || ''} ${option.last_name || ''}`.trim() || option.email}</Typography><Typography variant="caption" sx={{ color: MIST }}>{option.role}</Typography></Box>
                   </Stack>
                 </li>
               )} />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setGroupDialog(false)} color="inherit">Cancel</Button>
-          <Button variant="contained" disabled={groupCreating || !groupName.trim()} onClick={handleCreateGroup} sx={{ bgcolor: '#7C3AED', '&:hover': { bgcolor: '#6D28D9' } }}>
-            {groupCreating ? 'Creating...' : 'Create Group'}
+          <Button onClick={() => setGroupDialog(false)} sx={{ color: MIST, fontWeight: 700 }}>Cancel</Button>
+          <Button variant="contained" disabled={groupCreating || !groupName.trim()} onClick={handleCreateGroup} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP }, fontWeight: 700 }}>
+            {groupCreating ? 'Creating...' : 'Create group'}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* DM Dialog */}
       <Dialog open={dmDialog} onClose={() => setDmDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, bgcolor: '#FAFBFC' }}>New Message</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, bgcolor: CHROME, borderBottom: `1px solid ${HAIRLINE}`, fontSize: 16, color: INK }}>New message</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Stack spacing={2}>
-            <Typography variant="body2" color="text.secondary">Select a colleague to start a direct conversation</Typography>
+            <Typography variant="body2" sx={{ color: MIST }}>Select a colleague to start a direct conversation</Typography>
             <Autocomplete options={orgMembers.filter(m => m.id !== currentUserId)}
               getOptionLabel={(o) => `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email}
               onChange={(_, v) => { if (v) handleStartDM(v.id) }}
               renderOption={(props, option) => (
                 <li {...props} key={option.id}>
                   <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Avatar sx={{ width: 28, height: 28, fontSize: 12, bgcolor: '#D97706' }}>{(option.first_name?.[0] || option.email?.[0] || '?').toUpperCase()}</Avatar>
+                    <Avatar sx={{ width: 28, height: 28, fontSize: 12, bgcolor: BONE, color: NAVY, border: `1px solid ${HAIRLINE}` }}>{(option.first_name?.[0] || option.email?.[0] || '?').toUpperCase()}</Avatar>
                     <Box>
-                      <Typography variant="body2" fontWeight={600}>{`${option.first_name || ''} ${option.last_name || ''}`.trim() || option.email}</Typography>
-                      <Typography variant="caption" color="text.secondary">{option.role}</Typography>
+                      <Typography variant="body2" fontWeight={600} sx={{ color: INK }}>{`${option.first_name || ''} ${option.last_name || ''}`.trim() || option.email}</Typography>
+                      <Typography variant="caption" sx={{ color: MIST }}>{option.role}</Typography>
                     </Box>
-                    {onlineUsers.has(option.id) && <Chip label="Online" size="small" sx={{ height: 18, fontSize: 10, bgcolor: '#DCFCE7', color: '#166534' }} />}
+                    {onlineUsers.has(option.id) && <Chip label="Online" size="small" sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(16,185,129,0.12)', color: EMERALD_DEEP, fontWeight: 700 }} />}
                   </Stack>
                 </li>
               )}
@@ -1202,38 +1588,38 @@ export default function ChatPage() {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setDmDialog(false)} color="inherit">Cancel</Button>
+          <Button onClick={() => setDmDialog(false)} sx={{ color: MIST, fontWeight: 700 }}>Cancel</Button>
         </DialogActions>
       </Dialog>
 
       {/* Members Dialog - only for groups/general */}
       <Dialog open={showMembers} onClose={() => setShowMembers(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, bgcolor: '#FAFBFC' }}>
+        <DialogTitle sx={{ fontWeight: 800, bgcolor: CHROME, borderBottom: `1px solid ${HAIRLINE}` }}>
           <Stack direction="row" alignItems="center" spacing={1}>
-            <GroupsIcon /><Typography variant="h6" fontWeight={700}>{activeChannelName}</Typography>
-            <Chip label={`${channelMembers.length} members`} size="small" sx={{ ml: 1 }} />
+            <GroupsIcon sx={{ color: NAVY }} /><Typography variant="h6" fontWeight={800} sx={{ fontSize: 16, color: INK }}>{activeChannelName}</Typography>
+            <Chip label={`${channelMembers.length} members`} size="small" sx={{ ml: 1, bgcolor: 'rgba(15,76,129,0.08)', color: NAVY, fontWeight: 700, fontSize: 11 }} />
           </Stack>
         </DialogTitle>
         <DialogContent sx={{ p: 0 }}>
           <List sx={{ py: 0 }}>
             {channelMembers.map((m: any) => (
-              <ListItemButton key={m.user_id} sx={{ borderRadius: 0, px: 3, py: 1.5, '&:hover': { bgcolor: '#F9FAFB' } }}
+              <ListItemButton key={m.user_id} sx={{ borderRadius: 0, px: 3, py: 1.5, borderBottom: `1px solid ${HAIRLINE}`, '&:hover': { bgcolor: BONE } }}
                 onContextMenu={(e) => { e.preventDefault(); setMemberMenu({ anchorEl: e.currentTarget, member: m }) }}>
                 <ListItemAvatar>
                   <Badge overlap="circular" anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                    badgeContent={onlineUsers.has(m.user_id) ? <Box sx={{ width: 10, height: 10, bgcolor: '#22C55E', borderRadius: '50%', border: '2px solid #fff' }} /> : null}>
-                    <Avatar sx={{ width: 38, height: 38, fontSize: 14, bgcolor: m.user_id === currentUserId ? '#0F4C81' : '#7C3AED' }}>
+                    badgeContent={onlineUsers.has(m.user_id) ? <Box sx={{ width: 10, height: 10, bgcolor: EMERALD, borderRadius: '50%', border: `2px solid ${WHITE}` }} /> : null}>
+                    <Avatar sx={{ width: 38, height: 38, fontSize: 14, bgcolor: m.user_id === currentUserId ? NAVY : BONE, color: m.user_id === currentUserId ? WHITE : NAVY, border: `1px solid ${m.user_id === currentUserId ? NAVY_DEEP : HAIRLINE}` }}>
                       {(m.first_name?.[0] || m.email?.[0] || '?').toUpperCase()}
                     </Avatar>
                   </Badge>
                 </ListItemAvatar>
                 <ListItemText
-                  primary={<Stack direction="row" spacing={1} alignItems="center"><Typography fontWeight={600} sx={{ fontSize: 14 }}>{`${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email}</Typography>{onlineUsers.has(m.user_id) && <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22C55E' }} />}</Stack>}
+                  primary={<Stack direction="row" spacing={1} alignItems="center"><Typography fontWeight={700} sx={{ fontSize: 14, color: INK }}>{`${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email}</Typography>{onlineUsers.has(m.user_id) && <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: EMERALD }} />}</Stack>}
                   secondary={m.user_id === currentUserId ? 'You · ' + m.role : m.role}
-                  secondaryTypographyProps={{ fontSize: 12 }} />
+                  secondaryTypographyProps={{ fontSize: 12, sx: { color: MIST } }} />
                 {m.user_id !== currentUserId && (
-                  <Tooltip title="Send Message">
-                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleStartDM(m.user_id); setShowMembers(false) }}>
+                  <Tooltip title="Send message">
+                    <IconButton size="small" aria-label={`Send message to ${`${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email}`} onClick={(e) => { e.stopPropagation(); handleStartDM(m.user_id); setShowMembers(false) }} sx={{ color: NAVY, border: `1px solid ${HAIRLINE}`, '&:hover': { bgcolor: BONE } }}>
                       <ForumIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -1242,29 +1628,70 @@ export default function ChatPage() {
             ))}
           </List>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowMembers(false)} color="inherit">Close</Button>
+        <DialogActions sx={{ p: 1.5 }}>
+          {activeChannelType === 'group' && (
+            <Button onClick={() => { setShowMembers(false); setLeaveConfirmOpen(true) }} size="small" sx={{ color: DANGER, fontWeight: 700 }}>
+              Leave group
+            </Button>
+          )}
+          <Box sx={{ flex: 1 }} />
+          <Button onClick={() => setShowMembers(false)} sx={{ color: MIST, fontWeight: 700 }}>Close</Button>
         </DialogActions>
       </Dialog>
 
       {/* Member context menu */}
-      <Menu anchorEl={memberMenu?.anchorEl} open={!!memberMenu} onClose={() => setMemberMenu(null)}>
+      <Menu anchorEl={memberMenu?.anchorEl} open={!!memberMenu} onClose={() => setMemberMenu(null)}
+        slotProps={{ paper: { sx: { border: `1px solid ${HAIRLINE}`, boxShadow: WINDOW_SHADOW } } }}>
         <MenuItem onClick={() => { if (memberMenu) { handleStartDM(memberMenu.member.user_id); setShowMembers(false); setMemberMenu(null) } }}>
-          <ForumIcon sx={{ mr: 1, fontSize: 18 }} /> Send Message
+          <ForumIcon sx={{ mr: 1, fontSize: 18, color: NAVY }} /> Send message
         </MenuItem>
         {memberMenu?.member?.user_id !== currentUserId && activeChannelType !== 'dm' && (
-          <MenuItem onClick={() => { setRemoveConfirm(memberMenu!.member.user_id); setMemberMenu(null) }} sx={{ color: '#DC2626' }}>
-            <CloseIcon sx={{ mr: 1, fontSize: 18 }} /> Remove from Group
+          <MenuItem onClick={() => { setRemoveConfirm(memberMenu!.member.user_id); setMemberMenu(null) }} sx={{ color: DANGER }}>
+            <CloseIcon sx={{ mr: 1, fontSize: 18 }} /> Remove from group
           </MenuItem>
         )}
       </Menu>
 
+      {/* Reaction picker */}
+      <Menu anchorEl={reactionPickerAnchor} open={!!reactionPickerFor} onClose={() => { setReactionPickerFor(null); setReactionPickerAnchor(null) }}
+        slotProps={{ paper: { sx: { maxWidth: 260, p: 0.75, borderRadius: 2, border: `1px solid ${HAIRLINE}`, boxShadow: WINDOW_SHADOW } } }}>
+        <Stack direction="row" flexWrap="wrap" spacing={0.25} useFlexGap sx={{ maxHeight: 160, overflow: 'auto' }}>
+          {EMOJIS.map(e => (
+            <Typography key={e} role="button" tabIndex={0} aria-label={`React with ${e}`} sx={{ cursor: 'pointer', fontSize: 20, lineHeight: 1.4, '&:hover': { transform: 'scale(1.3)', transition: '0.12s' } }}
+              onClick={() => { if (reactionPickerFor) { const msg = messages.find(m => m.id === reactionPickerFor); if (msg) handleToggleReaction(msg, e) } }}
+              onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); if (reactionPickerFor) { const msg = messages.find(m => m.id === reactionPickerFor); if (msg) handleToggleReaction(msg, e) } } }}>
+              {e}
+            </Typography>
+          ))}
+        </Stack>
+      </Menu>
+
+      {/* Delete message confirm */}
+      <Dialog open={!!deleteConfirmMsg} onClose={() => setDeleteConfirmMsg(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: 16, color: INK }}>Delete message</DialogTitle>
+        <DialogContent><Alert severity="warning">Delete this message for everyone? This cannot be undone.</Alert></DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmMsg(null)} sx={{ color: MIST, fontWeight: 700 }}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={confirmDeleteMessage}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Leave group confirm */}
+      <Dialog open={leaveConfirmOpen} onClose={() => setLeaveConfirmOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: 16, color: INK }}>Leave group</DialogTitle>
+        <DialogContent><Alert severity="warning">Are you sure you want to leave this group? You will no longer see its messages.</Alert></DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLeaveConfirmOpen(false)} sx={{ color: MIST, fontWeight: 700 }}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleLeaveGroup}>Leave</Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Remove confirm */}
       <Dialog open={!!removeConfirm} onClose={() => setRemoveConfirm(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Remove Member</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: 16, color: INK }}>Remove member</DialogTitle>
         <DialogContent><Alert severity="warning">Are you sure you want to remove this member from the group?</Alert></DialogContent>
         <DialogActions>
-          <Button onClick={() => setRemoveConfirm(null)} color="inherit">Cancel</Button>
+          <Button onClick={() => setRemoveConfirm(null)} sx={{ color: MIST, fontWeight: 700 }}>Cancel</Button>
           <Button variant="contained" color="error" onClick={() => handleRemoveMember(removeConfirm!)}>Remove</Button>
         </DialogActions>
       </Dialog>

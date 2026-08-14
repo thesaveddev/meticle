@@ -1,17 +1,50 @@
+import { getRedisClient } from '../redis';
+
 interface RateLimitEntry {
   count: number;
   resetAt: number;
 }
 
-const connectionLimits = new Map<string, RateLimitEntry>();
-const eventLimits = new Map<string, RateLimitEntry>();
+const inMemoryConn = new Map<string, RateLimitEntry>();
+const inMemoryEvt = new Map<string, RateLimitEntry>();
 
 const CONNECTION_WINDOW_MS = 60_000;
-const CONNECTION_MAX = 20;
 const EVENT_WINDOW_MS = 60_000;
-const EVENT_MAX = 120;
 
-function isRateLimited(store: Map<string, RateLimitEntry>, key: string, max: number, windowMs: number): boolean {
+// Configurable via env so ops can tune per deployment without code changes.
+const CONNECTION_MAX = parseInt(process.env.SOCKET_CONNECTION_LIMIT || '100', 10);
+const EVENT_MAX = parseInt(process.env.SOCKET_EVENT_LIMIT || '300', 10);
+
+// Periodic cleanup to prevent memory leaks (unref'd so it never keeps the process alive)
+const cleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of inMemoryConn) {
+    if (now > entry.resetAt) inMemoryConn.delete(key);
+  }
+  for (const [key, entry] of inMemoryEvt) {
+    if (now > entry.resetAt) inMemoryEvt.delete(key);
+  }
+}, 120_000);
+cleanup.unref();
+
+type RedisResult = 'ok' | 'reject' | null;
+
+async function redisCheck(key: string, max: number, windowMs: number): Promise<RedisResult> {
+  const client = await getRedisClient();
+  if (!client) return null;
+  try {
+    const multi = client.multi();
+    multi.incr(key);
+    multi.pTTL(key);
+    const [count, ttl] = await multi.exec() as [number, number];
+    if (ttl < 0) await client.pExpire(key, windowMs);
+    return count > max ? 'reject' : 'ok';
+  } catch {
+    return null;
+  }
+}
+
+function inMemoryCheck(store: Map<string, RateLimitEntry>, key: string, max: number, windowMs: number): boolean {
   const now = Date.now();
   const entry = store.get(key);
   if (!entry || now > entry.resetAt) {
@@ -19,25 +52,19 @@ function isRateLimited(store: Map<string, RateLimitEntry>, key: string, max: num
     return false;
   }
   entry.count++;
-  if (entry.count > max) return true;
-  return false;
+  return entry.count > max;
 }
 
-// Periodic cleanup to prevent memory leaks
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of connectionLimits) {
-    if (now > entry.resetAt) connectionLimits.delete(key);
-  }
-  for (const [key, entry] of eventLimits) {
-    if (now > entry.resetAt) eventLimits.delete(key);
-  }
-}, 120_000);
-
-export function checkConnectionLimit(ip: string): boolean {
-  return isRateLimited(connectionLimits, ip, CONNECTION_MAX, CONNECTION_WINDOW_MS);
+export async function checkConnectionLimit(key: string): Promise<boolean> {
+  const redisResult = await redisCheck(`sio:conn:${key}`, CONNECTION_MAX, CONNECTION_WINDOW_MS);
+  if (redisResult === 'reject') return true;
+  if (redisResult === 'ok') return false;
+  return inMemoryCheck(inMemoryConn, key, CONNECTION_MAX, CONNECTION_WINDOW_MS);
 }
 
-export function checkEventLimit(userId: string): boolean {
-  return isRateLimited(eventLimits, userId, EVENT_MAX, EVENT_WINDOW_MS);
+export async function checkEventLimit(userId: string): Promise<boolean> {
+  const redisResult = await redisCheck(`sio:evt:${userId}`, EVENT_MAX, EVENT_WINDOW_MS);
+  if (redisResult === 'reject') return true;
+  if (redisResult === 'ok') return false;
+  return inMemoryCheck(inMemoryEvt, userId, EVENT_MAX, EVENT_WINDOW_MS);
 }

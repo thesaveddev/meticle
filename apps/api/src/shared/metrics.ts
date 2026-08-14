@@ -17,8 +17,72 @@ const httpRequestTotal = new client.Counter({
   labelNames: ['method', 'route', 'status_code'],
 });
 
+const socketConnectionsTotal = new client.Counter({
+  name: 'socket_connections_total',
+  help: 'Total number of socket connections',
+  labelNames: ['transport'],
+});
+
+const socketDisconnectionsTotal = new client.Counter({
+  name: 'socket_disconnections_total',
+  help: 'Total number of socket disconnections',
+  labelNames: ['reason'],
+});
+
+const socketEventsTotal = new client.Counter({
+  name: 'socket_events_total',
+  help: 'Total number of socket events received',
+  labelNames: ['event'],
+});
+
+const socketErrorsTotal = new client.Counter({
+  name: 'socket_errors_total',
+  help: 'Total number of socket errors',
+  labelNames: ['kind'],
+});
+
+const socketActiveConnections = new client.Gauge({
+  name: 'socket_active_connections',
+  help: 'Current number of active socket connections',
+});
+
+const socketPresence = new client.Gauge({
+  name: 'socket_online_users',
+  help: 'Current number of online users',
+});
+
 register.registerMetric(httpRequestDuration);
 register.registerMetric(httpRequestTotal);
+register.registerMetric(socketConnectionsTotal);
+register.registerMetric(socketDisconnectionsTotal);
+register.registerMetric(socketEventsTotal);
+register.registerMetric(socketErrorsTotal);
+register.registerMetric(socketActiveConnections);
+register.registerMetric(socketPresence);
+
+export function recordSocketConnection(transport: string) {
+  socketConnectionsTotal.labels(transport).inc();
+}
+
+export function recordSocketDisconnection(reason: string) {
+  socketDisconnectionsTotal.labels(reason).inc();
+}
+
+export function recordSocketEvent(event: string) {
+  socketEventsTotal.labels(event).inc();
+}
+
+export function recordSocketError(kind: string) {
+  socketErrorsTotal.labels(kind).inc();
+}
+
+export function setSocketActiveConnections(count: number) {
+  socketActiveConnections.set(count);
+}
+
+export function setSocketOnlineUsers(count: number) {
+  socketPresence.set(count);
+}
 
 export function metricsMiddleware(req: any, res: any, next: any) {
   const start = process.hrtime.bigint();

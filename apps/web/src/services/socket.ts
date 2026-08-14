@@ -5,6 +5,7 @@ let socket: Socket | null = null
 let reconnectCallbacks: Array<() => void> = []
 let getToken: () => string | null = () => localStorage.getItem('accessToken')
 let lastAuthRetry = 0
+let hasConnected = false
 
 export function onReconnect(cb: () => void) {
   reconnectCallbacks.push(cb)
@@ -30,6 +31,12 @@ function isAuthError(message: string): boolean {
   return /token|authenticat|permissions changed|revoked|deactivated|no longer exists|invalid/i.test(message || '')
 }
 
+function resumeIfDisconnected() {
+  if (socket && !socket.connected) {
+    socket.connect()
+  }
+}
+
 export function connectSocket(tokenProvider: (() => string | null) | null = null): Socket {
   if (socket?.connected) return socket
   getToken = tokenProvider || (() => localStorage.getItem('accessToken'))
@@ -45,7 +52,12 @@ export function connectSocket(tokenProvider: (() => string | null) | null = null
     reconnectionDelayMax: 5000,
   })
   socket.on('connect', () => {
-    reconnectCallbacks.forEach(cb => cb())
+    // Only fire reconnect callbacks after a genuine reconnect — the first
+    // connection should not re-trigger data reloads for every mounted page.
+    if (hasConnected) {
+      reconnectCallbacks.forEach(cb => { try { cb() } catch { /* keep going */ } })
+    }
+    hasConnected = true
   })
   socket.on('connect_error', async (err) => {
     console.warn('[socket] connect error:', err.message)
@@ -56,7 +68,8 @@ export function connectSocket(tokenProvider: (() => string | null) | null = null
     lastAuthRetry = now
     const fresh = await refreshAccessToken()
     if (fresh && socket) {
-      socket.auth = { token: fresh }
+      // auth is functional (getToken reads the fresh token from localStorage),
+      // so a simple reconnect is enough — do not overwrite socket.auth.
       socket.disconnect()
       socket.connect()
     }
@@ -64,6 +77,13 @@ export function connectSocket(tokenProvider: (() => string | null) | null = null
   socket.on('disconnect', (reason) => {
     console.warn('[socket] disconnected:', reason)
   })
+
+  // Resume the connection when the tab becomes visible again (mobile sleep,
+  // backgrounded tabs, etc.) instead of relying solely on the reconnect backoff.
+  if (!import.meta.env.SSR && typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', resumeIfDisconnected)
+  }
+
   return socket
 }
 
@@ -73,7 +93,11 @@ export function disconnectSocket() {
     socket.disconnect()
     socket = null
   }
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', resumeIfDisconnected)
+  }
   reconnectCallbacks = []
+  hasConnected = false
 }
 
 export function getSocket(): Socket | null {
