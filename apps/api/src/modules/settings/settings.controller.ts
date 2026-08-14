@@ -532,11 +532,12 @@ export class SettingsController {
   static async calculateStaffEntitlement(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
     const org = await pool.query(
-      `SELECT base_leave_hours, base_contracted_hours FROM organizations WHERE id = $1`,
+      `SELECT base_leave_hours, base_contracted_hours, default_hours_per_leave_day FROM organizations WHERE id = $1`,
       [orgId]
     );
     const baseLeaveHours = parseFloat(org.rows[0].base_leave_hours) || 240;
     const baseContractedHours = parseFloat(org.rows[0].base_contracted_hours) || 40;
+    const hoursPerLeaveDay = parseFloat(org.rows[0].default_hours_per_leave_day) || 7.5;
 
     const staff = await pool.query(
       `SELECT sp.id as staff_id, sp.user_id, sp.contracted_hours_weekly,
@@ -557,7 +558,7 @@ export class SettingsController {
       const contractedHours = parseFloat(s.contracted_hours_weekly) || 37.5;
       const ratio = contractedHours / baseContractedHours;
       for (const lt of leaveTypes.rows) {
-        const allocatedHours = Math.round((lt.hours_allowed || lt.days_allowed * 7.5) * ratio);
+        const allocatedHours = Math.round((lt.hours_allowed || lt.days_allowed * hoursPerLeaveDay) * ratio);
         const allocatedDays = lt.duration_type === 'days' ? Math.round((lt.days_allowed || 0) * ratio) : 0;
         await pool.query(
           `INSERT INTO leave_balances (staff_id, leave_type_id, year, days_allocated, hours_allocated)

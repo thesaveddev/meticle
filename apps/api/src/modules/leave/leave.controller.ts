@@ -30,16 +30,16 @@ export class LeaveController {
 
   static async createLeaveType(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
-    const { name, color, days_allowed, hours_allowed, duration_type } = req.body;
+    const { name, color, days_allowed, hours_allowed, duration_type, is_paid, requires_approval } = req.body;
     await LeaveController.assertLeaveTotalsMatch(orgId!, {
       days_allowed: days_allowed ?? 0,
       hours_allowed: hours_allowed ?? 0,
       duration_type: duration_type || 'days',
     });
     const result = await pool.query(
-      `INSERT INTO leave_types (organization_id, name, color, days_allowed, hours_allowed, duration_type)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [orgId, name, color || '#0F4C81', days_allowed || 0, hours_allowed || 0, duration_type || 'days']
+      `INSERT INTO leave_types (organization_id, name, color, days_allowed, hours_allowed, duration_type, is_paid, requires_approval)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [orgId, name, color || '#0F4C81', days_allowed || 0, hours_allowed || 0, duration_type || 'days', is_paid ?? true, requires_approval ?? true]
     );
     res.status(201).json(result.rows[0]);
   }
@@ -47,7 +47,7 @@ export class LeaveController {
   static async updateLeaveType(req: Request, res: Response) {
     const user = req.user!;
     const { id } = req.params;
-    const { name, color, days_allowed, hours_allowed, duration_type } = req.body;
+    const { name, color, days_allowed, hours_allowed, duration_type, is_paid, requires_approval } = req.body;
     const current = await pool.query('SELECT * FROM leave_types WHERE id = $1 AND organization_id = $2', [id, user.organizationId]);
     if (current.rows.length === 0) throw new AppError(404, 'Leave type not found');
     await LeaveController.assertLeaveTotalsMatch(user.organizationId!, {
@@ -58,8 +58,10 @@ export class LeaveController {
     const result = await pool.query(
       `UPDATE leave_types SET name = COALESCE($1, name), color = COALESCE($2, color),
        days_allowed = COALESCE($3, days_allowed), hours_allowed = COALESCE($4, hours_allowed),
-       duration_type = COALESCE($5, duration_type) WHERE id = $6 AND organization_id = $7 RETURNING *`,
-      [name, color, days_allowed, hours_allowed, duration_type, id, user.organizationId]
+       duration_type = COALESCE($5, duration_type),
+       is_paid = COALESCE($6, is_paid), requires_approval = COALESCE($7, requires_approval)
+       WHERE id = $8 AND organization_id = $9 RETURNING *`,
+      [name, color, days_allowed, hours_allowed, duration_type, is_paid, requires_approval, id, user.organizationId]
     );
     res.json(result.rows[0]);
   }
@@ -111,6 +113,79 @@ export class LeaveController {
 
   private static round(n: number) {
     return Math.round(n * 100) / 100;
+  }
+
+  /**
+   * Normalise a DATE value (JS Date from pg, or 'YYYY-MM-DD' string) to a
+   * plain 'YYYY-MM-DD' string using local getters so day counts and year
+   * lookups are stable across timezones.
+   */
+  private static ymd(d: any): string {
+    if (typeof d === 'string') return d.slice(0, 10);
+    if (d instanceof Date && !Number.isNaN(d.getTime())) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    return String(d);
+  }
+
+  /**
+   * Inclusive day count for a request. Dates are parsed as local YYYY-MM-DD
+   * (rather than UTC midnight) so the count is stable across timezones.
+   */
+  private static durationDays(leave: { start_date: any; end_date: any }) {
+    const start = new Date(`${LeaveController.ymd(leave.start_date)}T00:00:00`);
+    const end = new Date(`${LeaveController.ymd(leave.end_date)}T00:00:00`);
+    return Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1;
+  }
+
+  /** Increment a staff member's balance after a request is approved. */
+  private static async applyApprovedBalance(client: any, leave: any) {
+    const startYear = new Date(`${LeaveController.ymd(leave.start_date)}T00:00:00`).getFullYear();
+    if (leave.duration_type === 'hours') {
+      await client.query(
+        `INSERT INTO leave_balances (staff_id, leave_type_id, year, days_allocated, days_taken, hours_allocated, hours_taken)
+         VALUES ($1, $2, $3, 0, 0, 0, $4)
+         ON CONFLICT (staff_id, leave_type_id, year)
+         DO UPDATE SET hours_taken = leave_balances.hours_taken + $4`,
+        [leave.staff_id, leave.leave_type_id, startYear, leave.hours_requested]
+      );
+    } else {
+      const days = LeaveController.durationDays(leave);
+      await client.query(
+        `INSERT INTO leave_balances (staff_id, leave_type_id, year, days_allocated, days_taken, hours_allocated, hours_taken)
+         VALUES ($1, $2, $3, 0, $4, 0, 0)
+         ON CONFLICT (staff_id, leave_type_id, year)
+         DO UPDATE SET days_taken = leave_balances.days_taken + $4`,
+        [leave.staff_id, leave.leave_type_id, startYear, days]
+      );
+    }
+    await client.query(
+      'UPDATE staff_profiles SET is_on_leave = TRUE, on_leave_until = $1 WHERE id = $2',
+      [leave.end_date, leave.staff_id]
+    );
+  }
+
+  /** Reverse a previously-applied balance increment (reject / cancel). */
+  private static async reverseApprovedBalance(client: any, leave: any) {
+    const startYear = new Date(`${LeaveController.ymd(leave.start_date)}T00:00:00`).getFullYear();
+    if (leave.hours_requested && leave.duration_type === 'hours') {
+      await client.query(
+        `UPDATE leave_balances SET hours_taken = GREATEST(0, leave_balances.hours_taken - $1)
+         WHERE staff_id = $2 AND leave_type_id = $3 AND year = $4`,
+        [leave.hours_requested, leave.staff_id, leave.leave_type_id, startYear]
+      );
+    } else {
+      const days = LeaveController.durationDays(leave);
+      await client.query(
+        `UPDATE leave_balances SET days_taken = GREATEST(0, leave_balances.days_taken - $1)
+         WHERE staff_id = $2 AND leave_type_id = $3 AND year = $4`,
+        [days, leave.staff_id, leave.leave_type_id, startYear]
+      );
+    }
+    await client.query(
+      'UPDATE staff_profiles SET is_on_leave = FALSE, on_leave_until = NULL WHERE id = $1',
+      [leave.staff_id]
+    );
   }
 
   static async getMyLeaveRequests(req: Request, res: Response) {
@@ -172,6 +247,14 @@ export class LeaveController {
     if (profile.rows.length === 0) throw new AppError(404, 'Staff profile not found');
     const staffId = profile.rows[0].id;
     const contractedHours = parseFloat(profile.rows[0].contracted_hours_weekly) || 37.5;
+
+    const leaveTypeRes = await pool.query(
+      'SELECT name, requires_approval FROM leave_types WHERE id = $1 AND organization_id = $2',
+      [leave_type_id, req.user!.organizationId]
+    );
+    if (leaveTypeRes.rows.length === 0) throw new AppError(404, 'Leave type not found');
+    const leaveTypeName = leaveTypeRes.rows[0].name;
+    const autoApprove = leaveTypeRes.rows[0].requires_approval === false;
 
     if (new Date(end_date) < new Date(start_date)) {
       throw new AppError(400, 'End date must be after start date');
@@ -263,10 +346,38 @@ export class LeaveController {
     );
 
     const staffName = `${profile.rows[0]?.first_name || ''} ${profile.rows[0]?.last_name || ''}`.trim();
-    const leaveTypeRes = await pool.query('SELECT name FROM leave_types WHERE id = $1', [leave_type_id]);
-    const leaveTypeName = leaveTypeRes.rows[0]?.name || 'Leave';
-    const startDate = new Date(start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    const endDate = new Date(end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const startDate = new Date(`${start_date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const endDate = new Date(`${end_date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    if (autoApprove) {
+      // requires_approval=false: approve immediately (balance + is_on_leave) and
+      // notify the staff member instead of a reviewer.
+      await transaction(async (client) => {
+        await client.query(
+          `UPDATE leave_requests SET status = 'approved', reviewed_at = CURRENT_TIMESTAMP
+           WHERE id = $1 RETURNING *`,
+          [result.rows[0].id]
+        );
+        await LeaveController.applyApprovedBalance(client, result.rows[0]);
+      });
+      const approved = await pool.query('SELECT * FROM leave_requests WHERE id = $1', [result.rows[0].id]);
+      await NotificationsController.createNotification(
+        req.user!.userId, 'Leave Approved',
+        `Your ${leaveTypeName} leave from ${startDate} to ${endDate} has been approved.`, 'success'
+      ).catch(logWarn('auto-approved leave notification'));
+      EmailService.sendLeaveApprovedEmail(req.user!.email, staffName || 'Staff', leaveTypeName, startDate, endDate).catch(logWarn('auto-approved leave email'));
+      AuditRepository.log({
+        user_id: userId,
+        action: 'APPROVE_LEAVE',
+        entity_type: 'leave_request',
+        entity_id: result.rows[0].id,
+        old_data: { status: 'pending' },
+        new_data: { status: 'approved', auto: true },
+        ip_address: req.ip,
+      }).catch(logWarn('audit auto-approved leave'));
+      res.status(201).json(approved.rows[0]);
+      return;
+    }
 
     if (notifyUserId) {
       NotificationsController.createNotification(
@@ -343,52 +454,7 @@ export class LeaveController {
       );
 
       if (status === 'approved') {
-        const leave = updateResult.rows[0];
-        const startYear = new Date(leave.start_date).getFullYear();
-        if (leave.duration_type === 'hours') {
-          await client.query(
-            `INSERT INTO leave_balances (staff_id, leave_type_id, year, days_allocated, days_taken, hours_allocated, hours_taken)
-             VALUES ($1, $2, $3, 0, 0, 0, $4)
-             ON CONFLICT (staff_id, leave_type_id, year)
-             DO UPDATE SET hours_taken = leave_balances.hours_taken + $4`,
-            [leave.staff_id, leave.leave_type_id, startYear, leave.hours_requested]
-          );
-        } else {
-          const days = Math.ceil((new Date(leave.end_date).getTime() - new Date(leave.start_date).getTime()) / 86400000) + 1;
-          await client.query(
-            `INSERT INTO leave_balances (staff_id, leave_type_id, year, days_allocated, days_taken, hours_allocated, hours_taken)
-             VALUES ($1, $2, $3, 0, $4, 0, 0)
-             ON CONFLICT (staff_id, leave_type_id, year)
-             DO UPDATE SET days_taken = leave_balances.days_taken + $4`,
-            [leave.staff_id, leave.leave_type_id, startYear, days]
-          );
-        }
-        await client.query(
-          'UPDATE staff_profiles SET is_on_leave = TRUE, on_leave_until = $1 WHERE id = $2',
-          [leave.end_date, leave.staff_id]
-        );
-      } else if (status === 'rejected' || status === 'cancelled') {
-        const leave = updateResult.rows[0];
-        const startYear = new Date(leave.start_date).getFullYear();
-        // Reverse any balance increment from a prior approval
-        if (leave.hours_requested && leave.duration_type === 'hours') {
-          await client.query(
-            `UPDATE leave_balances SET hours_taken = GREATEST(0, leave_balances.hours_taken - $1)
-             WHERE staff_id = $2 AND leave_type_id = $3 AND year = $4`,
-            [leave.hours_requested, leave.staff_id, leave.leave_type_id, startYear]
-          );
-        } else {
-          const days = Math.ceil((new Date(leave.end_date).getTime() - new Date(leave.start_date).getTime()) / 86400000) + 1;
-          await client.query(
-            `UPDATE leave_balances SET days_taken = GREATEST(0, leave_balances.days_taken - $1)
-             WHERE staff_id = $2 AND leave_type_id = $3 AND year = $4`,
-            [days, leave.staff_id, leave.leave_type_id, startYear]
-          );
-        }
-        await client.query(
-          'UPDATE staff_profiles SET is_on_leave = FALSE, on_leave_until = NULL WHERE id = $1',
-          [leave.staff_id]
-        );
+        await LeaveController.applyApprovedBalance(client, updateResult.rows[0]);
       }
 
       return updateResult;
@@ -408,8 +474,8 @@ export class LeaveController {
       const staffInfo = staffUserRes.rows[0];
       if (staffInfo) {
         const staffName = `${staffInfo.first_name || ''} ${staffInfo.last_name || ''}`.trim() || 'Staff';
-        const startDate = new Date(leave.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        const endDate = new Date(leave.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const startDate = new Date(`${LeaveController.ymd(leave.start_date)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const endDate = new Date(`${LeaveController.ymd(leave.end_date)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         const leaveType = staffInfo.leave_type_name;
 
         if (status === 'approved') {
@@ -460,22 +526,76 @@ export class LeaveController {
       [id, userId]
     );
     if (leave.rows.length === 0) throw new AppError(404, 'Leave request not found');
-    if (leave.rows[0].status !== 'pending') {
-      throw new AppError(400, 'Can only cancel pending requests');
+
+    const request = leave.rows[0];
+    const today = new Date().toISOString().split('T')[0];
+    const isFutureApproved = request.status === 'approved' && LeaveController.ymd(request.start_date) > today;
+    if (request.status !== 'pending' && !isFutureApproved) {
+      throw new AppError(400, `Can only cancel pending requests or future approved requests`);
     }
 
-    const result = await pool.query(
-      "UPDATE leave_requests SET status = 'cancelled' WHERE id = $1 RETURNING *",
-      [id]
-    );
-
-    // Clear is_on_leave if the request had been approved previously
-    if (result.rows[0]) {
-      await pool.query(
-        'UPDATE staff_profiles SET is_on_leave = FALSE, on_leave_until = NULL WHERE id = $1 AND is_on_leave = TRUE',
-        [result.rows[0].staff_id]
+    const result = await transaction(async (client) => {
+      const locked = await client.query(
+        `SELECT * FROM leave_requests WHERE id = $1 FOR UPDATE`,
+        [id]
       );
+      if (locked.rows.length === 0) throw new AppError(404, 'Leave request not found');
+      if (locked.rows[0].status !== 'pending' && locked.rows[0].status !== 'approved') {
+        throw new AppError(400, 'Only pending or approved requests can be cancelled');
+      }
+      if (locked.rows[0].status === 'approved') {
+        const startStr = LeaveController.ymd(locked.rows[0].start_date);
+        if (startStr <= today) throw new AppError(400, 'Approved leave that has already started cannot be cancelled');
+        await LeaveController.reverseApprovedBalance(client, locked.rows[0]);
+      } else {
+        await client.query(
+          'UPDATE staff_profiles SET is_on_leave = FALSE, on_leave_until = NULL WHERE id = $1 AND is_on_leave = TRUE',
+          [locked.rows[0].staff_id]
+        );
+      }
+      const updateResult = await client.query(
+        "UPDATE leave_requests SET status = 'cancelled' WHERE id = $1 RETURNING *",
+        [id]
+      );
+      return updateResult;
+    });
+
+    const cancelled = result.rows[0];
+
+    // Notify the reviewer when a future approved request is withdrawn.
+    if (cancelled.status === 'cancelled' && cancelled.reviewed_by) {
+      const reviewer = await pool.query(
+        `SELECT u.email, sp.first_name, sp.last_name
+         FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+         WHERE u.id = $1`,
+        [cancelled.reviewed_by]
+      );
+      if (reviewer.rows[0]?.email) {
+        const reviewerName = `${reviewer.rows[0].first_name || ''} ${reviewer.rows[0].last_name || ''}`.trim() || 'Manager';
+        const staffInfo = await pool.query(
+          'SELECT first_name, last_name FROM staff_profiles WHERE id = $1',
+          [cancelled.staff_id]
+        );
+        const staffName = `${staffInfo.rows[0]?.first_name || ''} ${staffInfo.rows[0]?.last_name || ''}`.trim() || 'Staff';
+        const startDate = new Date(`${LeaveController.ymd(cancelled.start_date)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const endDate = new Date(`${LeaveController.ymd(cancelled.end_date)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        NotificationsController.createNotification(
+          cancelled.reviewed_by, 'Leave Request Cancelled',
+          `${staffName} cancelled their ${cancelled.duration_type === 'hours' ? 'hourly' : 'leave'} request from ${startDate} to ${endDate}.`,
+          'info'
+        ).catch(logWarn('leave cancelled notification'));
+      }
     }
+
+    AuditRepository.log({
+      user_id: userId,
+      action: 'CANCEL_LEAVE',
+      entity_type: 'leave_request',
+      entity_id: id,
+      old_data: { status: request.status },
+      new_data: { status: 'cancelled' },
+      ip_address: req.ip,
+    }).catch(logWarn('audit cancel leave request'));
 
     res.json(result.rows[0]);
   }
@@ -578,15 +698,32 @@ export class LeaveController {
     const { staffId } = req.params;
     await requireSameOrgForStaff(user, staffId);
     const { leave_type_id, year, days_allocated, hours_allocated } = req.body;
-    const result = await pool.query(
-      `INSERT INTO leave_balances (staff_id, leave_type_id, year, days_allocated, hours_allocated)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (staff_id, leave_type_id, year)
-       DO UPDATE SET days_allocated = EXCLUDED.days_allocated,
-                     hours_allocated = EXCLUDED.hours_allocated
-       RETURNING *`,
-      [staffId, leave_type_id, year || new Date().getFullYear(), days_allocated || 0, hours_allocated || 0]
+    if (days_allocated == null && hours_allocated == null) {
+      throw new AppError(400, 'Provide at least one of days_allocated or hours_allocated');
+    }
+    const targetYear = year || new Date().getFullYear();
+    const existing = await pool.query(
+      'SELECT id FROM leave_balances WHERE staff_id = $1 AND leave_type_id = $2 AND year = $3',
+      [staffId, leave_type_id, targetYear]
     );
+    let result;
+    if (existing.rows.length > 0) {
+      result = await pool.query(
+        `UPDATE leave_balances
+         SET days_allocated = COALESCE($1, days_allocated),
+             hours_allocated = COALESCE($2, hours_allocated)
+         WHERE id = $3
+         RETURNING *`,
+        [days_allocated ?? null, hours_allocated ?? null, existing.rows[0].id]
+      );
+    } else {
+      result = await pool.query(
+        `INSERT INTO leave_balances (staff_id, leave_type_id, year, days_allocated, hours_allocated)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [staffId, leave_type_id, targetYear, days_allocated ?? 0, hours_allocated ?? 0]
+      );
+    }
     res.json(result.rows[0]);
   }
 
@@ -604,8 +741,10 @@ export class LeaveController {
     const { month, year } = req.query;
     const m = parseInt(month as string) || new Date().getMonth() + 1;
     const y = parseInt(year as string) || new Date().getFullYear();
-    const firstDay = `${y}-${String(m).padStart(2, '0')}-01`;
-    const lastDay = new Date(y, m, 0).toISOString().split('T')[0];
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const firstDay = `${y}-${pad(m)}-01`;
+    const lastDayNum = new Date(y, m, 0).getDate();
+    const lastDay = `${y}-${pad(m)}-${pad(lastDayNum)}`;
 
     const approved = await pool.query(
       `SELECT lr.start_date, lr.end_date, lr.status, lr.staff_id
@@ -619,13 +758,11 @@ export class LeaveController {
     );
 
     const dates: any[] = [];
-    const start = new Date(firstDay);
-    const end = new Date(lastDay);
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
+    for (let day = 1; day <= lastDayNum; day++) {
+      const dateStr = `${y}-${pad(m)}-${pad(day)}`;
       const dayReqs = approved.rows.filter((r: any) => {
-        const startStr = typeof r.start_date === 'string' ? r.start_date : r.start_date.toISOString().split('T')[0];
-        const endStr = typeof r.end_date === 'string' ? r.end_date : r.end_date.toISOString().split('T')[0];
+        const startStr = LeaveController.ymd(r.start_date);
+        const endStr = LeaveController.ymd(r.end_date);
         return startStr <= dateStr && endStr >= dateStr;
       });
       dates.push({

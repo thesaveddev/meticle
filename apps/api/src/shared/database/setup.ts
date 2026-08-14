@@ -328,6 +328,17 @@ const MIGRATION_027: Migration = {
   ],
 };
 
+const MIGRATION_028: Migration = {
+  name: '028_leave_type_approval_flags',
+  strict: false,
+  statements: [
+    // Whether a leave type is paid and whether requests need manager approval.
+    // requires_approval=false makes requests auto-approve on submission.
+    `ALTER TABLE leave_types ADD COLUMN IF NOT EXISTS is_paid BOOLEAN NOT NULL DEFAULT TRUE`,
+    `ALTER TABLE leave_types ADD COLUMN IF NOT EXISTS requires_approval BOOLEAN NOT NULL DEFAULT TRUE`,
+  ],
+};
+
 const MIGRATION_009: Migration = {
   name: '009_care_plan_person_centred_sections',
   strict: false,
@@ -1862,7 +1873,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)
