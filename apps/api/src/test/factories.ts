@@ -15,14 +15,16 @@ export async function createOrg(overrides: Record<string, any> = {}) {
   const minimumCompliancePercent = overrides.minimum_compliance_percent ?? 100
   const overtimeRequiresApproval = overrides.overtime_requires_approval ?? true
   const forceMfa = overrides.force_mfa ?? false
+  const baseLeaveHours = overrides.base_leave_hours ?? null
+  const defaultHoursPerLeaveDay = overrides.default_hours_per_leave_day ?? null
   const createdAt = overrides.created_at || new Date().toISOString()
 
   const result = await query(
-    `INSERT INTO organizations (id, name, status, plan, subscription_status, trial_ends_at, onboarding_step, onboarding_completed, minimum_compliance_percent, overtime_requires_approval, force_mfa, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    `INSERT INTO organizations (id, name, status, plan, subscription_status, trial_ends_at, onboarding_step, onboarding_completed, minimum_compliance_percent, overtime_requires_approval, force_mfa, base_leave_hours, default_hours_per_leave_day, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name
      RETURNING *`,
-    [id, name, status, plan, subscriptionStatus, trialEndsAt, onboardingStep, onboardingCompleted, minimumCompliancePercent, overtimeRequiresApproval, forceMfa, createdAt]
+    [id, name, status, plan, subscriptionStatus, trialEndsAt, onboardingStep, onboardingCompleted, minimumCompliancePercent, overtimeRequiresApproval, forceMfa, baseLeaveHours, defaultHoursPerLeaveDay, createdAt]
   )
   return result.rows[0]
 }

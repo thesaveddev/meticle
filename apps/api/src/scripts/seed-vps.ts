@@ -190,10 +190,10 @@ async function seed() {
 
   // ── 7. Leave types + balances ──
   const leaveTypes = [
-    { id: leaveTypeIds[0], name: 'Annual Leave', color: '#0F4C81', days: 28, dur: 'days' },
-    { id: leaveTypeIds[1], name: 'Sick Leave', color: '#DC2626', days: 10, dur: 'days' },
-    { id: leaveTypeIds[2], name: 'Training Leave', color: '#16A34A', days: 5, dur: 'days' },
-    { id: leaveTypeIds[3], name: 'Compassionate Leave', color: '#D97706', days: 5, dur: 'days' },
+    { id: leaveTypeIds[0], name: 'Annual Leave', color: '#0F4C81', days: 20, dur: 'days' },
+    { id: leaveTypeIds[1], name: 'Sick Leave', color: '#DC2626', days: 6, dur: 'days' },
+    { id: leaveTypeIds[2], name: 'Training Leave', color: '#16A34A', days: 3, dur: 'days' },
+    { id: leaveTypeIds[3], name: 'Compassionate Leave', color: '#D97706', days: 3, dur: 'days' },
   ]
   for (const lt of leaveTypes)
     await insert(`INSERT INTO leave_types (id,organization_id,name,color,days_allowed,hours_allowed,duration_type,created_at) VALUES ($1,$2,$3,$4,$5,0,$6,$7)`,

@@ -16,7 +16,8 @@ beforeAll(async () => {
 
 describe('Leave Integration — POST /leave/types', () => {
   it('should create a leave type as ORG_ADMIN', async () => {
-    const org = await createOrg()
+    // 10 days x 7.5h/day = 75h — set the org total to match so the type balances
+    const org = await createOrg({ base_leave_hours: 75, default_hours_per_leave_day: 7.5 })
     const user = await createUser({ email: `admin-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
     const token = generateToken(user)
 
@@ -28,6 +29,44 @@ describe('Leave Integration — POST /leave/types', () => {
     expect(res.status).toBe(201)
     expect(res.body.name).toBe('Sick Leave')
     expect(res.body.days_allowed).toBe(10)
+  })
+
+  it('should reject a leave type whose allowance does not match the org total', async () => {
+    // Default org total is 240h; a single 10-day type only accounts for 75h
+    const org = await createOrg()
+    const user = await createUser({ email: `admin-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const token = generateToken(user)
+
+    const res = await request(app)
+      .post('/leave/types')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Sick Leave', color: '#FF0000', days_allowed: 10, duration_type: 'days' })
+
+    expect(res.status).toBe(400)
+    expect(res.body.message).toMatch(/total/i)
+  })
+
+  it('should reject an update that breaks the org total', async () => {
+    const org = await createOrg()
+    const user = await createUser({ email: `admin-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const token = generateToken(user)
+    const leaveType = await createLeaveType({ organizationId: org.id, name: 'Annual Leave', days_allowed: 32 })
+
+    // 32 days x 7.5h = 240h == org total, so keeping the balance is valid
+    const ok = await request(app)
+      .put(`/leave/types/${leaveType.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ days_allowed: 32 })
+    expect(ok.status).toBe(200)
+
+    // Reducing to 10 days leaves the org short of its 240h allowance
+    const res = await request(app)
+      .put(`/leave/types/${leaveType.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ days_allowed: 10 })
+
+    expect(res.status).toBe(400)
+    expect(res.body.message).toMatch(/total/i)
   })
 
   it('should reject leave type creation without ORG_ADMIN', async () => {

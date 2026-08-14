@@ -62,11 +62,11 @@ export class OrgRepository {
 
   static async seedDefaultLeaveTypes(orgId: string, qFn: QFn = appQuery) {
     const defaults = [
-      { name: 'Annual Leave', color: '#0F4C81', days_allowed: 28, hours_allowed: 210, duration_type: 'days' },
-      { name: 'Sick Leave', color: '#DC2626', days_allowed: 10, hours_allowed: 75, duration_type: 'days' },
-      { name: 'Personal Leave', color: '#D97706', days_allowed: 5, hours_allowed: 37.5, duration_type: 'days' },
-      { name: 'Training', color: '#7C3AED', days_allowed: 5, hours_allowed: 37.5, duration_type: 'days' },
-      { name: 'Emergency Leave', color: '#EF4444', days_allowed: 3, hours_allowed: 22.5, duration_type: 'days' },
+      { name: 'Annual Leave', color: '#0F4C81', days_allowed: 20, hours_allowed: 150, duration_type: 'days' },
+      { name: 'Sick Leave', color: '#DC2626', days_allowed: 6, hours_allowed: 45, duration_type: 'days' },
+      { name: 'Personal Leave', color: '#D97706', days_allowed: 3, hours_allowed: 22.5, duration_type: 'days' },
+      { name: 'Training', color: '#7C3AED', days_allowed: 2, hours_allowed: 15, duration_type: 'days' },
+      { name: 'Emergency Leave', color: '#EF4444', days_allowed: 1, hours_allowed: 7.5, duration_type: 'days' },
     ];
     for (const lt of defaults) {
       await qFn(
