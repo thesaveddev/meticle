@@ -14,8 +14,8 @@ import {
   Business as BuildingIcon, Settings as SettingsIcon,
   AccountCircle as ProfileIcon, Assignment as ComplianceIcon,
   BeachAccess as LeaveIcon, Group as GroupIcon,
-  Save as SaveIcon, UploadFile as UploadFileIcon,
-  Link as LinkIcon, Schedule as ScheduleIcon, Notifications as NotificationsIcon,
+  Save as SaveIcon,
+  Schedule as ScheduleIcon, Notifications as NotificationsIcon,
   Medication as MedicationIcon,
   Lock as SecurityIcon, Palette as PaletteIcon,
   SmartToy as SmartToyIcon, History as HistoryIcon,
@@ -53,7 +53,6 @@ export default function SettingsPage() {
   const [locations, setLocations] = useState<any[]>([])
   const [staffList, setStaffList] = useState<any[]>([])
   const [complianceConfigs, setComplianceConfigs] = useState<any[]>([])
-  const [complianceRecords, setComplianceRecords] = useState<any[]>([])
   const [complianceProfiles, setComplianceProfiles] = useState<any[]>([])
   const [delegations, setDelegations] = useState<any[]>([])
 
@@ -62,10 +61,6 @@ export default function SettingsPage() {
   const [editLoc, setEditLoc] = useState<any>({ name: '', address: '', manager_id: '' })
   const [compDialog, setCompDialog] = useState(false)
   const [editComp, setEditComp] = useState<any>({ name: '', description: '', category: 'document', is_mandatory: true, days_warning: 30 })
-  const [compRecordDialog, setCompRecordDialog] = useState(false)
-  const [editCompRecord, setEditCompRecord] = useState<any>({})
-  const [uploadingFile, setUploadingFile] = useState(false)
-  const fileUploadRef = useRef<HTMLInputElement>(null)
   const [actionLoading, setActionLoading] = useState('')
   const [brandingSaving, setBrandingSaving] = useState(false)
   const [compProfileDialog, setCompProfileDialog] = useState(false)
@@ -102,7 +97,6 @@ export default function SettingsPage() {
   const [locPage, setLocPage] = useState(0)
   const [compConfigPage, setCompConfigPage] = useState(0)
   const [compProfilePage, setCompProfilePage] = useState(0)
-  const [compRecordPage, setCompRecordPage] = useState(0)
   const [delPage, setDelPage] = useState(0)
   const rowsPerPage = 10
 
@@ -116,13 +110,12 @@ export default function SettingsPage() {
         setProfile({ first_name: user.first_name || '', last_name: user.last_name || '', birth_date: '', phone: '', address: '', city: '', country: '', postal_code: '', profile_picture_url: user.profile_picture_url || '' })
       }
       if (isOrgAdmin) {
-        const [orgRes, locRes, staffRes, compRes, delRes, compRecordRes, compProfileRes, orgDetRes] = await Promise.allSettled([
+        const [orgRes, locRes, staffRes, compRes, delRes, compProfileRes, orgDetRes] = await Promise.allSettled([
           api.get('/settings/org'),
           api.get('/settings/locations'),
           api.get('/settings/staff'),
           api.get('/settings/compliance-config'),
           api.get('/settings/delegations'),
-          api.get('/settings/compliance-records'),
           api.get('/settings/compliance-profiles'),
           api.get(`/organizations/${orgId}`),
         ])
@@ -131,7 +124,6 @@ export default function SettingsPage() {
         if (staffRes.status === 'fulfilled') setStaffList(staffRes.value.data)
         if (compRes.status === 'fulfilled') setComplianceConfigs(compRes.value.data)
         if (delRes.status === 'fulfilled') setDelegations(delRes.value.data)
-        if (compRecordRes.status === 'fulfilled') setComplianceRecords(compRecordRes.value.data)
         if (compProfileRes.status === 'fulfilled') setComplianceProfiles(compProfileRes.value.data)
         if (orgDetRes.status === 'fulfilled') {
           setOrgDetails(orgDetRes.value.data)
@@ -324,8 +316,7 @@ export default function SettingsPage() {
     setActionLoading('seed-records')
     try {
       const res = await api.post('/settings/compliance-records/seed')
-      setComplianceRecords(res.data.records)
-      showSnackbar("Settings saved.", "success")
+      showSnackbar(`Seeded ${res.data.records?.length ?? 0} compliance records for all staff.`, "success")
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to seed records')
     }
@@ -367,24 +358,6 @@ export default function SettingsPage() {
       await api.post('/settings/auto-assign-profiles')
       showSnackbar("Settings saved.", "success")
     } catch {}
-    finally { setActionLoading('') }
-  }
-
-  const updateComplianceRecord = async () => {
-    setActionLoading('compliance-record')
-    try {
-      const res = await api.patch(`/settings/compliance-records/${editCompRecord.id}`, {
-        status: editCompRecord.status,
-        issued_at: editCompRecord.issued_at || null,
-        expires_at: editCompRecord.expires_at || null,
-        notes: editCompRecord.notes || '',
-      })
-      setComplianceRecords(prev => prev.map(r => r.id === res.data.id ? { ...r, ...res.data } : r))
-      setCompRecordDialog(false)
-      showSnackbar("Settings saved.", "success")
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update record')
-    }
     finally { setActionLoading('') }
   }
 
@@ -1390,8 +1363,14 @@ export default function SettingsPage() {
         <Paper sx={{ p: 3 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}><ComplianceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Compliance Configuration</Typography>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditComp({ name: '', description: '', category: 'document', is_mandatory: true, days_warning: 30 }); setCompDialog(true) }}
-              sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Requirement</Button>
+            <Stack direction="row" spacing={1}>
+              <Button variant="outlined" startIcon={<HistoryIcon />} onClick={seedComplianceRecords}
+                disabled={complianceConfigs.length === 0 || actionLoading === 'seed-records'}>
+                {actionLoading === 'seed-records' ? 'Seeding...' : 'Seed Records from Config'}
+              </Button>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditComp({ name: '', description: '', category: 'document', is_mandatory: true, days_warning: 30 }); setCompDialog(true) }}
+                sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Requirement</Button>
+            </Stack>
           </Stack>
           <TableContainer>
             <Table size="small">
@@ -1406,7 +1385,7 @@ export default function SettingsPage() {
               </TableHead>
               <TableBody>
                 {complianceConfigs.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No compliance requirements configured. Add requirements above, then seed records below.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No compliance requirements configured. Add requirements, then use "Seed Records from Config" to generate records for all staff.</TableCell></TableRow>
                 ) : complianceConfigs.slice(compConfigPage * rowsPerPage, compConfigPage * rowsPerPage + rowsPerPage).map(c => (
                   <TableRow key={c.id} hover>
                     <TableCell sx={{ fontWeight: 600 }}>{c.name}
@@ -1474,63 +1453,6 @@ export default function SettingsPage() {
               rowsPerPage={rowsPerPage} rowsPerPageOptions={[rowsPerPage]} />
           )}
         </Paper>
-
-        <Paper sx={{ p: 3 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>Staff Compliance Records</Typography>
-            <Button variant="outlined" startIcon={<AddIcon />} onClick={seedComplianceRecords}
-              disabled={complianceConfigs.length === 0 || actionLoading === 'seed-records'}>
-              {actionLoading === 'seed-records' ? 'Seeding...' : 'Seed Records from Config'}
-            </Button>
-          </Stack>
-          {complianceConfigs.length === 0 ? (
-            <Alert severity="info">Add compliance requirements first, then seed records for all staff.</Alert>
-          ) : complianceRecords.length === 0 ? (
-            <Typography variant="body2" color="#9CA3AF" sx={{ py: 2, textAlign: 'center' }}>No records yet. Click "Seed Records from Config" to generate them.</Typography>
-          ) : (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Requirement</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Expires</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Document</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                  {complianceRecords.slice(compRecordPage * rowsPerPage, compRecordPage * rowsPerPage + rowsPerPage).map(r => (
-                    <TableRow key={r.id} hover>
-                      <TableCell sx={{ fontWeight: 600 }}>{r.first_name} {r.last_name}</TableCell>
-                      <TableCell>{r.requirement_name}</TableCell>
-                      <TableCell>
-                        <Chip label={r.status?.replace('_', ' ')} size="small"
-                          color={r.status === 'complete' ? 'success' : r.status === 'expired' ? 'error' : r.status === 'pending_review' ? 'warning' : 'default'} />
-                      </TableCell>
-                      <TableCell>{r.expires_at ? new Date(r.expires_at).toLocaleDateString() : '—'}</TableCell>
-                      <TableCell>
-                        {r.file_url ? (
-                          <IconButton size="small" component="a" href={r.file_url} target="_blank" rel="noopener noreferrer" color="primary">
-                            <LinkIcon fontSize="small" />
-                          </IconButton>
-                        ) : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <IconButton size="small" onClick={() => { setEditCompRecord(r); setCompRecordDialog(true) }}><EditIcon fontSize="small" /></IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-          {complianceRecords.length > rowsPerPage && (
-            <TablePagination component="div" count={complianceRecords.length} page={compRecordPage} onPageChange={(_, p) => setCompRecordPage(p)}
-              rowsPerPage={rowsPerPage} rowsPerPageOptions={[rowsPerPage]} />
-          )}
-        </Paper>
       </Stack>
 
       <Dialog open={compDialog} onClose={() => setCompDialog(false)} maxWidth="sm" fullWidth>
@@ -1556,80 +1478,6 @@ export default function SettingsPage() {
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setCompDialog(false)}>Cancel</Button>
           <Button variant="contained" disabled={actionLoading === 'compliance-config'} onClick={saveComplianceConfig} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>{actionLoading === 'compliance-config' ? 'Saving...' : 'Save'}</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={compRecordDialog} onClose={() => setCompRecordDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Update Compliance Record</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <Typography variant="body2"><strong>Staff:</strong> {editCompRecord.first_name} {editCompRecord.last_name}</Typography>
-            <Typography variant="body2"><strong>Requirement:</strong> {editCompRecord.requirement_name}</Typography>
-            <FormControl fullWidth size="small">
-              <InputLabel>Status</InputLabel>
-              <Select value={editCompRecord.status || 'incomplete'} label="Status"
-                onChange={e => setEditCompRecord((p: any) => ({ ...p, status: e.target.value }))}>
-                <MenuItem value="incomplete">Incomplete</MenuItem>
-                <MenuItem value="complete">Complete</MenuItem>
-                <MenuItem value="expired">Expired</MenuItem>
-                <MenuItem value="pending_review">Pending Review</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField label="Issued Date" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }}
-              value={editCompRecord.issued_at ? new Date(editCompRecord.issued_at).toISOString().split('T')[0] : ''}
-              onChange={e => setEditCompRecord((p: any) => ({ ...p, issued_at: e.target.value }))} />
-            <TextField label="Expiry Date" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }}
-              value={editCompRecord.expires_at ? new Date(editCompRecord.expires_at).toISOString().split('T')[0] : ''}
-              onChange={e => setEditCompRecord((p: any) => ({ ...p, expires_at: e.target.value }))} />
-            <TextField label="Notes" multiline rows={3} fullWidth size="small"
-              value={editCompRecord.notes || ''} onChange={e => setEditCompRecord((p: any) => ({ ...p, notes: e.target.value }))} />
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>Uploaded Document</Typography>
-              {editCompRecord.file_url ? (
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <LinkIcon fontSize="small" />
-                  <a href={editCompRecord.file_url} target="_blank" rel="noopener noreferrer" style={{ color: '#0F4C81' }}>
-                    {editCompRecord.file_url.split('/').pop()}
-                  </a>
-                  <IconButton size="small" color="error" onClick={async () => {
-                    await api.patch(`/settings/compliance-records/${editCompRecord.id}`, { file_url: null })
-                    setEditCompRecord((p: any) => ({ ...p, file_url: null }))
-                    showSnackbar("Settings saved.", "success")
-                  }}><CloseIcon fontSize="small" /></IconButton>
-                </Stack>
-              ) : (
-                <Typography variant="body2" color="#9CA3AF">No file uploaded</Typography>
-              )}
-              <Button component="label" variant="outlined" size="small" startIcon={<UploadFileIcon />} sx={{ mt: 1 }} disabled={uploadingFile}>
-                {uploadingFile ? 'Uploading...' : 'Upload File'}
-                <input type="file" hidden ref={fileUploadRef} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    setUploadingFile(true)
-                    try {
-                      const formData = new FormData()
-                      formData.append('file', file)
-                      const res = await api.post(`/settings/compliance-records/${editCompRecord.id}/upload`, formData, {
-                        headers: { 'Content-Type': 'multipart/form-data' },
-                      })
-                      setEditCompRecord((p: any) => ({ ...p, file_url: res.data.file_url }))
-                      setComplianceRecords(prev => prev.map(r => r.id === res.data.id ? { ...r, file_url: res.data.file_url } : r))
-                      showSnackbar("Settings saved.", "success")
-                    } catch (err: any) {
-                      setError(err.response?.data?.message || 'Failed to upload file')
-                    } finally {
-                      setUploadingFile(false)
-                      if (fileUploadRef.current) fileUploadRef.current.value = ''
-                    }
-                  }} />
-              </Button>
-            </Box>
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setCompRecordDialog(false)}>Cancel</Button>
-          <Button variant="contained" disabled={actionLoading === 'compliance-record'} onClick={updateComplianceRecord} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>{actionLoading === 'compliance-record' ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
       </Dialog>
 
