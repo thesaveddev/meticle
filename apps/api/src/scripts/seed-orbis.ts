@@ -77,6 +77,26 @@ async function seed() {
       [l.id, orgId, l.name, l.address, l.minStaff, l.minDay, l.minNight, l.serviceType, l.capacity, l.phone, l.email, l.foodRating, l.cqcRating, l.lastCqc])
   console.log('  ✓ 3 locations created')
 
+  // Location certificates — mix of valid, expiring and expired so the H&S alerts are meaningful
+  const certDays = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10)
+  const locCerts: { locationId: string; name: string; type: string; body: string; number: string; issued: number; expires: number; status: string }[] = [
+    { locationId: locIds[0], name: 'Gas Safety Certificate', type: 'gas_safety', body: 'Gas Safe Register', number: 'GSC-2026-1184', issued: -250, expires: 115, status: 'valid' },
+    { locationId: locIds[0], name: 'Electrical Safety (EICR)', type: 'electrical_safety', body: 'NICEIC', number: 'EICR-2026-3321', issued: -180, expires: 185, status: 'valid' },
+    { locationId: locIds[0], name: 'Fire Risk Assessment', type: 'fire_risk_assessment', body: 'FireSafe Consultancy', number: 'FRA-2026-901', issued: -60, expires: 305, status: 'valid' },
+    { locationId: locIds[0], name: 'Emergency Lighting Test', type: 'emergency_lighting', body: 'BrightSafe Ltd', number: 'ELT-2026-220', issued: -20, expires: 25, status: 'expiring_soon' },
+    { locationId: locIds[1], name: 'Fire Alarm System Maintenance', type: 'fire_alarm_system', body: 'Alpha Fire Systems', number: 'FAS-2025-771', issued: -420, expires: -55, status: 'expired' },
+    { locationId: locIds[1], name: 'Legionella Risk Assessment', type: 'legionella', body: 'WaterSafe UK', number: 'LRA-2026-140', issued: -90, expires: 275, status: 'valid' },
+    { locationId: locIds[1], name: 'Portable Appliance Testing', type: 'pat_testing', body: 'VoltCheck Services', number: 'PAT-2026-553', issued: -35, expires: 330, status: 'valid' },
+    { locationId: locIds[2], name: 'Building Safety Case', type: 'building_safety', body: 'Sovereign Building Consultancy', number: 'BSC-2026-18', issued: -200, expires: 165, status: 'valid' },
+    { locationId: locIds[2], name: 'Fire Extinguisher Service', type: 'fire_extinguisher', body: 'Alpha Fire Systems', number: 'FEX-2026-404', issued: -45, expires: 320, status: 'valid' },
+  ]
+  for (const c of locCerts)
+    await pool.query(
+      `INSERT INTO location_certificates (id,location_id,name,certificate_type,issuing_body,certificate_number,issue_date,expiry_date,status,file_url,file_name) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NULL,NULL)`,
+      [uuid(), c.locationId, c.name, c.type, c.body, c.number, certDays(c.issued), certDays(c.expires), c.status]
+    )
+  console.log('  ✓ 9 location certificates created')
+
   // ── 3. Departments ──
   const depts = [
     { id: deptIds[0], name: 'Clinical Services', lid: locIds[0] },
