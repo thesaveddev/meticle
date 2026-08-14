@@ -15,7 +15,7 @@ import {
   EventBusy as LeaveIcon,
 
   WarningAmber as WarningIcon,
-  FlagOutlined as FlagIcon,
+  CreditCard as CreditCardIcon,
   LocationOn as LocationIcon,
   Medication as MedIcon,
   Checklist as CompetencyIcon,
@@ -34,6 +34,7 @@ interface DashboardStats {
   active_people: number
   staff_on_duty: number
   open_incidents: number
+  locations: number
 }
 
 interface DashboardWidgets {
@@ -76,12 +77,7 @@ interface AppointmentItem {
   person_name: string
 }
 
-const ONBOARDING_STEPS = [
-  { label: 'Add your location', desc: 'Create your first location so your data stays organised by site.', icon: <LocationIcon />, path: '/settings' },
-  { label: 'Add your staff', desc: 'Invite team members. They\'ll receive an email with a link to set their password.', icon: <PeopleIcon />, path: '/staff' },
-  { label: 'Add people', desc: 'Add the people in your care once your location is set up.', icon: <HomeIcon />, path: '/people' },
-  { label: 'Explore your dashboard', desc: 'See live overviews of tasks, alerts, appointments, and compliance.', icon: <FlagIcon />, path: '/compliance' },
-]
+const ONBOARDING_STEPS_BY_KEY = 'meticle_onboarding_dismissed_'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -90,7 +86,6 @@ export default function DashboardPage() {
   const [widgets, setWidgets] = useState<DashboardWidgets | null>(null)
   const [compliance, setCompliance] = useState<ComplianceItem[]>([])
   const [todayRota, setTodayRota] = useState<RotaItem[]>([])
-  const [hideOnboarding, setHideOnboarding] = useState(false)
   const [todayAppointments, setTodayAppointments] = useState<AppointmentItem[]>([])
   const userStr = localStorage.getItem('user')
   let rawUser: any = {}
@@ -104,6 +99,9 @@ export default function DashboardPage() {
 
   const [org, setOrg] = useState<any>(null)
   const orgId = rawUser.organization_id || rawUser.organizationId
+  const [hideOnboarding, setHideOnboarding] = useState(() => {
+    try { return orgId ? localStorage.getItem(ONBOARDING_STEPS_BY_KEY + orgId) === 'true' : false } catch { return false }
+  })
 
   useEffect(() => {
     const fetchData = async () => {
@@ -123,7 +121,7 @@ export default function DashboardPage() {
             api.get('/dashboard/today-rota'),
             api.get(`/appointments?date=${todayStr}`),
           ])
-          setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0 })
+          setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
           setTodayRota(rotaRes.data)
           setTodayAppointments(aptRes.data)
         } else {
@@ -141,7 +139,7 @@ export default function DashboardPage() {
           setTodayAppointments(aptRes.data)
         }
       } catch {
-        setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0 })
+        setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
         setCompliance([
           { label: 'Mandatory Training', val: 0, color: '#16A34A' },
           { label: 'DBS Verifications', val: 0, color: '#16A34A' },
@@ -176,6 +174,20 @@ export default function DashboardPage() {
         { label: 'Agency Saved', value: `£${stats?.agency_saved ?? 0}`, color: '#0F4C81', icon: <TrendingUpIcon /> },
       ]
 
+  const onboardSteps = [
+    { label: 'Add your location', desc: 'Create your first location so your data stays organised by site.', icon: <LocationIcon />, path: '/settings', done: (stats?.locations ?? 0) > 0 },
+    { label: 'Invite your team', desc: 'Invite team members. They\'ll receive an email with a link to set their password.', icon: <PeopleIcon />, path: '/staff', done: (stats?.total_staff ?? 0) > 0 },
+    { label: 'Add people in your care', desc: 'Add the people you support once your location is set up.', icon: <HomeIcon />, path: '/people', done: (stats?.active_people ?? 0) > 0 },
+    { label: 'Choose your plan', desc: 'Pick the plan that fits your service — move from trial to paid in a minute.', icon: <CreditCardIcon />, path: '/billing', done: !!org && !!org.subscription_status && org.subscription_status !== 'trial' },
+  ]
+  const onboardDone = onboardSteps.filter(s => s.done).length
+  const onboardComplete = onboardDone === onboardSteps.length
+
+  const handleOnboardingDismiss = () => {
+    setHideOnboarding(true)
+    try { if (orgId) localStorage.setItem(ONBOARDING_STEPS_BY_KEY + orgId, 'true') } catch { /* ignore */ }
+  }
+
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
@@ -186,23 +198,26 @@ export default function DashboardPage() {
       </Box>
 
       {/* Onboarding Checklist */}
-      {isAdmin && org && !org.onboarding_completed && !hideOnboarding && (
-        <Paper elevation={0} sx={{ mb: 4, p: 3, border: '1px solid #E5E7EB', borderRadius: 3, bgcolor: '#F8FAFC' }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Set up your account</Typography>
-            <Button size="small" sx={{ color: '#6B7280', fontWeight: 600 }} onClick={() => setHideOnboarding(true)}>I'm all set, hide this</Button>
+      {isAdmin && org && !hideOnboarding && !onboardComplete && (
+        <Paper elevation={0} sx={{ mb: 4, p: 3, border: '1px solid #E5E7EB', borderRadius: 3, bgcolor: '#F8FAFC', borderLeft: '4px solid #0F4C81' }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Welcome — let's get you set up</Typography>
+              <Typography variant="body2" color="#6B7280" sx={{ mt: 0.5 }}>A few quick steps to make Meticle ready for your team. {onboardDone} of {onboardSteps.length} complete.</Typography>
+            </Box>
+            <Button size="small" sx={{ color: '#6B7280', fontWeight: 600, whiteSpace: 'nowrap' }} onClick={handleOnboardingDismiss}>I'm all set, don't show again</Button>
           </Stack>
-          <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>Follow these steps to get Meticle ready for your team.</Typography>
+          <LinearProgress variant="determinate" value={(onboardDone / onboardSteps.length) * 100} sx={{ height: 6, borderRadius: 3, mb: 3, bgcolor: '#E5E7EB', '& .MuiLinearProgress-bar': { bgcolor: '#0F4C81' } }} />
           <Grid container spacing={2}>
-            {ONBOARDING_STEPS.map((step, i) => (
+            {onboardSteps.map((step, i) => (
               <Grid item xs={12} sm={6} md={3} key={i}>
                 <Box
-                  sx={{ p: 2, bgcolor: 'white', borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81' } }}
+                  sx={{ p: 2, bgcolor: step.done ? '#F0FDF4' : 'white', borderRadius: 2, border: `1px solid ${step.done ? '#BBF7D0' : '#E5E7EB'}`, cursor: 'pointer', '&:hover': { borderColor: '#0F4C81' } }}
                   onClick={() => navigate(step.path)}
                 >
                   <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Box sx={{ width: 32, height: 32, bgcolor: '#0F4C8110', color: '#0F4C81', borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 800 }}>
-                      {i + 1}
+                    <Box sx={{ width: 32, height: 32, bgcolor: step.done ? '#16A34A10' : '#0F4C8110', color: step.done ? '#16A34A' : '#0F4C81', borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 800 }}>
+                      {step.done ? <VerifiedIcon sx={{ fontSize: 18 }} /> : i + 1}
                     </Box>
                     <Box>
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>{step.label}</Typography>
