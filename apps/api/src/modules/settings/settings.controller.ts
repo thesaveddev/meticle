@@ -107,7 +107,7 @@ export class SettingsController {
 
   static async createLocation(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
-    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff } = req.body;
+    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection } = req.body;
     if (manager_id) {
       const user = await pool.query('SELECT role FROM users WHERE id = $1', [manager_id]);
       if (user.rows.length > 0 && user.rows[0].role !== 'MANAGER' && user.rows[0].role !== 'ORG_ADMIN') {
@@ -115,9 +115,9 @@ export class SettingsController {
       }
     }
     const result = await pool.query(
-      `INSERT INTO locations (organization_id, name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [orgId, name, address, manager_id || null, minimum_staff_per_day ?? null, min_day_staff ?? null, min_night_staff ?? null, min_sleep_staff ?? null]
+      `INSERT INTO locations (organization_id, name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+      [orgId, name, address, manager_id || null, minimum_staff_per_day ?? null, min_day_staff ?? null, min_night_staff ?? null, min_sleep_staff ?? null, service_type || null, service_capacity ?? null, phone || null, email || null, food_hygiene_rating ?? null, cqc_rating || null, last_cqc_inspection || null]
     );
     SettingsController.checkLocationManagerCoverage(orgId);
     res.status(201).json(result.rows[0]);
@@ -126,7 +126,7 @@ export class SettingsController {
   static async updateLocation(req: Request, res: Response) {
     const user = req.user!;
     const { id } = req.params;
-    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff } = req.body;
+    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection } = req.body;
     // Verify location belongs to org
     const locCheck = await pool.query('SELECT 1 FROM locations WHERE id = $1 AND organization_id = $2', [id, user.organizationId]);
     if (locCheck.rows.length === 0) throw new AppError(404, 'Location not found');
@@ -140,8 +140,11 @@ export class SettingsController {
       `UPDATE locations SET name = COALESCE($1, name), address = COALESCE($2, address),
        manager_id = $3, minimum_staff_per_day = COALESCE($4, minimum_staff_per_day),
        min_day_staff = COALESCE($5, min_day_staff), min_night_staff = COALESCE($6, min_night_staff),
-       min_sleep_staff = COALESCE($7, min_sleep_staff) WHERE id = $8 AND organization_id = $9 RETURNING *`,
-      [name, address, manager_id || null, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, id, user.organizationId]
+       min_sleep_staff = COALESCE($7, min_sleep_staff),
+       service_type = $10, service_capacity = $11, phone = $12, email = $13,
+       food_hygiene_rating = $14, cqc_rating = $15, last_cqc_inspection = $16
+       WHERE id = $8 AND organization_id = $9 RETURNING *`,
+      [name, address, manager_id || null, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, id, user.organizationId, service_type || null, service_capacity ?? null, phone || null, email || null, food_hygiene_rating ?? null, cqc_rating || null, last_cqc_inspection || null]
     );
     if (result.rows.length === 0) throw new AppError(404, 'Location not found');
     SettingsController.checkLocationManagerCoverage(user.organizationId);
@@ -222,11 +225,11 @@ export class SettingsController {
     const { locationId } = req.params;
     const loc = await pool.query('SELECT id FROM locations WHERE id = $1 AND organization_id = $2', [locationId, user.organizationId]);
     if (loc.rows.length === 0) throw new AppError(404, 'Location not found');
-    const { name, certificate_type, issuing_body, certificate_number, issue_date, expiry_date, status, notes } = req.body;
+    const { name, certificate_type, issuing_body, certificate_number, issue_date, expiry_date, status, notes, file_url, file_name } = req.body;
     const result = await pool.query(
-      `INSERT INTO location_certificates (location_id, name, certificate_type, issuing_body, certificate_number, issue_date, expiry_date, status, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [locationId, name, certificate_type, issuing_body || null, certificate_number || null, issue_date || null, expiry_date || null, status || 'valid', notes || null]
+      `INSERT INTO location_certificates (location_id, name, certificate_type, issuing_body, certificate_number, issue_date, expiry_date, status, notes, file_url, file_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [locationId, name, certificate_type, issuing_body || null, certificate_number || null, issue_date || null, expiry_date || null, status || 'valid', notes || null, file_url || null, file_name || null]
     );
     res.status(201).json(result.rows[0]);
   }
@@ -239,7 +242,7 @@ export class SettingsController {
     const fields: string[] = [];
     const params: any[] = [];
     let idx = 1;
-    for (const key of ['name', 'certificate_type', 'issuing_body', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'notes']) {
+    for (const key of ['name', 'certificate_type', 'issuing_body', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'notes', 'file_url', 'file_name']) {
       if (req.body[key] !== undefined) {
         fields.push(`${key} = $${idx++}`);
         params.push(req.body[key]);

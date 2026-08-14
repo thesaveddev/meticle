@@ -68,13 +68,13 @@ async function seed() {
 
   // ── 2. Locations ──
   const locations = [
-    { id: locIds[0], name: 'Orbis House', address: '1-3 Victoria Road, London SW1A 1AA', minStaff: 4, minDay: 3, minNight: 1 },
-    { id: locIds[1], name: 'Willow Court', address: '45 Willow Lane, Croydon CR0 2AB', minStaff: 3, minDay: 2, minNight: 1 },
-    { id: locIds[2], name: 'Meadow View', address: '78 Meadow Road, Bromley BR1 3CD', minStaff: 2, minDay: 2, minNight: 0 },
+    { id: locIds[0], name: 'Orbis House', address: '1-3 Victoria Road, London SW1A 1AA', minStaff: 4, minDay: 3, minNight: 1, serviceType: 'residential', capacity: 12, phone: '020 7946 0101', email: 'orbishouse@orbisgroup.care', foodRating: 5, cqcRating: 'good', lastCqc: '2026-02-18' },
+    { id: locIds[1], name: 'Willow Court', address: '45 Willow Lane, Croydon CR0 2AB', minStaff: 3, minDay: 2, minNight: 1, serviceType: 'supported_living', capacity: 8, phone: '020 8649 2020', email: 'willowcourt@orbisgroup.care', foodRating: 4, cqcRating: 'requires_improvement', lastCqc: '2025-11-04' },
+    { id: locIds[2], name: 'Meadow View', address: '78 Meadow Road, Bromley BR1 3CD', minStaff: 2, minDay: 2, minNight: 0, serviceType: 'domiciliary', capacity: 20, phone: '020 8290 3030', email: 'meadowview@orbisgroup.care', foodRating: null, cqcRating: 'good', lastCqc: '2026-05-12' },
   ]
   for (const l of locations)
-    await pool.query(`INSERT INTO locations (id,organization_id,name,address,minimum_staff_per_day,min_day_staff,min_night_staff) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [l.id, orgId, l.name, l.address, l.minStaff, l.minDay, l.minNight])
+    await pool.query(`INSERT INTO locations (id,organization_id,name,address,minimum_staff_per_day,min_day_staff,min_night_staff,service_type,service_capacity,phone,email,food_hygiene_rating,cqc_rating,last_cqc_inspection) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+      [l.id, orgId, l.name, l.address, l.minStaff, l.minDay, l.minNight, l.serviceType, l.capacity, l.phone, l.email, l.foodRating, l.cqcRating, l.lastCqc])
   console.log('  ✓ 3 locations created')
 
   // ── 3. Departments ──

@@ -1,17 +1,17 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import {
   Box, Typography, Paper, TextField, Button, Stack, Alert,
   Avatar, Grid, Dialog, DialogTitle, DialogContent, DialogActions,
   Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow,   IconButton, FormControl, InputLabel, Select, MenuItem,
-  Chip, Switch, FormControlLabel, Card, CardContent, Autocomplete,
+  Chip, Switch, FormControlLabel, Card, CardContent,
   TablePagination, CircularProgress,
 } from '@mui/material'
 import {
   PhotoCamera as CameraIcon, Add as AddIcon, Edit as EditIcon,
   Delete as DeleteIcon, Check as CheckIcon, Close as CloseIcon,
   PersonAdd as DelegateIcon, Calculate as CalculateIcon,
-  Business as BuildingIcon, Settings as SettingsIcon,
+  Settings as SettingsIcon,
   AccountCircle as ProfileIcon, Assignment as ComplianceIcon,
   BeachAccess as LeaveIcon, Group as GroupIcon,
   Save as SaveIcon,
@@ -25,7 +25,7 @@ import {
   CalendarMonth as CalendarIcon,
 } from '@mui/icons-material'
 import { useMutation } from '@tanstack/react-query'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
 import { useThemeMode, ZOOM_OPTIONS } from '../../context/ThemeContext'
@@ -36,8 +36,7 @@ export default function SettingsPage() {
   const logoInputRef = useRef<HTMLInputElement>(null)
   const { showSnackbar } = useSnackbar()
   const { mode, toggleTheme, updateBranding, zoomScale, setZoomScale } = useThemeMode()
-  const [searchParams] = useSearchParams()
-  const [tab, setTab] = useState<number>(() => (searchParams.get('tab') === 'locations' ? 4 : 0))
+  const [tab, setTab] = useState<number>(0)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [deactDialogOpen, setDeactDialogOpen] = useState(false)
@@ -52,15 +51,12 @@ export default function SettingsPage() {
 
   // Org settings
   const [orgSettings, setOrgSettings] = useState<any>({})
-  const [locations, setLocations] = useState<any[]>([])
   const [staffList, setStaffList] = useState<any[]>([])
   const [complianceConfigs, setComplianceConfigs] = useState<any[]>([])
   const [complianceProfiles, setComplianceProfiles] = useState<any[]>([])
   const [delegations, setDelegations] = useState<any[]>([])
 
   // Dialog states
-  const [locDialog, setLocDialog] = useState(false)
-  const [editLoc, setEditLoc] = useState<any>({ name: '', address: '', manager_id: '' })
   const [compDialog, setCompDialog] = useState(false)
   const [editComp, setEditComp] = useState<any>({ name: '', description: '', category: 'document', is_mandatory: true, days_warning: 30 })
   const [actionLoading, setActionLoading] = useState('')
@@ -69,7 +65,6 @@ export default function SettingsPage() {
   const [editCompProfile, setEditCompProfile] = useState<any>({ name: '', description: '', role_name: '', requirement_ids: [] })
   const [delDialog, setDelDialog] = useState(false)
   const [editDel, setEditDel] = useState<any>({ primary_manager_id: '', delegate_manager_id: '', ends_at: '' })
-  const [upgradeDialog, setUpgradeDialog] = useState<{ open: boolean; userId: string; name: string }>({ open: false, userId: '', name: '' })
   const [delAuditDialog, setDelAuditDialog] = useState(false)
   const [delAuditLogs, setDelAuditLogs] = useState<any[]>([])
   const [delAuditLoading, setDelAuditLoading] = useState(false)
@@ -88,15 +83,7 @@ export default function SettingsPage() {
     { key: 'daily_note_generation', label: 'AI Daily Notes', desc: 'Transform voice/text observations into structured, CQC-compliant care notes with mood analysis and safeguarding flags' },
   ]
 
-  // Certificate state
-  const [certDialog, setCertDialog] = useState(false)
-  const [certLocationId, setCertLocationId] = useState('')
-  const [certificates, setCertificates] = useState<any[]>([])
-  const [editCert, setEditCert] = useState<any>(null)
-  const [certForm, setCertForm] = useState({ name: '', certificate_type: '', issuing_body: '', certificate_number: '', issue_date: '', expiry_date: '', status: 'valid', notes: '' })
-
   // Pagination state
-  const [locPage, setLocPage] = useState(0)
   const [compConfigPage, setCompConfigPage] = useState(0)
   const [compProfilePage, setCompProfilePage] = useState(0)
   const [delPage, setDelPage] = useState(0)
@@ -112,9 +99,8 @@ export default function SettingsPage() {
         setProfile({ first_name: user.first_name || '', last_name: user.last_name || '', birth_date: '', phone: '', address: '', city: '', country: '', postal_code: '', profile_picture_url: user.profile_picture_url || '' })
       }
       if (isOrgAdmin) {
-        const [orgRes, locRes, staffRes, compRes, delRes, compProfileRes, orgDetRes] = await Promise.allSettled([
+        const [orgRes, staffRes, compRes, delRes, compProfileRes, orgDetRes] = await Promise.allSettled([
           api.get('/settings/org'),
-          api.get('/settings/locations'),
           api.get('/settings/staff'),
           api.get('/settings/compliance-config'),
           api.get('/settings/delegations'),
@@ -122,7 +108,6 @@ export default function SettingsPage() {
           api.get(`/organizations/${orgId}`),
         ])
         if (orgRes.status === 'fulfilled') setOrgSettings(orgRes.value.data)
-        if (locRes.status === 'fulfilled') setLocations(locRes.value.data)
         if (staffRes.status === 'fulfilled') setStaffList(staffRes.value.data)
         if (compRes.status === 'fulfilled') setComplianceConfigs(compRes.value.data)
         if (delRes.status === 'fulfilled') setDelegations(delRes.value.data)
@@ -207,85 +192,6 @@ export default function SettingsPage() {
       showSnackbar("Settings saved.", "success")
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save settings')
-    }
-  }
-
-  const saveLocation = async () => {
-    try {
-      const payload = { ...editLoc }
-      if (payload.manager_id === '' || payload.manager_id === null || payload.manager_id === undefined) payload.manager_id = null
-      delete payload.id
-      if (editLoc.id) {
-        await api.put(`/settings/locations/${editLoc.id}`, payload)
-      } else {
-        await api.post('/settings/locations', payload)
-      }
-      setLocDialog(false)
-      setEditLoc({ name: '', address: '', manager_id: '' })
-      const res = await api.get('/settings/locations')
-      setLocations(res.data)
-    } catch (err: any) {
-      if (err.response?.status === 400 && err.response?.data?.message?.includes('manager')) {
-        setUpgradeDialog({ open: true, userId: editLoc.manager_id, name: staffList.find(s => s.id === editLoc.manager_id)?.first_name || '' })
-      }
-      setError(err.response?.data?.message || 'Failed to save location')
-    }
-  }
-
-  const upgradeToManager = async () => {
-    try {
-      await api.patch(`/staff/${upgradeDialog.userId}/role`, { role: 'MANAGER' })
-      setUpgradeDialog({ open: false, userId: '', name: '' })
-      saveLocation()
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to upgrade role')
-    }
-  }
-
-  const deleteLocation = async (id: string) => {
-    try {
-      await api.delete(`/settings/locations/${id}`)
-      setLocations(prev => prev.filter(l => l.id !== id))
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete location')
-    }
-  }
-
-  const openCertificates = async (locId: string) => {
-    setCertLocationId(locId)
-    setEditCert(null)
-    setCertForm({ name: '', certificate_type: '', issuing_body: '', certificate_number: '', issue_date: '', expiry_date: '', status: 'valid', notes: '' })
-    try {
-      const res = await api.get(`/settings/locations/${locId}/certificates`)
-      setCertificates(res.data)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load certificates')
-    }
-    setCertDialog(true)
-  }
-
-  const saveCertificate = async () => {
-    try {
-      if (editCert) {
-        await api.put(`/settings/locations/${certLocationId}/certificates/${editCert.id}`, certForm)
-      } else {
-        await api.post(`/settings/locations/${certLocationId}/certificates`, certForm)
-      }
-      const res = await api.get(`/settings/locations/${certLocationId}/certificates`)
-      setCertificates(res.data)
-      setEditCert(null)
-      setCertForm({ name: '', certificate_type: '', issuing_body: '', certificate_number: '', issue_date: '', expiry_date: '', status: 'valid', notes: '' })
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save certificate')
-    }
-  }
-
-  const deleteCertificate = async (certId: string) => {
-    try {
-      await api.delete(`/settings/locations/${certLocationId}/certificates/${certId}`)
-      setCertificates(prev => prev.filter(c => c.id !== certId))
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete certificate')
     }
   }
 
@@ -582,11 +488,11 @@ export default function SettingsPage() {
         <Stack spacing={2}>
           <Box>
             <Typography variant="body2" fontWeight={700}>Role</Typography>
-            <Typography variant="body2" color="text.secondary">{user?.role || '—'}</Typography>
+            <Typography variant="body2" color="text.secondary">{user?.role || 'â€”'}</Typography>
           </Box>
           <Box>
             <Typography variant="body2" fontWeight={700}>Member Since</Typography>
-            <Typography variant="body2" color="text.secondary">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</Typography>
+            <Typography variant="body2" color="text.secondary">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'â€”'}</Typography>
           </Box>
         </Stack>
       </Paper>
@@ -801,10 +707,10 @@ export default function SettingsPage() {
                 <InputLabel>Regulatory Framework</InputLabel>
                 <Select value={orgDetails.regulator || 'cqc'} label="Regulatory Framework"
                   onChange={e => setOrgDetails((p: any) => ({ ...p, regulator: e.target.value }))}>
-                  <MenuItem value="cqc">CQC — England</MenuItem>
-                  <MenuItem value="ciw">CIW — Wales</MenuItem>
-                  <MenuItem value="care-inspectorate">Care Inspectorate — Scotland</MenuItem>
-                  <MenuItem value="rqia">RQIA — Northern Ireland</MenuItem>
+                  <MenuItem value="cqc">CQC â€” England</MenuItem>
+                  <MenuItem value="ciw">CIW â€” Wales</MenuItem>
+                  <MenuItem value="care-inspectorate">Care Inspectorate â€” Scotland</MenuItem>
+                  <MenuItem value="rqia">RQIA â€” Northern Ireland</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -1046,8 +952,8 @@ export default function SettingsPage() {
           value={orgSettings.emedication_count_convention || 'end_of_day'}
           onChange={e => setOrgSettings((p: any) => ({ ...p, emedication_count_convention: e.target.value }))}
         >
-          <MenuItem value="end_of_day">Once a day — End of Day</MenuItem>
-          <MenuItem value="am_pm">Twice a day — AM &amp; PM</MenuItem>
+          <MenuItem value="end_of_day">Once a day â€” End of Day</MenuItem>
+          <MenuItem value="am_pm">Twice a day â€” AM &amp; PM</MenuItem>
           <MenuItem value="after_each">After each administration</MenuItem>
         </TextField>
         <Typography variant="caption" color="#6B7280" sx={{ display: 'block', ml: 0, mt: 1 }}>
@@ -1059,231 +965,6 @@ export default function SettingsPage() {
         </Button>
       </Paper>
     </Stack>
-  )
-
-  const renderLocationsTab = () => (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700 }}><BuildingIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Locations</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditLoc({ name: '', address: '', manager_id: '', minimum_staff_per_day: 1 }); setLocDialog(true) }}
-          sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Location</Button>
-      </Stack>
-      {locations.some(l => !l.manager_id) && (
-        <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
-          {locations.filter(l => !l.manager_id).length} location{locations.filter(l => !l.manager_id).length !== 1 ? 's' : ''} {locations.filter(l => !l.manager_id).length !== 1 ? 'have' : 'has'} no manager assigned. Every location should have a MANAGER so cover, leave approvals and medication escalations are reviewed. Org admins are notified automatically.
-        </Alert>
-      )}
-      <Paper>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Address</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Min Staff/Day</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Manager</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Certificates</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {locations.length === 0 ? (
-                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No locations created yet</TableCell></TableRow>
-              ) : locations.slice(locPage * rowsPerPage, locPage * rowsPerPage + rowsPerPage).map(loc => (
-                <TableRow key={loc.id} hover sx={{ cursor: 'pointer', bgcolor: !loc.manager_id ? 'rgba(217, 119, 6, 0.06)' : 'inherit', '&:hover': { bgcolor: !loc.manager_id ? 'rgba(217, 119, 6, 0.12)' : 'action.hover' } }} onClick={() => navigate(`/locations/${loc.id}`)}>
-                  <TableCell sx={{ fontWeight: 600 }}>{loc.name}</TableCell>
-                  <TableCell>{loc.address || '—'}</TableCell>
-                  <TableCell>{loc.minimum_staff_per_day ?? 1}</TableCell>
-                  <TableCell>
-                    {loc.manager_first_name ? `${loc.manager_first_name} ${loc.manager_last_name}` : (
-                      <Chip label="No manager" size="small" sx={{ bgcolor: '#FEF3C7', color: '#B45309', fontWeight: 700, fontSize: 12, height: 22 }} />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Button size="small" variant="outlined" onClick={(e) => { e.stopPropagation(); openCertificates(loc.id) }}>
-                      Certificates
-                    </Button>
-                  </TableCell>
-                  <TableCell>
-                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); setEditLoc(loc); setLocDialog(true) }}><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); deleteLocation(loc.id) }}><DeleteIcon fontSize="small" /></IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        {locations.length > rowsPerPage && (
-          <TablePagination component="div" count={locations.length} page={locPage} onPageChange={(_, p) => setLocPage(p)}
-            rowsPerPage={rowsPerPage} rowsPerPageOptions={[rowsPerPage]} />
-        )}
-      </Paper>
-      <Dialog open={locDialog} onClose={() => setLocDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{editLoc.id ? 'Edit Location' : 'Add Location'}</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="Name" fullWidth size="small" value={editLoc.name} onChange={e => setEditLoc((p: any) => ({ ...p, name: e.target.value }))} />
-            <TextField label="Address" fullWidth size="small" value={editLoc.address || ''} onChange={e => setEditLoc((p: any) => ({ ...p, address: e.target.value }))} />
-            <TextField label="Minimum Staff Required Per Day" type="number" fullWidth size="small"
-              value={editLoc.minimum_staff_per_day ?? 1}
-              onChange={e => setEditLoc((p: any) => ({ ...p, minimum_staff_per_day: Number(e.target.value) }))}
-              helperText="Minimum safe staffing level for this location each day" />
-            <Autocomplete
-              options={staffList}
-              value={staffList.find(s => s.id === editLoc.manager_id) || null}
-              onChange={(_, v) => setEditLoc((p: any) => ({ ...p, manager_id: v?.id || null }))}
-              getOptionLabel={(o) => `${o.first_name} ${o.last_name}${o.role ? ` (${o.role})` : ''}`}
-              renderInput={(params) => (
-                <TextField {...params} label="Manager" size="small"
-                  helperText="Every location needs a MANAGER. Staff who aren't managers yet can be upgraded on save." />
-              )}
-              isOptionEqualToValue={(o, v) => o.id === v.id}
-              fullWidth
-              size="small"
-              noOptionsText="No staff found — add staff from the Staff directory first"
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setLocDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={saveLocation} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Save</Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog open={upgradeDialog.open} onClose={() => setUpgradeDialog({ open: false, userId: '', name: '' })} maxWidth="xs" fullWidth>
-        <DialogTitle>Upgrade to Manager?</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="#6B7280">
-            {upgradeDialog.name} needs to be a MANAGER to be a location manager. Upgrade their role now?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setUpgradeDialog({ open: false, userId: '', name: '' })}>Cancel</Button>
-          <Button variant="contained" onClick={upgradeToManager} sx={{ bgcolor: '#0F4C81' }}>Upgrade to Manager</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Certificates Dialog */}
-      <Dialog open={certDialog} onClose={() => setCertDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>
-          Certificates — {locations.find(l => l.id === certLocationId)?.name || ''}
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={2}>
-            <Button variant="outlined" size="small" sx={{ alignSelf: 'flex-end' }}
-              onClick={() => { setEditCert(null); setCertForm({ name: '', certificate_type: 'gas_safety', issuing_body: '', certificate_number: '', issue_date: '', expiry_date: '', status: 'valid', notes: '' }) }}>
-              Add Certificate
-            </Button>
-            {certificates.length === 0 ? (
-              <Typography variant="body2" color="#9CA3AF" sx={{ textAlign: 'center', py: 3 }}>No certificates for this location</Typography>
-            ) : (
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Issuing Body</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Certificate #</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Issue Date</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Expiry Date</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {certificates.map(cert => (
-                      <TableRow key={cert.id} hover>
-                        <TableCell>{cert.name}</TableCell>
-                        <TableCell>{cert.certificate_type}</TableCell>
-                        <TableCell>{cert.issuing_body || '—'}</TableCell>
-                        <TableCell>{cert.certificate_number || '—'}</TableCell>
-                        <TableCell>{cert.issue_date || '—'}</TableCell>
-                        <TableCell>
-                          <Typography variant="body2" sx={{
-                            color: cert.expiry_date && new Date(cert.expiry_date) < new Date() ? '#DC2626' :
-                              cert.expiry_date && new Date(cert.expiry_date) < new Date(Date.now() + 30 * 86400000) ? '#D97706' : 'inherit',
-                            fontWeight: cert.expiry_date && new Date(cert.expiry_date) < new Date() ? 700 : 400
-                          }}>
-                            {cert.expiry_date || '—'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={cert.status.replace('_', ' ')}
-                            size="small"
-                            color={cert.status === 'valid' ? 'success' : cert.status === 'expiring_soon' ? 'warning' : cert.status === 'expired' ? 'error' : 'default'}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <IconButton size="small" onClick={() => { setEditCert(cert); setCertForm({ name: cert.name, certificate_type: cert.certificate_type, issuing_body: cert.issuing_body || '', certificate_number: cert.certificate_number || '', issue_date: cert.issue_date || '', expiry_date: cert.expiry_date || '', status: cert.status, notes: cert.notes || '' }) }}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" color="error" onClick={() => deleteCertificate(cert.id)}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-
-            {/* Certificate Form */}
-            {(editCert !== undefined) && (
-              <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>{editCert ? 'Edit Certificate' : 'New Certificate'}</Typography>
-                <Stack spacing={2}>
-                  <Stack direction="row" spacing={2}>
-                    <TextField label="Name" size="small" fullWidth value={certForm.name}
-                      onChange={e => setCertForm(p => ({ ...p, name: e.target.value }))} />
-                    <TextField label="Type" size="small" fullWidth value={certForm.certificate_type}
-                      onChange={e => setCertForm(p => ({ ...p, certificate_type: e.target.value }))}
-                      placeholder="e.g. gas_safety, food_hygiene, fire_safety" />
-                  </Stack>
-                  <Stack direction="row" spacing={2}>
-                    <TextField label="Issuing Body" size="small" fullWidth value={certForm.issuing_body}
-                      onChange={e => setCertForm(p => ({ ...p, issuing_body: e.target.value }))} />
-                    <TextField label="Certificate #" size="small" fullWidth value={certForm.certificate_number}
-                      onChange={e => setCertForm(p => ({ ...p, certificate_number: e.target.value }))} />
-                  </Stack>
-                  <Stack direction="row" spacing={2}>
-                    <TextField label="Issue Date" type="date" size="small" fullWidth
-                      value={certForm.issue_date}
-                      onChange={e => setCertForm(p => ({ ...p, issue_date: e.target.value }))}
-                      InputLabelProps={{ shrink: true }} />
-                    <TextField label="Expiry Date" type="date" size="small" fullWidth
-                      value={certForm.expiry_date}
-                      onChange={e => setCertForm(p => ({ ...p, expiry_date: e.target.value }))}
-                      InputLabelProps={{ shrink: true }} />
-                  </Stack>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <FormControl size="small" sx={{ minWidth: 180 }}>
-                      <InputLabel>Status</InputLabel>
-                      <Select value={certForm.status} label="Status" onChange={e => setCertForm(p => ({ ...p, status: e.target.value }))}>
-                        <MenuItem value="valid">Valid</MenuItem>
-                        <MenuItem value="expiring_soon">Expiring Soon</MenuItem>
-                        <MenuItem value="expired">Expired</MenuItem>
-                        <MenuItem value="pending_renewal">Pending Renewal</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <TextField label="Notes" size="small" fullWidth value={certForm.notes}
-                      onChange={e => setCertForm(p => ({ ...p, notes: e.target.value }))} />
-                  </Stack>
-                  <Stack direction="row" spacing={1} justifyContent="flex-end">
-                    <Button size="small" onClick={() => { setEditCert(null); setCertForm({ name: '', certificate_type: '', issuing_body: '', certificate_number: '', issue_date: '', expiry_date: '', status: 'valid', notes: '' }) }}>Cancel</Button>
-                    <Button size="small" variant="contained" onClick={saveCertificate} sx={{ bgcolor: '#0F4C81' }}>Save</Button>
-                  </Stack>
-                </Stack>
-              </Paper>
-            )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCertDialog(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
   )
 
   const renderComplianceTab = () => (
@@ -1476,7 +1157,7 @@ export default function SettingsPage() {
       const body: Record<string, any> = {}
       if (aiConfig.enabled !== undefined) body.enabled = aiConfig.enabled
       if (aiConfig.provider !== undefined) body.provider = aiConfig.provider
-      if (aiConfig.apiKey !== undefined && !aiConfig.apiKey.startsWith('••')) {
+      if (aiConfig.apiKey !== undefined && !aiConfig.apiKey.startsWith('â€¢â€¢')) {
         body.apiKey = aiConfig.apiKey
       }
       if (aiConfig.model !== undefined) body.model = aiConfig.model
@@ -1595,7 +1276,7 @@ export default function SettingsPage() {
                     <Typography variant="caption" sx={{ fontWeight: 600 }}>Critical Gaps:</Typography>
                     {aiAnalysisResult.critical_gaps.slice(0, 3).map((g: any, i: number) => (
                       <Typography key={i} variant="caption" display="block" sx={{ color: g.priority === 'critical' ? '#DC2626' : '#D97706', mt: 0.5 }}>
-                        • {g.area}: {g.recommended_action}
+                        â€¢ {g.area}: {g.recommended_action}
                       </Typography>
                     ))}
                   </Box>
@@ -1650,10 +1331,10 @@ export default function SettingsPage() {
                 3. AI runs on your data with minimum-necessary context
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                4. All actions are audited — full prompt + response logs
+                4. All actions are audited â€” full prompt + response logs
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                5. Results are decision support only — humans always decide
+                5. Results are decision support only â€” humans always decide
               </Typography>
             </Paper>
           )}
@@ -1787,7 +1468,6 @@ export default function SettingsPage() {
           {user && <Tab icon={<SecurityIcon />} iconPosition="start" label="Security" />}
           <Tab icon={<PaletteIcon />} iconPosition="start" label="Appearance" />
           {isOrgAdmin && <Tab icon={<SettingsIcon />} iconPosition="start" label="Organization" />}
-          {isOrgAdmin && <Tab icon={<BuildingIcon />} iconPosition="start" label="Locations" />}
           {isOrgAdmin && <Tab icon={<ComplianceIcon />} iconPosition="start" label="Compliance" />}
           {isOrgAdmin && <Tab icon={<GroupIcon />} iconPosition="start" label="Delegations" />}
           {isOrgAdmin && <Tab icon={<SmartToyIcon />} iconPosition="start" label="AI" />}
@@ -1799,12 +1479,11 @@ export default function SettingsPage() {
       {user && tab === 1 && renderSecurityTab()}
       {tab === 2 && renderAppearanceTab()}
       {isOrgAdmin && tab === 3 && renderOrgSettingsTab()}
-      {isOrgAdmin && tab === 4 && renderLocationsTab()}
-      {isOrgAdmin && tab === 5 && renderComplianceTab()}
-      {isOrgAdmin && tab === 6 && renderDelegationsTab()}
-      {isOrgAdmin && tab === 7 && renderAITab()}
-      {isOrgAdmin && tab === 8 && <LeaveTypesSettings staffCount={staffList.length} />}
-      {isOrgAdmin && tab === 9 && <IncidentCategoriesSettings />}
+      {isOrgAdmin && tab === 4 && renderComplianceTab()}
+      {isOrgAdmin && tab === 5 && renderDelegationsTab()}
+      {isOrgAdmin && tab === 6 && renderAITab()}
+      {isOrgAdmin && tab === 7 && <LeaveTypesSettings staffCount={staffList.length} />}
+      {isOrgAdmin && tab === 8 && <IncidentCategoriesSettings />}
     </Box>
   )
 }
