@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
-import { LoadingState, StatusBadge, NAVY } from '../../components/ui'
+import { LoadingState, StatusBadge, NAVY, ConfirmDialog } from '../../components/ui'
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'primary' | 'purple'
 
@@ -120,6 +120,7 @@ export default function LocationDetailPage() {
   const certFileInputRef = useRef<HTMLInputElement>(null)
   const [filePreview, setFilePreview] = useState<{ url: string; name: string; type: string } | null>(null)
   const [fileError, setFileError] = useState('')
+  const [deleteCertTarget, setDeleteCertTarget] = useState<any>(null)
 
   const userStr = localStorage.getItem('user')
   let currentUser: any = {}
@@ -655,7 +656,7 @@ export default function LocationDetailPage() {
                         {canEdit && (
                           <TableCell>
                             <IconButton size="small" onClick={() => openEditCert(cert)}><EditIcon fontSize="small" /></IconButton>
-                            <IconButton size="small" color="error" onClick={() => deleteCertMutation.mutate(cert.id)}><DeleteIcon fontSize="small" /></IconButton>
+                            <IconButton size="small" color="error" onClick={() => setDeleteCertTarget(cert)}><DeleteIcon fontSize="small" /></IconButton>
                           </TableCell>
                         )}
                       </TableRow>
@@ -725,6 +726,16 @@ export default function LocationDetailPage() {
           <Button variant="contained" onClick={() => certMutation.mutate()} disabled={!certForm.name} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>Save</Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!deleteCertTarget}
+        title="Delete certificate?"
+        message={`Delete "${deleteCertTarget?.name}"? This removes the certificate record permanently. This cannot be undone.`}
+        confirmLabel="Delete"
+        danger
+        onCancel={() => setDeleteCertTarget(null)}
+        onConfirm={() => { if (deleteCertTarget) deleteCertMutation.mutate(deleteCertTarget.id); setDeleteCertTarget(null) }}
+      />
 
       <Dialog open={locDialogOpen} onClose={() => setLocDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Edit Location</DialogTitle>
