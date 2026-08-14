@@ -32,7 +32,8 @@ export class DashboardRepository {
          AND sh2.start_time >= CURRENT_DATE
          AND sh2.start_time < CURRENT_DATE + INTERVAL '1 day'
          AND sa.status IN ('assigned', 'accepted')) as staff_on_duty,
-        (SELECT COUNT(*)::int FROM incidents WHERE organization_id = $1 AND status IN ('reported', 'investigating')) as open_incidents
+        (SELECT COUNT(*)::int FROM incidents WHERE organization_id = $1 AND status IN ('reported', 'investigating')) as open_incidents,
+        (SELECT COUNT(*)::int FROM locations WHERE organization_id = $1) as locations
     `, [orgId]);
     return result.rows[0];
   }
