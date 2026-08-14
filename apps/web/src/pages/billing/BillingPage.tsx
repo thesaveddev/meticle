@@ -10,7 +10,7 @@ import { Elements, CardElement, useStripe, useElements } from '@stripe/react-str
 import { Plan } from '@meticle/shared'
 import {
   CreditCard, Add as AddIcon, Star as StarIcon,
-  Info as InfoIcon, DeleteOutline as DeleteIcon,
+  Info as InfoIcon, DeleteOutline as DeleteIcon, Download as DownloadIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
 
@@ -232,6 +232,7 @@ function BillingPageInner() {
   const [addCardOpen, setAddCardOpen] = useState(false)
   const [removeCardDialog, setRemoveCardDialog] = useState('')
   const [retrying, setRetrying] = useState(false)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   const userStr = localStorage.getItem('user')
   let user: any = null
@@ -245,9 +246,6 @@ function BillingPageInner() {
     try {
       const invRes = await api.get('/billing/invoices')
       setInvoices(invRes.data)
-      if (invRes.data.length === 0) {
-        try { await api.post('/billing/seed-invoices'); const i2 = await api.get('/billing/invoices'); setInvoices(i2.data) } catch { /* */ }
-      }
     } catch { /* non-critical */ }
     try {
       const pmRes = await api.get('/billing/payment-methods')
@@ -264,6 +262,21 @@ function BillingPageInner() {
     setAddCardOpen(false)
     setMessage('Card added successfully.')
     loadBillingData()
+  }
+
+  const handleDownloadInvoice = async (inv: any) => {
+    setDownloadingId(inv.id)
+    try {
+      const res = await api.get(`/billing/invoices/${inv.id}/download`, { responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `invoice-${(inv.invoice_number || inv.id).replace(/[^A-Za-z0-9-_]/g, '')}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { /* ignore */ } finally {
+      setDownloadingId(null)
+    }
   }
 
   const handleSetDefault = async (id: string) => {
@@ -466,7 +479,7 @@ function BillingPageInner() {
           <TableContainer>
             <Table>
               <TableHead><TableRow>
-                <TableCell>Invoice</TableCell><TableCell>Date</TableCell><TableCell>Description</TableCell><TableCell>Amount</TableCell><TableCell>Status</TableCell>
+                <TableCell>Invoice</TableCell><TableCell>Date</TableCell><TableCell>Description</TableCell><TableCell>Amount</TableCell><TableCell>Status</TableCell><TableCell align="right">Download</TableCell>
               </TableRow></TableHead>
               <TableBody>
                 {invoices.map((inv) => (
@@ -476,6 +489,16 @@ function BillingPageInner() {
                     <TableCell>{inv.description}</TableCell>
                     <TableCell>£{parseFloat(inv.amount).toFixed(2)}</TableCell>
                     <TableCell><Chip label={inv.status === 'paid' ? 'Paid' : 'Upcoming'} size="small" color={inv.status === 'paid' ? 'success' : 'default'} /></TableCell>
+                    <TableCell align="right">
+                      <IconButton
+                        size="small"
+                        title={`Download ${inv.invoice_number}`}
+                        disabled={downloadingId === inv.id}
+                        onClick={(e) => { e.stopPropagation(); handleDownloadInvoice(inv) }}
+                      >
+                        {downloadingId === inv.id ? <CircularProgress size={16} /> : <DownloadIcon fontSize="small" />}
+                      </IconButton>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

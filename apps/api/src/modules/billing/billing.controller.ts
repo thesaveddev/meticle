@@ -9,6 +9,7 @@ import { NotificationsController } from '../notifications/notifications.controll
 import { EmailService } from '../../shared/utils/email.service';
 import { buildEmailHtml } from '../../shared/utils/email.template';
 import { logWarn } from '../../shared/utils/logger';
+import { buildInvoiceHtml, generatePdf } from './billing.pdf';
 
 export class BillingController {
   static async getSubscription(req: Request, res: Response) {
@@ -58,24 +59,31 @@ export class BillingController {
           cancelAtPeriodEnd: sub.cancel_at_period_end,
         };
 
-        // Reconcile Stripe status into DB — handles missed webhooks
-        const stripeMapped = sub.status === 'active' ? 'active' : sub.status === 'past_due' ? 'past_due' : sub.status === 'canceled' ? 'canceled' : sub.status === 'incomplete' ? 'trial' : null;
-        if (stripeMapped && stripeMapped !== org.subscription_status) {
-          await pool.query(
-            `UPDATE organizations SET subscription_status = $1 WHERE id = $2`,
-            [stripeMapped, orgId]
-          );
-          org.subscription_status = stripeMapped;
-        }
-        // Persist the period end so background reminders / win-back emails can fire
+        // Reconcile Stripe status into DB — handles missed webhooks. Stripe's
+        // canonical states: active, trialing, past_due, unpaid, canceled, incomplete.
+        const stripeMapped =
+          sub.status === 'active' ? 'active' :
+          sub.status === 'trialing' ? 'trial' :
+          sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' :
+          sub.status === 'canceled' ? 'canceled' :
+          sub.status === 'incomplete' ? 'trial' : null;
+
+        // Persist status, period end and trial end so the DB matches Stripe —
+        // otherwise a stale trial_ends_at locks an org out of an active trial.
         const subPeriodEnd = (sub as any).current_period_end;
-        if (subPeriodEnd) {
-          const isoEnd = new Date(subPeriodEnd * 1000).toISOString();
+        const subTrialEnd = (sub as any).trial_end;
+        if (stripeMapped || subPeriodEnd || subTrialEnd) {
           await pool.query(
-            `UPDATE organizations SET current_period_end = $1 WHERE id = $2`,
-            [isoEnd, orgId]
+            `UPDATE organizations SET
+               subscription_status = COALESCE($1, subscription_status),
+               current_period_end = COALESCE($2, current_period_end),
+               trial_ends_at = COALESCE($3, trial_ends_at)
+             WHERE id = $4`,
+            [stripeMapped, subPeriodEnd ? new Date(subPeriodEnd * 1000).toISOString() : null, subTrialEnd ? new Date(subTrialEnd * 1000).toISOString() : null, orgId]
           );
-          org.current_period_end = isoEnd;
+          if (stripeMapped) org.subscription_status = stripeMapped;
+          if (subPeriodEnd) org.current_period_end = new Date(subPeriodEnd * 1000).toISOString();
+          if (subTrialEnd) org.trial_ends_at = new Date(subTrialEnd * 1000).toISOString();
         }
       } else {
         // No Stripe subscription found but DB thinks it's active — mark expired
@@ -125,18 +133,38 @@ export class BillingController {
         const price = await getOrCreatePrice(plan);
         if (price) {
           const existingSubs = await stripe.subscriptions.list({ customer: customerId, limit: 1, status: 'all' });
+          let sub: Stripe.Subscription | null = null;
           if (existingSubs.data.length > 0) {
             await stripe.subscriptions.update(existingSubs.data[0].id, {
               items: [{ id: existingSubs.data[0].items.data[0].id, price }],
               proration_behavior: 'none',
             });
+            sub = await stripe.subscriptions.retrieve(existingSubs.data[0].id);
           } else {
-            await stripe.subscriptions.create({
+            sub = await stripe.subscriptions.create({
               customer: customerId,
               items: [{ price }],
               metadata: { organizationId: orgId, plan } as any,
               trial_period_days: 30,
             });
+          }
+          // Persist the resulting Stripe state so an expired/inactive org is
+          // reactivated the moment a plan is chosen (the trial restarts on the
+          // newly created subscription when one didn't exist).
+          if (sub) {
+            const mapped =
+              sub.status === 'active' ? 'active' :
+              sub.status === 'trialing' ? 'trial' :
+              sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' :
+              sub.status === 'canceled' ? 'canceled' : null;
+            await pool.query(
+              `UPDATE organizations SET
+                 subscription_status = COALESCE($1, subscription_status),
+                 current_period_end = COALESCE($2, current_period_end),
+                 trial_ends_at = COALESCE($3, trial_ends_at)
+               WHERE id = $4`,
+              [mapped, (sub as any).current_period_end ? new Date((sub as any).current_period_end * 1000).toISOString() : null, (sub as any).trial_end ? new Date((sub as any).trial_end * 1000).toISOString() : null, orgId]
+            );
           }
         }
       }
@@ -163,6 +191,27 @@ export class BillingController {
       [orgId]
     );
     res.json(result.rows);
+  }
+
+  static async downloadInvoice(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    const { id } = req.params;
+    const inv = await pool.query(
+      `SELECT * FROM invoices WHERE id = $1 AND organization_id = $2`,
+      [id, orgId]
+    );
+    if (inv.rows.length === 0) throw new AppError(404, 'Invoice not found');
+    const org = await pool.query(
+      `SELECT name, primary_color FROM organizations WHERE id = $1`,
+      [orgId]
+    );
+    const orgName = org.rows[0]?.name || 'Meticle customer';
+    const primaryColor = org.rows[0]?.primary_color || '#0F4C81';
+    const pdf = await generatePdf(buildInvoiceHtml(inv.rows[0], { name: orgName, primary_color: primaryColor }));
+    const filename = `invoice-${(inv.rows[0].invoice_number || id).replace(/[^A-Za-z0-9-_]/g, '')}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(pdf);
   }
 
   static async getPaymentMethods(req: Request, res: Response) {
@@ -478,10 +527,10 @@ export class BillingController {
         const sub = event.data.object as Stripe.Subscription;
         const orgIdSub = sub.metadata?.organizationId;
         if (orgIdSub) {
-          const status = sub.status === 'active' ? 'active' : sub.status === 'past_due' ? 'past_due' : sub.status === 'canceled' ? 'canceled' : null;
+          const status = sub.status === 'active' ? 'active' : sub.status === 'trialing' ? 'trial' : sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' : sub.status === 'canceled' ? 'canceled' : null;
           await pool.query(
-            `UPDATE organizations SET subscription_status = COALESCE($1, subscription_status), current_period_end = COALESCE(to_timestamp($3), current_period_end) WHERE id = $2`,
-            [status, orgIdSub, (sub as any).current_period_end || null]
+            `UPDATE organizations SET subscription_status = COALESCE($1, subscription_status), current_period_end = COALESCE(to_timestamp($3), current_period_end), trial_ends_at = COALESCE(to_timestamp($4), trial_ends_at) WHERE id = $2`,
+            [status, orgIdSub, (sub as any).current_period_end || null, (sub as any).trial_end || null]
           );
         }
         break;
@@ -637,39 +686,5 @@ export class BillingController {
     if (!Array.isArray(addons)) throw new AppError(400, 'addons must be an array');
     await pool.query('UPDATE organizations SET addons = $1 WHERE id = $2', [JSON.stringify(addons), orgId]);
     res.json({ addons });
-  }
-
-  static async seedInvoices(req: Request, res: Response) {
-    if (process.env.FEATURE_SEED_INVOICES !== 'true') {
-      throw new AppError(404, 'Not found');
-    }
-    const orgId = req.user!.organizationId!;
-    const org = await pool.query('SELECT plan FROM organizations WHERE id = $1', [orgId]);
-    if (org.rows.length === 0) throw new AppError(404, 'Organization not found');
-    const plan = org.rows[0].plan || 'starter';
-    const amounts: Record<string, number> = { starter: 99, professional: 299 };
-
-    const existing = await pool.query(
-      'SELECT COUNT(*) FROM invoices WHERE organization_id = $1', [orgId]
-    );
-    if (parseInt(existing.rows[0].count) > 0) {
-      res.json({ message: 'Invoices already exist' });
-      return;
-    }
-
-    const invoices = [
-      { num: 'INV-001', desc: 'Trial period', amount: 0, status: 'paid', issued: '2026-06-15', paid: '2026-06-15' },
-      { num: 'INV-002', desc: `${plan.charAt(0).toUpperCase() + plan.slice(1)} plan - Monthly`, amount: amounts[plan] || 99, status: 'upcoming', issued: '2026-07-15', paid: null },
-      { num: 'INV-003', desc: `${plan.charAt(0).toUpperCase() + plan.slice(1)} plan - Monthly`, amount: amounts[plan] || 99, status: 'upcoming', issued: '2026-08-15', paid: null },
-    ];
-
-    for (const inv of invoices) {
-      await pool.query(
-        `INSERT INTO invoices (organization_id, invoice_number, description, amount, status, issued_at, paid_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [orgId, inv.num, inv.desc, inv.amount, inv.status, inv.issued, inv.paid ? inv.paid + 'T00:00:00Z' : null]
-      );
-    }
-    res.json({ message: 'Invoices seeded' });
   }
 }

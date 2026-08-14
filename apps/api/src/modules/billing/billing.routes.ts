@@ -14,6 +14,7 @@ router.use(authenticate);
 // Read routes (any authenticated user)
 router.get('/subscription', asyncHandler(BillingController.getSubscription));
 router.get('/invoices', asyncHandler(BillingController.getInvoices));
+router.get('/invoices/:id/download', asyncHandler(BillingController.downloadInvoice));
 router.get('/payment-methods', asyncHandler(BillingController.getPaymentMethods));
 router.post('/create-setup-intent', requireRole(UserRole.ORG_ADMIN), validate(createSetupIntentSchema), asyncHandler(BillingController.createSetupIntent));
 
@@ -22,7 +23,6 @@ router.patch('/subscription', requireRole(UserRole.ORG_ADMIN), validate(updatePl
 router.post('/payment-methods', requireRole(UserRole.ORG_ADMIN), validate(addPaymentMethodSchema), asyncHandler(BillingController.addPaymentMethod));
 router.patch('/payment-methods/:id/default', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.setDefaultPaymentMethod));
 router.delete('/payment-methods/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.deletePaymentMethod));
-router.post('/seed-invoices', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.seedInvoices));
 router.post('/retry-payment', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.retryPayment));
 
 // Add-ons
