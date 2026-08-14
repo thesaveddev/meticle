@@ -61,6 +61,11 @@ async function seed() {
     [orgId, orgName, new Date(Date.now() + 90 * 86400000).toISOString()])
   console.log(`  ✓ "${orgName}" created`)
 
+  // Platform super admin — org-agnostic so it survives org deletion
+  await pool.query(`INSERT INTO users (id,organization_id,email,role,status,password_hash) VALUES ($1,NULL,$2,'SUPER_ADMIN','active',$3) ON CONFLICT DO NOTHING`,
+    [uuid(), '***REMOVED***', PWH])
+  console.log('  ✓ Platform super admin ensured (***REMOVED***)')
+
   // ── 2. Locations ──
   const locations = [
     { id: locIds[0], name: 'Orbis House', address: '1-3 Victoria Road, London SW1A 1AA', minStaff: 4, minDay: 3, minNight: 1 },
@@ -123,7 +128,7 @@ async function seed() {
   for (let idx = 0; idx < staffData.length; idx++) {
     const s = staffData[idx]
     const uid = uuid(), spId = uuid()
-    const email = idx === 0 ? `***REMOVED***` : `${s.first.toLowerCase()}.${s.last.toLowerCase()}@${domain}`
+    const email = `${s.first.toLowerCase()}.${s.last.toLowerCase()}@${domain}`
     await pool.query(`INSERT INTO users (id,organization_id,email,role,status,password_hash) VALUES ($1,$2,$3,$4,'active',$5)`,
       [uid, orgId, email, s.role, PWH])
     await pool.query(`INSERT INTO staff_profiles (id,user_id,first_name,last_name,location_id) VALUES ($1,$2,$3,$4,$5)`,
@@ -952,8 +957,8 @@ async function seed() {
   console.log(`✓ "${orgName}" DEMO SEEDED SUCCESSFULLY`)
   console.log('='.repeat(50))
   console.log(`\n  Organisation ID: ${orgId}`)
-  console.log(`  Login email: ***REMOVED***`)
-  console.log(`  Login password: ***REMOVED***`)
+  console.log(`  Org admin login: james.mercer@${domain}  (password: ***REMOVED***)`)
+  console.log(`  Platform admin: ***REMOVED***  (password: ***REMOVED***)`)
   console.log(`\n  Staff can login with: firstname.lastname@${domain}`)
   console.log(`  All passwords: ***REMOVED***`)
   console.log(`\n  Locations:`)
