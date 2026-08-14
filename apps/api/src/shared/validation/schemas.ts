@@ -204,22 +204,22 @@ export const updateOrganizationSchema = z.object({
 
 export const createLocationSchema = z.object({
   name: z.string().min(1, 'Location name is required').max(255),
-  address: z.string().optional(),
+  address: z.string().nullable().optional(),
   manager_id: z.string().uuid().nullable().optional(),
-  minimum_staff_per_day: z.number().int().min(0).optional(),
-  min_day_staff: z.number().int().min(0).optional(),
-  min_night_staff: z.number().int().min(0).optional(),
-  min_sleep_staff: z.number().int().min(0).optional(),
+  minimum_staff_per_day: z.number().int().min(0).nullable().optional(),
+  min_day_staff: z.number().int().min(0).nullable().optional(),
+  min_night_staff: z.number().int().min(0).nullable().optional(),
+  min_sleep_staff: z.number().int().min(0).nullable().optional(),
 });
 
 export const updateLocationSchema = z.object({
   name: z.string().min(1).max(255).optional(),
-  address: z.string().optional(),
+  address: z.string().nullable().optional(),
   manager_id: z.string().uuid().nullable().optional(),
-  minimum_staff_per_day: z.number().int().min(0).optional(),
-  min_day_staff: z.number().int().min(0).optional(),
-  min_night_staff: z.number().int().min(0).optional(),
-  min_sleep_staff: z.number().int().min(0).optional(),
+  minimum_staff_per_day: z.number().int().min(0).nullable().optional(),
+  min_day_staff: z.number().int().min(0).nullable().optional(),
+  min_night_staff: z.number().int().min(0).nullable().optional(),
+  min_sleep_staff: z.number().int().min(0).nullable().optional(),
 });
 
 export const createDepartmentSchema = z.object({
