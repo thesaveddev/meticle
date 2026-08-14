@@ -54,6 +54,39 @@ function getClientIp(socket: Socket): string {
 }
 
 /**
+ * Decide whether a socket.io connection origin is allowed. The allowlist is
+ * built from CORS_ORIGINS (comma-separated) plus FRONTEND_URL plus the default
+ * dev origins, so a misconfigured deployment degrades instead of silently
+ * rejecting every real connection. Loopback origins (localhost/127.0.0.1/[::1])
+ * are always accepted outside production; CORS_ORIGINS='*' disables checks.
+ */
+function isOriginAllowed(origin: string): boolean {
+  if (!origin) return true;
+  if (process.env.CORS_ORIGINS?.trim() === '*') return true;
+
+  const allowlist = [
+    ...(process.env.CORS_ORIGINS?.split(',') ?? []),
+    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+    'http://localhost:3000',
+    'http://localhost:5173',
+  ]
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (allowlist.includes(origin)) return true;
+
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      const hostname = new URL(origin).hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true;
+    } catch {
+      // Malformed origin — fall through to rejection.
+    }
+  }
+  return false;
+}
+
+/**
  * Verify the user row with RLS session variables set, mirroring the HTTP
  * `authenticate` path. Sockets have no request-scoped client, so we acquire
  * a dedicated pooled client, set the session vars, query, then reset before
@@ -96,8 +129,8 @@ export async function initSocketServer(httpServer: HTTPServer) {
   io = new Server(httpServer, {
     cors: {
       origin: (origin, callback) => {
-        const allowed = process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:5173'];
-        if (!origin || allowed.includes(origin)) return callback(null, true);
+        if (isOriginAllowed(origin as string)) return callback(null, true);
+        logger.warn({ origin }, 'Socket connection rejected (origin not allowed by CORS)');
         callback(new Error('Not allowed by CORS'));
       },
       credentials: true,
@@ -318,7 +351,16 @@ export async function initSocketServer(httpServer: HTTPServer) {
   });
 
   io.engine.on('connection_error', (err) => {
-    logger.warn({ err: err.message, code: err.code, context: err.context }, 'Socket connection error');
+    logger.warn(
+      {
+        err: err.message,
+        code: err.code,
+        context: err.context,
+        origin: (err as any).req?.headers?.origin,
+        url: (err as any).req?.url,
+      },
+      'Socket connection error'
+    );
     recordSocketError('engine_connection_error');
   });
 
