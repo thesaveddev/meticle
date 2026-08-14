@@ -12,7 +12,7 @@ import {
   Delete as DeleteIcon, Warning as WarningIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
-import { NAVY } from '../../components/ui'
+import { NAVY, ConfirmDialog } from '../../components/ui'
 
 const SERVICE_TYPE_LABEL: Record<string, string> = {
   supported_living: 'Supported Living',
@@ -38,6 +38,8 @@ export default function LocationsPage() {
   const [upgradeDialog, setUpgradeDialog] = useState<{ open: boolean; userId: string; name: string }>({ open: false, userId: '', name: '' })
   const [locPage, setLocPage] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<any>(null)
+  const [deleting, setDeleting] = useState(false)
   const rowsPerPage = 10
 
   const userStr = localStorage.getItem('user')
@@ -127,11 +129,16 @@ export default function LocationsPage() {
   }
 
   const deleteLocation = async (id: string) => {
+    setDeleting(true)
     try {
       await api.delete(`/settings/locations/${id}`)
       setLocations(prev => prev.filter(l => l.id !== id))
+      setDeleteTarget(null)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to delete location')
+      setDeleteTarget(null)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -194,7 +201,7 @@ export default function LocationsPage() {
                     {isOrgAdmin && (
                       <TableCell>
                         <IconButton size="small" onClick={(e) => { e.stopPropagation(); openEdit(loc) }}><EditIcon fontSize="small" /></IconButton>
-                        <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); deleteLocation(loc.id) }}><DeleteIcon fontSize="small" /></IconButton>
+                        <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteTarget(loc) }}><DeleteIcon fontSize="small" /></IconButton>
                       </TableCell>
                     )}
                   </TableRow>
@@ -288,6 +295,17 @@ export default function LocationsPage() {
           <Button variant="contained" onClick={upgradeToManager} sx={{ bgcolor: NAVY }}>Upgrade to Manager</Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete location?"
+        message={`Delete "${deleteTarget?.name}"? This removes the location and its certificates permanently. This cannot be undone.`}
+        confirmLabel="Delete"
+        danger
+        loading={deleting}
+        onCancel={() => { if (!deleting) setDeleteTarget(null) }}
+        onConfirm={() => deleteTarget && deleteLocation(deleteTarget.id)}
+      />
     </Box>
   )
 }

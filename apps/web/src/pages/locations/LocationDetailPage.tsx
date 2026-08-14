@@ -12,6 +12,7 @@ import {
   WarningAmber as WarningAmberIcon, Add as AddIcon, Edit as EditIcon,
   Delete as DeleteIcon, Badge as BadgeIcon, Verified as VerifiedIcon,
   UploadFile as UploadFileIcon, OpenInNew as OpenInNewIcon,
+  Download as DownloadIcon, Close as CloseIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -90,6 +91,17 @@ const CERT_TYPE_LABEL: Record<string, string> = Object.fromEntries(
 
 const EMPTY_CERT_FORM = { name: '', certificate_type: 'gas_safety', issuing_body: '', certificate_number: '', issue_date: '', expiry_date: '', status: 'valid', notes: '', file_url: '', file_name: '' }
 
+const fmtDate = (v: any) => {
+  if (!v) return '—'
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    const [y, m, d] = v.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+  const d = new Date(v)
+  if (isNaN(d.getTime())) return v
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
 export default function LocationDetailPage() {
   const { locationId } = useParams<{ locationId: string }>()
   const navigate = useNavigate()
@@ -106,6 +118,8 @@ export default function LocationDetailPage() {
   const [locError, setLocError] = useState('')
   const [certUploading, setCertUploading] = useState(false)
   const certFileInputRef = useRef<HTMLInputElement>(null)
+  const [filePreview, setFilePreview] = useState<{ url: string; name: string; type: string } | null>(null)
+  const [fileError, setFileError] = useState('')
 
   const userStr = localStorage.getItem('user')
   let currentUser: any = {}
@@ -248,25 +262,17 @@ export default function LocationDetailPage() {
     }
   }
 
-  const openCertFile = async (url: string) => {
+  const openCertFile = async (url: string, name?: string) => {
+    setFileError('')
     try {
       const token = localStorage.getItem('accessToken')
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const contentType = res.headers.get('content-type') || ''
       const blob = await res.blob()
-      const blobUrl = URL.createObjectURL(blob)
-      const w = window.open(blobUrl, '_blank', 'noopener,noreferrer')
-      if (!w) {
-        const a = document.createElement('a')
-        a.href = blobUrl
-        a.target = '_blank'
-        a.rel = 'noopener noreferrer'
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-      }
+      setFilePreview({ url: URL.createObjectURL(blob), name: name || url.split('/').pop() || 'File', type: contentType })
     } catch {
-      setCertError('Failed to open file')
+      setFileError('Could not open this file — it may have been removed from the server.')
     }
   }
 
@@ -383,9 +389,16 @@ export default function LocationDetailPage() {
 
       {tab === TAB_OVERVIEW && (
         <Paper sx={{ p: 3.5, borderRadius: 2 }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 2.5 }}>
-            Location details
-          </Typography>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase' }}>
+              Location details
+            </Typography>
+            {isOrgAdmin && (
+              <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={openEditLocation} sx={{ color: NAVY, borderColor: NAVY }}>
+                Edit
+              </Button>
+            )}
+          </Stack>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <Typography variant="caption" color="text.secondary">Address</Typography>
@@ -435,7 +448,7 @@ export default function LocationDetailPage() {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Typography variant="caption" color="text.secondary">Last CQC Inspection</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{location.last_cqc_inspection || '—'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmtDate(location.last_cqc_inspection)}</Typography>
             </Grid>
             <Grid item xs={12}>
               <Typography variant="caption" color="text.secondary">Certificates</Typography>
@@ -475,10 +488,18 @@ export default function LocationDetailPage() {
             ) : (
               <Alert severity="success">No health & safety concerns. All recorded ratings and certificates are within tolerance.</Alert>
             )}
+            {fileError && <Alert severity="error" sx={{ mb: 0 }} onClose={() => setFileError('')}>{fileError}</Alert>}
             <Paper sx={{ p: 3.5, borderRadius: 2 }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 2.5 }}>
-                Regulator & hygiene
-              </Typography>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase' }}>
+                  Regulator & hygiene
+                </Typography>
+                {isOrgAdmin && (
+                  <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={openEditLocation} sx={{ color: NAVY, borderColor: NAVY }}>
+                    Edit
+                  </Button>
+                )}
+              </Stack>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="caption" color="text.secondary">CQC Rating</Typography>
@@ -498,7 +519,7 @@ export default function LocationDetailPage() {
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="caption" color="text.secondary">Last CQC Inspection</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{location.last_cqc_inspection || '—'}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmtDate(location.last_cqc_inspection)}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <Typography variant="caption" color="text.secondary">Certificates</Typography>
@@ -514,64 +535,11 @@ export default function LocationDetailPage() {
                 </Grid>
               </Grid>
             </Paper>
-            <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', p: 2.5, pb: 1 }}>
-                Certificates
-              </Typography>
-              {certsLoading ? (
-                <Box sx={{ p: 6, textAlign: 'center' }}><CircularProgress /></Box>
-              ) : certs.length === 0 ? (
-                <Box sx={{ p: 4, textAlign: 'center' }}>
-                  <Typography color="#9CA3AF">No certificates for this location</Typography>
-                </Box>
-              ) : (
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Expiry Date</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>File</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {certs.map(cert => {
-                        const certExpired = cert.expiry_date && new Date(cert.expiry_date) < now
-                        const certExpiring = cert.expiry_date && !certExpired && new Date(cert.expiry_date) < new Date(Date.now() + 30 * 86400000)
-                        return (
-                          <TableRow key={cert.id} hover>
-                            <TableCell sx={{ fontWeight: 600 }}>{cert.name}</TableCell>
-                            <TableCell>{CERT_TYPE_LABEL[cert.certificate_type] || cert.certificate_type}</TableCell>
-                            <TableCell sx={{ color: certExpired ? '#DC2626' : certExpiring ? '#D97706' : 'inherit', fontWeight: certExpired ? 700 : 400 }}>
-                              {cert.expiry_date || '—'}
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={cert.status.replace('_', ' ')}
-                                size="small"
-                                color={cert.status === 'valid' ? 'success' : cert.status === 'expiring_soon' ? 'warning' : cert.status === 'expired' ? 'error' : 'default'}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {cert.file_url ? (
-                                <Stack direction="row" spacing={0.5} alignItems="center">
-                                  <Typography variant="caption" noWrap sx={{ maxWidth: 140 }}>{cert.file_name || cert.file_url.split('/').pop()}</Typography>
-                                  <IconButton size="small" title="Open file" onClick={() => openCertFile(cert.file_url)}><OpenInNewIcon fontSize="small" /></IconButton>
-                                </Stack>
-                              ) : (
-                                <Typography variant="caption" color="#9CA3AF">—</Typography>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </Paper>
+            {certs.length > 0 && (
+              <Button size="small" startIcon={<VerifiedIcon />} onClick={() => setTab(TAB_CERTIFICATES)} sx={{ color: NAVY, fontWeight: 700, alignSelf: 'flex-start', textTransform: 'none' }}>
+                View all {certs.length} certificates
+              </Button>
+            )}
           </Stack>
         )
       })()}
@@ -632,6 +600,7 @@ export default function LocationDetailPage() {
               </Button>
             )}
           </Stack>
+          {fileError && <Alert severity="error" sx={{ mx: 2.5 }} onClose={() => setFileError('')}>{fileError}</Alert>}
           {certsLoading ? (
             <Box sx={{ p: 6, textAlign: 'center' }}><CircularProgress /></Box>
           ) : !certificates || certificates.length === 0 ? (
@@ -664,7 +633,7 @@ export default function LocationDetailPage() {
                         <TableCell>{cert.issuing_body || '—'}</TableCell>
                         <TableCell>{cert.certificate_number || '—'}</TableCell>
                         <TableCell sx={{ color: expired ? '#DC2626' : expiringSoon ? '#D97706' : 'inherit', fontWeight: expired ? 700 : 400 }}>
-                          {cert.expiry_date || '—'}
+                          {fmtDate(cert.expiry_date)}
                         </TableCell>
                         <TableCell>
                           <Chip
@@ -677,7 +646,7 @@ export default function LocationDetailPage() {
                           {cert.file_url ? (
                             <Stack direction="row" spacing={0.5} alignItems="center">
                               <Typography variant="caption" noWrap sx={{ maxWidth: 140 }}>{cert.file_name || cert.file_url.split('/').pop()}</Typography>
-                              <IconButton size="small" title="Open file" onClick={() => openCertFile(cert.file_url)}><OpenInNewIcon fontSize="small" /></IconButton>
+                              <IconButton size="small" title="Open file" onClick={() => openCertFile(cert.file_url, cert.file_name || cert.name)}><OpenInNewIcon fontSize="small" /></IconButton>
                             </Stack>
                           ) : (
                             <Typography variant="caption" color="#9CA3AF">—</Typography>
@@ -745,7 +714,7 @@ export default function LocationDetailPage() {
                 <>
                   <Chip label={certForm.file_name || certForm.file_url.split('/').pop() || 'Attached'} size="small" color="primary" variant="outlined"
                     onDelete={() => setCertForm((p: any) => ({ ...p, file_url: '', file_name: '' }))} />
-                  <IconButton size="small" title="Open file" onClick={() => openCertFile(certForm.file_url)}><OpenInNewIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" title="Open file" onClick={() => openCertFile(certForm.file_url, certForm.file_name)}><OpenInNewIcon fontSize="small" /></IconButton>
                 </>
               )}
             </Stack>
@@ -822,6 +791,45 @@ export default function LocationDetailPage() {
           <Button variant="contained" onClick={saveLocation} disabled={!locForm.name || locSaving}
             sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>{locSaving ? <CircularProgress size={20} /> : 'Save'}</Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={!!filePreview}
+        onClose={() => { if (filePreview?.url.startsWith('blob:')) URL.revokeObjectURL(filePreview.url); setFilePreview(null) }}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {filePreview?.name || 'File Preview'}
+          </Typography>
+          <Stack direction="row" spacing={0.5}>
+            {filePreview && (
+              <IconButton component="a" href={filePreview.url} download={filePreview.name} aria-label="Download"><DownloadIcon sx={{ color: NAVY }} /></IconButton>
+            )}
+            <IconButton aria-label="Close preview" onClick={() => { if (filePreview?.url.startsWith('blob:')) URL.revokeObjectURL(filePreview.url); setFilePreview(null) }}>
+              <CloseIcon />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <DialogContent dividers sx={{ bgcolor: '#F8FAFC', p: 0, height: '70vh' }}>
+          {filePreview?.type === 'application/pdf' ? (
+            <iframe src={filePreview.url} title={filePreview.name} width="100%" height="100%" style={{ border: 'none' }} />
+          ) : filePreview?.type.startsWith('image/') ? (
+            <Box component="img" src={filePreview.url} alt={filePreview.name} sx={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          ) : filePreview?.type.startsWith('text/') ? (
+            <iframe src={filePreview.url} title={filePreview.name} width="100%" height="100%" style={{ border: 'none' }} />
+          ) : (
+            <Stack spacing={2} alignItems="center" justifyContent="center" sx={{ height: '100%', p: 4 }}>
+              <Typography color="#9CA3AF">This file type can't be previewed in the browser.</Typography>
+              {filePreview && (
+                <Button variant="contained" component="a" href={filePreview.url} download={filePreview.name} startIcon={<DownloadIcon />} sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>
+                  Download {filePreview.name}
+                </Button>
+              )}
+            </Stack>
+          )}
+        </DialogContent>
       </Dialog>
     </Box>
   )

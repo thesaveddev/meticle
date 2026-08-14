@@ -202,6 +202,16 @@ export const updateOrganizationSchema = z.object({
   auto_approve_documents: z.boolean().optional(),
 });
 
+const operationalLocationFields = {
+  service_type: z.string().nullable().optional(),
+  service_capacity: z.number().int().min(0).nullable().optional(),
+  phone: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  food_hygiene_rating: z.number().int().min(0).max(5).nullable().optional(),
+  cqc_rating: z.string().nullable().optional(),
+  last_cqc_inspection: z.string().nullable().optional(),
+};
+
 export const createLocationSchema = z.object({
   name: z.string().min(1, 'Location name is required').max(255),
   address: z.string().nullable().optional(),
@@ -210,6 +220,7 @@ export const createLocationSchema = z.object({
   min_day_staff: z.number().int().min(0).nullable().optional(),
   min_night_staff: z.number().int().min(0).nullable().optional(),
   min_sleep_staff: z.number().int().min(0).nullable().optional(),
+  ...operationalLocationFields,
 });
 
 export const updateLocationSchema = z.object({
@@ -220,6 +231,7 @@ export const updateLocationSchema = z.object({
   min_day_staff: z.number().int().min(0).nullable().optional(),
   min_night_staff: z.number().int().min(0).nullable().optional(),
   min_sleep_staff: z.number().int().min(0).nullable().optional(),
+  ...operationalLocationFields,
 });
 
 export const createDepartmentSchema = z.object({
