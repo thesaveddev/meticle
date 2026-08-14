@@ -31,6 +31,11 @@ export class LeaveController {
   static async createLeaveType(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
     const { name, color, days_allowed, hours_allowed, duration_type } = req.body;
+    await LeaveController.assertLeaveTotalsMatch(orgId!, {
+      days_allowed: days_allowed ?? 0,
+      hours_allowed: hours_allowed ?? 0,
+      duration_type: duration_type || 'days',
+    });
     const result = await pool.query(
       `INSERT INTO leave_types (organization_id, name, color, days_allowed, hours_allowed, duration_type)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
@@ -43,13 +48,19 @@ export class LeaveController {
     const user = req.user!;
     const { id } = req.params;
     const { name, color, days_allowed, hours_allowed, duration_type } = req.body;
+    const current = await pool.query('SELECT * FROM leave_types WHERE id = $1 AND organization_id = $2', [id, user.organizationId]);
+    if (current.rows.length === 0) throw new AppError(404, 'Leave type not found');
+    await LeaveController.assertLeaveTotalsMatch(user.organizationId!, {
+      days_allowed: days_allowed ?? current.rows[0].days_allowed,
+      hours_allowed: hours_allowed ?? current.rows[0].hours_allowed,
+      duration_type: duration_type ?? current.rows[0].duration_type,
+    }, id);
     const result = await pool.query(
       `UPDATE leave_types SET name = COALESCE($1, name), color = COALESCE($2, color),
        days_allowed = COALESCE($3, days_allowed), hours_allowed = COALESCE($4, hours_allowed),
        duration_type = COALESCE($5, duration_type) WHERE id = $6 AND organization_id = $7 RETURNING *`,
       [name, color, days_allowed, hours_allowed, duration_type, id, user.organizationId]
     );
-    if (result.rows.length === 0) throw new AppError(404, 'Leave type not found');
     res.json(result.rows[0]);
   }
 
@@ -59,6 +70,47 @@ export class LeaveController {
     const result = await pool.query('DELETE FROM leave_types WHERE id = $1 AND organization_id = $2 RETURNING id', [id, user.organizationId]);
     if (result.rows.length === 0) throw new AppError(404, 'Leave type not found');
     res.json({ message: 'Deleted' });
+  }
+
+  /**
+   * Enforce that the combined allowance of all leave types (days x default
+   * hours per day, or hours directly) exactly equals the organisation's total
+   * leave allowance (base_leave_hours). Runs on create/update of a leave type
+   * so the org can never drift out of balance.
+   */
+  private static async assertLeaveTotalsMatch(
+    orgId: string,
+    incoming: { days_allowed: number; hours_allowed: number; duration_type: string },
+    excludeId?: string
+  ) {
+    const orgRes = await pool.query(
+      'SELECT base_leave_hours, default_hours_per_leave_day FROM organizations WHERE id = $1', [orgId]
+    );
+    const base = parseFloat(orgRes.rows[0]?.base_leave_hours) || 240;
+    const hpd = parseFloat(orgRes.rows[0]?.default_hours_per_leave_day) || 7.5;
+    const typesRes = await pool.query(
+      `SELECT days_allowed, hours_allowed, duration_type FROM leave_types WHERE organization_id = $1${excludeId ? ' AND id <> $2' : ''}`,
+      excludeId ? [orgId, excludeId] : [orgId]
+    );
+    let total = typesRes.rows.reduce((sum: number, t: any) => sum + LeaveController.typeHours(t, hpd), 0);
+    total += LeaveController.typeHours(incoming, hpd);
+    if (Math.abs(total - base) > 0.01) {
+      const remaining = LeaveController.round(base - total);
+      throw new AppError(
+        400,
+        `Leave type allowances total ${LeaveController.round(total)}h but the organisation leave allowance is ${LeaveController.round(base)}h. ` +
+        `Adjust the allowances so the total matches (currently ${remaining >= 0 ? `${remaining}h remaining` : `${Math.abs(remaining)}h over`}).`
+      );
+    }
+  }
+
+  private static typeHours(t: { days_allowed?: number; hours_allowed?: number; duration_type?: string }, hpd: number) {
+    if (t?.duration_type === 'hours') return Number(t.hours_allowed) || 0;
+    return (Number(t.days_allowed) || 0) * hpd;
+  }
+
+  private static round(n: number) {
+    return Math.round(n * 100) / 100;
   }
 
   static async getMyLeaveRequests(req: Request, res: Response) {

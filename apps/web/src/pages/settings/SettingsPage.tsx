@@ -22,6 +22,7 @@ import {
   Warning as WarningIcon, DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
   TextFields as TextFieldsIcon,
+  CalendarMonth as CalendarIcon,
 } from '@mui/icons-material'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -521,15 +522,6 @@ export default function SettingsPage() {
     setLogoUploading(false)
   }
 
-  const calculateEntitlements = async () => {
-    try {
-      const res = await api.post('/settings/calculate-entitlements')
-      showSnackbar('Entitlements calculated: ' + (res.data?.message || `${staffList.length} staff updated`), "success")
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to calculate entitlements')
-    }
-  }
-
   if (loading) {
     return <Box><Typography variant="h4" sx={{ mb: 4 }}>Settings</Typography><Paper sx={{ p: 4 }}>Loading...</Paper></Box>
   }
@@ -887,74 +879,6 @@ export default function SettingsPage() {
         </Grid>
         <Button variant="contained" onClick={saveBranding} disabled={brandingSaving} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> {brandingSaving ? 'Saving...' : 'Save Branding'}
-        </Button>
-      </Paper>
-
-      {/* Leave Entitlements Summary */}
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><CalculateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Leave Entitlements Summary</Typography>
-        <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>
-          Staff leave entitlements are calculated proportionally based on their contracted weekly hours.
-          For example, a staff member working 20h/week will receive half the leave of a 40h/week full-time employee.
-          Configure the baseline values below, then run the calculation.
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
-          <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
-            <CardContent>
-              <Typography variant="caption" color="#6B7280">Base Leave Hours</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800 }}>{orgSettings.base_leave_hours ?? 240}h</Typography>
-              <Typography variant="caption" color="#9CA3AF">For {orgSettings.base_contracted_hours ?? 40}h/week</Typography>
-            </CardContent>
-          </Card>
-          <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
-            <CardContent>
-              <Typography variant="caption" color="#6B7280">Staff Count</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800 }}>{staffList.length}</Typography>
-              <Typography variant="caption" color="#9CA3AF">Active staff to calculate</Typography>
-            </CardContent>
-          </Card>
-        </Box>
-        <Button variant="contained" startIcon={<CalculateIcon />} onClick={calculateEntitlements}
-          sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
-          Calculate & Update All Entitlements
-        </Button>
-      </Paper>
-
-      {/* Leave Calendar Settings */}
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><LeaveIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Leave Calendar Settings</Typography>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Leave Year Start Month</InputLabel>
-              <Select value={orgSettings.leave_start_month || 1} label="Leave Year Start Month"
-                onChange={e => setOrgSettings((p: any) => ({ ...p, leave_start_month: Number(e.target.value) }))}>
-                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((name, i) => (
-                  <MenuItem key={i + 1} value={i + 1}>{name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField label="Default Hours per Leave Day" type="number" fullWidth size="small"
-              value={orgSettings.default_hours_per_leave_day ?? 7.5}
-              onChange={e => setOrgSettings((p: any) => ({ ...p, default_hours_per_leave_day: Number(e.target.value) }))} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField label="Base Leave Hours (full-time)" type="number" fullWidth size="small"
-              value={orgSettings.base_leave_hours ?? 240}
-              onChange={e => setOrgSettings((p: any) => ({ ...p, base_leave_hours: Number(e.target.value) }))}
-              helperText="Total leave hours for a full-time (40h/week) staff member" />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField label="Base Contracted Hours/Week" type="number" fullWidth size="small"
-              value={orgSettings.base_contracted_hours ?? 40}
-              onChange={e => setOrgSettings((p: any) => ({ ...p, base_contracted_hours: Number(e.target.value) }))}
-              helperText="Full-time weekly hours used as baseline for proportional calculation" />
-          </Grid>
-        </Grid>
-        <Button variant="contained" onClick={() => saveOrgSettings({ leave_start_month: orgSettings.leave_start_month, default_hours_per_leave_day: orgSettings.default_hours_per_leave_day, base_leave_hours: orgSettings.base_leave_hours, base_contracted_hours: orgSettings.base_contracted_hours })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
-          <SaveIcon sx={{ mr: 1 }} /> Save Organization Settings
         </Button>
       </Paper>
 
@@ -1862,7 +1786,7 @@ export default function SettingsPage() {
           {isOrgAdmin && <Tab icon={<ComplianceIcon />} iconPosition="start" label="Compliance" />}
           {isOrgAdmin && <Tab icon={<GroupIcon />} iconPosition="start" label="Delegations" />}
           {isOrgAdmin && <Tab icon={<SmartToyIcon />} iconPosition="start" label="AI" />}
-          {isOrgAdmin && <Tab icon={<LeaveIcon />} iconPosition="start" label="Leave Types" />}
+          {isOrgAdmin && <Tab icon={<LeaveIcon />} iconPosition="start" label="Leave" />}
           {isOrgAdmin && <Tab icon={<WarningIcon />} iconPosition="start" label="Incident Categories" />}
         </Tabs>
       </Paper>
@@ -1874,26 +1798,72 @@ export default function SettingsPage() {
       {isOrgAdmin && tab === 5 && renderComplianceTab()}
       {isOrgAdmin && tab === 6 && renderDelegationsTab()}
       {isOrgAdmin && tab === 7 && renderAITab()}
-      {isOrgAdmin && tab === 8 && <LeaveTypesSettings />}
+      {isOrgAdmin && tab === 8 && <LeaveTypesSettings staffCount={staffList.length} />}
       {isOrgAdmin && tab === 9 && <IncidentCategoriesSettings />}
     </Box>
   )
 }
 
-function LeaveTypesSettings() {
+function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
+  const { showSnackbar } = useSnackbar()
   const [types, setTypes] = useState<any[]>([])
+  const [leaveOrg, setLeaveOrg] = useState<any>({})
   const [typeDialog, setTypeDialog] = useState(false)
   const [editingType, setEditingType] = useState<any>({ name: '', color: '#0F4C81', duration_type: 'days', days_allowed: 0, hours_allowed: 0 })
   const [typePage, setTypePage] = useState(0)
   const [tlLoading, setTlLoading] = useState('')
   const [ltError, setLtError] = useState('')
+  const [saveError, setSaveError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState<any>(null)
+
+  const hpd = Number(leaveOrg.default_hours_per_leave_day) || 7.5
+  const base = Number(leaveOrg.base_leave_hours) || 240
+
+  const toHours = (t: any) => (t?.duration_type === 'hours' ? Number(t.hours_allowed) || 0 : (Number(t.days_allowed) || 0) * hpd)
+  const fmt = (n: number) => Math.round(n * 100) / 100
+  const savedTotal = types.reduce((s: number, t: any) => s + toHours(t), 0)
+  const projectedTotal = types.filter((x: any) => x.id !== editingType.id).reduce((s: number, t: any) => s + toHours(t), 0) + toHours(editingType)
+  const mismatch = Math.abs(projectedTotal - base) > 0.01
+  const savedMismatch = Math.abs(savedTotal - base) > 0.01
 
   const loadTypes = async () => {
     try { const r = await api.get('/leave/types'); setTypes(r.data) } catch { }
   }
-  useEffect(() => { loadTypes() }, [])
+  const loadLeaveOrg = async () => {
+    try { const r = await api.get('/settings/org'); setLeaveOrg(r.data) } catch { }
+  }
+  useEffect(() => { loadTypes(); loadLeaveOrg() }, [])
+
+  const saveLeaveOrg = async () => {
+    setTlLoading('org')
+    try {
+      const r = await api.patch('/settings/org', {
+        leave_start_month: leaveOrg.leave_start_month,
+        default_hours_per_leave_day: leaveOrg.default_hours_per_leave_day,
+        base_leave_hours: leaveOrg.base_leave_hours,
+        base_contracted_hours: leaveOrg.base_contracted_hours,
+      })
+      setLeaveOrg(r.data)
+      showSnackbar('Leave calendar settings saved.', 'success')
+    } catch (e: any) { setLtError(e.response?.data?.message || 'Failed to save leave settings') }
+    finally { setTlLoading('') }
+  }
+
+  const calculateEntitlements = async () => {
+    setTlLoading('entitlements')
+    try {
+      const res = await api.post('/settings/calculate-entitlements')
+      showSnackbar('Entitlements calculated: ' + (res.data?.message || `${staffCount} staff updated`), "success")
+    } catch (e: any) { setLtError(e.response?.data?.message || 'Failed to calculate entitlements') }
+    finally { setTlLoading('') }
+  }
 
   const saveType = async () => {
+    setSaveError('')
+    if (mismatch) {
+      setSaveError(`Leave type allowances must total the organisation leave allowance of ${fmt(base)}h exactly. Current total: ${fmt(projectedTotal)}h (${fmt(base - projectedTotal)}h ${base >= projectedTotal ? 'remaining' : 'over'}). Adjust a type's allowance so it fits.`)
+      return
+    }
     setTlLoading('save')
     try {
       if (editingType.id) {
@@ -1901,28 +1871,113 @@ function LeaveTypesSettings() {
       } else {
         await api.post('/leave/types', editingType)
       }
-      setTypeDialog(false); setEditingType({ name: '', color: '#0F4C81', duration_type: 'days', days_allowed: 0, hours_allowed: 0 }); loadTypes()
-    } catch (e: any) { setLtError(e.response?.data?.message || 'Error saving leave type') }
+      setTypeDialog(false); setSaveError(''); setEditingType({ name: '', color: '#0F4C81', duration_type: 'days', days_allowed: 0, hours_allowed: 0 }); loadTypes()
+      showSnackbar('Leave type saved.', 'success')
+    } catch (e: any) { setSaveError(e.response?.data?.message || 'Error saving leave type') }
     finally { setTlLoading('') }
   }
 
   const deleteType = async (id: string) => {
-    setTlLoading(id)
-    try { await api.delete(`/leave/types/${id}`); loadTypes() }
+    setTlLoading('delete')
+    try { await api.delete(`/leave/types/${id}`); loadTypes(); showSnackbar('Leave type deleted.', 'success') }
     catch (e: any) { setLtError(e.response?.data?.message || 'Error deleting leave type') }
-    finally { setTlLoading('') }
+    finally { setTlLoading(''); setConfirmDelete(null) }
   }
 
   return (
     <Box>
       {ltError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setLtError('')}>{ltError}</Alert>}
+
+      {/* Leave Calendar Settings */}
       <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><CalendarIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Leave Calendar Settings</Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Leave Year Start Month</InputLabel>
+              <Select value={leaveOrg.leave_start_month || 1} label="Leave Year Start Month"
+                onChange={e => setLeaveOrg((p: any) => ({ ...p, leave_start_month: Number(e.target.value) }))}>
+                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((name, i) => (
+                  <MenuItem key={i + 1} value={i + 1}>{name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField label="Default Hours per Leave Day" type="number" fullWidth size="small"
+              value={leaveOrg.default_hours_per_leave_day ?? 7.5}
+              onChange={e => setLeaveOrg((p: any) => ({ ...p, default_hours_per_leave_day: Number(e.target.value) }))} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField label="Base Leave Hours (full-time)" type="number" fullWidth size="small"
+              value={leaveOrg.base_leave_hours ?? 240}
+              onChange={e => setLeaveOrg((p: any) => ({ ...p, base_leave_hours: Number(e.target.value) }))}
+              helperText="Total leave hours for a full-time (40h/week) staff member" />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField label="Base Contracted Hours/Week" type="number" fullWidth size="small"
+              value={leaveOrg.base_contracted_hours ?? 40}
+              onChange={e => setLeaveOrg((p: any) => ({ ...p, base_contracted_hours: Number(e.target.value) }))}
+              helperText="Full-time weekly hours used as baseline for proportional calculation" />
+          </Grid>
+        </Grid>
+        <Button variant="contained" onClick={saveLeaveOrg} disabled={tlLoading === 'org'}
+          sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <SaveIcon sx={{ mr: 1 }} /> {tlLoading === 'org' ? 'Saving...' : 'Save Leave Settings'}
+        </Button>
+      </Paper>
+
+      {/* Leave Entitlements Summary */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><CalculateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Leave Entitlements Summary</Typography>
+        <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>
+          Staff leave entitlements are calculated proportionally based on their contracted weekly hours.
+          For example, a staff member working 20h/week will receive half the leave of a 40h/week full-time employee.
+          Configure the baseline values above, then run the calculation.
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+          <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
+            <CardContent>
+              <Typography variant="caption" color="#6B7280">Base Leave Hours</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>{leaveOrg.base_leave_hours ?? 240}h</Typography>
+              <Typography variant="caption" color="#9CA3AF">For {leaveOrg.base_contracted_hours ?? 40}h/week</Typography>
+            </CardContent>
+          </Card>
+          <Card variant="outlined" sx={{ flex: 1, minWidth: 200 }}>
+            <CardContent>
+              <Typography variant="caption" color="#6B7280">Staff Count</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>{staffCount}</Typography>
+              <Typography variant="caption" color="#9CA3AF">Active staff to calculate</Typography>
+            </CardContent>
+          </Card>
+        </Box>
+        <Button variant="contained" startIcon={<CalculateIcon />} onClick={calculateEntitlements} disabled={tlLoading === 'entitlements'}
+          sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          {tlLoading === 'entitlements' ? 'Calculating...' : 'Calculate & Update All Entitlements'}
+        </Button>
+      </Paper>
+
+      {/* Leave Types */}
+      <Paper sx={{ p: 3 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Leave Types</Typography>
           <Button variant="contained" size="small" startIcon={<AddIcon />}
-            onClick={() => { setEditingType({ name: '', color: '#0F4C81', duration_type: 'days', days_allowed: 0, hours_allowed: 0 }); setTypeDialog(true) }}
+            onClick={() => { setEditingType({ name: '', color: '#0F4C81', duration_type: 'days', days_allowed: 0, hours_allowed: 0 }); setSaveError(''); setTypeDialog(true) }}
             sx={{ bgcolor: '#0F4C81' }}>Add Leave Type</Button>
         </Stack>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+          <Typography variant="body2" color="#6B7280">Type allowances total</Typography>
+          <Typography variant="body2" fontWeight={700} color={savedMismatch ? 'error.main' : 'success.main'}>{fmt(savedTotal)}h</Typography>
+          <Typography variant="body2" color="#6B7280">of {fmt(base)}h allowed</Typography>
+          {savedMismatch && <Typography variant="body2" color="error.main" fontWeight={600}>
+            ({fmt(base - savedTotal) >= 0 ? `${fmt(base - savedTotal)}h remaining` : `${fmt(savedTotal - base)}h over`})
+          </Typography>}
+        </Stack>
+        {savedMismatch && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Leave type allowances total {fmt(savedTotal)}h but the organisation leave allowance is {fmt(base)}h. Edit the types so the total matches exactly before saving new changes.
+          </Alert>
+        )}
         <TableContainer>
           <Table size="small">
             <TableHead>
@@ -1944,9 +1999,9 @@ function LeaveTypesSettings() {
                   <TableCell>{t.days_allowed}</TableCell>
                   <TableCell>{t.hours_allowed}</TableCell>
                   <TableCell align="right">
-                    <IconButton size="small" onClick={() => { setEditingType(t); setTypeDialog(true) }}><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" onClick={() => deleteType(t.id)} disabled={tlLoading === t.id}>
-                      {tlLoading === t.id ? <CircularProgress size={16} /> : <DeleteIcon fontSize="small" />}
+                    <IconButton size="small" onClick={() => { setEditingType(t); setSaveError(''); setTypeDialog(true) }}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setConfirmDelete(t)}>
+                      <DeleteIcon fontSize="small" />
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -1957,7 +2012,8 @@ function LeaveTypesSettings() {
         {types.length > 10 && <TablePagination component="div" count={types.length} page={typePage} onPageChange={(_ev: any, p: number) => setTypePage(p)} rowsPerPage={10} rowsPerPageOptions={[10]} />}
       </Paper>
 
-      <Dialog open={typeDialog} onClose={() => setTypeDialog(false)} maxWidth="sm" fullWidth>
+      {/* Add/Edit Leave Type */}
+      <Dialog open={typeDialog} onClose={() => { setTypeDialog(false); setSaveError('') }} maxWidth="sm" fullWidth>
         <DialogTitle>{editingType.id ? 'Edit Leave Type' : 'Add Leave Type'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1975,12 +2031,40 @@ function LeaveTypesSettings() {
               onChange={e => setEditingType({ ...editingType, days_allowed: parseInt(e.target.value) || 0 })} />
             <TextField label="Hours Allowed" type="number" fullWidth value={editingType.hours_allowed}
               onChange={e => setEditingType({ ...editingType, hours_allowed: parseFloat(e.target.value) || 0 })} />
+            <Box sx={{ p: 1.5, bgcolor: '#F7F4EE', borderRadius: 1 }}>
+              <Typography variant="body2" color="#4B5563">
+                Type allowances total <Typography component="span" fontWeight={700} color={mismatch ? 'error.main' : 'success.main'}>{fmt(projectedTotal)}h</Typography> of {fmt(base)}h allowed
+                <Typography component="span" color="#6B7280"> ({fmt(base - projectedTotal) >= 0 ? `${fmt(base - projectedTotal)}h remaining` : `${fmt(projectedTotal - base)}h over`})</Typography>
+              </Typography>
+              {mismatch && (
+                <Alert severity="error" sx={{ mt: 1 }}>
+                  {saveError || `The organisation leave allowance is ${fmt(base)}h and the type allowances must match it exactly. Adjust the allowances above so the total equals ${fmt(base)}h.`}
+                </Alert>
+              )}
+            </Box>
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setTypeDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={saveType} disabled={tlLoading === 'save'}
+          <Button onClick={() => { setTypeDialog(false); setSaveError('') }}>Cancel</Button>
+          <Button variant="contained" onClick={saveType} disabled={tlLoading === 'save' || mismatch}
             sx={{ bgcolor: '#0F4C81' }}>{tlLoading === 'save' ? <CircularProgress size={20} /> : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <Dialog open={!!confirmDelete} onClose={() => setConfirmDelete(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete leave type?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="#4B5563">
+            Are you sure you want to delete <Typography component="span" fontWeight={700}>{confirmDelete?.name}</Typography>? This will permanently remove the type and its staff balances.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDelete(null)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={() => confirmDelete && deleteType(confirmDelete.id)}
+            disabled={tlLoading === 'delete'}>
+            {tlLoading === 'delete' ? <CircularProgress size={20} /> : 'Delete'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
