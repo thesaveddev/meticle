@@ -21,6 +21,7 @@ import MfaSetupPage from './pages/auth/MfaSetupPage'
 import OnboardingFlow from './pages/onboarding/OnboardingFlow'
 import StaffDirectoryPage from './pages/staff/StaffDirectoryPage'
 import StaffProfilePage from './pages/staff/StaffProfilePage'
+import LocationDetailPage from './pages/locations/LocationDetailPage'
 
 // Lazy-loaded marketing pages for code splitting
 const FeaturesPage = lazy(() => import('./pages/marketing/FeaturesPage'))
@@ -128,6 +129,7 @@ function App() {
           <Route path="/insights" element={<ModuleGuard module="reporting"><InsightsPage /></ModuleGuard>} />
           <Route path="/organizations" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN]}><OrganizationPage /></AuthGuard>} />
           <Route path="/settings" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="settings"><SettingsPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/locations/:locationId" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="settings"><LocationDetailPage /></ModuleGuard></AuthGuard>} />
           <Route path="/billing" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN]}><ModuleGuard module="billing"><BillingPage /></ModuleGuard></AuthGuard>} />
           <Route path="/leave" element={<ModuleGuard module="leave"><LeaveManagerPage /></ModuleGuard>} />
           <Route path="/shift-marketplace" element={<ModuleGuard module="marketplace"><ShiftMarketplacePage /></ModuleGuard>} />

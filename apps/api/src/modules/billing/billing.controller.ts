@@ -128,45 +128,51 @@ export class BillingController {
 
     const stripe = getStripe();
     if (stripe) {
-      const customerId = await getOrCreateCustomer(orgId, userEmail, orgId);
-      if (customerId) {
-        const price = await getOrCreatePrice(plan);
-        if (price) {
-          const existingSubs = await stripe.subscriptions.list({ customer: customerId, limit: 1, status: 'all' });
-          let sub: Stripe.Subscription | null = null;
-          if (existingSubs.data.length > 0) {
-            await stripe.subscriptions.update(existingSubs.data[0].id, {
-              items: [{ id: existingSubs.data[0].items.data[0].id, price }],
-              proration_behavior: 'none',
-            });
-            sub = await stripe.subscriptions.retrieve(existingSubs.data[0].id);
-          } else {
-            sub = await stripe.subscriptions.create({
-              customer: customerId,
-              items: [{ price }],
-              metadata: { organizationId: orgId, plan } as any,
-              trial_period_days: 30,
-            });
-          }
-          // Persist the resulting Stripe state so an expired/inactive org is
-          // reactivated the moment a plan is chosen (the trial restarts on the
-          // newly created subscription when one didn't exist).
-          if (sub) {
-            const mapped =
-              sub.status === 'active' ? 'active' :
-              sub.status === 'trialing' ? 'trial' :
-              sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' :
-              sub.status === 'canceled' ? 'canceled' : null;
-            await pool.query(
-              `UPDATE organizations SET
-                 subscription_status = COALESCE($1, subscription_status),
-                 current_period_end = COALESCE($2, current_period_end),
-                 trial_ends_at = COALESCE($3, trial_ends_at)
-               WHERE id = $4`,
-              [mapped, (sub as any).current_period_end ? new Date((sub as any).current_period_end * 1000).toISOString() : null, (sub as any).trial_end ? new Date((sub as any).trial_end * 1000).toISOString() : null, orgId]
-            );
+      try {
+        const customerId = await getOrCreateCustomer(orgId, userEmail, orgId);
+        if (customerId) {
+          const price = await getOrCreatePrice(plan);
+          if (price) {
+            const existingSubs = await stripe.subscriptions.list({ customer: customerId, limit: 1, status: 'all' });
+            let sub: Stripe.Subscription | null = null;
+            if (existingSubs.data.length > 0) {
+              await stripe.subscriptions.update(existingSubs.data[0].id, {
+                items: [{ id: existingSubs.data[0].items.data[0].id, price }],
+                proration_behavior: 'none',
+              });
+              sub = await stripe.subscriptions.retrieve(existingSubs.data[0].id);
+            } else {
+              sub = await stripe.subscriptions.create({
+                customer: customerId,
+                items: [{ price }],
+                metadata: { organizationId: orgId, plan } as any,
+                trial_period_days: 30,
+              });
+            }
+            // Persist the resulting Stripe state so an expired/inactive org is
+            // reactivated the moment a plan is chosen (the trial restarts on the
+            // newly created subscription when one didn't exist).
+            if (sub) {
+              const mapped =
+                sub.status === 'active' ? 'active' :
+                sub.status === 'trialing' ? 'trial' :
+                sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' :
+                sub.status === 'canceled' ? 'canceled' : null;
+              await pool.query(
+                `UPDATE organizations SET
+                   subscription_status = COALESCE($1, subscription_status),
+                   current_period_end = COALESCE($2, current_period_end),
+                   trial_ends_at = COALESCE($3, trial_ends_at)
+                 WHERE id = $4`,
+                [mapped, (sub as any).current_period_end ? new Date((sub as any).current_period_end * 1000).toISOString() : null, (sub as any).trial_end ? new Date((sub as any).trial_end * 1000).toISOString() : null, orgId]
+              );
+            }
           }
         }
+      } catch (err: any) {
+        // Stripe unreachable (e.g. DNS/network) — record the plan in the DB and
+        // let the webhook + subscription lookup reconcile Stripe later.
+        logWarn('stripe plan update')(err);
       }
     }
 
@@ -231,13 +237,18 @@ export class BillingController {
       res.json({ clientSecret: null, ephemeral: true });
       return;
     }
-    const customerId = await getOrCreateCustomer(orgId, userEmail, orgId);
-    if (!customerId) {
+    try {
+      const customerId = await getOrCreateCustomer(orgId, userEmail, orgId);
+      if (!customerId) {
+        res.json({ clientSecret: null, ephemeral: true });
+        return;
+      }
+      const intent = await stripe.setupIntents.create({ customer: customerId, payment_method_types: ['card'] });
+      res.json({ clientSecret: intent.client_secret });
+    } catch (err: any) {
+      logWarn('stripe setup intent')(err);
       res.json({ clientSecret: null, ephemeral: true });
-      return;
     }
-    const intent = await stripe.setupIntents.create({ customer: customerId, payment_method_types: ['card'] });
-    res.json({ clientSecret: intent.client_secret });
   }
 
   static async addPaymentMethod(req: Request, res: Response) {

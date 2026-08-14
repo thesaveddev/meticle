@@ -114,6 +114,7 @@ export default function DashboardPage() {
         const orgData = orgRes.data
         setOrg(orgData)
         localStorage.setItem('organization', JSON.stringify(orgData))
+        if (orgData.onboarding_dismissed_at) setHideOnboarding(true)
 
         const todayStr = new Date().toISOString().split('T')[0]
         if (isStaff) {
@@ -186,6 +187,8 @@ export default function DashboardPage() {
   const handleOnboardingDismiss = () => {
     setHideOnboarding(true)
     try { if (orgId) localStorage.setItem(ONBOARDING_STEPS_BY_KEY + orgId, 'true') } catch { /* ignore */ }
+    // Persist server-side so the choice survives logout (localStorage is cleared)
+    if (orgId) api.patch(`/organizations/${orgId}`, { onboarding_dismissed_at: new Date().toISOString() }).catch(() => {})
   }
 
   return (

@@ -25,7 +25,7 @@ import {
   CalendarMonth as CalendarIcon,
 } from '@mui/icons-material'
 import { useMutation } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
 import { useThemeMode, ZOOM_OPTIONS } from '../../context/ThemeContext'
@@ -36,7 +36,8 @@ export default function SettingsPage() {
   const logoInputRef = useRef<HTMLInputElement>(null)
   const { showSnackbar } = useSnackbar()
   const { mode, toggleTheme, updateBranding, zoomScale, setZoomScale } = useThemeMode()
-  const [tab, setTab] = useState(0)
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState<number>(() => (searchParams.get('tab') === 'locations' ? 4 : 0))
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [deactDialogOpen, setDeactDialogOpen] = useState(false)
@@ -1089,19 +1090,23 @@ export default function SettingsPage() {
               {locations.length === 0 ? (
                 <TableRow><TableCell colSpan={6} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No locations created yet</TableCell></TableRow>
               ) : locations.slice(locPage * rowsPerPage, locPage * rowsPerPage + rowsPerPage).map(loc => (
-                <TableRow key={loc.id} hover>
+                <TableRow key={loc.id} hover sx={{ cursor: 'pointer', bgcolor: !loc.manager_id ? 'rgba(217, 119, 6, 0.06)' : 'inherit', '&:hover': { bgcolor: !loc.manager_id ? 'rgba(217, 119, 6, 0.12)' : 'action.hover' } }} onClick={() => navigate(`/locations/${loc.id}`)}>
                   <TableCell sx={{ fontWeight: 600 }}>{loc.name}</TableCell>
                   <TableCell>{loc.address || '—'}</TableCell>
                   <TableCell>{loc.minimum_staff_per_day ?? 1}</TableCell>
-                  <TableCell>{loc.manager_first_name ? `${loc.manager_first_name} ${loc.manager_last_name}` : '—'}</TableCell>
                   <TableCell>
-                    <Button size="small" variant="outlined" onClick={() => openCertificates(loc.id)}>
+                    {loc.manager_first_name ? `${loc.manager_first_name} ${loc.manager_last_name}` : (
+                      <Chip label="No manager" size="small" sx={{ bgcolor: '#FEF3C7', color: '#B45309', fontWeight: 700, fontSize: 12, height: 22 }} />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button size="small" variant="outlined" onClick={(e) => { e.stopPropagation(); openCertificates(loc.id) }}>
                       Certificates
                     </Button>
                   </TableCell>
                   <TableCell>
-                    <IconButton size="small" onClick={() => { setEditLoc(loc); setLocDialog(true) }}><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" color="error" onClick={() => deleteLocation(loc.id)}><DeleteIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); setEditLoc(loc); setLocDialog(true) }}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); deleteLocation(loc.id) }}><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
                 </TableRow>
               ))}
