@@ -24,6 +24,7 @@ import {
   Checklist as TaskIcon,
   BarChart as ReportsIcon,
   Receipt as ReceiptIcon,
+  LocationOn as LocationOnIcon,
   AdminPanelSettings as AdminIcon,
   Psychology as OutcomeIcon,
   ExpandMore as ExpandMoreIcon,
@@ -99,6 +100,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Agencies', icon: <BusinessIcon />, path: '/agencies', module: 'agencies', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
         { text: 'Leave Manager', icon: <LeaveIcon />, path: '/leave', module: 'leave', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Locations', icon: <LocationOnIcon />, path: '/locations', module: 'settings', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
       ],
     },
     {

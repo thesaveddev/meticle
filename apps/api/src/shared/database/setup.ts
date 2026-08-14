@@ -301,6 +301,33 @@ const MIGRATION_025: Migration = {
   ],
 };
 
+const MIGRATION_026: Migration = {
+  name: '026_location_operational_profile',
+  strict: false,
+  statements: [
+    // Operational profile for a supported-living / care location: what the
+    // house provides, contact details and regulator ratings used on the
+    // location detail page (Health & Safety / ratings).
+    `ALTER TABLE locations ADD COLUMN IF NOT EXISTS service_type VARCHAR(30) CHECK (service_type IN ('supported_living', 'residential', 'domiciliary'))`,
+    `ALTER TABLE locations ADD COLUMN IF NOT EXISTS service_capacity INTEGER`,
+    `ALTER TABLE locations ADD COLUMN IF NOT EXISTS phone VARCHAR(50)`,
+    `ALTER TABLE locations ADD COLUMN IF NOT EXISTS email VARCHAR(255)`,
+    `ALTER TABLE locations ADD COLUMN IF NOT EXISTS food_hygiene_rating SMALLINT CHECK (food_hygiene_rating BETWEEN 0 AND 5)`,
+    `ALTER TABLE locations ADD COLUMN IF NOT EXISTS cqc_rating VARCHAR(30) CHECK (cqc_rating IN ('outstanding', 'good', 'requires_improvement', 'inadequate'))`,
+    `ALTER TABLE locations ADD COLUMN IF NOT EXISTS last_cqc_inspection DATE`,
+  ],
+};
+
+const MIGRATION_027: Migration = {
+  name: '027_location_certificate_file_name',
+  strict: false,
+  statements: [
+    // Original filename for a certificate document so the UI can show a
+    // friendly label alongside the private file URL.
+    `ALTER TABLE location_certificates ADD COLUMN IF NOT EXISTS file_name VARCHAR(255)`,
+  ],
+};
+
 const MIGRATION_009: Migration = {
   name: '009_care_plan_person_centred_sections',
   strict: false,
@@ -1834,7 +1861,8 @@ export const setupDatabase = async () => {
     }
 
     // Run versioned migrations (tracks applied ones in _migrations table)
-    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018, MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025]);
+    await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
+           MIGRATION_026, MIGRATION_027]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

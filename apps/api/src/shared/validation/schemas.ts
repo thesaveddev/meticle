@@ -888,6 +888,8 @@ export const createLocationCertificateSchema = z.object({
   expiry_date: z.string().optional(),
   status: z.enum(['valid', 'expiring_soon', 'expired', 'pending_renewal']).optional(),
   notes: z.string().optional(),
+  file_url: z.string().nullable().optional(),
+  file_name: z.string().nullable().optional(),
 }).refine(data => {
   if (data.issue_date && data.expiry_date) {
     return new Date(data.issue_date) <= new Date(data.expiry_date);
@@ -904,6 +906,8 @@ export const updateLocationCertificateSchema = z.object({
   expiry_date: z.string().optional(),
   status: z.enum(['valid', 'expiring_soon', 'expired', 'pending_renewal']).optional(),
   notes: z.string().optional(),
+  file_url: z.string().nullable().optional(),
+  file_name: z.string().nullable().optional(),
 }).refine(data => {
   if (data.issue_date && data.expiry_date) {
     return new Date(data.issue_date) <= new Date(data.expiry_date);
