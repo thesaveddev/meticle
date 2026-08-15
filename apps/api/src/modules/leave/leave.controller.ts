@@ -254,7 +254,7 @@ export class LeaveController {
                 u.role, u.email
          FROM staff_profiles sp
          JOIN users u ON sp.user_id = u.id
-         WHERE sp.id = $1 AND u.organization_id = $2`,
+         WHERE (sp.id = $1 OR sp.user_id = $1) AND u.organization_id = $2`,
         [staff_id, orgId]
       );
       if (target.rows.length === 0) throw new AppError(404, 'Staff member not found');
@@ -409,6 +409,43 @@ export class LeaveController {
     const staffName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Staff';
     const startDate = new Date(`${start_date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     const endDate = new Date(`${end_date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    // A manager/admin booking leave on behalf of another staff member is the
+    // approver — the request is approved immediately and the staff member is
+    // told their leave has been booked and approved.
+    if (staff_id) {
+      await transaction(async (client) => {
+        await client.query(
+          `UPDATE leave_requests SET status = 'approved', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = $1
+           WHERE id = $2`,
+          [userId, result.rows[0].id]
+        );
+        await LeaveController.applyApprovedBalance(client, result.rows[0]);
+      });
+      const approved = await pool.query('SELECT * FROM leave_requests WHERE id = $1', [result.rows[0].id]);
+      const bookerRes = await pool.query(
+        `SELECT sp.first_name, sp.last_name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.id = $1`,
+        [userId]
+      );
+      const bookerName = [bookerRes.rows[0]?.first_name, bookerRes.rows[0]?.last_name].filter(Boolean).join(' ') || 'Your manager';
+      NotificationsController.createNotification(
+        targetUserId, 'Leave Booked',
+        `${bookerName} has booked ${leaveTypeName} leave for you from ${startDate} to ${endDate}.`,
+        'success'
+      ).catch(logWarn('leave booked notification'));
+      EmailService.sendLeaveBookedEmail(targetEmail, staffName, bookerName, leaveTypeName, startDate, endDate).catch(logWarn('leave booked email'));
+      AuditRepository.log({
+        user_id: userId,
+        action: 'APPROVE_LEAVE',
+        entity_type: 'leave_request',
+        entity_id: result.rows[0].id,
+        old_data: { status: 'pending' },
+        new_data: { status: 'approved', auto: true, reason: 'booked_by_manager' },
+        ip_address: req.ip,
+      }).catch(logWarn('audit booked leave'));
+      res.status(201).json(approved.rows[0]);
+      return;
+    }
 
     if (autoApprove || ((targetRole === 'MANAGER' || targetRole === 'ORG_ADMIN') && !notifyUserId)) {
       // Auto-approve when the type needs no approval, or when a top-level
