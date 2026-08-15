@@ -392,6 +392,17 @@ const MIGRATION_031: Migration = {
   ],
 };
 
+// 032 — stores the result of the background AI incident triage consumer on the
+// incident so it is visible in the incident detail view. Written by the outbox
+// consumer (org-scoped), read by incident queries.
+const MIGRATION_032: Migration = {
+  name: '032_incident_ai_triage',
+  strict: false,
+  statements: [
+    `ALTER TABLE incidents ADD COLUMN IF NOT EXISTS ai_triage JSONB`,
+  ],
+};
+
 const MIGRATION_029: Migration = {
   name: '029_leave_hours_only',
   strict: false,
@@ -1947,7 +1958,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

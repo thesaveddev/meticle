@@ -7,6 +7,7 @@ import { AuditRepository } from '../audit/audit.repository';
 import { requireLeaveInOrg, requireSameOrgForStaff } from '../../shared/database/tenant';
 import { logWarn } from '../../shared/utils/logger';
 import { logDelegationAction } from '../delegations/delegation.audit';
+import { publishDomainEvent } from '../events/events.outbox';
 
 export class LeaveController {
   static async getLeaveTypes(req: Request, res: Response) {
@@ -446,6 +447,27 @@ export class LeaveController {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
       [staffId, leave_type_id, start_date, end_date, reason, hours_requested || null, actualDurationType, defaultReviewerId]
     );
+
+    publishDomainEvent({
+      organizationId: orgId!,
+      eventName: 'leave.requested',
+      aggregateType: 'leave_request',
+      aggregateId: result.rows[0].id,
+      correlationId: result.rows[0].id,
+      payload: {
+        id: result.rows[0].id,
+        staff_id: staffId,
+        staff_user_id: targetUserId,
+        leave_type_id,
+        leave_type_name: leaveTypeName,
+        start_date,
+        end_date,
+        hours_requested: hours_requested || null,
+        duration_type: actualDurationType,
+        requested_by: userId,
+        reviewed_by: defaultReviewerId,
+      },
+    }).catch(logWarn('publish leave.requested'));
 
     const staffName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Staff';
     const startDate = new Date(`${start_date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

@@ -414,6 +414,8 @@ EmailQueue.startProcessor();
 
 // Start the domain event outbox worker
 import { EventWorker } from './modules/events/events.worker';
+import { registerProductionConsumers } from './modules/events/consumers/register';
+registerProductionConsumers();
 EventWorker.start();
 
 export default app;
