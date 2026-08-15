@@ -40,7 +40,7 @@ export const IncidentTriageConsumer: EventConsumer = {
 
     // Audit rows attribute the run to the person who reported the incident
     // (ai_audit_logs.created_by is an FK to users).
-    const reportedBy = (payload.reported_by as string | undefined) || null;
+    const reportedBy = (payload.reported_by as string | undefined) || undefined;
 
     const { system, user } = renderPrompt(FEATURE, {
       title: String(payload.title || 'Untitled'),
