@@ -69,6 +69,20 @@ const fmtDaysHours = (totalHours: number) => {
   return parts.join(' ') || '0h'
 }
 
+// The per-day leave allowance derives from the staff member's contracted hours
+// (5 working days per week). Falls back to the standard 7.5h for anyone
+// without a contracted-hours figure on record.
+const dailyCapFor = (staffMembers: any[], staffId: string) => {
+  const staff = staffMembers.find((s: any) => s.id === staffId)
+  const weekly = staff ? Number(staff.contracted_hours_weekly) : 0
+  return weekly > 0 ? Math.round((weekly / 5) * 10) / 10 : HOURS_PER_DAY
+}
+
+// Auto-fill hours from the selected date range so staff don't have to work it
+// out (days x per-day allowance, rounded to the nearest half hour).
+const calcHours = (staffMembers: any[], staffId: string, start: string, end: string) =>
+  Math.round(requestDays({ start_date: start, end_date: end }) * dailyCapFor(staffMembers, staffId) * 2) / 2
+
 export default function LeaveManagerPage() {
   const [tab, setTab] = useState(0)
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([])
@@ -121,20 +135,18 @@ export default function LeaveManagerPage() {
     setLoading(true)
     setFetchError('')
     try {
-      const [typesRes, myReqRes, balRes, locRes] = await Promise.all([
+      const [typesRes, myReqRes, balRes, locRes, staffRes] = await Promise.all([
         api.get('/leave/types'),
         api.get('/leave/my-requests'),
         api.get('/leave/balances'),
         api.get('/leave/locations'),
+        api.get('/settings/staff'),
       ])
       setLeaveTypes(typesRes.data)
       setMyRequests(myReqRes.data)
       setBalances(balRes.data)
       setLocations(locRes.data)
-      if (isAdminOrManager) {
-        const staffRes = await api.get('/settings/staff')
-        setStaffMembers(staffRes.data)
-      }
+      setStaffMembers(staffRes.data)
     } catch (err: any) {
       setFetchError(err.response?.data?.message || 'Failed to load leave data')
     } finally {
@@ -193,6 +205,13 @@ export default function LeaveManagerPage() {
     const hoursRequested = parseFloat(formData.hours_requested)
     if (!hoursRequested || hoursRequested <= 0) {
       setError('Please enter the number of hours'); return
+    }
+    const daysCount = formData.start_date
+      ? requestDays({ start_date: formData.start_date, end_date: formData.end_date || formData.start_date })
+      : 0
+    const cap = dailyCapFor(staffMembers, formData.staff_id)
+    if (daysCount > 0 && hoursRequested > daysCount * cap + 0.01) {
+      setError(`Cannot request more than ${cap} hours per day (your daily contracted hours)`); return
     }
     const payload: any = {
       leave_type_id: formData.leave_type_id,
@@ -302,6 +321,13 @@ export default function LeaveManagerPage() {
 
   const selectedType = leaveTypes.find(t => t.id === formData.leave_type_id)
   const relatedBalance = balances.find(b => b.leave_type_name === selectedType?.name)
+
+  const selectedDays = formData.start_date
+    ? requestDays({ start_date: formData.start_date, end_date: formData.end_date || formData.start_date })
+    : 0
+  const selectedCap = dailyCapFor(staffMembers, formData.staff_id)
+  const selectedHours = parseFloat(formData.hours_requested) || 0
+  const overDailyCap = selectedDays > 0 && selectedHours > selectedDays * selectedCap + 0.01
 
   const statusChip = (status: string) => {
     const colors: Record<string, { bg: string; text: string }> = {
@@ -435,8 +461,8 @@ export default function LeaveManagerPage() {
         </Stack>
       </Stack>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
+      {!openDialog && error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      {!openDialog && success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
       {fetchError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFetchError('')}>{fetchError}</Alert>}
 
       {isAdminOrManager && (
@@ -843,7 +869,14 @@ export default function LeaveManagerPage() {
             {success && <Alert severity="success">{success}</Alert>}
             {isAdminOrManager && (
               <TextField select label="Staff Member" value={formData.staff_id}
-                onChange={e => setFormData(p => ({ ...p, staff_id: e.target.value }))} fullWidth
+                onChange={e => setFormData(p => {
+                  const staffId = e.target.value
+                  return {
+                    ...p,
+                    staff_id: staffId,
+                    hours_requested: p.start_date ? String(calcHours(staffMembers, staffId, p.start_date, p.end_date || p.start_date)) : p.hours_requested,
+                  }
+                })} fullWidth
                 helperText="Leave as default to book leave for yourself">
                 <MenuItem value="">{rawUser.first_name ? `${rawUser.first_name} ${rawUser.last_name || ''} (myself)` : 'Myself'}</MenuItem>
                 {staffMembers
@@ -876,29 +909,43 @@ export default function LeaveManagerPage() {
             )}
 
             <TextField label="Start Date" type="date" value={formData.start_date}
-              onChange={e => setFormData(p => ({ ...p, start_date: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
+              onChange={e => setFormData(p => {
+                const start = e.target.value
+                // If the end date falls before the new start, clear it so the
+                // range stays valid, then auto-calculate the hours.
+                const end = p.end_date && start && p.end_date >= start ? p.end_date : ''
+                return {
+                  ...p,
+                  start_date: start,
+                  end_date: end,
+                  hours_requested: start ? String(calcHours(staffMembers, p.staff_id, start, end || start)) : '',
+                }
+              })}
+              InputLabelProps={{ shrink: true }} fullWidth />
 
             <TextField label="End Date (optional)" type="date" value={formData.end_date}
-              onChange={e => {
+              onChange={e => setFormData(p => {
                 const end = e.target.value
-                setFormData(p => {
-                  let hours = p.hours_requested
-                  if (p.start_date && end) {
-                    const days = Math.round((parseYMD(end).getTime() - parseYMD(p.start_date).getTime()) / 86400000) + 1
-                    if (!p.hours_requested) hours = String(Math.round(days * HOURS_PER_DAY * 2) / 2)
-                  }
-                  return { ...p, end_date: end, hours_requested: hours }
-                })
-              }}
+                return {
+                  ...p,
+                  end_date: end,
+                  hours_requested: p.start_date && end ? String(calcHours(staffMembers, p.staff_id, p.start_date, end)) : p.hours_requested,
+                }
+              })}
               InputLabelProps={{ shrink: true }} fullWidth
               helperText="Leave blank for a single day" />
 
             <TextField label="Hours" type="number" value={formData.hours_requested}
               onChange={e => setFormData(p => ({ ...p, hours_requested: e.target.value }))}
               inputProps={{ min: 0.5, step: 0.5 }}
-              helperText={formData.start_date && formData.end_date && formData.end_date !== formData.start_date
-                ? `e.g. ${requestDays({ start_date: formData.start_date, end_date: formData.end_date }) * HOURS_PER_DAY}h for the full period (${HOURS_PER_DAY}h per day)`
-                : `Enter hours (e.g., ${HOURS_PER_DAY}h for a full day, 3.75h for a half day)`}
+              error={overDailyCap}
+              helperText={
+                overDailyCap
+                  ? `Cannot request more than ${selectedCap} hours per day (your daily contracted hours)`
+                  : formData.start_date
+                    ? `Auto-calculated: ${selectedDays} day${selectedDays !== 1 ? 's' : ''} x ${selectedCap}h = ${calcHours(staffMembers, formData.staff_id, formData.start_date, formData.end_date || formData.start_date)}h. Adjust for half days.`
+                    : `Enter hours (e.g., ${selectedCap}h for a full day, ${selectedCap / 2}h for a half day)`
+              }
               fullWidth />
 
             <TextField label="Reason" multiline rows={3} value={formData.reason}
