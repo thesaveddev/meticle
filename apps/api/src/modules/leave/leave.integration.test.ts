@@ -696,6 +696,109 @@ describe('Leave Integration — Manager books leave for a staff member', () => {
   })
 })
 
+describe('Leave Integration — Location max staff on leave', () => {
+  it('should reject leave when the location max staff on leave is reached', async () => {
+    const org = await createOrg()
+    const mgrUser = await createUser({ email: `mgr-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    await createStaffProfile({ userId: mgrUser.id })
+    const loc = await createLocation({ organizationId: org.id, manager_id: mgrUser.id, max_staff_on_leave: 1 })
+    const workerA = await createUser({ email: `a-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const staffA = await createStaffProfile({ userId: workerA.id, locationId: loc.id, first_name: 'Ann', last_name: 'Alpha' })
+    const workerB = await createUser({ email: `b-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const staffB = await createStaffProfile({ userId: workerB.id, locationId: loc.id, first_name: 'Ben', last_name: 'Beta' })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const mgrToken = generateToken(mgrUser)
+
+    // First booking fills the location's single on-leave slot
+    const first = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${mgrToken}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-10-01', end_date: '2026-10-03', duration_type: 'hours', hours_requested: 22.5, staff_id: staffA.id })
+    expect(first.status).toBe(201)
+    expect(first.body.status).toBe('approved')
+
+    // A second booking overlapping those dates is rejected
+    const second = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${mgrToken}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-10-02', end_date: '2026-10-04', duration_type: 'hours', hours_requested: 22.5, staff_id: staffB.id })
+    expect(second.status).toBe(409)
+    expect(second.body.message).toMatch(/maximum/i)
+
+    // A staff member's own pending request is also blocked while the slot is full
+    const bToken = generateToken(workerB)
+    const own = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${bToken}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-10-02', end_date: '2026-10-02', duration_type: 'hours', hours_requested: 7.5 })
+    expect(own.status).toBe(409)
+    expect(own.body.message).toMatch(/maximum/i)
+  })
+
+  it('should reject an approval that would exceed the location max', async () => {
+    const org = await createOrg()
+    const admin = await createUser({ email: `adm-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    await createStaffProfile({ userId: admin.id })
+    const loc = await createLocation({ organizationId: org.id, max_staff_on_leave: 1 })
+    const workerA = await createUser({ email: `wa-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    await createStaffProfile({ userId: workerA.id, locationId: loc.id })
+    const workerB = await createUser({ email: `wb-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    await createStaffProfile({ userId: workerB.id, locationId: loc.id })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const adminToken = generateToken(admin)
+
+    // workerB submits a pending request while the slot is free
+    const bReq = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${generateToken(workerB)}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-11-01', end_date: '2026-11-02', duration_type: 'hours', hours_requested: 15 })
+    expect(bReq.status).toBe(201)
+    expect(bReq.body.status).toBe('pending')
+
+    // Admin books leave for workerA on overlapping dates — fills the slot
+    const book = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-11-01', end_date: '2026-11-02', duration_type: 'hours', hours_requested: 15, staff_id: workerA.id })
+    expect(book.status).toBe(201)
+    expect(book.body.status).toBe('approved')
+
+    // Approving workerB's pending request would exceed the location max
+    const review = await request(app)
+      .patch(`/leave/requests/${bReq.body.id}/review`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'approved' })
+    expect(review.status).toBe(409)
+    expect(review.body.message).toMatch(/maximum/i)
+  })
+
+  it('should allow leave when no location max is configured', async () => {
+    const org = await createOrg()
+    const mgrUser = await createUser({ email: `mgr-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    await createStaffProfile({ userId: mgrUser.id })
+    const loc = await createLocation({ organizationId: org.id, manager_id: mgrUser.id })
+    const workerA = await createUser({ email: `c-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const staffA = await createStaffProfile({ userId: workerA.id, locationId: loc.id })
+    const workerB = await createUser({ email: `d-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const staffB = await createStaffProfile({ userId: workerB.id, locationId: loc.id })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const mgrToken = generateToken(mgrUser)
+
+    const first = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${mgrToken}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-12-01', end_date: '2026-12-02', duration_type: 'hours', hours_requested: 15, staff_id: staffA.id })
+    expect(first.status).toBe(201)
+
+    const second = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${mgrToken}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-12-02', end_date: '2026-12-03', duration_type: 'hours', hours_requested: 15, staff_id: staffB.id })
+    expect(second.status).toBe(201)
+    expect(second.body.status).toBe('approved')
+  })
+})
+
 describe('Leave Integration — Hourly leave with a date range', () => {
   it('should approve an hours request spanning multiple days and track the total hours', async () => {
     const org = await createOrg()

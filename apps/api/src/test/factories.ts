@@ -78,12 +78,13 @@ export async function createLocation(overrides: Record<string, any> = {}) {
   const address = overrides.address || '123 Test Street'
   const managerId = overrides.manager_id || overrides.managerId || null
   const minStaffPerDay = overrides.minimum_staff_per_day ?? 1
+  const maxStaffOnLeave = overrides.max_staff_on_leave ?? overrides.maxStaffOnLeave ?? null
 
   const result = await query(
-    `INSERT INTO locations (id, organization_id, name, address, manager_id, minimum_staff_per_day)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO locations (id, organization_id, name, address, manager_id, minimum_staff_per_day, max_staff_on_leave)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [id, organizationId, name, address, managerId, minStaffPerDay]
+    [id, organizationId, name, address, managerId, minStaffPerDay, maxStaffOnLeave]
   )
   return result.rows[0]
 }

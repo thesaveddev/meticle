@@ -22,7 +22,7 @@ const SERVICE_TYPE_LABEL: Record<string, string> = {
 
 const EMPTY_LOC = {
   name: '', address: '', manager_id: '', minimum_staff_per_day: 1,
-  min_day_staff: '', min_night_staff: '', min_sleep_staff: '',
+  min_day_staff: '', min_night_staff: '', min_sleep_staff: '', max_staff_on_leave: '',
   service_type: '', service_capacity: '', phone: '', email: '',
   food_hygiene_rating: '', cqc_rating: '', last_cqc_inspection: '',
 }
@@ -74,6 +74,7 @@ export default function LocationsPage() {
       id: loc.id, name: loc.name, address: loc.address || '',
       manager_id: loc.manager_id || '', minimum_staff_per_day: loc.minimum_staff_per_day ?? 1,
       min_day_staff: loc.min_day_staff ?? '', min_night_staff: loc.min_night_staff ?? '', min_sleep_staff: loc.min_sleep_staff ?? '',
+      max_staff_on_leave: loc.max_staff_on_leave ?? '',
       service_type: loc.service_type || '', service_capacity: loc.service_capacity ?? '',
       phone: loc.phone || '', email: loc.email || '', food_hygiene_rating: loc.food_hygiene_rating ?? '',
       cqc_rating: loc.cqc_rating || '', last_cqc_inspection: loc.last_cqc_inspection || '',
@@ -91,6 +92,7 @@ export default function LocationsPage() {
       payload.min_day_staff = nullify(payload.min_day_staff)
       payload.min_night_staff = nullify(payload.min_night_staff)
       payload.min_sleep_staff = nullify(payload.min_sleep_staff)
+      payload.max_staff_on_leave = payload.max_staff_on_leave === '' ? null : Number(payload.max_staff_on_leave)
       payload.service_type = nullify(payload.service_type)
       payload.service_capacity = payload.service_capacity === '' ? null : Number(payload.service_capacity)
       payload.phone = nullify(payload.phone)
@@ -175,13 +177,14 @@ export default function LocationsPage() {
                   <TableCell sx={{ fontWeight: 700 }}>Service Type</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Capacity</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Min Staff/Day</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Max Off/Leave</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Manager</TableCell>
                   {isOrgAdmin && <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {locations.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No locations created yet</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No locations created yet</TableCell></TableRow>
                 ) : locations.slice(locPage * rowsPerPage, locPage * rowsPerPage + rowsPerPage).map(loc => (
                   <TableRow key={loc.id} hover sx={{
                     cursor: 'pointer',
@@ -193,6 +196,7 @@ export default function LocationsPage() {
                     <TableCell>{loc.service_type ? SERVICE_TYPE_LABEL[loc.service_type] || loc.service_type : '—'}</TableCell>
                     <TableCell>{loc.service_capacity ?? '—'}</TableCell>
                     <TableCell>{loc.minimum_staff_per_day ?? 1}</TableCell>
+                    <TableCell>{loc.max_staff_on_leave ?? '—'}</TableCell>
                     <TableCell>
                       {loc.manager_first_name ? `${loc.manager_first_name} ${loc.manager_last_name}` : (
                         <Chip label="No manager" size="small" sx={{ bgcolor: '#FEF3C7', color: '#B45309', fontWeight: 700, fontSize: 12, height: 22 }} />
@@ -244,6 +248,10 @@ export default function LocationsPage() {
               value={editLoc.minimum_staff_per_day ?? 1}
               onChange={e => setEditLoc((p: any) => ({ ...p, minimum_staff_per_day: Number(e.target.value) }))}
               helperText="Minimum safe staffing level for this location each day" />
+            <TextField label="Max Staff On Leave At Once" type="number" inputProps={{ min: 0 }} fullWidth size="small"
+              value={editLoc.max_staff_on_leave ?? ''}
+              onChange={e => setEditLoc((p: any) => ({ ...p, max_staff_on_leave: e.target.value }))}
+              helperText="Maximum number of staff from this location allowed on leave at the same time. Leave blank for no limit." />
             <Stack direction="row" spacing={2}>
               <TextField label="Min Day Staff" type="number" fullWidth size="small" value={editLoc.min_day_staff ?? ''} onChange={e => setEditLoc((p: any) => ({ ...p, min_day_staff: e.target.value }))} />
               <TextField label="Min Night Staff" type="number" fullWidth size="small" value={editLoc.min_night_staff ?? ''} onChange={e => setEditLoc((p: any) => ({ ...p, min_night_staff: e.target.value }))} />

@@ -138,6 +138,35 @@ export class LeaveController {
     return Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1;
   }
 
+  /**
+   * Reject leave for a location that has hit its max-staff-on-leave-at-once
+   * limit (locations.max_staff_on_leave). A null/zero limit means unlimited.
+   */
+  private static async assertLocationLeaveCapacity(staffId: string, startDate: string, endDate: string) {
+    const loc = await pool.query(
+      `SELECT l.id, l.name, l.max_staff_on_leave
+       FROM staff_profiles sp
+       JOIN locations l ON sp.location_id = l.id
+       WHERE sp.id = $1`,
+      [staffId]
+    );
+    const max = loc.rows[0]?.max_staff_on_leave;
+    if (!max || max <= 0) return;
+    const count = await pool.query(
+      `SELECT COUNT(DISTINCT lr.staff_id)::int AS cnt
+       FROM leave_requests lr
+       JOIN staff_profiles sp ON lr.staff_id = sp.id
+       WHERE sp.location_id = $1
+         AND lr.status = 'approved'
+         AND lr.start_date <= $2
+         AND lr.end_date >= $3`,
+      [loc.rows[0].id, endDate, startDate]
+    );
+    if (count.rows[0].cnt >= max) {
+      throw new AppError(409, `Location "${loc.rows[0].name}" has a maximum of ${max} staff on leave at the same time, which is already reached for these dates`);
+    }
+  }
+
   /** Increment a staff member's balance after a request is approved. */
   private static async applyApprovedBalance(client: any, leave: any) {
     const startYear = new Date(`${LeaveController.ymd(leave.start_date)}T00:00:00`).getFullYear();
@@ -327,12 +356,14 @@ export class LeaveController {
       }
     }
 
+    // A location may cap how many staff can be on leave at the same time.
+    await LeaveController.assertLocationLeaveCapacity(staffId, start_date, end_date);
+
     // Determine reviewer and notification target based on the target staff
     // member's role (not the creator's — a manager booking leave for a care
     // worker should route to the care worker's approver).
     let defaultReviewerId: string | null = null;
     let notifyUserId: string | null = null;
-
     if (targetRole === 'MANAGER' || targetRole === 'ORG_ADMIN') {
       // 1. Active delegation (deputy) takes precedence — the delegate reviews.
       const delegation = await pool.query(
@@ -557,6 +588,14 @@ export class LeaveController {
       );
       if (locked.rows.length === 0) throw new AppError(404, 'Leave request not found');
       if (locked.rows[0].status !== 'pending') throw new AppError(409, `Leave request already ${locked.rows[0].status}`);
+
+      if (status === 'approved') {
+        await LeaveController.assertLocationLeaveCapacity(
+          locked.rows[0].staff_id,
+          LeaveController.ymd(locked.rows[0].start_date),
+          LeaveController.ymd(locked.rows[0].end_date)
+        );
+      }
 
       const updateResult = await client.query(
         `UPDATE leave_requests SET status = $1, notes = COALESCE($2, notes),
