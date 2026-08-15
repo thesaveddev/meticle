@@ -107,7 +107,7 @@ export class SettingsController {
 
   static async createLocation(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
-    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection } = req.body;
+    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection, max_staff_on_leave } = req.body;
     if (manager_id) {
       const user = await pool.query('SELECT role FROM users WHERE id = $1', [manager_id]);
       if (user.rows.length > 0 && user.rows[0].role !== 'MANAGER' && user.rows[0].role !== 'ORG_ADMIN') {
@@ -115,9 +115,9 @@ export class SettingsController {
       }
     }
     const result = await pool.query(
-      `INSERT INTO locations (organization_id, name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
-      [orgId, name, address, manager_id || null, minimum_staff_per_day ?? null, min_day_staff ?? null, min_night_staff ?? null, min_sleep_staff ?? null, service_type || null, service_capacity ?? null, phone || null, email || null, food_hygiene_rating ?? null, cqc_rating || null, last_cqc_inspection || null]
+      `INSERT INTO locations (organization_id, name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection, max_staff_on_leave)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
+      [orgId, name, address, manager_id || null, minimum_staff_per_day ?? null, min_day_staff ?? null, min_night_staff ?? null, min_sleep_staff ?? null, service_type || null, service_capacity ?? null, phone || null, email || null, food_hygiene_rating ?? null, cqc_rating || null, last_cqc_inspection || null, max_staff_on_leave ?? null]
     );
     SettingsController.checkLocationManagerCoverage(orgId);
     res.status(201).json(result.rows[0]);
@@ -126,7 +126,7 @@ export class SettingsController {
   static async updateLocation(req: Request, res: Response) {
     const user = req.user!;
     const { id } = req.params;
-    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection } = req.body;
+    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection, max_staff_on_leave } = req.body;
     // Verify location belongs to org
     const locCheck = await pool.query('SELECT 1 FROM locations WHERE id = $1 AND organization_id = $2', [id, user.organizationId]);
     if (locCheck.rows.length === 0) throw new AppError(404, 'Location not found');
@@ -142,9 +142,10 @@ export class SettingsController {
        min_day_staff = COALESCE($5, min_day_staff), min_night_staff = COALESCE($6, min_night_staff),
        min_sleep_staff = COALESCE($7, min_sleep_staff),
        service_type = $10, service_capacity = $11, phone = $12, email = $13,
-       food_hygiene_rating = $14, cqc_rating = $15, last_cqc_inspection = $16
+       food_hygiene_rating = $14, cqc_rating = $15, last_cqc_inspection = $16,
+       max_staff_on_leave = $17
        WHERE id = $8 AND organization_id = $9 RETURNING *`,
-      [name, address, manager_id || null, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, id, user.organizationId, service_type || null, service_capacity ?? null, phone || null, email || null, food_hygiene_rating ?? null, cqc_rating || null, last_cqc_inspection || null]
+      [name, address, manager_id || null, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, id, user.organizationId, service_type || null, service_capacity ?? null, phone || null, email || null, food_hygiene_rating ?? null, cqc_rating || null, last_cqc_inspection || null, max_staff_on_leave ?? null]
     );
     if (result.rows.length === 0) throw new AppError(404, 'Location not found');
     SettingsController.checkLocationManagerCoverage(user.organizationId);

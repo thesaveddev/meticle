@@ -211,6 +211,7 @@ const operationalLocationFields = {
   food_hygiene_rating: z.number().int().min(0).max(5).nullable().optional(),
   cqc_rating: z.string().nullable().optional(),
   last_cqc_inspection: z.string().nullable().optional(),
+  max_staff_on_leave: z.number().int().min(0).nullable().optional(),
 };
 
 export const createLocationSchema = z.object({
