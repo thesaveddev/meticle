@@ -191,7 +191,12 @@ export class LeaveController {
   static async getMyLeaveRequests(req: Request, res: Response) {
     const userId = req.user!.userId;
     const result = await pool.query(
-      `SELECT lr.*, lt.name as leave_type_name, lt.color as leave_type_color,
+      `SELECT TO_CHAR(lr.start_date, 'YYYY-MM-DD') as start_date,
+              TO_CHAR(lr.end_date, 'YYYY-MM-DD') as end_date,
+              lr.id, lr.staff_id, lr.leave_type_id, lr.hours_requested,
+              lr.duration_type, lr.status, lr.reason, lr.notes,
+              lr.reviewed_by, lr.reviewed_at, lr.created_at, lr.updated_at,
+              lt.name as leave_type_name, lt.color as leave_type_color,
               lt.duration_type as leave_duration_type,
               sp.first_name, sp.last_name,
               ru.email as reviewer_email,
@@ -211,7 +216,12 @@ export class LeaveController {
   static async getAllLeaveRequests(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
     const { status, staff_id, location_id, start_date, end_date } = req.query;
-    let sql = `SELECT lr.*, lt.name as leave_type_name, lt.color as leave_type_color,
+    let sql = `SELECT TO_CHAR(lr.start_date, 'YYYY-MM-DD') as start_date,
+              TO_CHAR(lr.end_date, 'YYYY-MM-DD') as end_date,
+              lr.id, lr.staff_id, lr.leave_type_id, lr.hours_requested,
+              lr.duration_type, lr.status, lr.reason, lr.notes,
+              lr.reviewed_by, lr.reviewed_at, lr.created_at, lr.updated_at,
+              lt.name as leave_type_name, lt.color as leave_type_color,
               lt.duration_type as leave_duration_type,
               sp.first_name, sp.last_name, u.email,
               sp.location_id as staff_location_id,
@@ -875,7 +885,12 @@ export class LeaveController {
         staff_on_leave: new Set(dayReqs.filter((r: any) => r.status === 'approved').map((r: any) => r.staff_id)).size,
       });
     }
-    res.json(dates);
+    // Distinct staff members on approved leave at any point during the month —
+    // a single person off for 3 days counts as 1, not 3.
+    const uniqueStaffOnLeave = new Set(
+      approved.rows.filter((r: any) => r.status === 'approved').map((r: any) => r.staff_id)
+    ).size;
+    res.json({ dates, unique_staff_on_leave: uniqueStaffOnLeave });
   }
 
   /**
@@ -902,8 +917,10 @@ export class LeaveController {
       params.push(req.user!.userId);
     }
     const result = await pool.query(
-      `SELECT lr.id, lr.staff_id, lr.leave_type_id, lr.start_date, lr.end_date, lr.reason,
-              lr.hours_requested, lr.duration_type, lr.status, lr.created_at,
+      `SELECT lr.id, lr.staff_id, lr.leave_type_id,
+              TO_CHAR(lr.start_date, 'YYYY-MM-DD') as start_date,
+              TO_CHAR(lr.end_date, 'YYYY-MM-DD') as end_date,
+              lr.reason, lr.hours_requested, lr.duration_type, lr.status, lr.created_at,
               lt.name as leave_type_name, lt.color as leave_type_color,
               sp.first_name, sp.last_name
        FROM leave_requests lr
