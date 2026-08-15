@@ -32,6 +32,16 @@ describe('Auth Integration — POST /auth/register', () => {
     expect(res.status).toBe(400)
   })
 
+  it('should return 400 (not 500) for malformed JSON bodies', async () => {
+    const res = await request(app)
+      .post('/auth/login')
+      .set('Content-Type', 'application/json')
+      .send('{"email": "broken')
+
+    expect(res.status).toBe(400)
+    expect(res.body.statusCode).toBe(400)
+  })
+
   it('should register a new CARE_WORKER user', async () => {
     const org = await createOrg()
     const email = `worker-${Date.now()}@test.com`

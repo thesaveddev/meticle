@@ -29,12 +29,12 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^\/api\/.*/i,
+            urlPattern: ({ url, request }) => request.method === 'GET' && /^\/api\/.*/i.test(url.pathname),
             handler: 'NetworkFirst',
             options: { cacheName: 'api-cache', expiration: { maxEntries: 100, maxAgeSeconds: 3600 } },
           },
           {
-            urlPattern: /^\/files\/.*/i,
+            urlPattern: ({ url, request }) => request.method === 'GET' && /^\/files\/.*/i.test(url.pathname),
             handler: 'NetworkFirst',
             options: { cacheName: 'file-cache', expiration: { maxEntries: 50, maxAgeSeconds: 86400 } },
           },
