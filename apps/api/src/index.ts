@@ -61,6 +61,7 @@ import platformAdminRoutes from './modules/platform-admin/platform-admin.routes'
 import dsptRoutes from './modules/dspt/dspt.routes';
 import shiftAuditRoutes from './modules/shift-audit/shift-audit.routes';
 import contactRoutes from './modules/contact/contact.routes';
+import eventRoutes from './modules/events/events.routes';
 import { BillingController } from './modules/billing/billing.controller';
 import { ComplianceController } from './modules/compliance/compliance.controller';
 import { ComplianceNotificationService } from './modules/compliance/compliance.notifications';
@@ -242,6 +243,7 @@ app.use('/tasks', taskRoutes);
 app.use('/room-checks', roomCheckRoutes);
 app.use('/mobile', mobileRoutes);
 app.use('/shift-audit', shiftAuditRoutes);
+app.use('/events', eventRoutes);
 app.use('/contact', contactRoutes); // public — website contact form
 
 // Prometheus metrics — restricted to localhost/internal IPs in production
@@ -409,6 +411,10 @@ setTimeout(() => {
 // Start email queue processor
 import { EmailQueue } from './shared/utils/email.queue';
 EmailQueue.startProcessor();
+
+// Start the domain event outbox worker
+import { EventWorker } from './modules/events/events.worker';
+EventWorker.start();
 
 export default app;
 
