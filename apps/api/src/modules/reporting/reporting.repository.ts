@@ -811,4 +811,131 @@ export class ReportingRepository {
     const result = await query(sql, params);
     return result.rows;
   }
+
+  // ─── Appointments ────────────────────────────────────────
+
+  static async appointmentsSummary(orgId: string, f: ReportFilters) {
+    let sql = `
+      SELECT a.status as name, l.name as location_name,
+             TO_CHAR(a.start_time, 'YYYY-MM') as month,
+             COUNT(*)::int as value
+      FROM appointments a
+      LEFT JOIN locations l ON a.location_id = l.id
+      WHERE a.organization_id = $1`;
+    const params: any[] = [orgId];
+    let idx = 2;
+    if (f.location_id) { sql += ` AND a.location_id = $${idx}`; params.push(f.location_id); idx++; }
+    if (f.dateFrom) { sql += ` AND a.start_time >= $${idx}`; params.push(f.dateFrom); idx++; }
+    if (f.dateTo) { sql += ` AND a.start_time <= $${idx}`; params.push(f.dateTo); idx++; }
+    sql += ' GROUP BY a.status, l.name, month ORDER BY month DESC, value DESC';
+    const result = await query(sql, params);
+    return result.rows;
+  }
+
+  // ─── Room Checks ─────────────────────────────────────────
+
+  static async roomChecks(orgId: string, f: ReportFilters) {
+    let sql = `
+      SELECT l.name as location_name, rc.status,
+             COUNT(*)::int as value,
+             ROUND(AVG(rc.cleanliness_rating), 1) as cleanliness_avg,
+             ROUND(AVG(rc.safety_rating), 1) as safety_avg
+      FROM room_checks rc
+      LEFT JOIN locations l ON rc.location_id = l.id
+      WHERE rc.organization_id = $1`;
+    const params: any[] = [orgId];
+    let idx = 2;
+    if (f.location_id) { sql += ` AND rc.location_id = $${idx}`; params.push(f.location_id); idx++; }
+    if (f.dateFrom) { sql += ` AND rc.check_date >= $${idx}`; params.push(f.dateFrom); idx++; }
+    if (f.dateTo) { sql += ` AND rc.check_date <= $${idx}`; params.push(f.dateTo); idx++; }
+    sql += ' GROUP BY l.name, rc.status ORDER BY value DESC';
+    const result = await query(sql, params);
+    return result.rows;
+  }
+
+  // ─── Surveys ─────────────────────────────────────────────
+
+  static async satisfactionSurveys(orgId: string, f: ReportFilters) {
+    let sql = `
+      SELECT COALESCE(l.name, 'Unassigned') as location_name,
+             TO_CHAR(s.created_at, 'YYYY-MM') as month,
+             COUNT(*)::int as value,
+             ROUND(AVG(s.rating), 1) as avg_rating,
+             COUNT(*) FILTER (WHERE s.rating >= 4)::int as satisfied_count
+      FROM satisfaction_surveys s
+      LEFT JOIN people p ON s.person_id = p.id
+      LEFT JOIN locations l ON p.location_id = l.id
+      WHERE s.organization_id = $1`;
+    const params: any[] = [orgId];
+    let idx = 2;
+    if (f.location_id) { sql += ` AND p.location_id = $${idx}`; params.push(f.location_id); idx++; }
+    if (f.dateFrom) { sql += ` AND s.created_at >= $${idx}`; params.push(f.dateFrom); idx++; }
+    if (f.dateTo) { sql += ` AND s.created_at <= $${idx}`; params.push(f.dateTo); idx++; }
+    sql += ' GROUP BY l.name, month ORDER BY month DESC, value DESC';
+    const result = await query(sql, params);
+    return result.rows;
+  }
+
+  // ─── Health ──────────────────────────────────────────────
+
+  static async healthObservations(orgId: string, f: ReportFilters) {
+    let sql = `
+      SELECT TO_CHAR(ho.observation_date, 'YYYY-MM') as name,
+             ho.category, ho.severity,
+             COUNT(*)::int as value
+      FROM health_observations ho
+      JOIN people p ON ho.person_id = p.id
+      WHERE p.organization_id = $1`;
+    const params: any[] = [orgId];
+    let idx = 2;
+    if (f.location_id) { sql += ` AND p.location_id = $${idx}`; params.push(f.location_id); idx++; }
+    if (f.dateFrom) { sql += ` AND ho.observation_date >= $${idx}`; params.push(f.dateFrom); idx++; }
+    if (f.dateTo) { sql += ` AND ho.observation_date <= $${idx}`; params.push(f.dateTo); idx++; }
+    sql += ' GROUP BY name, ho.category, ho.severity ORDER BY name DESC, value DESC';
+    const result = await query(sql, params);
+    return result.rows;
+  }
+
+  // ─── Tasks ───────────────────────────────────────────────
+
+  static async taskCompletion(orgId: string, f: ReportFilters) {
+    let sql = `
+      SELECT t.status as name, t.priority,
+             COUNT(*)::int as value,
+             COUNT(*) FILTER (WHERE t.status NOT IN ('completed','cancelled') AND t.due_date < CURRENT_DATE)::int as overdue,
+             COUNT(*) FILTER (WHERE t.status = 'completed')::int as completed_count
+      FROM tasks t
+      LEFT JOIN staff_profiles sp ON t.assigned_to = sp.id
+      WHERE t.organization_id = $1`;
+    const params: any[] = [orgId];
+    let idx = 2;
+    if (f.location_id) { sql += ` AND sp.location_id = $${idx}`; params.push(f.location_id); idx++; }
+    if (f.department_id) { sql += ` AND sp.department_id = $${idx}`; params.push(f.department_id); idx++; }
+    if (f.dateFrom) { sql += ` AND t.created_at >= $${idx}`; params.push(f.dateFrom); idx++; }
+    if (f.dateTo) { sql += ` AND t.created_at <= $${idx}`; params.push(f.dateTo); idx++; }
+    sql += ' GROUP BY t.status, t.priority ORDER BY value DESC';
+    const result = await query(sql, params);
+    return result.rows;
+  }
+
+  // ─── Expenses ────────────────────────────────────────────
+
+  static async expensesSummary(orgId: string, f: ReportFilters) {
+    let sql = `
+      SELECT pe.category as name, l.name as location_name,
+             TO_CHAR(pe.incurred_date, 'YYYY-MM') as month,
+             COUNT(*)::int as value,
+             SUM(pe.amount_pence)::numeric as total_pence
+      FROM person_expenses pe
+      LEFT JOIN locations l ON pe.location_id = l.id
+      WHERE pe.organization_id = $1`;
+    const params: any[] = [orgId];
+    let idx = 2;
+    if (f.location_id) { sql += ` AND pe.location_id = $${idx}`; params.push(f.location_id); idx++; }
+    if (f.dateFrom) { sql += ` AND pe.incurred_date >= $${idx}`; params.push(f.dateFrom); idx++; }
+    if (f.dateTo) { sql += ` AND pe.incurred_date <= $${idx}`; params.push(f.dateTo); idx++; }
+    sql += ' GROUP BY pe.category, l.name, month ORDER BY total_pence DESC';
+    const result = await query(sql, params);
+    return result.rows;
+  }
 }

@@ -43,7 +43,7 @@ Supported living + domiciliary care platform. Build is substantially complete �
 | compliance | 16 | Docs, evidence packs (KLOE), identity dashboard, trends, mappings, records, PDF |
 | scheduling | 30+ | Shifts CRUD, assign/claim/swap/approve/reject, templates, min-staff, OT |
 | marketplace | 3 | Open shifts, apply, publish |
-| reporting | 2 | Compliance audit, staffing stats — **expanding to 35+ reports with filters** |
+| reporting | 2 | Compliance audit, staffing stats — **40 reports** across 10 categories (staff, people, scheduling, leave, incidents, compliance, training, eMAR, outcomes, operations) with filters, charts, and CSV export |
 | insights | 5 | Overview, staffing, compliance, leave, rota analytics (Recharts on frontend) |
 | service-users | 50+ | Full CRUD + care plans, daily notes, risk assessments, family contacts, assessments, clinical scores, body map, memory book, wellbeing, communication log, capacity, care pathways, discharge checklist, timeline, documents, photo upload |
 | incidents | 17 | CRUD, categories, involved residents, action items |
@@ -139,7 +139,7 @@ Creates a fresh demo org with random name each run (~1,550 rows total):
 | **PrintNode printing** | Physical document delivery |
 | **Expense tracking (standalone)** | Petty cash ledger for service users (funded by agencies module but no standalone) |
 | **Document Drive** | File management UI for evidence packs |
-| **Full Reporting Suite** | ✅ Building — 35 reports, filters, charts, CSV export |
+| **Full Reporting Suite** | ✅ Done — 40 reports, filters, charts, CSV export |
 | **Family Portal Finances** | Tab placeholder |
 | **Staff 1-2-1s** | One-to-one meeting records, action tracking, review scheduling |
 | **Payroll & Timesheets** | Timesheet submission, approval workflow, payroll export/integration |
