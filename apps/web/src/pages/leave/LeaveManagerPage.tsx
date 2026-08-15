@@ -86,6 +86,7 @@ export default function LeaveManagerPage() {
   const [filterLocation, setFilterLocation] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [calendarStats, setCalendarStats] = useState<any[]>([])
+  const [uniqueOnLeave, setUniqueOnLeave] = useState(0)
   const [staffMembers, setStaffMembers] = useState<any[]>([])
   const [dayLoading, setDayLoading] = useState(false)
   const [delegationDialog, setDelegationDialog] = useState(false)
@@ -175,7 +176,8 @@ export default function LeaveManagerPage() {
       setCalendarLoading(true)
       try {
         const res = await api.get(`/leave/calendar-stats?month=${calendarMonth.getMonth() + 1}&year=${calendarMonth.getFullYear()}`)
-        setCalendarStats(res.data)
+        setCalendarStats(res.data.dates || [])
+        setUniqueOnLeave(res.data.unique_staff_on_leave || 0)
       } catch { console.warn('Failed to fetch calendar stats') }
       setCalendarLoading(false)
     }
@@ -206,13 +208,19 @@ export default function LeaveManagerPage() {
       setSuccess(res.data?.status === 'approved' ? 'Leave request submitted and auto-approved' : 'Leave request submitted')
       setOpenDialog(false)
       const leaveStartDate = payload.start_date
+      const bookedForRole = payload.staff_id
+        ? (staffMembers.find((s: any) => s.id === payload.staff_id)?.role || '')
+        : rawUser.role
       setFormData({ staff_id: '', leave_type_id: '', start_date: '', end_date: '', reason: '', hours_requested: '' })
       fetchData()
       // Refresh calendar stats
       const statsRes = await api.get(`/leave/calendar-stats?month=${calendarMonth.getMonth() + 1}&year=${calendarMonth.getFullYear()}`)
-      setCalendarStats(statsRes.data)
+      setCalendarStats(statsRes.data.dates || [])
+      setUniqueOnLeave(statsRes.data.unique_staff_on_leave || 0)
       if (isAdminOrManager) fetchAllRequests()
-      if (isAdminOrManager) {
+      // Delegation only matters when a manager's own leave (or another
+      // manager's) needs covering — not when booking leave for a care worker.
+      if (isAdminOrManager && (bookedForRole === 'MANAGER' || bookedForRole === 'ORG_ADMIN')) {
         const delRes = await api.get('/settings/delegations')
         const activeDelegation = delRes.data.some((d: any) => d.primary_manager_id === rawUser.id && d.is_active)
         if (!activeDelegation) {
@@ -241,7 +249,8 @@ export default function LeaveManagerPage() {
       fetchAllRequests()
       fetchData()
       const statsRes = await api.get(`/leave/calendar-stats?month=${calendarMonth.getMonth() + 1}&year=${calendarMonth.getFullYear()}`)
-      setCalendarStats(statsRes.data)
+      setCalendarStats(statsRes.data.dates || [])
+      setUniqueOnLeave(statsRes.data.unique_staff_on_leave || 0)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to review leave request')
     } finally {
@@ -262,7 +271,8 @@ export default function LeaveManagerPage() {
       fetchData()
       fetchAllRequests()
       const statsRes = await api.get(`/leave/calendar-stats?month=${calendarMonth.getMonth() + 1}&year=${calendarMonth.getFullYear()}`)
-      setCalendarStats(statsRes.data)
+      setCalendarStats(statsRes.data.dates || [])
+      setUniqueOnLeave(statsRes.data.unique_staff_on_leave || 0)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to cancel leave request')
     } finally {
@@ -357,7 +367,7 @@ export default function LeaveManagerPage() {
     return new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), i - startDay + 1)
   })
 
-  const totalOnLeave = calendarStats.reduce((s, d) => s + d.staff_on_leave, 0)
+  const totalOnLeave = uniqueOnLeave
   const totalApproved = calendarStats.reduce((s, d) => s + d.approved_count, 0)
   const totalPending = calendarStats.reduce((s, d) => s + d.pending_count, 0)
 

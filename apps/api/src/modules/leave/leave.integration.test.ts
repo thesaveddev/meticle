@@ -529,6 +529,30 @@ describe('Leave Integration — PUT /leave/entitlement/:staffId', () => {
   })
 })
 
+describe('Leave Integration — GET /leave/calendar-stats', () => {
+  it('should count one staff member once even across multiple days', async () => {
+    const org = await createOrg()
+    const adminUser = await createUser({ email: `adm-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    await createStaffProfile({ userId: adminUser.id })
+    const workerUser = await createUser({ email: `worker-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const workerStaff = await createStaffProfile({ userId: workerUser.id })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    await createLeaveRequest({ staffId: workerStaff.id, leaveTypeId: leaveType.id, start_date: '2026-09-18', end_date: '2026-09-20', status: 'approved' })
+    const token = generateToken(adminUser)
+
+    const res = await request(app)
+      .get('/leave/calendar-stats?month=9&year=2026')
+      .set('Authorization', `Bearer ${token}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.dates).toBeDefined()
+    const days = res.body.dates.filter((d: any) => d.date >= '2026-09-18' && d.date <= '2026-09-20')
+    expect(days.length).toBe(3)
+    expect(days.every((d: any) => d.staff_on_leave === 1)).toBe(true)
+    expect(res.body.unique_staff_on_leave).toBe(1)
+  })
+})
+
 describe('Leave Integration — GET /leave/calendar-day', () => {
   it('should list every staff member on leave for an admin on a given day', async () => {
     const org = await createOrg()
@@ -550,6 +574,9 @@ describe('Leave Integration — GET /leave/calendar-day', () => {
     expect(res.body[0].first_name).toBe('Alice')
     expect(res.body[0].last_name).toBe('Worker')
     expect(res.body[0].leave_type_name).toBe('Annual Leave')
+    // Dates must be plain YYYY-MM-DD strings (no timezone shifting)
+    expect(res.body[0].start_date).toBe('2026-09-10')
+    expect(res.body[0].end_date).toBe('2026-09-12')
   })
 
   it('should only show a staff member their own requests', async () => {
