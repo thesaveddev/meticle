@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { IncidentsRepository } from './incidents.repository';
 import { requireIncidentInOrg } from '../../shared/database/tenant';
+import { publishDomainEvent } from '../events/events.outbox';
+import { logWarn } from '../../shared/utils/logger';
 
 export class IncidentsController {
   static getOrgId(req: Request): string {
@@ -41,6 +43,25 @@ export class IncidentsController {
     const orgId = IncidentsController.getOrgId(req);
     const userId = IncidentsController.getUserId(req) || '';
     const incident = await IncidentsRepository.create(orgId, req.body, userId);
+    publishDomainEvent({
+      organizationId: orgId,
+      eventName: 'incident.created',
+      aggregateType: 'incident',
+      aggregateId: incident.id,
+      correlationId: incident.id,
+      payload: {
+        id: incident.id,
+        title: incident.title,
+        description: incident.description,
+        category_id: incident.category_id,
+        incident_date: incident.incident_date,
+        incident_time: incident.incident_time,
+        location: incident.location,
+        severity: incident.severity,
+        is_cqc_reportable: incident.is_cqc_reportable,
+        reported_by: incident.reported_by,
+      },
+    }).catch(logWarn('publish incident.created'));
     res.status(201).json(incident);
   }
 

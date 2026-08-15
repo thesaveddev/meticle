@@ -2,6 +2,7 @@ import { query, transaction } from '../../shared/database';
 import logger from '../../shared/utils/logger';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { getConsumers, DomainEvent } from './events.consumers';
+import { runWithOrgContext } from './events.org-context';
 
 export const MAX_PUBLISH_ATTEMPTS = 3;
 const MAX_ERROR_LENGTH = 2000;
@@ -170,7 +171,9 @@ export async function processOutbox(organizationId?: string, batchSize = 50): Pr
           [event.id, consumer.name]
         );
         try {
-          await consumer.handle(event);
+          // Consumers run without a request, so give them an RLS org context
+          // (their event's tenant) before they touch any tenant tables.
+          await runWithOrgContext(event.organizationId, () => consumer.handle(event));
           await client.query(
             `UPDATE event_consumers SET status = 'processed', completed_at = CURRENT_TIMESTAMP, attempts = attempts + 1
              WHERE event_id = $1 AND consumer_name = $2`,

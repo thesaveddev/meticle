@@ -71,7 +71,7 @@ Supported living + domiciliary care platform. Build is substantially complete â€
 | dspt | 5 | NHS DSPT: assessment, 10 standards, submit |
 | tasks | 4 | CRUD (kanban-style) |
 | room-checks | 4 | CRUD with photo upload + MUI ratings |
-| events | 5 | Domain event outbox (`domain_events`/`event_consumers` tables, migration 031), publish helper, consumer registry, in-process worker (FOR UPDATE SKIP LOCKED, retries, cleanup), admin endpoints: publish/pending/retry/correlation |
+| events | 5 | Domain event outbox (`domain_events`/`event_consumers` tables, migration 031), publish helper (joins request transaction via ALS), consumer registry, in-process worker (FOR UPDATE SKIP LOCKED, retries, cleanup), admin endpoints: publish/pending/retry/correlation; **production wiring**: `incident.created` (incidents) + `leave.requested` (leave) published; `incident-ai-triage` consumer (stores `incidents.ai_triage` via migration 032, degrades to no-op without AI config); consumers run org-scoped via `runWithOrgContext` (RLS session vars on a dedicated client) |
 | mobile | 3 | GPS check-in, roster (7-day), voice-to-text notes |
 
 ### âœ… Frontend Pages (~50)

@@ -28,10 +28,12 @@ const getJwtSecret = (): string => {
 };
 
 /**
- * Set RLS session variables on the request-scoped client (from ALS).
- * Must be called after the JWT is decoded and before any tenant-scoped queries.
+ * Set RLS session variables on a pg client (typically the request-scoped client
+ * from ALS). Must be called after the JWT is decoded and before any
+ * tenant-scoped queries. Also used by the event outbox worker to run background
+ * consumers with an org context.
  */
-async function setRlsSessionVars(
+export async function setRlsSessionVars(
   client: { query: (text: string, params?: any[]) => Promise<any> },
   decoded: AuthUser
 ) {
