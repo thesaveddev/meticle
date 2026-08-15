@@ -3,6 +3,7 @@ import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import { createOrg, createUser, createStaffProfile, createLocation, createLeaveType, createLeaveRequest, generateToken } from '../../test/factories'
+import { migrateQuery } from '../../shared/database'
 
 vi.mock('../../shared/middleware/rateLimit.middleware', () => ({
   rateLimit: () => (_req: any, _res: any, next: any) => next(),
@@ -278,6 +279,90 @@ describe('Leave Integration — Auto-approval', () => {
       .post('/leave/my-requests')
       .set('Authorization', `Bearer ${token}`)
       .send({ leave_type_id: leaveType.id, start_date: '2026-11-01', end_date: '2026-11-03', reason: 'Auto' })
+
+    expect(res.status).toBe(201)
+    expect(res.body.status).toBe('approved')
+
+    const balances = await request(app).get('/leave/balances').set('Authorization', `Bearer ${token}`)
+    const bal = balances.body.find((b: any) => b.leave_type_name === leaveType.name)
+    expect(Number(bal.days_taken)).toBeGreaterThan(0)
+  })
+})
+
+describe('Leave Integration — Top-level reviewer routing', () => {
+  it('should route an admin request to a different ORG_ADMIN', async () => {
+    const org = await createOrg()
+    const admin = await createUser({ email: `adm-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const otherAdmin = await createUser({ email: `adm2-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    await createStaffProfile({ userId: admin.id })
+    await createStaffProfile({ userId: otherAdmin.id })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const token = generateToken(admin)
+
+    const res = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-11-10', end_date: '2026-11-12', reason: 'Holiday' })
+
+    expect(res.status).toBe(201)
+    expect(res.body.status).toBe('pending')
+    expect(res.body.reviewed_by).toBe(otherAdmin.id)
+  })
+
+  it('should route a manager request to their active delegate (deputy)', async () => {
+    const org = await createOrg()
+    const manager = await createUser({ email: `mgr-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    const delegate = await createUser({ email: `del-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    await createStaffProfile({ userId: manager.id })
+    await createStaffProfile({ userId: delegate.id })
+    await migrateQuery(
+      `INSERT INTO manager_delegations (organization_id, primary_manager_id, delegate_manager_id, is_active)
+       VALUES ($1, $2, $3, TRUE)`,
+      [org.id, manager.id, delegate.id]
+    )
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const token = generateToken(manager)
+
+    const res = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-11-13', end_date: '2026-11-14', reason: 'Holiday' })
+
+    expect(res.status).toBe(201)
+    expect(res.body.status).toBe('pending')
+    expect(res.body.reviewed_by).toBe(delegate.id)
+  })
+
+  it('should route a sole admin request to another manager instead of deadlocking', async () => {
+    const org = await createOrg()
+    const admin = await createUser({ email: `adm-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const peer = await createUser({ email: `peer-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    await createStaffProfile({ userId: admin.id })
+    await createStaffProfile({ userId: peer.id })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const token = generateToken(admin)
+
+    const res = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-11-17', end_date: '2026-11-18', reason: 'Holiday' })
+
+    expect(res.status).toBe(201)
+    expect(res.body.status).toBe('pending')
+    expect(res.body.reviewed_by).toBe(peer.id)
+  })
+
+  it('should auto-approve a top-level request when no approver exists', async () => {
+    const org = await createOrg()
+    const manager = await createUser({ email: `mgr-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    await createStaffProfile({ userId: manager.id })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const token = generateToken(manager)
+
+    const res = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-11-20', end_date: '2026-11-21', reason: 'Holiday' })
 
     expect(res.status).toBe(201)
     expect(res.body.status).toBe('approved')
