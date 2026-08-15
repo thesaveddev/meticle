@@ -32,7 +32,7 @@ Supported living + domiciliary care platform. Build is substantially complete �
 
 ## Current State (Audited July 2026)
 
-### ✅ Backend Modules (37)
+### ✅ Backend Modules (38)
 | Module | Endpoints | Key Features |
 |---|---|---|
 | auth | 11 | Register, login, MFA challenge, refresh, forgot/reset, me, logout |
@@ -71,6 +71,7 @@ Supported living + domiciliary care platform. Build is substantially complete �
 | dspt | 5 | NHS DSPT: assessment, 10 standards, submit |
 | tasks | 4 | CRUD (kanban-style) |
 | room-checks | 4 | CRUD with photo upload + MUI ratings |
+| events | 5 | Domain event outbox (`domain_events`/`event_consumers` tables, migration 031), publish helper, consumer registry, in-process worker (FOR UPDATE SKIP LOCKED, retries, cleanup), admin endpoints: publish/pending/retry/correlation |
 | mobile | 3 | GPS check-in, roster (7-day), voice-to-text notes |
 
 ### ✅ Frontend Pages (~50)
@@ -147,5 +148,5 @@ Creates a fresh demo org with random name each run (~1,550 rows total):
 | **Postgres RLS** | ✅ Done — AsyncLocalStorage + dual-pool + RLS policies on all tables |
 | **Test coverage** | ⚠️ 148 tests (5 modules) — expand to all 37 modules |
 | **Deployment pipeline** | ⚠️ Manual SSH deploy — needs CI/CD Docker push + auto-deploy |
-| **Migration versioning** | ⚠️ Flat array is fragile — needs schema_migrations table |
+| **Migration versioning** | ✅ Done — `_migrations` table + checksums + version-prefix ordering (runner sorts by numeric prefix, rejects duplicate versions and out-of-order insertions) |
 | **Monitoring** | ⚠️ No alerting, no dashboards, no uptime checks |

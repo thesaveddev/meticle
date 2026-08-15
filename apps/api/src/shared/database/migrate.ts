@@ -38,6 +38,39 @@ export interface Migration {
   strict?: boolean;
 }
 
+/** Extracts the numeric version prefix from a migration name (e.g. '031_event_outbox' -> 31). */
+export function getMigrationVersion(name: string): number {
+  const match = /^(\d+)/.exec(name);
+  if (!match) {
+    throw new Error(
+      `Migration "${name}" has no numeric version prefix. Every migration must be named like '031_description' so ordering can be derived automatically.`
+    );
+  }
+  return parseInt(match[1], 10);
+}
+
+/**
+ * Orders migrations by their numeric version prefix instead of trusting the
+ * caller's array order, and rejects duplicate versions outright. This is what
+ * replaces the fragile flat-array assumption: the array position no longer
+ * determines execution order.
+ */
+export function sortMigrations(migrations: Migration[]): Migration[] {
+  const sorted = [...migrations].sort((a, b) => getMigrationVersion(a.name) - getMigrationVersion(b.name));
+  const seen = new Map<number, string>();
+  for (const migration of sorted) {
+    const version = getMigrationVersion(migration.name);
+    const existing = seen.get(version);
+    if (existing !== undefined) {
+      throw new Error(
+        `Duplicate migration version ${version} — "${existing}" and "${migration.name}". Each migration needs a unique numeric prefix.`
+      );
+    }
+    seen.set(version, migration.name);
+  }
+  return sorted;
+}
+
 /** Known "already exists" / harmless error codes from legacy re-runs. */
 const HARMLESS_CODES = new Set([
   '42P16', // cannot use IF NOT EXISTS with constraint
@@ -51,7 +84,24 @@ export async function runMigrations(migrations: Migration[]): Promise<void> {
   await ensureMigrationsTable();
   const applied = await getAppliedMigrations();
 
-  for (const migration of migrations) {
+  // Ordering is derived from the numeric prefix, never the array position.
+  const ordered = sortMigrations(migrations);
+
+  // The highest already-applied version is the watermark. Any migration that
+  // has NOT yet run but is at or below it was inserted/renamed after newer
+  // migrations shipped — running it now would be a dangerous backfill on live
+  // data. Refuse loudly; the fix is a new higher-numbered migration.
+  let maxAppliedVersion = 0;
+  for (const name of applied.keys()) {
+    try {
+      maxAppliedVersion = Math.max(maxAppliedVersion, getMigrationVersion(name));
+    } catch {
+      // Legacy name without a numeric prefix (pre-versioning) — ignore.
+    }
+  }
+
+  for (const migration of ordered) {
+    const version = getMigrationVersion(migration.name);
     const appliedChecksum = applied.get(migration.name);
     if (appliedChecksum !== undefined) {
       // A checksum change on an already-applied migration means statements were edited
@@ -67,6 +117,14 @@ export async function runMigrations(migrations: Migration[]): Promise<void> {
         logger.debug(`Migration ${migration.name} already applied, skipping`);
       }
       continue;
+    }
+
+    // Unapplied migration whose version is behind the newest applied one.
+    if (maxAppliedVersion > 0 && version <= maxAppliedVersion) {
+      throw new Error(
+        `Migration "${migration.name}" (version ${version}) has not been applied but is older than the newest applied migration (${maxAppliedVersion}). ` +
+          `You cannot backfill/insert a migration after newer ones have shipped. Ship a new migration with a version greater than ${maxAppliedVersion} instead.`
+      );
     }
 
     const strict = migration.strict !== false;
