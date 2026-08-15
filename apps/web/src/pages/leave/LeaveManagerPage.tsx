@@ -3,7 +3,7 @@ import {
   Box, Paper, Typography, Button, Tabs, Tab, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, Dialog, DialogTitle, DialogContent,
   DialogActions, TextField, MenuItem, Stack, IconButton,
-  Alert, FormControl, InputLabel, Select, Tooltip, Switch, FormControlLabel,
+  Alert, FormControl, InputLabel, Select, Tooltip,
   Popover, List, ListItem, ListItemText, Divider, CircularProgress, TablePagination,
 } from '@mui/material'
 import {
@@ -45,6 +45,21 @@ const fmtDay = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', mont
 const requestDays = (r: { start_date: string; end_date: string }) =>
   Math.ceil((parseYMD(r.end_date).getTime() - parseYMD(r.start_date).getTime()) / 86400000) + 1
 
+// All leave is calculated in hours; this converts an hour count to the
+// "X days + Y hours" display used across the balance summary.
+const HOURS_PER_DAY = 7.5
+const hoursToDaysHours = (totalHours: number) => ({
+  days: Math.floor(totalHours / HOURS_PER_DAY),
+  hours: Math.round(totalHours % HOURS_PER_DAY),
+})
+const fmtDaysHours = (totalHours: number) => {
+  const { days, hours } = hoursToDaysHours(totalHours)
+  const parts: string[] = []
+  if (days > 0) parts.push(`${days}d`)
+  if (hours > 0) parts.push(`${hours}h`)
+  return parts.join(' ') || '0h'
+}
+
 export default function LeaveManagerPage() {
   const [tab, setTab] = useState(0)
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([])
@@ -54,14 +69,16 @@ export default function LeaveManagerPage() {
   const [locations, setLocations] = useState<Location[]>([])
   const [openDialog, setOpenDialog] = useState(false)
   const [formData, setFormData] = useState({
-    leave_type_id: '', start_date: '', end_date: '', reason: '',
-    hours_requested: '', duration_type: 'days'
+    staff_id: '', leave_type_id: '', start_date: '', end_date: '', reason: '',
+    hours_requested: ''
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [filterLocation, setFilterLocation] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [calendarStats, setCalendarStats] = useState<any[]>([])
+  const [staffMembers, setStaffMembers] = useState<any[]>([])
+  const [dayLoading, setDayLoading] = useState(false)
   const [delegationDialog, setDelegationDialog] = useState(false)
   const [delegationData, setDelegationData] = useState({ delegate_manager_id: '', ends_at: '' })
   const [delegationError, setDelegationError] = useState('')
@@ -104,12 +121,16 @@ export default function LeaveManagerPage() {
       setMyRequests(myReqRes.data)
       setBalances(balRes.data)
       setLocations(locRes.data)
+      if (isAdminOrManager) {
+        const staffRes = await api.get('/settings/staff')
+        setStaffMembers(staffRes.data)
+      }
     } catch (err: any) {
       setFetchError(err.response?.data?.message || 'Failed to load leave data')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [isAdminOrManager])
 
   const fetchAllRequests = useCallback(async () => {
     setAllLoading(true)
@@ -158,31 +179,30 @@ export default function LeaveManagerPage() {
     if (!formData.leave_type_id || !formData.start_date) {
       setError('Please fill in required fields'); return
     }
+    const hoursRequested = parseFloat(formData.hours_requested)
+    if (!hoursRequested || hoursRequested <= 0) {
+      setError('Please enter the number of hours'); return
+    }
     const payload: any = {
       leave_type_id: formData.leave_type_id,
       start_date: formData.start_date,
-      duration_type: formData.duration_type,
+      end_date: formData.end_date || formData.start_date,
+      duration_type: 'hours',
+      hours_requested: hoursRequested,
+      reason: formData.reason,
     }
-    if (formData.duration_type === 'hours') {
-      payload.end_date = formData.start_date
-      payload.hours_requested = parseFloat(formData.hours_requested)
-      if (!payload.hours_requested || payload.hours_requested <= 0) {
-        setError('Please enter the number of hours'); return
-      }
-    } else {
-      payload.end_date = formData.end_date || formData.start_date
-      payload.reason = formData.reason
-    }
+    if (formData.staff_id) payload.staff_id = formData.staff_id
     try {
       const res = await api.post('/leave/my-requests', payload)
       setSuccess(res.data?.status === 'approved' ? 'Leave request submitted and auto-approved' : 'Leave request submitted')
       setOpenDialog(false)
       const leaveStartDate = payload.start_date
-      setFormData({ leave_type_id: '', start_date: '', end_date: '', reason: '', hours_requested: '', duration_type: 'days' })
+      setFormData({ staff_id: '', leave_type_id: '', start_date: '', end_date: '', reason: '', hours_requested: '' })
       fetchData()
       // Refresh calendar stats
       const statsRes = await api.get(`/leave/calendar-stats?month=${calendarMonth.getMonth() + 1}&year=${calendarMonth.getFullYear()}`)
       setCalendarStats(statsRes.data)
+      if (isAdminOrManager) fetchAllRequests()
       if (isAdminOrManager) {
         const delRes = await api.get('/settings/delegations')
         const activeDelegation = delRes.data.some((d: any) => d.primary_manager_id === rawUser.id && d.is_active)
@@ -338,64 +358,47 @@ export default function LeaveManagerPage() {
         </Stack>
         <Stack direction="row" spacing={1.5} alignItems="center">
           {balances.length > 0 ? (() => {
-            const hoursPerDay = 7.5
-            const dayBalances = balances.filter(b => b.duration_type === 'days')
-            const hourBalances = balances.filter(b => b.duration_type === 'hours')
-            const totalDaysAllocated = dayBalances.reduce((s, b) => s + Number(b.effective_days_allocated), 0)
-            const totalDaysTaken = dayBalances.reduce((s, b) => s + Number(b.days_taken), 0)
-            const totalDaysRemaining = dayBalances.reduce((s, b) => s + Number(b.days_remaining), 0)
-            const totalHoursAllocated = hourBalances.reduce((s, b) => s + Number(b.effective_hours_allocated), 0)
-            const totalHoursTaken = hourBalances.reduce((s, b) => s + Number(b.hours_taken), 0)
-            const totalHoursRemaining = hourBalances.reduce((s, b) => s + Number(b.hours_remaining), 0)
-            const pendingDays = myRequests.filter(r => r.status === 'pending' && r.duration_type === 'days')
-              .reduce((s, r) => s + Math.ceil((new Date(r.end_date).getTime() - new Date(r.start_date).getTime()) / 86400000) + 1, 0)
-            const pendingHours = myRequests.filter(r => r.status === 'pending' && r.duration_type === 'hours')
-              .reduce((s, r) => s + Number(r.hours_requested || 0), 0)
-            const allDaysAllocated = totalDaysAllocated + Math.floor(totalHoursAllocated / hoursPerDay)
-            const allDaysTaken = totalDaysTaken + Math.floor(totalHoursTaken / hoursPerDay)
-            const allDaysRemaining = totalDaysRemaining + Math.floor(totalHoursRemaining / hoursPerDay)
-            const totalPendingDays = pendingDays + Math.floor(pendingHours / hoursPerDay)
-            const totalPendingHours = Math.round(pendingHours % hoursPerDay)
+            const totalAllocatedHours = balances.reduce((s, b) => s + Number(b.effective_hours_allocated || 0), 0)
+            const totalTakenHours = balances.reduce((s, b) => s + Number(b.hours_taken || 0), 0)
+            const totalRemainingHours = balances.reduce((s, b) => s + Number(b.hours_remaining || 0), 0)
+            const pendingHoursTotal = myRequests
+              .filter(r => r.status === 'pending')
+              .reduce((s, r) => s + (r.duration_type === 'hours' ? Number(r.hours_requested || 0) : requestDays(r) * HOURS_PER_DAY), 0)
 
-            const fmt = (d: number, h: number) => {
-              const p: string[] = []
-              if (d > 0) p.push(`${d}d`)
-              if (h > 0) p.push(`${h}h`)
-              return p.join(' ') || '0h'
-            }
+            const fmt = fmtDaysHours
 
             return (
               <>
                 <Box sx={{ textAlign: 'right', lineHeight: 1.2 }}>
                   <Typography variant="caption" color="#0F4C81" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
-                    Total {fmt(allDaysAllocated, Math.round(totalHoursAllocated % hoursPerDay))}
+                    Total {fmt(totalAllocatedHours)}
                   </Typography>
                   <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', fontSize: '0.6rem' }}>
-                    {totalDaysAllocated.toFixed(0)}d + {totalHoursAllocated.toFixed(0)}h
+                    {totalAllocatedHours.toFixed(1)}h
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'right', lineHeight: 1.2 }}>
                   <Typography variant="caption" color="#DC2626" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
-                    Used {fmt(allDaysTaken, Math.round(totalHoursTaken))}
+                    Used {fmt(totalTakenHours)}
                   </Typography>
                   <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', fontSize: '0.6rem' }}>
-                    {totalDaysTaken.toFixed(0)}d + {totalHoursTaken.toFixed(0)}h
+                    {totalTakenHours.toFixed(1)}h
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'right', lineHeight: 1.2 }}>
                   <Typography variant="caption" color="#D97706" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
-                    Pending {fmt(totalPendingDays, totalPendingHours)}
+                    Pending {fmt(pendingHoursTotal)}
                   </Typography>
                   <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', fontSize: '0.6rem' }}>
-                    {pendingDays}d + {pendingHours}h
+                    {pendingHoursTotal.toFixed(1)}h
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'right', lineHeight: 1.2 }}>
                   <Typography variant="caption" color="#16A34A" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
-                    Left {fmt(allDaysRemaining, Math.round(totalHoursRemaining % hoursPerDay))}
+                    Left {fmt(totalRemainingHours)}
                   </Typography>
                   <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', fontSize: '0.6rem' }}>
-                    {totalDaysRemaining.toFixed(0)}d + {totalHoursRemaining.toFixed(0)}h
+                    {totalRemainingHours.toFixed(1)}h
                   </Typography>
                 </Box>
               </>
@@ -672,10 +675,27 @@ export default function LeaveManagerPage() {
                     cursor: 'pointer',
                     '&:hover': { bgcolor: '#F8FAFC' },
                   }}
-                    onClick={(e) => {
-                      const dayReqs = getDayRequests(day)
-                      if (dayReqs.length > 0 || (stats && (stats.staff_on_leave > 0 || stats.pending_count > 0))) {
-                        setDayPopover({ anchor: e.currentTarget, date: toYMD(day), events: dayReqs, stats })
+                    onClick={async (e) => {
+                      const dayStats = calendarStats.find(s => s.date === toYMD(day))
+                      if (isAdminOrManager) {
+                        if (!dayStats || (dayStats.staff_on_leave === 0 && dayStats.pending_count === 0)) return
+                        setDayLoading(true)
+                        try {
+                          // Fetch from the server so the popup always agrees
+                          // with the day cell summary (which lists every org
+                          // staff member, not just what this browser has loaded).
+                          const res = await api.get(`/leave/calendar-day?date=${toYMD(day)}`)
+                          setDayPopover({ anchor: e.currentTarget, date: toYMD(day), events: res.data, stats: dayStats })
+                        } catch {
+                          const dayReqs = getDayRequests(day)
+                          setDayPopover({ anchor: e.currentTarget, date: toYMD(day), events: dayReqs, stats: dayStats })
+                        } finally {
+                          setDayLoading(false)
+                        }
+                      } else {
+                        const dayReqs = getDayRequests(day)
+                        if (dayReqs.length === 0) return
+                        setDayPopover({ anchor: e.currentTarget, date: toYMD(day), events: dayReqs, stats: dayStats })
                       }
                     }}
                   >
@@ -736,46 +756,55 @@ export default function LeaveManagerPage() {
                 </Typography>
               </Stack>
             )}
-            {dayPopover.events.length > 0 ? (
+            {dayLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : dayPopover.events.length > 0 ? (
               <List dense disablePadding>
-                {dayPopover.events.map((e: any) => (
-                  <ListItem key={e.id} disablePadding sx={{ py: 0.5 }}>
-                    <ListItemText
-                      primary={
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>{e.first_name} {e.last_name}</Typography>
-                          <Chip label={e.leave_type_name || e.type} size="small"
-                            sx={{ height: 18, fontSize: '0.6rem', bgcolor: (e.leave_type_color || '#0F4C81') + '20', color: e.leave_type_color || '#0F4C81', fontWeight: 700 }} />
-                          <Chip label={e.status} size="small"
-                            color={e.status === 'approved' ? 'success' : e.status === 'rejected' ? 'error' : e.status === 'pending' ? 'warning' : 'default'}
-                            sx={{ height: 18, fontSize: '0.6rem' }} />
-                        </Stack>
-                      }
-                      secondary={
-                        <Stack spacing={0.3} sx={{ mt: 0.3 }}>
-                          <Typography variant="caption" color="#6B7280">
-                            {e.duration} &middot; {new Date(e.start_date).toLocaleDateString()}{e.end_date !== e.start_date ? ` - ${new Date(e.end_date).toLocaleDateString()}` : ''}
-                          </Typography>
-                          {e.reason && <Typography variant="caption" color="#9CA3AF" sx={{ fontStyle: 'italic' }}>"{e.reason}"</Typography>}
-                          {e.status === 'pending' && isAdminOrManager && (
-                            <Stack direction="row" spacing={0.5} sx={{ mt: 0.3 }}>
-                              <Button size="small" variant="contained" color="success" sx={{ height: 22, fontSize: '0.6rem', py: 0 }}
-                                disabled={reviewingId === e.id}
-                                onClick={() => handleReview(e.id, 'approved')}>
-                                {reviewingId === e.id ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : 'Approve'}
-                              </Button>
-                              <Button size="small" variant="contained" color="error" sx={{ height: 22, fontSize: '0.6rem', py: 0 }}
-                                disabled={reviewingId === e.id}
-                                onClick={() => handleReview(e.id, 'rejected')}>
-                                {reviewingId === e.id ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : 'Reject'}
-                              </Button>
-                            </Stack>
-                          )}
-                        </Stack>
-                      }
-                    />
-                  </ListItem>
-                ))}
+                {dayPopover.events.map((e: any) => {
+                  const duration = e.duration_type === 'hours' && e.hours_requested
+                    ? `${e.hours_requested}h`
+                    : `${requestDays(e)}d`
+                  return (
+                    <ListItem key={e.id} disablePadding sx={{ py: 0.5 }}>
+                      <ListItemText
+                        primary={
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>{e.first_name} {e.last_name}</Typography>
+                            <Chip label={e.leave_type_name || e.type} size="small"
+                              sx={{ height: 18, fontSize: '0.6rem', bgcolor: (e.leave_type_color || '#0F4C81') + '20', color: e.leave_type_color || '#0F4C81', fontWeight: 700 }} />
+                            <Chip label={e.status} size="small"
+                              color={e.status === 'approved' ? 'success' : e.status === 'rejected' ? 'error' : e.status === 'pending' ? 'warning' : 'default'}
+                              sx={{ height: 18, fontSize: '0.6rem' }} />
+                          </Stack>
+                        }
+                        secondary={
+                          <Stack spacing={0.3} sx={{ mt: 0.3 }}>
+                            <Typography variant="caption" color="#6B7280">
+                              {duration} &middot; {new Date(e.start_date).toLocaleDateString()}{e.end_date !== e.start_date ? ` - ${new Date(e.end_date).toLocaleDateString()}` : ''}
+                            </Typography>
+                            {e.reason && <Typography variant="caption" color="#9CA3AF" sx={{ fontStyle: 'italic' }}>"{e.reason}"</Typography>}
+                            {e.status === 'pending' && isAdminOrManager && (
+                              <Stack direction="row" spacing={0.5} sx={{ mt: 0.3 }}>
+                                <Button size="small" variant="contained" color="success" sx={{ height: 22, fontSize: '0.6rem', py: 0 }}
+                                  disabled={reviewingId === e.id}
+                                  onClick={() => handleReview(e.id, 'approved')}>
+                                  {reviewingId === e.id ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : 'Approve'}
+                                </Button>
+                                <Button size="small" variant="contained" color="error" sx={{ height: 22, fontSize: '0.6rem', py: 0 }}
+                                  disabled={reviewingId === e.id}
+                                  onClick={() => handleReview(e.id, 'rejected')}>
+                                  {reviewingId === e.id ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : 'Reject'}
+                                </Button>
+                              </Stack>
+                            )}
+                          </Stack>
+                        }
+                      />
+                    </ListItem>
+                  )
+                })}
               </List>
             ) : (
               <Typography variant="body2" color="#9CA3AF">No leave on this day.</Typography>
@@ -790,13 +819,28 @@ export default function LeaveManagerPage() {
           <Stack spacing={2} sx={{ mt: 1 }}>
             {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
             {success && <Alert severity="success">{success}</Alert>}
+            {isAdminOrManager && (
+              <TextField select label="Staff Member" value={formData.staff_id}
+                onChange={e => setFormData(p => ({ ...p, staff_id: e.target.value }))} fullWidth
+                helperText="Leave as default to book leave for yourself">
+                <MenuItem value="">{rawUser.first_name ? `${rawUser.first_name} ${rawUser.last_name || ''} (myself)` : 'Myself'}</MenuItem>
+                {staffMembers
+                  .filter((s: any) => s.id !== rawUser.id && rawUser.id && s.user_id !== rawUser.id)
+                  .map((s: any) => (
+                    <MenuItem key={s.id} value={s.id}>
+                      {s.first_name} {s.last_name} ({s.role === 'ORG_ADMIN' ? 'Admin' : s.role === 'MANAGER' ? 'Manager' : 'Care Worker'})
+                    </MenuItem>
+                  ))}
+              </TextField>
+            )}
+
             <TextField select label="Leave Type" value={formData.leave_type_id}
-              onChange={e => setFormData(p => ({ ...p, leave_type_id: e.target.value, duration_type: leaveTypes.find(t => t.id === e.target.value)?.duration_type || 'days' }))} fullWidth>
+              onChange={e => setFormData(p => ({ ...p, leave_type_id: e.target.value }))} fullWidth>
               {leaveTypes.map(t => <MenuItem key={t.id} value={t.id}>
                 <Stack direction="row" justifyContent="space-between" sx={{ width: '100%' }}>
                   <span>{t.name}</span>
                   <Typography variant="caption" color="#6B7280">
-                    ({t.duration_type === 'hours' ? `${t.hours_allowed}h` : `${t.days_allowed}d`} allowance)
+                    ({t.duration_type === 'hours' ? `${t.hours_allowed}h` : `${(t.days_allowed * HOURS_PER_DAY)}h`} allowance)
                   </Typography>
                 </Stack>
               </MenuItem>)}
@@ -805,36 +849,38 @@ export default function LeaveManagerPage() {
             {selectedType && relatedBalance && (
               <Alert severity="info" icon={<InfoIcon />} sx={{ py: 1 }}>
                 Balance: {formatBalance(relatedBalance)}
-                {selectedType.duration_type === 'hours'
-                  ? ` (${Number(relatedBalance.hours_remaining).toFixed(1)}h available)`
-                  : ` (${Number(relatedBalance.days_remaining).toFixed(1)}d available)`}
+                {` (${Number(relatedBalance.hours_remaining).toFixed(1)}h available)`}
               </Alert>
             )}
 
-            <FormControlLabel
-              control={<Switch checked={formData.duration_type === 'hours'}
-                onChange={e => setFormData(p => ({ ...p, duration_type: e.target.checked ? 'hours' : 'days' }))}
-                disabled={selectedType?.duration_type === 'days'} />}
-              label="Book in hours (partial day)"
-            />
-
-            <TextField label="Date" type="date" value={formData.start_date}
+            <TextField label="Start Date" type="date" value={formData.start_date}
               onChange={e => setFormData(p => ({ ...p, start_date: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
 
-            {formData.duration_type === 'hours' ? (
-              <TextField label="Hours" type="number" value={formData.hours_requested}
-                onChange={e => setFormData(p => ({ ...p, hours_requested: e.target.value }))}
-                inputProps={{ min: 0.5, max: 12, step: 0.5 }}
-                helperText="Enter hours (e.g., 2 for a 2-hour leave)" fullWidth />
-            ) : (
-              <TextField label="End Date" type="date" value={formData.end_date}
-                onChange={e => setFormData(p => ({ ...p, end_date: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
-            )}
+            <TextField label="End Date (optional)" type="date" value={formData.end_date}
+              onChange={e => {
+                const end = e.target.value
+                setFormData(p => {
+                  let hours = p.hours_requested
+                  if (p.start_date && end) {
+                    const days = Math.round((parseYMD(end).getTime() - parseYMD(p.start_date).getTime()) / 86400000) + 1
+                    if (!p.hours_requested) hours = String(Math.round(days * HOURS_PER_DAY * 2) / 2)
+                  }
+                  return { ...p, end_date: end, hours_requested: hours }
+                })
+              }}
+              InputLabelProps={{ shrink: true }} fullWidth
+              helperText="Leave blank for a single day" />
 
-            {formData.duration_type === 'days' && (
-              <TextField label="Reason" multiline rows={3} value={formData.reason}
-                onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} fullWidth />
-            )}
+            <TextField label="Hours" type="number" value={formData.hours_requested}
+              onChange={e => setFormData(p => ({ ...p, hours_requested: e.target.value }))}
+              inputProps={{ min: 0.5, step: 0.5 }}
+              helperText={formData.start_date && formData.end_date && formData.end_date !== formData.start_date
+                ? `e.g. ${requestDays({ start_date: formData.start_date, end_date: formData.end_date }) * HOURS_PER_DAY}h for the full period (${HOURS_PER_DAY}h per day)`
+                : `Enter hours (e.g., ${HOURS_PER_DAY}h for a full day, 3.75h for a half day)`}
+              fullWidth />
+
+            <TextField label="Reason" multiline rows={3} value={formData.reason}
+              onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} fullWidth />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>

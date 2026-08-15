@@ -238,19 +238,44 @@ export class LeaveController {
 
   static async createLeaveRequest(req: Request, res: Response) {
     const userId = req.user!.userId;
-    const { leave_type_id, start_date, end_date, reason, hours_requested, duration_type } = req.body;
+    const userRole = req.user!.role;
+    const orgId = req.user!.organizationId;
+    const { leave_type_id, start_date, end_date, reason, hours_requested, duration_type, staff_id } = req.body;
 
-    const profile = await pool.query(
-      'SELECT id, contracted_hours_weekly, first_name, last_name FROM staff_profiles WHERE user_id = $1',
-      [userId]
-    );
-    if (profile.rows.length === 0) throw new AppError(404, 'Staff profile not found');
-    const staffId = profile.rows[0].id;
-    const contractedHours = parseFloat(profile.rows[0].contracted_hours_weekly) || 37.5;
+    // Resolve the staff member the leave is booked for. Admins/managers may
+    // book on behalf of another staff member by passing staff_id.
+    let profile: any;
+    if (staff_id) {
+      if (userRole !== 'MANAGER' && userRole !== 'ORG_ADMIN') {
+        throw new AppError(403, 'Only managers and admins can submit leave for another staff member');
+      }
+      const target = await pool.query(
+        `SELECT sp.id, sp.user_id, sp.contracted_hours_weekly, sp.first_name, sp.last_name,
+                u.role, u.email
+         FROM staff_profiles sp
+         JOIN users u ON sp.user_id = u.id
+         WHERE sp.id = $1 AND u.organization_id = $2`,
+        [staff_id, orgId]
+      );
+      if (target.rows.length === 0) throw new AppError(404, 'Staff member not found');
+      profile = target.rows[0];
+    } else {
+      const own = await pool.query(
+        'SELECT id, user_id, contracted_hours_weekly, first_name, last_name FROM staff_profiles WHERE user_id = $1',
+        [userId]
+      );
+      if (own.rows.length === 0) throw new AppError(404, 'Staff profile not found');
+      profile = own.rows[0];
+    }
+    const staffId = profile.id;
+    const targetUserId = profile.user_id;
+    const targetRole = staff_id ? profile.role : userRole;
+    const targetEmail = profile.email || req.user!.email;
+    const contractedHours = parseFloat(profile.contracted_hours_weekly) || 37.5;
 
     const leaveTypeRes = await pool.query(
       'SELECT name, requires_approval FROM leave_types WHERE id = $1 AND organization_id = $2',
-      [leave_type_id, req.user!.organizationId]
+      [leave_type_id, orgId]
     );
     if (leaveTypeRes.rows.length === 0) throw new AppError(404, 'Leave type not found');
     const leaveTypeName = leaveTypeRes.rows[0].name;
@@ -261,6 +286,7 @@ export class LeaveController {
     }
 
     const actualDurationType = duration_type || 'days';
+    const rangeDays = LeaveController.durationDays({ start_date, end_date });
     if (actualDurationType === 'hours') {
       if (!hours_requested || hours_requested <= 0) {
         throw new AppError(400, 'Hours requested is required for hourly leave');
@@ -268,14 +294,16 @@ export class LeaveController {
       const overlapping = await pool.query(
         `SELECT id FROM leave_requests
          WHERE staff_id = $1 AND status IN ('pending', 'approved')
-         AND start_date = $2`,
-        [staffId, start_date]
+         AND start_date <= $2 AND end_date >= $3`,
+        [staffId, end_date, start_date]
       );
       if (overlapping.rows.length > 0) {
-        throw new AppError(409, 'You already have a leave request for this date');
+        throw new AppError(409, 'You already have a leave request overlapping these dates');
       }
-      if (hours_requested > contractedHours / 5) {
-        throw new AppError(400, `Cannot request more than ${contractedHours / 5} hours in a single day (your daily contracted hours)`);
+      const dailyCap = contractedHours / 5;
+      const dailyHours = hours_requested / rangeDays;
+      if (dailyHours > dailyCap + 0.01) {
+        throw new AppError(400, `Cannot request more than ${dailyCap.toFixed(1)} hours per day (your daily contracted hours)`);
       }
     } else {
       const overlapping = await pool.query(
@@ -289,20 +317,20 @@ export class LeaveController {
       }
     }
 
-    const userRole = req.user!.role;
-
-    // Determine reviewer and notification target
+    // Determine reviewer and notification target based on the target staff
+    // member's role (not the creator's — a manager booking leave for a care
+    // worker should route to the care worker's approver).
     let defaultReviewerId: string | null = null;
     let notifyUserId: string | null = null;
 
-    if (userRole === 'MANAGER' || userRole === 'ORG_ADMIN') {
+    if (targetRole === 'MANAGER' || targetRole === 'ORG_ADMIN') {
       // 1. Active delegation (deputy) takes precedence — the delegate reviews.
       const delegation = await pool.query(
         `SELECT delegate_manager_id FROM manager_delegations
          WHERE primary_manager_id = $1 AND is_active = true
            AND (ends_at IS NULL OR ends_at > CURRENT_TIMESTAMP)
          ORDER BY created_at DESC LIMIT 1`,
-        [userId]
+        [targetUserId]
       );
       defaultReviewerId = delegation.rows[0]?.delegate_manager_id || null;
       notifyUserId = defaultReviewerId;
@@ -310,7 +338,7 @@ export class LeaveController {
         // 2. A different ORG_ADMIN.
         const adminResult = await pool.query(
           `SELECT id FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND id != $2 LIMIT 1`,
-          [req.user!.organizationId, userId]
+          [orgId, targetUserId]
         );
         defaultReviewerId = adminResult.rows[0]?.id || null;
         notifyUserId = defaultReviewerId;
@@ -323,15 +351,13 @@ export class LeaveController {
            WHERE organization_id = $1 AND role IN ('ORG_ADMIN', 'MANAGER') AND id != $2
            ORDER BY CASE WHEN role = 'ORG_ADMIN' THEN 0 ELSE 1 END, created_at ASC
            LIMIT 1`,
-          [req.user!.organizationId, userId]
+          [orgId, targetUserId]
         );
         defaultReviewerId = peer.rows[0]?.id || null;
         notifyUserId = peer.rows[0]?.id || null;
       }
-    }
-
-    // For staff: notify their location manager, fallback to any ORG_ADMIN
-    if (userRole !== 'MANAGER' && userRole !== 'ORG_ADMIN') {
+    } else {
+      // For staff: notify their location manager, fallback to any ORG_ADMIN
       const locResult = await pool.query(
         `SELECT l.manager_id FROM staff_profiles sp LEFT JOIN locations l ON sp.location_id = l.id WHERE sp.id = $1`,
         [staffId]
@@ -350,9 +376,27 @@ export class LeaveController {
       } else {
         const adminRes = await pool.query(
           `SELECT id FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' LIMIT 1`,
-          [req.user!.organizationId]
+          [orgId]
         );
         notifyUserId = adminRes.rows[0]?.id || null;
+      }
+    }
+
+    // A manager must never be the approver of leave they booked themselves
+    // (e.g. a location manager booking leave for a staff member in their own
+    // location). Route to any ORG_ADMIN instead; if none exists the creator is
+    // the worker's designated approver and the request is not their own leave,
+    // so it stays assigned to them (avoids a stuck pending request).
+    if (notifyUserId === userId) {
+      const adminRes = await pool.query(
+        `SELECT id FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND id != $2 LIMIT 1`,
+        [orgId, userId]
+      );
+      if (adminRes.rows[0]) {
+        defaultReviewerId = adminRes.rows[0].id;
+        notifyUserId = defaultReviewerId;
+      } else {
+        defaultReviewerId = userId;
       }
     }
 
@@ -362,13 +406,14 @@ export class LeaveController {
       [staffId, leave_type_id, start_date, end_date, reason, hours_requested || null, actualDurationType, defaultReviewerId]
     );
 
-    const staffName = `${profile.rows[0]?.first_name || ''} ${profile.rows[0]?.last_name || ''}`.trim();
+    const staffName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Staff';
     const startDate = new Date(`${start_date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     const endDate = new Date(`${end_date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-    if (autoApprove) {
-      // requires_approval=false: approve immediately (balance + is_on_leave) and
-      // notify the staff member instead of a reviewer.
+    if (autoApprove || ((targetRole === 'MANAGER' || targetRole === 'ORG_ADMIN') && !notifyUserId)) {
+      // Auto-approve when the type needs no approval, or when a top-level
+      // request has no deputy/different admin/peer approver available. Both
+      // are audit-logged so the decision is traceable.
       await transaction(async (client) => {
         await client.query(
           `UPDATE leave_requests SET status = 'approved', reviewed_at = CURRENT_TIMESTAMP
@@ -378,49 +423,21 @@ export class LeaveController {
         await LeaveController.applyApprovedBalance(client, result.rows[0]);
       });
       const approved = await pool.query('SELECT * FROM leave_requests WHERE id = $1', [result.rows[0].id]);
+      const reasonMsg = autoApprove
+        ? 'Your leave request has been approved.'
+        : 'Your leave request has been approved automatically (no approver configured).';
       await NotificationsController.createNotification(
-        req.user!.userId, 'Leave Approved',
-        `Your ${leaveTypeName} leave from ${startDate} to ${endDate} has been approved.`, 'success'
+        targetUserId, 'Leave Approved',
+        `Your ${leaveTypeName} leave from ${startDate} to ${endDate} ${reasonMsg}`, 'success'
       ).catch(logWarn('auto-approved leave notification'));
-      EmailService.sendLeaveApprovedEmail(req.user!.email, staffName || 'Staff', leaveTypeName, startDate, endDate).catch(logWarn('auto-approved leave email'));
+      EmailService.sendLeaveApprovedEmail(targetEmail, staffName, leaveTypeName, startDate, endDate).catch(logWarn('auto-approved leave email'));
       AuditRepository.log({
         user_id: userId,
         action: 'APPROVE_LEAVE',
         entity_type: 'leave_request',
         entity_id: result.rows[0].id,
         old_data: { status: 'pending' },
-        new_data: { status: 'approved', auto: true },
-        ip_address: req.ip,
-      }).catch(logWarn('audit auto-approved leave'));
-      res.status(201).json(approved.rows[0]);
-      return;
-    }
-
-    // Top-level fallback: no deputy, different admin, or peer approver exists —
-    // auto-approve (with an audit trail) rather than leaving the request stuck
-    // pending forever in a single-admin / manager-only org.
-    if ((userRole === 'MANAGER' || userRole === 'ORG_ADMIN') && !notifyUserId) {
-      await transaction(async (client) => {
-        await client.query(
-          `UPDATE leave_requests SET status = 'approved', reviewed_at = CURRENT_TIMESTAMP
-           WHERE id = $1 RETURNING *`,
-          [result.rows[0].id]
-        );
-        await LeaveController.applyApprovedBalance(client, result.rows[0]);
-      });
-      const approved = await pool.query('SELECT * FROM leave_requests WHERE id = $1', [result.rows[0].id]);
-      await NotificationsController.createNotification(
-        req.user!.userId, 'Leave Approved',
-        `Your ${leaveTypeName} leave from ${startDate} to ${endDate} has been approved automatically (no approver configured).`, 'success'
-      ).catch(logWarn('auto-approved leave notification'));
-      EmailService.sendLeaveApprovedEmail(req.user!.email, staffName || 'Staff', leaveTypeName, startDate, endDate).catch(logWarn('auto-approved leave email'));
-      AuditRepository.log({
-        user_id: userId,
-        action: 'APPROVE_LEAVE',
-        entity_type: 'leave_request',
-        entity_id: result.rows[0].id,
-        old_data: { status: 'pending' },
-        new_data: { status: 'approved', auto: true, reason: 'no_alternative_approver' },
+        new_data: { status: 'approved', auto: true, reason: autoApprove ? 'type_requires_no_approval' : 'no_alternative_approver' },
         ip_address: req.ip,
       }).catch(logWarn('audit auto-approved leave'));
       res.status(201).json(approved.rows[0]);
@@ -431,7 +448,7 @@ export class LeaveController {
       NotificationsController.createNotification(
         notifyUserId,
         'Leave Request',
-        `${staffName || 'A staff member'} has requested ${leaveTypeName} from ${startDate} to ${endDate}.`,
+        `${staffName} has requested ${leaveTypeName} from ${startDate} to ${endDate}.`,
         'info'
       ).catch(logWarn('leave request notification'));
       const adminUserRes = await pool.query('SELECT u.email, sp.first_name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.id = $1', [notifyUserId]);
@@ -439,7 +456,7 @@ export class LeaveController {
         EmailService.sendLeaveRequestedEmail(
           adminUserRes.rows[0].email,
           adminUserRes.rows[0].first_name || 'Manager',
-          staffName || 'A staff member',
+          staffName,
           leaveTypeName, startDate, endDate
         ).catch(logWarn('leave requested email'));
       }
@@ -822,5 +839,46 @@ export class LeaveController {
       });
     }
     res.json(dates);
+  }
+
+  /**
+   * The leave requests that fall on a single calendar day, with staff names —
+   * used by the calendar day popup so the popup always agrees with the day
+   * cell summary (which comes from /leave/calendar-stats). Admins/managers see
+   * every staff member in the org; staff only see their own requests.
+   */
+  static async getCalendarDay(req: Request, res: Response) {
+    const orgId = req.user!.organizationId;
+    const { date } = req.query;
+    const dateStr = LeaveController.ymd(date);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      throw new AppError(400, 'date must be in YYYY-MM-DD format');
+    }
+    const isTopLevel = req.user!.role === 'ORG_ADMIN' || req.user!.role === 'MANAGER';
+    const params: any[] = [dateStr, dateStr];
+    let orgClause = '';
+    if (isTopLevel) {
+      orgClause = `AND u.organization_id = $3`;
+      params.push(orgId);
+    } else {
+      orgClause = `AND sp.user_id = $3`;
+      params.push(req.user!.userId);
+    }
+    const result = await pool.query(
+      `SELECT lr.id, lr.staff_id, lr.leave_type_id, lr.start_date, lr.end_date, lr.reason,
+              lr.hours_requested, lr.duration_type, lr.status, lr.created_at,
+              lt.name as leave_type_name, lt.color as leave_type_color,
+              sp.first_name, sp.last_name
+       FROM leave_requests lr
+       JOIN leave_types lt ON lr.leave_type_id = lt.id
+       JOIN staff_profiles sp ON lr.staff_id = sp.id
+       JOIN users u ON sp.user_id = u.id
+       WHERE lr.start_date <= $1 AND lr.end_date >= $2
+         AND lr.status IN ('approved', 'pending')
+         ${orgClause}
+       ORDER BY lr.status = 'pending' DESC, sp.first_name ASC`,
+      params
+    );
+    res.json(result.rows);
   }
 }

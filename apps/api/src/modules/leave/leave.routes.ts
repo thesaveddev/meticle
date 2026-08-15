@@ -17,6 +17,7 @@ router.post('/my-requests', validate(createLeaveRequestSchema), asyncHandler(Lea
 router.patch('/requests/:id/cancel', asyncHandler(LeaveController.cancelLeaveRequest));
 router.get('/balances', asyncHandler(LeaveController.getLeaveBalances));
 router.get('/calendar-stats', asyncHandler(LeaveController.getCalendarStats));
+router.get('/calendar-day', asyncHandler(LeaveController.getCalendarDay));
 router.get('/locations', asyncHandler(LeaveController.getLocations));
 
 // Manager/Admin routes

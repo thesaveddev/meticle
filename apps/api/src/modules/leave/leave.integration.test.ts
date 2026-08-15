@@ -528,3 +528,164 @@ describe('Leave Integration — PUT /leave/entitlement/:staffId', () => {
     expect(Number(second.body.hours_allocated)).toBe(10)
   })
 })
+
+describe('Leave Integration — GET /leave/calendar-day', () => {
+  it('should list every staff member on leave for an admin on a given day', async () => {
+    const org = await createOrg()
+    const adminUser = await createUser({ email: `adm-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    await createStaffProfile({ userId: adminUser.id })
+    const workerUser = await createUser({ email: `worker-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const workerStaff = await createStaffProfile({ userId: workerUser.id, first_name: 'Alice', last_name: 'Worker' })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const reqRec = await createLeaveRequest({ staffId: workerStaff.id, leaveTypeId: leaveType.id, start_date: '2026-09-10', end_date: '2026-09-12', status: 'approved' })
+    const token = generateToken(adminUser)
+
+    const res = await request(app)
+      .get('/leave/calendar-day?date=2026-09-11')
+      .set('Authorization', `Bearer ${token}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.length).toBe(1)
+    expect(res.body[0].id).toBe(reqRec.id)
+    expect(res.body[0].first_name).toBe('Alice')
+    expect(res.body[0].last_name).toBe('Worker')
+    expect(res.body[0].leave_type_name).toBe('Annual Leave')
+  })
+
+  it('should only show a staff member their own requests', async () => {
+    const org = await createOrg()
+    const adminUser = await createUser({ email: `adm-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    await createStaffProfile({ userId: adminUser.id })
+    const workerUser = await createUser({ email: `worker-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const workerStaff = await createStaffProfile({ userId: workerUser.id })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const reqRec = await createLeaveRequest({ staffId: workerStaff.id, leaveTypeId: leaveType.id, start_date: '2026-09-10', end_date: '2026-09-12' })
+    const token = generateToken(workerUser)
+
+    const res = await request(app)
+      .get('/leave/calendar-day?date=2026-09-11')
+      .set('Authorization', `Bearer ${token}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.length).toBe(1)
+    expect(res.body[0].id).toBe(reqRec.id)
+  })
+
+  it('should reject an invalid date', async () => {
+    const org = await createOrg()
+    const user = await createUser({ email: `adm-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const token = generateToken(user)
+
+    const res = await request(app)
+      .get('/leave/calendar-day?date=2026/09/11')
+      .set('Authorization', `Bearer ${token}`)
+
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('Leave Integration — Manager books leave for a staff member', () => {
+  it('should create a leave request for another staff member as a MANAGER', async () => {
+    const org = await createOrg()
+    const mgrUser = await createUser({ email: `mgr-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    await createStaffProfile({ userId: mgrUser.id })
+    const loc = await createLocation({ organizationId: org.id, manager_id: mgrUser.id })
+    const workerUser = await createUser({ email: `worker-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const workerStaff = await createStaffProfile({ userId: workerUser.id, locationId: loc.id, first_name: 'Bob', last_name: 'Booked' })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const token = generateToken(mgrUser)
+
+    const res = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-09-20', end_date: '2026-09-20', duration_type: 'hours', hours_requested: 7.5, staff_id: workerStaff.id, reason: 'Booked by manager' })
+
+    expect(res.status).toBe(201)
+    expect(res.body.staff_id).toBe(workerStaff.id)
+    expect(res.body.status).toBe('pending')
+    expect(res.body.reviewed_by).toBe(mgrUser.id)
+  })
+
+  it('should reject a staff member booking leave for someone else', async () => {
+    const org = await createOrg()
+    const workerUser = await createUser({ email: `worker-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    await createStaffProfile({ userId: workerUser.id })
+    const otherUser = await createUser({ email: `other-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const otherStaff = await createStaffProfile({ userId: otherUser.id })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const token = generateToken(workerUser)
+
+    const res = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-09-21', end_date: '2026-09-21', duration_type: 'hours', hours_requested: 7.5, staff_id: otherStaff.id })
+
+    expect(res.status).toBe(403)
+  })
+
+  it('should reject a staff_id from another organisation', async () => {
+    const orgA = await createOrg()
+    const orgB = await createOrg()
+    const adminA = await createUser({ email: `adm-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: orgA.id })
+    await createStaffProfile({ userId: adminA.id })
+    const workerB = await createUser({ email: `worker-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: orgB.id })
+    const workerStaffB = await createStaffProfile({ userId: workerB.id })
+    const leaveType = await createLeaveType({ organizationId: orgA.id })
+    const token = generateToken(adminA)
+
+    const res = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-09-22', end_date: '2026-09-22', duration_type: 'hours', hours_requested: 7.5, staff_id: workerStaffB.id })
+
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('Leave Integration — Hourly leave with a date range', () => {
+  it('should approve an hours request spanning multiple days and track the total hours', async () => {
+    const org = await createOrg()
+    const loc = await createLocation({ organizationId: org.id })
+    const adminUser = await createUser({ email: `adm-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    await createStaffProfile({ userId: adminUser.id, locationId: loc.id })
+    const workerUser = await createUser({ email: `worker-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    await createStaffProfile({ userId: workerUser.id, locationId: loc.id })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const workerToken = generateToken(workerUser)
+    const adminToken = generateToken(adminUser)
+
+    // 2 days at 7.5h/day = 15h total
+    const res = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${workerToken}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-10-06', end_date: '2026-10-07', duration_type: 'hours', hours_requested: 15 })
+
+    expect(res.status).toBe(201)
+
+    await request(app)
+      .patch(`/leave/requests/${res.body.id}/review`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'approved' })
+      .expect(200)
+
+    const balances = await request(app).get('/leave/balances').set('Authorization', `Bearer ${workerToken}`)
+    const bal = balances.body.find((b: any) => b.leave_type_name === leaveType.name)
+    expect(Number(bal.hours_taken)).toBe(15)
+  })
+
+  it('should reject an hours request that exceeds the daily contracted hours', async () => {
+    const org = await createOrg()
+    const user = await createUser({ email: `worker-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    await createStaffProfile({ userId: user.id, contracted_hours_weekly: 37.5 })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const token = generateToken(user)
+
+    // 20h over a single day > 7.5h daily cap
+    const res = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-10-08', end_date: '2026-10-08', duration_type: 'hours', hours_requested: 20 })
+
+    expect(res.status).toBe(400)
+  })
+})
