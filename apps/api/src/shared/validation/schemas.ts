@@ -199,6 +199,7 @@ export const updateOrganizationSchema = z.object({
   regulator: z.string().optional(),
   onboarding_step: z.number().int().min(0).optional(),
   onboarding_completed: z.boolean().optional(),
+  onboarding_dismissed_at: z.string().nullable().optional(),
   auto_approve_documents: z.boolean().optional(),
 });
 
