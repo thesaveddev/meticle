@@ -630,6 +630,7 @@ export const createLeaveRequestSchema = z.object({
   reason: z.string().optional(),
   hours_requested: z.number().optional(),
   duration_type: z.enum(['days', 'hours']).optional(),
+  staff_id: z.string().uuid().optional(),
 });
 
 export const reviewLeaveRequestSchema = z.object({

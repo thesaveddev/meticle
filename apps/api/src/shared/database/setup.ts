@@ -339,6 +339,27 @@ const MIGRATION_028: Migration = {
   ],
 };
 
+const MIGRATION_029: Migration = {
+  name: '029_leave_hours_only',
+  strict: false,
+  statements: [
+    // Convert day-based leave types to hours (the org's default hours per leave
+    // day, falling back to 7.5) so every leave type is accounted for in hours.
+    `UPDATE leave_types lt
+     SET duration_type = 'hours',
+         hours_allowed = GREATEST(lt.hours_allowed, ROUND((lt.days_allowed * COALESCE(o.default_hours_per_leave_day, 7.5))::numeric, 1))
+     FROM organizations o
+     WHERE lt.organization_id = o.id AND lt.duration_type = 'days'`,
+    // Mirror day-based balances into hours so remaining/used are consistent.
+    `UPDATE leave_balances lb
+     SET hours_allocated = GREATEST(lb.hours_allocated, ROUND((lb.days_allocated * COALESCE(o.default_hours_per_leave_day, 7.5))::numeric, 1)),
+         hours_taken = ROUND((lb.days_taken * COALESCE(o.default_hours_per_leave_day, 7.5))::numeric, 1)
+     FROM leave_types lt
+     JOIN organizations o ON lt.organization_id = o.id
+     WHERE lb.leave_type_id = lt.id`,
+  ],
+};
+
 const MIGRATION_009: Migration = {
   name: '009_care_plan_person_centred_sections',
   strict: false,
@@ -1873,7 +1894,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

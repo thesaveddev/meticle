@@ -1550,12 +1550,17 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
     }
     setTlLoading('save')
     try {
-      if (editingType.id) {
-        await api.put(`/leave/types/${editingType.id}`, editingType)
-      } else {
-        await api.post('/leave/types', editingType)
+      const payload = {
+        ...editingType,
+        duration_type: 'hours',
+        days_allowed: Math.round(((Number(editingType.hours_allowed) || 0) / hpd) * 10) / 10,
       }
-      setTypeDialog(false); setSaveError(''); setEditingType({ name: '', color: '#0F4C81', duration_type: 'days', days_allowed: 0, hours_allowed: 0, is_paid: true, requires_approval: true }); loadTypes()
+      if (editingType.id) {
+        await api.put(`/leave/types/${editingType.id}`, payload)
+      } else {
+        await api.post('/leave/types', payload)
+      }
+      setTypeDialog(false); setSaveError(''); setEditingType({ name: '', color: '#0F4C81', duration_type: 'hours', days_allowed: 0, hours_allowed: 0, is_paid: true, requires_approval: true }); loadTypes()
       showSnackbar('Leave type saved.', 'success')
     } catch (e: any) { setSaveError(e.response?.data?.message || 'Error saving leave type') }
     finally { setTlLoading('') }
@@ -1646,7 +1651,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Leave Types</Typography>
           <Button variant="contained" size="small" startIcon={<AddIcon />}
-            onClick={() => { setEditingType({ name: '', color: '#0F4C81', duration_type: 'days', days_allowed: 0, hours_allowed: 0, is_paid: true, requires_approval: true }); setSaveError(''); setTypeDialog(true) }}
+            onClick={() => { setEditingType({ name: '', color: '#0F4C81', duration_type: 'hours', days_allowed: 0, hours_allowed: 0, is_paid: true, requires_approval: true }); setSaveError(''); setTypeDialog(true) }}
             sx={{ bgcolor: '#0F4C81' }}>Add Leave Type</Button>
         </Stack>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
@@ -1664,28 +1669,24 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
         )}
         <TableContainer>
           <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Color</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Duration</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Days Allowed</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Hours Allowed</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Paid</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Approval</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {types.slice(typePage * 10, typePage * 10 + 10).map(t => (
-                <TableRow key={t.id}>
-                  <TableCell><Typography fontWeight={600}>{t.name}</Typography></TableCell>
-                  <TableCell><Chip label={t.color} size="small" sx={{ bgcolor: t.color, color: '#fff', fontWeight: 700 }} /></TableCell>
-                  <TableCell><Chip label={t.duration_type} size="small" variant="outlined" /></TableCell>
-                  <TableCell>{t.days_allowed}</TableCell>
-                  <TableCell>{t.hours_allowed}</TableCell>
-                  <TableCell><Chip label={t.is_paid ? 'Paid' : 'Unpaid'} size="small" color={t.is_paid ? 'success' : 'default'} variant="outlined" /></TableCell>
-                  <TableCell><Chip label={t.requires_approval ? 'Approval' : 'Auto'} size="small" color={t.requires_approval ? 'warning' : 'info'} variant="outlined" /></TableCell>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Color</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Allowance</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Paid</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Approval</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {types.slice(typePage * 10, typePage * 10 + 10).map(t => (
+                    <TableRow key={t.id}>
+                      <TableCell><Typography fontWeight={600}>{t.name}</Typography></TableCell>
+                      <TableCell><Chip label={t.color} size="small" sx={{ bgcolor: t.color, color: '#fff', fontWeight: 700 }} /></TableCell>
+                      <TableCell>{fmt(toHours(t))}h</TableCell>
+                      <TableCell><Chip label={t.is_paid ? 'Paid' : 'Unpaid'} size="small" color={t.is_paid ? 'success' : 'default'} variant="outlined" /></TableCell>
+                      <TableCell><Chip label={t.requires_approval ? 'Approval' : 'Auto'} size="small" color={t.requires_approval ? 'warning' : 'info'} variant="outlined" /></TableCell>
                   <TableCell align="right">
                     <IconButton size="small" onClick={() => { setEditingType(t); setSaveError(''); setTypeDialog(true) }}><EditIcon fontSize="small" /></IconButton>
                     <IconButton size="small" color="error" onClick={() => setConfirmDelete(t)}>
@@ -1710,15 +1711,9 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
             <TextField label="Color" fullWidth value={editingType.color}
               onChange={e => setEditingType({ ...editingType, color: e.target.value })}
               InputProps={{ startAdornment: <Box sx={{ width: 20, height: 20, bgcolor: editingType.color, borderRadius: 0.5, mr: 1 }} /> }} />
-            <TextField select label="Duration Type" fullWidth value={editingType.duration_type}
-              onChange={e => setEditingType({ ...editingType, duration_type: e.target.value })}>
-              <MenuItem value="days">Days</MenuItem>
-              <MenuItem value="hours">Hours</MenuItem>
-            </TextField>
-            <TextField label="Days Allowed" type="number" fullWidth value={editingType.days_allowed}
-              onChange={e => setEditingType({ ...editingType, days_allowed: parseInt(e.target.value) || 0 })} />
             <TextField label="Hours Allowed" type="number" fullWidth value={editingType.hours_allowed}
-              onChange={e => setEditingType({ ...editingType, hours_allowed: parseFloat(e.target.value) || 0 })} />
+              onChange={e => setEditingType({ ...editingType, hours_allowed: parseFloat(e.target.value) || 0 })}
+              helperText={`All leave is calculated in hours (e.g., ${fmt(28 * hpd)}h for 28 days at ${hpd}h/day)`} />
             <Stack direction="row" spacing={3}>
               <FormControlLabel
                 control={<Switch checked={editingType.is_paid !== false}
