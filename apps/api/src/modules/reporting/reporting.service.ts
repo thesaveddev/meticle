@@ -34,6 +34,12 @@ const REPO_MAP: Record<string, RepositoryMethod> = {
   'shift-fill-rate': ReportingRepository.shiftFillRate,
   'overtime-analysis': ReportingRepository.overtimeAnalysis,
   'agency-usage': ReportingRepository.agencyUsage,
+  'appointments-summary': ReportingRepository.appointmentsSummary,
+  'room-checks': ReportingRepository.roomChecks,
+  'satisfaction-surveys': ReportingRepository.satisfactionSurveys,
+  'health-observations': ReportingRepository.healthObservations,
+  'task-completion': ReportingRepository.taskCompletion,
+  'expenses-summary': ReportingRepository.expensesSummary,
   'leave-by-type': ReportingRepository.leaveByType,
   'leave-by-month': ReportingRepository.leaveByMonth,
   'leave-by-department': ReportingRepository.leaveByDepartment,
@@ -145,6 +151,48 @@ function buildSummaryCards(rows: any[], reportId: string): { label: string; valu
     if (overdue > 0) cards.push({ label: 'Overdue Review', value: overdue, color: '#DC2626' });
   }
 
+  if (reportId === 'appointments-summary') {
+    const completed = rows.filter(r => r.name === 'completed').reduce((s, r) => s + (r.value || 0), 0);
+    if (total > 0) cards.push({ label: 'Attendance', value: `${Math.round(completed / total * 100)}%`, color: completed / total >= 0.8 ? '#16A34A' : '#D97706' });
+    const noShow = rows.filter(r => r.name === 'no_show').reduce((s, r) => s + (r.value || 0), 0);
+    if (noShow > 0) cards.push({ label: 'No-Shows', value: noShow, color: '#DC2626' });
+  }
+
+  if (reportId === 'room-checks') {
+    const pass = rows.filter(r => r.status === 'pass').reduce((s, r) => s + (r.value || 0), 0);
+    if (total > 0) cards.push({ label: 'Pass Rate', value: `${Math.round(pass / total * 100)}%`, color: pass / total >= 0.9 ? '#16A34A' : '#D97706' });
+    const attention = rows.filter(r => r.status === 'needs_attention').reduce((s, r) => s + (r.value || 0), 0);
+    if (attention > 0) cards.push({ label: 'Needs Attention', value: attention, color: '#D97706' });
+  }
+
+  if (reportId === 'satisfaction-surveys') {
+    const responseCount = rows.reduce((s, r) => s + (r.value || 0), 0);
+    const weighted = rows.reduce((s, r) => s + (r.avg_rating || 0) * (r.value || 0), 0);
+    const avg = responseCount > 0 ? Math.round(weighted / responseCount * 10) / 10 : 0;
+    cards.push({ label: 'Avg Rating', value: `${avg}/5`, color: avg >= 4 ? '#16A34A' : avg >= 3 ? '#D97706' : '#DC2626' });
+    cards.push({ label: 'Responses', value: responseCount, color: '#7C3AED' });
+  }
+
+  if (reportId === 'health-observations') {
+    const severe = rows.filter(r => r.severity === 'severe').reduce((s, r) => s + (r.value || 0), 0);
+    const moderate = rows.filter(r => r.severity === 'moderate').reduce((s, r) => s + (r.value || 0), 0);
+    if (severe > 0) cards.push({ label: 'Severe', value: severe, color: '#DC2626' });
+    if (moderate > 0) cards.push({ label: 'Moderate', value: moderate, color: '#F59E0B' });
+  }
+
+  if (reportId === 'task-completion') {
+    const completed = rows.filter(r => r.name === 'completed').reduce((s, r) => s + (r.value || 0), 0);
+    const overdue = rows.reduce((s, r) => s + (r.overdue || 0), 0);
+    if (total > 0) cards.push({ label: 'Completion Rate', value: `${Math.round(completed / total * 100)}%`, color: completed / total >= 0.7 ? '#16A34A' : '#D97706' });
+    if (overdue > 0) cards.push({ label: 'Overdue', value: overdue, color: '#DC2626' });
+  }
+
+  if (reportId === 'expenses-summary') {
+    const totalPence = rows.reduce((s, r) => s + Number(r.total_pence || 0), 0);
+    cards.push({ label: 'Total Spend', value: `£${(totalPence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: '#0891B2' });
+    cards.push({ label: 'Transactions', value: total, color: '#0891B2' });
+  }
+
   if (cards.length === 1) {
     cards.push({ label: 'Records', value: rows.length, color: '#0F4C81' });
   }
@@ -164,7 +212,7 @@ function buildSeries(rows: any[], reportId: string): ReportSeries[] {
     }));
   }
 
-  if (reportId === 'incident-trends' || reportId === 'leave-by-month' || reportId === 'outcomes-goal-trend') {
+  if (reportId === 'incident-trends' || reportId === 'leave-by-month' || reportId === 'outcomes-goal-trend' || reportId === 'health-observations') {
     const grouped: Record<string, Record<string, number>> = {};
     const seriesKeys = new Set<string>();
     rows.forEach(r => {
@@ -180,6 +228,36 @@ function buildSeries(rows: any[], reportId: string): ReportSeries[] {
     });
     (result as any).__seriesKeys = Array.from(seriesKeys);
     return result;
+  }
+
+  if (reportId === 'appointments-summary' || reportId === 'task-completion' || reportId === 'room-checks') {
+    const grouped: Record<string, number> = {};
+    rows.forEach(r => {
+      grouped[r.name] = (grouped[r.name] || 0) + (r.value || 0);
+    });
+    return Object.entries(grouped).map(([name, value]) => ({
+      name, value, color: STATUS_COLORS[name] || '#6B7280',
+    }));
+  }
+
+  if (reportId === 'satisfaction-surveys') {
+    const grouped: Record<string, number> = {};
+    rows.forEach(r => {
+      grouped[r.location_name || 'Unknown'] = (grouped[r.location_name || 'Unknown'] || 0) + (r.value || 0);
+    });
+    return Object.entries(grouped).map(([name, value]) => ({
+      name, value, color: '#7C3AED',
+    }));
+  }
+
+  if (reportId === 'expenses-summary') {
+    const grouped: Record<string, number> = {};
+    rows.forEach(r => {
+      grouped[r.name] = (grouped[r.name] || 0) + Number(r.total_pence || 0);
+    });
+    return Object.entries(grouped).map(([name, value]) => ({
+      name, value: Math.round(value / 100), color: undefined,
+    }));
   }
 
   if (first.severity && !first.category && !first.status) {
@@ -341,6 +419,12 @@ function buildTable(rows: any[], reportId: string): { columns: ReportTableColumn
       { key: 'mood_flagged', label: 'Mood Flagged', type: 'number' },
       { key: 'safeguarding_flags', label: 'Safeguarding', type: 'number' },
     ],
+    'health-observations': [
+      { key: 'name', label: 'Month', type: 'text' },
+      { key: 'category', label: 'Category', type: 'badge' },
+      { key: 'severity', label: 'Severity', type: 'badge' },
+      { key: 'value', label: 'Observations', type: 'number' },
+    ],
     'shift-coverage': [
       { key: 'location_name', label: 'Location', type: 'text' },
       { key: 'month', label: 'Month', type: 'text' },
@@ -372,6 +456,12 @@ function buildTable(rows: any[], reportId: string): { columns: ReportTableColumn
       { key: 'month', label: 'Month', type: 'text' },
       { key: 'agency_shifts', label: 'Shifts', type: 'number' },
       { key: 'total_hours', label: 'Hours', type: 'number' },
+    ],
+    'appointments-summary': [
+      { key: 'name', label: 'Status', type: 'badge' },
+      { key: 'month', label: 'Month', type: 'text' },
+      { key: 'location_name', label: 'Location', type: 'text' },
+      { key: 'value', label: 'Appointments', type: 'number' },
     ],
     'leave-by-type': [
       { key: 'name', label: 'Leave Type', type: 'text' },
@@ -447,6 +537,13 @@ function buildTable(rows: any[], reportId: string): { columns: ReportTableColumn
       { key: 'days_until_expiry', label: 'Days Left', type: 'number' },
       { key: 'location_name', label: 'Location', type: 'text' },
     ],
+    'room-checks': [
+      { key: 'location_name', label: 'Location', type: 'text' },
+      { key: 'status', label: 'Status', type: 'badge' },
+      { key: 'value', label: 'Checks', type: 'number' },
+      { key: 'cleanliness_avg', label: 'Cleanliness', type: 'number' },
+      { key: 'safety_avg', label: 'Safety', type: 'number' },
+    ],
     'training-completion': [
       { key: 'name', label: 'Module', type: 'text' },
       { key: 'category', label: 'Category', type: 'text' },
@@ -505,6 +602,27 @@ function buildTable(rows: any[], reportId: string): { columns: ReportTableColumn
       { key: 'value', label: 'Avg Progress', type: 'percent' },
       { key: 'updates', label: 'Updates', type: 'number' },
     ],
+    'satisfaction-surveys': [
+      { key: 'location_name', label: 'Location', type: 'text' },
+      { key: 'month', label: 'Month', type: 'text' },
+      { key: 'value', label: 'Responses', type: 'number' },
+      { key: 'avg_rating', label: 'Avg Rating', type: 'number' },
+      { key: 'satisfied_count', label: 'Satisfied (4+)', type: 'number' },
+    ],
+    'task-completion': [
+      { key: 'name', label: 'Status', type: 'badge' },
+      { key: 'priority', label: 'Priority', type: 'badge' },
+      { key: 'value', label: 'Tasks', type: 'number' },
+      { key: 'completed_count', label: 'Completed', type: 'number' },
+      { key: 'overdue', label: 'Overdue', type: 'number' },
+    ],
+    'expenses-summary': [
+      { key: 'name', label: 'Category', type: 'badge' },
+      { key: 'location_name', label: 'Location', type: 'text' },
+      { key: 'month', label: 'Month', type: 'text' },
+      { key: 'value', label: 'Transactions', type: 'number' },
+      { key: 'total_pence', label: 'Total', type: 'currency' },
+    ],
   };
 
   const cols = columnDefs[reportId] || Object.keys(rows[0]).map(k => ({ key: k, label: k, type: 'text' as const }));
@@ -516,6 +634,9 @@ function buildTable(rows: any[], reportId: string): { columns: ReportTableColumn
       if (c.key === 'role' && ROLE_LABELS[val]) val = ROLE_LABELS[val];
       if (c.type === 'date' && val) {
         val = new Date(val).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+      if (c.type === 'currency' && val !== null && val !== undefined) {
+        val = Number(val) / 100;
       }
       row[c.key] = val;
     });

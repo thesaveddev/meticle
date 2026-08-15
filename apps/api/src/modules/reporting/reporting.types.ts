@@ -146,6 +146,13 @@ export const REPORT_REGISTRY: ReportDefinition[] = [
     groupByOptions: ['location', 'month'],
     chartTypes: ['bar', 'line', 'table'], defaultChartType: 'line',
   },
+  {
+    id: 'health-observations', title: 'Health Observations', description: 'Observation volume by category and severity over time',
+    category: 'people', icon: 'MonitorHeart', color: '#8B5CF6',
+    filters: ['dateRange', 'location'],
+    groupByOptions: ['month', 'category', 'severity'],
+    chartTypes: ['bar', 'line', 'area', 'table'], defaultChartType: 'bar',
+  },
 
   // ─── Scheduling ─────────────────────────────────────────
   {
@@ -161,6 +168,13 @@ export const REPORT_REGISTRY: ReportDefinition[] = [
     filters: ['dateRange', 'location'],
     groupByOptions: ['location', 'month'],
     chartTypes: ['bar', 'line', 'table'], defaultChartType: 'bar',
+  },
+  {
+    id: 'appointments-summary', title: 'Appointment Summary', description: 'Appointments by status, location, and month',
+    category: 'scheduling', icon: 'Event', color: '#D97706',
+    filters: ['dateRange', 'location'],
+    groupByOptions: ['location', 'month', 'status'],
+    chartTypes: ['bar', 'pie', 'line', 'table'], defaultChartType: 'bar',
   },
   {
     id: 'overtime-analysis', title: 'Overtime Analysis', description: 'Overtime hours by staff and location',
@@ -252,6 +266,13 @@ export const REPORT_REGISTRY: ReportDefinition[] = [
     groupByOptions: ['document_type', 'department', 'location'],
     chartTypes: ['bar', 'pie', 'table'], defaultChartType: 'table',
   },
+  {
+    id: 'room-checks', title: 'Room Checks', description: 'Room hygiene and safety check pass rates by location',
+    category: 'compliance', icon: 'MeetingRoom', color: '#16A34A',
+    filters: ['dateRange', 'location'],
+    groupByOptions: ['location', 'status'],
+    chartTypes: ['bar', 'pie', 'table'], defaultChartType: 'bar',
+  },
 
   // ─── Training ───────────────────────────────────────────
   {
@@ -314,6 +335,29 @@ export const REPORT_REGISTRY: ReportDefinition[] = [
     groupByOptions: ['week', 'domain'],
     chartTypes: ['line', 'area', 'bar', 'table'], defaultChartType: 'line',
   },
+  {
+    id: 'satisfaction-surveys', title: 'Satisfaction Surveys', description: 'Feedback ratings from people, families, and visitors',
+    category: 'outcomes', icon: 'Star', color: '#7C3AED',
+    filters: ['dateRange', 'location'],
+    groupByOptions: ['location', 'month'],
+    chartTypes: ['bar', 'line', 'table'], defaultChartType: 'bar',
+  },
+
+  // ─── Operations ─────────────────────────────────────────
+  {
+    id: 'task-completion', title: 'Task Completion', description: 'Tasks by status, priority, and overdue items',
+    category: 'operations', icon: 'Task', color: '#0891B2',
+    filters: ['dateRange', 'location', 'department'],
+    groupByOptions: ['status', 'priority', 'department'],
+    chartTypes: ['bar', 'pie', 'table'], defaultChartType: 'bar',
+  },
+  {
+    id: 'expenses-summary', title: 'Person Expenses', description: 'Spending on people by category and location',
+    category: 'operations', icon: 'Payments', color: '#0891B2',
+    filters: ['dateRange', 'location'],
+    groupByOptions: ['category', 'location', 'month'],
+    chartTypes: ['bar', 'pie', 'table'], defaultChartType: 'bar',
+  },
 ]
 
 export const CATEGORIES = [
@@ -326,4 +370,5 @@ export const CATEGORIES = [
   { id: 'training', label: 'Training', color: '#6366F1', icon: 'School' },
   { id: 'emedication', label: 'eMAR', color: '#EC4899', icon: 'Medication' },
   { id: 'outcomes', label: 'Outcomes', color: '#7C3AED', icon: 'Psychology' },
+  { id: 'operations', label: 'Operations', color: '#0891B2', icon: 'Task' },
 ] as const

@@ -51,6 +51,10 @@ function CellValue({ value, type }: { value: any; type?: string }) {
     return <Typography variant="body2" fontWeight={600}>{Number(value).toLocaleString()}</Typography>
   }
 
+  if (type === 'currency') {
+    return <Typography variant="body2" fontWeight={600}>£{Number(value).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+  }
+
   if (type === 'date') {
     const d = new Date(value)
     if (isNaN(d.getTime())) return <Typography variant="body2">-</Typography>

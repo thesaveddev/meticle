@@ -9,6 +9,8 @@ import {
   People as PeopleIcon, Group as GroupIcon, CalendarMonth as CalendarIcon,
   BeachAccess as LeaveIcon, WarningAmber as WarningIcon, Assessment as AssessIcon,
   School as SchoolIcon, Medication as MedIcon, Psychology as PsychIcon,
+  Event as EventIcon, MeetingRoom as MeetingRoomIcon, Star as StarIcon,
+  MonitorHeart as MonitorHeartIcon, Task as TaskIcon, Payments as PaymentsIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
 
@@ -17,12 +19,14 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   BeachAccess: <LeaveIcon />, WarningAmber: <WarningIcon />, Assessment: <AssessIcon />,
   School: <SchoolIcon />, Medication: <MedIcon />, Psychology: <PsychIcon />,
   LocationOn: <AssessIcon />, Badge: <PeopleIcon />, Description: <AssessIcon />,
-  Star: <AssessIcon />, Assignment: <AssessIcon />, Note: <AssessIcon />,
+  Star: <StarIcon />, Assignment: <AssessIcon />, Note: <AssessIcon />,
   FactCheck: <AssessIcon />, Schedule: <CalendarIcon />, Business: <AssessIcon />,
   Balance: <LeaveIcon />, AccountTree: <AssessIcon />, ShowChart: <AssessIcon />,
   Timer: <AssessIcon />, Person: <PeopleIcon />, MenuBook: <SchoolIcon />,
   ReportProblem: <WarningIcon />, EmojiEvents: <SchoolIcon />, Science: <MedIcon />,
   Favorite: <PsychIcon />, TrendingUp: <AssessIcon />,
+  Event: <EventIcon />, MeetingRoom: <MeetingRoomIcon />,
+  MonitorHeart: <MonitorHeartIcon />, Task: <TaskIcon />, Payments: <PaymentsIcon />,
 }
 
 interface ReportDef {
