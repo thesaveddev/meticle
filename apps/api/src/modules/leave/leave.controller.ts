@@ -296,20 +296,37 @@ export class LeaveController {
     let notifyUserId: string | null = null;
 
     if (userRole === 'MANAGER' || userRole === 'ORG_ADMIN') {
-      // Find a different ORG_ADMIN to review
-      const adminResult = await pool.query(
-        `SELECT id FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND id != $2 LIMIT 1`,
-        [req.user!.organizationId, userId]
+      // 1. Active delegation (deputy) takes precedence — the delegate reviews.
+      const delegation = await pool.query(
+        `SELECT delegate_manager_id FROM manager_delegations
+         WHERE primary_manager_id = $1 AND is_active = true
+           AND (ends_at IS NULL OR ends_at > CURRENT_TIMESTAMP)
+         ORDER BY created_at DESC LIMIT 1`,
+        [userId]
       );
-      defaultReviewerId = adminResult.rows[0]?.id || null;
+      defaultReviewerId = delegation.rows[0]?.delegate_manager_id || null;
       notifyUserId = defaultReviewerId;
-      // Fallback: notify any ORG_ADMIN if no different admin found
       if (!notifyUserId) {
-        const anyAdmin = await pool.query(
-          `SELECT id FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' LIMIT 1`,
-          [req.user!.organizationId]
+        // 2. A different ORG_ADMIN.
+        const adminResult = await pool.query(
+          `SELECT id FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND id != $2 LIMIT 1`,
+          [req.user!.organizationId, userId]
         );
-        notifyUserId = anyAdmin.rows[0]?.id || null;
+        defaultReviewerId = adminResult.rows[0]?.id || null;
+        notifyUserId = defaultReviewerId;
+      }
+      // 3. Fallback: any other manager or admin (never self) so top-level
+      //    requests never deadlock. If none exist, the request is auto-approved below.
+      if (!notifyUserId) {
+        const peer = await pool.query(
+          `SELECT id FROM users
+           WHERE organization_id = $1 AND role IN ('ORG_ADMIN', 'MANAGER') AND id != $2
+           ORDER BY CASE WHEN role = 'ORG_ADMIN' THEN 0 ELSE 1 END, created_at ASC
+           LIMIT 1`,
+          [req.user!.organizationId, userId]
+        );
+        defaultReviewerId = peer.rows[0]?.id || null;
+        notifyUserId = peer.rows[0]?.id || null;
       }
     }
 
@@ -373,6 +390,37 @@ export class LeaveController {
         entity_id: result.rows[0].id,
         old_data: { status: 'pending' },
         new_data: { status: 'approved', auto: true },
+        ip_address: req.ip,
+      }).catch(logWarn('audit auto-approved leave'));
+      res.status(201).json(approved.rows[0]);
+      return;
+    }
+
+    // Top-level fallback: no deputy, different admin, or peer approver exists —
+    // auto-approve (with an audit trail) rather than leaving the request stuck
+    // pending forever in a single-admin / manager-only org.
+    if ((userRole === 'MANAGER' || userRole === 'ORG_ADMIN') && !notifyUserId) {
+      await transaction(async (client) => {
+        await client.query(
+          `UPDATE leave_requests SET status = 'approved', reviewed_at = CURRENT_TIMESTAMP
+           WHERE id = $1 RETURNING *`,
+          [result.rows[0].id]
+        );
+        await LeaveController.applyApprovedBalance(client, result.rows[0]);
+      });
+      const approved = await pool.query('SELECT * FROM leave_requests WHERE id = $1', [result.rows[0].id]);
+      await NotificationsController.createNotification(
+        req.user!.userId, 'Leave Approved',
+        `Your ${leaveTypeName} leave from ${startDate} to ${endDate} has been approved automatically (no approver configured).`, 'success'
+      ).catch(logWarn('auto-approved leave notification'));
+      EmailService.sendLeaveApprovedEmail(req.user!.email, staffName || 'Staff', leaveTypeName, startDate, endDate).catch(logWarn('auto-approved leave email'));
+      AuditRepository.log({
+        user_id: userId,
+        action: 'APPROVE_LEAVE',
+        entity_type: 'leave_request',
+        entity_id: result.rows[0].id,
+        old_data: { status: 'pending' },
+        new_data: { status: 'approved', auto: true, reason: 'no_alternative_approver' },
         ip_address: req.ip,
       }).catch(logWarn('audit auto-approved leave'));
       res.status(201).json(approved.rows[0]);

@@ -8,7 +8,7 @@ Supported living + domiciliary care platform. Build is substantially complete �
 - Compliance profiles role-based; role changes reflect instantly via `/auth/me` on page focus + periodic poll
 - Multi-tenant via tenant.ts helpers (no RLS yet)
 - Stripe auto-provisions on first use; test mode allowed in dev
-- Manager cannot self-approve leave; manager/admin leave routes to different ORG_ADMIN; fallback to any ORG_ADMIN if none different exists
+- Manager cannot self-approve leave; manager/admin leave routes to: (1) active delegation (deputy) → (2) a different ORG_ADMIN → (3) any other manager/admin; auto-approves (audit-logged) only if no alternative approver exists
 - Rota Planner: location-based min safe staffing, compliance block on assign, view-only for non-`scheduling:edit`
 - 11-hour rest enforced for OT; conflicting shifts blocked
 - Duplicate manager delegations → 409; notifications on OT + dept/team assignment
