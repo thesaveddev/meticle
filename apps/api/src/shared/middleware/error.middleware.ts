@@ -56,6 +56,26 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
     return res.status(400).json({ statusCode: 400, message: err.message });
   }
 
+  const httpErr = err as any;
+  const isExposed4xx =
+    httpErr.expose === true &&
+    typeof httpErr.status === 'number' &&
+    httpErr.status >= 400 &&
+    httpErr.status < 500;
+  if (isExposed4xx) {
+    const message =
+      httpErr.type === 'entity.parse.failed'
+        ? 'Invalid JSON body'
+        : httpErr.status === 413
+          ? 'Request body too large'
+          : err.message || 'Bad Request';
+    return res.status(httpErr.status).json({
+      statusCode: httpErr.status,
+      message,
+      ...(requestId && { requestId }),
+    });
+  }
+
   logger.error({ err, requestId, url: req.originalUrl, method: req.method }, 'Unhandled error');
   res.status(500).json({
     statusCode: 500,
