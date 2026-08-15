@@ -602,8 +602,35 @@ describe('Leave Integration — Manager books leave for a staff member', () => {
 
     expect(res.status).toBe(201)
     expect(res.body.staff_id).toBe(workerStaff.id)
-    expect(res.body.status).toBe('pending')
+    // Booking on behalf of another staff member is approved immediately
+    expect(res.body.status).toBe('approved')
     expect(res.body.reviewed_by).toBe(mgrUser.id)
+
+    // The approved booking applies to the staff member's balance
+    const workerToken = generateToken(workerUser)
+    const balances = await request(app).get('/leave/balances').set('Authorization', `Bearer ${workerToken}`)
+    const bal = balances.body.find((b: any) => b.leave_type_name === leaveType.name)
+    expect(Number(bal.hours_taken)).toBe(7.5)
+  })
+
+  it('should accept a user id as staff_id (the shape sent by the settings staff list)', async () => {
+    const org = await createOrg()
+    const mgrUser = await createUser({ email: `mgr-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    await createStaffProfile({ userId: mgrUser.id })
+    const workerUser = await createUser({ email: `worker-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const workerStaff = await createStaffProfile({ userId: workerUser.id, first_name: 'Carla', last_name: 'User' })
+    const leaveType = await createLeaveType({ organizationId: org.id })
+    const token = generateToken(mgrUser)
+
+    // /settings/staff returns u.id, so the frontend sends the user id here
+    const res = await request(app)
+      .post('/leave/my-requests')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ leave_type_id: leaveType.id, start_date: '2026-09-23', end_date: '2026-09-23', duration_type: 'hours', hours_requested: 7.5, staff_id: workerUser.id })
+
+    expect(res.status).toBe(201)
+    expect(res.body.staff_id).toBe(workerStaff.id)
+    expect(res.body.status).toBe('approved')
   })
 
   it('should reject a staff member booking leave for someone else', async () => {

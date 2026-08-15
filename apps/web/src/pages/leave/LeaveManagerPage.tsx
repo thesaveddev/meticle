@@ -39,8 +39,17 @@ interface Location { id: string; name: string }
 const pad2 = (n: number) => String(n).padStart(2, '0')
 // Build a YYYY-MM-DD string from a local Date (timezone-safe).
 const toYMD = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
-// Parse a YYYY-MM-DD string as local midnight (not UTC) so comparisons are stable.
-const parseYMD = (s: string) => new Date(`${s}T00:00:00`)
+// Parse a date into local midnight. The API returns DATE columns as ISO
+// strings (e.g. "2026-08-15T00:00:00.000Z"), so use the literal YYYY-MM-DD
+// part rather than JS Date parsing to avoid off-by-one/Invalid Date issues.
+const parseYMD = (s: any): Date => {
+  if (!s) return new Date(NaN)
+  if (s instanceof Date) return new Date(s.getFullYear(), s.getMonth(), s.getDate())
+  const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3])
+  const d = new Date(s)
+  return Number.isNaN(d.getTime()) ? d : new Date(d.getFullYear(), d.getMonth(), d.getDate())
+}
 const fmtDay = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 const requestDays = (r: { start_date: string; end_date: string }) =>
   Math.ceil((parseYMD(r.end_date).getTime() - parseYMD(r.start_date).getTime()) / 86400000) + 1
@@ -227,6 +236,7 @@ export default function LeaveManagerPage() {
     try {
       await api.patch(`/leave/requests/${id}/review`, { status })
       setDayPopover(null)
+      setDetailRequest(null)
       setSuccess(`Leave request ${status} successfully`)
       fetchAllRequests()
       fetchData()
@@ -246,6 +256,8 @@ export default function LeaveManagerPage() {
     try {
       await api.patch(`/leave/requests/${id}/cancel`)
       setCancelTarget(null)
+      setDetailRequest(null)
+      setDayPopover(null)
       setSuccess('Leave request cancelled')
       fetchData()
       fetchAllRequests()
@@ -782,7 +794,7 @@ export default function LeaveManagerPage() {
                         secondary={
                           <Stack spacing={0.3} sx={{ mt: 0.3 }}>
                             <Typography variant="caption" color="#6B7280">
-                              {duration} &middot; {new Date(e.start_date).toLocaleDateString()}{e.end_date !== e.start_date ? ` - ${new Date(e.end_date).toLocaleDateString()}` : ''}
+                              {duration} &middot; {fmtDay(parseYMD(e.start_date))}{e.end_date !== e.start_date ? ` - ${fmtDay(parseYMD(e.end_date))}` : ''}
                             </Typography>
                             {e.reason && <Typography variant="caption" color="#9CA3AF" sx={{ fontStyle: 'italic' }}>"{e.reason}"</Typography>}
                             {e.status === 'pending' && isAdminOrManager && (

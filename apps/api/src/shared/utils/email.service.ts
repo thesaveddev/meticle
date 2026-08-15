@@ -143,6 +143,13 @@ export class EmailService {
         { label: 'View My Leave', url: `${baseUrl()}/leave` }));
   }
 
+  static async sendLeaveBookedEmail(email: string, staffName: string, bookedByName: string, leaveType: string, startDate: string, endDate: string) {
+    await sendMail(email, `Leave Booked — ${leaveType}`,
+      buildStatusEmailHtml('Leave Booked', `Hi ${staffName},`, 'approved', 'Approved',
+        [`${bookedByName} has booked ${leaveType} leave for you from ${startDate} to ${endDate}. It has been approved.`],
+        { label: 'View My Leave', url: `${baseUrl()}/leave` }));
+  }
+
   static async sendLeaveRejectedEmail(email: string, name: string, leaveType: string, startDate: string, endDate: string) {
     await sendMail(email, `Leave Rejected — ${leaveType}`,
       buildStatusEmailHtml('Leave Rejected', `Hi ${name},`, 'rejected', 'Rejected',
