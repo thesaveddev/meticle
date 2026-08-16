@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { ChatRepository } from './chat.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
-import { getIO, invalidateUserCaches } from '../../shared/socket';
+import { safeIo, invalidateUserCaches } from '../../shared/socket';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { EmailService } from '../../shared/utils/email.service';
 import { query } from '../../shared/database';
@@ -109,7 +109,7 @@ export class ChatController {
     if (userCheck.rows.length === 0) throw new AppError(400, 'User does not belong to your organization');
     const member = await ChatRepository.addMember(channelId, userId);
 
-    const io = getIO();
+    const io = safeIo();
     io.to(`channel:${channelId}`).emit('chat:member_joined', { channelId, userId });
 
     res.status(201).json(member);
@@ -122,7 +122,7 @@ export class ChatController {
     if (!channel) throw new AppError(404, 'Channel not found');
     await ChatRepository.removeMember(channelId, userId);
 
-    const io = getIO();
+    const io = safeIo();
     io.to(`channel:${channelId}`).emit('chat:member_left', { channelId, userId });
     // Force the removed member's sockets out of the channel room and refresh caches
     for (const s of io.sockets.sockets.values()) {
@@ -201,7 +201,7 @@ export class ChatController {
     }
 
     // Real-time broadcast
-    const io = getIO();
+    const io = safeIo();
     io.to(`channel:${channelId}`).emit('chat:message', message);
 
     // Notify other channel members
@@ -293,7 +293,7 @@ export class ChatController {
     if (message.sender_id !== userId) throw new AppError(403, 'You can only edit your own messages');
 
     const updated = await ChatRepository.updateMessage(messageId, content);
-    const io = getIO();
+    const io = safeIo();
     io.to(`channel:${channelId}`).emit('chat:message_updated', updated);
 
     res.json(updated);
@@ -308,7 +308,7 @@ export class ChatController {
     if (message.sender_id !== userId) throw new AppError(403, 'You can only delete your own messages');
 
     await ChatRepository.deleteMessage(messageId);
-    const io = getIO();
+    const io = safeIo();
     io.to(`channel:${channelId}`).emit('chat:message_deleted', { channelId, messageId });
 
     res.json({ message: 'Message deleted' });
@@ -324,7 +324,7 @@ export class ChatController {
     if (channel.type !== 'group') throw new AppError(400, 'You can only leave group channels');
 
     await ChatRepository.leaveChannel(channelId, userId);
-    const io = getIO();
+    const io = safeIo();
     io.to(`channel:${channelId}`).emit('chat:member_left', { channelId, userId });
     // Force the leaver's sockets out of the channel room and refresh caches
     for (const s of io.sockets.sockets.values()) {
@@ -377,7 +377,7 @@ export class ChatController {
     }
 
     const updated = await ChatRepository.getReactions(messageId, userId);
-    const io = getIO();
+    const io = safeIo();
     io.to(`channel:${channelId}`).emit('chat:reactions', { channelId, messageId, reactions: updated });
 
     res.json({ reactions: updated });
@@ -388,7 +388,7 @@ export class ChatController {
     const userId = req.user!.userId;
     await ChatRepository.markRead(channelId, userId);
     // Notify channel members so read receipts update live without a reload
-    const io = getIO();
+    const io = safeIo();
     io.to(`channel:${channelId}`).emit('chat:read', { channelId, userId });
     res.json({ message: 'Read' });
   }
@@ -457,7 +457,7 @@ export class ChatController {
       ? `${uploader.first_name} ${uploader.last_name || ''}`.trim()
       : uploader?.email?.split('@')[0] || 'Someone';
 
-    const io = getIO();
+    const io = safeIo();
     for (const m of members) {
       if (m.user_id !== userId) {
         io.to(`user:${m.user_id}`).emit('notification', {
@@ -570,3 +570,4 @@ export class ChatController {
     }
   }
 }
+
