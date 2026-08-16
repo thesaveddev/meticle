@@ -1,0 +1,244 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 854" preserveAspectRatio="xMidYMid slice" fill="none" role="img" aria-label="Stylised illustration showing a person receiving supported-living care, with a tablet display of their daily care plan and a medication administration card">
+  <defs>
+    <linearGradient id="hcBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F7F4EE"/>
+      <stop offset="100%" stop-color="#EFE8DA"/>
+    </linearGradient>
+    <linearGradient id="hcScreen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FAF7F0"/>
+    </linearGradient>
+    <linearGradient id="hcNavy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F4C81"/>
+      <stop offset="100%" stop-color="#0A3A63"/>
+    </linearGradient>
+    <linearGradient id="hcEmerald" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="hcRoom" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F2D9C2"/>
+      <stop offset="100%" stop-color="#E8C9AC"/>
+    </linearGradient>
+    <radialGradient id="hcGlow" cx="0.5" cy="0.45" r="0.55">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="hcDots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.4" fill="#0F4C81" fill-opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <!-- Background wash -->
+  <rect width="1280" height="854" fill="url(#hcBg)"/>
+  <rect width="1280" height="854" fill="url(#hcDots)"/>
+  <rect width="1280" height="854" fill="url(#hcGlow)"/>
+
+  <!-- Soft background shapes -->
+  <circle cx="120" cy="170" r="180" fill="#10B981" fill-opacity="0.06"/>
+  <circle cx="1140" cy="700" r="220" fill="#0F4C81" fill-opacity="0.06"/>
+  <ellipse cx="660" cy="780" rx="540" ry="60" fill="#1B2430" fill-opacity="0.05"/>
+
+  <!-- Soft horizon (home interior hint) -->
+  <rect x="0" y="540" width="1280" height="180" fill="url(#hcRoom)" opacity="0.45"/>
+  <rect x="0" y="540" width="1280" height="2" fill="#E0D2BB" opacity="0.7"/>
+
+  <!-- Side plant silhouette -->
+  <g opacity="0.6">
+    <rect x="80" y="640" width="40" height="80" rx="6" fill="#0F4C81" fill-opacity="0.12"/>
+    <path d="M100 640 C 70 580, 70 520, 100 480 M100 640 C 130 580, 130 520, 100 480 M100 640 C 95 580, 110 540, 130 510" stroke="#0F4C81" stroke-opacity="0.35" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <ellipse cx="80" cy="495" rx="14" ry="20" fill="#10B981" fill-opacity="0.5"/>
+    <ellipse cx="125" cy="490" rx="12" ry="18" fill="#10B981" fill-opacity="0.5"/>
+    <ellipse cx="100" cy="470" rx="10" ry="14" fill="#10B981" fill-opacity="0.5"/>
+  </g>
+
+  <!-- Window frame (suggested) -->
+  <g opacity="0.45">
+    <rect x="180" y="100" width="280" height="220" rx="8" fill="#FFFFFF" fill-opacity="0.6" stroke="#0F4C81" stroke-opacity="0.18"/>
+    <line x1="320" y1="100" x2="320" y2="320" stroke="#0F4C81" stroke-opacity="0.12" stroke-width="2"/>
+    <line x1="180" y1="210" x2="460" y2="210" stroke="#0F4C81" stroke-opacity="0.12" stroke-width="2"/>
+  </g>
+
+  <!-- Tablet / dashboard mockup (the centrepiece) -->
+  <g transform="translate(420 230)">
+    <!-- Drop shadow -->
+    <rect x="14" y="20" width="540" height="380" rx="28" fill="#1B2430" fill-opacity="0.18"/>
+    <!-- Frame -->
+    <rect x="0" y="0" width="540" height="380" rx="26" fill="url(#hcScreen)" stroke="#E0D9CA" stroke-width="1.5"/>
+    <!-- Header -->
+    <rect x="0" y="0" width="540" height="64" rx="26" fill="url(#hcNavy)"/>
+    <rect x="0" y="38" width="540" height="26" fill="url(#hcNavy)"/>
+    <!-- Logo dot -->
+    <rect x="22" y="22" width="20" height="20" rx="4" fill="#FFFFFF"/>
+    <path d="M28 38 V26 L32 31 L36 26 V38" stroke="#0F4C81" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Title -->
+    <text x="56" y="38" fill="#FFFFFF" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="800">MeticleCare</text>
+    <text x="56" y="54" fill="#FFFFFF" fill-opacity="0.7" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="500">Today's care · Daisy Lodge</text>
+    <!-- Header right status -->
+    <circle cx="486" cy="32" r="5" fill="#10B981"/>
+    <text x="454" y="36" text-anchor="end" fill="#FFFFFF" fill-opacity="0.8" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10" font-weight="600">Live</text>
+
+    <!-- Body grid: care plan left, MAR right -->
+    <!-- Left column: supporting person / notes -->
+    <g transform="translate(22 88)">
+      <!-- Person header card -->
+      <rect x="0" y="0" width="240" height="64" rx="12" fill="#FFFFFF" stroke="#E7E1D6"/>
+      <!-- Avatar -->
+      <circle cx="32" cy="32" r="22" fill="url(#hcEmerald)"/>
+      <text x="32" y="38" text-anchor="middle" fill="#FFFFFF" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="16" font-weight="800">EM</text>
+      <text x="64" y="28" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="13" font-weight="800">Eleanor M.</text>
+      <text x="64" y="44" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="500">Room 4 · Active plan</text>
+    </g>
+
+    <!-- Care plan fields -->
+    <g transform="translate(22 168)">
+      <text x="0" y="0" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10" font-weight="700" letter-spacing="1.2">SUPPORT GOALS · TODAY</text>
+      <!-- Row 1 -->
+      <rect x="0" y="10" width="240" height="38" rx="8" fill="#F7F4EE"/>
+      <circle cx="20" cy="29" r="6" fill="#10B981"/>
+      <path d="M16 29 L19 32 L24 26" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <text x="36" y="33" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="600">Morning walk in garden</text>
+      <text x="200" y="33" text-anchor="end" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10">08:30</text>
+      <!-- Row 2 -->
+      <rect x="0" y="54" width="240" height="38" rx="8" fill="#F7F4EE"/>
+      <circle cx="20" cy="73" r="6" fill="#10B981"/>
+      <path d="M16 73 L19 76 L24 70" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <text x="36" y="77" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="600">Lunch — preferences noted</text>
+      <text x="200" y="77" text-anchor="end" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10">12:30</text>
+      <!-- Row 3 — pending -->
+      <rect x="0" y="98" width="240" height="38" rx="8" fill="#FFFFFF" stroke="#E7E1D6"/>
+      <circle cx="20" cy="117" r="6" fill="none" stroke="#5B6672" stroke-width="1.5" stroke-dasharray="2 2"/>
+      <text x="36" y="121" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="600">Afternoon reading group</text>
+      <text x="200" y="121" text-anchor="end" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10">14:00</text>
+      <!-- Row 4 — pending -->
+      <rect x="0" y="142" width="240" height="38" rx="8" fill="#FFFFFF" stroke="#E7E1D6"/>
+      <circle cx="20" cy="161" r="6" fill="none" stroke="#5B6672" stroke-width="1.5" stroke-dasharray="2 2"/>
+      <text x="36" y="165" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="600">Family call (daughter)</text>
+      <text x="200" y="165" text-anchor="end" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10">16:00</text>
+    </g>
+
+    <!-- Right column: Medication (eMAR mini) -->
+    <g transform="translate(296 88)">
+      <rect x="0" y="0" width="222" height="280" rx="12" fill="#FFFFFF" stroke="#E7E1D6"/>
+      <!-- Header -->
+      <text x="14" y="22" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="13" font-weight="800">eMAR · Today</text>
+      <rect x="156" y="10" width="52" height="20" rx="10" fill="#10B981" fill-opacity="0.12"/>
+      <text x="182" y="24" text-anchor="middle" fill="#047857" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10" font-weight="800">2 of 4</text>
+      <!-- Mini chart grid -->
+      <g transform="translate(14 38)">
+        <line x1="0" y1="36" x2="194" y2="36" stroke="#E7E1D6"/>
+        <text x="0" y="20" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9" font-weight="600">Warfarin</text>
+        <text x="194" y="20" text-anchor="end" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9">2mg</text>
+        <!-- 14 day ticks -->
+        <g transform="translate(0 26)">
+          <rect x="0" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="14" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="28" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="42" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="56" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="70" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="84" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="98" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="112" y="0" width="10" height="14" rx="2" fill="#0F4C81"/>
+          <rect x="126" y="0" width="10" height="14" rx="2" fill="#0F4C81"/>
+          <rect x="140" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <rect x="154" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <rect x="168" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <rect x="182" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+        </g>
+        <line x1="0" y1="92" x2="194" y2="92" stroke="#E7E1D6"/>
+        <text x="0" y="76" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9" font-weight="600">Paracetamol</text>
+        <text x="194" y="76" text-anchor="end" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9">500mg</text>
+        <g transform="translate(0 82)">
+          <rect x="0" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="14" y="0" width="10" height="14" rx="2" fill="#F59E0B"/>
+          <rect x="28" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="42" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="56" y="0" width="10" height="14" rx="2" fill="#10B981"/>
+          <rect x="70" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <rect x="84" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <rect x="98" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <rect x="112" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <rect x="126" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <rect x="140" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <rect x="154" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <rect x="168" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <rect x="182" y="0" width="10" height="14" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+        </g>
+        <!-- Legend -->
+        <g transform="translate(0 144)">
+          <rect x="0" y="0" width="10" height="10" rx="2" fill="#10B981"/>
+          <text x="16" y="9" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9">Given</text>
+          <rect x="56" y="0" width="10" height="10" rx="2" fill="#F59E0B"/>
+          <text x="72" y="9" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9">PRN</text>
+          <rect x="108" y="0" width="10" height="10" rx="2" fill="#0F4C81"/>
+          <text x="124" y="9" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9">Today</text>
+          <rect x="160" y="0" width="10" height="10" rx="2" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+          <text x="176" y="9" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9">Future</text>
+        </g>
+        <!-- Signature row -->
+        <g transform="translate(0 174)">
+          <circle cx="9" cy="9" r="9" fill="#0F4C81"/>
+          <text x="9" y="13" text-anchor="middle" fill="#FFFFFF" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9" font-weight="800">SC</text>
+          <text x="24" y="13" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10" font-weight="700">Sam Carter</text>
+          <text x="194" y="13" text-anchor="end" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9">08:14 signed</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- Floating care-note toast anchored to the right of the tablet -->
+  </g>
+
+  <!-- Floating care-note card overlay -->
+  <g transform="translate(940 250)">
+    <rect x="0" y="0" width="240" height="92" rx="14" fill="#FFFFFF" stroke="#E7E1D6"/>
+    <circle cx="22" cy="22" r="12" fill="#10B981"/>
+    <path d="M16 22 L20 26 L28 18" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <text x="40" y="20" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="12" font-weight="800">Care note recorded</text>
+    <text x="40" y="34" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10">Saved to today's daily record</text>
+    <line x1="22" y1="52" x2="218" y2="52" stroke="#E7E1D6"/>
+    <text x="22" y="72" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="600">"Eleanor enjoyed her garden</text>
+    <text x="22" y="86" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="600">walk and asked about her cat."</text>
+  </g>
+
+  <!-- Floating message bubble (family view) -->
+  <g transform="translate(56 408)">
+    <rect x="0" y="0" width="220" height="68" rx="14" fill="#0F4C81"/>
+    <circle cx="22" cy="22" r="10" fill="#FFFFFF"/>
+    <path d="M16 22 L20 26 L28 18" stroke="#0F4C81" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <text x="40" y="20" fill="#FFFFFF" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="800">Family Portal</text>
+    <text x="40" y="34" fill="#FFFFFF" fill-opacity="0.78" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10">Daughter Sarah is reading now</text>
+    <line x1="22" y1="46" x2="198" y2="46" stroke="#FFFFFF" stroke-opacity="0.18"/>
+    <text x="22" y="60" fill="#FFFFFF" fill-opacity="0.85" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9" font-weight="600">2 new notes · 1 photo</text>
+  </g>
+
+  <!-- Care worker figure (silhouette) — left of window -->
+  <g transform="translate(220 540)" opacity="0.85">
+    <!-- body -->
+    <path d="M0 180 V120 C0 100 14 86 32 86 H68 C86 86 100 100 100 120 V180 Z" fill="#0F4C81"/>
+    <!-- head -->
+    <circle cx="50" cy="60" r="22" fill="#E2C4A9"/>
+    <!-- hair -->
+    <path d="M30 60 C30 40 70 40 70 60" fill="#5A4030"/>
+    <!-- lanyard -->
+    <rect x="42" y="84" width="16" height="6" fill="#10B981"/>
+    <rect x="46" y="90" width="8" height="14" fill="#10B981"/>
+  </g>
+
+  <!-- Care receiver (brief, low-key) — bed/chair silhouette -->
+  <g transform="translate(1080 600)" opacity="0.85">
+    <!-- chair shape -->
+    <rect x="0" y="80" width="120" height="80" rx="10" fill="#F2D9C2"/>
+    <rect x="0" y="60" width="120" height="20" rx="6" fill="#0F4C81" fill-opacity="0.7"/>
+    <!-- head hint -->
+    <circle cx="34" cy="50" r="18" fill="#E2C4A9"/>
+    <!-- blanket -->
+    <path d="M0 130 Q60 100 120 130 V160 H0 Z" fill="#10B981" fill-opacity="0.45"/>
+  </g>
+
+  <!-- Decorative dots -->
+  <circle cx="1080" cy="120" r="3" fill="#10B981"/>
+  <circle cx="1100" cy="140" r="2" fill="#0F4C81" fill-opacity="0.5"/>
+  <circle cx="60" cy="350" r="2.5" fill="#10B981" fill-opacity="0.6"/>
+  <circle cx="40" cy="380" r="1.5" fill="#0F4C81" fill-opacity="0.4"/>
+</svg>
