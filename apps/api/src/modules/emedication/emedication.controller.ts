@@ -266,22 +266,29 @@ export class EMedicationController {
     });
 
     // §13.1 — emit medication.administration_missed when an administration
-    // is logged as missed at creation time. Outbox write is best-effort; the
-    // emedication_audit_log row above is the durable canonical record.
+    // is logged as missed at creation time. Awaited so the outbox row
+    // commits in the same request boundary as the response: any consumer
+    // (in-test or in-prod) can rely on a successful 201 meaning the event
+    // is durable. The audit row above remains the canonical record; a
+    // publish failure is logged but not allowed to 500 the request.
     if (status === 'missed') {
-      publishAdministrationMissedEvent({
-        organizationId: orgIdAdmin,
-        administration: {
-          id: admin.id,
-          emedication_item_id,
-          scheduled_time,
-          administered_time: admin.administered_time ?? null,
-          notes: admin.notes ?? null,
-          prn_reason: prn_reason ?? null,
-        },
-        loggedByUserId: req.user!.userId,
-        isTransition: true,
-      }).catch(logWarn('publish medication.administration_missed (create)'));
+      try {
+        await publishAdministrationMissedEvent({
+          organizationId: orgIdAdmin,
+          administration: {
+            id: admin.id,
+            emedication_item_id,
+            scheduled_time,
+            administered_time: admin.administered_time ?? null,
+            notes: admin.notes ?? null,
+            prn_reason: prn_reason ?? null,
+          },
+          loggedByUserId: req.user!.userId,
+          isTransition: true,
+        });
+      } catch (err) {
+        logWarn('publish medication.administration_missed (create)')(err);
+      }
     }
 
     res.status(201).json(admin);
@@ -326,20 +333,27 @@ export class EMedicationController {
 
     // §13.1 — emit on transition INTO 'missed'. Update to the same status
     // (e.g. a notes-only edit on an already-missed administration) is silent.
+    // Same durability contract as logAdministration: the outbox row is
+    // awaited so consumers and tests see the event by the time the response
+    // lands. Failures are logged and swallowed.
     if (req.body.status === 'missed' && priorStatus !== 'missed') {
-      publishAdministrationMissedEvent({
-        organizationId: orgIdAdmin,
-        administration: {
-          id: admin.id,
-          emedication_item_id: admin.emedication_item_id,
-          scheduled_time: admin.scheduled_time,
-          administered_time: admin.administered_time ?? null,
-          notes: admin.notes ?? null,
-          prn_reason: admin.prn_reason ?? null,
-        },
-        loggedByUserId: req.user!.userId,
-        isTransition: true,
-      }).catch(logWarn('publish medication.administration_missed (transition)'));
+      try {
+        await publishAdministrationMissedEvent({
+          organizationId: orgIdAdmin,
+          administration: {
+            id: admin.id,
+            emedication_item_id: admin.emedication_item_id,
+            scheduled_time: admin.scheduled_time,
+            administered_time: admin.administered_time ?? null,
+            notes: admin.notes ?? null,
+            prn_reason: admin.prn_reason ?? null,
+          },
+          loggedByUserId: req.user!.userId,
+          isTransition: true,
+        });
+      } catch (err) {
+        logWarn('publish medication.administration_missed (transition)')(err);
+      }
     }
 
     res.json(admin);

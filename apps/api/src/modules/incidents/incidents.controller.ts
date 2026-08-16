@@ -52,10 +52,18 @@ export class IncidentsController {
       const verb = incident.is_near_miss ? 'Near miss' : 'Incident';
       const title = urgent ? `${verb} reported (${incident.severity})` : `${verb} reported`;
       const message = `${incident.title}${incident.location ? ` at ${incident.location}` : ''} — ${incident.severity} severity${incident.is_cqc_reportable ? ', CQC reportable' : ''}.`;
-      for (const id of targets) {
-        NotificationsController.createNotification(id, title, message, urgent ? 'warning' : 'info')
-          .catch(logWarn('incident notification'));
-      }
+      // Await (in parallel) so the notification rows have committed by the
+      // time the create response lands. Persisted notifications are part of
+      // the API contract — fire-and-forget would let a user create an
+      // incident, close their laptop, and miss the urgent ping because the
+      // INSERT lost the race with the response.
+      const targetIds = Array.from(targets);
+      await Promise.all(
+        targetIds.map((id: string) =>
+          NotificationsController.createNotification(id, title, message, urgent ? 'warning' : 'info')
+            .catch(logWarn('incident notification'))
+        )
+      );
     } catch (err) {
       logger.error({ err }, 'Failed to notify admins of new incident');
     }
@@ -145,13 +153,20 @@ export class IncidentsController {
   static async deleteIncident(req: Request, res: Response) {
     const incident = await IncidentsRepository.delete(req.params.id, IncidentsController.getOrgId(req));
     if (!incident) throw new AppError(404, 'Incident not found');
-    AuditRepository.log({
-      user_id: IncidentsController.getUserId(req),
-      action: 'delete',
-      entity_type: 'incident',
-      entity_id: req.params.id,
-      ip_address: req.ip,
-    }).catch(logWarn('audit incident delete'));
+    // Audit log is awaited so it commits inside the same request boundary as
+    // the response. CQC auditors expect a delete to leave a durable trail
+    // before the client treats the action as complete.
+    try {
+      await AuditRepository.log({
+        user_id: IncidentsController.getUserId(req),
+        action: 'delete',
+        entity_type: 'incident',
+        entity_id: req.params.id,
+        ip_address: req.ip,
+      });
+    } catch (err) {
+      logWarn('audit incident delete')(err);
+    }
     res.status(204).send();
   }
 
