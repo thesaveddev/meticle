@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" preserveAspectRatio="xMidYMid meet" fill="none" role="img" aria-label="A five-step diagram showing how one care action flows through MeticleCare: care given, MAR updated, note recorded, family informed, compliance scored">
+  <defs>
+    <linearGradient id="tCard" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FAF7F0"/>
+    </linearGradient>
+    <linearGradient id="tNavy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F4C81"/>
+      <stop offset="100%" stop-color="#0A3A63"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Track -->
+  <line x1="80" y1="180" x2="1200" y2="180" stroke="#10B981" stroke-opacity="0.45" stroke-width="3"/>
+  <line x1="80" y1="180" x2="1200" y2="180" stroke="#10B981" stroke-dasharray="6 8" stroke-width="2"/>
+
+  <!-- Step 1: Care given -->
+  <g transform="translate(80 100)">
+    <rect x="0" y="0" width="208" height="160" rx="16" fill="url(#tCard)" stroke="#E7E1D6"/>
+    <circle cx="104" cy="80" r="40" fill="#0F4C81"/>
+    <circle cx="104" cy="64" r="14" fill="#0F4C81"/>
+    <path d="M76 100 C 76 84 132 84 132 100 V116 H76 Z" fill="#0F4C81"/>
+    <rect x="84" y="98" width="40" height="6" rx="2" fill="#10B981"/>
+    <text x="104" y="140" text-anchor="middle" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="13" font-weight="800">Care given</text>
+    <text x="104" y="154" text-anchor="middle" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10">Medication or support task</text>
+    <circle cx="104" cy="80" r="56" fill="none" stroke="#0F4C81" stroke-opacity="0.12" stroke-width="1"/>
+  </g>
+  <g transform="translate(184 174)">
+    <circle r="10" fill="#0F4C81"/>
+    <text y="3" text-anchor="middle" fill="#FFFFFF" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="800">1</text>
+  </g>
+
+  <!-- Step 2: MAR updated -->
+  <g transform="translate(316 100)">
+    <rect x="0" y="0" width="208" height="160" rx="16" fill="url(#tCard)" stroke="#E7E1D6"/>
+    <!-- mini chart -->
+    <g transform="translate(64 36)">
+      <rect x="0" y="0" width="14" height="56" rx="3" fill="#10B981"/>
+      <rect x="20" y="0" width="14" height="56" rx="3" fill="#10B981"/>
+      <rect x="40" y="0" width="14" height="56" rx="3" fill="#10B981"/>
+      <rect x="60" y="0" width="14" height="56" rx="3" fill="#10B981"/>
+      <rect x="80" y="0" width="14" height="56" rx="3" fill="#0F4C81"/>
+      <rect x="100" y="0" width="14" height="56" rx="3" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+      <rect x="120" y="0" width="14" height="56" rx="3" fill="none" stroke="#C9C2B4" stroke-dasharray="2 2"/>
+    </g>
+    <text x="104" y="120" text-anchor="middle" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="13" font-weight="800">MAR updated</text>
+    <text x="104" y="134" text-anchor="middle" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10">Daily chart reflects round</text>
+    <text x="104" y="148" text-anchor="middle" fill="#047857" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10" font-weight="700">2 of 4 given</text>
+  </g>
+  <g transform="translate(420 174)">
+    <circle r="10" fill="#0F4C81"/>
+    <text y="3" text-anchor="middle" fill="#FFFFFF" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="800">2</text>
+  </g>
+
+  <!-- Step 3: Note recorded -->
+  <g transform="translate(552 100)">
+    <rect x="0" y="0" width="208" height="160" rx="16" fill="url(#tCard)" stroke="#E7E1D6"/>
+    <rect x="40" y="22" width="128" height="90" rx="10" fill="#F7F4EE" stroke="#E7E1D6"/>
+    <line x1="52" y1="40" x2="156" y2="40" stroke="#1B2430" stroke-width="11" stroke-linecap="round"/>
+    <line x1="52" y1="56" x2="148" y2="56" stroke="#1B2430" stroke-width="9" stroke-linecap="round"/>
+    <line x1="52" y1="72" x2="120" y2="72" stroke="#1B2430" stroke-width="6" stroke-linecap="round"/>
+    <rect x="40" y="100" width="68" height="14" rx="7" fill="#10B981" fill-opacity="0.16"/>
+    <text x="74" y="110" text-anchor="middle" fill="#047857" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9" font-weight="800">Wellbeing</text>
+    <text x="104" y="134" text-anchor="middle" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="13" font-weight="800">Note recorded</text>
+    <text x="104" y="148" text-anchor="middle" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10">Saved to today's daily record</text>
+  </g>
+  <g transform="translate(656 174)">
+    <circle r="10" fill="#0F4C81"/>
+    <text y="3" text-anchor="middle" fill="#FFFFFF" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="800">3</text>
+  </g>
+
+  <!-- Step 4: Family informed -->
+  <g transform="translate(788 100)">
+    <rect x="0" y="0" width="208" height="160" rx="16" fill="url(#tCard)" stroke="#E7E1D6"/>
+    <g transform="translate(40 22)">
+      <rect x="0" y="0" width="128" height="56" rx="10" fill="#0F4C81"/>
+      <circle cx="20" cy="28" r="11" fill="#FFFFFF"/>
+      <path d="M16 28 L19 31 L25 25" stroke="#0F4C81" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <text x="40" y="24" fill="#FFFFFF" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10" font-weight="800">Family Portal</text>
+      <text x="40" y="40" fill="#FFFFFF" fill-opacity="0.78" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="9">2 new notes · 1 photo</text>
+    </g>
+    <g transform="translate(40 86)">
+      <circle cx="14" cy="14" r="11" fill="#F2D9C2"/>
+      <text x="14" y="18" text-anchor="middle" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10" font-weight="800">SD</text>
+      <circle cx="42" cy="14" r="11" fill="#5B6672"/>
+      <text x="42" y="18" text-anchor="middle" fill="#FFFFFF" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10" font-weight="800">MJ</text>
+      <text x="62" y="18" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10" font-weight="700">3 family members</text>
+    </g>
+    <text x="104" y="138" text-anchor="middle" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="13" font-weight="800">Family informed</text>
+    <text x="104" y="152" text-anchor="middle" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10">Notes appear in their portal</text>
+  </g>
+  <g transform="translate(892 174)">
+    <circle r="10" fill="#0F4C81"/>
+    <text y="3" text-anchor="middle" fill="#FFFFFF" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="800">4</text>
+  </g>
+
+  <!-- Step 5: Compliance scored -->
+  <g transform="translate(1024 100)">
+    <rect x="0" y="0" width="208" height="160" rx="16" fill="url(#tCard)" stroke="#E7E1D6"/>
+    <!-- gauge -->
+    <g transform="translate(104 78)">
+      <circle r="48" fill="none" stroke="#E7E1D6" stroke-width="10"/>
+      <circle r="48" fill="none" stroke="url(#tNavy)" stroke-width="10" stroke-dasharray="220 80" stroke-dashoffset="200" stroke-linecap="round" transform="rotate(-90)"/>
+      <text y="6" text-anchor="middle" fill="#0F4C81" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="22" font-weight="900">86%</text>
+    </g>
+    <text x="104" y="140" text-anchor="middle" fill="#1B2430" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="13" font-weight="800">Compliance scored</text>
+    <text x="104" y="154" text-anchor="middle" fill="#5B6672" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="10">CQC readiness updated</text>
+  </g>
+  <g transform="translate(1128 174)">
+    <circle r="10" fill="#10B981"/>
+    <text y="3" text-anchor="middle" fill="#FFFFFF" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="11" font-weight="800">5</text>
+  </g>
+</svg>
