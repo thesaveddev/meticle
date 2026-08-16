@@ -58,18 +58,19 @@ export async function createStaffProfile(overrides: Record<string, any> = {}) {
   const phone = overrides.phone || '07700000000'
   const employmentType = overrides.employment_type || 'full_time'
   const contractedHoursWeekly = overrides.contracted_hours_weekly ?? 37.5
-  const locationId = overrides.location_id || overrides.locationId || null
-  const departmentId = overrides.department_id || overrides.departmentId || null
+    const locationId = overrides.location_id || overrides.locationId || null
+    const departmentId = overrides.department_id || overrides.departmentId || null
+    const medicationCompetent = overrides.medication_competent ?? overrides.medicationCompetent ?? false
 
-  const result = await query(
-    `INSERT INTO staff_profiles (id, user_id, first_name, last_name, phone, employment_type, contracted_hours_weekly, location_id, department_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     RETURNING *`,
-    [id, userId, firstName, lastName, phone, employmentType, contractedHoursWeekly, locationId, departmentId]
-  )
-  return result.rows[0]
-}
-
+    const result = await query(
+      `INSERT INTO staff_profiles (id, user_id, first_name, last_name, phone, employment_type, 
+contracted_hours_weekly, location_id, department_id, medication_competent)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [id, userId, firstName, lastName, phone, employmentType, contractedHoursWeekly, locationId, departmentId, medicationCompetent]
+    )
+    return result.rows[0]
+  }
 /** Create a location for an organization. Returns the full row. */
 export async function createLocation(overrides: Record<string, any> = {}) {
   const id = overrides.id || uuidv4()
@@ -284,6 +285,122 @@ export function generateToken(user: { id: string; email: string; role: string; o
     secret,
     { expiresIn: '1h' }
   )
+}
+
+/** Create a service user (person). Returns the full row. */
+export async function createPerson(overrides: Record<string, any> = {}) {
+  const id = overrides.id || uuidv4()
+  const organizationId = overrides.organization_id || overrides.organizationId
+  const firstName = overrides.first_name || overrides.firstName || 'Ada'
+  const lastName = overrides.last_name || overrides.lastName || 'Lovelace'
+  const dateOfBirth = overrides.date_of_birth || '1940-01-01'
+  const status = overrides.status || 'active'
+  const locationId = overrides.location_id || overrides.locationId || null
+  const roomNumber = overrides.room_number || 'A1'
+  const nhsNumber = overrides.nhs_number || null
+
+  const result = await query(
+    `INSERT INTO people (id, organization_id, first_name, last_name, date_of_birth, status, location_id, room_number, nhs_number)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     RETURNING *`,
+    [id, organizationId, firstName, lastName, dateOfBirth, status, locationId, roomNumber, nhsNumber]
+  )
+  return result.rows[0]
+}
+
+/** Create a family portal member. Returns the full row. */
+export async function createFamilyMember(overrides: Record<string, any> = {}) {
+  const id = overrides.id || uuidv4()
+  const organizationId = overrides.organization_id || overrides.organizationId
+  const personId = overrides.person_id || overrides.personId
+  const name = overrides.name || 'Jane Doe'
+  const email = overrides.email || `family-${id.slice(0, 8)}@example.com`
+  const relationship = overrides.relationship || 'Daughter'
+  const token = overrides.token || uuidv4().replace(/-/g, '').slice(0, 40)
+  const status = overrides.status || 'active'
+
+  const result = await query(
+    `INSERT INTO family_portal_members (id, organization_id, person_id, name, email, relationship, token, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING *`,
+    [id, organizationId, personId, name, email, relationship, token, status]
+  )
+  return result.rows[0]
+}
+
+/** Create an appointment. Returns the full row. */
+export async function createAppointment(overrides: Record<string, any> = {}) {
+  const id = overrides.id || uuidv4()
+  const personId = overrides.person_id || overrides.personId
+  const title = overrides.title || 'GP Visit'
+  const startTime = overrides.start_time || new Date(Date.now() + 86400000).toISOString()
+  const endTime = overrides.end_time || new Date(Date.now() + 90000000).toISOString()
+  const status = overrides.status || 'scheduled'
+  const staffId = overrides.staff_id || overrides.staffId || null
+  const locationId = overrides.location_id || overrides.locationId || null
+
+  const result = await query(
+    `INSERT INTO appointments (id, person_id, title, start_time, end_time, status, staff_id, location_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING *`,
+    [id, personId, title, startTime, endTime, status, staffId, locationId]
+  )
+  return result.rows[0]
+}
+
+/** Create a manager delegation. Returns the full row. */
+export async function createDelegation(overrides: Record<string, any> = {}) {
+  const id = overrides.id || uuidv4()
+  const organizationId = overrides.organization_id || overrides.organizationId
+  const primaryManagerId = overrides.primary_manager_id || overrides.primaryManagerId
+  const delegateManagerId = overrides.delegate_manager_id || overrides.delegateManagerId
+  const isActive = overrides.is_active ?? true
+  const endsAt = overrides.ends_at || null
+
+  const result = await query(
+    `INSERT INTO manager_delegations (id, organization_id, primary_manager_id, delegate_manager_id, is_active, ends_at)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING *`,
+    [id, organizationId, primaryManagerId, delegateManagerId, isActive, endsAt]
+  )
+  return result.rows[0]
+}
+
+/** Create a delegation audit log row. Returns the full row. */
+export async function createDelegationAuditLog(overrides: Record<string, any> = {}) {
+  const id = overrides.id || uuidv4()
+  const delegationId = overrides.delegation_id || overrides.delegationId
+  const delegateUserId = overrides.delegate_user_id || overrides.delegateUserId
+  const primaryManagerId = overrides.primary_manager_id || overrides.primaryManagerId
+  const action = overrides.action || 'leave.approved'
+  const entityType = overrides.entity_type || 'leave_request'
+  const entityId = overrides.entity_id || uuidv4()
+
+  const result = await query(
+    `INSERT INTO delegation_audit_logs (id, delegation_id, delegate_user_id, primary_manager_id, action, entity_type, entity_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING *`,
+    [id, delegationId, delegateUserId, primaryManagerId, action, entityType, entityId]
+  )
+  return result.rows[0]
+}
+
+/** Create a notification for a user. Returns the full row. */
+export async function createNotification(overrides: Record<string, any> = {}) {
+  const id = overrides.id || uuidv4()
+  const userId = overrides.user_id || overrides.userId
+  const title = overrides.title || 'Test notification'
+  const message = overrides.message || 'A notification message'
+  const type = overrides.type || 'info'
+  const read = overrides.read ?? false
+
+  const result = await query(
+    `INSERT INTO notifications (id, user_id, title, message, type, read)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING *`,
+    [id, userId, title, message, type, read]
+  )
+  return result.rows[0]
 }
 
 /** Clean all data from all tables (for test teardown). Ordered by dependency (children first). */

@@ -55,6 +55,9 @@ import mfaRoutes from '../modules/mfa/mfa.routes'
 import invitationRoutes from '../modules/organization/organization.routes'
 import contactRoutes from '../modules/contact/contact.routes'
 import eventRoutes from '../modules/events/events.routes'
+import platformAdminRoutes from '../modules/platform-admin/platform-admin.routes'
+import shiftAuditRoutes from '../modules/shift-audit/shift-audit.routes'
+import outcomeRoutes from '../modules/outcomes/outcomes.routes'
 
 export function createTestApp(): Express {
   const app = express()
@@ -108,6 +111,9 @@ export function createTestApp(): Express {
   app.use('/mobile', mobileRoutes)
   app.use('/contact', contactRoutes)
   app.use('/events', eventRoutes)
+  app.use('/platform-admin', platformAdminRoutes)
+  app.use('/shift-audit', shiftAuditRoutes)
+  app.use('/outcomes', outcomeRoutes)
 
   app.get('/health/live', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
