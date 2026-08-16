@@ -50,7 +50,7 @@ export class OutcomesController {
   // ─── Assessments ───
 
   static async recordAssessment(req: Request, res: Response) {
-    const result = await OutcomesRepository.recordAssessment({ ...req.body, assessed_by: req.user!.userId });
+    const result = await OutcomesRepository.recordAssessment({ ...req.body, scale_id: req.params.scaleId, assessed_by: req.user!.userId });
     AuditRepository.log({ user_id: req.user!.userId, action: 'create', entity_type: 'outcome_scale_result', entity_id: result.id, ip_address: req.ip }).catch(() => {});
     res.status(201).json(result);
   }
