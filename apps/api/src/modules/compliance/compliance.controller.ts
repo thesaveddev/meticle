@@ -62,6 +62,7 @@ async function findFileOrg(fileUrl: string): Promise<string | null> {
     `SELECT ch.organization_id FROM chat_files chf JOIN chat_channels ch ON chf.channel_id = ch.id WHERE chf.file_url = $1 LIMIT 1`,
     `SELECT l.organization_id FROM location_certificates lc JOIN locations l ON lc.location_id = l.id WHERE lc.file_url = $1 LIMIT 1`,
     `SELECT su.organization_id FROM body_map_entries bme JOIN people su ON bme.person_id = su.id WHERE bme.image_url = $1 LIMIT 1`,
+    `SELECT i.organization_id FROM incident_attachments ia JOIN incidents i ON ia.incident_id = i.id WHERE ia.file_url = $1 LIMIT 1`,
     `SELECT su.organization_id FROM memory_book_entries mbe JOIN people su ON mbe.person_id = su.id WHERE mbe.image_url = $1 LIMIT 1`,
     `SELECT su.organization_id FROM memory_book_entries mbe CROSS JOIN jsonb_array_elements_text(mbe.image_urls) img JOIN people su ON mbe.person_id = su.id WHERE img = $1 LIMIT 1`,
     `SELECT da.organization_id FROM dspt_standard_status dss CROSS JOIN jsonb_array_elements(dss.evidence_files) ev JOIN dspt_assessments da ON dss.assessment_id = da.id WHERE ev = $1 LIMIT 1`,

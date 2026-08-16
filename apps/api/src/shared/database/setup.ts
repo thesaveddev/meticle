@@ -403,6 +403,39 @@ const MIGRATION_032: Migration = {
   ],
 };
 
+// 033 — Radar-style incident management: near-miss/confidential event flags,
+// closed-loop lessons learned, and evidence attachments with tenant isolation.
+const MIGRATION_033: Migration = {
+  name: '033_incident_management',
+  strict: false,
+  statements: [
+    `ALTER TABLE incidents ADD COLUMN IF NOT EXISTS is_near_miss BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE incidents ADD COLUMN IF NOT EXISTS is_confidential BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE incidents ADD COLUMN IF NOT EXISTS investigation_notes TEXT`,
+    `ALTER TABLE incidents ADD COLUMN IF NOT EXISTS lessons_learned TEXT`,
+    `ALTER TABLE incident_actions ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending'`,
+    `CREATE TABLE IF NOT EXISTS incident_attachments (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       incident_id UUID NOT NULL REFERENCES incidents(id) ON DELETE CASCADE,
+       file_name VARCHAR(255) NOT NULL,
+       file_url TEXT NOT NULL,
+       file_type VARCHAR(100),
+       file_size BIGINT,
+       uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_incident_attachments_incident ON incident_attachments(incident_id)`,
+    `DO $$ BEGIN
+       IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'incident_attachments') THEN
+         ALTER TABLE incident_attachments ENABLE ROW LEVEL SECURITY;
+         CREATE POLICY tenant_isolation ON incident_attachments FOR ALL USING (
+           org_check((SELECT organization_id FROM incidents WHERE incidents.id = incident_attachments.incident_id))
+         );
+       END IF;
+     END $$`,
+  ],
+};
+
 const MIGRATION_029: Migration = {
   name: '029_leave_hours_only',
   strict: false,
@@ -1958,7 +1991,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

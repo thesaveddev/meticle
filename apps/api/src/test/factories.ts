@@ -254,12 +254,22 @@ export async function createIncident(overrides: Record<string, any> = {}) {
   const status = overrides.status || 'reported'
   const reportedBy = overrides.reported_by || overrides.reportedBy || null
   const incidentDate = overrides.incident_date || new Date().toISOString().split('T')[0]
+  const incidentTime = overrides.incident_time || overrides.incidentTime || null
+  const isCqcReportable = overrides.is_cqc_reportable ?? false
+  const isNearMiss = overrides.is_near_miss ?? false
+  const isConfidential = overrides.is_confidential ?? false
+  const rootCause = overrides.root_cause || null
+  const outcomes = overrides.outcomes || null
+  const investigationNotes = overrides.investigation_notes || null
+  const lessonsLearned = overrides.lessons_learned || null
+  const cqcReference = overrides.cqc_reference || null
+  const reportedToCqcAt = overrides.reported_to_cqc_at || null
 
   const result = await query(
-    `INSERT INTO incidents (id, organization_id, category_id, title, description, incident_date, location, severity, status, reported_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    `INSERT INTO incidents (id, organization_id, category_id, title, description, incident_date, incident_time, location, severity, status, is_cqc_reportable, is_near_miss, is_confidential, root_cause, outcomes, investigation_notes, lessons_learned, cqc_reference, reported_to_cqc_at, reported_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
      RETURNING *`,
-    [id, organizationId, categoryId, title, description, incidentDate, location, severity, status, reportedBy]
+    [id, organizationId, categoryId, title, description, incidentDate, incidentTime, location, severity, status, isCqcReportable, isNearMiss, isConfidential, rootCause, outcomes, investigationNotes, lessonsLearned, cqcReference, reportedToCqcAt, reportedBy]
   )
   return result.rows[0]
 }

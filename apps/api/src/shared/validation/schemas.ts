@@ -585,30 +585,39 @@ export const createAssessmentSchema = z.object({
 export const updateAssessmentSchema = createAssessmentSchema.partial();
 
 // === Incidents ===
+export const INCIDENT_SEVERITIES = ['low', 'medium', 'high', 'critical'] as const;
+export const INCIDENT_STATUSES = ['reported', 'investigating', 'resolved', 'closed'] as const;
+
 export const createIncidentSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   incident_date: z.string().optional(),
+  incident_time: z.string().optional(),
   location: z.string().optional(),
-  severity: z.string().optional(),
+  severity: z.enum(INCIDENT_SEVERITIES).optional(),
   category_id: z.string().uuid().optional(),
-  status: z.string().optional(),
+  status: z.enum(INCIDENT_STATUSES).optional(),
+  is_cqc_reportable: z.boolean().optional(),
+  is_near_miss: z.boolean().optional(),
+  is_confidential: z.boolean().optional(),
+  root_cause: z.string().optional(),
+  outcomes: z.string().optional(),
+  investigation_notes: z.string().optional(),
+  lessons_learned: z.string().optional(),
+  cqc_reference: z.string().optional(),
+  reported_to_cqc_at: z.string().optional(),
 });
 
-export const updateIncidentSchema = z.object({
-  title: z.string().optional(),
-  description: z.string().optional(),
-  incident_date: z.string().optional(),
-  location: z.string().optional(),
-  severity: z.string().optional(),
-  category_id: z.string().uuid().optional(),
-  status: z.string().optional(),
-});
+export const updateIncidentSchema = createIncidentSchema.partial();
 
 export const createIncidentCategorySchema = z.object({
   name: z.string().min(1),
-  description: z.string().optional(),
+  severity: z.enum(INCIDENT_SEVERITIES).optional(),
+  is_cqc_reportable: z.boolean().optional(),
+  is_active: z.boolean().optional(),
 });
+
+export const updateIncidentCategorySchema = createIncidentCategorySchema.partial();
 
 export const addInvolvedResidentSchema = z.object({
   person_id: z.string().uuid(),

@@ -131,7 +131,7 @@ async function seed() {
     { title:'Aggressive behaviour incident', severity:'high', status:'investigating', daysAgo:5 },
   ]
   for (const inc of incidents) {
-    await pool.query(`INSERT INTO incidents (id, organization_id, title, severity, status, occurred_at) VALUES ($1,$2,$3,$4,$5,$6)`,
+    await pool.query(`INSERT INTO incidents (id, organization_id, title, severity, status, incident_date) VALUES ($1,$2,$3,$4,$5,$6)`,
       [uuid(), orgId, inc.title, inc.severity, inc.status, new Date(Date.now() - inc.daysAgo * 86400000).toISOString()])
   }
   console.log('  6 incidents created')

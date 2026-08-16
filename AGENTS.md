@@ -46,7 +46,7 @@ Supported living + domiciliary care platform. Build is substantially complete â€
 | reporting | 2 | Compliance audit, staffing stats â€” **40 reports** across 10 categories (staff, people, scheduling, leave, incidents, compliance, training, eMAR, outcomes, operations) with filters, charts, and CSV export |
 | insights | 5 | Overview, staffing, compliance, leave, rota analytics (Recharts on frontend) |
 | service-users | 50+ | Full CRUD + care plans, daily notes, risk assessments, family contacts, assessments, clinical scores, body map, memory book, wellbeing, communication log, capacity, care pathways, discharge checklist, timeline, documents, photo upload |
-| incidents | 17 | CRUD, categories, involved residents, action items |
+| incidents | 24 | CRUD, categories, involved residents, action items (owners/due/overdue), evidence attachments, near-miss + confidential events (admin-only visibility), CQC reporting fields, audit timeline, admin notifications, AI triage |
 | dashboard | 5 | Stats (7 KPIs), compliance snapshot, today-rota, widgets, review scheduler |
 | notifications | 6 | List, unread count, mark read (single/all), preferences |
 | permissions | 3 | Modules, get user, update user |
@@ -85,7 +85,7 @@ Supported living + domiciliary care platform. Build is substantially complete â€
 | Chat | 1 | DMs/groups, real-time, emoji, files, link preview, read receipts, unread divider |
 | Service Users | 3 | Directory, Profile (20 tabs in 5 categories â€” comprehensive), HealthTab (4 sub-tabs) |
 | Staff | 2 | Directory (CSV import, filters), Profile (compliance, permissions, assess) |
-| Incidents | 2 | Directory (stats), Detail (residents, actions) |
+| Incidents | 2 | Directory (filters, stat cards, near-miss/confidential chips), Detail (AI triage, update, actions w/ overdue, evidence, timeline, delete) |
 | eMAR | 2 | Active charts (31-day grid, PRN, stock, daily counts), Archived |
 | Settings | 1 | 12 tabs: Profile, Compliance, Leave, Delegates, Org, Billing, Integrations, Schedule, Notifications, Security, AI, Appearance |
 | Other | 20+ | Appointments, Goals, Policies, Care Assessments, Tasks, Room Checks, Marketplace (x2), Agencies (5 tabs), Reporting (6 template cards), Insights (5 sections), Training Matrix (4 tabs), DSPT (4 themes/11 standards), Billing (Stripe), Onboarding, Organization (4 tabs), Family Portal, Mobile (GPS + Voice Notes), Learning Center, Legal (3), Marketing (7), Landing, Survey Form, Errors (2) |
