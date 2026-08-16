@@ -267,13 +267,16 @@ describe('eMedication — medication.administration_missed outbox workflow (§13
       .send({ emedication_item_id: itemId, scheduled_time: '2026-08-15T08:00:00', status: 'given' })
     expect(res.status).toBe(201)
 
-    const events = await migrateQuery(
-      `SELECT COUNT(*)::int AS n FROM domain_events
-       WHERE organization_id = $1
-         AND event_name = 'medication.administration_missed'`,
+    const stats = await processOutbox(org.id)
+    // No event was emitted, so no consumer at all fired on this org's outbox.
+    expect(stats.processed).toBe(0)
+    expect(stats.published).toBe(0)
+
+    const tasks = await migrateQuery(
+      `SELECT COUNT(*)::int AS n FROM tasks WHERE organization_id = $1`,
       [org.id]
     )
-    expect(events.rows[0].n).toBe(0)
+    expect(tasks.rows[0].n).toBe(0)
   })
 
   it('publishes a missed event when an existing "given" administration is patched to "missed"', async () => {
@@ -291,13 +294,17 @@ describe('eMedication — medication.administration_missed outbox workflow (§13
       .send({ status: 'missed', notes: 'Late update' })
     expect(patched.status).toBe(200)
 
-    const events = await migrateQuery(
-      `SELECT COUNT(*)::int AS n FROM domain_events
-       WHERE organization_id = $1
-         AND event_name = 'medication.administration_missed'`,
+    const stats = await processOutbox(org.id)
+    expect(stats.processed).toBe(1)
+    expect(stats.published).toBe(1)
+    expect(stats.failed).toBe(0)
+
+    const tasks = await migrateQuery(
+      `SELECT title, priority FROM tasks WHERE organization_id = $1`,
       [org.id]
     )
-    expect(events.rows[0].n).toBe(1)
+    expect(tasks.rows).toHaveLength(1)
+    expect(tasks.rows[0].priority).toBe('high')
   })
 
   it('does NOT re-emit when an already-missed administration is patched (no-op transition)', async () => {
@@ -309,13 +316,14 @@ describe('eMedication — medication.administration_missed outbox workflow (§13
       .send({ emedication_item_id: itemId, scheduled_time: '2026-08-15T08:00:00', status: 'missed' })
     expect(created.status).toBe(201)
 
-    const beforeCount = await migrateQuery(
-      `SELECT COUNT(*)::int AS n FROM domain_events
-       WHERE organization_id = $1
-         AND event_name = 'medication.administration_missed'`,
+    // Drain the first event so the no-op PATCH below has nothing pending to
+    // duplicate (the consumer task is the durable counter we care about).
+    await processOutbox(org.id)
+    const afterFirstDraft = await migrateQuery(
+      `SELECT COUNT(*)::int AS n FROM tasks WHERE organization_id = $1`,
       [org.id]
     )
-    expect(beforeCount.rows[0].n).toBe(1)
+    expect(afterFirstDraft.rows[0].n).toBe(1)
 
     const patched = await request(app)
       .patch(`/emedication/administrations/${created.body.id}`)
@@ -323,20 +331,16 @@ describe('eMedication — medication.administration_missed outbox workflow (§13
       .send({ status: 'missed', notes: 'Reaffirmed missed' })
     expect(patched.status).toBe(200)
 
-    const afterCount = await migrateQuery(
-      `SELECT COUNT(*)::int AS n FROM domain_events
-       WHERE organization_id = $1
-         AND event_name = 'medication.administration_missed'`,
-      [org.id]
-    )
-    expect(afterCount.rows[0].n).toBe(1)
+    const stats = await processOutbox(org.id)
+    // Controller's transition filter should keep the no-op PATCH from
+    // re-publishing, so the outbox is empty after the first drain.
+    expect(stats.processed).toBe(0)
 
-    // And only one task was drafted (consumer dedupe is exercised).
-    const tasks = await migrateQuery(
+    const afterNoOpDraft = await migrateQuery(
       `SELECT COUNT(*)::int AS n FROM tasks WHERE organization_id = $1`,
       [org.id]
     )
-    expect(tasks.rows[0].n).toBe(1)
+    expect(afterNoOpDraft.rows[0].n).toBe(1)
   })
 
   it('drains a directly-published missed event through the consumer (no HTTP)', async () => {
