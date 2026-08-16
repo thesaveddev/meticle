@@ -120,13 +120,13 @@ export class PersonController {
   static async delete(req: Request, res: Response) {
     const orgId = PersonController.getOrgId(req);
     const userId = PersonController.getUserId(req);
-    const existing = await PersonRepository.findById(req.params.id, orgId);
-    if (!existing) throw new AppError(404, 'Person not found');
-    await PersonRepository.deletePerson(req.params.id);
-    await pool.query(
-      'INSERT INTO person_access_log (person_id, accessed_by, action, ip_address) VALUES ($1, $2, $3, $4)',
-      [req.params.id, userId, 'delete', req.ip]
-    );
+      const existing = await PersonRepository.findById(req.params.id, orgId);
+      if (!existing) throw new AppError(404, 'Person not found');
+      await pool.query(
+        'INSERT INTO person_access_log (person_id, accessed_by, action, ip_address) VALUES ($1, $2, $3, $4)',
+        [req.params.id, userId, 'delete', req.ip]
+      );
+      await PersonRepository.deletePerson(req.params.id);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'person', entity_id: req.params.id, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Person deleted' });
   }

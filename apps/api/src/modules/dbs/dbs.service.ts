@@ -46,7 +46,13 @@ const STATUS_ORDER: Record<DbsStatus, number> = {
 // --- Repository ---
 
 export async function createDbsCheck(orgId: string, data: DbsSubmitRequest): Promise<DbsCheck> {
-  const sp = await query('SELECT user_id, first_name, last_name, birth_date FROM staff_profiles WHERE id = $1 AND organization_id = $2', [data.staff_id, orgId]);
+  const sp = await query(
+    `SELECT sp.user_id, sp.first_name, sp.last_name, sp.birth_date
+     FROM staff_profiles sp
+     JOIN users u ON u.id = sp.user_id
+     WHERE sp.id = $1 AND u.organization_id = $2`,
+    [data.staff_id, orgId]
+  );
   if (sp.rows.length === 0) throw new AppError(404, 'Staff member not found');
 
   const user = await query('SELECT email FROM users WHERE id = $1', [sp.rows[0].user_id]);
@@ -120,7 +126,7 @@ export async function updateDbsStatus(orgId: string, checkId: string, status: Db
   if (status === DbsStatus.CLEAR || status === DbsStatus.DISCLOSURE) {
     updates.push('completed_at = NOW()');
     if (certificateNumber) {
-      updates.push('certificate_number = $3');
+      updates.push(`certificate_number = $${params.length + 1}`);
       params.push(certificateNumber);
     }
   }

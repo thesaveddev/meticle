@@ -493,23 +493,22 @@ export class ReportingRepository {
 
   static async incidentSummary(orgId: string, f: ReportFilters) {
     let sql = `
-      SELECT i.severity as name, i.category, i.status, l.name as location_name,
+      SELECT i.severity as name, COALESCE(ic.name, 'Uncategorised') as category, i.status, COALESCE(i.location, 'Unknown') as location_name,
              COUNT(*)::int as value,
              COUNT(*) FILTER (WHERE i.status = 'open')::int as open_count,
              COUNT(*) FILTER (WHERE i.status = 'investigating')::int as investigating_count,
              COUNT(*) FILTER (WHERE i.status = 'resolved')::int as resolved_count
       FROM incidents i
-      LEFT JOIN locations l ON i.location_id = l.id
+      LEFT JOIN incident_categories ic ON i.category_id = ic.id
       WHERE i.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
-    if (f.location_id) { sql += ` AND i.location_id = $${idx}`; params.push(f.location_id); idx++; }
     if (f.severity) { sql += ` AND i.severity = $${idx}`; params.push(f.severity); idx++; }
-    if (f.category) { sql += ` AND i.category = $${idx}`; params.push(f.category); idx++; }
+    if (f.category) { sql += ` AND ic.name = $${idx}`; params.push(f.category); idx++; }
     if (f.status) { sql += ` AND i.status = $${idx}`; params.push(f.status); idx++; }
     if (f.dateFrom) { sql += ` AND i.created_at >= $${idx}`; params.push(f.dateFrom); idx++; }
     if (f.dateTo) { sql += ` AND i.created_at <= $${idx}`; params.push(f.dateTo); idx++; }
-    sql += ' GROUP BY i.severity, i.category, i.status, l.name ORDER BY i.severity DESC, value DESC';
+    sql += ' GROUP BY i.severity, ic.name, i.status, i.location ORDER BY i.severity DESC, value DESC';
     const result = await query(sql, params);
     return result.rows;
   }
@@ -520,12 +519,12 @@ export class ReportingRepository {
              i.severity as severity,
              COUNT(*)::int as value
       FROM incidents i
+      LEFT JOIN incident_categories ic ON i.category_id = ic.id
       WHERE i.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
-    if (f.location_id) { sql += ` AND i.location_id = $${idx}`; params.push(f.location_id); idx++; }
     if (f.severity) { sql += ` AND i.severity = $${idx}`; params.push(f.severity); idx++; }
-    if (f.category) { sql += ` AND i.category = $${idx}`; params.push(f.category); idx++; }
+    if (f.category) { sql += ` AND ic.name = $${idx}`; params.push(f.category); idx++; }
     if (f.dateFrom) { sql += ` AND i.created_at >= $${idx}`; params.push(f.dateFrom); idx++; }
     if (f.dateTo) { sql += ` AND i.created_at <= $${idx}`; params.push(f.dateTo); idx++; }
     sql += ' GROUP BY name, severity ORDER BY name DESC';
@@ -535,18 +534,18 @@ export class ReportingRepository {
 
   static async incidentByLocation(orgId: string, f: ReportFilters) {
     let sql = `
-      SELECT COALESCE(l.name, 'Unknown') as name, i.severity,
+      SELECT COALESCE(i.location, 'Unknown') as name, i.severity,
              COUNT(*)::int as value
       FROM incidents i
-      LEFT JOIN locations l ON i.location_id = l.id
+      LEFT JOIN incident_categories ic ON i.category_id = ic.id
       WHERE i.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
     if (f.severity) { sql += ` AND i.severity = $${idx}`; params.push(f.severity); idx++; }
-    if (f.category) { sql += ` AND i.category = $${idx}`; params.push(f.category); idx++; }
+    if (f.category) { sql += ` AND ic.name = $${idx}`; params.push(f.category); idx++; }
     if (f.dateFrom) { sql += ` AND i.created_at >= $${idx}`; params.push(f.dateFrom); idx++; }
     if (f.dateTo) { sql += ` AND i.created_at <= $${idx}`; params.push(f.dateTo); idx++; }
-    sql += ' GROUP BY l.name, i.severity ORDER BY value DESC';
+    sql += ' GROUP BY i.location, i.severity ORDER BY value DESC';
     const result = await query(sql, params);
     return result.rows;
   }
