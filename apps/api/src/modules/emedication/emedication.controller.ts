@@ -4,6 +4,8 @@ import { AppError } from '../../shared/middleware/error.middleware';
 import { query } from '../../shared/database';
 import { MedicationAlertService } from './medication-alert.service';
 import { NotificationsController } from '../notifications/notifications.controller';
+import { publishAdministrationMissedEvent } from './medication.events';
+import { logWarn } from '../../shared/utils/logger';
 
 export class EMedicationController {
   static getOrgId(req: Request): string {
@@ -263,6 +265,25 @@ export class EMedicationController {
       ip_address: req.ip
     });
 
+    // §13.1 — emit medication.administration_missed when an administration
+    // is logged as missed at creation time. Outbox write is best-effort; the
+    // emedication_audit_log row above is the durable canonical record.
+    if (status === 'missed') {
+      publishAdministrationMissedEvent({
+        organizationId: orgIdAdmin,
+        administration: {
+          id: admin.id,
+          emedication_item_id,
+          scheduled_time,
+          administered_time: admin.administered_time ?? null,
+          notes: admin.notes ?? null,
+          prn_reason: prn_reason ?? null,
+        },
+        loggedByUserId: req.user!.userId,
+        isTransition: true,
+      }).catch(logWarn('publish medication.administration_missed (create)'));
+    }
+
     res.status(201).json(admin);
   }
 
@@ -281,6 +302,14 @@ export class EMedicationController {
       }
     }
 
+    // Fetch the prior row so we can detect a status transition INTO 'missed'
+    // without re-emitting the event when an already-missed row is edited.
+    const priorResult = await query(
+      `SELECT status FROM emedication_administrations WHERE id = $1`,
+      [req.params.adminId]
+    );
+    const priorStatus = priorResult.rows[0]?.status;
+
     const admin = await EMedicationRepository.updateAdministration(req.params.adminId, req.body);
     if (!admin) throw new AppError(404, 'Administration record not found');
 
@@ -294,6 +323,24 @@ export class EMedicationController {
       changes: req.body,
       ip_address: req.ip
     });
+
+    // §13.1 — emit on transition INTO 'missed'. Update to the same status
+    // (e.g. a notes-only edit on an already-missed administration) is silent.
+    if (req.body.status === 'missed' && priorStatus !== 'missed') {
+      publishAdministrationMissedEvent({
+        organizationId: orgIdAdmin,
+        administration: {
+          id: admin.id,
+          emedication_item_id: admin.emedication_item_id,
+          scheduled_time: admin.scheduled_time,
+          administered_time: admin.administered_time ?? null,
+          notes: admin.notes ?? null,
+          prn_reason: admin.prn_reason ?? null,
+        },
+        loggedByUserId: req.user!.userId,
+        isTransition: true,
+      }).catch(logWarn('publish medication.administration_missed (transition)'));
+    }
 
     res.json(admin);
   }
