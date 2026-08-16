@@ -495,15 +495,15 @@ async function seed() {
   ]
   for (const inc of incidents) {
     const incId = uuid()
-    await insert(`INSERT INTO incidents (id,organization_id,category_id,title,description,incident_date,incident_time,location,severity,status,is_cqc_reportable,reported_to_cqc_at,cqc_reference,root_cause,outcomes,reported_by,created_at,investigation_notes,actions_taken)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+    await insert(`INSERT INTO incidents (id,organization_id,category_id,title,description,incident_date,incident_time,location,severity,status,is_cqc_reportable,reported_to_cqc_at,cqc_reference,root_cause,outcomes,reported_by,created_at,investigation_notes)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
       [incId, orgId, incCatIds[inc.cat], inc.title, `${inc.title}. Full investigation logged and shared with management.`, dateAgo(inc.days), '14:30:00',
        ['Orbis House', 'Willow Court', 'Meadow View'][Math.floor(Math.random() * 3)], inc.sev, inc.status,
        inc.sev === 'high' || inc.sev === 'critical', inc.sev === 'high' || inc.sev === 'critical' ? tsAgo(inc.days - 1) : null,
        inc.sev === 'high' || inc.sev === 'critical' ? `CQC-REF-${1000 + inc.days}` : null,
        'Root cause analysis completed. Staff refresher training scheduled.',
        inc.status === 'closed' || inc.status === 'resolved' ? 'Outcome documented and family informed.' : null,
-       staff[Math.floor(Math.random() * 3)].userId, tsAgo(inc.days), 'See incident report.', 'Preventative measures implemented.'])
+       staff[Math.floor(Math.random() * 3)].userId, tsAgo(inc.days), 'See incident report.'])
     if (Math.random() < 0.6) {
       await insert(`INSERT INTO incident_actions (id,incident_id,action,assigned_to,due_date,completed_at,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
         [uuid(), incId, 'Review risk assessment and update mitigation plan', staff[Math.floor(Math.random() * 2)].userId,

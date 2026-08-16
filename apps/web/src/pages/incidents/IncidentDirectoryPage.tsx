@@ -9,7 +9,8 @@ import {
 import {
   Add as AddIcon, Search as SearchIcon, Warning as WarningIcon,
   CheckCircle as CheckIcon, Autorenew as AutorenewIcon,
-  Flag as FlagIcon,
+  Flag as FlagIcon, Lock as LockIcon, LockOpen as LockOpenIcon,
+  ListAlt as TaskIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -21,18 +22,31 @@ const STATUS_COLORS: Record<string, string> = { reported: '#D97706', investigati
 export default function IncidentDirectoryPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const currentUser = (() => { const s = localStorage.getItem('user'); try { const p = s ? JSON.parse(s) : {}; return p && typeof p === 'object' ? p : {} } catch { return {} } })()
+  const isOrgAdmin = currentUser.role === 'ORG_ADMIN'
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [severityFilter, setSeverityFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [nearMissFilter, setNearMissFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [addOpen, setAddOpen] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ title: '', description: '', category_id: '', incident_date: new Date().toISOString().split('T')[0], incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false })
+  const [form, setForm] = useState({ title: '', description: '', category_id: '', incident_date: new Date().toISOString().split('T')[0], incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false, is_near_miss: false, is_confidential: false })
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
 
   const { data: incidents, isLoading } = useQuery({
-    queryKey: ['incidents', statusFilter, severityFilter],
-    queryFn: () => api.get('/incidents', { params: { status: statusFilter || undefined, severity: severityFilter || undefined } }).then(r => r.data),
+    queryKey: ['incidents', statusFilter, severityFilter, categoryFilter, nearMissFilter, dateFrom, dateTo],
+    queryFn: () => api.get('/incidents', { params: {
+      status: statusFilter || undefined,
+      severity: severityFilter || undefined,
+      category_id: categoryFilter || undefined,
+      is_near_miss: nearMissFilter || undefined,
+      date_from: dateFrom || undefined,
+      date_to: dateTo || undefined,
+    } }).then(r => r.data),
   })
 
   const { data: categories } = useQuery({
@@ -47,7 +61,7 @@ export default function IncidentDirectoryPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post('/incidents', data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incidents'] }); queryClient.invalidateQueries({ queryKey: ['incident-stats'] }); setAddOpen(false); setForm({ title: '', description: '', category_id: '', incident_date: new Date().toISOString().split('T')[0], incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false }) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['incidents'] }); queryClient.invalidateQueries({ queryKey: ['incident-stats'] }); setAddOpen(false); setForm({ title: '', description: '', category_id: '', incident_date: new Date().toISOString().split('T')[0], incident_time: '', location: '', severity: 'medium', is_cqc_reportable: false, is_near_miss: false, is_confidential: false }) },
     onError: (err: any) => setError(err.response?.data?.message || 'Failed to create incident'),
   })
 
@@ -55,14 +69,16 @@ export default function IncidentDirectoryPage() {
     !search || i.title?.toLowerCase().includes(search.toLowerCase()) || i.location?.toLowerCase().includes(search.toLowerCase())
   )
   const paginated = filtered?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) || []
-  useEffect(() => { setPage(0) }, [search, statusFilter, severityFilter])
+  useEffect(() => { setPage(0) }, [search, statusFilter, severityFilter, categoryFilter, nearMissFilter, dateFrom, dateTo])
 
   const statCards = stats ? [
     { label: 'Total', value: stats.total, color: '#0F4C81' },
     { label: 'Reported', value: stats.reported, color: '#D97706' },
     { label: 'Investigating', value: stats.investigating, color: '#0F4C81' },
     { label: 'Critical', value: stats.critical, color: '#DC2626' },
-    { label: 'Resolved', value: stats.resolved, color: '#16A34A' },
+    { label: 'Near Misses', value: stats.near_misses, color: '#8B5CF6' },
+    { label: 'Open Actions', value: stats.open_actions, color: '#0891B2' },
+    { label: 'Overdue Actions', value: stats.overdue_actions, color: '#DC2626' },
     { label: 'Pending CQC', value: stats.pending_cqc, color: '#7C3AED' },
   ] : []
 
@@ -86,10 +102,10 @@ export default function IncidentDirectoryPage() {
 
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
           <TextField size="small" placeholder="Search by title or location..." value={search} onChange={e => setSearch(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
-            sx={{ minWidth: 280 }} />
+            sx={{ minWidth: 260 }} />
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel>Status</InputLabel>
             <Select value={statusFilter} label="Status" onChange={e => setStatusFilter(e.target.value)}>
@@ -110,6 +126,23 @@ export default function IncidentDirectoryPage() {
               <MenuItem value="critical">Critical</MenuItem>
             </Select>
           </FormControl>
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel>Category</InputLabel>
+            <Select value={categoryFilter} label="Category" onChange={e => setCategoryFilter(e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              {(categories || []).map((c: any) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel>Type</InputLabel>
+            <Select value={nearMissFilter} label="Type" onChange={e => setNearMissFilter(e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="false">Incidents</MenuItem>
+              <MenuItem value="true">Near Misses</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField size="small" type="date" label="From" InputLabelProps={{ shrink: true }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          <TextField size="small" type="date" label="To" InputLabelProps={{ shrink: true }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
         </Stack>
       </Paper>
 
@@ -130,7 +163,7 @@ export default function IncidentDirectoryPage() {
                 <TableCell sx={{ fontWeight: 700 }}>Severity</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Root Cause</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>CQC</TableCell>
               </TableRow>
             </TableHead>
@@ -139,7 +172,13 @@ export default function IncidentDirectoryPage() {
                 <TableRow><TableCell colSpan={8}><Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>No incidents match your search</Typography></TableCell></TableRow>
               ) : paginated.map((i: any) => (
               <TableRow key={i.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/incidents/${i.id}`)}>
-                <TableCell><Typography variant="body2" fontWeight={600}>{i.title}</Typography></TableCell>
+                <TableCell>
+                  <Typography variant="body2" fontWeight={600}>{i.title}</Typography>
+                  <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
+                    {i.is_near_miss && <Chip label="Near Miss" size="small" sx={{ bgcolor: '#8B5CF620', color: '#8B5CF6', fontWeight: 700 }} />}
+                    {i.is_confidential && <Chip label="Confidential" size="small" sx={{ bgcolor: '#37415120', color: '#374151', fontWeight: 700 }} />}
+                  </Stack>
+                </TableCell>
                 <TableCell>{new Date(i.incident_date).toLocaleDateString('en-GB')}</TableCell>
                 <TableCell><Typography variant="caption">{i.category_name || '—'}</Typography></TableCell>
                 <TableCell>
@@ -152,7 +191,10 @@ export default function IncidentDirectoryPage() {
                     sx={{ bgcolor: `${STATUS_COLORS[i.status] || '#6B7280'}20`, color: STATUS_COLORS[i.status] || '#6B7280', fontWeight: 700, textTransform: 'capitalize' }} />
                 </TableCell>
                 <TableCell><Typography variant="body2">{i.location || '—'}</Typography></TableCell>
-                <TableCell><Typography variant="body2" sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.root_cause || '—'}</Typography></TableCell>
+                <TableCell>
+                  <Chip icon={<TaskIcon />} label={i.open_actions || 0} size="small"
+                    sx={{ bgcolor: '#0891B220', color: i.open_actions > 0 ? '#0891B2' : '#6B7280', fontWeight: 700 }} />
+                </TableCell>
                 <TableCell>{i.is_cqc_reportable ? <Chip label="CQC Reportable" size="small" color="error" /> : <Chip label="Not Required" size="small" sx={{ bgcolor: '#0F4C8120', color: '#0F4C81', fontWeight: 600 }} />}</TableCell>
               </TableRow>
             ))}
@@ -196,11 +238,25 @@ export default function IncidentDirectoryPage() {
                 <MenuItem value="high">High</MenuItem>
                 <MenuItem value="critical">Critical</MenuItem>
               </TextField>
-              <Button variant={form.is_cqc_reportable ? 'contained' : 'outlined'} color="error"
-                onClick={() => setForm({ ...form, is_cqc_reportable: !form.is_cqc_reportable })}
-                sx={{ textTransform: 'none' }}>
-                {form.is_cqc_reportable ? '✓ CQC Reportable' : 'Mark as CQC Reportable'}
-              </Button>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                <Button variant={form.is_cqc_reportable ? 'contained' : 'outlined'} color="error"
+                  onClick={() => setForm({ ...form, is_cqc_reportable: !form.is_cqc_reportable })}
+                  sx={{ textTransform: 'none' }}>
+                  {form.is_cqc_reportable ? '✓ CQC Reportable' : 'Mark as CQC Reportable'}
+                </Button>
+                <Button variant={form.is_near_miss ? 'contained' : 'outlined'} color="secondary"
+                  onClick={() => setForm({ ...form, is_near_miss: !form.is_near_miss })}
+                  sx={{ textTransform: 'none' }}>
+                  {form.is_near_miss ? '✓ Near Miss' : 'Mark as Near Miss'}
+                </Button>
+                {isOrgAdmin && (
+                  <Button variant={form.is_confidential ? 'contained' : 'outlined'} color="inherit"
+                    onClick={() => setForm({ ...form, is_confidential: !form.is_confidential })}
+                    sx={{ textTransform: 'none' }}>
+                    {form.is_confidential ? <><LockIcon fontSize="small" /> Confidential</> : <><LockOpenIcon fontSize="small" /> Confidential</>}
+                  </Button>
+                )}
+              </Stack>
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>

@@ -735,9 +735,24 @@ CREATE TABLE IF NOT EXISTS incidents (
     cqc_reference VARCHAR(100),
     root_cause TEXT,
     outcomes TEXT,
+    is_near_miss BOOLEAN DEFAULT FALSE,
+    is_confidential BOOLEAN DEFAULT FALSE,
+    investigation_notes TEXT,
+    lessons_learned TEXT,
     reported_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS incident_attachments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    incident_id UUID NOT NULL REFERENCES incidents(id) ON DELETE CASCADE,
+    file_name VARCHAR(255) NOT NULL,
+    file_url TEXT NOT NULL,
+    file_type VARCHAR(100),
+    file_size BIGINT,
+    uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS incident_involved_residents (
@@ -755,6 +770,7 @@ CREATE TABLE IF NOT EXISTS incident_actions (
     action TEXT NOT NULL,
     assigned_to UUID REFERENCES users(id) ON DELETE SET NULL,
     due_date DATE,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','in_progress','completed','cancelled')),
     completed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -768,6 +784,7 @@ CREATE INDEX IF NOT EXISTS idx_incidents_severity ON incidents(severity);
 CREATE INDEX IF NOT EXISTS idx_incident_categories_org ON incident_categories(organization_id);
 CREATE INDEX IF NOT EXISTS idx_incident_involved_incident ON incident_involved_residents(incident_id);
 CREATE INDEX IF NOT EXISTS idx_incident_actions_incident ON incident_actions(incident_id);
+CREATE INDEX IF NOT EXISTS idx_incident_attachments_incident ON incident_attachments(incident_id);
 
 -- Training Compliance Matrix
 CREATE TABLE IF NOT EXISTS training_modules (
