@@ -379,6 +379,32 @@ export function getIO(): Server {
   return io;
 }
 
+/**
+ * No-op emitter used when Socket.IO is not initialized (e.g. startup race,
+ * the socket server refused to start, or the worker is running in a context
+ * that never called initSocketServer — e.g. integration tests). Anything
+ * emitted to this stub is silently dropped, so callers can treat the return
+ * value as Server-shaped without guarding every emit() call.
+ */
+export const NOOP_SOCKET = {
+  to: () => ({ emit: () => {}, emitAsync: async () => {} }),
+  sockets: { sockets: { values: () => [] as never[] } },
+};
+
+/**
+ * Returns the active Socket.IO server, or a no-op stub if it isn't initialized.
+ * Use this in any code path that emits real-time events but where the request
+ * should still succeed if the socket layer is unavailable — the realtime
+ * delivery is best-effort, not part of the API contract.
+ */
+export function safeIo() {
+  try {
+    return getIO();
+  } catch {
+    return NOOP_SOCKET;
+  }
+}
+
 export function getOnlineUsers(): Set<string> {
   return onlineUsers;
 }

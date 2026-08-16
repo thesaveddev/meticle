@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import pool from '../../shared/database';
-import { getIO } from '../../shared/socket';
+import { safeIo } from '../../shared/socket';
 
 export class NotificationsController {
   static async getMyNotifications(req: Request, res: Response) {
@@ -66,7 +66,7 @@ export class NotificationsController {
           'INSERT INTO notifications (user_id, title, message, type) VALUES ($1, $2, $3, $4) RETURNING *',
           [uid, title, message, type]
         );
-        const io = getIO();
+        const io = safeIo();
         io.to(`user:${uid}`).emit('notification', result.rows[0]);
         const countRes = await pool.query(
           "SELECT COUNT(*)::int as count FROM notifications WHERE user_id = $1 AND read = FALSE",
