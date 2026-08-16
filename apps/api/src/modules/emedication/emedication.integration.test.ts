@@ -57,6 +57,16 @@ async function makeSetup() {
   if (item.status !== 201) {
     throw new Error(`Failed to add item: ${item.status} ${JSON.stringify(item.body)}`)
   }
+  // Seed stock so status='given' posts don't 409 (controller blocks on empty stock).
+  if (item.body.stock_item_id) {
+    const stocked = await request(app)
+      .patch(`/emedication/stock/${item.body.stock_item_id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ quantity: 100 })
+    if (stocked.status !== 200) {
+      throw new Error(`Failed to seed stock: ${stocked.status} ${JSON.stringify(stocked.body)}`)
+    }
+  }
   return { org, admin, person, token, recordId: itemRes.body.id, itemId: item.body.id }
 }
 

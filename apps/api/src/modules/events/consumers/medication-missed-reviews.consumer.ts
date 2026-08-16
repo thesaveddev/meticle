@@ -116,6 +116,9 @@ function buildTaskTitle(payload: MedicationAdministrationMissedPayload): string 
 }
 
 function buildTaskDescription(payload: MedicationAdministrationMissedPayload): string {
+  const medLine = payload.medication_dosage
+    ? `Medication: ${payload.medication_name} ${payload.medication_dosage}`
+    : `Medication: ${payload.medication_name}`;
   const whenLine = `Scheduled: ${payload.scheduled_time}`;
   const reasonLine = payload.reason ? `Reason recorded: ${payload.reason}` : 'No reason recorded.';
   const notesLine = payload.notes ? `Notes: ${payload.notes}` : '';
@@ -123,6 +126,7 @@ function buildTaskDescription(payload: MedicationAdministrationMissedPayload): s
   const recordedLine = `Recorded by user ${payload.logged_by_user_id} at ${payload.recorded_at}.`;
   return [
     'A medication administration was logged as missed.',
+    medLine,
     whenLine,
     reasonLine,
     notesLine,
