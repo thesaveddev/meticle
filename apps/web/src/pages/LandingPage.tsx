@@ -1,10 +1,16 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material'
 import { ArrowForward as ArrowForwardIcon, Check as CheckIcon } from '@mui/icons-material'
 import { keyframes } from '@emotion/react'
 import { useNavigate } from 'react-router-dom'
 import MarketingLayout from '../components/marketing/MarketingLayout'
 import PageMeta from '../components/PageMeta'
+import {
+  EmarIcon, CareNoteIcon, SupportPlanIcon, BodyMapIcon, AppointmentIcon, GoalsIcon,
+  RotaIcon, LeaveIcon, IncidentIcon, TaskIcon, ChatIcon, TrainingIcon,
+  ShieldIcon, EvidenceIcon, SurveyIcon, PolicyIcon, DsptIcon, AuditIcon,
+  ManagerIcon, CareWorkerIcon, FamilyIcon, OwnerIcon,
+} from '../components/marketing/icons'
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -46,7 +52,9 @@ const MIST = '#5B6672'
 const HAIRLINE = '#E7E1D6'
 const INK_DARK = '#141C24'
 
-const HERO_IMAGE = '/hero-care.jpg'
+const HERO_IMAGE = '/illustrations/hero-care.svg'
+const SHOWCASE_IMAGE = '/illustrations/care-moment.svg'
+const TIMELINE_IMAGE = '/illustrations/timeline-card.svg'
 
 const pulse = keyframes`
   0%, 100% { opacity: 1 }
@@ -184,7 +192,7 @@ export default function LandingPage() {
                         <Typography sx={{ fontSize: '0.7rem', color: MIST, fontWeight: 600 }}>Care in progress</Typography>
                       </Stack>
                     </Stack>
-                    <img src={HERO_IMAGE} alt="A warm, connected care moment — two people sharing coffee in a comfortable home, representing the human side of supported living care" width="1600" height="1067" loading="eager" style={{ display: 'block', width: '100%', height: 'auto' }} />
+                    <img src={HERO_IMAGE} alt="Stylised illustration of the MeticleCare tablet dashboard showing a person's daily support plan and medication administration chart, with a care note being recorded" width="1280" height="854" loading="eager" style={{ display: 'block', width: '100%', height: 'auto' }} />
                   </Box>
 
                   {/* Care-note toast */}
@@ -212,6 +220,58 @@ export default function LandingPage() {
               <Typography variant="body2" sx={{ mt: 3, color: MIST, fontSize: '0.85rem', maxWidth: 460 }}>
                 Care that feels like home — your team stays connected, your records stay current, and every moment of support is captured where it happens.
               </Typography>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* TRUST STRIP — regulators & standards */}
+      <Box
+        component="section"
+        aria-label="Standards MeticleCare is built for"
+        sx={{ bgcolor: '#FFFFFF', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}
+      >
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: NAVY, letterSpacing: '0.14em', textTransform: 'uppercase', mb: { xs: 1, md: 0 } }}>
+                Built for the UK's care regulators
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={9}>
+              <Grid container spacing={{ xs: 2, md: 2.5 }}>
+                {[
+                  { mark: 'CQC', label: 'Care Quality Commission', detail: 'England · 5 KLOEs' },
+                  { mark: 'CIW', label: 'Care Inspectorate Wales', detail: 'CIW framework' },
+                  { mark: 'CIS', label: 'Care Inspectorate Scotland', detail: 'Health & social care' },
+                  { mark: 'RQIA', label: 'NI Quality & Improvement', detail: 'Northern Ireland' },
+                  { mark: 'GDPR', label: 'UK GDPR · DPA 2018', detail: 'DSPT self-assessment' },
+                ].map((t) => (
+                  <Grid item xs={6} sm={4} md key={t.mark}>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <Box
+                        sx={{
+                          width: 36, height: 36, borderRadius: 1.5,
+                          bgcolor: t.mark === 'CIW' || t.mark === 'GDPR' ? EMERALD : NAVY,
+                          color: '#FFFFFF', display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', fontWeight: 900, fontSize: '0.7rem',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {t.mark}
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.82rem', lineHeight: 1.25 }} noWrap>
+                          {t.label}
+                        </Typography>
+                        <Typography sx={{ color: MIST, fontSize: '0.74rem', lineHeight: 1.3 }} noWrap>
+                          {t.detail}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Grid>
+                ))}
+              </Grid>
             </Grid>
           </Grid>
         </Container>
@@ -266,28 +326,28 @@ export default function LandingPage() {
 
           {[
             { label: 'Care & medication', desc: 'The daily record of care, kept at the point it happens.', items: [
-              { name: 'eMAR & medication administration', desc: '31-day medication records, stock and daily counts, with an audit trail on every administration.', to: '/features#emar' },
-              { name: 'Daily care notes', desc: "Record and share the day's care as it happens.", to: '/features#care-notes' },
-              { name: 'Person-centred support plans', desc: 'Support plans built around the person, not the template.', to: '/features#support-plans' },
-              { name: 'Body mapping', desc: 'Visual documentation of marks and injuries on a body map.', to: '/features#body-mapping' },
-              { name: 'Appointments & health checks', desc: 'Reviews, appointments and follow-ups in one calendar.', to: '/features#appointments' },
-              { name: 'Goals & progress', desc: 'Set goals and show progress over time.', to: '/features#goals' },
+              { name: 'eMAR & medication administration', desc: '31-day medication records, stock and daily counts, with an audit trail on every administration.', icon: EmarIcon, to: '/features#emar' },
+              { name: 'Daily care notes', desc: "Record and share the day's care as it happens.", icon: CareNoteIcon, to: '/features#care-notes' },
+              { name: 'Person-centred support plans', desc: 'Support plans built around the person, not the template.', icon: SupportPlanIcon, to: '/features#support-plans' },
+              { name: 'Body mapping', desc: 'Visual documentation of marks and injuries on a body map.', icon: BodyMapIcon, to: '/features#body-mapping' },
+              { name: 'Appointments & health checks', desc: 'Reviews, appointments and follow-ups in one calendar.', icon: AppointmentIcon, to: '/features#appointments' },
+              { name: 'Goals & progress', desc: 'Set goals and show progress over time.', icon: GoalsIcon, to: '/features#goals' },
             ] },
             { label: 'People & operations', desc: 'The shift, the team and the paperwork that surrounds them.', items: [
-              { name: 'Rota planner', desc: 'Build rotas on a week grid, with safe-staffing rules that block risky assignments.', to: '/features#rota' },
-              { name: 'Holiday & absence', desc: 'Requests, balances and approvals — with delegation when the manager is away.', to: '/features#leave' },
-              { name: 'Incidents & safeguarding', desc: 'Report, track and escalate incidents with action items that stay open until done.', to: '/features#incidents' },
-              { name: 'Tasks', desc: 'Assign and close tasks across the team.', to: '/features#tasks' },
-              { name: 'Secure staff messaging', desc: 'GDPR-compliant chat between staff, teams and departments.', to: '/features#chat' },
-              { name: 'Training & competencies', desc: 'A matrix per role with gap-flagging, plus competency assessments with evidence.', to: '/features#training' },
+              { name: 'Rota planner', desc: 'Build rotas on a week grid, with safe-staffing rules that block risky assignments.', icon: RotaIcon, to: '/features#rota' },
+              { name: 'Holiday & absence', desc: 'Requests, balances and approvals — with delegation when the manager is away.', icon: LeaveIcon, to: '/features#leave' },
+              { name: 'Incidents & safeguarding', desc: 'Report, track and escalate incidents with action items that stay open until done.', icon: IncidentIcon, to: '/features#incidents' },
+              { name: 'Tasks', desc: 'Assign and close tasks across the team.', icon: TaskIcon, to: '/features#tasks' },
+              { name: 'Secure staff messaging', desc: 'GDPR-compliant chat between staff, teams and departments.', icon: ChatIcon, to: '/features#chat' },
+              { name: 'Training & competencies', desc: 'A matrix per role with gap-flagging, plus competency assessments with evidence.', icon: TrainingIcon, to: '/features#training' },
             ] },
             { label: 'Compliance & oversight', desc: 'Readiness you can see, from records you already keep.', items: [
-              { name: 'Inspection readiness', desc: 'Five CQC domains scored from live records — not estimates.', to: '/features#compliance' },
-              { name: 'Evidence packs', desc: 'KLOE-aligned packs assembled from the documents you already keep.', to: '/features#compliance' },
-              { name: 'Satisfaction & engagement surveys', desc: 'Email-invited surveys that feed the Caring and Well-led domains.', to: '/features#surveys' },
-              { name: 'Policies & procedures', desc: 'Version-controlled policies shared with the whole team.', to: '/features#policies' },
-              { name: 'DSPT self-assessment', desc: 'All ten data-security standards, submitted and tracked.', to: '/features#compliance' },
-              { name: 'Audit & reporting', desc: 'Every action logged, and reports that make compliance visible.', to: '/features#audit' },
+              { name: 'Inspection readiness', desc: 'Five CQC domains scored from live records — not estimates.', icon: ShieldIcon, to: '/features#compliance' },
+              { name: 'Evidence packs', desc: 'KLOE-aligned packs assembled from the documents you already keep.', icon: EvidenceIcon, to: '/features#compliance' },
+              { name: 'Satisfaction & engagement surveys', desc: 'Email-invited surveys that feed the Caring and Well-led domains.', icon: SurveyIcon, to: '/features#surveys' },
+              { name: 'Policies & procedures', desc: 'Version-controlled policies shared with the whole team.', icon: PolicyIcon, to: '/features#policies' },
+              { name: 'DSPT self-assessment', desc: 'All ten data-security standards, submitted and tracked.', icon: DsptIcon, to: '/features#compliance' },
+              { name: 'Audit & reporting', desc: 'Every action logged, and reports that make compliance visible.', icon: AuditIcon, to: '/features#audit' },
             ] },
           ].map((group, gi) => (
             <FadeSection key={group.label} direction="down" delay={gi * 120}>
@@ -333,41 +393,46 @@ export default function LandingPage() {
           </FadeSection>
 
           <FadeSection delay={150}>
-          <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'flex-start', md: 'center' }} spacing={{ xs: 3, md: 0 }}>
-            {[
-              { t: 'Care given', d: 'A medication or support task is recorded at the point of care.' },
-              { t: 'MAR updated', d: "The medication record updates for the day's round." },
-              { t: 'Note recorded', d: "The note is saved to the person's daily record." },
-              { t: 'Family informed', d: 'Relatives see the note in their portal view.' },
-              { t: 'Compliance scored', d: 'The record feeds readiness where it matters.' },
-            ].map((step, i) => (
-              <Fragment key={step.t}>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Stack direction={{ xs: 'row', md: 'column' }} spacing={{ xs: 2, md: 0 }} alignItems={{ xs: 'center', md: 'flex-start' }}>
-                    <Box sx={{ width: 16, height: 16, borderRadius: '50%', bgcolor: NAVY, flexShrink: 0, mt: 1.25, mb: { md: 1.75 } }} />
-                    <Box sx={{ pb: 0.5 }}>
-                      <Typography sx={{ fontWeight: 800, color: INK, mb: 0.5, fontSize: '1rem' }}>{step.t}</Typography>
-                      <Typography sx={{ color: MIST, fontSize: '0.86rem', lineHeight: 1.55, maxWidth: 200 }}>{step.d}</Typography>
+            <Box
+              sx={{
+                borderRadius: 3,
+                overflow: 'hidden',
+                border: `1px solid ${HAIRLINE}`,
+                bgcolor: '#FFFFFF',
+                boxShadow: '0 24px 60px -32px rgba(20, 32, 45, 0.25)',
+              }}
+            >
+              <img
+                src={TIMELINE_IMAGE}
+                alt="A five-step flow showing how one care action travels through MeticleCare: care given, MAR updated, note recorded, family informed, compliance scored"
+                width="1280"
+                height="360"
+                loading="lazy"
+                style={{ display: 'block', width: '100%', height: 'auto' }}
+              />
+            </Box>
+
+            <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mt: { xs: 3, md: 4 } }}>
+              {[
+                { t: 'Care given', d: 'A medication or support task is recorded at the point of care.' },
+                { t: 'MAR updated', d: "The medication record updates for the day's round." },
+                { t: 'Note recorded', d: "The note is saved to the person's daily record." },
+                { t: 'Family informed', d: 'Relatives see the note in their portal view.' },
+                { t: 'Compliance scored', d: 'The record feeds readiness where it matters.' },
+              ].map((step, i) => (
+                <Grid item xs={6} md key={step.t}>
+                  <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ borderTop: `2px solid ${EMERALD}`, pt: 1.5 }}>
+                    <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: NAVY, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0 }}>
+                      {i + 1}
+                    </Box>
+                    <Box>
+                      <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.92rem', lineHeight: 1.2, mb: 0.5 }}>{step.t}</Typography>
+                      <Typography sx={{ color: MIST, fontSize: '0.8rem', lineHeight: 1.55 }}>{step.d}</Typography>
                     </Box>
                   </Stack>
-                </Box>
-                {i < 4 && (
-                  <Box
-                    sx={{
-                      alignSelf: { md: 'center' },
-                      mx: { xs: 'auto', md: 2 },
-                      width: { xs: 2, md: 'auto' },
-                      height: { xs: 22, md: 2 },
-                      flexGrow: { md: 1 },
-                      flexShrink: 0,
-                      bgcolor: 'rgba(16, 185, 129, 0.4)',
-                      borderRadius: 1,
-                    }}
-                  />
-                )}
-              </Fragment>
-            ))}
-          </Stack>
+                </Grid>
+              ))}
+            </Grid>
           </FadeSection>
 
           <FadeSection delay={250}>
@@ -399,57 +464,75 @@ export default function LandingPage() {
             </Typography>
           </FadeSection>
 
-          <Stack spacing={0} sx={{ borderTop: `1px solid ${HAIRLINE}` }}>
+          <Grid container spacing={{ xs: 3, md: 3 }}>
             {[
               {
                 role: 'Registered managers',
                 tagline: 'See readiness before the inspector does.',
+                Icon: ManagerIcon,
                 items: ['Live compliance snapshot and inspection readiness', 'Rota planner with safe-staffing rules', 'Leave approvals, with delegation', 'Incident and safeguarding oversight', 'Reporting you can act on'],
               },
               {
                 role: 'Care workers',
                 tagline: 'The whole shift, in your pocket.',
+                Icon: CareWorkerIcon,
                 items: ['Mobile app with GPS check-in and voice notes', 'eMAR rounds on the 31-day chart', 'Claim open shifts from the marketplace', 'Secure team messaging'],
               },
               {
                 role: 'Relatives & families',
                 tagline: 'A quiet window into daily life.',
+                Icon: FamilyIcon,
                 items: ['Care notes, care plans and goals in the family portal', 'Observations you can see, not just hear about', 'A direct line to the team that cares'],
               },
               {
                 role: 'Owners & operations leads',
                 tagline: 'Every home, every number, one view.',
+                Icon: OwnerIcon,
                 items: ['Multi-location oversight in one dashboard', 'Insights and reporting across services', 'Agency and rate management', 'Billing and subscriptions in one place'],
               },
             ].map((r, idx) => (
-              <FadeSection key={r.role} delay={idx * 120}>
-                <Box sx={{ borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
-                <Grid container spacing={{ xs: 2, md: 6 }} alignItems={{ md: 'center' }}>
-                  <Grid item xs={12} md={4}>
-                    <Stack direction="row" spacing={2} alignItems="baseline">
-                      <Typography variant="h3" sx={{ fontWeight: 800, color: INK, fontSize: { xs: '1.4rem', md: '1.6rem' }, lineHeight: 1.2 }}>
-                        {r.role}
-                      </Typography>
-                    </Stack>
-                    <Typography sx={{ color: NAVY, fontWeight: 600, mt: 1, fontSize: '0.98rem' }}>{r.tagline}</Typography>
-                  </Grid>
-                  <Grid item xs={12} md={8}>
-                    <Grid container spacing={{ xs: 1.5, md: 2 }}>
+              <Grid item xs={12} sm={6} md={3} key={r.role}>
+                <FadeSection delay={idx * 90}>
+                  <Box
+                    sx={{
+                      height: '100%',
+                      bgcolor: '#FFFFFF',
+                      border: `1px solid ${HAIRLINE}`,
+                      borderRadius: 3,
+                      p: { xs: 3, md: 3.5 },
+                      transition: 'border-color 0.15s ease, transform 0.15s ease',
+                      '&:hover': { borderColor: EMERALD, transform: 'translateY(-2px)' },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 44, height: 44, borderRadius: 1.5,
+                        bgcolor: 'rgba(15,76,129,0.08)', color: NAVY,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        mb: 2.5,
+                      }}
+                    >
+                      <r.Icon size={22} />
+                    </Box>
+                    <Typography variant="h3" sx={{ fontWeight: 800, color: INK, fontSize: '1.2rem', lineHeight: 1.2, mb: 0.75 }}>
+                      {r.role}
+                    </Typography>
+                    <Typography sx={{ color: NAVY, fontWeight: 600, fontSize: '0.86rem', mb: 2.5 }}>
+                      {r.tagline}
+                    </Typography>
+                    <Stack spacing={1.25}>
                       {r.items.map((item) => (
-                        <Grid item xs={12} sm={6} key={item}>
-                          <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                            <Box sx={{ width: 7, height: 7, borderRadius: 1, bgcolor: EMERALD, mt: 0.55, flexShrink: 0 }} />
-                            <Typography sx={{ color: '#3A4551', fontSize: '0.94rem', fontWeight: 500, lineHeight: 1.55 }}>{item}</Typography>
-                          </Stack>
-                        </Grid>
+                        <Stack key={item} direction="row" spacing={1.25} alignItems="flex-start">
+                          <Box sx={{ width: 6, height: 6, borderRadius: 1, bgcolor: EMERALD, mt: 0.55, flexShrink: 0 }} />
+                          <Typography sx={{ color: '#3A4551', fontSize: '0.86rem', fontWeight: 500, lineHeight: 1.55 }}>{item}</Typography>
+                        </Stack>
                       ))}
-                    </Grid>
-                  </Grid>
-                </Grid>
-              </Box>
-              </FadeSection>
+                    </Stack>
+                  </Box>
+                </FadeSection>
+              </Grid>
             ))}
-          </Stack>
+          </Grid>
         </Container>
       </Box>
 
@@ -463,7 +546,7 @@ export default function LandingPage() {
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid #F0EBE1`, bgcolor: '#FCFAF6' }}>
                   <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.85rem' }}>MeticleCare · Today's care</Typography>
                 </Stack>
-                <img src={HERO_IMAGE} alt="Supported living care in practice — a moment of connection and everyday care at home" width="1600" height="1067" loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
+                <img src={SHOWCASE_IMAGE} alt="Mobile view of a care note being recorded in MeticleCare with family and manager receiving the update" width="1280" height="800" loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
               </Box>
             </Grid>
             <Grid item xs={12} md={5}>
@@ -587,11 +670,14 @@ export default function LandingPage() {
   )
 }
 
-function CapRow({ item, onNavigate }: { item: { name: string; desc: string; to: string }; onNavigate: (to: string) => void }) {
+type CapItem = { name: string; desc: string; to: string; icon?: React.ComponentType<{ size?: number; color?: string }> }
+
+function CapRow({ item, onNavigate }: { item: CapItem; onNavigate: (to: string) => void }) {
+  const Icon = item.icon
   return (
     <Stack
       direction="row"
-      spacing={3}
+      spacing={2.5}
       alignItems="center"
       justifyContent="space-between"
       role="link"
@@ -606,19 +692,35 @@ function CapRow({ item, onNavigate }: { item: { name: string; desc: string; to: 
       }}
       sx={{
         borderBottom: `1px solid ${HAIRLINE}`,
-        py: 2.5,
+        py: 2.25,
         cursor: 'pointer',
         '&:hover .cap-arrow': { transform: 'translateX(4px)', color: EMERALD_DEEP },
         '&:hover .cap-name': { color: NAVY },
+        '&:hover .cap-icon': { color: NAVY, backgroundColor: 'rgba(15,76,129,0.12)' },
         '&:focus-visible': { outline: `2px solid ${EMERALD}`, outlineOffset: '-2px' },
+        transition: 'background-color 0.15s ease',
       }}
     >
-      <Box>
-        <Typography className="cap-name" sx={{ fontWeight: 700, color: INK, mb: 0.5, fontSize: '0.98rem', transition: 'color 0.15s ease' }}>
-          {item.name}
-        </Typography>
-        <Typography sx={{ color: MIST, fontSize: '0.88rem', lineHeight: 1.55 }}>{item.desc}</Typography>
-      </Box>
+      <Stack direction="row" spacing={2.25} alignItems="center" sx={{ minWidth: 0 }}>
+        {Icon && (
+          <Box
+            className="cap-icon"
+            sx={{
+              width: 36, height: 36, borderRadius: 1.5, bgcolor: 'rgba(15,76,129,0.06)',
+              color: EMERALD_DEEP, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, transition: 'color 0.15s ease, background-color 0.15s ease',
+            }}
+          >
+            <Icon size={20} />
+          </Box>
+        )}
+        <Box sx={{ minWidth: 0 }}>
+          <Typography className="cap-name" sx={{ fontWeight: 700, color: INK, mb: 0.5, fontSize: '0.98rem', transition: 'color 0.15s ease' }}>
+            {item.name}
+          </Typography>
+          <Typography sx={{ color: MIST, fontSize: '0.88rem', lineHeight: 1.55 }}>{item.desc}</Typography>
+        </Box>
+      </Stack>
       <ArrowForwardIcon className="cap-arrow" sx={{ fontSize: 20, color: MIST, flexShrink: 0, transition: 'transform 0.15s ease, color 0.15s ease' }} />
     </Stack>
   )
