@@ -178,7 +178,7 @@ export class ChatController {
     const { channelId } = req.params;
     const userId = req.user!.userId;
     const orgId = req.user!.organizationId;
-    const { content, file_url, file_name } = req.body;
+    const { content, file_url, file_name, parent_id } = req.body;
 
     if (!content?.trim() && !file_url) throw new AppError(400, 'Message content or file is required');
 
@@ -191,7 +191,15 @@ export class ChatController {
       throw new AppError(403, 'You are not a member of this channel');
     }
 
-    const message = await ChatRepository.sendMessage(channelId, userId, content, file_url, file_name);
+    // Validate parent message if replying
+    if (parent_id) {
+      const parentMsg = await ChatRepository.getFullMessage(parent_id);
+      if (!parentMsg || parentMsg.channel_id !== channelId) {
+        throw new AppError(400, 'Reply target message not found in this channel');
+      }
+    }
+
+    const message = await ChatRepository.sendMessage(channelId, userId, content, file_url, file_name, parent_id);
 
     // Also add to chat_files so it appears in Shared Files tab
     if (file_url && file_name) {

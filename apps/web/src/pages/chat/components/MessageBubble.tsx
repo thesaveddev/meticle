@@ -4,6 +4,7 @@ import {
   Mood as MoodIcon, Delete as DeleteIcon, Edit as EditIcon,
   Check as CheckIcon, DoneAll as DoneAllIcon, OpenInNew as OpenInNewIcon,
   Description as FileIcon, AttachFile as AttachFileIcon,
+  Reply as ReplyIcon,
 } from '@mui/icons-material'
 import { type ChatMessage } from '../hooks/useChat'
 import { renderMessageText, formatTime, getMemberName, getMemberInitial, FILE_PREVIEW_TYPES, NAVY, NAVY_DEEP, EMERALD, INK, MIST, BONE, HAIRLINE, WHITE, DANGER } from '../utils'
@@ -26,6 +27,7 @@ interface Props {
   onReact: (emoji: string) => void
   onOpenReactionPicker: (e: React.MouseEvent, msgId: string) => void
   onOpenFile: (url: string, name: string) => void
+  onReply: (msg: ChatMessage) => void
   user: { first_name?: string; email?: string }
   channelType: string
   otherLastRead: string | null
@@ -35,7 +37,7 @@ interface Props {
 export default function MessageBubble({
   msg, isMine, showAvatar, seen, seenBy, editingId, editText,
   onEditTextChange, onStartEdit, onSaveEdit, onCancelEdit, onDelete,
-  onReact, onOpenReactionPicker, onOpenFile, user,
+  onReact, onOpenReactionPicker, onOpenFile, onReply, user,
   channelType, otherLastRead, memberReads,
 }: Props) {
   const [hovered, setHovered] = useState(false)
@@ -160,6 +162,23 @@ export default function MessageBubble({
               boxShadow: isMine ? 'none' : '0 1px 2px rgba(0,0,0,0.04)',
               position: 'relative',
             }} elevation={0}>
+              {/* Reply preview */}
+              {msg.parent_msg_id && (
+                <Box sx={{
+                  mb: msg.content ? 0.75 : 0.5, px: 1, py: 0.5,
+                  borderLeft: `3px solid ${isMine ? 'rgba(255,255,255,0.4)' : NAVY}`,
+                  borderRadius: '4px',
+                  bgcolor: isMine ? 'rgba(255,255,255,0.08)' : 'rgba(15,76,129,0.04)',
+                }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 11, display: 'block', opacity: 0.8 }}>
+                    {msg.parent_sender_id === msg.sender_id ? 'You' : (msg.parent_first_name ? `${msg.parent_first_name} ${msg.parent_last_name || ''}`.trim() : msg.parent_email?.split('@')[0] || 'Unknown')}
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontSize: 11, opacity: 0.65, display: 'block' }} noWrap>
+                    {msg.parent_content || (msg.parent_file_name ? `📎 ${msg.parent_file_name}` : '')}
+                  </Typography>
+                </Box>
+              )}
+
               {/* Hover actions */}
               <Box sx={{
                 position: 'absolute', top: -10, right: isMine ? 'auto' : 0, left: isMine ? 0 : 'auto',
@@ -168,6 +187,10 @@ export default function MessageBubble({
                 <IconButton size="small" onClick={e => onOpenReactionPicker(e, msg.id)}
                   sx={{ width: 24, height: 24, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, boxShadow: '0 1px 2px rgba(0,0,0,0.08)', '&:hover': { bgcolor: BONE } }}>
                   <MoodIcon sx={{ fontSize: 14, color: MIST }} />
+                </IconButton>
+                <IconButton size="small" onClick={e => { e.stopPropagation(); onReply(msg) }}
+                  sx={{ width: 24, height: 24, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, boxShadow: '0 1px 2px rgba(0,0,0,0.08)', '&:hover': { bgcolor: BONE } }}>
+                  <ReplyIcon sx={{ fontSize: 14, color: MIST }} />
                 </IconButton>
                 {isMine && (
                   <>

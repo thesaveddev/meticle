@@ -25,6 +25,7 @@ interface Props {
   onReact: (msg: ChatMessage, emoji: string) => void
   onOpenReactionPicker: (e: React.MouseEvent, msgId: string) => void
   onOpenFile: (url: string, name: string) => void
+  onReply: (msg: ChatMessage) => void
   typingText: string
   messagesEndRef: React.Ref<HTMLDivElement>
   containerRef: React.Ref<HTMLDivElement>
@@ -36,7 +37,7 @@ export default function MessageList({
   messages, loading, hasOlder, olderLoading, onLoadOlder,
   currentUserId, user, channelType, otherLastRead, memberReads,
   editingId, editText, onEditTextChange, onStartEdit, onSaveEdit,
-  onCancelEdit, onDelete, onReact, onOpenReactionPicker, onOpenFile,
+  onCancelEdit, onDelete, onReact, onOpenReactionPicker, onOpenFile, onReply,
   typingText, messagesEndRef, containerRef, isMessageSeen, getSeenByNames,
 }: Props) {
   if (loading) {
@@ -106,7 +107,7 @@ export default function MessageList({
               editingId={editingId} editText={editText} onEditTextChange={onEditTextChange}
               onStartEdit={() => onStartEdit(msg)} onSaveEdit={() => onSaveEdit(msg)} onCancelEdit={onCancelEdit}
               onDelete={() => onDelete(msg)} onReact={emoji => onReact(msg, emoji)}
-              onOpenReactionPicker={onOpenReactionPicker} onOpenFile={onOpenFile}
+              onOpenReactionPicker={onOpenReactionPicker} onOpenFile={onOpenFile} onReply={onReply}
               user={user} channelType={channelType}
               otherLastRead={otherLastRead} memberReads={memberReads}
             />
