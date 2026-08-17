@@ -436,6 +436,16 @@ const MIGRATION_033: Migration = {
   ],
 };
 
+// 034 — Chat message replies: add parent_id for threading
+const MIGRATION_034: Migration = {
+  name: '034_chat_message_replies',
+  strict: false,
+  statements: [
+    `ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES chat_messages(id) ON DELETE SET NULL`,
+    `CREATE INDEX IF NOT EXISTS idx_chat_messages_parent ON chat_messages(parent_id) WHERE parent_id IS NOT NULL`,
+  ],
+};
+
 const MIGRATION_029: Migration = {
   name: '029_leave_hours_only',
   strict: false,
@@ -1991,7 +2001,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

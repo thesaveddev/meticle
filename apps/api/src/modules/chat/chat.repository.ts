@@ -73,11 +73,17 @@ export class ChatRepository {
   }
 
   static async getMessages(channelId: string, limit = 50, before?: string) {
-    let sql = `SELECT cm.*, u.email, sp.first_name, sp.last_name, sp.profile_picture_url
-               FROM chat_messages cm
-               JOIN users u ON cm.sender_id = u.id
-               LEFT JOIN staff_profiles sp ON u.id = sp.user_id
-               WHERE cm.channel_id = $1`;
+    let sql = `SELECT cm.*, u.email, sp.first_name, sp.last_name, sp.profile_picture_url,
+        pm.id as parent_msg_id, pm.content as parent_content, pm.file_name as parent_file_name,
+        pm.sender_id as parent_sender_id, pm.created_at as parent_created_at,
+        psp.first_name as parent_first_name, psp.last_name as parent_last_name, psp.email as parent_email
+       FROM chat_messages cm
+       JOIN users u ON cm.sender_id = u.id
+       LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+       LEFT JOIN chat_messages pm ON cm.parent_id = pm.id
+       LEFT JOIN users pu ON pm.sender_id = pu.id
+       LEFT JOIN staff_profiles psp ON pu.id = psp.user_id
+       WHERE cm.channel_id = $1`;
     const params: any[] = [channelId];
 
     if (before) {
@@ -92,10 +98,10 @@ export class ChatRepository {
     return result.rows.reverse();
   }
 
-  static async sendMessage(channelId: string, senderId: string, content: string, fileUrl?: string, fileName?: string) {
+  static async sendMessage(channelId: string, senderId: string, content: string, fileUrl?: string, fileName?: string, parentId?: string) {
     const result = await query(
-      `INSERT INTO chat_messages (channel_id, sender_id, content, file_url, file_name) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [channelId, senderId, content, fileUrl || null, fileName || null]
+      `INSERT INTO chat_messages (channel_id, sender_id, content, file_url, file_name, parent_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [channelId, senderId, content, fileUrl || null, fileName || null, parentId || null]
     );
 
     // Update channel updated_at
@@ -106,10 +112,16 @@ export class ChatRepository {
 
   static async getFullMessage(messageId: string) {
     const fullMsg = await query(
-      `SELECT cm.*, u.email, sp.first_name, sp.last_name, sp.profile_picture_url
+      `SELECT cm.*, u.email, sp.first_name, sp.last_name, sp.profile_picture_url,
+        pm.id as parent_msg_id, pm.content as parent_content, pm.file_name as parent_file_name,
+        pm.sender_id as parent_sender_id, pm.created_at as parent_created_at,
+        psp.first_name as parent_first_name, psp.last_name as parent_last_name, psp.email as parent_email
        FROM chat_messages cm
        JOIN users u ON cm.sender_id = u.id
        LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+       LEFT JOIN chat_messages pm ON cm.parent_id = pm.id
+       LEFT JOIN users pu ON pm.sender_id = pu.id
+       LEFT JOIN staff_profiles psp ON pu.id = psp.user_id
        WHERE cm.id = $1`,
       [messageId]
     );

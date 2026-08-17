@@ -182,6 +182,7 @@ export default function ChatPage() {
                 onReact={(msg, emoji) => chat.handleToggleReaction(msg, emoji)}
                 onOpenReactionPicker={(e, msgId) => { e.stopPropagation(); setReactionPicker({ msgId, anchor: e.currentTarget as HTMLElement }) }}
                 onOpenFile={openFilePreview}
+                onReply={msg => { chat.setReplyTo(msg) }}
                 typingText={chat.typingText} messagesEndRef={chat.messagesEndRef}
                 containerRef={chat.msgContainerRef}
                 isMessageSeen={chat.isMessageSeen} getSeenByNames={chat.getSeenByNames}
@@ -193,6 +194,8 @@ export default function ChatPage() {
                 sendError={chat.sendError}
                 activeChannel={chat.activeChannel} onFileSelect={handleFileUpload}
                 inputLinkPreview={chat.inputLinkPreview} inputLinkLoading={chat.inputLinkLoading}
+                replyTo={chat.replyTo} onCancelReply={() => chat.setReplyTo(null)}
+                currentUserId={chat.currentUserId}
               />
             </>
           ) : (

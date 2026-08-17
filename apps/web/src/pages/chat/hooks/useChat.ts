@@ -30,6 +30,15 @@ export interface ChatMessage {
   email?: string
   profile_picture_url?: string
   reactions?: { emoji: string; count: number; reacted_by_me: boolean }[]
+  parent_id?: string | null
+  parent_msg_id?: string | null
+  parent_content?: string | null
+  parent_file_name?: string | null
+  parent_sender_id?: string | null
+  parent_created_at?: string | null
+  parent_first_name?: string | null
+  parent_last_name?: string | null
+  parent_email?: string | null
 }
 
 export interface OrgMember {
@@ -97,6 +106,7 @@ export function useChat() {
 
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -190,6 +200,7 @@ export function useChat() {
     setSendError('')
     setInputLinkPreview(null)
     setEditingMessageId(null)
+    setReplyTo(null)
   }, [activeChannel])
 
   useEffect(() => {
@@ -375,6 +386,7 @@ export function useChat() {
         content: messageText.trim() || undefined,
         file_url: fileUrl || undefined,
         file_name: fileName || undefined,
+        parent_id: replyTo?.id || undefined,
       })
       setMessages(prev => prev.find(m => m.id === msgRes.data.id) ? prev : [...prev, msgRes.data])
       if (fileUrl) {
@@ -383,13 +395,14 @@ export function useChat() {
       setChannels(prev => prev.map(c => c.id === activeChannel ? { ...c, last_message: messageText.trim() || (fileName ? `📎 ${fileName}` : ''), last_message_at: new Date().toISOString() } : c))
       setMessageText('')
       setInputLinkPreview(null)
+      setReplyTo(null)
       const socket = getSocket()
       if (socket) socket.emit('chat:typing', { channelId: activeChannel, isTyping: false })
     } catch (err: any) {
       setSendError(err.response?.data?.message || 'Failed to send message')
     }
     finally { setSending(false) }
-  }, [messageText, sending, activeChannel, user])
+  }, [messageText, sending, activeChannel, user, replyTo])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
@@ -516,6 +529,7 @@ export function useChat() {
     orgMembers, channelMembers, sharedFiles, filesLoading,
     typingUsers, onlineUsers, otherLastRead, memberReads, typingText,
     editingMessageId, setEditingMessageId, editText, setEditText, saveEdit, confirmDeleteMessage,
+    replyTo, setReplyTo,
     handleToggleReaction, handleCreateGroup, handleStartDM, handleRemoveMember, handleLeaveGroup,
     handleFileUpload, handleDeleteFile,
     isMessageSeen, getSeenByNames, getOnlineCount,

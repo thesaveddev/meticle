@@ -17,6 +17,7 @@ const sendMessageSchema = z.object({
   content: z.string().max(5000, 'Message content too long').optional(),
   file_url: z.string().max(2000).optional(),
   file_name: z.string().max(255).optional(),
+  parent_id: z.string().uuid().optional(),
 });
 
 const addMemberSchema = z.object({

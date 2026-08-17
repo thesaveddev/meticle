@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import { Box, TextField, Button, IconButton, Stack, Typography, CircularProgress, Paper, Tooltip } from '@mui/material'
-import { Send as SendIcon, AttachFile as AttachFileIcon, Mood as MoodIcon } from '@mui/icons-material'
+import { Send as SendIcon, AttachFile as AttachFileIcon, Mood as MoodIcon, Close as CloseIcon } from '@mui/icons-material'
 import { EMOJIS, NAVY, NAVY_DEEP, INK, MIST, BONE, HAIRLINE, WHITE } from '../utils'
+import { type ChatMessage } from '../hooks/useChat'
 
 interface Props {
   messageText: string
@@ -15,12 +16,16 @@ interface Props {
   onFileSelect: (file: File) => void
   inputLinkPreview: { title: string; description: string; image: string; url: string } | null
   inputLinkLoading: boolean
+  replyTo: ChatMessage | null
+  onCancelReply: () => void
+  currentUserId: string
 }
 
 export default function ChatComposer({
   messageText, onTextChange, onSend, onKeyDown, onTyping,
   sending, sendError, activeChannel, onFileSelect,
   inputLinkPreview, inputLinkLoading,
+  replyTo, onCancelReply, currentUserId,
 }: Props) {
   const [showEmoji, setShowEmoji] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -41,6 +46,28 @@ export default function ChatComposer({
 
   return (
     <Box sx={{ borderTop: `1px solid ${HAIRLINE}`, bgcolor: WHITE }}>
+      {/* Reply context */}
+      {replyTo && (
+        <Box sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{
+            px: 1, py: 0.75, borderRadius: 1.5,
+            bgcolor: BONE, borderLeft: `3px solid ${NAVY}`,
+          }}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 11, color: NAVY, display: 'block' }}>
+                Replying to {replyTo.sender_id === currentUserId ? 'yourself' : (replyTo.first_name ? `${replyTo.first_name} ${replyTo.last_name || ''}`.trim() : replyTo.email?.split('@')[0] || 'Unknown')}
+              </Typography>
+              <Typography variant="caption" sx={{ fontSize: 11, color: MIST, display: 'block' }} noWrap>
+                {replyTo.content || (replyTo.file_name ? `📎 ${replyTo.file_name}` : '')}
+              </Typography>
+            </Box>
+            <IconButton size="small" onClick={onCancelReply} sx={{ width: 22, height: 22 }}>
+              <CloseIcon sx={{ fontSize: 14, color: MIST }} />
+            </IconButton>
+          </Stack>
+        </Box>
+      )}
+
       {/* Link preview */}
       {inputLinkPreview && (
         <Box sx={{ px: 2, pt: 1.5 }}>
