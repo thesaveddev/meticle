@@ -1,12 +1,12 @@
 ## Goal
-Supported living + domiciliary care platform. Build is substantially complete — 37 backend modules, ~50 frontend pages, full seed script. Focus now: hardening, testing, deployment, and the remaining Phase 2 gaps.
+Supported living + domiciliary care platform. Phase 1 is complete and launched. Focus: hardening, testing, monitoring, and Phase 2 features.
 
 ## Constraints & Preferences
 - ORG_ADMIN promotes other ORG_ADMINs; MANAGERs cannot change own role
 - Leave Manager standalone (not in Rota Planner); calendar day-click popup with status, duration, approve/reject
 - Leave balance cards: compact inline header row, aggregated "X days + Y hours" format
 - Compliance profiles role-based; role changes reflect instantly via `/auth/me` on page focus + periodic poll
-- Multi-tenant via tenant.ts helpers (no RLS yet)
+- Multi-tenant via AsyncLocalStorage + dual-pool + RLS policies on all tables
 - Stripe auto-provisions on first use; test mode allowed in dev
 - Manager cannot self-approve leave; manager/admin leave routes to: (1) active delegation (deputy) → (2) a different ORG_ADMIN → (3) any other manager/admin; auto-approves (audit-logged) only if no alternative approver exists
 - Rota Planner: location-based min safe staffing, compliance block on assign, view-only for non-`scheduling:edit`
@@ -21,31 +21,31 @@ Supported living + domiciliary care platform. Build is substantially complete �
 
 ## Architecture
 - **Monorepo**: npm workspaces (`apps/api`, `apps/web`, `apps/marketing`, `packages/shared`)
-- **Backend**: Express modular monolith, 37 module dirs, raw SQL (no ORM), Zod validation (80+ schemas)
+- **Backend**: Express modular monolith, 45 module dirs, raw SQL (no ORM), Zod validation (80+ schemas)
 - **Frontend**: React 18 + TypeScript + MUI 5 + TanStack React Query + React Router 6
 - **Database**: PostgreSQL 15 (pg pool), dual-pool (app role + superuser), AsyncLocalStorage request-scoped clients, RLS enforcement
 - **Cache**: Redis with in-memory fallback (rate limiter, token blacklist)
-- **Realtime**: Socket.IO v4 with JWT auth + DB validation + rate limiting
+- **Realtime**: Socket.IO v4 with JWT auth + DB validation + rate limiting + Redis adapter
 - **Auth**: JWT access + refresh tokens, MFA (TOTP/speakeasy), RBAC + permission checks per request
-- **Infra**: Docker compose (dev + partial prod), GitHub Actions CI, Prometheus metrics, Swagger auto-docs
+- **Infra**: Docker compose (dev 4 services + prod 6 services), GitHub Actions CI/CD with GHCR + auto-rollback, Prometheus metrics, Swagger auto-docs
 - **AI**: OpenAI + Anthropic adapters, per-org API keys, audit logging
 
-## Current State (Audited July 2026)
+## Current State (Phase 1 — Launched August 2026)
 
-### ✅ Backend Modules (38)
+### ✅ Backend Modules (45)
 | Module | Endpoints | Key Features |
 |---|---|---|
 | auth | 11 | Register, login, MFA challenge, refresh, forgot/reset, me, logout |
 | mfa | 5 | Setup (QR), verify, disable, admin-disable |
 | orgs | 20 | Org CRUD, locations, departments, teams, branding, subscription |
 | organization | 6 | Invitations: send, validate, accept, list, resend, cancel |
+| people | 32 | People (SU/carer/family/visitor/emergency), notes, documents, activities, care plans, goals, risk assessments, contacts |
 | staff | 18 | Profiles, role/status/skills/qualifications/emergency-contacts, dept assignment |
 | compliance | 16 | Docs, evidence packs (KLOE), identity dashboard, trends, mappings, records, PDF |
 | scheduling | 30+ | Shifts CRUD, assign/claim/swap/approve/reject, templates, min-staff, OT |
 | marketplace | 3 | Open shifts, apply, publish |
 | reporting | 2 | Compliance audit, staffing stats — **40 reports** across 10 categories (staff, people, scheduling, leave, incidents, compliance, training, eMAR, outcomes, operations) with filters, charts, and CSV export |
 | insights | 5 | Overview, staffing, compliance, leave, rota analytics (Recharts on frontend) |
-| service-users | 50+ | Full CRUD + care plans, daily notes, risk assessments, family contacts, assessments, clinical scores, body map, memory book, wellbeing, communication log, capacity, care pathways, discharge checklist, timeline, documents, photo upload |
 | incidents | 24 | CRUD, categories, involved residents, action items (owners/due/overdue), evidence attachments, near-miss + confidential events (admin-only visibility), CQC reporting fields, audit timeline, admin notifications, AI triage |
 | dashboard | 5 | Stats (7 KPIs), compliance snapshot, today-rota, widgets, review scheduler |
 | notifications | 6 | List, unread count, mark read (single/all), preferences |
@@ -71,33 +71,42 @@ Supported living + domiciliary care platform. Build is substantially complete �
 | dspt | 5 | NHS DSPT: assessment, 10 standards, submit |
 | tasks | 4 | CRUD (kanban-style) |
 | room-checks | 4 | CRUD with photo upload + MUI ratings |
-| events | 5 | Domain event outbox (`domain_events`/`event_consumers` tables, migration 031), publish helper (joins request transaction via ALS), consumer registry, in-process worker (FOR UPDATE SKIP LOCKED, retries, cleanup), admin endpoints: publish/pending/retry/correlation; **production wiring**: `incident.created` (incidents) + `leave.requested` (leave) published; `incident-ai-triage` consumer (stores `incidents.ai_triage` via migration 032, degrades to no-op without AI config); consumers run org-scoped via `runWithOrgContext` (RLS session vars on a dedicated client) |
+| events | 5 | Domain event outbox, publish helper, consumer registry, in-process worker, admin endpoints |
 | mobile | 3 | GPS check-in, roster (7-day), voice-to-text notes |
+| families | 12 | People-type family member CRUD + user account linking + invite + dashboard |
+| payments | 17 | Invoice CRUD + approve/send/pay + Stripe line items + payment link + portal + webhooks + statement + dashboard |
+| expenses | 10 | Petty cash CRUD + approve + stats + reports + dashboard |
+| outcomes | 14 | Outcome scales CRUD + assessments + analytics + compliance integration + dashboard |
+| alerts | 4 | Alert rules CRUD + evaluate + acknowledge + preferences |
+| audit-trail | 1 | Audit trail viewer (filtered, paginated, exportable) |
 
-### ✅ Frontend Pages (~50)
+### ✅ Frontend Pages (68)
 | Area | Pages | Features |
 |---|---|---|
 | Auth | 7 | Login, Register, Forgot/Reset Password, Verify Email, MFA Challenge, MFA Setup |
 | Dashboard | 1 | Role-based KPIs (7 cards), compliance widget, rota timeline, appointments, training/DBS expiry widgets |
 | Compliance | 8 | Hub, Identity Monitoring, Competency Assessments (3 tabs), Evidence Packs (KLOE), CQC Readiness (5-domain gauge + AI gap), Records, Satisfaction Surveys, Staff Engagement |
-| Scheduling | 2 | Rota Planner (7x24 grid, drag/drop, quick-add), OT Claims (4 tabs) |
+| Scheduling | 1 | Rota Planner (7x24 grid, quick-add) |
 | Leave | 1 | 5 tabs: Types, Requests, Balances, Calendar (with popup), Settings |
 | Chat | 1 | DMs/groups, real-time, emoji, files, link preview, read receipts, unread divider |
-| Service Users | 3 | Directory, Profile (20 tabs in 5 categories — comprehensive), HealthTab (4 sub-tabs) |
+| People | 3 | Directory, Profile (20 tabs in 5 categories), Health (4 sub-tabs) |
 | Staff | 2 | Directory (CSV import, filters), Profile (compliance, permissions, assess) |
-| Incidents | 2 | Directory (filters, stat cards, near-miss/confidential chips), Detail (AI triage, update, actions w/ overdue, evidence, timeline, delete) |
+| Incidents | 2 | Directory (filters, stat cards, near-miss/confidential chips), Detail (AI triage, update, actions, evidence, timeline, delete) |
 | eMAR | 2 | Active charts (31-day grid, PRN, stock, daily counts), Archived |
 | Settings | 1 | 12 tabs: Profile, Compliance, Leave, Delegates, Org, Billing, Integrations, Schedule, Notifications, Security, AI, Appearance |
+| Payments | 1 | Invoice list, create, detail, customer portal |
+| Outcomes | 1 | Scales, assessments, analytics, compliance integration |
+| Expenses | 1 | Petty cash list, create, detail, reports |
 | Other | 20+ | Appointments, Goals, Policies, Care Assessments, Tasks, Room Checks, Marketplace (x2), Agencies (5 tabs), Reporting (6 template cards), Insights (5 sections), Training Matrix (4 tabs), DSPT (4 themes/11 standards), Billing (Stripe), Onboarding, Organization (4 tabs), Family Portal, Mobile (GPS + Voice Notes), Learning Center, Legal (3), Marketing (7), Landing, Survey Form, Errors (2) |
 
 ### ✅ Infrastructure
 | Component | Status |
 |---|---|
 | Docker compose (dev) | ✅ 4 services (postgres, redis, api, web) with health checks + volumes |
-| Docker compose (prod) | ⚠️ Missing web service, port mismatch, no health checks/volumes |
-| CI (GitHub Actions) | ✅ Lint + typecheck + test + build (no deploy, no Docker push) |
-| Redis | ✅ Graceful in-memory fallback (rate limiter, token blacklist) |
-| Socket.IO | ✅ JWT auth, DB validation, rate limiting, membership gating, online presence |
+| Docker compose (prod) | ✅ 6 services (postgres, redis, api, web, nginx, prometheus) with health checks + volumes |
+| CI (GitHub Actions) | ✅ Lint + typecheck + test + build + Docker push to GHCR + deploy with auto-rollback |
+| Redis | ✅ In-memory fallback (rate limiter, token blacklist) |
+| Socket.IO | ✅ JWT auth, DB validation, rate limiting, membership gating, online presence, Redis adapter |
 | Prometheus metrics | ✅ Histograms + counters |
 | Swagger docs | ✅ Auto-generated from router stack |
 | File uploads | ✅ Multer + UUID names + MIME allowlist + extension/magic-byte blocking |
@@ -106,8 +115,10 @@ Supported living + domiciliary care platform. Build is substantially complete �
 | Encryption | ✅ AES-256-GCM per-org key derivation |
 | HTTPS | ✅ Optional cert-based |
 | PWA | ✅ Service worker, manifest, offline caching, installable, GPS/voice pages |
-| Testing | ⚠️ 11 files (unit only) — no integration tests, no controller tests |
-| Monitoring | ⚠️ No alerting, no dashboards, no uptime checks |
+| Testing | ✅ 395 tests across 44 modules (integration + unit) |
+| Postgres RLS | ✅ AsyncLocalStorage + dual-pool + RLS policies on all tables |
+| Migrations | ✅ 33 migrations, versioned with checksums |
+| Monitoring | ⚠️ Prometheus only — no alerting, no dashboards, no uptime checks |
 
 ### ✅ Seed Script (`seed-orbis.ts`)
 Creates a fresh demo org with random name each run (~1,550 rows total):
@@ -128,25 +139,64 @@ Creates a fresh demo org with random name each run (~1,550 rows total):
 - 4 eMAR records (12 meds, ~76 administrations)
 - 15 evidence mappings
 
+### ✅ Test Suite (395 tests)
+| Module | Tests | Coverage |
+|---|---|---|
+| auth | 12 | Register, login, MFA, refresh, forgot/reset, logout, /auth/me |
+| mfa | 10 | Setup, verify, disable, admin-disable, TOTP flow |
+| orgs | 13 | Org CRUD, locations, departments, teams |
+| organization | 12 | Invitation send, validate, accept, list, resend, cancel |
+| people | 15 | CRUD, notes, documents, activities, care plans |
+| staff | 11 | Profiles, role/status, skills, qualifications, emergency contacts |
+| compliance | 13 | Docs, evidence packs, identity dashboard, trends, records |
+| scheduling | 13 | Shifts CRUD, assign, templates, min-staff |
+| reporting | 10 | Compliance audit, staffing stats, 40 reports |
+| incidents | 11 | CRUD, categories, actions, evidence, near-miss |
+| dashboard | 7 | Stats, compliance, rota, widgets |
+| notifications | 8 | List, unread, mark read, preferences |
+| permissions | 6 | Modules, get user, update user |
+| training | 10 | Modules CRUD, records, matrix, expiring, dashboard |
+| competency | 7 | Templates CRUD, assessments, pending |
+| cqc | 7 | Readiness, frameworks, gap analysis, action items |
+| surveys | 9 | Satisfaction, engagement, public forms |
+| appointments | 5 | CRUD, today-stats |
+| policies | 5 | CRUD, categories |
+| emedication | 10 | MAR records, chart grid, administrations, stock |
+| goals | 5 | CRUD, stats |
+| health | 9 | Observations, bowel, dental, fluid |
+| leave | 10 | Requests, balances, calendar, types, review |
+| settings | 8 | Org settings, locations, certs, config |
+| chat | 7 | Channels, messages, DMs, groups, files |
+| billing | 5 | Subscription, invoices, payment methods |
+| audit | 5 | Logs, filters, export |
+| ai | 7 | Config, compliance, triage, rota, usage |
+| family-portal | 6 | Members, invite, token access |
+| delegations | 5 | CRUD, delegation trail |
+| agencies | 5 | CRUD, workers, rates |
+| dspt | 5 | Assessment, standards, submit |
+| tasks | 5 | CRUD, kanban |
+| room-checks | 5 | CRUD, photos, ratings |
+| events | 5 | Domain events, consumers, admin |
+| mobile | 5 | GPS, roster, voice notes |
+| families | 12 | People-type family members, user linking, invite |
+| payments | 10 | Invoices, approve, Stripe, portal |
+| expenses | 8 | Petty cash CRUD, approve, stats, reports |
+| outcomes | 8 | Scales, assessments, analytics, compliance |
+| alerts | 5 | Rules, evaluate, acknowledge, preferences |
+| audit-trail | 5 | Viewer, filters, export |
+| **Total** | **395** | **44 modules** |
+
 ### ❌ Phase 2 — Still to Build
 | Feature | Notes |
 |---|---|
 | **Drag & Drop Rota** | Interactive drag-and-drop shift scheduling on the rota grid |
-| **E-learning (SCORM/xAPI)** | No LMS integration |
-| **Digital signatures** | No DocuSign/Adobe Sign |
-| **DBS API integration** | No GBG/uCheck partnership |
-| **SMS notifications** | No Twilio |
+| **E-learning (SCORM/xAPI)** | No LMS integration — partner with Highfield or similar for accredited care courses |
+| **Digital signatures** | No DocuSign/Adobe Sign integration |
+| **DBS API integration** | No GBG/uCheck partnership for automated DBS checks |
+| **SMS notifications** | No Twilio — currently email-only |
 | **PrintNode printing** | Physical document delivery |
-| **Expense tracking (standalone)** | Petty cash ledger for service users (funded by agencies module but no standalone) |
 | **Document Drive** | File management UI for evidence packs |
-| **Full Reporting Suite** | ✅ Done — 40 reports, filters, charts, CSV export |
-| **Family Portal Finances** | Tab placeholder |
+| **Family Portal Finances** | Tab placeholder — invoices/payments not exposed to family members |
 | **Staff 1-2-1s** | One-to-one meeting records, action tracking, review scheduling |
 | **Payroll & Timesheets** | Timesheet submission, approval workflow, payroll export/integration |
-| **Docker prod polish** | ✅ Done |
-| **Socket.io Redis adapter** | ✅ Done |
-| **Postgres RLS** | ✅ Done — AsyncLocalStorage + dual-pool + RLS policies on all tables |
-| **Test coverage** | ⚠️ 148 tests (5 modules) — expand to all 37 modules |
-| **Deployment pipeline** | ⚠️ Manual SSH deploy — needs CI/CD Docker push + auto-deploy |
-| **Migration versioning** | ✅ Done — `_migrations` table + checksums + version-prefix ordering (runner sorts by numeric prefix, rejects duplicate versions and out-of-order insertions) |
-| **Monitoring** | ⚠️ No alerting, no dashboards, no uptime checks |
+| **Monitoring & Alerting** | Prometheus exists but no alerting rules, no dashboards, no uptime checks |
