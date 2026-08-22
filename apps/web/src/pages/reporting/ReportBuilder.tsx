@@ -48,7 +48,7 @@ export default function ReportBuilder() {
 
   const [meta, setMeta] = useState<ReportMeta | null>(null)
   const [data, setData] = useState<ReportData | null>(null)
-  const [loading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [fetching, setFetching] = useState(false)
   const [error, setError] = useState('')
   const [chartType, setChartType] = useState('bar')
@@ -68,12 +68,29 @@ export default function ReportBuilder() {
   const [severity, setSeverity] = useState('')
 
   useEffect(() => {
-    api.get('/reporting/reports').then(r => {
-      const found = r.data.reports.find((rp: ReportMeta) => rp.id === reportId)
-      if (found) { setMeta(found); setChartType(found.defaultChartType) }
+    let active = true
+    setLoading(true)
+    setError('')
+    Promise.all([
+      api.get('/reporting/reports'),
+      api.get('/reporting/filter-options'),
+    ]).then(([reportsResponse, optionsResponse]) => {
+      if (!active) return
+      const found = reportsResponse.data.reports.find((rp: ReportMeta) => rp.id === reportId)
+      if (!found) {
+        setError('This report is not available. Return to the reports overview and choose another report.')
+        return
+      }
+      setMeta(found)
+      setChartType(found.defaultChartType)
+      setLocations(optionsResponse.data.locations || [])
+      setDepartments(optionsResponse.data.departments || [])
+    }).catch((e: any) => {
+      if (active) setError(e.response?.data?.message || 'We could not load this report.')
+    }).finally(() => {
+      if (active) setLoading(false)
     })
-    api.get('/orgs/locations').then(r => setLocations(r.data.locations || r.data || [])).catch(() => {})
-    api.get('/orgs/departments').then(r => setDepartments(r.data.departments || r.data || [])).catch(() => {})
+    return () => { active = false }
   }, [reportId])
 
   const fetchData = useCallback(async () => {
@@ -196,8 +213,8 @@ export default function ReportBuilder() {
     }
   }
 
-  if (loading && !meta) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
-  if (!meta) return <Alert severity="error">Report not found</Alert>
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+  if (!meta) return <Box><Alert severity="error" sx={{ mb: 2 }}>{error || 'Report not found'}</Alert><Button startIcon={<BackIcon />} onClick={() => navigate('/reports')}>Back to reports</Button></Box>
 
   return (
     <Box>

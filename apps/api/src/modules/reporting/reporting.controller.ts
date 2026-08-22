@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { getReportData } from './reporting.service';
+import { ReportingRepository } from './reporting.repository';
 import { REPORT_REGISTRY, CATEGORIES, ReportFilters } from './reporting.types';
 import { generateCsv } from './reporting.csv';
 
@@ -13,6 +14,16 @@ export class ReportingController {
       groupByOptions: r.groupByOptions,
     }));
     res.json({ reports, categories: CATEGORIES });
+  }
+
+  static async getOverview(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    res.json(await ReportingRepository.overview(orgId));
+  }
+
+  static async getFilterOptions(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    res.json(await ReportingRepository.filterOptions(orgId));
   }
 
   static async getReportData(req: Request, res: Response) {

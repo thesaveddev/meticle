@@ -10,6 +10,8 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/reports', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ReportingController.listReports));
+router.get('/overview', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ReportingController.getOverview));
+router.get('/filter-options', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ReportingController.getFilterOptions));
 router.get('/data/:reportId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ReportingController.getReportData));
 router.get('/export/:reportId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ReportingController.exportReport));
 
