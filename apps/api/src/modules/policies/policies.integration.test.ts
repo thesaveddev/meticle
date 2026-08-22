@@ -55,10 +55,39 @@ describe('Policies — CRUD', () => {
   it('should seed standard policies as ORG_ADMIN', async () => {
     const org = await createOrg()
     const admin = await createUser({ email: `pols-${Date.now()}@test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const token = generateToken(admin)
     const res = await request(app)
       .post('/policies/seed')
-      .set('Authorization', `Bearer ${generateToken(admin)}`)
+      .set('Authorization', `Bearer ${token}`)
     expect(res.status).toBe(200)
+    expect(res.body.seeded).toBe(12)
+
+    const list = await request(app)
+      .get('/policies')
+      .set('Authorization', `Bearer ${token}`)
+    expect(list.body).toHaveLength(12)
+  })
+
+  it('should auto-load defaults on first list and not recreate them after deletion', async () => {
+    const org = await createOrg()
+    const admin = await createUser({ email: `polauto-${Date.now()}@test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const token = generateToken(admin)
+
+    const first = await request(app)
+      .get('/policies')
+      .set('Authorization', `Bearer ${token}`)
+    expect(first.status).toBe(200)
+    expect(first.body).toHaveLength(12)
+
+    const deleted = await request(app)
+      .delete(`/policies/${first.body[0].id}`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(deleted.status).toBe(200)
+
+    const second = await request(app)
+      .get('/policies')
+      .set('Authorization', `Bearer ${token}`)
+    expect(second.body).toHaveLength(11)
   })
 
   it('should reject CARE_WORKER creating a policy', async () => {

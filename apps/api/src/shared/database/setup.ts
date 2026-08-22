@@ -446,6 +446,26 @@ const MIGRATION_034: Migration = {
   ],
 };
 
+const MIGRATION_035: Migration = {
+  name: '035_policy_lifecycle',
+  strict: false,
+  statements: [
+    `ALTER TABLE policies ADD COLUMN IF NOT EXISTS review_due_at DATE`,
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS policies_initialized BOOLEAN NOT NULL DEFAULT FALSE`,
+    `UPDATE organizations SET policies_initialized = TRUE WHERE id IN (SELECT DISTINCT organization_id FROM policies)`,
+    `CREATE INDEX IF NOT EXISTS idx_policies_review_due ON policies(organization_id, review_due_at)`,
+  ],
+};
+
+const MIGRATION_036: Migration = {
+  name: '036_policy_status_lifecycle',
+  strict: false,
+  statements: [
+    `ALTER TABLE policies DROP CONSTRAINT IF EXISTS policies_status_check`,
+    `ALTER TABLE policies ADD CONSTRAINT policies_status_check CHECK (status IN ('active', 'published', 'archived', 'draft'))`,
+  ],
+};
+
 const MIGRATION_029: Migration = {
   name: '029_leave_hours_only',
   strict: false,
@@ -2001,7 +2021,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)
