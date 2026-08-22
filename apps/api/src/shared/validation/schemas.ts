@@ -1261,6 +1261,7 @@ export const createPolicySchema = z.object({
   content: z.string().min(1),
   version: z.string().max(50).optional(),
   status: z.enum(['draft', 'published', 'archived']).optional(),
+  review_due_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
 
 export const updatePolicySchema = z.object({
@@ -1269,6 +1270,7 @@ export const updatePolicySchema = z.object({
   content: z.string().min(1).optional(),
   version: z.string().max(50).optional(),
   status: z.enum(['draft', 'published', 'archived']).optional(),
+  review_due_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
 
 // === Appointments ===

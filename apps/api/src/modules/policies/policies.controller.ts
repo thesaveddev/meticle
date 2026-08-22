@@ -12,6 +12,7 @@ export class PolicyController {
   static async list(req: Request, res: Response) {
     const orgId = PolicyController.getOrgId(req);
     const { category, search } = req.query as any;
+    await PolicyRepository.ensureDefaults(orgId);
     const policies = await PolicyRepository.findAll(orgId, category, search);
     res.json(policies);
   }

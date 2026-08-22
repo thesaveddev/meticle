@@ -143,7 +143,7 @@ function App() {
           <Route path="/training" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="training"><TrainingMatrixPage /></ModuleGuard></AuthGuard>} />
           <Route path="/chat" element={<ModuleGuard module="chat"><ChatPage /></ModuleGuard>} />
           <Route path="/appointments" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="appointments"><AppointmentsPage /></ModuleGuard></AuthGuard>} />
-          <Route path="/policies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="policies"><PoliciesPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/policies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="policies"><PoliciesPage /></ModuleGuard></AuthGuard>} />
           <Route path="/outcomes" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="outcomes"><OutcomesPage /></ModuleGuard></AuthGuard>} />
           <Route path="/room-checks" element={<ModuleGuard module="room_checks"><RoomChecksPage /></ModuleGuard>} />
           <Route path="/mobile/check-in" element={<CheckInPage />} />
