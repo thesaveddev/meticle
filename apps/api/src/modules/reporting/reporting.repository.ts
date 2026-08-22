@@ -50,13 +50,58 @@ function buildTimeWhere(filters: ReportFilters, timeCol: string, tableAlias: str
 }
 
 export class ReportingRepository {
+  static async filterOptions(orgId: string) {
+    const [locations, departments] = await Promise.all([
+      query(`SELECT id, name FROM locations WHERE organization_id = $1 ORDER BY name`, [orgId]),
+      query(`SELECT d.id, d.name FROM departments d JOIN locations l ON d.location_id = l.id WHERE l.organization_id = $1 ORDER BY d.name`, [orgId]),
+    ]);
+    return { locations: locations.rows, departments: departments.rows };
+  }
+
+  static async overview(orgId: string) {
+    const [staff, people, locations, incidents, compliance, training, missedMedication, tasks] = await Promise.all([
+      query(`SELECT COUNT(*)::int AS value FROM users WHERE organization_id = $1 AND status = 'active' AND role != 'SUPER_ADMIN'`, [orgId]),
+      query(`SELECT COUNT(*)::int AS value FROM people WHERE organization_id = $1 AND status = 'active'`, [orgId]),
+      query(`SELECT COUNT(*)::int AS value FROM locations WHERE organization_id = $1`, [orgId]),
+      query(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status IN ('reported', 'investigating'))::int AS open, COUNT(*) FILTER (WHERE severity IN ('high', 'critical') AND status IN ('reported', 'investigating'))::int AS urgent FROM incidents WHERE organization_id = $1`, [orgId]),
+      query(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE cr.status IN ('completed', 'valid', 'complete'))::int AS complete, COUNT(*) FILTER (WHERE cr.status IN ('expired', 'overdue'))::int AS overdue FROM compliance_records cr JOIN staff_profiles sp ON cr.staff_id = sp.id JOIN users u ON sp.user_id = u.id WHERE u.organization_id = $1`, [orgId]),
+      query(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE tr.status = 'completed')::int AS complete, COUNT(*) FILTER (WHERE tr.status = 'expired' OR (tr.expires_at IS NOT NULL AND tr.expires_at < CURRENT_DATE))::int AS overdue FROM training_records tr JOIN staff_profiles sp ON tr.staff_id = sp.id JOIN users u ON sp.user_id = u.id WHERE u.organization_id = $1`, [orgId]),
+      query(`SELECT COUNT(*)::int AS value FROM emedication_administrations ea JOIN emedication_items ei ON ea.emedication_item_id = ei.id JOIN emedication_records er ON ei.emedication_record_id = er.id WHERE er.organization_id = $1 AND ea.status = 'missed'`, [orgId]),
+      query(`SELECT COUNT(*)::int AS value FROM tasks WHERE organization_id = $1 AND status NOT IN ('completed', 'cancelled') AND due_date < CURRENT_DATE`, [orgId]),
+    ]);
+
+    const incident = incidents.rows[0] || { total: 0, open: 0, urgent: 0 };
+    const complianceRow = compliance.rows[0] || { total: 0, complete: 0, overdue: 0 };
+    const trainingRow = training.rows[0] || { total: 0, complete: 0, overdue: 0 };
+    const complianceRate = Number(complianceRow.total) > 0 ? Math.round(Number(complianceRow.complete) / Number(complianceRow.total) * 100) : 0;
+    const trainingRate = Number(trainingRow.total) > 0 ? Math.round(Number(trainingRow.complete) / Number(trainingRow.total) * 100) : 0;
+
+    return {
+      generatedAt: new Date().toISOString(),
+      cards: [
+        { label: 'Active staff', value: staff.rows[0]?.value || 0, subtitle: 'People with an active account', color: '#0F4C81' },
+        { label: 'People supported', value: people.rows[0]?.value || 0, subtitle: 'Active people in the service', color: '#7C3AED' },
+        { label: 'Compliance rate', value: `${complianceRate}%`, subtitle: `${complianceRow.overdue || 0} overdue records`, color: complianceRate >= 80 ? '#16A34A' : '#DC2626' },
+        { label: 'Training completion', value: `${trainingRate}%`, subtitle: `${trainingRow.overdue || 0} overdue modules`, color: trainingRate >= 80 ? '#16A34A' : '#D97706' },
+        { label: 'Open incidents', value: incident.open || 0, subtitle: `${incident.urgent || 0} high or critical`, color: incident.open > 0 ? '#DC2626' : '#16A34A' },
+        { label: 'Missed medication', value: missedMedication.rows[0]?.value || 0, subtitle: 'Administration records needing review', color: missedMedication.rows[0]?.value > 0 ? '#DC2626' : '#16A34A' },
+      ],
+      attention: [
+        { label: 'Overdue compliance records', value: complianceRow.overdue || 0, action: 'Review compliance', target: 'compliance' },
+        { label: 'Overdue training modules', value: trainingRow.overdue || 0, action: 'Open training', target: 'training' },
+        { label: 'Overdue tasks', value: tasks.rows[0]?.value || 0, action: 'Review tasks', target: 'tasks' },
+        { label: 'Locations', value: locations.rows[0]?.value || 0, action: 'View locations', target: 'locations' },
+      ],
+    };
+  }
+
   // ─── Staff Reports ───────────────────────────────────────
 
   static async staffDirectory(orgId: string, f: ReportFilters) {
     let sql = `
-      SELECT sp.id, sp.first_name, sp.last_name, sp.position, sp.start_date, sp.status,
-             sp.emergency_contact_name, sp.emergency_contact_phone,
-             u.email, u.role, u.status as user_status, u.last_login_at,
+      SELECT sp.id, sp.first_name, sp.last_name, NULL::text as position, NULL::date as start_date, u.status,
+             NULL::text as emergency_contact_name, NULL::text as emergency_contact_phone,
+             u.email, u.role, u.status as user_status, NULL::timestamptz as last_login_at,
              l.name as location_name, d.name as department_name,
              COALESCE(
                (SELECT ROUND(AVG(CASE WHEN tr.status = 'completed' THEN 100.0 ELSE 0 END))
@@ -73,7 +118,7 @@ export class ReportingRepository {
     if (f.location_id) { sql += ` AND sp.location_id = $${idx}`; params.push(f.location_id); idx++; }
     if (f.department_id) { sql += ` AND sp.department_id = $${idx}`; params.push(f.department_id); idx++; }
     if (f.role) { sql += ` AND u.role = $${idx}`; params.push(f.role); idx++; }
-    if (f.status) { sql += ` AND (sp.status = $${idx} OR u.status = $${idx})`; params.push(f.status); idx++; }
+    if (f.status) { sql += ` AND u.status = $${idx}`; params.push(f.status); idx++; }
     sql += ' ORDER BY sp.last_name, sp.first_name';
 
     const result = await query(sql, params);
@@ -166,7 +211,7 @@ export class ReportingRepository {
 
   static async staffDocuments(orgId: string, f: ReportFilters) {
     let sql = `
-      SELECT sp.first_name, sp.last_name, d.type as document_type, d.title, d.expiry_date, d.status,
+      SELECT sp.first_name, sp.last_name, d.type as document_type, d.type as title, d.expiry_date, d.status,
              l.name as location_name, u.role,
              CASE WHEN d.expiry_date < CURRENT_DATE THEN 'expired'
                   WHEN d.expiry_date < CURRENT_DATE + INTERVAL '30 days' THEN 'expiring_30'
@@ -190,12 +235,11 @@ export class ReportingRepository {
 
   static async staffSkills(orgId: string, f: ReportFilters) {
     let sql = `
-      SELECT sk.name as skill_name, sk.category as skill_category, sp.first_name, sp.last_name,
-             ss.proficiency_level, ss.years_experience, l.name as location_name, d.name as department_name
-      FROM staff_skills ss
-      JOIN staff_profiles sp ON ss.staff_id = sp.id
+      SELECT sk.name as skill_name, NULL::text as skill_category, sp.first_name, sp.last_name,
+             NULL::text as proficiency_level, NULL::numeric as years_experience, l.name as location_name, d.name as department_name
+      FROM skills sk
+      JOIN staff_profiles sp ON sk.staff_id = sp.id
       JOIN users u ON sp.user_id = u.id
-      JOIN skills sk ON ss.skill_id = sk.id
       LEFT JOIN locations l ON sp.location_id = l.id
       LEFT JOIN departments d ON sp.department_id = d.id
       WHERE u.organization_id = $1`;
@@ -213,14 +257,14 @@ export class ReportingRepository {
 
   static async suDirectory(orgId: string, f: ReportFilters) {
     let sql = `
-      SELECT su.id, su.first_name, su.last_name, su.date_of_birth, su.status, su.care_level,
+      SELECT su.id, su.first_name, su.last_name, su.date_of_birth, su.status, NULL::text as care_level,
              su.nhs_number, su.created_at,
              l.name as location_name,
-             kw.first_name as key_worker_first, kw.last_name as key_worker_last
+             NULL::text as key_worker_first, NULL::text as key_worker_last
       FROM people su
       LEFT JOIN locations l ON su.location_id = l.id
-      LEFT JOIN staff_profiles sp ON su.key_worker_id = sp.id
-      LEFT JOIN users kw ON sp.user_id = kw.id
+      LEFT JOIN staff_profiles sp ON FALSE
+      LEFT JOIN users kw ON FALSE
       WHERE su.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
@@ -290,10 +334,10 @@ export class ReportingRepository {
 
   static async suDailyNotes(orgId: string, f: ReportFilters) {
     let sql = `
-      SELECT l.name as location_name, TO_CHAR(dn.created_at, 'YYYY-MM') as month,
+      SELECT l.name as location_name, TO_CHAR(dn.note_date, 'YYYY-MM') as month,
              COUNT(*)::int as note_count,
-             COUNT(*) FILTER (WHERE dn.mood IS NOT NULL)::int as mood_flagged,
-             COUNT(*) FILTER (WHERE dn.safeguarding_concern = true)::int as safeguarding_flags
+             COUNT(*) FILTER (WHERE dn.ai_mood_analysis IS NOT NULL)::int as mood_flagged,
+             COUNT(*) FILTER (WHERE dn.ai_safeguarding_flags IS NOT NULL)::int as safeguarding_flags
       FROM daily_notes dn
       JOIN people su ON dn.person_id = su.id
       LEFT JOIN locations l ON su.location_id = l.id
@@ -301,8 +345,8 @@ export class ReportingRepository {
     const params: any[] = [orgId];
     let idx = 2;
     if (f.location_id) { sql += ` AND su.location_id = $${idx}`; params.push(f.location_id); idx++; }
-    if (f.dateFrom) { sql += ` AND dn.created_at >= $${idx}`; params.push(f.dateFrom); idx++; }
-    if (f.dateTo) { sql += ` AND dn.created_at <= $${idx}`; params.push(f.dateTo); idx++; }
+    if (f.dateFrom) { sql += ` AND dn.note_date >= $${idx}`; params.push(f.dateFrom); idx++; }
+    if (f.dateTo) { sql += ` AND dn.note_date <= $${idx}`; params.push(f.dateTo); idx++; }
     sql += ' GROUP BY l.name, month ORDER BY month DESC';
     const result = await query(sql, params);
     return result.rows;
@@ -315,7 +359,7 @@ export class ReportingRepository {
       SELECT l.name as location_name, TO_CHAR(s.start_time, 'YYYY-MM') as month,
              s.status, s.shift_type,
              COUNT(*)::int as shift_count,
-             SUM(s.duration_hours)::numeric(10,1) as total_hours
+             SUM(EXTRACT(EPOCH FROM (s.end_time - s.start_time)) / 3600)::numeric(10,1) as total_hours
       FROM shifts s
       JOIN locations l ON s.location_id = l.id
       WHERE l.organization_id = $1`;
@@ -359,7 +403,7 @@ export class ReportingRepository {
       SELECT sp.first_name, sp.last_name, l.name as location_name, d.name as department_name,
              TO_CHAR(s.start_time, 'YYYY-MM') as month,
              COUNT(*)::int as overtime_shifts,
-             COALESCE(SUM(s.duration_hours), 0)::numeric(10,1) as total_hours
+             COALESCE(SUM(EXTRACT(EPOCH FROM (s.end_time - s.start_time)) / 3600), 0)::numeric(10,1) as total_hours
       FROM shifts s
       JOIN shift_assignments sa ON sa.shift_id = s.id
       JOIN staff_profiles sp ON sa.staff_id = sp.id
@@ -384,7 +428,7 @@ export class ReportingRepository {
       SELECT a.name as agency_name, l.name as location_name,
              TO_CHAR(s.start_time, 'YYYY-MM') as month,
              COUNT(*)::int as agency_shifts,
-             COALESCE(SUM(s.duration_hours), 0)::numeric(10,1) as total_hours
+             COALESCE(SUM(EXTRACT(EPOCH FROM (s.end_time - s.start_time)) / 3600), 0)::numeric(10,1) as total_hours
       FROM shifts s
       JOIN agencies a ON s.agency_id = a.id
       JOIN locations l ON s.location_id = l.id
@@ -440,7 +484,7 @@ export class ReportingRepository {
     if (f.department_id) { sql += ` AND sp.department_id = $${idx}`; params.push(f.department_id); idx++; }
     if (f.dateFrom) { sql += ` AND lr.start_date >= $${idx}`; params.push(f.dateFrom); idx++; }
     if (f.dateTo) { sql += ` AND lr.start_date <= $${idx}`; params.push(f.dateTo); idx++; }
-    sql += ' GROUP BY name, leave_type, color ORDER BY name DESC';
+    sql += " GROUP BY TO_CHAR(lr.start_date, 'YYYY-MM'), leave_type, color ORDER BY name DESC";
     const result = await query(sql, params);
     return result.rows;
   }
@@ -455,7 +499,7 @@ export class ReportingRepository {
       FROM leave_requests lr
       JOIN staff_profiles sp ON lr.staff_id = sp.id
       LEFT JOIN departments d ON sp.department_id = d.id
-      WHERE sp.organization_id = $1`;
+      WHERE EXISTS (SELECT 1 FROM users org_user WHERE org_user.id = sp.user_id AND org_user.organization_id = $1)`;
     const params: any[] = [orgId];
     let idx = 2;
     if (f.location_id) { sql += ` AND sp.location_id = $${idx}`; params.push(f.location_id); idx++; }
@@ -478,7 +522,7 @@ export class ReportingRepository {
       JOIN leave_types lt ON lb.leave_type_id = lt.id
       LEFT JOIN locations l ON sp.location_id = l.id
       LEFT JOIN departments d ON sp.department_id = d.id
-      WHERE sp.organization_id = $1`;
+      WHERE EXISTS (SELECT 1 FROM users org_user WHERE org_user.id = sp.user_id AND org_user.organization_id = $1)`;
     const params: any[] = [orgId];
     let idx = 2;
     if (f.location_id) { sql += ` AND sp.location_id = $${idx}`; params.push(f.location_id); idx++; }
@@ -527,7 +571,7 @@ export class ReportingRepository {
     if (f.category) { sql += ` AND ic.name = $${idx}`; params.push(f.category); idx++; }
     if (f.dateFrom) { sql += ` AND i.created_at >= $${idx}`; params.push(f.dateFrom); idx++; }
     if (f.dateTo) { sql += ` AND i.created_at <= $${idx}`; params.push(f.dateTo); idx++; }
-    sql += ' GROUP BY name, severity ORDER BY name DESC';
+    sql += ' GROUP BY TO_CHAR(i.created_at, \'YYYY-MM\'), i.severity ORDER BY name DESC';
     const result = await query(sql, params);
     return result.rows;
   }
@@ -554,7 +598,7 @@ export class ReportingRepository {
 
   static async complianceOverall(orgId: string, f: ReportFilters) {
     let sql = `
-      SELECT cr.category as name,
+      SELECT COALESCE(cc.category, 'Uncategorised') as name,
              COUNT(*)::int as value,
              COUNT(*) FILTER (WHERE cr.status = 'completed' OR cr.status = 'valid')::int as completed,
              COUNT(*) FILTER (WHERE cr.status = 'expired' OR cr.status = 'overdue')::int as overdue,
@@ -562,7 +606,10 @@ export class ReportingRepository {
                THEN ROUND(COUNT(*) FILTER (WHERE cr.status = 'completed' OR cr.status = 'valid')::numeric / COUNT(*) * 100)::int
                ELSE 0 END as rate
       FROM compliance_records cr
-      WHERE cr.organization_id = $1`;
+      JOIN compliance_config cc ON cr.requirement_id = cc.id
+      JOIN staff_profiles cr_sp ON cr.staff_id = cr_sp.id
+      JOIN users cr_u ON cr_sp.user_id = cr_u.id
+      WHERE cr_u.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
     if (f.location_id) {
@@ -573,7 +620,7 @@ export class ReportingRepository {
       sql += ` AND cr.staff_id IN (SELECT sp.id FROM staff_profiles sp WHERE sp.department_id = $${idx})`;
       params.push(f.department_id); idx++;
     }
-    sql += ' GROUP BY cr.category ORDER BY rate ASC, cr.category';
+    sql += ' GROUP BY cc.category ORDER BY rate ASC, cc.category';
     const result = await query(sql, params);
     return result.rows;
   }
@@ -605,7 +652,7 @@ export class ReportingRepository {
 
   static async complianceExpiring(orgId: string, f: ReportFilters) {
     let sql = `
-      SELECT sp.first_name, sp.last_name, d.type as document_type, d.title, d.expiry_date,
+      SELECT sp.first_name, sp.last_name, d.type as document_type, d.type as title, d.expiry_date,
              l.name as location_name, u.role,
              (d.expiry_date - CURRENT_DATE)::int as days_until_expiry
       FROM documents d
@@ -676,14 +723,15 @@ export class ReportingRepository {
 
   static async competencyScores(orgId: string, f: ReportFilters) {
     let sql = `
-      SELECT ct.name as template_name, ct.cqc_domain,
+      SELECT ct.name as template_name, ct.category as cqc_domain,
              sp.first_name, sp.last_name, l.name as location_name,
-             ca.score, ca.assessed_at, ca.overall_notes
+             ca.score, ca.assessed_at, NULL::text as overall_notes
       FROM competency_assessments ca
       JOIN competency_templates ct ON ca.template_id = ct.id
       JOIN staff_profiles sp ON ca.staff_id = sp.id
       LEFT JOIN locations l ON sp.location_id = l.id
-      WHERE ca.organization_id = $1`;
+      JOIN users ca_u ON sp.user_id = ca_u.id
+      WHERE ca_u.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
     if (f.location_id) { sql += ` AND sp.location_id = $${idx}`; params.push(f.location_id); idx++; }
@@ -703,21 +751,22 @@ export class ReportingRepository {
 
   static async marCompliance(orgId: string, f: ReportFilters) {
     let sql = `
-      SELECT TO_CHAR(ea.administered_at, 'YYYY-MM') as name,
+      SELECT TO_CHAR(COALESCE(ea.administered_time, ea.scheduled_time), 'YYYY-MM') as name,
              ea.status,
              COUNT(*)::int as value,
              l.name as location_name
       FROM emedication_administrations ea
-      JOIN emedication_records er ON ea.medication_record_id = er.id
+      JOIN emedication_items ei ON ea.emedication_item_id = ei.id
+      JOIN emedication_records er ON ei.emedication_record_id = er.id
       JOIN people su ON er.person_id = su.id
       LEFT JOIN locations l ON su.location_id = l.id
       WHERE er.organization_id = $1`;
     const params: any[] = [orgId];
     let idx = 2;
     if (f.location_id) { sql += ` AND su.location_id = $${idx}`; params.push(f.location_id); idx++; }
-    if (f.dateFrom) { sql += ` AND ea.administered_at >= $${idx}`; params.push(f.dateFrom); idx++; }
-    if (f.dateTo) { sql += ` AND ea.administered_at <= $${idx}`; params.push(f.dateTo); idx++; }
-    sql += ' GROUP BY name, ea.status, l.name ORDER BY name DESC';
+    if (f.dateFrom) { sql += ` AND COALESCE(ea.administered_time, ea.scheduled_time) >= $${idx}`; params.push(f.dateFrom); idx++; }
+    if (f.dateTo) { sql += ` AND COALESCE(ea.administered_time, ea.scheduled_time) <= $${idx}`; params.push(f.dateTo); idx++; }
+    sql += " GROUP BY TO_CHAR(COALESCE(ea.administered_time, ea.scheduled_time), 'YYYY-MM'), ea.status, l.name ORDER BY name DESC";
     const result = await query(sql, params);
     return result.rows;
   }
@@ -725,19 +774,19 @@ export class ReportingRepository {
   static async marPrn(orgId: string, f: ReportFilters) {
     let sql = `
       SELECT ei.name as medication_name, l.name as location_name,
-             TO_CHAR(ea.administered_at, 'YYYY-MM') as month,
+             TO_CHAR(COALESCE(ea.administered_time, ea.scheduled_time), 'YYYY-MM') as month,
              COUNT(*)::int as value
       FROM emedication_administrations ea
-      JOIN emedication_items ei ON ea.medication_item_id = ei.id
-      JOIN emedication_records er ON ea.medication_record_id = er.id
+      JOIN emedication_items ei ON ea.emedication_item_id = ei.id
+      JOIN emedication_records er ON ei.emedication_record_id = er.id
       JOIN people su ON er.person_id = su.id
       LEFT JOIN locations l ON su.location_id = l.id
-      WHERE er.organization_id = $1 AND ea.is_prn = true`;
+      WHERE er.organization_id = $1 AND ei.is_prn = true`;
     const params: any[] = [orgId];
     let idx = 2;
     if (f.location_id) { sql += ` AND su.location_id = $${idx}`; params.push(f.location_id); idx++; }
-    if (f.dateFrom) { sql += ` AND ea.administered_at >= $${idx}`; params.push(f.dateFrom); idx++; }
-    if (f.dateTo) { sql += ` AND ea.administered_at <= $${idx}`; params.push(f.dateTo); idx++; }
+    if (f.dateFrom) { sql += ` AND COALESCE(ea.administered_time, ea.scheduled_time) >= $${idx}`; params.push(f.dateFrom); idx++; }
+    if (f.dateTo) { sql += ` AND COALESCE(ea.administered_time, ea.scheduled_time) <= $${idx}`; params.push(f.dateTo); idx++; }
     sql += ' GROUP BY ei.name, l.name, month ORDER BY value DESC';
     const result = await query(sql, params);
     return result.rows;

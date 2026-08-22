@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box, Typography, Grid, Card, CardContent, Stack, TextField, InputAdornment, Chip,
-  CircularProgress, Alert, Avatar,
+  CircularProgress, Alert, Avatar, Paper, Divider, Button,
 } from '@mui/material'
 import {
   Search as SearchIcon,
@@ -11,6 +11,7 @@ import {
   School as SchoolIcon, Medication as MedIcon, Psychology as PsychIcon,
   Event as EventIcon, MeetingRoom as MeetingRoomIcon, Star as StarIcon,
   MonitorHeart as MonitorHeartIcon, Task as TaskIcon, Payments as PaymentsIcon,
+  ArrowForward as ArrowForwardIcon, TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
 
@@ -33,18 +34,25 @@ interface ReportDef {
   id: string; title: string; description: string; category: string; icon: string; color: string; filters: string[]
 }
 interface Category { id: string; label: string; color: string; icon: string }
+interface OverviewCard { label: string; value: string | number; subtitle: string; color: string }
+interface OverviewData { cards: OverviewCard[]; attention: { label: string; value: number; action: string; target: string }[]; generatedAt: string }
 
 export default function ReportingPage() {
   const navigate = useNavigate()
   const [reports, setReports] = useState<ReportDef[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [overview, setOverview] = useState<OverviewData | null>(null)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    api.get('/reporting/reports')
-      .then(r => { setReports(r.data.reports); setCategories(r.data.categories) })
+    Promise.all([api.get('/reporting/reports'), api.get('/reporting/overview')])
+      .then(([reportsResponse, overviewResponse]) => {
+        setReports(reportsResponse.data.reports)
+        setCategories(reportsResponse.data.categories)
+        setOverview(overviewResponse.data)
+      })
       .catch(e => setError(e.response?.data?.message || 'Failed to load reports'))
       .finally(() => setLoading(false))
   }, [])
@@ -73,6 +81,34 @@ export default function ReportingPage() {
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
+
+      {overview && <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 4, borderRadius: 2, borderColor: 'divider' }}>
+        <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="overline" color="primary" sx={{ fontWeight: 800, letterSpacing: '0.12em' }}>Organisation overview</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>What needs attention today</Typography>
+            <Grid container spacing={1.5}>
+              {overview.cards.map(card => <Grid item xs={6} sm={4} key={card.label}>
+                <Box sx={{ borderLeft: `4px solid ${card.color}`, pl: 1.5 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 900, color: card.color }}>{card.value}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{card.label}</Typography>
+                  <Typography variant="caption" color="text.secondary">{card.subtitle}</Typography>
+                </Box>
+              </Grid>)}
+            </Grid>
+          </Box>
+          <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', lg: 'block' } }} />
+          <Box sx={{ width: { xs: '100%', lg: 300 } }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>Quick actions</Typography>
+            <Stack spacing={0.5}>
+              {overview.attention.map(item => <Button key={item.label} size="small" endIcon={<ArrowForwardIcon />} onClick={() => navigate(item.target === 'locations' ? '/locations' : `/${item.target}`)} sx={{ justifyContent: 'space-between', textTransform: 'none', color: item.value > 0 && item.target !== 'locations' ? 'error.main' : 'text.primary' }}>
+                <span>{item.label}: <strong>{item.value}</strong></span>
+              </Button>)}
+            </Stack>
+          </Box>
+        </Stack>
+        <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mt: 2, color: 'text.secondary' }}><TrendingUpIcon sx={{ fontSize: 16 }} /><Typography variant="caption">Live snapshot generated {new Date(overview.generatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</Typography></Stack>
+      </Paper>}
 
       <TextField
         fullWidth size="small" placeholder="Search reports..."
