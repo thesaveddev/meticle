@@ -37,6 +37,13 @@ describe('Chat — channels, groups, messages, reactions', () => {
     expect(msg.status).toBe(201)
     expect(msg.body.content).toBe('Hello team')
 
+    const reply = await request(app)
+      .post(`/chat/channels/${channelId}/messages`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ content: 'Replying to this', parent_id: msg.body.id })
+    expect(reply.status).toBe(201)
+    expect(reply.body.parent_id).toBe(msg.body.id)
+
     const channels = await request(app)
       .get('/chat/channels')
       .set('Authorization', `Bearer ${token}`)

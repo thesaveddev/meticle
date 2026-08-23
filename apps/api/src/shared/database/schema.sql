@@ -1047,8 +1047,10 @@ CREATE INDEX IF NOT EXISTS idx_dbs_checks_staff ON dbs_checks(staff_id);
 CREATE TABLE IF NOT EXISTS person_expenses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+    person_id UUID REFERENCES people(id) ON DELETE SET NULL,
     location_id UUID REFERENCES locations(id) ON DELETE SET NULL,
+    money_source VARCHAR(20) NOT NULL DEFAULT 'person' CHECK (money_source IN ('house','person')),
+    payment_method VARCHAR(30),
     category VARCHAR(30) NOT NULL CHECK (category IN ('food','clothing','activities','transport','personal','health','other')),
     amount_pence INTEGER NOT NULL CHECK (amount_pence > 0),
     description TEXT,

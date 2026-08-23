@@ -11,12 +11,12 @@ beforeAll(async () => {
 }, 30_000)
 
 describe('Insights — manager/admin analytics', () => {
-  it('should return overview, staffing, compliance, leave, rota and outcomes for a MANAGER', async () => {
+  it('should return overview, staffing, compliance, leave, rota and care outcomes for a MANAGER', async () => {
     const org = await createOrg()
     const mgr = await createUser({ email: `ins-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
     const token = generateToken(mgr)
 
-    const paths = ['/insights/overview', '/insights/staffing', '/insights/compliance', '/insights/leave', '/insights/rota', '/insights/outcomes']
+    const paths = ['/insights/overview', '/insights/staffing', '/insights/compliance', '/insights/leave', '/insights/rota', '/insights/care-outcomes']
     for (const path of paths) {
       const res = await request(app)
         .get(path)

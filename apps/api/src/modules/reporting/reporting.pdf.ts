@@ -277,10 +277,9 @@ export function buildPersonOutcomesHtml(data: any, orgName = 'Meticle'): string 
     `${su.completed_goals ?? 0}/${su.total_goals ?? 0}`,
     `${su.avg_progress ?? 0}%`,
     su.avg_wellbeing != null ? `${su.avg_wellbeing}/10` : '-',
-    String(su.scale_assessments ?? 0),
   ])
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${buildReportStyles()}</style></head><body>
-    ${coverPage('Person Outcomes', orgName, 'Goal progress, wellbeing scores, and outcome scale assessments per person')}
+    ${coverPage('Person Outcomes', orgName, 'Goal progress and wellbeing scores per person')}
     <h1>Outcomes Summary</h1>
     <div class="summary-grid">
       <div class="summary-card"><div class="num">${data.people?.length || 0}</div><div class="label">People</div></div>
@@ -288,20 +287,19 @@ export function buildPersonOutcomesHtml(data: any, orgName = 'Meticle'): string 
       <div class="summary-card"><div class="num">${(data.people || []).reduce((s: number, u: any) => s + (u.completed_goals || 0), 0)}</div><div class="label">Goals Completed</div></div>
     </div>
     <h2>Person Outcomes (${rows.length})</h2>
-    ${rows.length ? table(['Name', 'Total Goals', 'Completed', 'Avg Progress', 'Avg Wellbeing', 'Scale Assessments'], rows) : '<p>No people.</p>'}
+    ${rows.length ? table(['Name', 'Total Goals', 'Completed', 'Avg Progress', 'Avg Wellbeing'], rows) : '<p>No people.</p>'}
     <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Report &bull; Generated ${now()}</div>
   </body></html>`
 }
 
 export function personOutcomesCsv(data: any): string {
-  const headers = ['Name', 'Total Goals', 'Completed', 'Avg Progress', 'Avg Wellbeing', 'Scale Assessments']
+  const headers = ['Name', 'Total Goals', 'Completed', 'Avg Progress', 'Avg Wellbeing']
   const rows = (data.people || []).map((su: any) => [
     `${su.first_name} ${su.last_name}`,
     String(su.total_goals ?? 0),
     `${su.completed_goals ?? 0}/${su.total_goals ?? 0}`,
     `${su.avg_progress ?? 0}%`,
     su.avg_wellbeing != null ? String(su.avg_wellbeing) : '',
-    String(su.scale_assessments ?? 0),
   ])
   return toCsv(headers, rows)
 }
@@ -320,10 +318,6 @@ export function buildOrgOutcomesSummaryHtml(data: any, orgName = 'Meticle'): str
     `${w.avg_score}/10`,
     String(w.entries),
   ])
-  const bandRows = (data.scale_distribution || []).map((b: any) => [
-    esc(b.band_label),
-    String(b.count),
-  ])
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${buildReportStyles()}</style></head><body>
     ${coverPage('Organisation Outcomes Summary', orgName, 'Aggregate outcome metrics, goal completion rates, and CQC domain coverage')}
     <h1>Goal Statistics</h1>
@@ -336,7 +330,6 @@ export function buildOrgOutcomesSummaryHtml(data: any, orgName = 'Meticle'): str
     </div>
     ${goalRows.length ? `<h2>Goals by CQC Domain</h2>${table(['Domain', 'Total', 'Completed', 'Rate'], goalRows)}` : ''}
     ${wellbeingRows.length ? `<h2>Wellbeing Average (Last 30 Days)</h2>${table(['Domain', 'Avg Score', 'Entries'], wellbeingRows)}` : ''}
-    ${bandRows.length ? `<h2>Scale Assessment Distribution</h2>${table(['Band', 'Count'], bandRows)}` : ''}
     <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">Meticle Report &bull; Generated ${now()}</div>
   </body></html>`
 }

@@ -62,7 +62,7 @@ export default function MessageList({
     : -1
 
   return (
-    <Box ref={containerRef} sx={{ flex: 1, overflow: 'auto', px: { xs: 2, md: 3 }, py: 2, bgcolor: BONE, display: 'flex', flexDirection: 'column' }}>
+    <Box ref={containerRef} sx={{ flex: 1, overflow: 'auto', px: { xs: 1.5, md: 2.5 }, py: 1.5, bgcolor: '#F3F0EA', display: 'flex', flexDirection: 'column' }}>
       {hasOlder && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
           <Button size="small" variant="outlined" onClick={onLoadOlder} disabled={olderLoading}
@@ -80,11 +80,17 @@ export default function MessageList({
         const msgDate = new Date(msg.created_at)
         const prevDate = i > 0 ? new Date(messages[i - 1].created_at) : null
         const showDateDivider = !prevDate || msgDate.toDateString() !== prevDate.toDateString()
+        const nextMsg = messages[i + 1]
+        const sameSenderAfter = nextMsg && nextMsg.sender_id === msg.sender_id && !showDateDivider && i + 1 !== unreadIdx
+        const sameSenderBefore = i > 0 && messages[i - 1]?.sender_id === msg.sender_id && !showDateDivider
+
+        const mt = sameSenderBefore ? 0.25 : showDateDivider || isUnreadStart ? 1.5 : 0.75
+        const mb = sameSenderAfter ? 0 : 0.5
 
         return (
-          <Box key={msg.id}>
+          <Box key={msg.id} sx={{ mt: showDateDivider || isUnreadStart ? 0 : mt, mb }}>
             {isUnreadStart && (
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ my: 2 }}>
+              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mt: 1.5, mb: 1.5 }}>
                 <Box sx={{ flex: 1, borderTop: `1px solid ${EMERALD}` }} />
                 <Typography variant="caption" sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: EMERALD_DEEP }}>
                   New messages
@@ -94,7 +100,7 @@ export default function MessageList({
             )}
 
             {showDateDivider && (
-              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ my: 2 }}>
+              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mt: 1.5, mb: 1 }}>
                 <Box sx={{ flex: 1, borderTop: `1px solid ${HAIRLINE}` }} />
                 <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 600, color: MIST }}>{formatDate(msg.created_at)}</Typography>
                 <Box sx={{ flex: 1, borderTop: `1px solid ${HAIRLINE}` }} />

@@ -34,12 +34,10 @@ interface UpcomingShift { id: string; start_time: string; end_time: string; loca
 
 interface OutcomeGoalsByDomain { cqc_domain: string; total: number; completed: number; avg_progress: number }
 interface OutcomeWellbeing { domain: string; avg_score: number; entries: number; min_score: number; max_score: number }
-interface OutcomeScaleBand { band_label: string; count: number }
 interface OutcomeGoalProgressTrend { week: string; avg_progress: number; updates: number }
 interface OutcomesData {
   goal_completion_by_domain: OutcomeGoalsByDomain[]
   wellbeing_by_domain: OutcomeWellbeing[]
-  scale_distribution: OutcomeScaleBand[]
   overdue_reviews: number
   goal_progress_trend: OutcomeGoalProgressTrend[]
 }
@@ -83,7 +81,7 @@ export default function InsightsPage() {
           api.get('/insights/compliance'),
           api.get('/insights/leave'),
           api.get('/insights/rota'),
-          api.get('/insights/outcomes'),
+          api.get('/insights/care-outcomes'),
         ])
         setOverview(ov.data)
         setStaffingByRole(st.data.byRole)
@@ -459,7 +457,7 @@ export default function InsightsPage() {
           <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
               <OutcomeIcon sx={{ color: '#7C3AED' }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Outcomes</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Care Outcomes</Typography>
             </Stack>
             {outcomes ? (
               <>
@@ -515,19 +513,9 @@ export default function InsightsPage() {
                     <Divider sx={{ my: 2 }} />
                   </>
                 )}
-                {outcomes.scale_distribution.length > 0 && (
-                  <>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Scale Assessment Bands</Typography>
-                    <Stack direction="row" spacing={1}>
-                      {outcomes.scale_distribution.map(b => (
-                        <Chip key={b.band_label} label={`${b.band_label}: ${b.count}`} size="small" sx={{ fontWeight: 700, bgcolor: '#EEF2FF', color: '#3730A3' }} />
-                      ))}
-                    </Stack>
-                  </>
-                )}
               </>
             ) : (
-              <Typography variant="body2" color="#9CA3AF">No outcomes data</Typography>
+              <Typography variant="body2" color="#9CA3AF">No care outcomes data</Typography>
             )}
           </Paper>
         </Grid>

@@ -89,7 +89,6 @@ These are integrated capabilities within the main CareDesk platform, with clear 
 | 27 | policies | 7 | CRUD + categories + seed 12 standard CQC policies |
 | 28 | emedication | 34 | MAR records, chart grid, administrations, PRN, stock, deliveries, daily counts, adjustments, audit, competence, monthly auto-create, archive/import |
 | 29 | goals | 12 | CRUD + milestones + progress history + CQC domain mapping + per-SU stats |
-| 30 | outcomes | 14 | Scale templates (WEMWBS/PHQ-9/GAD-7/EQ-5D/Outcome Star), assessment recording, summary, trend, org-level |
 | 31 | ai | 10 | Config (per-org), compliance gap analysis, incident triage, rota analysis/generation, daily note generation (voice→structured), audit/usage |
 | 32 | family-portal | 12 | Members CRUD + invite/revoke/refresh + public token-based (care notes, care plans, goals, observations) |
 | 33 | delegations | 1 | Delegation audit trail |
@@ -118,7 +117,6 @@ These are integrated capabilities within the main CareDesk platform, with clear 
 | eMAR | 2 | Active charts (31-day grid, PRN, stock, daily counts), Archived |
 | Settings | 1 | 12 tabs: Profile, Compliance, Leave, Delegates, Org, Billing, Integrations, Schedule, Notifications, Security, AI, Appearance |
 | Goals | 1 | Milestones, progress history, CQC domain mapping, care plan links |
-| Outcomes | 3 | Unified page (Scales + Assessments tabs), Scale CRUD, Assessment CRUD |
 | AI | 1 | AI Daily Notes: voice input, mood analysis, safeguarding flags, care plan updates |
 | Other | 20+ | Appointments, Policies, Care Assessments, Tasks, Room Checks, Marketplace (x2), Agencies (5 tabs), Reporting (6 templates), Insights (5 sections), Training Matrix (4 tabs), DSPT (4 themes/11 standards), Billing (Stripe), Onboarding, Organization (4 tabs), Family Portal, Mobile (GPS + Voice Notes), Learning Center, Legal (3), Marketing (7), Landing, Survey Form, Errors (2) |
 
@@ -128,7 +126,7 @@ These are integrated capabilities within the main CareDesk platform, with clear 
 organizations, locations, departments, users, staff_profiles, qualifications, skills, emergency_contacts, staff_availability, documents, compliance_requirements, compliance_config, compliance_records, shifts, shift_assignments, shift_swaps, shift_templates, audit_logs, verification_tokens, invitations, carer_preferences, notifications, user_permissions, leave_types, leave_requests, leave_balances, manager_delegations, delegation_audit_logs, password_history, compliance_profiles, compliance_profile_requirements, invoices, payment_methods, location_certificates, service_users, care_plans, daily_notes, risk_assessments, family_contacts, incident_categories, incidents, incident_involved_residents, incident_actions, training_modules, training_records, competency_templates, competency_assessments, emedication_records, emedication_items, emedication_administrations, body_map_entries, memory_book_entries, emedication_daily_count_items, dbs_checks, service_user_expenses, petty_cash_balances, petty_cash_transactions
 
 ### Migration Tables (setup.ts — 51)
-ai_audit_logs, compliance_snapshots, teams, team_members, chat_channels, chat_members, chat_messages, chat_files, satisfaction_surveys, staff_engagement_surveys, tasks, room_checks, mobile_check_ins, trial_reminders, survey_invitations, engagement_templates, email_queue, health_observations, bowel_movements, dental_records, fluid_intake, appointments, policies, service_user_goals, emedication_audit_log, emedication_stock, emedication_deliveries, emedication_delivery_items, care_assessments, evidence_mappings, emedication_daily_counts, emedication_stock_adjustments, agencies, service_user_access_log, agency_workers, agency_rates, cqc_action_items, notification_preferences, family_members, clinical_scores, service_user_documents, su_wellbeing, su_communication_log, su_capacity_assessments, su_care_pathways, su_discharge_checklist, email_verification_codes, goal_milestones, goal_progress_history, outcome_scales, outcome_scale_results
+ai_audit_logs, compliance_snapshots, teams, team_members, chat_channels, chat_members, chat_messages, chat_files, satisfaction_surveys, staff_engagement_surveys, tasks, room_checks, mobile_check_ins, trial_reminders, survey_invitations, engagement_templates, email_queue, health_observations, bowel_movements, dental_records, fluid_intake, appointments, policies, service_user_goals, emedication_audit_log, emedication_stock, emedication_deliveries, emedication_delivery_items, care_assessments, evidence_mappings, emedication_daily_counts, emedication_stock_adjustments, agencies, service_user_access_log, agency_workers, agency_rates, cqc_action_items, notification_preferences, family_members, clinical_scores, service_user_documents, su_wellbeing, su_communication_log, su_capacity_assessments, su_care_pathways, su_discharge_checklist, email_verification_codes, goal_milestones, goal_progress_history
 
 ## 2.5 Infrastructure
 

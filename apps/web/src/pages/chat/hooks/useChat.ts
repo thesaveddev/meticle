@@ -107,6 +107,7 @@ export function useChat() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -201,6 +202,7 @@ export function useChat() {
     setInputLinkPreview(null)
     setEditingMessageId(null)
     setReplyTo(null)
+    setPendingFile(null)
   }, [activeChannel])
 
   useEffect(() => {
@@ -364,26 +366,21 @@ export function useChat() {
   }, [searchQuery])
 
   const handleSend = useCallback(async () => {
-    if ((!messageText.trim() && !fileInputRef.current?.files?.length) || sending || !activeChannel) return
+    if ((!messageText.trim() && !pendingFile && !replyTo) || sending || !activeChannel) return
     setSending(true)
     setSendError('')
     try {
       let fileUrl = ''
       let fileName = ''
-      if (fileInputRef.current?.files?.length) {
-        const file = fileInputRef.current.files[0]
-        if (file.size > 10 * 1024 * 1024) { setSending(false); setSendError('File exceeds 10MB limit'); return }
-        const allowedTypes = /\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff|tif|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|html|md|zip|json|xml|rtf)$/i
-        if (!allowedTypes.test(file.name)) { setSending(false); setSendError('File type not supported'); return }
+      if (pendingFile) {
         const formData = new FormData()
-        formData.append('file', file)
+        formData.append('file', pendingFile)
         const uploadRes = await api.post('/settings/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
         fileUrl = uploadRes.data.url
-        fileName = file.name
-        fileInputRef.current.value = ''
+        fileName = pendingFile.name
       }
       const msgRes = await api.post(`/chat/channels/${activeChannel}/messages`, {
-        content: messageText.trim() || undefined,
+        content: messageText.trim() || (replyTo ? 'Reply' : undefined),
         file_url: fileUrl || undefined,
         file_name: fileName || undefined,
         parent_id: replyTo?.id || undefined,
@@ -396,13 +393,14 @@ export function useChat() {
       setMessageText('')
       setInputLinkPreview(null)
       setReplyTo(null)
+      setPendingFile(null)
       const socket = getSocket()
       if (socket) socket.emit('chat:typing', { channelId: activeChannel, isTyping: false })
     } catch (err: any) {
       setSendError(err.response?.data?.message || 'Failed to send message')
     }
     finally { setSending(false) }
-  }, [messageText, sending, activeChannel, user, replyTo])
+  }, [messageText, sending, activeChannel, user, replyTo, pendingFile])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
@@ -478,6 +476,20 @@ export function useChat() {
     } catch { /* ignore */ }
   }, [])
 
+  const handleAttachFile = useCallback((file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      setSendError('File exceeds 10MB limit')
+      return
+    }
+    const allowedTypes = /\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff|tif|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|html|md|zip|json|xml|rtf)$/i
+    if (!allowedTypes.test(file.name)) {
+      setSendError('File type not supported')
+      return
+    }
+    setPendingFile(file)
+    setSendError('')
+  }, [])
+
   const handleFileUpload = useCallback(async (file: File) => {
     if (!activeChannel) return
     const formData = new FormData()
@@ -531,7 +543,7 @@ export function useChat() {
     editingMessageId, setEditingMessageId, editText, setEditText, saveEdit, confirmDeleteMessage,
     replyTo, setReplyTo,
     handleToggleReaction, handleCreateGroup, handleStartDM, handleRemoveMember, handleLeaveGroup,
-    handleFileUpload, handleDeleteFile,
+    handleFileUpload, handleAttachFile, pendingFile, setPendingFile, handleDeleteFile,
     isMessageSeen, getSeenByNames, getOnlineCount,
     inputLinkPreview, inputLinkLoading,
     uploadError, setUploadError,

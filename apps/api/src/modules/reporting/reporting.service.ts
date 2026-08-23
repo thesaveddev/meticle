@@ -122,8 +122,21 @@ function buildSummaryCards(rows: any[], reportId: string): { label: string; valu
   }
 
   if (reportId === 'outcomes-by-domain' || reportId === 'outcomes-wellbeing') {
-    const avgProgress = rows.length ? Math.round(rows.reduce((s, r) => s + (r.avg_progress || r.avg_score || r.value || 0), 0) / rows.length) : 0;
-    cards.push({ label: 'Average', value: `${avgProgress}${reportId === 'outcomes-wellbeing' ? '/10' : '%'}`, color: avgProgress >= 60 ? '#16A34A' : '#D97706' });
+    const average = rows.length
+      ? Math.round(rows.reduce((sum, row) => sum + Number(row.avg_progress ?? row.avg_score ?? row.value ?? 0), 0) / rows.length * 10) / 10
+      : 0;
+    cards.push({
+      label: reportId === 'outcomes-wellbeing' ? 'Average Wellbeing' : 'Average Progress',
+      value: reportId === 'outcomes-wellbeing' ? `${average}/10` : `${average}%`,
+      color: average >= (reportId === 'outcomes-wellbeing' ? 6 : 60) ? '#16A34A' : '#D97706',
+    });
+  }
+
+  if (reportId === 'outcomes-goal-trend') {
+    const average = rows.length
+      ? Math.round(rows.reduce((sum, row) => sum + Number(row.avg_progress ?? row.value ?? 0), 0) / rows.length)
+      : 0;
+    cards.push({ label: 'Average Progress', value: `${average}%`, color: average >= 60 ? '#16A34A' : '#D97706' });
   }
 
   if (reportId === 'compliance-overall') {
@@ -212,7 +225,7 @@ function buildSeries(rows: any[], reportId: string): ReportSeries[] {
     }));
   }
 
-  if (reportId === 'incident-trends' || reportId === 'leave-by-month' || reportId === 'outcomes-goal-trend' || reportId === 'health-observations') {
+  if (reportId === 'incident-trends' || reportId === 'leave-by-month' || reportId === 'health-observations') {
     const grouped: Record<string, Record<string, number>> = {};
     const seriesKeys = new Set<string>();
     rows.forEach(r => {
@@ -410,7 +423,6 @@ function buildTable(rows: any[], reportId: string): { columns: ReportTableColumn
       { key: 'completed_goals', label: 'Completed', type: 'number' },
       { key: 'avg_progress', label: 'Avg Progress', type: 'percent' },
       { key: 'avg_wellbeing', label: 'Wellbeing', type: 'number' },
-      { key: 'scale_assessments', label: 'Scales', type: 'number' },
     ],
     'su-daily-notes': [
       { key: 'location_name', label: 'Location', type: 'text' },

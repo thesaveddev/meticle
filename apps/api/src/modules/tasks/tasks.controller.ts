@@ -11,6 +11,12 @@ export class TaskController {
     res.json(tasks);
   }
 
+  static async getById(req: Request, res: Response) {
+    const task = await TaskRepository.findById(req.params.id, req.user!.organizationId!);
+    if (!task) throw new AppError(404, 'Task not found');
+    res.json(task);
+  }
+
   static async create(req: Request, res: Response) {
     const user = req.user!;
     const task = await TaskRepository.create(user.organizationId!, { ...req.body, created_by: user.userId });

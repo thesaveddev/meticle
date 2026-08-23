@@ -27,9 +27,13 @@ describe('Appointments — CRUD', () => {
         start_time: new Date(Date.now() + 86400000).toISOString(),
         end_time: new Date(Date.now() + 90000000).toISOString(),
         location_id: location.id,
+        recurrence: 'monthly',
+        notes: 'Bring the current medication list.',
       })
     expect(created.status).toBe(201)
     expect(created.body.title).toBe('Dentist appointment')
+    expect(created.body.recurrence).toBe('monthly')
+    expect(created.body.notes).toBe('Bring the current medication list.')
 
     const list = await request(app)
       .get('/appointments')

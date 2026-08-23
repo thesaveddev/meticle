@@ -44,7 +44,7 @@ Supported living + domiciliary care platform. Phase 1 is complete and launched. 
 | compliance | 16 | Docs, evidence packs (KLOE), identity dashboard, trends, mappings, records, PDF |
 | scheduling | 30+ | Shifts CRUD, assign/claim/swap/approve/reject, templates, min-staff, OT |
 | marketplace | 3 | Open shifts, apply, publish |
-| reporting | 2 | Compliance audit, staffing stats — **40 reports** across 10 categories (staff, people, scheduling, leave, incidents, compliance, training, eMAR, outcomes, operations) with filters, charts, and CSV export |
+| reporting | 2 | Compliance audit, staffing stats — reports across 9 categories (staff, people, scheduling, leave, incidents, compliance, training, eMAR, operations) with filters, charts, and CSV export |
 | insights | 5 | Overview, staffing, compliance, leave, rota analytics (Recharts on frontend) |
 | incidents | 24 | CRUD, categories, involved residents, action items (owners/due/overdue), evidence attachments, near-miss + confidential events (admin-only visibility), CQC reporting fields, audit timeline, admin notifications, AI triage |
 | dashboard | 5 | Stats (7 KPIs), compliance snapshot, today-rota, widgets, review scheduler |
@@ -76,7 +76,6 @@ Supported living + domiciliary care platform. Phase 1 is complete and launched. 
 | families | 12 | People-type family member CRUD + user account linking + invite + dashboard |
 | payments | 17 | Invoice CRUD + approve/send/pay + Stripe line items + payment link + portal + webhooks + statement + dashboard |
 | expenses | 10 | Petty cash CRUD + approve + stats + reports + dashboard |
-| outcomes | 14 | Outcome scales CRUD + assessments + analytics + compliance integration + dashboard |
 | alerts | 4 | Alert rules CRUD + evaluate + acknowledge + preferences |
 | audit-trail | 1 | Audit trail viewer (filtered, paginated, exportable) |
 
@@ -95,7 +94,6 @@ Supported living + domiciliary care platform. Phase 1 is complete and launched. 
 | eMAR | 2 | Active charts (31-day grid, PRN, stock, daily counts), Archived |
 | Settings | 1 | 12 tabs: Profile, Compliance, Leave, Delegates, Org, Billing, Integrations, Schedule, Notifications, Security, AI, Appearance |
 | Payments | 1 | Invoice list, create, detail, customer portal |
-| Outcomes | 1 | Scales, assessments, analytics, compliance integration |
 | Expenses | 1 | Petty cash list, create, detail, reports |
 | Other | 20+ | Appointments, Goals, Policies, Care Assessments, Tasks, Room Checks, Marketplace (x2), Agencies (5 tabs), Reporting (6 template cards), Insights (5 sections), Training Matrix (4 tabs), DSPT (4 themes/11 standards), Billing (Stripe), Onboarding, Organization (4 tabs), Family Portal, Mobile (GPS + Voice Notes), Learning Center, Legal (3), Marketing (7), Landing, Survey Form, Errors (2) |
 
@@ -150,7 +148,7 @@ Creates a fresh demo org with random name each run (~1,550 rows total):
 | staff | 11 | Profiles, role/status, skills, qualifications, emergency contacts |
 | compliance | 13 | Docs, evidence packs, identity dashboard, trends, records |
 | scheduling | 13 | Shifts CRUD, assign, templates, min-staff |
-| reporting | 10 | Compliance audit, staffing stats, 40 reports |
+| reporting | 9 | Compliance audit, staffing stats, goals/wellbeing reports |
 | incidents | 11 | CRUD, categories, actions, evidence, near-miss |
 | dashboard | 7 | Stats, compliance, rota, widgets |
 | notifications | 8 | List, unread, mark read, preferences |
@@ -181,7 +179,6 @@ Creates a fresh demo org with random name each run (~1,550 rows total):
 | families | 12 | People-type family members, user linking, invite |
 | payments | 10 | Invoices, approve, Stripe, portal |
 | expenses | 8 | Petty cash CRUD, approve, stats, reports |
-| outcomes | 8 | Scales, assessments, analytics, compliance |
 | alerts | 5 | Rules, evaluate, acknowledge, preferences |
 | audit-trail | 5 | Viewer, filters, export |
 | **Total** | **395** | **44 modules** |

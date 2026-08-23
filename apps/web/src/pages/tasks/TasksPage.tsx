@@ -1,158 +1,150 @@
-import { useState } from 'react'
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Stack, TextField, MenuItem, TablePagination, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Alert, Autocomplete } from '@mui/material'
-import { Add as AddIcon } from '@mui/icons-material'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
+import {
+  Alert, Autocomplete, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
+  DialogContent, DialogTitle, Divider, MenuItem, Paper, Stack, Table, TableBody,
+  TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField, Typography,
+} from '@mui/material'
+import { Add as AddIcon, CheckCircle as CheckCircleIcon, Visibility as VisibilityIcon } from '@mui/icons-material'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 
+const NAVY = '#0F4C81'
 const PRIORITY_COLORS: Record<string, 'error' | 'warning' | 'info' | 'default'> = { urgent: 'error', high: 'warning', medium: 'info', low: 'default' }
 const STATUS_COLORS: Record<string, 'error' | 'warning' | 'success' | 'default'> = { pending: 'default', in_progress: 'warning', completed: 'success', cancelled: 'error' }
+const RECURRENCE_LABELS: Record<string, string> = { once: 'Once', daily: 'Daily', monthly: 'Monthly', yearly: 'Yearly' }
+
+const EMPTY_FORM = { title: '', description: '', notes: '', assigned_to: '', person_id: '', recurrence: 'once', priority: 'medium', status: 'pending', due_date: '' }
+
+function asArray(value: any, keys: string[] = []) {
+  if (Array.isArray(value)) return value
+  for (const key of keys) if (Array.isArray(value?.[key])) return value[key]
+  return Array.isArray(value?.data) ? value.data : []
+}
 
 export default function TasksPage() {
   const qc = useQueryClient()
-  const [page, setPage] = useState(0); const [rows, setRows] = useState(10)
+  const [page, setPage] = useState(0)
+  const [rows, setRows] = useState(10)
   const [filter, setFilter] = useState('')
   const [dialog, setDialog] = useState(false)
+  const [viewDialog, setViewDialog] = useState(false)
   const [editing, setEditing] = useState<any>(null)
-  const [form, setForm] = useState({ title: '', description: '', assigned_to: '', person_id: '', priority: 'medium', status: 'pending', due_date: '' })
+  const [viewing, setViewing] = useState<any>(null)
+  const [form, setForm] = useState(EMPTY_FORM)
   const [error, setError] = useState('')
 
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: taskData, isLoading } = useQuery({
     queryKey: ['tasks', filter],
     queryFn: () => api.get('/tasks', { params: { status: filter || undefined } }).then(r => r.data),
   })
+  const tasks = asArray(taskData, ['tasks'])
 
-  const { data: staffList } = useQuery({
-    queryKey: ['staff-task'],
-    queryFn: () => api.get('/staff/org-members').then(r => r.data),
-  })
-  const members = [...(staffList?.admins?.length ? staffList.admins : (staffList?.admin ? [staffList.admin] : [])), ...(staffList?.staff || [])].filter((m: any) => m.status === 'active')
-
-  const { data: people } = useQuery({
-    queryKey: ['su-task'],
-    queryFn: () => api.get('/people?status=active').then(r => r.data),
-  })
+  const { data: staffData } = useQuery({ queryKey: ['staff-task'], queryFn: () => api.get('/staff/org-members').then(r => r.data) })
+  const members = useMemo(() => {
+    const raw = Array.isArray(staffData)
+      ? staffData
+      : [...(Array.isArray(staffData?.admins) ? staffData.admins : []), ...(Array.isArray(staffData?.staff) ? staffData.staff : [])]
+    return raw.filter((m: any) => m.status === 'active').map((m: any) => ({ ...m, profileId: m.staff_id || m.id }))
+  }, [staffData])
+  const { data: peopleData } = useQuery({ queryKey: ['people-task'], queryFn: () => api.get('/people?status=active').then(r => r.data) })
+  const people = asArray(peopleData, ['people'])
 
   const saveMutation = useMutation({
     mutationFn: () => {
       const payload = { ...form, due_date: form.due_date || undefined, assigned_to: form.assigned_to || undefined, person_id: form.person_id || undefined }
       return editing ? api.patch(`/tasks/${editing.id}`, payload) : api.post('/tasks', payload)
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks'] }); close() },
-    onError: (e: any) => setError(e.response?.data?.message || 'Save failed'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks'] }); closeDialog() },
+    onError: (e: any) => setError(e.response?.data?.message || 'Could not save task'),
   })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/tasks/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => api.patch(`/tasks/${id}`, { status }),
+    onSuccess: (_, vars) => { qc.invalidateQueries({ queryKey: ['tasks'] }); if (viewing?.id === vars.id) setViewing((v: any) => ({ ...v, status: vars.status })) },
+    onError: (e: any) => setError(e.response?.data?.message || 'Could not update task'),
   })
+  const deleteMutation = useMutation({ mutationFn: (id: string) => api.delete(`/tasks/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks'] }); setViewDialog(false) } })
 
-  const close = () => { setDialog(false); setEditing(null); setForm({ title: '', description: '', assigned_to: '', person_id: '', priority: 'medium', status: 'pending', due_date: '' }); setError('') }
-  const openEdit = (t: any) => { setEditing(t); setForm({ title: t.title, description: t.description || '', assigned_to: t.assigned_to || '', person_id: t.person_id || '', priority: t.priority, status: t.status, due_date: t.due_date || '' }); setDialog(true) }
-  const toggleStatus = async (t: any) => {
-    const next = t.status === 'pending' ? 'in_progress' : t.status === 'in_progress' ? 'completed' : 'pending'
-    await api.patch(`/tasks/${t.id}`, { status: next })
-    qc.invalidateQueries({ queryKey: ['tasks'] })
+  function closeDialog() { setDialog(false); setEditing(null); setForm(EMPTY_FORM); setError('') }
+  function openCreate() { setEditing(null); setForm(EMPTY_FORM); setError(''); setDialog(true) }
+  function openEdit(task: any) {
+    setEditing(task)
+    setForm({ title: task.title || '', description: task.description || '', notes: task.notes || '', assigned_to: task.assigned_to || '', person_id: task.person_id || '', recurrence: task.recurrence || 'once', priority: task.priority || 'medium', status: task.status || 'pending', due_date: task.due_date?.split('T')[0] || '' })
+    setError(''); setDialog(true)
   }
+  function openView(task: any) { setViewing(task); setViewDialog(true) }
+  const pending = tasks.filter((t: any) => t.status === 'pending').length
+  const inProgress = tasks.filter((t: any) => t.status === 'in_progress').length
+  const completed = tasks.filter((t: any) => t.status === 'completed').length
 
-  if (isLoading) return <Box sx={{ textAlign: 'center', py: 8 }}><CircularProgress /></Box>
+  if (isLoading) return <Box sx={{ textAlign: 'center', py: 8 }}><CircularProgress sx={{ color: NAVY }} /></Box>
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={800}>Task Management</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => { close(); setDialog(true) }} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
-          Add Task
-        </Button>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
+        <Box><Typography variant="h5" fontWeight={800}>Tasks</Typography><Typography variant="body2" color="text.secondary">Keep recurring and one-off work visible, owned, and closed.</Typography></Box>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Add task</Button>
       </Stack>
 
-      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <TextField select size="small" value={filter} onChange={e => { setFilter(e.target.value); setPage(0) }} label="Status" sx={{ minWidth: 160 }}>
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="pending">Pending</MenuItem>
-            <MenuItem value="in_progress">In Progress</MenuItem>
-            <MenuItem value="completed">Completed</MenuItem>
-            <MenuItem value="cancelled">Cancelled</MenuItem>
-          </TextField>
-          <Chip label={`${tasks.filter((t: any) => t.status === 'pending').length} pending`} size="small" color="default" />
-          <Chip label={`${tasks.filter((t: any) => t.status === 'in_progress').length} in progress`} size="small" color="warning" />
-          <Chip label={`${tasks.filter((t: any) => t.status === 'completed').length} done`} size="small" color="success" />
-        </Stack>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+        {[['Pending', pending], ['In progress', inProgress], ['Completed', completed]].map(([label, value]) => (
+          <Paper key={String(label)} sx={{ px: 2, py: 1.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={800}>{value}</Typography></Paper>
+        ))}
+      </Stack>
+
+      <Paper sx={{ p: 1.5, mb: 2, border: '1px solid #E5E7EB', borderRadius: 2 }}>
+        <TextField select size="small" label="Status" value={filter} onChange={e => { setFilter(e.target.value); setPage(0) }} sx={{ minWidth: 170 }}>
+          <MenuItem value="">All tasks</MenuItem><MenuItem value="pending">Pending</MenuItem><MenuItem value="in_progress">In progress</MenuItem><MenuItem value="completed">Completed</MenuItem><MenuItem value="cancelled">Cancelled</MenuItem>
+        </TextField>
       </Paper>
 
-      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
+      <TableContainer component={Paper} sx={{ border: '1px solid #E5E7EB', borderRadius: 2 }}>
         <Table size="small">
-          <TableHead><TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Assigned To</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Priority</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Due</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
-          </TableRow></TableHead>
+          <TableHead><TableRow>{['Task', 'For', 'Owner', 'Cadence', 'Due', 'Status', ''].map(h => <TableCell key={h} sx={{ fontWeight: 800, color: 'text.secondary' }}>{h}</TableCell>)}</TableRow></TableHead>
           <TableBody>
-            {tasks.slice(page * rows, page * rows + rows).map((t: any) => (
-              <TableRow key={t.id} hover>
-                <TableCell sx={{ fontWeight: 600 }}>{t.title}</TableCell>
-                <TableCell>{t.assigned_name || '—'}</TableCell>
-                <TableCell>{t.person_name || '—'}</TableCell>
-                <TableCell><Chip label={t.priority} size="small" color={PRIORITY_COLORS[t.priority] || 'default'} /></TableCell>
-                <TableCell>{t.due_date ? new Date(t.due_date).toLocaleDateString('en-GB') : '—'}</TableCell>
-                <TableCell>
-                  <Chip label={t.status.replace(/_/g, ' ')} size="small" color={STATUS_COLORS[t.status] || 'default'}
-                    onClick={() => toggleStatus(t)} sx={{ cursor: 'pointer', textTransform: 'capitalize' }} />
-                </TableCell>
-                <TableCell align="right">
-                  <Button size="small" onClick={() => openEdit(t)} sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Edit</Button>
-                  <Button size="small" color="error" onClick={() => { if (window.confirm('Delete task?')) deleteMutation.mutate(t.id) }} sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Delete</Button>
-                </TableCell>
+            {tasks.slice(page * rows, page * rows + rows).map((task: any) => (
+              <TableRow key={task.id} hover onClick={() => openView(task)} sx={{ cursor: 'pointer' }}>
+                <TableCell><Typography fontWeight={700}>{task.title}</Typography>{task.description && <Typography variant="caption" color="text.secondary" noWrap>{task.description}</Typography>}</TableCell>
+                <TableCell>{task.person_name || 'House / team'}</TableCell><TableCell>{task.assigned_name || 'Unassigned'}</TableCell>
+                <TableCell><Chip size="small" label={RECURRENCE_LABELS[task.recurrence] || task.recurrence || 'Once'} variant="outlined" /></TableCell>
+                <TableCell>{task.due_date ? new Date(task.due_date).toLocaleDateString('en-GB') : '—'}</TableCell>
+                <TableCell><Chip size="small" label={(task.status || 'pending').replace(/_/g, ' ')} color={STATUS_COLORS[task.status] || 'default'} sx={{ textTransform: 'capitalize' }} /></TableCell>
+                <TableCell align="right" onClick={e => e.stopPropagation()}><Button size="small" startIcon={<VisibilityIcon />} onClick={() => openView(task)} sx={{ textTransform: 'none' }}>View</Button></TableCell>
               </TableRow>
             ))}
-            {tasks.length === 0 && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4, color: '#9CA3AF' }}>No tasks found</TableCell></TableRow>}
+            {tasks.length === 0 && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No tasks match this view.</TableCell></TableRow>}
           </TableBody>
         </Table>
         <TablePagination component="div" count={tasks.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rows} onRowsPerPageChange={e => { setRows(parseInt(e.target.value, 10)); setPage(0) }} rowsPerPageOptions={[5, 10, 25]} />
       </TableContainer>
 
-      <Dialog open={dialog} onClose={close} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={e => { e.preventDefault(); saveMutation.mutate() }}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{editing ? 'Edit Task' : 'New Task'}</DialogTitle>
-          <DialogContent>
-            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-            <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField label="Title" required fullWidth value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-              <TextField label="Description" multiline rows={2} fullWidth value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-              <Stack direction="row" spacing={1}>
-                <TextField select label="Priority" fullWidth value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>
-                  <MenuItem value="low">Low</MenuItem><MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="high">High</MenuItem><MenuItem value="urgent">Urgent</MenuItem>
-                </TextField>
-                {editing && (
-                  <TextField select label="Status" fullWidth value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-                    <MenuItem value="pending">Pending</MenuItem><MenuItem value="in_progress">In Progress</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem><MenuItem value="cancelled">Cancelled</MenuItem>
-                  </TextField>
-                )}
-              </Stack>
-              <Autocomplete options={members} getOptionLabel={(o: any) => `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email}
-                value={members.find((m: any) => m.id === form.assigned_to) || null}
-                onChange={(_, v) => setForm(f => ({ ...f, assigned_to: v?.id || '' }))}
-                renderInput={p => <TextField {...p} label="Assign To" />} />
-              <Autocomplete options={people} getOptionLabel={(o: any) => `${o.first_name} ${o.last_name}${o.room_number ? ` (Room ${o.room_number})` : ''}`}
-                value={people?.find((s: any) => s.id === form.person_id) || null}
-                onChange={(_, v) => setForm(f => ({ ...f, person_id: v?.id || '' }))}
-                renderInput={p => <TextField {...p} label="Related Person (optional)" />} />
-              <TextField label="Due Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
-            </Stack>
-          </DialogContent>
-          <DialogActions sx={{ p: 3 }}>
-            <Button onClick={close}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={saveMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
-              {saveMutation.isPending ? <CircularProgress size={20} /> : 'Save'}
-            </Button>
-          </DialogActions>
-        </Box>
+      <Dialog open={viewDialog} onClose={() => setViewDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>{viewing?.title}</DialogTitle>
+        <DialogContent>
+          {viewing && <Stack spacing={2} sx={{ mt: 1 }}>
+            <Stack direction="row" spacing={1} flexWrap="wrap"><Chip label={viewing.status?.replace(/_/g, ' ')} color={STATUS_COLORS[viewing.status] || 'default'} sx={{ textTransform: 'capitalize' }} /><Chip label={viewing.priority} color={PRIORITY_COLORS[viewing.priority] || 'default'} /><Chip label={RECURRENCE_LABELS[viewing.recurrence] || 'Once'} variant="outlined" /></Stack>
+            <Divider />
+            <Stack spacing={1}><Typography variant="caption" color="text.secondary">Description</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{viewing.description || 'No description recorded.'}</Typography></Stack>
+            <Stack spacing={1}><Typography variant="caption" color="text.secondary">Notes</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{viewing.notes || 'No notes recorded.'}</Typography></Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}><Typography variant="body2"><strong>For:</strong> {viewing.person_name || 'House / team'}</Typography><Typography variant="body2"><strong>Owner:</strong> {viewing.assigned_name || 'Unassigned'}</Typography><Typography variant="body2"><strong>Due:</strong> {viewing.due_date ? new Date(viewing.due_date).toLocaleDateString('en-GB') : 'No due date'}</Typography></Stack>
+          </Stack>}
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}><Button onClick={() => setViewDialog(false)}>Close</Button>{viewing && viewing.status !== 'completed' && viewing.status !== 'cancelled' && <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={() => statusMutation.mutate({ id: viewing.id, status: 'completed' })} sx={{ bgcolor: '#15803D', textTransform: 'none' }}>Mark complete</Button>}<Button onClick={() => { setViewDialog(false); openEdit(viewing) }} sx={{ textTransform: 'none' }}>Edit</Button>{viewing && <Button color="error" onClick={() => { if (window.confirm('Delete this task?')) deleteMutation.mutate(viewing.id) }} sx={{ textTransform: 'none' }}>Delete</Button>}</DialogActions>
+      </Dialog>
+
+      <Dialog open={dialog} onClose={closeDialog} maxWidth="sm" fullWidth>
+        <Box component="form" onSubmit={e => { e.preventDefault(); saveMutation.mutate() }}><DialogTitle sx={{ fontWeight: 800 }}>{editing ? 'Edit task' : 'New task'}</DialogTitle><DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Title" required fullWidth value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+            <TextField label="Description" fullWidth multiline rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+            <TextField label="Notes" fullWidth multiline rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><TextField select label="Cadence" fullWidth value={form.recurrence} onChange={e => setForm(f => ({ ...f, recurrence: e.target.value }))}>{Object.entries(RECURRENCE_LABELS).map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}</TextField><TextField select label="Priority" fullWidth value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}><MenuItem value="low">Low</MenuItem><MenuItem value="medium">Medium</MenuItem><MenuItem value="high">High</MenuItem><MenuItem value="urgent">Urgent</MenuItem></TextField></Stack>
+            {editing && <TextField select label="Status" fullWidth value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}><MenuItem value="pending">Pending</MenuItem><MenuItem value="in_progress">In progress</MenuItem><MenuItem value="completed">Completed</MenuItem><MenuItem value="cancelled">Cancelled</MenuItem></TextField>}
+            <Autocomplete options={members} getOptionLabel={(m: any) => `${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email} value={members.find((m: any) => m.profileId === form.assigned_to) || null} onChange={(_, v) => setForm(f => ({ ...f, assigned_to: v?.profileId || '' }))} renderInput={p => <TextField {...p} label="Owner" placeholder="Assign to a staff member" />} />
+            <Autocomplete options={people} getOptionLabel={(p: any) => `${p.first_name || ''} ${p.last_name || ''}${p.room_number ? ` (Room ${p.room_number})` : ''}`} value={people.find((p: any) => p.id === form.person_id) || null} onChange={(_, v) => setForm(f => ({ ...f, person_id: v?.id || '' }))} renderInput={p => <TextField {...p} label="For person (optional)" />} />
+            <TextField label="Due date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
+          </Stack>
+        </DialogContent><DialogActions sx={{ p: 2.5 }}><Button onClick={closeDialog}>Cancel</Button><Button type="submit" variant="contained" disabled={saveMutation.isPending} sx={{ bgcolor: NAVY, textTransform: 'none' }}>{saveMutation.isPending ? <CircularProgress size={20} /> : 'Save task'}</Button></DialogActions></Box>
       </Dialog>
     </Box>
   )

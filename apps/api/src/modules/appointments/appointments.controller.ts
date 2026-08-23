@@ -27,6 +27,7 @@ export class AppointmentController {
     const orgId = AppointmentController.getOrgId(req);
     const appointment = await AppointmentRepository.create({
       ...req.body,
+      status: req.body.status === 'no-show' ? 'no_show' : req.body.status,
       organization_id: orgId,
       created_by: req.user!.userId,
     });
@@ -35,7 +36,10 @@ export class AppointmentController {
 
   static async update(req: Request, res: Response) {
     const orgId = AppointmentController.getOrgId(req);
-    const appointment = await AppointmentRepository.update(req.params.id, req.body, orgId);
+    const appointment = await AppointmentRepository.update(req.params.id, {
+      ...req.body,
+      ...(req.body.status ? { status: req.body.status === 'no-show' ? 'no_show' : req.body.status } : {}),
+    }, orgId);
     if (!appointment) throw new AppError(404, 'Appointment not found');
     res.json(appointment);
   }

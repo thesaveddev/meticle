@@ -14,6 +14,6 @@ router.get('/staffing', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), async
 router.get('/compliance', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(InsightsController.getCompliance));
 router.get('/leave', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(InsightsController.getLeave));
 router.get('/rota', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(InsightsController.getRota));
-router.get('/outcomes', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(InsightsController.getOutcomes));
+router.get('/care-outcomes', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(InsightsController.getOutcomes));
 
 export default router;

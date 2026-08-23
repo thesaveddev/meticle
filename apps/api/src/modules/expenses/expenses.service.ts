@@ -5,8 +5,10 @@ import { Expense, ExpenseInput, ExpenseStats, PettyCashBalance, PettyCashTransac
 // --- Expenses ---
 
 export async function createExpense(orgId: string, userId: string, data: ExpenseInput): Promise<Expense> {
-  const su = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [data.person_id, orgId]);
-  if (su.rows.length === 0) throw new AppError(404, 'Person not found');
+  if (data.money_source === 'person') {
+    const su = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [data.person_id, orgId]);
+    if (su.rows.length === 0) throw new AppError(404, 'Person not found');
+  }
 
   if (data.location_id) {
     const loc = await query('SELECT id FROM locations WHERE id = $1 AND organization_id = $2', [data.location_id, orgId]);
@@ -14,29 +16,30 @@ export async function createExpense(orgId: string, userId: string, data: Expense
   }
 
   const result = await query(
-    `INSERT INTO person_expenses (organization_id, person_id, location_id, category, amount_pence, description, receipt_url, incurred_date, created_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-    [orgId, data.person_id, data.location_id || null, data.category, data.amount_pence, data.description || null, data.receipt_url || null, data.incurred_date, userId]
+    `INSERT INTO person_expenses (organization_id, person_id, location_id, money_source, payment_method, category, amount_pence, description, receipt_url, incurred_date, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+    [orgId, data.person_id || null, data.location_id || null, data.money_source || 'person', data.payment_method || null, data.category, data.amount_pence, data.description || null, data.receipt_url || null, data.incurred_date, userId]
   );
   return result.rows[0];
 }
 
-export async function getExpenses(orgId: string, filters: { person_id?: string; location_id?: string; category?: string; from?: string; to?: string }): Promise<Expense[]> {
+export async function getExpenses(orgId: string, filters: { person_id?: string; location_id?: string; money_source?: string; category?: string; from?: string; to?: string }): Promise<Expense[]> {
   const conditions: string[] = ['e.organization_id = $1'];
   const params: any[] = [orgId];
   let idx = 2;
 
   if (filters.person_id) { conditions.push(`e.person_id = $${idx++}`); params.push(filters.person_id); }
   if (filters.location_id) { conditions.push(`e.location_id = $${idx++}`); params.push(filters.location_id); }
+  if (filters.money_source) { conditions.push(`e.money_source = $${idx++}`); params.push(filters.money_source); }
   if (filters.category) { conditions.push(`e.category = $${idx++}`); params.push(filters.category); }
   if (filters.from) { conditions.push(`e.incurred_date >= $${idx++}`); params.push(filters.from); }
   if (filters.to) { conditions.push(`e.incurred_date <= $${idx++}`); params.push(filters.to); }
 
   const result = await query(
-    `SELECT e.*, su.first_name || ' ' || su.last_name as person_name,
+    `SELECT e.*, COALESCE(su.first_name || ' ' || su.last_name, 'House funds') as person_name,
             l.name as location_name, sp.first_name || ' ' || sp.last_name as created_by_name
      FROM person_expenses e
-     JOIN people su ON e.person_id = su.id
+     LEFT JOIN people su ON e.person_id = su.id
      LEFT JOIN locations l ON e.location_id = l.id
      LEFT JOIN staff_profiles sp ON sp.user_id = e.created_by
      WHERE ${conditions.join(' AND ')}
@@ -48,10 +51,10 @@ export async function getExpenses(orgId: string, filters: { person_id?: string; 
 
 export async function getExpense(orgId: string, expenseId: string): Promise<Expense> {
   const result = await query(
-    `SELECT e.*, su.first_name || ' ' || su.last_name as person_name,
+    `SELECT e.*, COALESCE(su.first_name || ' ' || su.last_name, 'House funds') as person_name,
             l.name as location_name, sp.first_name || ' ' || sp.last_name as created_by_name
      FROM person_expenses e
-     JOIN people su ON e.person_id = su.id
+     LEFT JOIN people su ON e.person_id = su.id
      LEFT JOIN locations l ON e.location_id = l.id
      LEFT JOIN staff_profiles sp ON sp.user_id = e.created_by
      WHERE e.id = $1 AND e.organization_id = $2`,
@@ -63,6 +66,17 @@ export async function getExpense(orgId: string, expenseId: string): Promise<Expe
 
 export async function updateExpense(orgId: string, expenseId: string, data: Partial<ExpenseInput>): Promise<Expense> {
   const existing = await getExpense(orgId, expenseId);
+  const nextMoneySource = data.money_source ?? existing.money_source;
+  const nextPersonId = data.person_id !== undefined ? data.person_id : existing.person_id;
+
+  if (nextMoneySource === 'person') {
+    const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [nextPersonId, orgId]);
+    if (person.rows.length === 0) throw new AppError(404, 'Person not found');
+  }
+  if (data.location_id) {
+    const location = await query('SELECT id FROM locations WHERE id = $1 AND organization_id = $2', [data.location_id, orgId]);
+    if (location.rows.length === 0) throw new AppError(404, 'Location not found');
+  }
 
   const fields: string[] = [];
   const params: any[] = [];
@@ -74,6 +88,9 @@ export async function updateExpense(orgId: string, expenseId: string, data: Part
   if (data.receipt_url !== undefined) { fields.push(`receipt_url = $${idx++}`); params.push(data.receipt_url); }
   if (data.incurred_date !== undefined) { fields.push(`incurred_date = $${idx++}`); params.push(data.incurred_date); }
   if (data.location_id !== undefined) { fields.push(`location_id = $${idx++}`); params.push(data.location_id); }
+  if (data.person_id !== undefined) { fields.push(`person_id = $${idx++}`); params.push(data.person_id); }
+  if (data.money_source !== undefined) { fields.push(`money_source = $${idx++}`); params.push(data.money_source); }
+  if (data.payment_method !== undefined) { fields.push(`payment_method = $${idx++}`); params.push(data.payment_method); }
 
   if (fields.length === 0) return existing;
 
@@ -109,10 +126,10 @@ export async function getExpenseStats(orgId: string, from?: string, to?: string)
     params
   );
   const bySu = await query(
-    `SELECT e.person_id, su.first_name || ' ' || su.last_name as person_name,
+    `     SELECT e.person_id, COALESCE(su.first_name || ' ' || su.last_name, 'House funds') as person_name,
             COUNT(*)::int as count, COALESCE(SUM(e.amount_pence), 0) as total
      FROM person_expenses e
-     JOIN people su ON e.person_id = su.id
+     LEFT JOIN people su ON e.person_id = su.id
      WHERE ${where} GROUP BY e.person_id, su.first_name, su.last_name ORDER BY total DESC LIMIT 20`,
     params
   );

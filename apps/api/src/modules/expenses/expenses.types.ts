@@ -1,3 +1,8 @@
+export enum ExpenseMoneySource {
+  HOUSE = 'house',
+  PERSON = 'person',
+}
+
 export enum ExpenseCategory {
   FOOD = 'food',
   CLOTHING = 'clothing',
@@ -17,8 +22,10 @@ export enum PettyCashTransactionType {
 export interface Expense {
   id: string;
   organization_id: string;
-  person_id: string;
+  person_id?: string;
   person_name?: string;
+  money_source: ExpenseMoneySource;
+  payment_method?: string;
   location_id?: string;
   location_name?: string;
   category: ExpenseCategory;
@@ -33,8 +40,10 @@ export interface Expense {
 }
 
 export interface ExpenseInput {
-  person_id: string;
+  person_id?: string;
   location_id?: string;
+  money_source: ExpenseMoneySource;
+  payment_method?: string;
   category: ExpenseCategory;
   amount_pence: number;
   description?: string;
