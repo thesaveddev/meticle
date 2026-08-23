@@ -19,23 +19,31 @@ export class TaskRepository {
   }
 
   static async findById(id: string, orgId: string) {
-    const result = await query('SELECT * FROM tasks WHERE id = $1 AND organization_id = $2', [id, orgId]);
+    const result = await query(
+      `SELECT t.*, COALESCE(sp.first_name || ' ' || sp.last_name, '') as assigned_name,
+              COALESCE(p.first_name || ' ' || p.last_name, '') as person_name
+       FROM tasks t
+       LEFT JOIN staff_profiles sp ON t.assigned_to = sp.id
+       LEFT JOIN people p ON t.person_id = p.id
+       WHERE t.id = $1 AND t.organization_id = $2`,
+      [id, orgId]
+    );
     return result.rows[0] || null;
   }
 
   static async create(orgId: string, data: any) {
     const result = await query(
-      `INSERT INTO tasks (organization_id, title, description, assigned_to, person_id, priority, status, due_date, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-      [orgId, data.title, data.description || null, data.assigned_to || null, data.person_id || null,
-       data.priority || 'medium', data.status || 'pending', data.due_date || null, data.created_by || null]
+      `INSERT INTO tasks (organization_id, title, description, notes, assigned_to, person_id, recurrence, priority, status, due_date, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [orgId, data.title, data.description || null, data.notes || null, data.assigned_to || null, data.person_id || null,
+       data.recurrence || 'once', data.priority || 'medium', data.status || 'pending', data.due_date || null, data.created_by || null]
     );
     return result.rows[0];
   }
 
   static async update(id: string, orgId: string, data: any) {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
-    const allowed = new Set(['title', 'description', 'assigned_to', 'person_id', 'priority', 'status', 'due_date']);
+    const allowed = new Set(['title', 'description', 'notes', 'assigned_to', 'person_id', 'recurrence', 'priority', 'status', 'due_date']);
     for (const [k, v] of Object.entries(data)) {
       if (!allowed.has(k)) continue;
       if (k === 'status' && v === 'completed') fields.push('completed_at = NOW()');

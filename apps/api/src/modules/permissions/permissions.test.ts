@@ -9,10 +9,10 @@ describe('Permissions module catalogue', () => {
     expect(MODULES).toEqual(expect.arrayContaining([
       'dashboard', 'people', 'emedication', 'staff_directory', 'scheduling', 'marketplace',
       'agencies', 'leave', 'compliance', 'training', 'policies', 'incidents', 'reporting',
-      'outcomes', 'chat', 'tasks', 'appointments', 'expenses', 'room_checks', 'settings',
+      'chat', 'tasks', 'appointments', 'expenses', 'room_checks', 'settings',
       'billing', 'learn',
     ]));
-    expect(MODULES).toHaveLength(22);
+    expect(MODULES).toHaveLength(21);
     expect(new Set(MODULES).size).toBe(MODULES.length);
   });
 

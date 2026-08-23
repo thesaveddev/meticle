@@ -50,7 +50,6 @@ Disallow: /training
 Disallow: /chat
 Disallow: /appointments
 Disallow: /policies
-Disallow: /outcomes
 Disallow: /room-checks
 Disallow: /mobile
 Disallow: /medications

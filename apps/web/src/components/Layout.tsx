@@ -26,7 +26,6 @@ import {
   Receipt as ReceiptIcon,
   LocationOn as LocationOnIcon,
   AdminPanelSettings as AdminIcon,
-  Psychology as OutcomeIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material'
@@ -115,7 +114,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Analytics',
       items: [
         { text: 'Reports', icon: <ReportsIcon />, path: '/reporting', module: 'reporting', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-        { text: 'Outcomes', icon: <OutcomeIcon />, path: '/outcomes', module: 'outcomes', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
       ],
     },
     {
@@ -147,6 +145,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     item.roles.includes(userRole) &&
     (modulePermissions[item.module] || 'view') !== 'none'
   )
+  const activeNavItem = [...filteredGroups.flatMap(group => group.items), ...filteredBottomItems]
+    .find(item => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
+  const activeNavGroup = filteredGroups.find(group => group.items.some(item => item === activeNavItem))
 
   useEffect(() => {
     if (!rawUser.id) return
@@ -508,6 +509,12 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       >
         <RouteLoadingIndicator />
         <OfflineBanner />
+        {activeNavItem && (
+          <Paper elevation={0} sx={{ position: 'sticky', top: 72, zIndex: 5, mb: 2, px: 2, py: 1, border: `1px solid ${theme.palette.divider}`, borderLeft: 3, borderLeftColor: branding.primary_color, borderRadius: 1.5, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7 }}>{activeNavGroup?.label || 'Module'}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 800, color: branding.primary_color }}>{activeNavItem.text}</Typography>
+          </Paper>
+        )}
         {!subLoading && !isActive && rawUser.role !== UserRole.SUPER_ADMIN && (
           <Paper
             elevation={0}

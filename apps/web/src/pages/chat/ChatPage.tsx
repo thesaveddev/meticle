@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { Box, Paper, Stack, Avatar, Typography, Tooltip, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Snackbar, Alert, Menu } from '@mui/material'
 import { Groups as GroupsIcon, Forum as ForumIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material'
 import { useChat } from './hooks/useChat'
-import { getChannelName, getChannelAvatar, EMOJIS, NAVY, NAVY_DEEP, EMERALD, INK, MIST, BONE, HAIRLINE, WHITE } from './utils'
+import { getChannelName, getChannelAvatar, EMOJIS, NAVY, NAVY_DEEP, EMERALD, INK, MIST, BONE, HAIRLINE, OUTLINE, WHITE } from './utils'
 import ChannelSidebar from './components/ChannelSidebar'
 import MessageList from './components/MessageList'
 import ChatComposer from './components/ChatComposer'
@@ -52,9 +52,13 @@ export default function ChatPage() {
     await chat.handleFileUpload(file)
   }, [chat.handleFileUpload])
 
+  const handleAttachFile = useCallback((file: File) => {
+    chat.handleAttachFile(file)
+  }, [chat.handleAttachFile])
+
   return (
-    <Box sx={{ display: 'flex', height: 'calc(100vh - 112px)', overflow: 'hidden', bgcolor: BONE, p: { xs: 0, md: 1.5 }, boxSizing: 'border-box' }}>
-      <Paper elevation={0} sx={{ flex: 1, minWidth: 0, display: 'flex', overflow: 'hidden', borderRadius: { xs: 0, md: 2 }, border: { xs: 'none', md: `1px solid ${HAIRLINE}` } }}>
+    <Box sx={{ display: 'flex', height: 'calc(100vh - 112px)', overflow: 'hidden', bgcolor: BONE, boxSizing: 'border-box' }}>
+      <Paper elevation={0} sx={{ flex: 1, minWidth: 0, display: 'flex', overflow: 'hidden', borderRadius: 0, border: 'none' }}>
 
         {/* Sidebar */}
         {drawerOpen && (
@@ -72,7 +76,7 @@ export default function ChatPage() {
         {/* Main area */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: WHITE }}>
           {/* Header */}
-          <Box sx={{ px: 2, py: 1.25, borderBottom: `1px solid ${HAIRLINE}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: WHITE, minHeight: 52 }}>
+          <Box sx={{ px: 2, py: 1.25, borderBottom: `1px solid ${HAIRLINE}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: WHITE, minHeight: 52, boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
             <Stack direction="row" spacing={1.5} alignItems="center">
               {!drawerOpen && (
                 <IconButton size="small" onClick={() => setDrawerOpen(true)} sx={{ color: NAVY }}>
@@ -137,12 +141,12 @@ export default function ChatPage() {
               {channelType !== 'dm' && (
                 <IconButton size="small" onClick={() => { setShowMembers(true); chat.loadChannelMembers(chat.activeChannel!) }}
                   disabled={!chat.activeChannel}
-                  sx={{ color: NAVY, width: 32, height: 32, border: `1px solid ${HAIRLINE}`, '&:hover': { bgcolor: BONE } }}>
+                  sx={{ color: MIST, width: 32, height: 32, border: `1px solid ${OUTLINE}`, borderRadius: 1.5, '&:hover': { bgcolor: BONE, color: NAVY, borderColor: NAVY } }}>
                   <GroupsIcon sx={{ fontSize: 18 }} />
                 </IconButton>
               )}
               <IconButton size="small" onClick={() => setDrawerOpen(prev => !prev)}
-                sx={{ color: NAVY, width: 32, height: 32, border: `1px solid ${HAIRLINE}`, '&:hover': { bgcolor: BONE } }}>
+                sx={{ color: MIST, width: 32, height: 32, border: `1px solid ${OUTLINE}`, borderRadius: 1.5, '&:hover': { bgcolor: BONE, color: NAVY, borderColor: NAVY } }}>
                 <ForumIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Stack>
@@ -150,13 +154,14 @@ export default function ChatPage() {
 
           {/* Tabs */}
           {chat.activeChannel && (
-            <Box sx={{ borderBottom: `1px solid ${HAIRLINE}`, px: 2, display: 'flex', gap: 0 }}>
+            <Box sx={{ borderBottom: `1px solid ${OUTLINE}`, px: 2, display: 'flex', gap: 0 }}>
               {['Messages', `Files (${chat.sharedFiles.length})`].map((label, i) => (
                 <Box key={i} onClick={() => { setActiveTab(i); if (i === 1) chat.loadSharedFiles(chat.activeChannel!) }}
                   sx={{
-                    py: 1, px: 1.5, cursor: 'pointer', fontSize: 13, fontWeight: activeTab === i ? 700 : 500,
+                    py: 1, px: 2, cursor: 'pointer', fontSize: 13, fontWeight: activeTab === i ? 700 : 500,
                     color: activeTab === i ? NAVY : MIST, borderBottom: `2px solid ${activeTab === i ? NAVY : 'transparent'}`,
-                    transition: 'all 0.15s',
+                    transition: 'all 0.15s', borderRadius: '4px 4px 0 0',
+                    '&:hover': { color: NAVY, bgcolor: activeTab === i ? 'transparent' : '#F5F3EF' },
                   }}>
                   {label}
                 </Box>
@@ -192,9 +197,10 @@ export default function ChatPage() {
                 onSend={chat.handleSend} onKeyDown={chat.handleKeyDown}
                 onTyping={chat.handleTyping} sending={chat.sending}
                 sendError={chat.sendError}
-                activeChannel={chat.activeChannel} onFileSelect={handleFileUpload}
+                activeChannel={chat.activeChannel} onFileSelect={handleAttachFile}
                 inputLinkPreview={chat.inputLinkPreview} inputLinkLoading={chat.inputLinkLoading}
                 replyTo={chat.replyTo} onCancelReply={() => chat.setReplyTo(null)}
+                pendingFile={chat.pendingFile} onCancelFile={() => chat.setPendingFile(null)}
                 currentUserId={chat.currentUserId}
               />
             </>

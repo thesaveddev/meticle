@@ -25,6 +25,14 @@ describe('Expenses â€” CRUD, stats, petty cash', () => {
     expect(created.status).toBe(201)
     expect(created.body.category).toBe('food')
 
+    const houseExpense = await request(app)
+      .post('/expenses')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ moneySource: 'house', locationId: location.id, category: 'other', amountPence: 2500, incurredDate: '2026-08-02', description: 'Shared cleaning supplies' })
+    expect(houseExpense.status).toBe(201)
+    expect(houseExpense.body.money_source).toBe('house')
+    expect(houseExpense.body.person_id).toBeNull()
+
     const list = await request(app)
       .get('/expenses')
       .set('Authorization', `Bearer ${token}`)

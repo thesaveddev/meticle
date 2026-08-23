@@ -1155,29 +1155,6 @@ async function seed() {
   }
   console.log('  ✓ health observations, bowel, dental, fluid intake created')
 
-  // ── 43. Outcome scales + results ──
-  const scales = [
-    { name: 'Warwick-Edinburgh Mental Wellbeing Scale', shortcode: 'WEMWBS', desc: '14-item scale measuring positive mental wellbeing', min: 14, max: 70, qs: [{ q: 'I feel optimistic about the future', type: 'likert' }, { q: 'I feel useful', type: 'likert' }] },
-    { name: 'Barthel ADL Index', shortcode: 'BARTHEL', desc: 'Measures functional independence in activities of daily living', min: 0, max: 100, qs: [{ q: 'Feeding', type: 'score' }, { q: 'Mobility', type: 'score' }, { q: 'Bathing', type: 'score' }] },
-  ]
-  const scaleIds: string[] = []
-  for (const sc of scales) {
-    const id = uuid()
-    scaleIds.push(id)
-    await insert(`INSERT INTO outcome_scales (id,organization_id,name,shortcode,description,min_score,max_score,questions,score_bands,is_active,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true,$10)`,
-      [id, orgId, sc.name, sc.shortcode, sc.desc, sc.min, sc.max, JSON.stringify(sc.qs),
-       JSON.stringify([{ min: sc.min, max: sc.max, label: 'Standard band', color: '#0F4C81' }]), tsAgo(300)])
-  }
-  for (let i = 0; i < 12; i++) {
-    const su = sus[i % sus.length]
-    const scaleId = scaleIds[i % scaleIds.length]
-    const score = scaleId === scaleIds[1] ? 35 + Math.floor(Math.random() * 50) : 42 + Math.floor(Math.random() * 20)
-    await insert(`INSERT INTO outcome_scale_results (id,scale_id,person_id,scores,total_score,band_label,assessed_by,assessed_at,notes,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [uuid(), scaleId, su.id, JSON.stringify({}), score, 'Standard band', staff[Math.floor(Math.random() * 3)].userId,
-       tsAgo(Math.floor(Math.random() * 90)), 'Routine outcome measurement', tsAgo(Math.floor(Math.random() * 90))])
-  }
-  console.log('  ✓ 2 outcome scales + 12 results created')
-
   // ── 44. DSPT ──
   const dsptYears = [
     { year: '2024/25', status: 'standards_met', submitted: 400, notes: 'Full submission completed — all standards met' },

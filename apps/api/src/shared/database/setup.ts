@@ -466,6 +466,41 @@ const MIGRATION_036: Migration = {
   ],
 };
 
+const MIGRATION_037: Migration = {
+  name: '037_remove_outcome_scales',
+  strict: false,
+  statements: [
+    `DROP TABLE IF EXISTS outcome_scale_results`,
+    `DROP TABLE IF EXISTS outcome_scales`,
+  ],
+};
+
+const MIGRATION_038: Migration = {
+  name: '038_remove_outcomes_permissions',
+  strict: false,
+  statements: [
+    `DELETE FROM user_permissions WHERE module = 'outcomes'`,
+  ],
+};
+
+const MIGRATION_039: Migration = {
+  name: '039_operational_workflow_fields',
+  strict: false,
+  statements: [
+    `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence VARCHAR(20) NOT NULL DEFAULT 'once'`,
+    `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS notes TEXT`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS notes TEXT`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS recurrence VARCHAR(20) NOT NULL DEFAULT 'once'`,
+    `ALTER TABLE person_expenses ALTER COLUMN person_id DROP NOT NULL`,
+    `ALTER TABLE person_expenses ADD COLUMN IF NOT EXISTS money_source VARCHAR(20) NOT NULL DEFAULT 'person'`,
+    `ALTER TABLE person_expenses ADD COLUMN IF NOT EXISTS payment_method VARCHAR(30)`,
+    `DO $$ BEGIN
+       ALTER TABLE person_expenses DROP CONSTRAINT IF EXISTS person_expenses_money_source_check;
+       ALTER TABLE person_expenses ADD CONSTRAINT person_expenses_money_source_check CHECK (money_source IN ('house', 'person'));
+     EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  ],
+};
+
 const MIGRATION_029: Migration = {
   name: '029_leave_hours_only',
   strict: false,
@@ -2021,7 +2056,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)
@@ -2033,30 +2068,6 @@ export const setupDatabase = async () => {
       logger.info('App role password updated.');
     }
 
-    // Auto-seed standard outcome scales for orgs that have none
-    try {
-      const orgsRes = await query(`SELECT id FROM organizations`);
-      const standardScales = [
-        { name: 'Warwick-Edinburgh Mental Wellbeing Scale', shortcode: 'WEMWBS', desc: '14-item scale measuring positive mental wellbeing', min: 14, max: 70, bands: '[{"min":14,"max":27,"label":"Low Wellbeing","color":"#DC2626"},{"min":28,"max":41,"label":"Below Average","color":"#D97706"},{"min":42,"max":56,"label":"Average","color":"0F4C81"},{"min":57,"max":70,"label":"High Wellbeing","color":"#16A34A"}]' },
-        { name: 'Patient Health Questionnaire', shortcode: 'PHQ-9', desc: '9-item depression screening and severity measure', min: 0, max: 27, bands: '[{"min":0,"max":4,"label":"Minimal Depression","color":"#16A34A"},{"min":5,"max":9,"label":"Mild Depression","color":"#D97706"},{"min":10,"max":14,"label":"Moderate Depression","color":"#EA580C"},{"min":15,"max":19,"label":"Moderately Severe","color":"#DC2626"},{"min":20,"max":27,"label":"Severe Depression","color":"#991B1B"}]' },
-        { name: 'Generalised Anxiety Disorder Scale', shortcode: 'GAD-7', desc: '7-item anxiety screening and severity measure', min: 0, max: 21, bands: '[{"min":0,"max":4,"label":"Minimal Anxiety","color":"#16A34A"},{"min":5,"max":9,"label":"Mild Anxiety","color":"#D97706"},{"min":10,"max":14,"label":"Moderate Anxiety","color":"#EA580C"},{"min":15,"max":21,"label":"Severe Anxiety","color":"#DC2626"}]' },
-        { name: 'EQ-5D-5L', shortcode: 'EQ5D', desc: '5-dimensional quality of life measure', min: 0, max: 100, bands: '[{"min":0,"max":25,"label":"Severe Problems","color":"#DC2626"},{"min":26,"max":50,"label":"Moderate Problems","color":"#D97706"},{"min":51,"max":75,"label":"Mild Problems","color":"#0F4C81"},{"min":76,"max":100,"label":"No Problems","color":"#16A34A"}]' },
-        { name: 'Outcome Star', shortcode: 'OSTAR', desc: '5-domain personal outcome measure', min: 0, max: 50, bands: '[{"min":0,"max":10,"label":"Low Outcome","color":"#DC2626"},{"min":11,"max":25,"label":"Developing","color":"#D97706"},{"min":26,"max":40,"label":"Good Outcome","color":"#0F4C81"},{"min":41,"max":50,"label":"Excellent Outcome","color":"#16A34A"}]' },
-      ];
-      for (const org of orgsRes.rows) {
-        const existing = await query(`SELECT COUNT(*)::int AS cnt FROM outcome_scales WHERE organization_id = $1`, [org.id]);
-        if (existing.rows[0].cnt > 0) continue;
-        for (const s of standardScales) {
-          await query(
-            `INSERT INTO outcome_scales (organization_id, name, shortcode, description, min_score, max_score, score_bands) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`,
-            [org.id, s.name, s.shortcode, s.desc, s.min, s.max, s.bands]
-          );
-        }
-      }
-      logger.info('Standard outcome scales seeded.');
-    } catch {
-      // silent — table may not exist yet on fresh DB
-    }
   } catch (error) {
     logger.error(error, 'Error setting up database schema');
     throw error;

@@ -14,7 +14,6 @@ const MODULE_LABELS: Record<string, string> = {
   policies: 'Policies',
   incidents: 'Incidents',
   reporting: 'Reports & Insights',
-  outcomes: 'Outcomes',
   chat: 'Communication',
   tasks: 'Tasks',
   appointments: 'Appointments',

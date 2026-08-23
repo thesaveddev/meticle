@@ -7,7 +7,7 @@ import {
   Reply as ReplyIcon,
 } from '@mui/icons-material'
 import { type ChatMessage } from '../hooks/useChat'
-import { renderMessageText, formatTime, getMemberName, getMemberInitial, FILE_PREVIEW_TYPES, NAVY, NAVY_DEEP, EMERALD, INK, MIST, BONE, HAIRLINE, WHITE, DANGER } from '../utils'
+import { renderMessageText, formatTime, getMemberName, getMemberInitial, FILE_PREVIEW_TYPES, NAVY, NAVY_DEEP, EMERALD, INK, MIST, BONE, HAIRLINE, OUTLINE, WHITE, DANGER } from '../utils'
 import SecureImg from './SecureImg'
 import LinkPreview from './LinkPreview'
 
@@ -154,12 +154,12 @@ export default function MessageBubble({
             </Stack>
           ) : (
             <Paper sx={{
-              px: msg.content ? 1.5 : 0.75, py: msg.content ? 0.75 : 0.5,
-              borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+              px: msg.content ? 1.75 : 1, py: msg.content ? 0.875 : 0.625,
+              borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
               bgcolor: isMine ? NAVY : WHITE,
               color: isMine ? WHITE : INK,
               border: isMine ? 'none' : `1px solid ${HAIRLINE}`,
-              boxShadow: isMine ? 'none' : '0 1px 2px rgba(0,0,0,0.04)',
+              boxShadow: isMine ? '0 1px 3px rgba(15,76,129,0.15)' : '0 1px 2px rgba(0,0,0,0.05)',
               position: 'relative',
             }} elevation={0}>
               {/* Reply preview */}
@@ -181,26 +181,26 @@ export default function MessageBubble({
 
               {/* Hover actions */}
               <Box sx={{
-                position: 'absolute', top: -10, right: isMine ? 'auto' : 0, left: isMine ? 0 : 'auto',
-                display: 'flex', gap: 0.25, opacity: hovered ? 1 : 0, transition: 'opacity 0.12s', zIndex: 2,
+                position: 'absolute', top: -12, right: isMine ? 'auto' : -4, left: isMine ? -4 : 'auto',
+                display: 'flex', gap: 0.5, opacity: hovered ? 1 : 0, transition: 'opacity 0.12s', zIndex: 2,
               }}>
                 <IconButton size="small" onClick={e => onOpenReactionPicker(e, msg.id)}
-                  sx={{ width: 24, height: 24, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, boxShadow: '0 1px 2px rgba(0,0,0,0.08)', '&:hover': { bgcolor: BONE } }}>
-                  <MoodIcon sx={{ fontSize: 14, color: MIST }} />
+                  sx={{ width: 28, height: 28, bgcolor: WHITE, border: `1px solid ${OUTLINE}`, boxShadow: '0 1px 4px rgba(0,0,0,0.1)', '&:hover': { bgcolor: BONE, borderColor: NAVY } }}>
+                  <MoodIcon sx={{ fontSize: 15, color: MIST }} />
                 </IconButton>
                 <IconButton size="small" onClick={e => { e.stopPropagation(); onReply(msg) }}
-                  sx={{ width: 24, height: 24, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, boxShadow: '0 1px 2px rgba(0,0,0,0.08)', '&:hover': { bgcolor: BONE } }}>
-                  <ReplyIcon sx={{ fontSize: 14, color: MIST }} />
+                  sx={{ width: 28, height: 28, bgcolor: WHITE, border: `1px solid ${OUTLINE}`, boxShadow: '0 1px 4px rgba(0,0,0,0.1)', '&:hover': { bgcolor: BONE, borderColor: NAVY } }}>
+                  <ReplyIcon sx={{ fontSize: 15, color: MIST }} />
                 </IconButton>
                 {isMine && (
                   <>
                     <IconButton size="small" onClick={e => { e.stopPropagation(); onStartEdit() }}
-                      sx={{ width: 24, height: 24, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, boxShadow: '0 1px 2px rgba(0,0,0,0.08)', '&:hover': { bgcolor: BONE } }}>
-                      <EditIcon sx={{ fontSize: 13, color: MIST }} />
+                      sx={{ width: 28, height: 28, bgcolor: WHITE, border: `1px solid ${OUTLINE}`, boxShadow: '0 1px 4px rgba(0,0,0,0.1)', '&:hover': { bgcolor: BONE, borderColor: NAVY } }}>
+                      <EditIcon sx={{ fontSize: 14, color: MIST }} />
                     </IconButton>
                     <IconButton size="small" onClick={e => { e.stopPropagation(); onDelete() }}
-                      sx={{ width: 24, height: 24, bgcolor: WHITE, border: `1px solid ${HAIRLINE}`, boxShadow: '0 1px 2px rgba(0,0,0,0.08)', '&:hover': { bgcolor: '#FEE2E2' } }}>
-                      <DeleteIcon sx={{ fontSize: 13, color: DANGER }} />
+                      sx={{ width: 28, height: 28, bgcolor: WHITE, border: `1px solid ${OUTLINE}`, boxShadow: '0 1px 4px rgba(0,0,0,0.1)', '&:hover': { bgcolor: '#FEE2E2', borderColor: DANGER } }}>
+                      <DeleteIcon sx={{ fontSize: 14, color: DANGER }} />
                     </IconButton>
                   </>
                 )}
@@ -222,11 +222,12 @@ export default function MessageBubble({
                 <Chip key={`${r.emoji}-${i}`} size="small" clickable onClick={() => onReact(r.emoji)}
                   label={`${r.emoji} ${r.count}`}
                   sx={{
-                    height: 22, fontSize: 12, fontWeight: r.reacted_by_me ? 700 : 500,
+                    height: 24, fontSize: 12, fontWeight: r.reacted_by_me ? 700 : 500,
                     bgcolor: r.reacted_by_me ? 'rgba(16,185,129,0.1)' : WHITE,
                     color: r.reacted_by_me ? EMERALD : INK,
-                    border: `1px solid ${r.reacted_by_me ? 'rgba(16,185,129,0.3)' : HAIRLINE}`,
-                    '& .MuiChip-label': { px: 0.75 },
+                    border: `1px solid ${r.reacted_by_me ? 'rgba(16,185,129,0.3)' : OUTLINE}`,
+                    '& .MuiChip-label': { px: 1 },
+                    '&:hover': { bgcolor: r.reacted_by_me ? 'rgba(16,185,129,0.15)' : BONE },
                   }}
                 />
               ))}

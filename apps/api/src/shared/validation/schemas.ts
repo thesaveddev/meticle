@@ -1274,25 +1274,31 @@ export const updatePolicySchema = z.object({
 });
 
 // === Appointments ===
+const RECURRENCE_OPTIONS = ['once', 'daily', 'monthly', 'yearly'] as const;
+
 export const createAppointmentSchema = z.object({
-  person_id: z.string().uuid(),
-  staff_id: z.string().uuid().optional(),
+  person_id: z.string().uuid().optional().nullable(),
+  staff_id: z.string().uuid().optional().nullable(),
   title: z.string().min(1).max(500),
   description: z.string().max(2000).optional(),
+  notes: z.string().max(5000).optional(),
+  recurrence: z.enum(RECURRENCE_OPTIONS).optional(),
   start_time: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)),
   end_time: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)).optional(),
-  status: z.enum(['scheduled', 'completed', 'cancelled', 'no-show']).optional(),
-  location_id: z.string().uuid().optional(),
+  status: z.enum(['scheduled', 'completed', 'cancelled', 'no_show', 'no-show']).optional(),
+  location_id: z.string().uuid().optional().nullable(),
 });
 
 export const updateAppointmentSchema = z.object({
-  person_id: z.string().uuid().optional(),
+  person_id: z.string().uuid().optional().nullable(),
   staff_id: z.string().uuid().optional().nullable(),
   title: z.string().min(1).max(500).optional(),
   description: z.string().max(2000).optional(),
+  notes: z.string().max(5000).optional(),
+  recurrence: z.enum(RECURRENCE_OPTIONS).optional(),
   start_time: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)).optional(),
   end_time: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)).optional().nullable(),
-  status: z.enum(['scheduled', 'completed', 'cancelled', 'no-show']).optional(),
+  status: z.enum(['scheduled', 'completed', 'cancelled', 'no_show', 'no-show']).optional(),
   location_id: z.string().uuid().optional().nullable(),
 });
 
@@ -1386,8 +1392,10 @@ export const updateMemoryBookEntrySchema = z.object({
 export const createTaskSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().max(2000).optional(),
+  notes: z.string().max(5000).optional(),
   assigned_to: z.string().uuid().optional(),
   person_id: z.string().uuid().optional(),
+  recurrence: z.enum(RECURRENCE_OPTIONS).optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional(),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -1396,8 +1404,10 @@ export const createTaskSchema = z.object({
 export const updateTaskSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(2000).optional(),
+  notes: z.string().max(5000).optional(),
   assigned_to: z.string().uuid().optional().nullable(),
   person_id: z.string().uuid().optional().nullable(),
+  recurrence: z.enum(RECURRENCE_OPTIONS).optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional(),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
@@ -1455,27 +1465,6 @@ export const updateMilestoneSchema = z.object({
 // === Goal Progress ===
 export const recordProgressSchema = z.object({
   progress: z.number().int().min(0).max(100),
-  notes: z.string().max(2000).optional(),
-});
-
-// === Outcome Scales ===
-export const createScaleSchema = z.object({
-  name: z.string().min(1).max(255),
-  shortcode: z.string().min(1).max(20),
-  description: z.string().max(2000).optional(),
-  min_score: z.number(),
-  max_score: z.number(),
-  questions: z.array(z.object({ text: z.string().min(1), order: z.number().int().min(0) })).min(1),
-  score_bands: z.array(z.object({ min: z.number(), max: z.number(), label: z.string(), color: z.string() })).min(1),
-});
-
-export const updateScaleSchema = createScaleSchema.partial();
-
-export const recordAssessmentSchema = z.object({
-  person_id: z.string().uuid(),
-  scores: z.record(z.string(), z.number()),
-  total_score: z.number(),
-  band_label: z.string().optional(),
   notes: z.string().max(2000).optional(),
 });
 

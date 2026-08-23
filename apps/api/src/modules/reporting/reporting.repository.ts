@@ -319,8 +319,7 @@ export class ReportingRepository {
         (SELECT COUNT(*)::int FROM person_goals g WHERE g.person_id = su.id AND g.status = 'completed') AS completed_goals,
         (SELECT ROUND(AVG(progress))::int FROM person_goals g WHERE g.person_id = su.id AND g.status = 'active') AS avg_progress,
         (SELECT ROUND(AVG(w.score), 1)::numeric FROM person_wellbeing w WHERE w.person_id = su.id
-         AND w.recorded_date >= COALESCE($2::date, CURRENT_DATE - 30)) AS avg_wellbeing,
-        (SELECT COUNT(*)::int FROM outcome_scale_results osr WHERE osr.person_id = su.id) AS scale_assessments
+         AND w.recorded_date >= COALESCE($2::date, CURRENT_DATE - 30)) AS avg_wellbeing
       FROM people su
       LEFT JOIN locations l ON su.location_id = l.id
       WHERE su.organization_id = $1 AND su.status = 'active'`;

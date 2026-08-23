@@ -11,6 +11,8 @@ export class ExpensesController {
     const expense = await createExpense(orgId, userId, {
       person_id: req.body.personId,
       location_id: req.body.locationId,
+      money_source: req.body.moneySource,
+      payment_method: req.body.paymentMethod,
       category: req.body.category,
       amount_pence: req.body.amountPence,
       description: req.body.description,
@@ -25,6 +27,7 @@ export class ExpensesController {
     const expenses = await getExpenses(orgId, {
       person_id: req.query.personId as string,
       location_id: req.query.locationId as string,
+      money_source: req.query.moneySource as string,
       category: req.query.category as string,
       from: req.query.from as string,
       to: req.query.to as string,
@@ -43,6 +46,8 @@ export class ExpensesController {
     const expense = await updateExpense(orgId, req.params.id, {
       person_id: req.body.personId,
       location_id: req.body.locationId,
+      money_source: req.body.moneySource,
+      payment_method: req.body.paymentMethod,
       category: req.body.category,
       amount_pence: req.body.amountPence,
       description: req.body.description,

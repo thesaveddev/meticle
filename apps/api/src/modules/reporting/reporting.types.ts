@@ -133,7 +133,7 @@ export const REPORT_REGISTRY: ReportDefinition[] = [
     chartTypes: ['bar', 'pie', 'table'], defaultChartType: 'table',
   },
   {
-    id: 'su-outcomes', title: 'Person Outcomes', description: 'Goals, wellbeing scores, and clinical assessments',
+    id: 'su-outcomes', title: 'Person Outcomes', description: 'Goals and wellbeing scores',
     category: 'people', icon: 'Psychology', color: '#8B5CF6',
     filters: ['dateRange', 'location', 'status'],
     groupByOptions: ['location', 'cqc_domain'],
@@ -313,31 +313,31 @@ export const REPORT_REGISTRY: ReportDefinition[] = [
     chartTypes: ['bar', 'line', 'table'], defaultChartType: 'bar',
   },
 
-  // ─── Outcomes ───────────────────────────────────────────
+  // ─── People & Care Outcomes ────────────────────────────
   {
     id: 'outcomes-by-domain', title: 'Outcomes by CQC Domain', description: 'Goal completion rates by CQC domain',
-    category: 'outcomes', icon: 'Psychology', color: '#7C3AED',
+    category: 'people', icon: 'Psychology', color: '#8B5CF6',
     filters: ['dateRange', 'location'],
     groupByOptions: ['domain', 'location', 'month'],
     chartTypes: ['bar', 'radar', 'table'], defaultChartType: 'bar',
   },
   {
     id: 'outcomes-wellbeing', title: 'Wellbeing Scores', description: 'Wellbeing domain averages and distributions',
-    category: 'outcomes', icon: 'Favorite', color: '#7C3AED',
+    category: 'people', icon: 'Favorite', color: '#8B5CF6',
     filters: ['dateRange', 'location'],
     groupByOptions: ['domain', 'location', 'month'],
     chartTypes: ['bar', 'radar', 'line', 'table'], defaultChartType: 'radar',
   },
   {
     id: 'outcomes-goal-trend', title: 'Goal Progress Trend', description: 'Goal progress over time with weekly granularity',
-    category: 'outcomes', icon: 'TrendingUp', color: '#7C3AED',
+    category: 'people', icon: 'TrendingUp', color: '#8B5CF6',
     filters: ['dateRange', 'location'],
     groupByOptions: ['week', 'domain'],
     chartTypes: ['line', 'area', 'bar', 'table'], defaultChartType: 'line',
   },
   {
     id: 'satisfaction-surveys', title: 'Satisfaction Surveys', description: 'Feedback ratings from people, families, and visitors',
-    category: 'outcomes', icon: 'Star', color: '#7C3AED',
+    category: 'people', icon: 'Star', color: '#8B5CF6',
     filters: ['dateRange', 'location'],
     groupByOptions: ['location', 'month'],
     chartTypes: ['bar', 'line', 'table'], defaultChartType: 'bar',
@@ -369,6 +369,5 @@ export const CATEGORIES = [
   { id: 'compliance', label: 'Compliance', color: '#16A34A', icon: 'Assessment' },
   { id: 'training', label: 'Training', color: '#6366F1', icon: 'School' },
   { id: 'emedication', label: 'eMAR', color: '#EC4899', icon: 'Medication' },
-  { id: 'outcomes', label: 'Outcomes', color: '#7C3AED', icon: 'Psychology' },
   { id: 'operations', label: 'Operations', color: '#0891B2', icon: 'Task' },
 ] as const

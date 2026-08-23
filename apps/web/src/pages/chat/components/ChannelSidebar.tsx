@@ -9,7 +9,7 @@ import {
   ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material'
 import { type ChatChannel, type OrgMember } from '../hooks/useChat'
-import { getChannelName, getChannelAvatar, timeAgo, NAVY, NAVY_DEEP, EMERALD, INK, MIST, BONE, HAIRLINE, WHITE } from '../utils'
+import { getChannelName, getChannelAvatar, timeAgo, NAVY, NAVY_DEEP, EMERALD, INK, MIST, BONE, HAIRLINE, OUTLINE, WHITE } from '../utils'
 
 interface Props {
   channels: ChatChannel[]
@@ -58,8 +58,10 @@ export default function ChannelSidebar({
         selected={isActive}
         onClick={() => onSelectChannel(ch.id)}
         sx={{
-          borderRadius: 1.5, mx: 1, my: 0.25, py: 0.75, px: 1.25,
-          '&.Mui-selected': { bgcolor: BONE, '&:hover': { bgcolor: BONE } },
+          borderRadius: 2, mx: 1, my: 0.25, py: 0.75, px: 1.25,
+          borderLeft: isActive ? `3px solid ${NAVY}` : '3px solid transparent',
+          '&.Mui-selected': { bgcolor: '#EDEAE4', '&:hover': { bgcolor: '#EDEAE4' } },
+          '&:hover': { bgcolor: '#F5F3EF' },
         }}
       >
         <ListItemAvatar sx={{ minWidth: 40 }}>
@@ -151,7 +153,7 @@ export default function ChannelSidebar({
           size="small" placeholder="Search" fullWidth
           value={searchQuery} onChange={e => onSearchChange(e.target.value)}
           InputProps={{
-            sx: { borderRadius: 1.5, bgcolor: BONE, fontSize: 13, height: 36 },
+            sx: { borderRadius: 2, bgcolor: '#F5F3EF', fontSize: 13, height: 36, '& fieldset': { borderColor: HAIRLINE }, '&:hover fieldset': { borderColor: OUTLINE }, '&.Mui-focused fieldset': { borderColor: NAVY } },
             endAdornment: searchQuery ? (
               <IconButton size="small" aria-label="Clear" onClick={() => onSearchChange('')} sx={{ mr: -0.5 }}>
                 <CloseIcon sx={{ fontSize: 16, color: MIST }} />

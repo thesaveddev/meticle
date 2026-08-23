@@ -65,7 +65,6 @@ import FamilyPortalPage from './pages/FamilyPortalPage'
 import ComplianceRecordsPage from './pages/compliance/ComplianceRecordsPage'
 import AppointmentsPage from './pages/appointments/AppointmentsPage'
 import PoliciesPage from './pages/policies/PoliciesPage'
-import OutcomesPage from './pages/outcomes/OutcomesPage'
 import EMedicationPage from './pages/emedication/EMedicationPage'
 import ArchivedMarPage from './pages/emedication/ArchivedMarPage'
 import UnauthorizedPage from './pages/errors/UnauthorizedPage'
@@ -144,7 +143,6 @@ function App() {
           <Route path="/chat" element={<ModuleGuard module="chat"><ChatPage /></ModuleGuard>} />
           <Route path="/appointments" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="appointments"><AppointmentsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/policies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="policies"><PoliciesPage /></ModuleGuard></AuthGuard>} />
-          <Route path="/outcomes" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="outcomes"><OutcomesPage /></ModuleGuard></AuthGuard>} />
           <Route path="/room-checks" element={<ModuleGuard module="room_checks"><RoomChecksPage /></ModuleGuard>} />
           <Route path="/mobile/check-in" element={<CheckInPage />} />
           <Route path="/mobile/voice-notes" element={<VoiceNotesPage />} />

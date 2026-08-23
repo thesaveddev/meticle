@@ -499,12 +499,12 @@ export default function HealthTab({ personId, fluidTarget }: HealthSectionProps)
   const Active = HEALTH_TABS[innerTab].Component
   return (
     <Box>
-      <Tabs value={innerTab} onChange={(_, v) => setInnerTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: 1, borderColor: '#E5E7EB', mb: 2, minHeight: 44, '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 44 } }}>
-        {HEALTH_TABS.map((t) => (
-          <Tab key={t.label} label={t.label} />
-        ))}
-      </Tabs>
-      <Active personId={personId} fluidTarget={fluidTarget} />
+      <Stack direction="row" alignItems="flex-start" spacing={2}>
+        <Tabs orientation="vertical" value={innerTab} onChange={(_, v) => setInnerTab(v)} sx={{ borderRight: 1, borderColor: '#E5E7EB', minWidth: { xs: 132, sm: 170 }, flexShrink: 0, '& .MuiTabs-flexContainer': { gap: 0.5 }, '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 42, alignItems: 'flex-start', textAlign: 'left', px: 1.5, borderRadius: 1.5, '&.Mui-selected': { bgcolor: '#E7EEF4', color: '#0F4C81' } }, '& .MuiTabs-indicator': { left: 0, width: 3, borderRadius: 2, bgcolor: '#0F4C81' } }}>
+          {HEALTH_TABS.map((t) => <Tab key={t.label} label={t.label} />)}
+        </Tabs>
+        <Box sx={{ minWidth: 0, flex: 1 }}><Active personId={personId} fluidTarget={fluidTarget} /></Box>
+      </Stack>
     </Box>
   )
 }

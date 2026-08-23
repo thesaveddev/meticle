@@ -210,14 +210,6 @@ export class InsightsRepository {
       GROUP BY w.domain ORDER BY w.domain
     `, [orgId]);
 
-    const scaleDistribution = await query(`
-      SELECT osr.band_label, COUNT(*)::int AS count
-      FROM outcome_scale_results osr
-      JOIN outcome_scales os ON osr.scale_id = os.id
-      WHERE os.organization_id = $1 AND osr.band_label IS NOT NULL
-      GROUP BY osr.band_label ORDER BY count DESC
-    `, [orgId]);
-
     const overdueReviews = await query(`
       SELECT COUNT(*)::int AS count
       FROM person_goals
@@ -238,7 +230,6 @@ export class InsightsRepository {
     return {
       goal_completion_by_domain: goalCompletionByDomain.rows,
       wellbeing_by_domain: wellbeingByDomain.rows,
-      scale_distribution: scaleDistribution.rows,
       overdue_reviews: overdueReviews.rows[0]?.count ?? 0,
       goal_progress_trend: goalProgressTrend.rows,
     };

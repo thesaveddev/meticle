@@ -76,7 +76,7 @@ export class ChatRepository {
     let sql = `SELECT cm.*, u.email, sp.first_name, sp.last_name, sp.profile_picture_url,
         pm.id as parent_msg_id, pm.content as parent_content, pm.file_name as parent_file_name,
         pm.sender_id as parent_sender_id, pm.created_at as parent_created_at,
-        psp.first_name as parent_first_name, psp.last_name as parent_last_name, psp.email as parent_email
+        psp.first_name as parent_first_name, psp.last_name as parent_last_name, pu.email as parent_email
        FROM chat_messages cm
        JOIN users u ON cm.sender_id = u.id
        LEFT JOIN staff_profiles sp ON u.id = sp.user_id
@@ -115,7 +115,7 @@ export class ChatRepository {
       `SELECT cm.*, u.email, sp.first_name, sp.last_name, sp.profile_picture_url,
         pm.id as parent_msg_id, pm.content as parent_content, pm.file_name as parent_file_name,
         pm.sender_id as parent_sender_id, pm.created_at as parent_created_at,
-        psp.first_name as parent_first_name, psp.last_name as parent_last_name, psp.email as parent_email
+        psp.first_name as parent_first_name, psp.last_name as parent_last_name, pu.email as parent_email
        FROM chat_messages cm
        JOIN users u ON cm.sender_id = u.id
        LEFT JOIN staff_profiles sp ON u.id = sp.user_id

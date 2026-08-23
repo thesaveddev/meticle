@@ -17,7 +17,7 @@ export interface AppointmentRow {
 }
 
 export class AppointmentRepository {
-  private static readonly APPOINTMENT_UPDATE_COLUMNS = new Set(['person_id', 'staff_id', 'title', 'description', 'start_time', 'end_time', 'status', 'location_id', 'created_by']);
+  private static readonly APPOINTMENT_UPDATE_COLUMNS = new Set(['person_id', 'staff_id', 'title', 'description', 'notes', 'recurrence', 'start_time', 'end_time', 'status', 'location_id', 'created_by']);
   static async findAll(orgId: string, date?: string) {
     let sql = `
       SELECT a.*,
@@ -51,11 +51,11 @@ export class AppointmentRepository {
   }
 
   static async create(data: Partial<AppointmentRow>) {
-    const { organization_id, person_id, staff_id, title, description, start_time, end_time, status, location_id, created_by } = data;
+    const { organization_id, person_id, staff_id, title, description, notes, recurrence, start_time, end_time, status, location_id, created_by } = data as any;
     const result = await query(
-      `INSERT INTO appointments (organization_id, person_id, staff_id, title, description, start_time, end_time, status, location_id, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-      [organization_id, person_id, staff_id, title, description, start_time, end_time, status || 'scheduled', location_id, created_by]
+      `INSERT INTO appointments (organization_id, person_id, staff_id, title, description, notes, recurrence, start_time, end_time, status, location_id, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [organization_id, person_id || null, staff_id || null, title, description || null, notes || null, recurrence || 'once', start_time, end_time, status || 'scheduled', location_id || null, created_by]
     );
     return result.rows[0];
   }
@@ -68,6 +68,7 @@ export class AppointmentRepository {
       params.push(v);
     }
     params.push(id, orgId);
+    if (fields.length === 0) return this.findById(id, orgId);
     const result = await query(
       `UPDATE appointments SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${idx} AND organization_id = $${idx + 1} RETURNING *`,
       params

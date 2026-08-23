@@ -19,9 +19,11 @@ describe('Tasks — kanban CRUD', () => {
     const created = await request(app)
       .post('/tasks')
       .set('Authorization', `Bearer ${token}`)
-      .send({ title: 'Order medication stock', priority: 'high', status: 'pending' })
+      .send({ title: 'Order medication stock', priority: 'high', status: 'pending', recurrence: 'daily', notes: 'Check the controlled-drug cupboard.' })
     expect(created.status).toBe(201)
     expect(created.body.title).toBe('Order medication stock')
+    expect(created.body.recurrence).toBe('daily')
+    expect(created.body.notes).toBe('Check the controlled-drug cupboard.')
 
     const list = await request(app)
       .get('/tasks')
