@@ -94,14 +94,14 @@ describe('Layout sidebar navigation', () => {
       expect(screen.getByTestId('page-dashboard')).toBeInTheDocument()
     })
 
-    const groupButton = screen.getByRole('button', { name: /Care Management/i })
+    const groupButton = screen.getByRole('button', { name: /Care/i })
     fireEvent.click(groupButton)
 
     await waitFor(() => {
       const stored = JSON.parse(window.localStorage.getItem('sidebarCollapsedGroups') || '[]')
-      expect(stored).toContain('Care Management')
+      expect(stored).toContain('Care')
     })
-    expect(screen.getByRole('button', { name: /Care Management/i })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: /Care/i })).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('expands a previously collapsed group when toggled again', async () => {

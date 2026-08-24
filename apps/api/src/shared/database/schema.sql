@@ -1077,6 +1077,14 @@ CREATE TABLE IF NOT EXISTS petty_cash_balances (
 );
 CREATE INDEX IF NOT EXISTS idx_pcb_org ON petty_cash_balances(organization_id);
 
+CREATE TABLE IF NOT EXISTS person_cash_balances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE, current_balance_pence INTEGER NOT NULL DEFAULT 0 CHECK (current_balance_pence >= 0),
+    last_reconciled_at TIMESTAMP WITH TIME ZONE, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(person_id)
+);
+CREATE INDEX IF NOT EXISTS idx_person_cash_balances_org ON person_cash_balances(organization_id);
+
 -- Petty cash transaction log
 CREATE TABLE IF NOT EXISTS petty_cash_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1092,6 +1100,14 @@ CREATE TABLE IF NOT EXISTS petty_cash_transactions (
 );
 CREATE INDEX IF NOT EXISTS idx_pct_org ON petty_cash_transactions(organization_id);
 CREATE INDEX IF NOT EXISTS idx_pct_location ON petty_cash_transactions(location_id);
+
+CREATE TABLE IF NOT EXISTS person_cash_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE, type VARCHAR(20) NOT NULL CHECK (type IN ('top_up','reconciliation','adjustment')),
+    amount_pence INTEGER NOT NULL, previous_balance_pence INTEGER NOT NULL, new_balance_pence INTEGER NOT NULL, notes TEXT,
+    performed_by UUID REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_person_cash_tx_org_person ON person_cash_transactions(organization_id, person_id);
 
 -- Deferred FK: shifts.person_id (people defined after shifts)
 DO $$ BEGIN

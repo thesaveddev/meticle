@@ -10,25 +10,22 @@ import { Elements, CardElement, useStripe, useElements } from '@stripe/react-str
 import { Plan } from '@meticle/shared'
 import {
   CreditCard, Add as AddIcon, Star as StarIcon,
-  Info as InfoIcon, DeleteOutline as DeleteIcon, Download as DownloadIcon,
+  DeleteOutline as DeleteIcon, Download as DownloadIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
 
 const stripePublishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || ''
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null
 
-const TEST_CARD = { number: '4242 4242 4242 4242', exp: '12/28', cvc: '123' }
-
 const PLANS = [
   { id: Plan.STARTER, name: 'Starter', price: '99', description: 'For small care teams', features: ['Up to 25 staff', 'Staff profiles', 'Basic compliance', 'Email support'] },
   { id: Plan.PROFESSIONAL, name: 'Professional', price: '299', description: 'Complete compliance suite', popular: true, features: ['Up to 100 staff', 'All Starter features', 'Automated rota', 'DBS monitoring', 'Full compliance', 'Priority support'] },
 ]
 
-function StripeCardForm({ manual, setManual, onSuccess, onShowManual }: {
-  manual: { number: string; expiry: string; cvc: string; name: string }
-  setManual: React.Dispatch<React.SetStateAction<{ number: string; expiry: string; cvc: string; name: string }>>
+function StripeCardForm({ cardholderName, setCardholderName, onSuccess }: {
+  cardholderName: string
+  setCardholderName: React.Dispatch<React.SetStateAction<string>>
   onSuccess: () => void
-  onShowManual: () => void
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -41,12 +38,11 @@ function StripeCardForm({ manual, setManual, onSuccess, onShowManual }: {
     try {
       const { data } = await api.post('/billing/create-setup-intent')
       if (!data.clientSecret) {
-        onShowManual()
+        setError('Stripe is not configured for secure card collection. Please contact your administrator.')
         setProcessing(false)
         return
       }
-      const result = await stripe.confirmCardSetup(data.clientSecret, {
-        payment_method: { card: elements.getElement(CardElement)!, billing_details: { name: manual.name || undefined } },
+      const result = await stripe.confirmCardSetup(data.clientSecret, {          payment_method: { card: elements.getElement(CardElement)!, billing_details: { name: cardholderName || undefined } },
       })
       if (result.error) { setError(result.error.message || 'Failed'); setProcessing(false) }
       else {
@@ -64,98 +60,28 @@ function StripeCardForm({ manual, setManual, onSuccess, onShowManual }: {
           hidePostalCode: true,
         }} />
       </Box>
-      <TextField fullWidth size="small" label="Cardholder Name (optional)" value={manual.name}
-        onChange={e => setManual(m => ({ ...m, name: e.target.value }))} sx={{ mb: 1.5 }} />
+      <TextField fullWidth size="small" label="Cardholder Name (optional)" value={cardholderName}
+        onChange={e => setCardholderName(e.target.value)} sx={{ mb: 1.5 }} />
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
       <Stack direction="row" spacing={1}>
         <Button variant="contained" onClick={handleStripeSubmit} disabled={processing || !stripe}
           sx={{ bgcolor: '#0F4C81', textTransform: 'none', flex: 1 }}>
           {processing ? <CircularProgress size={20} /> : 'Save Card'}
         </Button>
-        <Button variant="text" size="small" onClick={onShowManual} sx={{ color: '#6B7280', textTransform: 'none' }}>
-          Enter manually
-        </Button>
-      </Stack>
-    </Box>
-  )
-}
 
-function ManualCardForm({ manual, setManual, error, processing, onSubmit, hasStripe }: {
-  manual: { number: string; expiry: string; cvc: string; name: string }
-  setManual: React.Dispatch<React.SetStateAction<{ number: string; expiry: string; cvc: string; name: string }>>
-  error: string
-  processing: boolean
-  onSubmit: () => void
-  hasStripe: boolean
-}) {
-  return (
-    <Box>
-      <Stack spacing={1.5}>
-        <TextField fullWidth size="small" label="Card Number" placeholder="4242 4242 4242 4242" value={manual.number}
-          onChange={e => setManual(m => ({ ...m, number: e.target.value }))} />
-        <Stack direction="row" spacing={1}>
-          <TextField size="small" label="Expiry (MM/YY)" placeholder="12/28" value={manual.expiry}
-            onChange={e => setManual(m => ({ ...m, expiry: e.target.value }))} sx={{ flex: 1 }} />
-          <TextField size="small" label="CVC" placeholder="123" value={manual.cvc}
-            onChange={e => setManual(m => ({ ...m, cvc: e.target.value }))} sx={{ width: 100 }} />
-        </Stack>
-        <TextField fullWidth size="small" label="Cardholder Name" value={manual.name}
-          onChange={e => setManual(m => ({ ...m, name: e.target.value }))} />
-        {error && <Alert severity="error">{error}</Alert>}
-        <Stack direction="row" spacing={1}>
-          <Button variant="contained" onClick={onSubmit} disabled={processing}
-            sx={{ bgcolor: '#0F4C81', textTransform: 'none', flex: 1 }}>
-            {processing ? <CircularProgress size={20} /> : 'Save Card'}
-          </Button>
-          {hasStripe && (
-            <Button variant="text" size="small" onClick={() => setManual(m => ({ ...m, expiry: m.expiry }))} sx={{ color: '#6B7280', textTransform: 'none' }}>
-              Back
-            </Button>
-          )}
-        </Stack>
       </Stack>
     </Box>
   )
 }
 
 function AddCardModal({ open, onClose, onAdded, stripeAvailable }: { open: boolean; onClose: () => void; onAdded: () => void; stripeAvailable: boolean }) {
-  const [error, setError] = useState('')
-  const [processing, setProcessing] = useState(false)
-  const [showManual, setShowManual] = useState(false)
-  const [manual, setManual] = useState({ number: '', expiry: '', cvc: '', name: '' })
-
-  const handleManualSubmit = async () => {
-    if (!manual.number || !manual.expiry) { setError('Card number and expiry required'); return }
-    setProcessing(true); setError('')
-    try {
-      const [month, year] = manual.expiry.split('/')
-      const last4 = manual.number.replace(/\s/g, '').slice(-4)
-      const brand = manual.number.startsWith('4') ? 'visa' : manual.number.startsWith('5') ? 'mastercard' : manual.number.startsWith('3') ? 'amex' : 'card'
-      await api.post('/billing/payment-methods', { card_last_four: last4, card_brand: brand, expiry_month: parseInt(month), expiry_year: parseInt('20' + year), cardholder_name: manual.name })
-      onAdded()
-    } catch (err: any) { setError(err.response?.data?.message || 'Failed'); setProcessing(false) }
-  }
-
+  const [cardholderName, setCardholderName] = useState('')
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 800, fontSize: '1.1rem' }}>Add Payment Card</DialogTitle>
       <DialogContent sx={{ pt: '8px !important' }}>
-        {!showManual && stripeAvailable ? (
-          <StripeCardForm manual={manual} setManual={setManual} onSuccess={onAdded} onShowManual={() => setShowManual(true)} />
-        ) : (
-          <ManualCardForm
-            manual={manual} setManual={setManual} error={error} processing={processing}
-            onSubmit={handleManualSubmit} hasStripe={stripeAvailable}
-          />
-        )}
-        <Box sx={{ mt: 2, p: 1.5, bgcolor: '#F0F9FF', borderRadius: 2, border: '1px solid #BAE6FD' }}>
-          <Typography variant="caption" sx={{ fontWeight: 700, color: '#0284C7', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <InfoIcon sx={{ fontSize: 14 }} /> Test Mode — Use Stripe test card
-          </Typography>
-          <Typography variant="caption" sx={{ color: '#0369A1', display: 'block', mt: 0.5 }}>
-            Number: <strong>{TEST_CARD.number}</strong> · Expiry: <strong>{TEST_CARD.exp}</strong> · CVC: <strong>{TEST_CARD.cvc}</strong>
-          </Typography>
-        </Box>
+        {stripeAvailable ? <StripeCardForm cardholderName={cardholderName} setCardholderName={setCardholderName} onSuccess={onAdded} /> : <Alert severity="error">Secure card collection is unavailable. Configure Stripe Elements before adding a payment method.</Alert>}
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>Your card details are collected by Stripe and never handled or stored by Meticle.</Typography>
       </DialogContent>
     </Dialog>
   )

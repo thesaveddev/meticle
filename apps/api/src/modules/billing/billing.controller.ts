@@ -127,9 +127,10 @@ export class BillingController {
     if (!validPlans.includes(plan)) throw new AppError(400, 'Invalid plan');
 
     const stripe = getStripe();
+    if (!stripe && process.env.NODE_ENV === 'production') throw new AppError(503, 'Stripe is not configured for production billing');
     if (stripe) {
       try {
-        const customerId = await getOrCreateCustomer(orgId, userEmail, orgId);
+        const customerId = await getOrCreateCustomer(orgId, userEmail, 'Meticle organisation');
         if (customerId) {
           const price = await getOrCreatePrice(plan);
           if (price) {
@@ -145,7 +146,7 @@ export class BillingController {
               sub = await stripe.subscriptions.create({
                 customer: customerId,
                 items: [{ price }],
-                metadata: { organizationId: orgId, plan } as any,
+                metadata: { organizationId: orgId, plan },
                 trial_period_days: 30,
               });
             }
@@ -170,9 +171,8 @@ export class BillingController {
           }
         }
       } catch (err: any) {
-        // Stripe unreachable (e.g. DNS/network) — record the plan in the DB and
-        // let the webhook + subscription lookup reconcile Stripe later.
         logWarn('stripe plan update')(err);
+        if (process.env.NODE_ENV === 'production') throw new AppError(503, 'Stripe could not create or update the subscription');
       }
     }
 
@@ -234,11 +234,12 @@ export class BillingController {
     const userEmail = ((req.user as any).email as string) || orgId;
     const stripe = getStripe();
     if (!stripe) {
+      if (process.env.NODE_ENV === 'production') throw new AppError(503, 'Stripe is not configured for secure card collection');
       res.json({ clientSecret: null, ephemeral: true });
       return;
     }
     try {
-      const customerId = await getOrCreateCustomer(orgId, userEmail, orgId);
+      const customerId = await getOrCreateCustomer(orgId, userEmail, 'Meticle organisation');
       if (!customerId) {
         res.json({ clientSecret: null, ephemeral: true });
         return;
@@ -247,17 +248,24 @@ export class BillingController {
       res.json({ clientSecret: intent.client_secret });
     } catch (err: any) {
       logWarn('stripe setup intent')(err);
+      if (process.env.NODE_ENV === 'production') throw new AppError(503, 'Stripe could not create a secure setup intent');
       res.json({ clientSecret: null, ephemeral: true });
     }
   }
 
   static async addPaymentMethod(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    let { payment_method_id, card_last_four, card_brand, cardholder_name, expiry_month, expiry_year } = req.body;
+    const { payment_method_id, cardholder_name } = req.body;
 
     const stripe = getStripe();
+    let card_last_four = '';
+    let card_brand = '';
+    let expiry_month = 0;
+    let expiry_year = 0;
     let stripeFingerprint: string | null = null;
 
+    if (!stripe) throw new AppError(503, 'Stripe is not configured for secure card collection');
+    if (!payment_method_id) throw new AppError(400, 'A Stripe payment method is required');
     if (stripe && payment_method_id) {
       const org = await pool.query('SELECT stripe_customer_id FROM organizations WHERE id = $1', [orgId]);
       if (org.rows[0]?.stripe_customer_id) {
@@ -342,11 +350,19 @@ export class BillingController {
   static async handleWebhook(req: Request, res: Response) {
     const stripe = getStripe();
     if (!stripe) {
+      if (process.env.NODE_ENV === 'production') {
+        res.status(503).json({ message: 'Stripe webhook processing is not configured' });
+        return;
+      }
       res.status(200).json({ received: true });
       return;
     }
-    const sig = req.headers['stripe-signature'] as string;
+    const sig = req.headers['stripe-signature'] as string | undefined;
     const whSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!sig) {
+      res.status(400).json({ message: 'Missing Stripe signature' });
+      return;
+    }
     if (!whSecret) {
       res.status(500).json({ message: 'Stripe webhook secret not configured' });
       return;
@@ -384,7 +400,7 @@ export class BillingController {
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
         const customer = await stripe.customers.retrieve(invoice.customer as string) as Stripe.Customer;
-        const orgId = invoice.metadata?.orgId || customer.metadata?.orgId;
+        const orgId = invoice.metadata?.organizationId || customer.metadata?.organizationId || invoice.metadata?.orgId || customer.metadata?.orgId;
         if (orgId && invoice.id) {
           const existing = await pool.query(
             'SELECT id FROM invoices WHERE organization_id = $1 AND stripe_invoice_id = $2',
@@ -439,7 +455,7 @@ export class BillingController {
       case 'invoice.payment_failed': {
         const failedInvoice = event.data.object as Stripe.Invoice;
         const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer as string) as Stripe.Customer;
-        const orgIdFailed = failedInvoice.metadata?.orgId || failedCustomer.metadata?.orgId;
+        const orgIdFailed = failedInvoice.metadata?.organizationId || failedCustomer.metadata?.organizationId || failedInvoice.metadata?.orgId || failedCustomer.metadata?.orgId;
         if (!orgIdFailed) break;
         // Track failure
         await pool.query(
@@ -519,7 +535,7 @@ export class BillingController {
       case 'invoice.payment_action_required': {
         const actionInvoice = event.data.object as Stripe.Invoice;
         const actionCustomer = await stripe.customers.retrieve(actionInvoice.customer as string) as Stripe.Customer;
-        const orgIdAction = actionInvoice.metadata?.orgId || actionCustomer.metadata?.orgId;
+        const orgIdAction = actionInvoice.metadata?.organizationId || actionCustomer.metadata?.organizationId || actionInvoice.metadata?.orgId || actionCustomer.metadata?.orgId;
         if (orgIdAction && (actionInvoice.amount_due || 0) > 0) {
           const amount = (actionInvoice.amount_due || 0) / 100;
           const currency = (actionInvoice.currency || 'gbp').toUpperCase();
@@ -536,7 +552,8 @@ export class BillingController {
       }
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;
-        const orgIdSub = sub.metadata?.organizationId;
+        const customer = await stripe.customers.retrieve(sub.customer as string) as Stripe.Customer;
+        const orgIdSub = sub.metadata?.organizationId || customer.metadata?.organizationId || sub.metadata?.orgId || customer.metadata?.orgId;
         if (orgIdSub) {
           const status = sub.status === 'active' ? 'active' : sub.status === 'trialing' ? 'trial' : sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' : sub.status === 'canceled' ? 'canceled' : null;
           await pool.query(
@@ -548,7 +565,8 @@ export class BillingController {
       }
       case 'customer.subscription.deleted': {
         const deletedSub = event.data.object as Stripe.Subscription;
-        const orgIdDel = deletedSub.metadata?.organizationId;
+        const customer = await stripe.customers.retrieve(deletedSub.customer as string) as Stripe.Customer;
+        const orgIdDel = deletedSub.metadata?.organizationId || customer.metadata?.organizationId || deletedSub.metadata?.orgId || customer.metadata?.orgId;
         if (orgIdDel) {
           // Keep current_period_end so the win-back email can still fire
           await pool.query(

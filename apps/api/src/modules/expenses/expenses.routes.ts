@@ -20,7 +20,7 @@ const expenseFields = z.object({
   incurredDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
-const createExpenseSchema = expenseFields.refine(data => data.moneySource === 'house' || !!data.personId, { message: 'A person is required for person money', path: ['personId'] });
+const createExpenseSchema = expenseFields.refine(data => data.moneySource === 'house' ? !!data.locationId : !!data.personId, { message: 'Select a location for house funds or a person for person funds', path: ['locationId'] });
 const updateExpenseSchema = expenseFields.partial();
 
 const topUpSchema = z.object({
@@ -37,7 +37,7 @@ const cashCheckSchema = z.object({
   personId: z.string().uuid().optional(),
   expectedBalancePence: z.number().int().min(0),
   physicalBalancePence: z.number().int().min(0),
-  checkDate: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
+  checkDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   notes: z.string().max(500).optional(),
 }).refine(data => data.moneySource === 'house' ? !!data.locationId : !!data.personId, { message: 'Select a location for house funds or a person for person funds' });
 

@@ -429,9 +429,9 @@ export class ReportingRepository {
              COUNT(*)::int as agency_shifts,
              COALESCE(SUM(EXTRACT(EPOCH FROM (s.end_time - s.start_time)) / 3600), 0)::numeric(10,1) as total_hours
       FROM shifts s
-      JOIN agencies a ON s.agency_id = a.id
-      JOIN locations l ON s.location_id = l.id
-      WHERE l.organization_id = $1 AND s.agency_id IS NOT NULL`;
+      JOIN agencies a ON s.agency_id = a.id AND a.organization_id = $1
+      JOIN locations l ON s.location_id = l.id AND l.organization_id = $1
+      WHERE s.agency_id IS NOT NULL`;
     const params: any[] = [orgId];
     let idx = 2;
     if (f.location_id) { sql += ` AND s.location_id = $${idx}`; params.push(f.location_id); idx++; }

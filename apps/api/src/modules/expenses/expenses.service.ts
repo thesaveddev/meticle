@@ -163,14 +163,17 @@ export async function getPettyCashBalances(orgId: string, locationId?: string): 
   if (locationId) { conditions.push(`pcb.location_id = $${idx++}`); params.push(locationId); }
 
   const result = await query(
-    `SELECT pcb.*, l.name as location_name
+    `SELECT pcb.*, l.name as location_name, 'house' as money_source
      FROM petty_cash_balances pcb
      JOIN locations l ON pcb.location_id = l.id
      WHERE ${conditions.join(' AND ')}
      ORDER BY l.name`,
     params
   );
-  return result.rows;
+  const people = await query(`SELECT pcb.*, p.first_name || ' ' || p.last_name AS person_name, 'person' as money_source
+    FROM person_cash_balances pcb JOIN people p ON p.id = pcb.person_id
+    WHERE pcb.organization_id = $1 ORDER BY person_name`, [orgId]);
+  return [...result.rows, ...people.rows];
 }
 
 export async function getOrCreatePettyCashBalance(orgId: string, locationId: string): Promise<PettyCashBalance> {
@@ -185,7 +188,16 @@ export async function getOrCreatePettyCashBalance(orgId: string, locationId: str
 
 export async function topUpPettyCash(orgId: string, userId: string, target: { moneySource: 'house' | 'person'; locationId?: string; personId?: string }, amountPence: number, notes?: string): Promise<{ balance: PettyCashBalance; transaction: PettyCashTransaction }> {
   const locationId = target.locationId;
-  if (target.moneySource === 'person') throw new AppError(400, 'Person top-ups must be recorded in the person cash ledger');
+  if (target.moneySource === 'person') {
+    if (!target.personId) throw new AppError(400, 'Person is required for person funds');
+    const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [target.personId, orgId]);
+    if (!person.rows.length) throw new AppError(404, 'Person not found');
+    const balance = await query(`INSERT INTO person_cash_balances (organization_id, person_id, current_balance_pence) VALUES ($1,$2,0) ON CONFLICT (person_id) DO UPDATE SET person_id = EXCLUDED.person_id RETURNING *`, [orgId, target.personId]);
+    const previous = Number(balance.rows[0].current_balance_pence); const next = previous + amountPence;
+    const updated = await query(`UPDATE person_cash_balances SET current_balance_pence = $1, updated_at = NOW() WHERE id = $2 RETURNING *`, [next, balance.rows[0].id]);
+    const transaction = await query(`INSERT INTO person_cash_transactions (organization_id, person_id, type, amount_pence, previous_balance_pence, new_balance_pence, notes, performed_by) VALUES ($1,$2,'top_up',$3,$4,$5,$6,$7) RETURNING *`, [orgId, target.personId, amountPence, previous, next, notes || null, userId]);
+    return { balance: { ...updated.rows[0], money_source: 'person' }, transaction: { ...transaction.rows[0], money_source: 'person' } };
+  }
   if (!locationId) throw new AppError(400, 'Location is required for house funds');
   const loc = await query('SELECT id FROM locations WHERE id = $1 AND organization_id = $2', [locationId, orgId]);
   if (loc.rows.length === 0) throw new AppError(404, 'Location not found');
@@ -209,7 +221,16 @@ export async function topUpPettyCash(orgId: string, userId: string, target: { mo
 }
 
 export async function reconcilePettyCash(orgId: string, userId: string, target: { moneySource: 'house' | 'person'; locationId?: string; personId?: string }, actualBalancePence: number, notes?: string): Promise<{ balance: PettyCashBalance; transaction: PettyCashTransaction }> {
-  if (target.moneySource === 'person') throw new AppError(400, 'Person reconciliation is handled by the daily cash check');
+  if (target.moneySource === 'person') {
+    if (!target.personId) throw new AppError(400, 'Person is required for person funds');
+    const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [target.personId, orgId]);
+    if (!person.rows.length) throw new AppError(404, 'Person not found');
+    const balance = await query(`INSERT INTO person_cash_balances (organization_id, person_id, current_balance_pence) VALUES ($1,$2,0) ON CONFLICT (person_id) DO UPDATE SET person_id = EXCLUDED.person_id RETURNING *`, [orgId, target.personId]);
+    const previous = Number(balance.rows[0].current_balance_pence);
+    const updated = await query(`UPDATE person_cash_balances SET current_balance_pence = $1, last_reconciled_at = NOW(), updated_at = NOW() WHERE id = $2 RETURNING *`, [actualBalancePence, balance.rows[0].id]);
+    const transaction = await query(`INSERT INTO person_cash_transactions (organization_id, person_id, type, amount_pence, previous_balance_pence, new_balance_pence, notes, performed_by) VALUES ($1,$2,'reconciliation',$3,$4,$5,$6,$7) RETURNING *`, [orgId, target.personId, actualBalancePence - previous, previous, actualBalancePence, notes || null, userId]);
+    return { balance: { ...updated.rows[0], money_source: 'person' }, transaction: { ...transaction.rows[0], money_source: 'person' } };
+  }
   const locationId = target.locationId;
   if (!locationId) throw new AppError(400, 'Location is required for house funds');
   const loc = await query('SELECT id FROM locations WHERE id = $1 AND organization_id = $2', [locationId, orgId]);
@@ -264,7 +285,7 @@ export async function getPettyCashTransactions(orgId: string, filters: { locatio
   if (filters.to) { conditions.push(`pct.created_at <= $${idx++}`); params.push(filters.to); }
 
   const result = await query(
-    `SELECT pct.*, l.name as location_name, sp.first_name || ' ' || sp.last_name as performed_by_name
+    `SELECT pct.*, l.name as location_name, 'house' as money_source, sp.first_name || ' ' || sp.last_name as performed_by_name
      FROM petty_cash_transactions pct
      JOIN locations l ON pct.location_id = l.id
      LEFT JOIN staff_profiles sp ON sp.user_id = pct.performed_by
@@ -272,5 +293,8 @@ export async function getPettyCashTransactions(orgId: string, filters: { locatio
      ORDER BY pct.created_at DESC`,
     params
   );
-  return result.rows;
+  const people = await query(`SELECT pct.*, p.first_name || ' ' || p.last_name AS person_name, 'person' as money_source, sp.first_name || ' ' || sp.last_name as performed_by_name
+    FROM person_cash_transactions pct JOIN people p ON p.id = pct.person_id LEFT JOIN staff_profiles sp ON sp.user_id = pct.performed_by
+    WHERE pct.organization_id = $1 ORDER BY pct.created_at DESC`, [orgId]);
+  return [...result.rows, ...people.rows];
 }
