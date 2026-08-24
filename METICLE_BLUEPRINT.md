@@ -10,7 +10,7 @@ This revision transforms the MVP blueprint into a comprehensive AI-first product
 
 # 1. Product Goal
 
-CareDesk is a multi-tenant supported-living and domiciliary-care management platform that must evolve into:
+CareDesk is a multi-tenant supported-living care management platform that must evolve into:
 
 > **The AI Operating System for Care Providers**
 

@@ -20,8 +20,8 @@ const footerLinks = {
   Solutions: [
     { name: 'Supported Living', path: '/features' },
     { name: 'CQC Compliance', path: '/features#compliance' },
-    { name: 'Care Home Software', path: '/features' },
-    { name: 'Domiciliary Care', path: '/features' },
+    { name: 'Multi-site Management', path: '/features' },
+    { name: 'Staff Rostering', path: '/features#rota' },
   ],
   Company: [
     { name: 'Our Story', path: '/about' },
@@ -60,7 +60,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 Meticle<span style={{ color: EMERALD }}>Care</span>
               </Typography>
               <Typography variant="body2" sx={{ color: FOOT_MUTED, mb: 4, maxWidth: 280, lineHeight: 1.7 }}>
-                A connected care management platform for UK supported living and domiciliary care providers.
+                A connected care management platform for UK supported living providers.
               </Typography>
               <Typography variant="caption" sx={{ color: FOOT_MUTED, fontWeight: 600, letterSpacing: '0.04em' }}>
                 CQC · CIW · Care Inspectorate · RQIA

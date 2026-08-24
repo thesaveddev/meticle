@@ -114,6 +114,6 @@
   <!-- Bottom-right tag -->
   <g transform="translate(844 564)">
     <rect x="0" y="0" width="12" height="12" rx="3" fill="#10B981"/>
-    <text x="20" y="11" fill="#FFFFFF" fill-opacity="0.7" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="13" font-weight="600">For supported living · Domiciliary care</text>
+    <text x="20" y="11" fill="#FFFFFF" fill-opacity="0.7" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-size="13" font-weight="600">For supported living providers</text>
   </g>
 </svg>

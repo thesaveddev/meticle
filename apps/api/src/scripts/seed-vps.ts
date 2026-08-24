@@ -100,7 +100,7 @@ async function seed() {
   const depts = [
     { id: deptIds[0], name: 'Clinical Services', lid: locIds[0] },
     { id: deptIds[1], name: 'Residential Care', lid: locIds[1] },
-    { id: deptIds[2], name: 'Domiciliary Support', lid: locIds[2] },
+    { id: deptIds[2], name: 'Day Services', lid: locIds[2] },
     { id: deptIds[3], name: 'Administration', lid: locIds[0] },
   ]
   for (const d of depts)

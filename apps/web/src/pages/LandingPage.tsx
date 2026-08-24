@@ -19,14 +19,14 @@ const structuredData = {
       '@type': 'Organization',
       name: 'MeticleCare',
       url: 'https://meticlecare.com',
-      description: 'MeticleCare is care management software for UK supported living and home-care providers, bringing daily records, medication, staffing and compliance together.',
+      description: 'MeticleCare is care management software for UK supported living providers, bringing daily records, medication, staffing and compliance together.',
     },
     {
       '@type': 'SoftwareApplication',
       name: 'MeticleCare',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web',
-      description: 'Care management software for UK supported living and home-care providers. Manage care plans, daily notes, medication, rotas, incidents and compliance in one place.',
+      description: 'Care management software for UK supported living providers. Manage care plans, daily notes, medication, rotas, incidents and compliance in one place.',
       offers: {
         '@type': 'Offer',
         price: '0',
@@ -110,8 +110,8 @@ export default function LandingPage() {
   return (
     <MarketingLayout>
       <PageMeta
-        title="Care Management Software for UK Care Providers | MeticleCare"
-        description="MeticleCare brings care planning, staffing, compliance, medication, incidents and daily operations together in one connected platform for UK care providers. Start a free 14-day trial."
+        title="Supported Living Care Management Software | MeticleCare"
+        description="MeticleCare brings care planning, staffing, compliance, medication, incidents and daily operations together in one connected platform for UK supported living providers. Start a free 14-day trial."
         canonicalPath="/"
         structuredData={structuredData}
       />
@@ -136,7 +136,7 @@ Care operations, without the gaps.
               </Typography>
 
               <Typography sx={{ color: MIST, fontSize: '1.12rem', lineHeight: 1.7, mb: 4, maxWidth: 520 }}>
-Keep care records, medication, staffing and compliance in one working view — built for UK supported living and home-care teams.
+Keep care records, medication, staffing and compliance in one working view — built for UK supported living teams.
               </Typography>
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>

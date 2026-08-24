@@ -65,7 +65,7 @@ export default function ContactPage() {
     <MarketingLayout>
       <PageMeta
         title="Contact MeticleCare | MeticleCare"
-        description="Get in touch with the MeticleCare team. Ask about our care management platform for UK supported living, domiciliary care and care home providers."
+        description="Get in touch with the MeticleCare team. Ask about our care management platform for UK supported living providers."
         canonicalPath="/contact"
       />
 

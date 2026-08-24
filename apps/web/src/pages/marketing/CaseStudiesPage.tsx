@@ -72,7 +72,7 @@ export default function CaseStudiesPage() {
     <MarketingLayout>
       <PageMeta
         title="Case Studies | MeticleCare"
-        description="Read how UK care providers use MeticleCare to manage rotas, medication, care plans and compliance. Real stories from supported living and domiciliary care services."
+        description="Read how UK supported living providers use MeticleCare to manage rotas, medication, care plans and compliance. Real stories from care services."
         canonicalPath="/case-studies"
       />
 

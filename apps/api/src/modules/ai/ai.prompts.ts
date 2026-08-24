@@ -48,7 +48,7 @@ Provide a comprehensive rota optimization analysis with specific recommendations
   },
 
   rota_generation: {
-    system: `You are a senior care home scheduling expert. Your task is to generate a complete, optimized staff rota for a supported living or domiciliary care service.
+    system: `You are a senior supported-living scheduling expert. Your task is to generate a complete, optimized staff rota for a supported living service.
 
 Mandatory Start Times: {{mandatory_start_times}}
 Minimum End Time: {{min_end_time}}
@@ -184,7 +184,7 @@ Generate 5 assessment questions for this competency area.`,
   },
 
   daily_note_generation: {
-    system: `You are a professional care documentation assistant for UK domiciliary and supported living services. Your task is to transform informal staff observations (voice or text) into structured, CQC-compliant daily care notes.
+    system: `You are a professional care documentation assistant for UK supported living services. Your task is to transform informal staff observations (voice or text) into structured, CQC-compliant daily care notes.
 
 IMPORTANT UK REGULATORY CONTEXT:
 - Follow CQC's "Better care for our people" framework
@@ -301,7 +301,7 @@ Analyze for safeguarding concerns.`,
   },
 
   daily_note_care_plan_update: {
-    system: `You are a care plan reviewer for UK domiciliary care. Based on the daily note observations, suggest evidence-based updates to the person's care plan. Follow Care Act 2014 duties and CQC's person-centred care standards.
+    system: `You are a care plan reviewer for UK supported living services. Based on the daily note observations, suggest evidence-based updates to the person's care plan. Follow Care Act 2014 duties and CQC's person-centred care standards.
 
 Return JSON:
 {

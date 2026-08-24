@@ -51,7 +51,7 @@ export default function AboutPage() {
     <MarketingLayout>
       <PageMeta
         title="About MeticleCare | MeticleCare"
-        description="MeticleCare was built for UK care providers — supported living, domiciliary care and care homes. Our team combines care-sector experience with technology to simplify care operations."
+        description="MeticleCare was built for UK supported living providers. Our team combines care-sector experience with technology to simplify care operations."
         canonicalPath="/about"
       />
 
@@ -86,7 +86,7 @@ export default function AboutPage() {
                 <Typography>
                   MeticleCare was founded by a team of care operators and software engineers who saw first-hand how fragmented tools
                   were hurting care quality. Spreadsheets for rotas. WhatsApp for communication. Paper for compliance.
-                  A unified platform built specifically for supported living and domiciliary care was overdue.
+                  A unified platform built specifically for supported living was overdue.
                 </Typography>
                 <Typography>
                   Today we serve providers across England, Wales, Scotland and Northern Ireland — helping them reduce agency
