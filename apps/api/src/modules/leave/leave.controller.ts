@@ -702,9 +702,8 @@ export class LeaveController {
 
     const request = leave.rows[0];
     const today = new Date().toISOString().split('T')[0];
-    const isFutureApproved = request.status === 'approved' && LeaveController.ymd(request.start_date) > today;
-    if (request.status !== 'pending' && !isFutureApproved) {
-      throw new AppError(400, `Can only cancel pending requests or future approved requests`);
+    if (request.status !== 'pending') {
+      throw new AppError(400, 'Can only cancel leave requests that have not been approved');
     }
 
     const result = await transaction(async (client) => {
@@ -713,14 +712,10 @@ export class LeaveController {
         [id]
       );
       if (locked.rows.length === 0) throw new AppError(404, 'Leave request not found');
-      if (locked.rows[0].status !== 'pending' && locked.rows[0].status !== 'approved') {
-        throw new AppError(400, 'Only pending or approved requests can be cancelled');
+      if (locked.rows[0].status !== 'pending') {
+        throw new AppError(400, 'Only pending requests can be cancelled');
       }
-      if (locked.rows[0].status === 'approved') {
-        const startStr = LeaveController.ymd(locked.rows[0].start_date);
-        if (startStr <= today) throw new AppError(400, 'Approved leave that has already started cannot be cancelled');
-        await LeaveController.reverseApprovedBalance(client, locked.rows[0]);
-      } else {
+      {
         await client.query(
           'UPDATE staff_profiles SET is_on_leave = FALSE, on_leave_until = NULL WHERE id = $1 AND is_on_leave = TRUE',
           [locked.rows[0].staff_id]

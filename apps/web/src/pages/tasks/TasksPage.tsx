@@ -28,6 +28,9 @@ export default function TasksPage() {
   const [filter, setFilter] = useState('')
   const [dialog, setDialog] = useState(false)
   const [viewDialog, setViewDialog] = useState(false)
+  const [calendarDate, setCalendarDate] = useState(new Date().toISOString().slice(0, 10))
+  const [completionDialog, setCompletionDialog] = useState(false)
+  const [completionNotes, setCompletionNotes] = useState('')
   const [editing, setEditing] = useState<any>(null)
   const [viewing, setViewing] = useState<any>(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -72,9 +75,11 @@ export default function TasksPage() {
     setError(''); setDialog(true)
   }
   function openView(task: any) { setViewing(task); setViewDialog(true) }
+  function openCompletion(task: any) { setViewing(task); setCompletionNotes(''); setCompletionDialog(true) }
   const pending = tasks.filter((t: any) => t.status === 'pending').length
   const inProgress = tasks.filter((t: any) => t.status === 'in_progress').length
   const completed = tasks.filter((t: any) => t.status === 'completed').length
+  const calendarTasks = tasks.filter((task: any) => (task.due_date || '').slice(0, 10) === calendarDate)
 
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 8 }}><CircularProgress sx={{ color: NAVY }} /></Box>
 
@@ -92,9 +97,18 @@ export default function TasksPage() {
       </Stack>
 
       <Paper sx={{ p: 1.5, mb: 2, border: '1px solid #E5E7EB', borderRadius: 2 }}>
-        <TextField select size="small" label="Status" value={filter} onChange={e => { setFilter(e.target.value); setPage(0) }} sx={{ minWidth: 170 }}>
-          <MenuItem value="">All tasks</MenuItem><MenuItem value="pending">Pending</MenuItem><MenuItem value="in_progress">In progress</MenuItem><MenuItem value="completed">Completed</MenuItem><MenuItem value="cancelled">Cancelled</MenuItem>
-        </TextField>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+          <TextField type="date" size="small" label="Calendar day" InputLabelProps={{ shrink: true }} value={calendarDate} onChange={e => setCalendarDate(e.target.value)} />
+          <Typography variant="body2" color="text.secondary">{calendarTasks.length} task{calendarTasks.length === 1 ? '' : 's'} due on this day</Typography>
+          <Box sx={{ flex: 1 }} />
+          <TextField select size="small" label="Status" value={filter} onChange={e => { setFilter(e.target.value); setPage(0) }} sx={{ minWidth: 170 }}>
+            <MenuItem value="">All tasks</MenuItem><MenuItem value="pending">Pending</MenuItem><MenuItem value="in_progress">In progress</MenuItem><MenuItem value="completed">Completed</MenuItem><MenuItem value="cancelled">Cancelled</MenuItem>
+          </TextField>
+        </Stack>
+      </Paper>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2, borderColor: '#E5E7EB' }}>
+        <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>Daily task calendar</Typography>
+        {calendarTasks.length === 0 ? <Typography variant="body2" color="text.secondary">Nothing is scheduled for this day.</Typography> : <Stack spacing={1}>{calendarTasks.map((task: any) => <Paper key={task.id} variant="outlined" onClick={() => openView(task)} sx={{ p: 1.25, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1, '&:hover': { borderColor: NAVY } }}><Box sx={{ flex: 1 }}><Typography fontWeight={700}>{task.title}</Typography><Typography variant="caption" color="text.secondary">{task.assigned_name || 'Unassigned'} · {RECURRENCE_LABELS[task.recurrence] || 'Once'}</Typography></Box><Chip size="small" label={task.status === 'completed' ? 'Completed' : 'Mark complete'} color={task.status === 'completed' ? 'success' : 'default'} onClick={e => { e.stopPropagation(); if (task.status !== 'completed') openCompletion(task) }} /></Paper>)}</Stack>}
       </Paper>
 
       <TableContainer component={Paper} sx={{ border: '1px solid #E5E7EB', borderRadius: 2 }}>
@@ -128,7 +142,13 @@ export default function TasksPage() {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}><Typography variant="body2"><strong>For:</strong> {viewing.person_name || 'House / team'}</Typography><Typography variant="body2"><strong>Owner:</strong> {viewing.assigned_name || 'Unassigned'}</Typography><Typography variant="body2"><strong>Due:</strong> {viewing.due_date ? new Date(viewing.due_date).toLocaleDateString('en-GB') : 'No due date'}</Typography></Stack>
           </Stack>}
         </DialogContent>
-        <DialogActions sx={{ p: 2.5 }}><Button onClick={() => setViewDialog(false)}>Close</Button>{viewing && viewing.status !== 'completed' && viewing.status !== 'cancelled' && <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={() => statusMutation.mutate({ id: viewing.id, status: 'completed' })} sx={{ bgcolor: '#15803D', textTransform: 'none' }}>Mark complete</Button>}<Button onClick={() => { setViewDialog(false); openEdit(viewing) }} sx={{ textTransform: 'none' }}>Edit</Button>{viewing && <Button color="error" onClick={() => { if (window.confirm('Delete this task?')) deleteMutation.mutate(viewing.id) }} sx={{ textTransform: 'none' }}>Delete</Button>}</DialogActions>
+        <DialogActions sx={{ p: 2.5 }}><Button onClick={() => setViewDialog(false)}>Close</Button>{viewing && viewing.status !== 'completed' && viewing.status !== 'cancelled' && <Button variant="contained" startIcon={<CheckCircleIcon />} onClick={() => openCompletion(viewing)} sx={{ bgcolor: '#15803D', textTransform: 'none' }}>Mark complete</Button>}<Button onClick={() => { setViewDialog(false); openEdit(viewing) }} sx={{ textTransform: 'none' }}>Edit</Button>{viewing && <Button color="error" onClick={() => { if (window.confirm('Delete this task?')) deleteMutation.mutate(viewing.id) }} sx={{ textTransform: 'none' }}>Delete</Button>}</DialogActions>
+      </Dialog>
+
+      <Dialog open={completionDialog} onClose={() => setCompletionDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Complete task</DialogTitle>
+        <DialogContent><Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Record what was done for {viewing?.title || 'this task'}.</Typography><TextField label="Completion details" multiline rows={4} fullWidth placeholder="What was completed, observed, or handed over?" value={completionNotes} onChange={e => setCompletionNotes(e.target.value)} /></DialogContent>
+        <DialogActions><Button onClick={() => setCompletionDialog(false)}>Cancel</Button><Button variant="contained" disabled={statusMutation.isPending} onClick={() => { statusMutation.mutate({ id: viewing.id, status: 'completed' }); setCompletionDialog(false); setViewDialog(false) }} sx={{ bgcolor: '#15803D' }}>Save completion</Button></DialogActions>
       </Dialog>
 
       <Dialog open={dialog} onClose={closeDialog} maxWidth="sm" fullWidth>

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import {
   createExpense, getExpenses, getExpense, updateExpense, deleteExpense, getExpenseStats,
-  getPettyCashBalances, topUpPettyCash, reconcilePettyCash, getPettyCashTransactions,
+  getPettyCashBalances, topUpPettyCash, reconcilePettyCash, getPettyCashTransactions, dailyCashCheck, getDailyCashChecks, getExpenseReport,
 } from './expenses.service';
 
 export class ExpensesController {
@@ -78,15 +78,29 @@ export class ExpensesController {
   static async topUp(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
     const userId = req.user!.userId;
-    const result = await topUpPettyCash(orgId, userId, req.body.locationId, req.body.amountPence, req.body.notes);
+    const result = await topUpPettyCash(orgId, userId, req.body, req.body.amountPence, req.body.notes);
     res.status(201).json(result);
   }
 
   static async reconcile(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
     const userId = req.user!.userId;
-    const result = await reconcilePettyCash(orgId, userId, req.body.locationId, req.body.actualBalancePence, req.body.notes);
+    const result = await reconcilePettyCash(orgId, userId, req.body, req.body.actualBalancePence, req.body.notes);
     res.json(result);
+  }
+
+  static async dailyCashCheck(req: Request, res: Response) {
+    const result = await dailyCashCheck(req.user!.organizationId!, req.user!.userId, req.body);
+    res.status(201).json(result);
+  }
+
+  static async getDailyCashChecks(req: Request, res: Response) {
+    res.json(await getDailyCashChecks(req.user!.organizationId!, req.query as any));
+  }
+
+  static async report(req: Request, res: Response) {
+    const report = await getExpenseReport(req.user!.organizationId!, req.query as any);
+    res.json(report);
   }
 
   static async getTransactions(req: Request, res: Response) {
