@@ -1,5 +1,5 @@
 ## Goal
-Supported living + domiciliary care platform. Phase 1 is complete and launched. Focus: hardening, testing, monitoring, and Phase 2 features.
+Supported living care management platform. Phase 1 is complete and launched. Focus: hardening, testing, monitoring, and Phase 2 features.
 
 ## Constraints & Preferences
 - ORG_ADMIN promotes other ORG_ADMINs; MANAGERs cannot change own role

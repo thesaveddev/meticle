@@ -67,13 +67,13 @@ const TIERS: Tier[] = [
   {
     id: 'service',
     name: 'Care Service',
-    tagline: 'For established homes and domiciliary-care agencies',
+    tagline: 'For established supported-living services and multi-site groups',
     monthly: 299,
     popular: true,
     blurb: 'Run rotas, incidents, training and live compliance across a single care service or agency.',
     capacity: 'Up to 100 staff · 200 people supported',
     perResident: '+ £3.50 / person / month above 200',
-    bestFor: 'Established homes, domiciliary agencies, single-service groups.',
+    bestFor: 'Established supported-living services, single-service groups, agencies.',
     highlights: [
       'Everything in Essential',
       'Rota planner with safe-staffing rules',
@@ -571,7 +571,7 @@ export default function PricingPage() {
               Pricing that scales with the people you support.
             </Typography>
             <Typography sx={{ color: MIST, fontSize: { xs: '1rem', md: '1.15rem' }, lineHeight: 1.7, maxWidth: 700 }}>
-              Three plans built for UK supported-living and domiciliary care. Start on any tier — switch up, down or cancel anytime. Family Portal is always free, and data lives only in UK data centres.
+              Three plans built for UK supported-living providers. Start on any tier — switch up, down or cancel anytime. Family Portal is always free, and data lives only in UK data centres.
             </Typography>
             <Box sx={{ pt: 1 }}>
               <MonYearToggle value={billing} onChange={setBilling} />

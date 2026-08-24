@@ -65,7 +65,7 @@ export function buildInvoiceHtml(invoice: any, org: { name?: string; primary_col
   <div class="total">Total: ${currency} ${amount}</div>
 
   <div class="footer">
-    Meticle — Supported living &amp; domiciliary care platform &bull; Generated ${now} &bull; This is a system-generated invoice
+    Meticle — Supported living care platform &bull; Generated ${now} &bull; This is a system-generated invoice
   </div>
 </body></html>`
 }

@@ -19,10 +19,10 @@ const s: LearnSection[] = [
 { id:'getting-started', category:'Introduction', title:'Getting Started', icon:'🚀', subsections:[
 { id:'welcome', title:'Welcome to Meticle',
   content:
-    p('Meticle is a compliance-first care management platform for supported living and domiciliary care providers across all four UK nations. It combines staff management, scheduling, medication administration (eMAR), person care planning, and regulatory compliance into one integrated system.') +
+    p('Meticle is a compliance-first care management platform for supported living providers across all four UK nations. It combines staff management, scheduling, medication administration (eMAR), person care planning, and regulatory compliance into one integrated system.') +
     p('This Learning Center will walk you through every feature, button, and workflow step by step. Use the sidebar to navigate between modules and the search bar to find specific topics.') +
     h3('Who is this for?') +
-    ul(['Registered Managers overseeing supported living or domiciliary care services','Care Coordinators managing rotas and appointments','Compliance Officers preparing for CQC/regulatory inspections','Care Workers documenting daily notes and administering medication','Administrators handling billing and staff onboarding']) +
+    ul(['Registered Managers overseeing supported living services','Care Coordinators managing rotas and appointments','Compliance Officers preparing for CQC/regulatory inspections','Care Workers documenting daily notes and administering medication','Administrators handling billing and staff onboarding']) +
     h3('Key Concepts') +
     ul(['<strong>Organisation:</strong> Your care provider entity. Everything in Meticle is scoped to your organisation — data from other orgs is never visible.','<strong>Roles:</strong> ORG_ADMIN (full access), MANAGER (location management), CARE_WORKER (frontline staff), COMPLIANCE_OFFICER (audit and compliance), NURSE, SUPPORT_WORKER.','<strong>Locations:</strong> Physical care settings (supported living houses, offices, etc.). Each has its own minimum staffing rules.','<strong>People:</strong> The people receiving care. Each person has a full profile with care plans, daily notes, health records, and more.','<strong>Regulator:</strong> Your governing body — CQC (England), CIW (Wales), Care Inspectorate (Scotland), or RQIA (Northern Ireland). This setting affects how compliance is scored.'])
 },

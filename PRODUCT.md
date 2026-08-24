@@ -15,7 +15,7 @@ web
 
 ## Product Purpose
 
-MeticleCare is a connected care-management platform for UK supported living and domiciliary care providers. It runs the whole care working day — rota, medication, notes, compliance, leave, incidents, training — from one platform, with multi-tenant isolation. Success means a care team can run their entire operations day credibly from one connected system: every shift staffed safely, every medication given and recorded, every note captured at the point of care, every compliance claim backed by real records.
+MeticleCare is a connected care-management platform for UK supported living providers. It runs the whole care working day — rota, medication, notes, compliance, leave, incidents, training — from one platform, with multi-tenant isolation. Success means a care team can run their entire operations day credibly from one connected system: every shift staffed safely, every medication given and recorded, every note captured at the point of care, every compliance claim backed by real records.
 
 ## Positioning
 
@@ -23,7 +23,7 @@ One honest, connected platform for UK care operations, grounded in the records t
 
 ## Operating Context
 
-- UK domiciliary and supported-living providers, CQC-regulated, working across 3+ locations with shifts, departments, and teams.
+- UK supported-living providers, CQC-regulated, working across 3+ locations with shifts, departments, and teams.
 - Shift-based staffing: rota planner with min safe staffing per location, 11-hour rest enforcement, overtime, conflict blocking.
 - Care is recorded at the point of care — daily notes, observations, MAR administrations, room checks, incident reports — often on phones/tablets (PWA with GPS check-in and voice-to-text).
 - Compliance is continuous: evidence packs (KLOE), identity monitoring, training matrix, competency assessments, DSPT, policies.

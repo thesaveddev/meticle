@@ -15,7 +15,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function TermsOfUsePage() {
   return (
     <>
-      <PageMeta title="Terms of Use | MeticleCare" description="Terms and conditions for using MeticleCare, the care management platform for UK supported living, domiciliary care and care home providers." canonicalPath="/terms" />
+      <PageMeta title="Terms of Use | MeticleCare" description="Terms and conditions for using MeticleCare, the care management platform for UK supported living providers." canonicalPath="/terms" />
     <Container maxWidth="md" sx={{ py: 8 }}>
       <Typography variant="h3" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Terms of Use</Typography>
       <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: July 2026</Typography>

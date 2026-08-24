@@ -50,7 +50,7 @@ async function seed() {
     // ─── Departments ───
     const depts = [
       { id: deptIds[0], loc: locationIds[0], name: 'Residential Care' },
-      { id: deptIds[1], loc: locationIds[0], name: 'Domiciliary Care' },
+      { id: deptIds[1], loc: locationIds[0], name: 'Residential Care' },
       { id: deptIds[2], loc: locationIds[1], name: 'Supported Living' },
       { id: deptIds[3], loc: locationIds[2], name: 'Day Services' },
     ];
