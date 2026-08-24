@@ -85,7 +85,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       ],
     },
     {
-      label: 'Care Management',
+      label: 'Care',
       items: [
         { text: 'People', icon: <PeopleIcon />, path: '/people', module: 'people', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
@@ -147,7 +147,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   )
   const activeNavItem = [...filteredGroups.flatMap(group => group.items), ...filteredBottomItems]
     .find(item => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
-  const activeNavGroup = filteredGroups.find(group => group.items.some(item => item === activeNavItem))
+  const activeModuleLabel = activeNavItem?.text || (location.pathname.startsWith('/platform-admin') ? 'Platform Admin' : 'Overview')
 
   useEffect(() => {
     if (!rawUser.id) return
@@ -342,7 +342,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         )}
         {filteredGroups.map((group) => {
           const isCollapsed = collapsedGroups.has(group.label)
-          const hasActiveChild = group.items.some(item => location.pathname === item.path)
+          const hasActiveChild = group.items.some(item => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
           const toggleGroup = () => setCollapsedGroups(prev => {
             const next = new Set(prev)
             if (next.has(group.label)) next.delete(group.label)
@@ -371,7 +371,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton 
                   onClick={disabled ? undefined : () => handleNavigate(item.path)}
-                  selected={!disabled && location.pathname === item.path}
+                  selected={!disabled && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))}
                   disabled={disabled}
                   sx={{ 
                     borderRadius: 2,
@@ -416,7 +416,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           return (
           <ListItem key={item.text} disablePadding>
             <ListItemButton disabled={disabled} sx={{ borderRadius: 2, '&.Mui-disabled': { opacity: 0.45 } }}
-              onClick={disabled ? undefined : () => handleNavigate(item.path)} selected={!disabled && location.pathname === item.path}>
+              onClick={disabled ? undefined : () => handleNavigate(item.path)} selected={!disabled && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))}>
               <ListItemIcon sx={{ minWidth: 40, color: !disabled && location.pathname === item.path ? branding.primary_color : theme.palette.text.secondary }}>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
             </ListItemButton>
@@ -450,9 +450,12 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             <MenuIcon />
           </IconButton>
           
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, display: { xs: 'none', sm: 'block' } }}>
-            {userRole === UserRole.SUPER_ADMIN ? 'Platform Admin' : filteredGroups.flatMap(g => g.items).find(m => m.path === location.pathname)?.text || 'Overview'}
-          </Typography>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: branding.primary_color, flexShrink: 0 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, display: { xs: 'none', sm: 'block' }, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {activeModuleLabel}
+            </Typography>
+          </Stack>
 
           <Stack direction="row" spacing={2} alignItems="center">
             <IconButton size="small" sx={{ bgcolor: theme.palette.action.hover }} onClick={handleOpenNotif}>
@@ -509,12 +512,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       >
         <RouteLoadingIndicator />
         <OfflineBanner />
-        {activeNavItem && (
-          <Paper elevation={0} sx={{ position: 'sticky', top: 72, zIndex: 5, mb: 2, px: 2, py: 1, border: `1px solid ${theme.palette.divider}`, borderLeft: 3, borderLeftColor: branding.primary_color, borderRadius: 1.5, bgcolor: theme.palette.background.paper, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7 }}>{activeNavGroup?.label || 'Module'}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 800, color: branding.primary_color }}>{activeNavItem.text}</Typography>
-          </Paper>
-        )}
         {!subLoading && !isActive && rawUser.role !== UserRole.SUPER_ADMIN && (
           <Paper
             elevation={0}

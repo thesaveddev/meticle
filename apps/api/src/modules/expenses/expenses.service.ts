@@ -183,7 +183,10 @@ export async function getOrCreatePettyCashBalance(orgId: string, locationId: str
   return result.rows[0];
 }
 
-export async function topUpPettyCash(orgId: string, userId: string, locationId: string, amountPence: number, notes?: string): Promise<{ balance: PettyCashBalance; transaction: PettyCashTransaction }> {
+export async function topUpPettyCash(orgId: string, userId: string, target: { moneySource: 'house' | 'person'; locationId?: string; personId?: string }, amountPence: number, notes?: string): Promise<{ balance: PettyCashBalance; transaction: PettyCashTransaction }> {
+  const locationId = target.locationId;
+  if (target.moneySource === 'person') throw new AppError(400, 'Person top-ups must be recorded in the person cash ledger');
+  if (!locationId) throw new AppError(400, 'Location is required for house funds');
   const loc = await query('SELECT id FROM locations WHERE id = $1 AND organization_id = $2', [locationId, orgId]);
   if (loc.rows.length === 0) throw new AppError(404, 'Location not found');
 
@@ -205,7 +208,10 @@ export async function topUpPettyCash(orgId: string, userId: string, locationId: 
   return { balance: updated.rows[0], transaction: txn.rows[0] };
 }
 
-export async function reconcilePettyCash(orgId: string, userId: string, locationId: string, actualBalancePence: number, notes?: string): Promise<{ balance: PettyCashBalance; transaction: PettyCashTransaction }> {
+export async function reconcilePettyCash(orgId: string, userId: string, target: { moneySource: 'house' | 'person'; locationId?: string; personId?: string }, actualBalancePence: number, notes?: string): Promise<{ balance: PettyCashBalance; transaction: PettyCashTransaction }> {
+  if (target.moneySource === 'person') throw new AppError(400, 'Person reconciliation is handled by the daily cash check');
+  const locationId = target.locationId;
+  if (!locationId) throw new AppError(400, 'Location is required for house funds');
   const loc = await query('SELECT id FROM locations WHERE id = $1 AND organization_id = $2', [locationId, orgId]);
   if (loc.rows.length === 0) throw new AppError(404, 'Location not found');
 
@@ -224,6 +230,28 @@ export async function reconcilePettyCash(orgId: string, userId: string, location
   );
 
   return { balance: updated.rows[0], transaction: txn.rows[0] };
+}
+
+export async function dailyCashCheck(orgId: string, userId: string, data: { moneySource: 'house' | 'person'; locationId?: string; personId?: string; expectedBalancePence: number; physicalBalancePence: number; checkDate: string; notes?: string }) {
+  if (data.moneySource === 'house' && data.locationId) {
+    const loc = await query('SELECT id FROM locations WHERE id = $1 AND organization_id = $2', [data.locationId, orgId]);
+    if (!loc.rows.length) throw new AppError(404, 'Location not found');
+  } else if (data.moneySource === 'person' && data.personId) {
+    const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [data.personId, orgId]);
+    if (!person.rows.length) throw new AppError(404, 'Person not found');
+  }
+  const result = await query(`INSERT INTO cash_balance_checks (organization_id, money_source, location_id, person_id, check_date, expected_balance_pence, physical_balance_pence, variance_pence, notes, checked_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`, [orgId, data.moneySource, data.locationId || null, data.personId || null, data.checkDate, data.expectedBalancePence, data.physicalBalancePence, data.physicalBalancePence - data.expectedBalancePence, data.notes || null, userId]);
+  return result.rows[0];
+}
+
+export async function getDailyCashChecks(orgId: string, filters: { from?: string; to?: string }) {
+  const result = await query(`SELECT c.*, l.name AS location_name, p.first_name || ' ' || p.last_name AS person_name FROM cash_balance_checks c LEFT JOIN locations l ON l.id = c.location_id LEFT JOIN people p ON p.id = c.person_id WHERE c.organization_id = $1 ORDER BY c.check_date DESC, c.created_at DESC`, [orgId]);
+  return result.rows;
+}
+
+export async function getExpenseReport(orgId: string, filters: { from?: string; to?: string }) {
+  const expenses = await getExpenses(orgId, { from: filters.from, to: filters.to });
+  return { generated_at: new Date().toISOString(), period_start: filters.from || null, period_end: filters.to || null, expenses, totals: { count: expenses.length, amount_pence: expenses.reduce((sum, e) => sum + Number(e.amount_pence || 0), 0) } };
 }
 
 export async function getPettyCashTransactions(orgId: string, filters: { location_id?: string; from?: string; to?: string }): Promise<PettyCashTransaction[]> {

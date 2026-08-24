@@ -30,6 +30,8 @@ export default function AgenciesPage() {
   const [editAgency, setEditAgency] = useState<any>({ name: '', contact_name: '', contact_phone: '', contact_email: '', address: '', notes: '', status: 'active', contract_start_date: '', contract_end_date: '' })
   const [agencySaving, setAgencySaving] = useState(false)
   const [agencyActionLoading, setAgencyActionLoading] = useState('')
+  const [selectedAgency, setSelectedAgency] = useState<any>(null)
+  const [agencyView, setAgencyView] = useState<'overview' | 'workers' | 'rates'>('overview')
 
   // ── Workers ──
   const [workers, setWorkers] = useState<any[]>([])
@@ -58,8 +60,20 @@ export default function AgenciesPage() {
   const [savingsByMonth, setSavingsByMonth] = useState<any[]>([])
   const [savingsByAgency, setSavingsByAgency] = useState<any[]>([])
   const [analyticsLoading, setAnalyticsLoading] = useState(true)
+  const selectedAgencyWorkers = workers.filter(w => w.agency_id === selectedAgency?.id)
+  const selectedAgencyRates = rates.filter(r => r.agency_id === selectedAgency?.id)
 
-  // ── Data Fetching ──
+  const openAgency = async (agency: any) => {
+    setSelectedAgency(agency)
+    setAgencyView('overview')
+    try {
+      const [detail, agencyWorkers, agencyRates] = await Promise.all([api.get(`/agencies/${agency.id}`), api.get(`/agencies/${agency.id}/workers`), api.get(`/agencies/${agency.id}/rates`)])
+      setSelectedAgency({ ...agency, ...detail.data })
+      setWorkers(prev => [...prev.filter(w => w.agency_id !== agency.id), ...agencyWorkers.data])
+      setRates(prev => [...prev.filter(r => r.agency_id !== agency.id), ...agencyRates.data])
+    } catch { setError('Could not load the agency workspace') }
+  }
+
   const fetchAgencies = useCallback(async () => {
     try { setAgenciesLoading(true); const r = await api.get('/agencies'); setAgencies(r.data) } catch { } finally { setAgenciesLoading(false) }
   }, [])
@@ -220,7 +234,7 @@ export default function AgenciesPage() {
                   {agencies.length === 0 ? (
                     <TableRow><TableCell colSpan={8} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No agencies added yet</TableCell></TableRow>
                   ) : agencies.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map(a => (
-                    <TableRow key={a.id} hover>
+                    <TableRow key={a.id} hover onClick={() => openAgency(a)} sx={{ cursor: 'pointer' }}>
                       <TableCell sx={{ fontWeight: 500 }}>{a.name}</TableCell>
                       <TableCell>{statusChip(a.status)}</TableCell>
                       <TableCell>{a.contact_name || '-'}</TableCell>
@@ -232,8 +246,8 @@ export default function AgenciesPage() {
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                          <Tooltip title="Edit"><IconButton size="small" onClick={() => { setEditAgency(a); setAgencyDialog(true) }}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                          <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDeleteAgency(a.id)} disabled={agencyActionLoading === a.id}>
+                          <Tooltip title="Edit"><IconButton size="small" onClick={e => { e.stopPropagation(); setEditAgency(a); setAgencyDialog(true) }}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                          <Tooltip title="Delete"><IconButton size="small" color="error" onClick={e => { e.stopPropagation(); handleDeleteAgency(a.id) }} disabled={agencyActionLoading === a.id}>
                             {agencyActionLoading === a.id ? <CircularProgress size={16} /> : <DeleteIcon fontSize="small" />}
                           </IconButton></Tooltip>
                         </Stack>
@@ -245,6 +259,14 @@ export default function AgenciesPage() {
               {agencies.length > rowsPerPage && <TablePagination component="div" count={agencies.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} rowsPerPageOptions={[rowsPerPage]} />}
             </TableContainer>
           )}
+          {selectedAgency && <Paper sx={{ mt: 3, p: 3, border: '1px solid #DBEAFE', borderRadius: 2, bgcolor: '#F8FAFC' }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={2} sx={{ mb: 2 }}><Box><Typography variant="overline" color="primary">Agency workspace</Typography><Typography variant="h5" fontWeight={800}>{selectedAgency.name}</Typography><Typography variant="body2" color="text.secondary">{selectedAgency.address || 'No address recorded'} · {selectedAgency.contact_name || 'No contact person'}</Typography></Box><Button onClick={() => setSelectedAgency(null)}>Close workspace</Button></Stack>
+            <Stack direction="row" spacing={1} sx={{ mb: 2 }}><Chip label={selectedAgency.status || 'Active'} color="success" /><Chip icon={<StarIcon />} label={`${selectedAgency.rating || '—'} agency rating`} variant="outlined" /><Chip label={`${selectedAgency.active_workers || selectedAgencyWorkers.length} workers`} variant="outlined" /></Stack>
+            <Tabs value={agencyView} onChange={(_, v) => setAgencyView(v)}><Tab value="overview" label="Details" /><Tab value="workers" label={`Workers (${selectedAgencyWorkers.length})`} /><Tab value="rates" label={`Rates (${selectedAgencyRates.length})`} /></Tabs>
+            {agencyView === 'overview' && <Grid container spacing={2} sx={{ mt: 1 }}><Grid item xs={12} md={6}><Typography variant="caption" color="text.secondary">Contact</Typography><Typography>{selectedAgency.contact_name || '—'} · {selectedAgency.contact_phone || '—'} · {selectedAgency.contact_email || '—'}</Typography></Grid><Grid item xs={12} md={6}><Typography variant="caption" color="text.secondary">Contract</Typography><Typography>{selectedAgency.contract_start_date || '—'} to {selectedAgency.contract_end_date || 'Open'}</Typography></Grid><Grid item xs={12}><Typography variant="caption" color="text.secondary">Notes</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{selectedAgency.notes || 'No notes recorded.'}</Typography></Grid></Grid>}
+            {agencyView === 'workers' && <Stack spacing={1} sx={{ mt: 2 }}>{selectedAgencyWorkers.map(w => <Paper key={w.id} variant="outlined" sx={{ p: 1.5, display: 'flex', justifyContent: 'space-between' }}><Box><Typography fontWeight={700}>{w.first_name} {w.last_name}</Typography><Typography variant="caption" color="text.secondary">{w.role || 'Worker'} · {w.phone || 'No phone'}</Typography></Box><Typography><StarIcon sx={{ fontSize: 16, color: '#F59E0B', verticalAlign: 'middle' }} /> {w.rating || '—'}</Typography></Paper>)}</Stack>}
+            {agencyView === 'rates' && <Table size="small" sx={{ mt: 2 }}><TableHead><TableRow><TableCell>Shift type</TableCell><TableCell>Rate/hour</TableCell><TableCell>Effective from</TableCell><TableCell>Effective to</TableCell></TableRow></TableHead><TableBody>{selectedAgencyRates.map(r => <TableRow key={r.id}><TableCell>{r.shift_type}</TableCell><TableCell>{formatCurrency(r.rate_per_hour)}</TableCell><TableCell>{formatDate(r.effective_from)}</TableCell><TableCell>{formatDate(r.effective_to)}</TableCell></TableRow>)}</TableBody></Table>}
+          </Paper>}
           <Dialog open={agencyDialog} onClose={() => setAgencyDialog(false)} maxWidth="sm" fullWidth>
             <DialogTitle>{editAgency.id ? 'Edit Agency' : 'Add Agency'}</DialogTitle>
             <DialogContent>
@@ -611,7 +633,7 @@ export default function AgenciesPage() {
                     </TableHead>
                     <TableBody>
                       {savingsByAgency.map((a: any) => (
-                        <TableRow key={a.id} hover>
+                        <TableRow key={a.id} hover onClick={() => openAgency(a)} sx={{ cursor: 'pointer' }}>
                           <TableCell sx={{ fontWeight: 500 }}>{a.name}</TableCell>
                           <TableCell align="right">{a.shifts}</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(a.total_cost)}</TableCell>
