@@ -14,7 +14,7 @@ const BONE = '#F7F4EE'
 
 const featureGroups = [
   {
-    cat: 'Care Management',
+    cat: 'Care records',
     items: [
       { name: 'eMAR & Medication Management', path: '/features#emar' },
       { name: 'Daily Care Notes', path: '/features#care-notes' },
