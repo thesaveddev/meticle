@@ -483,6 +483,27 @@ const MIGRATION_038: Migration = {
   ],
 };
 
+const MIGRATION_040: Migration = {
+  name: '040_person_cash_ledger',
+  strict: false,
+  statements: [
+    `CREATE TABLE IF NOT EXISTS person_cash_balances (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+       person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE, current_balance_pence INTEGER NOT NULL DEFAULT 0 CHECK (current_balance_pence >= 0),
+       last_reconciled_at TIMESTAMP WITH TIME ZONE, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE(person_id)
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_person_cash_balances_org ON person_cash_balances(organization_id)`,
+    `CREATE TABLE IF NOT EXISTS person_cash_transactions (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+       person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE, type VARCHAR(20) NOT NULL CHECK (type IN ('top_up','reconciliation','adjustment')),
+       amount_pence INTEGER NOT NULL, previous_balance_pence INTEGER NOT NULL, new_balance_pence INTEGER NOT NULL, notes TEXT,
+       performed_by UUID REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_person_cash_tx_org_person ON person_cash_transactions(organization_id, person_id)`,
+  ],
+};
+
 const MIGRATION_039: Migration = {
   name: '039_operational_workflow_fields',
   strict: false,
@@ -498,6 +519,20 @@ const MIGRATION_039: Migration = {
        ALTER TABLE person_expenses DROP CONSTRAINT IF EXISTS person_expenses_money_source_check;
        ALTER TABLE person_expenses ADD CONSTRAINT person_expenses_money_source_check CHECK (money_source IN ('house', 'person'));
      EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+    `CREATE TABLE IF NOT EXISTS person_cash_balances (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+       person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE, current_balance_pence INTEGER NOT NULL DEFAULT 0 CHECK (current_balance_pence >= 0),
+       last_reconciled_at TIMESTAMP WITH TIME ZONE, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE(person_id)
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_person_cash_balances_org ON person_cash_balances(organization_id)`,
+    `CREATE TABLE IF NOT EXISTS person_cash_transactions (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+       person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE, type VARCHAR(20) NOT NULL CHECK (type IN ('top_up','reconciliation','adjustment')),
+       amount_pence INTEGER NOT NULL, previous_balance_pence INTEGER NOT NULL, new_balance_pence INTEGER NOT NULL, notes TEXT,
+       performed_by UUID REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_person_cash_tx_org_person ON person_cash_transactions(organization_id, person_id)`,
   ],
 };
 
@@ -1902,6 +1937,13 @@ const INITIAL_MIGRATION: Migration = {
     UNIQUE(location_id)
   )`,
   `CREATE INDEX IF NOT EXISTS idx_pcb_org ON petty_cash_balances(organization_id)`,
+  `CREATE TABLE IF NOT EXISTS person_cash_balances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE, current_balance_pence INTEGER NOT NULL DEFAULT 0 CHECK (current_balance_pence >= 0),
+    last_reconciled_at TIMESTAMP WITH TIME ZONE, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(person_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_person_cash_balances_org ON person_cash_balances(organization_id)`,
   `CREATE TABLE IF NOT EXISTS petty_cash_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -1916,6 +1958,13 @@ const INITIAL_MIGRATION: Migration = {
   )`,
   `CREATE INDEX IF NOT EXISTS idx_pct_org ON petty_cash_transactions(organization_id)`,
   `CREATE INDEX IF NOT EXISTS idx_pct_location ON petty_cash_transactions(location_id)`,
+  `CREATE TABLE IF NOT EXISTS person_cash_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE, type VARCHAR(20) NOT NULL CHECK (type IN ('top_up','reconciliation','adjustment')),
+    amount_pence INTEGER NOT NULL, previous_balance_pence INTEGER NOT NULL, new_balance_pence INTEGER NOT NULL, notes TEXT,
+    performed_by UUID REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_person_cash_tx_org_person ON person_cash_transactions(organization_id, person_id)`,
   // Billing: card fingerprint for duplicate detection
   `ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS stripe_fingerprint TEXT`,
   // Billing: payment failure tracking
@@ -2064,7 +2113,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

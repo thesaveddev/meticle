@@ -58,7 +58,7 @@ describe('Expenses â€” CRUD, stats, petty cash', () => {
     const topUp = await request(app)
       .post('/expenses/petty-cash/top-up')
       .set('Authorization', `Bearer ${token}`)
-      .send({ locationId: location.id, amountPence: 50000, notes: 'Opening float' })
+      .send({ moneySource: 'house', locationId: location.id, amountPence: 50000, notes: 'Opening float' })
     expect(topUp.status).toBe(201)
 
     const balances = await request(app)

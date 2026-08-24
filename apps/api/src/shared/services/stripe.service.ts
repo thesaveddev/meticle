@@ -24,7 +24,7 @@ export async function getOrCreateCustomer(orgId: string, email: string, name: st
   const { default: pool } = await import('../database');
   const existing = await pool.query('SELECT stripe_customer_id FROM organizations WHERE id = $1', [orgId]);
   if (existing.rows[0]?.stripe_customer_id) return existing.rows[0].stripe_customer_id;
-  const customer = await s.customers.create({ email, name, metadata: { orgId } });
+  const customer = await s.customers.create({ email, name, metadata: { organizationId: orgId } });
   await pool.query('UPDATE organizations SET stripe_customer_id = $1 WHERE id = $2', [customer.id, orgId]);
   return customer.id;
 }
@@ -36,6 +36,7 @@ export async function getOrCreatePrice(plan: string): Promise<string | null> {
   const envKey = plan === 'starter' ? 'STRIPE_PRICE_STARTER' : 'STRIPE_PRICE_PROFESSIONAL';
   const envVal = process.env[envKey];
   if (envVal) return envVal;
+  if (process.env.NODE_ENV === 'production') throw new Error(`${envKey} must be configured in production`);
 
   if (cachedPrices?.[plan as keyof typeof cachedPrices]) return cachedPrices[plan as keyof typeof cachedPrices];
 

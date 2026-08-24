@@ -6,7 +6,9 @@ COPY packages/shared/package*.json ./packages/shared/
 RUN npm install
 COPY . .
 ARG VITE_PUBLIC_SITE_URL=https://meticlecare.com
+ARG VITE_STRIPE_PUBLISHABLE_KEY
 ENV VITE_PUBLIC_SITE_URL=$VITE_PUBLIC_SITE_URL
+ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
 RUN npm run build --workspace=@meticle/shared
 RUN npm run build --workspace=@meticle/web
 

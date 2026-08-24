@@ -437,7 +437,7 @@ describe('Leave Integration — PATCH /leave/requests/:id/cancel', () => {
     expect(res.status).toBe(400)
   })
 
-  it('should cancel a future approved request and reverse the balance', async () => {
+  it('should reject cancelling a future approved request', async () => {
     const org = await createOrg()
     const loc = await createLocation({ organizationId: org.id })
     const adminUser = await createUser({ email: `admin-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
@@ -463,12 +463,11 @@ describe('Leave Integration — PATCH /leave/requests/:id/cancel', () => {
       .patch(`/leave/requests/${reqRec.id}/cancel`)
       .set('Authorization', `Bearer ${workerToken}`)
 
-    expect(res.status).toBe(200)
-    expect(res.body.status).toBe('cancelled')
+    expect(res.status).toBe(400)
 
     const after = await request(app).get('/leave/balances').set('Authorization', `Bearer ${workerToken}`)
     const afterBal = after.body.find((b: any) => b.leave_type_name === leaveType.name)
-    expect(Number(afterBal.days_taken)).toBe(0)
+    expect(Number(afterBal.days_taken)).toBe(5)
   })
 })
 
