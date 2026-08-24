@@ -19,25 +19,27 @@ const structuredData = {
       '@type': 'Organization',
       name: 'MeticleCare',
       url: 'https://meticlecare.com',
-      description: 'Care operations platform for UK supported living and domiciliary care providers.',
+      description: 'MeticleCare is care management software for UK supported living and home-care providers, bringing daily records, medication, staffing and compliance together.',
     },
     {
       '@type': 'SoftwareApplication',
       name: 'MeticleCare',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web',
-      description: 'Care management software combining care planning, staff rotas, medication records, compliance oversight, incident reporting and daily operations for UK care providers.',
+      description: 'Care management software for UK supported living and home-care providers. Manage care plans, daily notes, medication, rotas, incidents and compliance in one place.',
       offers: {
         '@type': 'Offer',
         price: '0',
         priceCurrency: 'GBP',
         description: '14-day free trial',
+        url: 'https://meticlecare.com/register',
       },
     },
     {
       '@type': 'WebSite',
       name: 'MeticleCare',
       url: 'https://meticlecare.com',
+      potentialAction: { '@type': 'SearchAction', target: 'https://meticlecare.com/blog?search={search_term_string}', 'query-input': 'required name=search_term_string' },
     },
   ],
 }
@@ -97,14 +99,10 @@ function FadeSection({ children, direction = 'up', delay = 0, variant = 'slide' 
 
 export default function LandingPage() {
   const navigate = useNavigate()
-  const [heroIn, setHeroIn] = useState(false)
+  const [heroIn, setHeroIn] = useState(true)
 
   useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce) {
-      setHeroIn(true)
-      return
-    }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const t = window.setTimeout(() => setHeroIn(true), 80)
     return () => window.clearTimeout(t)
   }, [])
@@ -134,11 +132,11 @@ export default function LandingPage() {
                   maxWidth: 560,
                 }}
               >
-                Run your care operations from one connected platform.
+Care operations, without the gaps.
               </Typography>
 
               <Typography sx={{ color: MIST, fontSize: '1.12rem', lineHeight: 1.7, mb: 4, maxWidth: 520 }}>
-                Care planning, medication, rotas and compliance in one place — built for supported living and domiciliary care teams across the UK.
+Keep care records, medication, staffing and compliance in one working view — built for UK supported living and home-care teams.
               </Typography>
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
@@ -161,7 +159,7 @@ export default function LandingPage() {
               </Stack>
 
               <Typography variant="body2" sx={{ color: MIST, fontWeight: 600, fontSize: '0.9rem' }}>
-                14-day free trial · No credit card required
+14-day free trial · No card required · Set up in minutes
               </Typography>
             </Grid>
 
@@ -218,7 +216,7 @@ export default function LandingPage() {
               </Box>
 
               <Typography variant="body2" sx={{ mt: 3, color: MIST, fontSize: '0.85rem', maxWidth: 460 }}>
-                Care that feels like home — your team stays connected, your records stay current, and every moment of support is captured where it happens.
+A clear working record for the people you support — and a calmer day for the team delivering it.
               </Typography>
             </Grid>
           </Grid>
@@ -284,10 +282,10 @@ export default function LandingPage() {
             <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
               <Grid item xs={12} md={5}>
               <Typography variant="h2" sx={{ fontSize: { xs: '2rem', md: '2.4rem' }, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em', color: INK, mb: 3 }}>
-                Built for the way care actually runs.
+  The work is connected. Your records should be too.
               </Typography>
               <Typography sx={{ color: MIST, lineHeight: 1.75 }}>
-                MeticleCare treats every record as part of one working system — the same note that informs the rota also feeds the evidence base your inspectors will ask for.
+A medication round, a care note, a staffing decision and an incident review belong to the same day of care. MeticleCare keeps them together, so managers can act on the same information their teams record.
               </Typography>
             </Grid>
             <Grid item xs={12} md={7}>
@@ -317,10 +315,10 @@ export default function LandingPage() {
         <Container maxWidth="lg">
           <FadeSection>
             <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '2.7rem' }, fontWeight: 800, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 2, maxWidth: 720 }}>
-              Everything a care team does, in one working set.
+The essentials, in one working set.
             </Typography>
             <Typography sx={{ color: MIST, fontSize: '1.05rem', mb: { xs: 7, md: 9 }, maxWidth: 560 }}>
-              No gaps between modules, no re-typing the same record twice. Select any line to see it in the full feature tour.
+The tools your team uses every day, connected around the person and the service. Explore a capability when you are ready.
             </Typography>
           </FadeSection>
 
@@ -457,10 +455,10 @@ export default function LandingPage() {
         <Container maxWidth="lg">
           <FadeSection>
             <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '2.7rem' }, fontWeight: 800, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 2, maxWidth: 640 }}>
-              One platform, shaped for each part of the day.
+A useful view for every role.
             </Typography>
             <Typography sx={{ color: MIST, fontSize: '1.05rem', mb: { xs: 7, md: 9 }, maxWidth: 560 }}>
-              The same system, a different view for everyone who keeps the service running.
+Managers need oversight. Care workers need speed. Families need a clear, respectful view of daily life.
             </Typography>
           </FadeSection>
 
@@ -584,10 +582,10 @@ export default function LandingPage() {
             <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
               <Grid item xs={12} md={5}>
               <Typography variant="h2" sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, fontWeight: 800, lineHeight: 1.12, letterSpacing: '-0.02em', mb: 3 }}>
-                Compliance, supported by the records you keep.
+  Inspection readiness should come from good care records.
               </Typography>
               <Typography sx={{ opacity: 0.88, lineHeight: 1.75, mb: 4 }}>
-                MeticleCare supports compliance management across the four UK regulators — CQC, CIW, the Care Inspectorate and RQIA — without asking your team to do the paperwork twice.
+When records are complete and current, compliance work becomes easier to evidence. MeticleCare supports teams working with CQC, CIW, the Care Inspectorate and RQIA.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <Button
@@ -637,10 +635,10 @@ export default function LandingPage() {
         <Container maxWidth="md">
           <FadeSection variant="scale-slide" delay={200}>
             <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}>
-              Bring your care operations together.
+Make the working day easier to see.
             </Typography>
             <Typography sx={{ opacity: 0.92, fontSize: '1.12rem', lineHeight: 1.7, mb: 5, maxWidth: 560, mx: 'auto' }}>
-              Move rota, medication, care notes and compliance onto one connected platform — and see the working day in one view.
+Give your team one place for the records, decisions and follow-through that keep care safe.
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
               <Button
@@ -661,7 +659,7 @@ export default function LandingPage() {
               </Button>
             </Stack>
             <Typography variant="body2" sx={{ opacity: 0.7, mt: 4, fontWeight: 600 }}>
-              14-day free trial · No credit card required
+14-day free trial · No card required · Set up in minutes
             </Typography>
           </FadeSection>
         </Container>
