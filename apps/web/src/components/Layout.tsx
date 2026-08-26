@@ -29,6 +29,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Radar as RadarIcon,
+  Restaurant as MealIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
@@ -91,6 +92,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       items: [
         { text: 'People', icon: <PeopleIcon />, path: '/people', module: 'people', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Meal Plans', icon: <MealIcon />, path: '/meal-plans', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
       ],
     },
     {

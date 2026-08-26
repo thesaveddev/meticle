@@ -1218,6 +1218,34 @@ CREATE INDEX idx_portal_tokens_org ON compliance_portal_tokens(organization_id);
 CREATE INDEX idx_portal_tokens_location ON compliance_portal_tokens(location_id);
 CREATE INDEX idx_portal_tokens_email ON compliance_portal_tokens(email);
 
+-- Meal Plan Templates
+CREATE TABLE IF NOT EXISTS meal_plan_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    meal_type VARCHAR(30) NOT NULL CHECK (meal_type IN ('breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'evening_snack', 'supplement')),
+    day_of_week VARCHAR(10) CHECK (day_of_week IN ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_meal_plan_templates_org ON meal_plan_templates(organization_id);
+CREATE INDEX idx_meal_plan_templates_type ON meal_plan_templates(organization_id, meal_type);
+CREATE TABLE IF NOT EXISTS meal_plan_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meal_plan_id UUID NOT NULL REFERENCES meal_plan_templates(id) ON DELETE CASCADE,
+    food_name VARCHAR(255) NOT NULL,
+    portion_size VARCHAR(100),
+    allergens VARCHAR(500),
+    dietary_flags TEXT[] DEFAULT '{}',
+    notes TEXT,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_meal_plan_items_plan ON meal_plan_items(meal_plan_id);
+
 -- Deferred FK: shifts.person_id (people defined after shifts)
 DO $$ BEGIN
     ALTER TABLE shifts ADD CONSTRAINT shifts_person_id_fkey

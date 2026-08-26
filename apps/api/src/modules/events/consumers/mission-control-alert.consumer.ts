@@ -24,7 +24,7 @@ export const MissionControlAlertConsumer: EventConsumer = {
         await upsertAlert(orgId, alertType, aggregateId, 'critical',
           `Missed medication: ${p.medication_name || 'Unknown'}`,
           `${p.person_name || 'Person'} missed ${p.medication_name} ${p.medication_dosage || ''} scheduled for ${formatTime(p.scheduled_time)}`,
-          `/emedication`, p.person_id || null, p.record_id || null);
+          '/emedication', p.person_id || null, p.record_id || null);
         break;
       }
 
@@ -33,7 +33,7 @@ export const MissionControlAlertConsumer: EventConsumer = {
         await upsertAlert(orgId, alertType, aggregateId, 'high',
           `Late medication: ${p.medication_name || 'Unknown'}`,
           `${p.person_name || 'Person'} — ${p.medication_name} is ${p.late_minutes}min late (scheduled ${formatTime(p.scheduled_time)})`,
-          `/emedication`, p.person_id || null, null);
+          '/emedication', p.person_id || null, null);
         break;
       }
 
@@ -42,7 +42,7 @@ export const MissionControlAlertConsumer: EventConsumer = {
         await upsertAlert(orgId, alertType, aggregateId, 'high',
           `Stock low: ${p.medication_name}`,
           `${p.quantity} remaining of ${p.medication_name} (reorder at ${p.reorder_level})${p.location_name ? ' — ' + p.location_name : ''}`,
-          `/emedication?tab=stock`, p.person_id || null, null);
+          '/emedication?tab=stock', p.person_id || null, null);
         break;
       }
 
@@ -112,6 +112,30 @@ export const MissionControlAlertConsumer: EventConsumer = {
         break;
       }
 
+      case 'nutrition.appetite_decline': {
+        const p = event.payload as any;
+        const consecutiveText = p.consecutive_poor_meals > 1
+          ? ` (${p.consecutive_poor_meals} consecutive poor meals)` : '';
+        const severity = p.consecutive_poor_meals >= 3 ? 'high' : 'medium';
+        await upsertAlert(orgId, alertType, aggregateId, severity,
+          `Declining appetite: ${p.person_name}`,
+          `${capitalize(p.appetite_level)} appetite for ${p.meal_type} on ${formatDate(p.meal_date)}${consecutiveText}${p.consumed_percent != null ? ` — consumed ${p.consumed_percent}%` : ''}`,
+          `/people/${p.person_id}`, p.person_id || null, null);
+        break;
+      }
+
+      case 'nutrition.refused_meal': {
+        const p = event.payload as any;
+        const severity = p.consecutive_refusals >= 3 ? 'high' : p.consecutive_refusals >= 2 ? 'medium' : 'low';
+        const consecutiveText = p.consecutive_refusals > 1
+          ? ` (${p.consecutive_refusals} consecutive refusals)` : '';
+        await upsertAlert(orgId, alertType, aggregateId, severity,
+          `Refused meal: ${p.person_name}`,
+          `${capitalize(p.meal_type)} refused on ${formatDate(p.meal_date)}${consecutiveText}${p.refusal_reason ? ' — ' + p.refusal_reason : ''}`,
+          `/people/${p.person_id}`, p.person_id || null, p.meal_id || null);
+        break;
+      }
+
       default:
         logger.warn({ eventName: alertType }, 'Unhandled event type in MissionControlAlertConsumer');
     }
@@ -146,6 +170,11 @@ async function upsertAlert(
        dismissed = FALSE`,
     [orgId, alertType, aggregateId || '', severity, title, message, link, personId, referenceId]
   );
+}
+
+function capitalize(s: string): string {
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function formatTime(iso?: string): string {

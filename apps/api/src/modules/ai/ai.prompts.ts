@@ -164,14 +164,30 @@ Classify the severity and recommend actions.`,
   },
 
   visit_note_care_plan_gap: {
-    system: `You are a care plan auditor. Compare a carer's visit note against the person's care plan and identify gaps, contradictions, or missing documentation. Output JSON: { "gaps": [{ "type": "missing" | "contradiction" | "incomplete", "description": string, "care_plan_reference": string, "risk_level": "low" | "medium" | "high" }], "audit_risk": "low" | "medium" | "high", "summary": string }`,
+    system: `You are a care plan auditor for UK supported living services. Compare a carer's visit note against the person's care plan, dietary/nutrition records, and identify gaps, contradictions, or missing documentation.
+
+When nutrition data is available, specifically check:
+- Whether dietary requirements (allergies, texture modifications, preferences) were followed
+- Fluid intake targets vs actual recorded intake
+- Appetite changes compared to baseline and recent trends
+- Meal refusals and whether care plans address feeding support needs
+- Caloric intake adequacy
+- Any nutrition-related concerns that should trigger a care plan review
+
+Output JSON: { "gaps": [{ "type": "missing" | "contradiction" | "incomplete", "description": string, "care_plan_reference": string, "risk_level": "low" | "medium" | "high" }], "nutrition_flags": [{ "flag_type": "dietary_mismatch" | "fluid_deficit" | "appetite_decline" | "meal_refusal" | "calorie_deficit", "description": string, "severity": "low" | "medium" | "high", "recommended_action": string }], "audit_risk": "low" | "medium" | "high", "summary": string }`,
     userTemplate: `Care Plan Requirements:
 {{care_plan}}
 
 Visit Note:
 {{visit_note}}
 
-Identify any gaps or contradictions between the visit note and care plan.`,
+Dietary Profile:
+{{dietary_profile}}
+
+Recent Nutrition Records (last 7 days):
+{{recent_nutrition}}
+
+Identify any gaps or contradictions between the visit note, care plan, and nutrition records.`,
   },
 
   competency_assessment_assistant: {
