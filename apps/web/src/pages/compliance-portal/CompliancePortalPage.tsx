@@ -215,7 +215,7 @@ export default function CompliancePortalPage() {
     </Box>
   )
 
-  const { overallScore, staffCompliance, expiringTraining, openIncidents, people, recordsByStatus, policies, location, nutrition, recentMar } = data || {}
+  const { overallScore, staffCompliance, expiringTraining, openIncidents, people, recordsByStatus, policies, location, nutrition, nutritionAlerts, recentMar } = data || {}
   const totalRecords = (recordsByStatus || []).reduce((s: number, r: any) => s + r.count, 0)
   const completeRecords = (recordsByStatus || []).find((r: any) => r.status === 'complete')?.count || 0
 
@@ -262,6 +262,14 @@ export default function CompliancePortalPage() {
                 {openIncidents?.length || 0}
               </Typography>
               <Typography variant="caption" color="text.secondary">{people?.length || 0} people at location</Typography>
+              {nutritionAlerts?.length > 0 && (
+                <Chip
+                  label={`${nutritionAlerts.length} nutrition alert${nutritionAlerts.length > 1 ? 's' : ''}`}
+                  size="small"
+                  sx={{ mt: 0.5, bgcolor: '#FEF2F2', color: '#DC2626', fontWeight: 600 }}
+                  onClick={() => toggleSection('nutrition-alerts')}
+                />
+              )}
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -307,6 +315,7 @@ export default function CompliancePortalPage() {
           { key: 'incidents', label: 'Incidents', icon: <WarningIcon />, count: openIncidents?.length },
           { key: 'training', label: 'Training & Certification', icon: <TrainIcon />, count: expiringTraining?.length },
           { key: 'medication', label: 'Medication (MAR)', icon: <MedicIcon />, count: recentMar?.length },
+          { key: 'nutrition-alerts', label: 'Nutrition Alerts', icon: <WarningIcon />, count: nutritionAlerts?.length },
           { key: 'nutrition', label: 'Nutrition & Dietary', icon: <FoodIcon />, count: nutrition?.length },
           { key: 'people', label: 'People', icon: <PeopleIcon />, count: people?.length },
           { key: 'policies', label: 'Policies', icon: <CompIcon />, count: policies?.length },
@@ -329,6 +338,7 @@ export default function CompliancePortalPage() {
                 {section.key === 'incidents' && <IncidentsList data={openIncidents} />}
                 {section.key === 'training' && <TrainingTable data={expiringTraining} />}
                 {section.key === 'medication' && <MedicationTable data={recentMar} onView={viewPerson} />}
+                {section.key === 'nutrition-alerts' && <NutritionAlertsList data={nutritionAlerts} onView={viewPerson} />}
                 {section.key === 'nutrition' && <NutritionAuditTable data={nutrition} />}
                 {section.key === 'people' && <PeopleList data={people} onView={viewPerson} />}
                 {section.key === 'policies' && <PoliciesTable data={policies} />}
@@ -610,6 +620,69 @@ function PoliciesTable({ data }: { data: any[] }) {
         </TableBody>
       </Table>
     </TableContainer>
+  )
+}
+
+function NutritionAlertsList({ data, onView }: { data: any[]; onView: (id: string) => void }) {
+  if (!data?.length) return <Typography color="text.secondary" sx={{ py: 2 }}>No nutrition alerts at this location — all clear.</Typography>
+
+  const getAlertIcon = (type: string) => {
+    if (type.includes('refused')) return <CancelIcon sx={{ color: '#DC2626', fontSize: 18 }} />
+    if (type.includes('appetite')) return <WarningIcon sx={{ color: '#F59E0B', fontSize: 18 }} />
+    return <WaterIcon sx={{ color: '#3B82F6', fontSize: 18 }} />
+  }
+
+  const getAlertLabel = (type: string) => {
+    if (type.includes('refused')) return 'Meal Refused'
+    if (type.includes('appetite')) return 'Appetite Decline'
+    if (type.includes('fluid')) return 'Low Fluid Intake'
+    return type
+  }
+
+  const getAlertColor = (severity: string) => {
+    if (severity === 'critical' || severity === 'high') return '#DC2626'
+    if (severity === 'medium') return '#F59E0B'
+    return '#22C55E'
+  }
+
+  return (
+    <Stack spacing={1}>
+      {data.map((alert: any) => (
+        <Paper key={alert.id} variant="outlined" sx={{ p: 1.5, borderLeft: 3, borderLeftColor: getAlertColor(alert.severity) }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box sx={{ flex: 1 }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                {getAlertIcon(alert.alert_type)}
+                <Typography fontWeight={600} fontSize="0.9rem">{getAlertLabel(alert.alert_type)}</Typography>
+                <Chip
+                  label={alert.severity}
+                  size="small"
+                  sx={{ bgcolor: getAlertColor(alert.severity) + '18', color: getAlertColor(alert.severity), fontWeight: 600 }}
+                />
+              </Stack>
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                {alert.message || alert.title}
+              </Typography>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                {alert.person_name && (
+                  <Chip
+                    label={alert.person_name}
+                    size="small"
+                    variant="outlined"
+                    onClick={() => alert.person_id && onView(alert.person_id)}
+                    sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                  />
+                )}
+                {alert.room_number && <Chip label={`Room ${alert.room_number}`} size="small" variant="outlined" />}
+                <Typography variant="caption" color="text.secondary">
+                  {alert.created_at ? new Date(alert.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                </Typography>
+              </Stack>
+            </Box>
+          </Stack>
+        </Paper>
+      ))}
+    </Stack>
   )
 }
 
