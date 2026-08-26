@@ -62,6 +62,52 @@ export function buildEvidencePackHtml(data: any, orgName?: string): string {
        </div>`
     : ''
 
+  const nutritionPeople = data.nutrition?.filter((n: any) => n.dietary_type) || []
+  const nutritionWithConcerns = data.nutrition?.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0 || (n.refused_last_7d || 0) > 0 || (n.avg_consumed_7d && n.avg_consumed_7d < 50)) || []
+  const totalFluid7d = (data.nutrition || []).reduce((sum: number, n: any) => sum + (n.total_fluid_7d || 0), 0)
+  const avgFluidPerPerson = nutritionPeople.length > 0 ? Math.round(totalFluid7d / nutritionPeople.length) : 0
+
+  const nutritionSummarySection = (data.nutrition && data.nutrition.length > 0)
+    ? `<h2 style="color:#0F4C81;font-size:18px;margin-top:24px">Nutrition Overview</h2>
+       <div class="summary-grid">
+         <div class="summary-card"><div class="num">${data.summary?.people_with_dietary_profiles || 0}/${data.summary?.total_people || 0}</div><div class="label">Dietary Profiles</div></div>
+         <div class="summary-card"><div class="num">${nutritionWithConcerns.length}</div><div class="label">Nutrition Concerns (7d)</div></div>
+         <div class="summary-card"><div class="num">${avgFluidPerPerson}ml</div><div class="label">Avg Fluid/Person (7d)</div></div>
+         <div class="summary-card"><div class="num">${nutritionPeople.filter((n: any) => n.texture_modified && n.texture_modified !== 'None').length}</div><div class="label">Texture Modified</div></div>
+       </div>`
+    : ''
+
+  const nutritionSection = nutritionPeople.length > 0
+    ? `<h2 style="color:#0F4C81;font-size:18px;margin-top:24px">Nutrition & Dietary Records (${nutritionPeople.length} people)</h2>
+       <table><thead><tr><th>Person</th><th>Diet</th><th>Texture</th><th>Appetite</th><th>Meals (7d)</th><th>Refused</th><th>Avg Consumed</th><th>Fluid (7d)</th><th>Flags</th></tr></thead><tbody>
+       ${nutritionPeople.map((n: any) => {
+         const flags: string[] = []
+         if (n.vegetarian) flags.push('V')
+         if (n.vegan) flags.push('VG')
+         if (n.halal) flags.push('H')
+         if (n.kosher) flags.push('K')
+         if (n.gluten_free) flags.push('GF')
+         if (n.dairy_free) flags.push('DF')
+         if (n.nut_allergy) flags.push('NUT')
+         if (n.other_allergies) flags.push('ALLERGY')
+         const isConcern = (n.nutrition_concerns_7d || 0) > 0 || (n.refused_last_7d || 0) > 0 || (n.avg_consumed_7d && n.avg_consumed_7d < 50)
+         return `<tr${isConcern ? ' style="background:#FEF2F2"' : ''}>\n           <td>${n.person_name}</td>\n           <td>${n.dietary_type || '-'}</td>\n           <td>${(n.texture_modified && n.texture_modified !== 'None') ? n.texture_modified : '-'}</td>\n           <td>${n.appetite_level || '-'}</td>\n           <td>${n.meals_last_7d || 0}</td>\n           <td>${(n.refused_last_7d || 0) > 0 ? '<span style="background:#FEE2E2;padding:2px 6px;border-radius:4px;font-weight:600">' + n.refused_last_7d + '</span>' : '0'}</td>\n           <td>${n.avg_consumed_7d != null ? n.avg_consumed_7d + '%' : '-'}</td>\n           <td>${n.total_fluid_7d || 0}ml</td>\n           <td>${flags.length > 0 ? '<span style="font-size:9px">' + flags.join(' ') + '</span>' : '-'}</td>\n         </tr>`
+       }).join('')}
+       </tbody></table>`
+    : ''
+
+  const nutritionConcernsSection = nutritionWithConcerns.length > 0
+    ? `<div class="section-break"></div>
+       <h2 style="color:#DC2626;font-size:18px;margin-top:24px">⚠ Nutrition Concerns (${nutritionWithConcerns.length} people)</h2>
+       <p style="color:#6B7280;font-size:12px">People with low intake, meal refusals, or declining appetite in the last 7 days — require care plan review and staff follow-up.</p>
+       <table><thead><tr><th>Person</th><th>Diet</th><th>Meals (7d)</th><th>Refused</th><th>Avg Consumed</th><th>Fluid (7d)</th><th>Target</th><th>Below Target</th></tr></thead><tbody>
+       ${nutritionWithConcerns.map((n: any) => {
+         const fluidDeficit = (n.fluid_daily_target_ml || 2000) - (n.total_fluid_7d || 0)
+         return `<tr style="background:#FEF2F2">\n           <td><strong>${n.person_name}</strong></td>\n           <td>${n.dietary_type || '-'}</td>\n           <td>${n.meals_last_7d || 0}</td>\n           <td><span style="background:#DC2626;color:white;padding:2px 6px;border-radius:4px;font-weight:600">${n.refused_last_7d || 0}</span></td>\n           <td>${n.avg_consumed_7d != null ? n.avg_consumed_7d + '%' : '-'}</td>\n           <td>${n.total_fluid_7d || 0}ml</td>\n           <td>${n.fluid_daily_target_ml || 2000}ml</td>\n           <td>${fluidDeficit > 0 ? '<span style="color:#DC2626;font-weight:600">-' + fluidDeficit + 'ml</span>' : 'On target'}</td>\n         </tr>`
+       }).join('')}
+       </tbody></table>`
+    : ''
+
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
@@ -97,6 +143,8 @@ export function buildEvidencePackHtml(data: any, orgName?: string): string {
       <p>Competency Assessments: ${data.summary?.competency_records || 0}</p>
       <p>Incidents: ${data.summary?.incidents || 0}</p>
       ${data.satisfaction?.avg_rating ? `<p>Satisfaction: ${data.satisfaction.avg_rating}/5 (${data.satisfaction.total} responses)</p>` : ''}
+      ${data.summary?.people_with_dietary_profiles ? `<p>People with Dietary Profiles: ${data.summary.people_with_dietary_profiles}/${data.summary?.total_people || 0}</p>` : ''}
+      ${data.summary?.people_with_nutrition_concerns ? `<p>Nutrition Concerns (7 days): ${data.summary.people_with_nutrition_concerns}</p>` : ''}
     </div>
   </div>
 
@@ -108,6 +156,8 @@ export function buildEvidencePackHtml(data: any, orgName?: string): string {
     <div class="summary-card"><div class="num">${data.summary?.documents || 0}</div><div class="label">Documents</div></div>
     <div class="summary-card"><div class="num">${data.summary?.competency_records || 0}</div><div class="label">Competency</div></div>
     ${data.satisfaction?.avg_rating ? `<div class="summary-card"><div class="num">${data.satisfaction.avg_rating}/5</div><div class="label">Satisfaction</div></div>` : ''}
+    ${data.summary?.people_with_dietary_profiles ? `<div class="summary-card"><div class="num">${data.summary.people_with_dietary_profiles}</div><div class="label">Dietary Profiles</div></div>` : ''}
+    ${data.summary?.people_with_nutrition_concerns ? `<div class="summary-card" style="${data.summary.people_with_nutrition_concerns > 0 ? 'border-color:#DC2626' : ''}"><div class="num" style="${data.summary.people_with_nutrition_concerns > 0 ? 'color:#DC2626' : ''}">${data.summary.people_with_nutrition_concerns}</div><div class="label">Nutrition Concerns</div></div>` : ''}
   </div>
   <p style="color:#6B7280;font-size:12px">Generated by Meticle on ${now}</p>
 
@@ -122,6 +172,9 @@ export function buildEvidencePackHtml(data: any, orgName?: string): string {
   ${docSection ? `<div class="section-break"></div>${docSection}` : ''}
   ${compSection ? `<div class="section-break"></div>${compSection}` : ''}
   ${satSection ? `<div class="section-break"></div>${satSection}` : ''}
+  ${nutritionSummarySection ? `<div class="section-break"></div>${nutritionSummarySection}` : ''}
+  ${nutritionSection ? `<div class="section-break"></div>${nutritionSection}` : ''}
+  ${nutritionConcernsSection || ''}
 
   <div style="margin-top:40px;padding-top:12px;border-top:1px solid #D1D5DB;font-size:10px;color:#9CA3AF;text-align:center">
     Meticle Evidence Pack &bull; Generated ${now} &bull; For inspection purposes

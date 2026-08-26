@@ -100,6 +100,22 @@ export default function EvidencePacksPage() {
       const domain = mapSource('satisfaction', '', 'caring')
       result[domain].evidence.push(`Satisfaction: avg ${data.satisfaction.avg_rating}/5 from ${data.satisfaction.total} surveys (${data.satisfaction.positive} positive)`)
     }
+    if (data?.nutrition) {
+      const nutritionPeople = data.nutrition.filter((n: any) => n.dietary_type)
+      const concerns = data.nutrition.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0 || (n.refused_last_7d || 0) > 0)
+      if (nutritionPeople.length > 0) {
+        const domain = mapSource('nutrition', 'dietary_profiles', 'safe')
+        result[domain].evidence.push(`Nutrition: ${nutritionPeople.length} people with dietary profiles, ${concerns.length} with concerns in 7 days`)
+        const withAllergens = nutritionPeople.filter((n: any) => n.nut_allergy || n.gluten_free || n.dairy_free || n.other_allergies)
+        if (withAllergens.length > 0) {
+          result[domain].evidence.push(`Allergen management: ${withAllergens.length} people with specific allergen requirements tracked`)
+        }
+        const textureModified = nutritionPeople.filter((n: any) => n.texture_modified && n.texture_modified !== 'None')
+        if (textureModified.length > 0) {
+          result[domain].evidence.push(`Texture modification: ${textureModified.length} people with IDDSI-aligned dietary texture plans`)
+        }
+      }
+    }
     return Object.entries(result).filter(([_, v]) => v.evidence.length > 0)
   }
 
@@ -231,7 +247,7 @@ export default function EvidencePacksPage() {
                 <Box key={k} sx={{ flex: 1, minWidth: 100, border: '1px solid #D1D5DB', borderRadius: 2, p: 2, textAlign: 'center' }}>
                   <Typography variant="h5" fontWeight={800}>{v as number}</Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {k === 'total_staff' ? 'Staff' : k === 'total_people' ? 'People' : k === 'active_people' ? 'Active SUs' : k === 'training_records' ? 'Training Records' : k === 'documents' ? 'Documents' : k === 'competency_records' ? 'Competency' : k === 'incidents' ? 'Incidents' : k === 'satisfaction_avg' ? 'Satisfaction Avg' : ''}
+                    {k === 'total_staff' ? 'Staff' : k === 'total_people' ? 'People' : k === 'active_people' ? 'Active SUs' : k === 'training_records' ? 'Training Records' : k === 'documents' ? 'Documents' : k === 'competency_records' ? 'Competency' : k === 'incidents' ? 'Incidents' : k === 'satisfaction_avg' ? 'Satisfaction Avg' : k === 'people_with_dietary_profiles' ? 'Dietary Profiles' : k === 'people_with_nutrition_concerns' ? 'Nutrition Concerns' : ''}
                   </Typography>
                 </Box>
               ))}
@@ -469,7 +485,78 @@ export default function EvidencePacksPage() {
           </Paper>
         )}
 
-        {data?.training?.length === 0 && data?.documents?.length === 0 && data?.competency?.length === 0 && (!data?.people || data.people.length === 0) && (
+        {data?.nutrition && data.nutrition.length > 0 && (
+          <Paper sx={{ p: 3, mb: 3, '@media print': { pageBreakAfter: 'always' } }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>Nutrition & Dietary Records</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {data.summary?.people_with_dietary_profiles || 0} people with dietary profiles · {data.summary?.people_with_nutrition_concerns || 0} with concerns in the last 7 days
+            </Typography>
+            {data.nutrition.filter((n: any) => n.dietary_type).length > 0 && (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700 }}>Person</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Diet</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Texture</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Appetite</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">Meals (7d)</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">Refused</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">Avg Consumed</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">Fluid (7d)</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Flags</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {data.nutrition.filter((n: any) => n.dietary_type).map((n: any) => {
+                      const flags: string[] = []
+                      if (n.vegetarian) flags.push('V')
+                      if (n.vegan) flags.push('VG')
+                      if (n.halal) flags.push('H')
+                      if (n.kosher) flags.push('K')
+                      if (n.gluten_free) flags.push('GF')
+                      if (n.dairy_free) flags.push('DF')
+                      if (n.nut_allergy) flags.push('NUT')
+                      if (n.other_allergies) flags.push('ALLERGY')
+                      const isConcern = (n.nutrition_concerns_7d || 0) > 0 || (n.refused_last_7d || 0) > 0 || (n.avg_consumed_7d && n.avg_consumed_7d < 50)
+                      return (
+                        <TableRow key={n.id} hover sx={isConcern ? { bgcolor: '#FEF2F2' } : {}}>
+                          <TableCell>{n.person_name}</TableCell>
+                          <TableCell>{n.dietary_type}</TableCell>
+                          <TableCell>{(n.texture_modified && n.texture_modified !== 'None') ? n.texture_modified : '—'}</TableCell>
+                          <TableCell>{n.appetite_level || '—'}</TableCell>
+                          <TableCell align="right">{n.meals_last_7d || 0}</TableCell>
+                          <TableCell align="right">
+                            {(n.refused_last_7d || 0) > 0 ? <Chip label={n.refused_last_7d} size="small" color="error" /> : '0'}
+                          </TableCell>
+                          <TableCell align="right">{n.avg_consumed_7d != null ? `${n.avg_consumed_7d}%` : '—'}</TableCell>
+                          <TableCell align="right">{n.total_fluid_7d || 0}ml</TableCell>
+                          <TableCell>
+                            <Stack direction="row" spacing={0.5} useFlexGap>
+                              {flags.map(f => <Chip key={f} label={f} size="small" variant="outlined" sx={{ height: 18, fontSize: '0.65rem' }} />)}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+            {data.summary?.people_with_nutrition_concerns > 0 && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: '#FEF2F2', borderRadius: 1, border: '1px solid #FECACA' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#DC2626', mb: 1 }}>
+                  ⚠ {data.summary.people_with_nutrition_concerns} person(s) with nutrition concerns in the last 7 days
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  People with low intake, meal refusals, or declining appetite require care plan review and staff follow-up.
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+        )}
+
+        {data?.training?.length === 0 && data?.documents?.length === 0 && data?.competency?.length === 0 && (!data?.people || data.people.length === 0) && (!data?.nutrition || data.nutrition.length === 0) && (
           <Paper sx={{ p: 4, textAlign: 'center' }}>
             <Typography color="text.secondary">No compliance data found for the selected filters.</Typography>
           </Paper>
