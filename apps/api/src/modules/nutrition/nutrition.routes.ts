@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { NutritionController } from './nutrition.controller';
+import { MealPlanController } from './meal-plan.controller';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
@@ -29,5 +30,18 @@ router.delete('/meal/items/:itemId', requireRole(UserRole.ORG_ADMIN, UserRole.MA
 // Overview (org-wide)
 router.get('/overview', asyncHandler(NutritionController.getNutritionOverview));
 router.get('/people', asyncHandler(NutritionController.getPeopleWithDietaryInfo));
+
+// Meal Plan Templates
+router.get('/meal-plans', asyncHandler(MealPlanController.listTemplates));
+router.get('/meal-plans/:id', asyncHandler(MealPlanController.getTemplate));
+router.post('/meal-plans', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(MealPlanController.createTemplate));
+router.put('/meal-plans/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(MealPlanController.updateTemplate));
+router.delete('/meal-plans/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(MealPlanController.deleteTemplate));
+router.post('/meal-plans/:id/clone', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(MealPlanController.cloneTemplate));
+
+// Meal Plan Items
+router.post('/meal-plans/:templateId/items', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(MealPlanController.addItem));
+router.put('/meal-plans/items/:itemId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(MealPlanController.updateItem));
+router.delete('/meal-plans/items/:itemId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(MealPlanController.deleteItem));
 
 export default router;

@@ -634,6 +634,38 @@ const MIGRATION_043: Migration = {
   ],
 };
 
+const MIGRATION_044: Migration = {
+  name: '044_meal_plan_templates',
+  strict: false,
+  statements: [
+    `CREATE TABLE IF NOT EXISTS meal_plan_templates (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      meal_type VARCHAR(30) NOT NULL CHECK (meal_type IN ('breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'evening_snack', 'supplement')),
+      day_of_week VARCHAR(10) CHECK (day_of_week IN ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')), is_active BOOLEAN DEFAULT TRUE,
+      created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_meal_plan_templates_org ON meal_plan_templates(organization_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_meal_plan_templates_type ON meal_plan_templates(organization_id, meal_type)`,
+    `CREATE TABLE IF NOT EXISTS meal_plan_items (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      meal_plan_id UUID NOT NULL REFERENCES meal_plan_templates(id) ON DELETE CASCADE,
+      food_name VARCHAR(255) NOT NULL,
+      portion_size VARCHAR(100),
+      allergens VARCHAR(500),
+      dietary_flags TEXT[] DEFAULT '{}',
+      notes TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_meal_plan_items_plan ON meal_plan_items(meal_plan_id)`
+  ],
+};
+
 const MIGRATION_039: Migration = {
   name: '039_operational_workflow_fields',
   strict: false,
@@ -2243,7 +2275,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043, MIGRATION_044]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

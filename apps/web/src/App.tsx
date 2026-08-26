@@ -69,6 +69,7 @@ import MissionControlPage from './pages/mission-control/MissionControlPage'
 import CompliancePortalPage, { PortalLoginPage } from './pages/compliance-portal/CompliancePortalPage'
 import EMedicationPage from './pages/emedication/EMedicationPage'
 import ArchivedMarPage from './pages/emedication/ArchivedMarPage'
+import MealPlanPage from './pages/nutrition/MealPlanPage'
 import UnauthorizedPage from './pages/errors/UnauthorizedPage'
 import NotFoundPage from './pages/errors/NotFoundPage'
 import PlatformAdminPage from './pages/admin/PlatformAdminPage'
@@ -156,6 +157,7 @@ function App() {
           <Route path="/medications" element={<ModuleGuard module="emedication"><EMedicationPage /></ModuleGuard>} />
           <Route path="/emedication" element={<ModuleGuard module="emedication"><EMedicationPage /></ModuleGuard>} />
           <Route path="/emedication/archived" element={<ModuleGuard module="emedication"><ArchivedMarPage /></ModuleGuard>} />
+          <Route path="/meal-plans" element={<ModuleGuard module="emedication"><MealPlanPage /></ModuleGuard>} />
           <Route path="/tasks" element={<ModuleGuard module="tasks"><TasksPage /></ModuleGuard>} />
           <Route path="/platform-admin" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><PlatformAdminPage /></AuthGuard>} />
           <Route path="/platform-admin/organizations/:id" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><AdminOrganizationDetailPage /></AuthGuard>} />
