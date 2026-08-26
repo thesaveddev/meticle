@@ -81,6 +81,7 @@ export default function SettingsPage() {
     { key: 'incident_severity_triage', label: 'Incident Severity Triage', desc: 'Classify incident reports by severity with recommended actions' },
     { key: 'rota_optimization', label: 'Rota Optimization', desc: 'AI-powered rota analysis with coverage warnings and staffing suggestions' },
     { key: 'daily_note_generation', label: 'AI Daily Notes', desc: 'Transform voice/text observations into structured, CQC-compliant care notes with mood analysis and safeguarding flags' },
+    { key: 'meal_plan_generation', label: 'AI Meal Plans', desc: 'Generate person-centred meal plans based on dietary requirements, allergies, and texture modifications' },
   ]
 
   // Pagination state
