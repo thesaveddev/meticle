@@ -138,15 +138,19 @@ export class IncidentsController {
     const before = await IncidentsRepository.findById(req.params.id, IncidentsController.getOrgId(req), true);
     const incident = await IncidentsRepository.update(req.params.id, req.body, IncidentsController.getOrgId(req));
     if (!incident) throw new AppError(404, 'Incident not found');
-    AuditRepository.log({
-      user_id: IncidentsController.getUserId(req),
-      action: 'update',
-      entity_type: 'incident',
-      entity_id: incident.id,
-      old_data: { status: before?.status, severity: before?.severity },
-      new_data: { status: incident.status, severity: incident.severity },
-      ip_address: req.ip,
-    }).catch(logWarn('audit incident update'));
+    try {
+      await AuditRepository.log({
+        user_id: IncidentsController.getUserId(req),
+        action: 'update',
+        entity_type: 'incident',
+        entity_id: incident.id,
+        old_data: { status: before?.status, severity: before?.severity },
+        new_data: { status: incident.status, severity: incident.severity },
+        ip_address: req.ip,
+      });
+    } catch (err) {
+      logWarn('audit incident update')(err);
+    }
     res.json(incident);
   }
 
