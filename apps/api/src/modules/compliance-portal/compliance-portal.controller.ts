@@ -4,6 +4,7 @@ import { query } from '../../shared/database';
 import { CompliancePortalRepository } from './compliance-portal.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { AuditRepository } from '../audit/audit.repository';
+import { EmailService } from '../../shared/utils/email.service';
 
 const getJwtSecret = (): string => {
   const secret = process.env.JWT_SECRET;
@@ -65,6 +66,22 @@ export class CompliancePortalController {
       ip_address: req.ip,
     }).catch(() => {});
 
+    // Send portal access email to the compliance officer
+    const emailLocationName = locResult.rows[0].name;
+    const emailOrgResult = await query('SELECT name FROM organizations WHERE id = $1', [user.organizationId]);
+    const emailOrgName = emailOrgResult.rows[0]?.name || 'your organization';
+    const emailBody = `<p>Hi ${officer_name},</p>` +
+      `<p>You have been granted read-only access to the compliance portal for <strong>${emailLocationName}</strong> at <strong>${emailOrgName}</strong>.</p>` +
+      `<p>This access allows you to review:</p>` +
+      `<ul><li>Staff compliance records and training status</li>` +
+      `<li>Open incidents and their resolution status</li>` +
+      `<li>Nutrition and dietary information for all residents</li>` +
+      `<li>Medication administration records (MAR)</li>` +
+      `<li>Active policies and care plans</li></ul>` +
+      `<p>This link expires in <strong>${expires_hours || 72} hours</strong> and is unique to you. Do not share it.</p>` +
+      `<p><a href="${portalUrl}" style="display:inline-block;padding:10px 20px;background-color:#0F4C81;color:#ffffff;text-decoration:none;border-radius:4px;">Access Compliance Portal</a></p>`;
+    EmailService.sendEmail(email, `${emailOrgName} — Compliance Audit Access for ${emailLocationName}`, emailBody).catch(() => {});
+
     res.status(201).json({
       token,
       portalUrl,
@@ -93,6 +110,18 @@ export class CompliancePortalController {
       entity_id: req.params.id,
       ip_address: req.ip,
     }).catch(() => {});
+    // Notify the compliance officer that access has been revoked
+    const locResult = await query('SELECT name FROM locations WHERE id = $1', [revoked.location_id]);
+    const locName = locResult.rows[0]?.name || 'the location';
+    const orgInfo = await query('SELECT name FROM organizations WHERE id = $1', [revoked.organization_id]);
+    const orgN = orgInfo.rows[0]?.name || 'your organization';
+    EmailService.sendEmail(
+      revoked.email,
+      `${orgN} — Compliance Portal Access Revoked`,
+      `<p>Hi ${revoked.officer_name},</p>
+       <p>Your access to the compliance portal for <strong>${locName}</strong> at <strong>${orgN}</strong> has been revoked by the organization administrator.</p>
+       <p>If you believe this was done in error, please contact the organization directly.</p>`
+    ).catch(() => {});
     res.json({ message: 'Portal access revoked' });
   }
 

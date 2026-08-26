@@ -202,6 +202,30 @@ export class ComplianceRepository {
       [orgId]
     );
 
+    // Nutrition data for CQC evidence pack
+    const nutrition = await query(
+      `SELECT p.id, p.first_name || ' ' || p.last_name AS person_name,
+        dp.dietary_type, dp.texture_modified, dp.appetite_level,
+        dp.food_preferences, dp.food_dislikes, dp.other_allergies,
+        dp.fluid_daily_target_ml, dp.vegetarian, dp.vegan, dp.halal,
+        dp.kosher, dp.gluten_free, dp.dairy_free, dp.nut_allergy,
+        (SELECT COUNT(*) FROM meal_records mr WHERE mr.person_id = p.id
+         AND mr.meal_date >= CURRENT_DATE - interval '7 days')::int AS meals_last_7d,
+        (SELECT COUNT(*) FROM meal_records mr WHERE mr.person_id = p.id
+         AND mr.meal_date >= CURRENT_DATE - interval '7 days' AND mr.refused = true)::int AS refused_last_7d,
+        (SELECT ROUND(AVG(consumed_percent)::numeric, 0) FROM meal_records mr
+         WHERE mr.person_id = p.id AND mr.meal_date >= CURRENT_DATE - interval '7 days')::int AS avg_consumed_7d,
+        (SELECT COALESCE(SUM(fluid_ml), 0) FROM meal_records mr
+         WHERE mr.person_id = p.id AND mr.meal_date >= CURRENT_DATE - interval '7 days')::int AS total_fluid_7d,
+        (SELECT COUNT(*) FROM meal_records mr
+         WHERE mr.person_id = p.id AND mr.meal_date >= CURRENT_DATE - interval '7 days' AND mr.staff_concerns IS NOT NULL)::int AS nutrition_concerns_7d
+       FROM people p
+       LEFT JOIN dietary_profiles dp ON dp.person_id = p.id
+       WHERE p.organization_id = $1 AND p.status = 'active'
+       ORDER BY p.last_name, p.first_name`,
+      [orgId]
+    );
+
     let mappings: any[] = [];
     try {
       mappings = (await query('SELECT * FROM evidence_mappings WHERE organization_id = $1', [orgId])).rows;
@@ -217,6 +241,7 @@ export class ComplianceRepository {
       people: people.rows,
       care_plans: carePlans.rows,
       incidents: incidents.rows,
+      nutrition: nutrition.rows,
       satisfaction: satisfactionAgg.rows[0] || { avg_rating: null, total: 0, positive: 0 },
       summary: {
         total_staff: staff.rows.length,
@@ -226,6 +251,8 @@ export class ComplianceRepository {
         documents: documents.rows.length,
         competency_records: competency.rows.length,
         incidents: incidents.rows.length,
+        people_with_dietary_profiles: nutrition.rows.filter((r: any) => r.dietary_type).length,
+        people_with_nutrition_concerns: nutrition.rows.filter((r: any) => (r.nutrition_concerns_7d || 0) > 0).length,
         satisfaction_avg: satisfactionAgg.rows[0]?.avg_rating || null,
       }
     };
