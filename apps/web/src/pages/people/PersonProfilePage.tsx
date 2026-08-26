@@ -27,6 +27,7 @@ import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
 import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
 import HealthTab from './HealthTab'
+import NutritionTab from './NutritionTab'
 import BodyMapTab from './BodyMapTab'
 import MemoryBookTab from './MemoryBookTab'
 import GoalsPage from '../goals/GoalsPage'
@@ -93,7 +94,7 @@ const TAB_SLUGS: Record<number, string> = {
   5: 'family-contacts', 6: 'health', 7: 'body-map', 8: 'memory-book', 9: 'goals',
   10: 'care-assessments', 11: 'room-checks', 12: 'clinical-scores', 13: 'documents',
   14: 'wellbeing', 15: 'communication', 16: 'capacity', 17: 'care-pathways',
-  18: 'time-away', 19: 'mood-chart', 20: 'audit-trail',
+  18: 'time-away', 19: 'mood-chart', 20: 'audit-trail', 21: 'nutrition',
 }
 const SLUG_TO_TAB: Record<string, number> = { ...Object.fromEntries(Object.entries(TAB_SLUGS).map(([k, v]) => [v, Number(k)])), discharge: 18 }
 
@@ -489,7 +490,7 @@ export default function PersonProfilePage() {
   const CATEGORIES = [
     { label: 'Overview', tabs: [0] },
     { label: 'Care', tabs: [2, 3, 4, 9, 10, 17] },
-    { label: 'Clinical', tabs: [6, 12, 14, 19] },
+    { label: 'Clinical', tabs: [6, 12, 14, 19, 21] },
     { label: 'People', tabs: [5, 15] },
     { label: 'Safety', tabs: [7, 16, 11] },
     { label: 'Records', tabs: [13, 8, 1, 18, 20] },
@@ -500,7 +501,7 @@ export default function PersonProfilePage() {
     5: 'Family & Contacts', 6: 'Health', 7: 'Body Map', 8: 'Memory Book', 9: 'Goals',
     10: 'Care Assessments', 11: 'Room Checks', 12: 'Clinical Scores', 13: 'Documents',
     14: 'Wellbeing', 15: 'Communication', 16: 'MCA/Capacity', 17: 'Care Pathways',
-    18: 'Time Away', 19: 'Mood Chart', 20: 'Audit Trail',
+    18: 'Time Away', 19: 'Mood Chart', 20: 'Audit Trail', 21: 'Nutrition',
   }
 
   return (
@@ -1119,6 +1120,9 @@ export default function PersonProfilePage() {
 
       {/* Tab: Health */}
       {tab === 6 && <HealthTab personId={id!} fluidTarget={user?.fluid_daily_target} />}
+
+      {/* Tab: Nutrition */}
+      {tab === 21 && <NutritionTab personId={id!} />}
 
       {/* Tab: Body Map */}
       {tab === 7 && <BodyMapTab personId={id!} />}

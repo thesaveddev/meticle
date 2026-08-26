@@ -1,11 +1,14 @@
 import logger from '../../shared/utils/logger';
 import { processOutbox, cleanupOutbox, OutboxProcessStats } from './events.outbox';
+import { publishBatchEvents } from './events.batch-publisher';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000; // every 6 hours
+const BATCH_PUBLISHER_INTERVAL_MS = 5 * 60 * 1000; // every 5 minutes
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;
+let batchTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
  * In-process background worker that drains the domain event outbox. Mirrors the
@@ -37,7 +40,24 @@ export const EventWorker = {
       }
     }, CLEANUP_INTERVAL_MS);
 
-    logger.info({ pollIntervalMs }, 'Event outbox worker started');
+    // Batch publisher: scans all orgs for actionable conditions every 5 min
+    // and publishes domain events for the outbox worker to deliver
+    batchTimer = setInterval(async () => {
+      try {
+        const counts = await publishBatchEvents();
+        const total = Object.values(counts).reduce((a, b) => a + b, 0);
+        if (total > 0) {
+          logger.info({ ...counts, total }, 'Batch event publisher run complete');
+        }
+      } catch (err) {
+        logger.error(err, 'Batch event publisher error');
+      }
+    }, BATCH_PUBLISHER_INTERVAL_MS);
+
+    // Run immediately on startup
+    publishBatchEvents().catch(err => logger.error(err, 'Initial batch publish failed'));
+
+    logger.info({ pollIntervalMs, batchIntervalMs: BATCH_PUBLISHER_INTERVAL_MS }, 'Event outbox worker started');
   },
 
   stop(): void {
@@ -48,6 +68,10 @@ export const EventWorker = {
     if (cleanupTimer) {
       clearInterval(cleanupTimer);
       cleanupTimer = null;
+    }
+    if (batchTimer) {
+      clearInterval(batchTimer);
+      batchTimer = null;
     }
     logger.info('Event outbox worker stopped');
   },

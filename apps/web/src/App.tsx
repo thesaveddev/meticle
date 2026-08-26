@@ -65,6 +65,8 @@ import FamilyPortalPage from './pages/FamilyPortalPage'
 import ComplianceRecordsPage from './pages/compliance/ComplianceRecordsPage'
 import AppointmentsPage from './pages/appointments/AppointmentsPage'
 import PoliciesPage from './pages/policies/PoliciesPage'
+import MissionControlPage from './pages/mission-control/MissionControlPage'
+import CompliancePortalPage, { PortalLoginPage } from './pages/compliance-portal/CompliancePortalPage'
 import EMedicationPage from './pages/emedication/EMedicationPage'
 import ArchivedMarPage from './pages/emedication/ArchivedMarPage'
 import UnauthorizedPage from './pages/errors/UnauthorizedPage'
@@ -101,11 +103,16 @@ function App() {
       <Route path="/terms" element={<ErrorBoundary><Suspense fallback={null}><TermsOfUsePage /></Suspense></ErrorBoundary>} />
       <Route path="/cookies" element={<ErrorBoundary><Suspense fallback={null}><CookiePolicyPage /></Suspense></ErrorBoundary>} />
 
+      {/* Compliance Portal (no auth guard - uses portal token) */}
+      <Route path="/portal/login" element={<PortalLoginPage />} />
+      <Route path="/portal/dashboard" element={<CompliancePortalPage />} />
+
       {/* Protected Internal Routes */}
       <Route element={<AuthGuard />}>
         <Route path="/onboarding" element={<OnboardingFlow />} />
         <Route element={<ErrorBoundary><Layout /></ErrorBoundary>}>
           <Route path="/dashboard" element={<ModuleGuard module="dashboard"><DashboardPage /></ModuleGuard>} />
+          <Route path="/mission-control" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><MissionControlPage /></AuthGuard>} />
           <Route path="/staff" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><StaffDirectoryPage /></ModuleGuard></AuthGuard>} />
           <Route path="/staff/:userId" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><StaffProfilePage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><CompliancePage /></ModuleGuard></AuthGuard>} />

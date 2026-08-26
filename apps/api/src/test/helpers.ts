@@ -31,6 +31,8 @@ import appointmentRoutes from '../modules/appointments/appointments.routes'
 import policyRoutes from '../modules/policies/policies.routes'
 import goalRoutes from '../modules/goals/goals.routes'
 import healthRoutes from '../modules/health/health.routes'
+import nutritionRoutes from '../modules/nutrition/nutrition.routes'
+import compliancePortalRoutes from '../modules/compliance-portal/compliance-portal.routes'
 import settingsRoutes from '../modules/settings/settings.routes'
 import billingRoutes from '../modules/billing/billing.routes'
 import emedicationRoutes from '../modules/emedication/emedication.routes'
@@ -57,6 +59,7 @@ import contactRoutes from '../modules/contact/contact.routes'
 import eventRoutes from '../modules/events/events.routes'
 import platformAdminRoutes from '../modules/platform-admin/platform-admin.routes'
 import shiftAuditRoutes from '../modules/shift-audit/shift-audit.routes'
+import missionControlRoutes from '../modules/mission-control/mission-control.routes'
 
 export function createTestApp(): Express {
   const app = express()
@@ -99,6 +102,8 @@ export function createTestApp(): Express {
   app.use('/emedication', emedicationRoutes)
   app.use('/goals', goalRoutes)
   app.use('/health', healthRoutes)
+  app.use('/nutrition', nutritionRoutes)
+  app.use('/compliance-portal', compliancePortalRoutes)
   app.use('/ai', aiRoutes)
   app.use('/family-portal', familyPortalRoutes)
   app.use('/delegations', delegationRoutes)
@@ -112,6 +117,7 @@ export function createTestApp(): Express {
   app.use('/events', eventRoutes)
   app.use('/platform-admin', platformAdminRoutes)
   app.use('/shift-audit', shiftAuditRoutes)
+  app.use('/mission-control', missionControlRoutes)
 
   app.get('/health/live', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 

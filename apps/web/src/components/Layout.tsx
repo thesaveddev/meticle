@@ -28,6 +28,7 @@ import {
   AdminPanelSettings as AdminIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  Radar as RadarIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
@@ -82,6 +83,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Overview',
       items: [
         { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+        { text: 'Mission Control', icon: <RadarIcon />, path: '/mission-control', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
       ],
     },
     {

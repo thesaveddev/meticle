@@ -504,6 +504,136 @@ const MIGRATION_040: Migration = {
   ],
 };
 
+const MIGRATION_041: Migration = {
+  name: '041_mission_control_alerts',
+  strict: false,
+  statements: [
+    `CREATE TABLE IF NOT EXISTS mission_control_alerts (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+       alert_type VARCHAR(100) NOT NULL,
+       aggregate_id VARCHAR(100) NOT NULL DEFAULT '',
+       severity VARCHAR(20) NOT NULL DEFAULT 'medium' CHECK (severity IN ('low','medium','high','critical')),
+       title VARCHAR(500) NOT NULL,
+       message TEXT NOT NULL DEFAULT '',
+       link VARCHAR(500) NOT NULL DEFAULT '',
+       person_id UUID REFERENCES people(id) ON DELETE SET NULL,
+       reference_id UUID,
+       dismissed BOOLEAN NOT NULL DEFAULT FALSE,
+       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE(organization_id, alert_type, aggregate_id)
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_mc_alerts_org ON mission_control_alerts(organization_id, dismissed, severity)`,
+    `CREATE INDEX IF NOT EXISTS idx_mc_alerts_person ON mission_control_alerts(person_id) WHERE person_id IS NOT NULL`,
+  ],
+};
+
+const MIGRATION_042: Migration = {
+  name: '042_nutrition_module',
+  strict: false,
+  statements: [
+    // Dietary profiles - person-centred dietary information
+    `CREATE TABLE IF NOT EXISTS dietary_profiles (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+      dietary_type VARCHAR(100),
+      texture_modified VARCHAR(100),
+      vegetarian BOOLEAN DEFAULT FALSE,
+      vegan BOOLEAN DEFAULT FALSE,
+      halal BOOLEAN DEFAULT FALSE,
+      kosher BOOLEAN DEFAULT FALSE,
+      gluten_free BOOLEAN DEFAULT FALSE,
+      dairy_free BOOLEAN DEFAULT FALSE,
+      nut_allergy BOOLEAN DEFAULT FALSE,
+      other_allergies TEXT,
+      food_preferences TEXT,
+      food_dislikes TEXT,
+      fluid_daily_target_ml INTEGER DEFAULT 2000,
+      appetite_level VARCHAR(20) CHECK (appetite_level IN ('poor', 'fair', 'good', 'excellent')),
+      eating_abilities TEXT,
+      additional_notes TEXT,
+      recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_dietary_profiles_person ON dietary_profiles(person_id)`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_dietary_profiles_person_unique ON dietary_profiles(person_id)`,
+    // Meal records - what was served and consumed
+    `CREATE TABLE IF NOT EXISTS meal_records (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+      meal_date DATE NOT NULL DEFAULT CURRENT_DATE,
+      meal_time TIME,
+      meal_type VARCHAR(30) NOT NULL CHECK (meal_type IN ('breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'evening_snack', 'supplement')),
+      notes TEXT,
+      appetite_level VARCHAR(20) CHECK (appetite_level IN ('poor', 'fair', 'good', 'excellent')),
+      amount_offered VARCHAR(500),
+      amount_consumed VARCHAR(500),
+      consumed_percent INTEGER CHECK (consumed_percent >= 0 AND consumed_percent <= 100),
+      refused BOOLEAN DEFAULT FALSE,
+      refusal_reason VARCHAR(500),
+      staff_concerns TEXT,
+      fluid_ml INTEGER,
+      calories_estimate INTEGER,
+      recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_meal_records_person ON meal_records(person_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_meal_records_date ON meal_records(person_id, meal_date)`,
+    // Meal items - individual food items within a meal
+    `CREATE TABLE IF NOT EXISTS meal_items (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      meal_id UUID NOT NULL REFERENCES meal_records(id) ON DELETE CASCADE,
+      food_name VARCHAR(255) NOT NULL,
+      portion_size VARCHAR(100),
+      allergens VARCHAR(500),
+      preparation_notes VARCHAR(500),
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_meal_items_meal ON meal_items(meal_id)`,
+    // Nutrition alerts - for low intake or concerning patterns
+    `CREATE TABLE IF NOT EXISTS nutrition_alerts (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+      alert_type VARCHAR(50) NOT NULL CHECK (alert_type IN ('low_intake', 'refused_meal', 'appetite_decline', 'fluid_below_target')),
+      severity VARCHAR(20) NOT NULL DEFAULT 'low' CHECK (severity IN ('low', 'medium', 'high')),
+      message TEXT NOT NULL,
+      date DATE NOT NULL DEFAULT CURRENT_DATE,
+      dismissed BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_nutrition_alerts_org ON nutrition_alerts(organization_id, dismissed, severity)`,
+    `CREATE INDEX IF NOT EXISTS idx_nutrition_alerts_person ON nutrition_alerts(person_id)`
+  ],
+};
+
+const MIGRATION_043: Migration = {
+  name: '043_compliance_portal_tokens',
+  strict: false,
+  statements: [
+    // Compliance officer portal access tokens for location-scoped read-only access
+    `CREATE TABLE IF NOT EXISTS compliance_portal_tokens (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      location_id UUID NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+      officer_name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      revoked BOOLEAN DEFAULT FALSE,
+      revoked_at TIMESTAMPTZ,
+      accessed_at TIMESTAMPTZ,
+      created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_portal_tokens_org ON compliance_portal_tokens(organization_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_portal_tokens_location ON compliance_portal_tokens(location_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_portal_tokens_email ON compliance_portal_tokens(email)`,
+  ],
+};
+
 const MIGRATION_039: Migration = {
   name: '039_operational_workflow_fields',
   strict: false,
@@ -2113,7 +2243,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)
