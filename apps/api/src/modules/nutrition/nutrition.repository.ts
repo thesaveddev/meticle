@@ -231,6 +231,43 @@ export class NutritionRepository {
     return result.rows;
   }
 
+  static async get7DayTrend(orgId: string) {
+    const result = await query(
+      `SELECT d.date,
+        COALESCE(m.meals, 0) AS meals,
+        COALESCE(m.refused, 0) AS refused,
+        COALESCE(m.avg_consumed, 0) AS avg_consumed,
+        COALESCE(m.total_fluid, 0) AS total_fluid,
+        COALESCE(m.people_fed, 0) AS people_fed,
+        COALESCE(m.total_people, 0) AS total_people,
+        COALESCE(s.avg_target, 2000) AS avg_fluid_target
+       FROM generate_series(
+         CURRENT_DATE - interval '6 days',
+         CURRENT_DATE, '1 day'
+       ) AS d(date)
+       LEFT JOIN (
+         SELECT mr.meal_date,
+           COUNT(*)::int AS meals,
+           COUNT(*) FILTER (WHERE mr.refused = true)::int AS refused,
+           ROUND(AVG(mr.consumed_percent)::numeric, 0)::int AS avg_consumed,
+           SUM(mr.fluid_ml)::int AS total_fluid,
+           COUNT(DISTINCT mr.person_id) FILTER (WHERE mr.refused = false)::int AS people_fed,
+           COUNT(DISTINCT mr.person_id)::int AS total_people
+         FROM meal_records mr
+         JOIN people p ON p.id = mr.person_id
+         WHERE p.organization_id = $1
+         GROUP BY mr.meal_date
+       ) m ON m.meal_date = d.date
+       LEFT JOIN (
+         SELECT AVG(dp.fluid_daily_target_ml)::int AS avg_target
+         FROM dietary_profiles dp
+         JOIN people p ON p.id = dp.person_id
+         WHERE p.organization_id = $1 AND p.status = 'active'
+       ) s ON true
+       ORDER BY d.date ASC`, [orgId]);
+    return result.rows;
+  }
+
   static async getPeopleWithDietaryInfo(orgId: string) {
     const result = await query(
       `SELECT p.id, p.first_name, p.last_name, p.dietary_requirements, p.allergies,

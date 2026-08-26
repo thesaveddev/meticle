@@ -13,6 +13,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
+import NutritionTrendChart from '../../components/charts/NutritionTrendChart';
 
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Breakfast', color: '#F59E0B', icon: '🌅' },
@@ -159,6 +160,10 @@ export default function MealPlanPage() {
           )}
         </Stack>
       </Stack>
+
+      <Box sx={{ mb: 3 }}>
+        <NutritionTrendChart />
+      </Box>
 
       <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
         <MealIcon color="primary" />
