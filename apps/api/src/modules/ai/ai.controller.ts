@@ -669,4 +669,112 @@ export class AIController {
       res.status(500).json({ error: { message: 'Analysis failed' } });
     }
   }
+
+  static async generateMealPlan(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
+
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
+    }
+    if (!config.enabledFeatures?.includes('meal_plan_generation')) {
+      return res.status(403).json({ error: { message: 'Meal Plan Generation is not enabled for your organization.' } });
+    }
+
+    const { personId, mealType, dayOfWeek, specialRequirements } = req.body;
+    const pool = (await import('../../shared/database')).default;
+
+    // Fetch person and dietary profile
+    const personResult = await pool.query(
+      `SELECT p.*, dp.dietary_type, dp.texture_modified, dp.vegetarian, dp.vegan,
+              dp.halal, dp.kosher, dp.gluten_free, dp.dairy_free, dp.nut_allergy,
+              dp.other_allergies, dp.food_preferences, dp.food_dislikes,
+              dp.fluid_daily_target_ml, dp.appetite_level, dp.eating_abilities,
+              dp.additional_notes
+       FROM people p
+       LEFT JOIN dietary_profiles dp ON dp.person_id = p.id
+       WHERE p.id = $1 AND p.organization_id = $2`,
+      [personId, orgId]
+    );
+
+    if (personResult.rows.length === 0) {
+      return res.status(404).json({ error: { message: 'Person not found' } });
+    }
+
+    const person = personResult.rows[0];
+    const { system, user } = renderPrompt('meal_plan_generation', {
+      person_name: `${person.first_name} ${person.last_name}`,
+      date_of_birth: person.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString('en-GB') : 'Unknown',
+      dietary_type: person.dietary_type || 'Standard',
+      texture_modified: person.texture_modified || 'None',
+      vegetarian: person.vegetarian ? 'Yes' : 'No',
+      vegan: person.vegan ? 'Yes' : 'No',
+      halal: person.halal ? 'Yes' : 'No',
+      kosher: person.kosher ? 'Yes' : 'No',
+      gluten_free: person.gluten_free ? 'Yes' : 'No',
+      dairy_free: person.dairy_free ? 'Yes' : 'No',
+      nut_allergy: person.nut_allergy ? 'Yes' : 'No',
+      other_allergies: person.other_allergies || 'None noted',
+      food_preferences: person.food_preferences || 'No specific preferences noted',
+      food_dislikes: person.food_dislikes || 'No dislikes noted',
+      appetite_level: person.appetite_level || 'Good',
+      eating_abilities: person.eating_abilities || 'Independent',
+      fluid_target_ml: String(person.fluid_daily_target_ml || 2000),
+      additional_notes: person.additional_notes || 'None',
+      meal_type: mealType || 'lunch',
+      day_of_week: dayOfWeek || new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+      special_requirements: specialRequirements || 'None',
+    });
+
+    const start = Date.now();
+    try {
+      const provider = getProvider(config);
+      const result = await provider.chatCompletion(
+        [{ role: 'system', content: system }, { role: 'user', content: user }],
+        { model: config.model, temperature: 0.4, maxTokens: 2000 }
+      );
+
+      let parsed;
+      try {
+        const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { raw: result.content };
+      } catch {
+        parsed = { raw: result.content };
+      }
+
+      try {
+        await AIRepository.logAudit({
+          organizationId: orgId,
+          feature: 'meal_plan_generation',
+          promptKey: 'meal_plan_generation',
+          promptTokens: result.promptTokens,
+          completionTokens: result.completionTokens,
+          totalTokens: result.totalTokens,
+          model: config.model,
+          provider: provider.name,
+          durationMs: Date.now() - start,
+          createdBy: req.user?.userId,
+          requestData: { personId, mealType, dayOfWeek },
+          responseSummary: typeof parsed === 'object' && parsed.plan_name ? `${parsed.plan_name} - ${Object.keys(parsed.daily_plan || {}).length} meals` : 'Meal plan generated',
+        });
+      } catch { /* audit non-critical */ }
+
+      res.json({ mealPlan: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
+    } catch (err: any) {
+      try {
+        await AIRepository.logAudit({
+          organizationId: orgId,
+          feature: 'meal_plan_generation',
+          promptKey: 'meal_plan_generation',
+          success: false,
+          errorMessage: err.message,
+          durationMs: Date.now() - start,
+          createdBy: req.user?.userId,
+        });
+      } catch { /* audit non-critical */ }
+      logger.error(err, 'AI meal plan generation failed');
+      res.status(500).json({ error: { message: 'AI meal plan generation failed' } });
+    }
+  }
 }

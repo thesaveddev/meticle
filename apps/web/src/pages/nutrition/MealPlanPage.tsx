@@ -3,12 +3,13 @@ import {
   Box, Typography, Paper, Grid, Card, CardContent, CardActions, Button, Chip, Dialog,
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem, IconButton, Stack,
   Divider, List, ListItem, ListItemText, ListItemSecondaryAction,
-  Switch, FormControlLabel, Tooltip
+  Switch, FormControlLabel, Tooltip, CircularProgress, Alert, LinearProgress
 } from '@mui/material';
 import {
   Restaurant as MealIcon, Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
   ContentCopy as CloneIcon, ExpandMore as ExpandIcon, ExpandLess as CollapseIcon,
-  LocalDining as FoodIcon, AccessTime as TimeIcon
+  LocalDining as FoodIcon, AccessTime as TimeIcon, AutoAwesome as AIIcon,
+  Save as SaveIcon, Cancel as CancelIcon
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
@@ -43,6 +44,45 @@ function useCurrentUser() {
   try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
 }
 
+interface AIMealPlanMeal {
+  name: string;
+  description: string;
+  items: Array<{ name: string; portion: string; allergens: string; prep_notes: string }>;
+  fluid_suggestion: string;
+  estimated_calories: number;
+  estimated_fluid_ml: number;
+}
+
+interface AIMealPlanResult {
+  plan_name: string;
+  description: string;
+  person_context: {
+    name: string;
+    dietary_summary: string;
+    allergens: string[];
+    texture_modification: string;
+    appetite_level: string;
+    fluid_target_ml: number;
+  };
+  daily_plan: {
+    breakfast?: AIMealPlanMeal;
+    morning_snack?: AIMealPlanMeal;
+    lunch?: AIMealPlanMeal;
+    afternoon_snack?: AIMealPlanMeal;
+    dinner?: AIMealPlanMeal;
+    evening_snack?: AIMealPlanMeal;
+  };
+  daily_totals: {
+    total_calories: number;
+    total_fluid_ml: number;
+    protein_estimate_grams: number;
+    fibre_estimate_grams: number;
+  };
+  nutritional_notes: string[];
+  allergen_warnings: string[];
+  suggestions: string[];
+}
+
 export default function MealPlanPage() {
   const qc = useQueryClient();
   const currentUser = useCurrentUser();
@@ -55,6 +95,26 @@ export default function MealPlanPage() {
   const [fDay, setFDay] = useState('');
   const [tf, setTf] = useState({ name: '', description: '', meal_type: 'breakfast', day_of_week: '', is_active: true });
   const [itf, setItf] = useState({ food_name: '', portion_size: '', allergens: '', notes: '' });
+  const [aiDlg, setAiDlg] = useState(false);
+  const [aiForm, setAiForm] = useState({ personId: '', mealType: 'lunch', dayOfWeek: '', specialRequirements: '' });
+  const [aiResult, setAiResult] = useState<AIMealPlanResult | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const { data: people } = useQuery({
+    queryKey: ['people-list'],
+    queryFn: () => api.get('/nutrition/people').then((r: any) => r.data),
+  });
+
+  const generateMealPlan = useMutation({
+    mutationFn: (data: any) => api.post('/ai/generate/meal-plan', data).then(r => r.data),
+    onSuccess: (data) => { setAiResult(data.mealPlan); setAiError(null); },
+    onError: (err: any) => { setAiError(err.response?.data?.error?.message || 'Failed to generate meal plan'); setAiResult(null); },
+  });
+
+  const mkTmplFromAI = useMutation({
+    mutationFn: (data: any) => api.post('/nutrition/meal-plans', data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['meal-plans'] }); setAiResult(null); setAiDlg(false); },
+  });
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['meal-plans', fType, fDay],
@@ -88,11 +148,16 @@ export default function MealPlanPage() {
           <Typography variant="h4" sx={{ fontWeight: 800 }}>Meal Plans</Typography>
           <Typography variant="body2" color="text.secondary">Create and manage meal templates for your residents.</Typography>
         </Box>
-        {isAdmin && (
-          <Button variant="contained" startIcon={<AddIcon />}
-            onClick={() => { setTf({ name: '', description: '', meal_type: 'breakfast', day_of_week: '', is_active: true }); setTmplDlg({ open: true }); }}
-            sx={{ borderRadius: 2 }}>New Meal Plan</Button>
-        )}
+        <Stack direction="row" spacing={1.5}>
+          <Button variant="outlined" startIcon={<AIIcon />}
+            onClick={() => { setAiForm({ personId: '', mealType: 'lunch', dayOfWeek: '', specialRequirements: '' }); setAiResult(null); setAiError(null); setAiDlg(true); }}
+            sx={{ borderRadius: 2 }}>AI Generate</Button>
+          {isAdmin && (
+            <Button variant="contained" startIcon={<AddIcon />}
+              onClick={() => { setTf({ name: '', description: '', meal_type: 'breakfast', day_of_week: '', is_active: true }); setTmplDlg({ open: true }); }}
+              sx={{ borderRadius: 2 }}>New Meal Plan</Button>
+          )}
+        </Stack>
       </Stack>
 
       <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -242,6 +307,173 @@ export default function MealPlanPage() {
         <DialogActions>
           <Button onClick={() => setItemDlg({ open: false, tplId: '' })}>Cancel</Button>
           <Button variant="contained" onClick={() => { if (!itf.food_name.trim() || !itemDlg.tplId) return; addFood.mutate({ tplId: itemDlg.tplId, d: itf }); }} disabled={!itf.food_name.trim() || addFood.isPending}>{itemDlg.edit ? 'Save' : 'Add'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* AI Meal Plan Generator Dialog */}
+      <Dialog open={aiDlg} onClose={() => setAiDlg(false)} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AIIcon sx={{ color: '#7C3AED' }} /> AI Meal Plan Generator
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Generate a person-centred meal plan based on dietary requirements, allergies, and texture modifications.
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField select label="Person" fullWidth value={aiForm.personId}
+                  onChange={e => setAiForm(p => ({ ...p, personId: e.target.value }))}>
+                  <MenuItem value=""><em>Select a person</em></MenuItem>
+                  {(people || []).map((p: any) => (
+                    <MenuItem key={p.id} value={p.id}>{p.first_name} {p.last_name} ({p.location_name || 'No location'})</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField select label="Meal Type Focus" fullWidth value={aiForm.mealType}
+                  onChange={e => setAiForm(p => ({ ...p, mealType: e.target.value }))}>
+                  {MEAL_TYPES.map(m => <MenuItem key={m.value} value={m.value}>{m.icon} {m.label}</MenuItem>)}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField select label="Day of Week" fullWidth value={aiForm.dayOfWeek}
+                  onChange={e => setAiForm(p => ({ ...p, dayOfWeek: e.target.value }))}>
+                  <MenuItem value=""><em>Current day</em></MenuItem>
+                  {DAYS.map(d => <MenuItem key={d} value={d}>{dayLabel(d)}</MenuItem>)}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField label="Special Requirements" fullWidth value={aiForm.specialRequirements}
+                  onChange={e => setAiForm(p => ({ ...p, specialRequirements: e.target.value }))}
+                  placeholder="e.g., soft diet only, high protein, low sodium" />
+              </Grid>
+            </Grid>
+            <Button variant="contained" startIcon={generateMealPlan.isPending ? <CircularProgress size={16} /> : <AIIcon />}
+              onClick={() => generateMealPlan.mutate(aiForm)}
+              disabled={!aiForm.personId || generateMealPlan.isPending}
+              sx={{ mt: 2, bgcolor: '#7C3AED', '&:hover': { bgcolor: '#6D28D9' } }}>
+              {generateMealPlan.isPending ? 'Generating...' : 'Generate Meal Plan'}
+            </Button>
+          </Box>
+          {aiError && <Alert severity="error" sx={{ mb: 2 }}>{aiError}</Alert>}
+          {aiResult && (
+            <Box>
+              <Divider sx={{ mb: 2 }} />
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>{aiResult.plan_name}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{aiResult.description}</Typography>
+              {aiResult.person_context && (
+                <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#F8F9FA' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Person Context</Typography>
+                  <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
+                    <Chip size="small" label={`Diet: ${aiResult.person_context.dietary_summary}`} />
+                    {aiResult.person_context.texture_modification !== 'None' && (
+                      <Chip size="small" label={`Texture: ${aiResult.person_context.texture_modification}`} color="warning" />
+                    )}
+                    {aiResult.person_context.allergens?.map((a: string) => (
+                      <Chip key={a} size="small" label={`No ${a}`} color="error" variant="outlined" />
+                    ))}
+                    <Chip size="small" label={`Fluid target: ${aiResult.person_context.fluid_target_ml}ml`} />
+                  </Stack>
+                </Paper>
+              )}
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Daily Plan</Typography>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                {Object.entries(aiResult.daily_plan || {}).map(([mealKey, meal]) => {
+                  if (!meal) return null;
+                  const meta = MEAL_TYPES.find(m => m.value === mealKey);
+                  return (
+                    <Grid item xs={12} md={6} key={mealKey}>
+                      <Card variant="outlined" sx={{ height: '100%' }}>
+                        <CardContent>
+                          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{meta?.icon || '🍽️'} {meta?.label || mealKey}</Typography>
+                            <Chip label={`${meal.estimated_calories} kcal`} size="small" color="primary" variant="outlined" />
+                            <Chip label={`${meal.estimated_fluid_ml}ml`} size="small" color="info" variant="outlined" />
+                          </Stack>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{meal.name}</Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{meal.description}</Typography>
+                          {meal.items?.map((item, i) => (
+                            <Stack key={i} direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                              <FoodIcon sx={{ fontSize: 14, color: meta?.color || 'primary.main' }} />
+                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{item.name}</Typography>
+                              <Typography variant="caption" color="text.secondary">({item.portion})</Typography>
+                              {item.allergens && <Chip label={item.allergens} size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />}
+                            </Stack>
+                          ))}
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>🥤 {meal.fluid_suggestion}</Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  );
+                })}
+              </Grid>
+              {aiResult.daily_totals && (
+                <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#F0FDF4' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Daily Totals</Typography>
+                  <Stack direction="row" spacing={2}>
+                    <Chip label={`${aiResult.daily_totals.total_calories} kcal`} color="primary" />
+                    <Chip label={`${aiResult.daily_totals.total_fluid_ml}ml fluid`} color="info" />
+                    <Chip label={`~${aiResult.daily_totals.protein_estimate_grams}g protein`} />
+                    <Chip label={`~${aiResult.daily_totals.fibre_estimate_grams}g fibre`} />
+                  </Stack>
+                </Paper>
+              )}
+              {aiResult.allergen_warnings?.length > 0 && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Allergen Warnings</Typography>
+                  {aiResult.allergen_warnings.map((w: string, i: number) => (
+                    <Typography key={i} variant="body2">• {w}</Typography>
+                  ))}
+                </Alert>
+              )}
+              {aiResult.nutritional_notes?.length > 0 && (
+                <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Nutritional Notes</Typography>
+                  {aiResult.nutritional_notes.map((n: string, i: number) => (
+                    <Typography key={i} variant="body2" color="text.secondary">• {n}</Typography>
+                  ))}
+                </Paper>
+              )}
+              {aiResult.suggestions?.length > 0 && (
+                <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Suggestions</Typography>
+                  {aiResult.suggestions.map((s: string, i: number) => (
+                    <Typography key={i} variant="body2" color="text.secondary">• {s}</Typography>
+                  ))}
+                </Paper>
+              )}
+              {isAdmin && aiResult.plan_name && (
+                <Button variant="contained" startIcon={<SaveIcon />} sx={{ mt: 1 }}
+                  onClick={() => {
+                    const meals = MEAL_TYPES.filter(m => aiResult.daily_plan[m.value as keyof typeof aiResult.daily_plan]);
+                    const allItems = meals.flatMap(m => {
+                      const meal = aiResult.daily_plan[m.value as keyof typeof aiResult.daily_plan];
+                      return (meal?.items || []).map((item: any) => ({
+                        food_name: item.name,
+                        portion_size: item.portion,
+                        allergens: item.allergens,
+                        notes: item.prep_notes,
+                      }));
+                    });
+                    mkTmplFromAI.mutate({
+                      name: aiResult.plan_name,
+                      description: aiResult.description,
+                      meal_type: aiForm.mealType,
+                      day_of_week: aiForm.dayOfWeek || undefined,
+                      items: allItems,
+                    });
+                  }}
+                  disabled={mkTmplFromAI.isPending}
+                >
+                  {mkTmplFromAI.isPending ? 'Saving...' : 'Save as Meal Plan Template'}
+                </Button>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAiDlg(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

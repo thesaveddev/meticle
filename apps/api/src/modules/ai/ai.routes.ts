@@ -4,7 +4,7 @@ import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
-import { updateAIConfigSchema, aiAnalysisRequestSchema, aiRotaAnalysisSchema, aiRotaGenerateSchema, aiDailyNoteGenerateSchema, aiDailyNoteApproveSchema } from '../../shared/validation/schemas';
+import { updateAIConfigSchema, aiAnalysisRequestSchema, aiRotaAnalysisSchema, aiRotaGenerateSchema, aiDailyNoteGenerateSchema, aiDailyNoteApproveSchema, aiMealPlanGenerationSchema } from '../../shared/validation/schemas';
 import { UserRole } from '@meticle/shared';
 
 const router = Router();
@@ -22,5 +22,6 @@ router.post('/daily-notes/approve', requireRole(UserRole.ORG_ADMIN, UserRole.MAN
 router.post('/daily-notes/:noteId/analyze', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(AIController.analyzeExistingNote));
 router.get('/audit-logs', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.auditLogs));
 router.get('/usage-stats', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.usageStats));
+router.post('/generate/meal-plan', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(aiMealPlanGenerationSchema), asyncHandler(AIController.generateMealPlan));
 
 export default router;

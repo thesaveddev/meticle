@@ -158,6 +158,13 @@ export const aiDailyNoteApproveSchema = z.object({
   noteDate: z.string().optional(),
 });
 
+export const aiMealPlanGenerationSchema = z.object({
+  personId: z.string().uuid(),
+  mealType: z.enum(['breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'evening_snack']).optional().default('lunch'),
+  dayOfWeek: z.string().optional(),
+  specialRequirements: z.string().optional(),
+});
+
 export const mfaCompleteSetupSchema = z.object({
   setupToken: z.string().min(1),
   token: z.string().min(1),
