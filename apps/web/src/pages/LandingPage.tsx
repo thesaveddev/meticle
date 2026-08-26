@@ -237,36 +237,31 @@ A clear working record for the people you support — and a calmer day for the t
               </Typography>
             </Grid>
             <Grid item xs={12} md={9}>
-              <Grid container spacing={{ xs: 2, md: 2.5 }}>
+              <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
                 {[
-                  { mark: 'CQC', label: 'Care Quality Commission', detail: 'England · 5 KLOEs' },
-                  { mark: 'CIW', label: 'Care Inspectorate Wales', detail: 'CIW framework' },
-                  { mark: 'CIS', label: 'Care Inspectorate Scotland', detail: 'Health & social care' },
-                  { mark: 'RQIA', label: 'NI Quality & Improvement', detail: 'Northern Ireland' },
-                  { mark: 'GDPR', label: 'UK GDPR · DPA 2018', detail: 'DSPT self-assessment' },
-                ].map((t) => (
-                  <Grid item xs={6} sm={4} md key={t.mark}>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <Box
-                        sx={{
-                          width: 36, height: 36, borderRadius: 1.5,
-                          bgcolor: t.mark === 'CIW' || t.mark === 'GDPR' ? EMERALD : NAVY,
-                          color: '#FFFFFF', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', fontWeight: 900, fontSize: '0.7rem',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {t.mark}
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.82rem', lineHeight: 1.25 }} noWrap>
-                          {t.label}
-                        </Typography>
-                        <Typography sx={{ color: MIST, fontSize: '0.74rem', lineHeight: 1.3 }} noWrap>
-                          {t.detail}
-                        </Typography>
-                      </Box>
-                    </Stack>
+                  { src: '/logos/cqc.svg', alt: 'CQC - Care Quality Commission' },
+                  { src: '/logos/ciw.svg', alt: 'CIW - Care Inspectorate Wales' },
+                  { src: '/logos/cis.svg', alt: 'Care Inspectorate Scotland' },
+                  { src: '/logos/rqia.svg', alt: 'RQIA - Quality & Improvement Northern Ireland' },
+                  { src: '/logos/ukgdpr.svg', alt: 'UK GDPR and DPA 2018' },
+                ].map((logo) => (
+                  <Grid item xs={6} sm={4} md key={logo.alt}>
+                    <Box
+                      sx={{
+                        height: 48,
+                        display: 'flex',
+                        alignItems: 'center',
+                        filter: 'grayscale(100%) opacity(0.6)',
+                        transition: 'filter 0.3s ease',
+                        '&:hover': { filter: 'grayscale(0%) opacity(1)' },
+                      }}
+                    >
+                      <img
+                        src={logo.src}
+                        alt={logo.alt}
+                        style={{ height: '100%', width: 'auto', maxWidth: '100%' }}
+                      />
+                    </Box>
                   </Grid>
                 ))}
               </Grid>

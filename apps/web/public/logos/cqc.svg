@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 56" fill="none">
+  <!-- CQC Logo -->
+  <rect x="0" y="8" width="40" height="40" rx="8" fill="#005EA5"/>
+  <text x="20" y="34" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="16" fill="white">CQC</text>
+  <text x="52" y="24" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="13" fill="#1B2430">Care Quality</text>
+  <text x="52" y="40" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="13" fill="#1B2430">Commission</text>
+</svg>
