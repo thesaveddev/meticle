@@ -29,6 +29,7 @@ router.delete('/meal/items/:itemId', requireRole(UserRole.ORG_ADMIN, UserRole.MA
 
 // Overview (org-wide)
 router.get('/overview', asyncHandler(NutritionController.getNutritionOverview));
+router.get('/trend', asyncHandler(NutritionController.get7DayTrend));
 router.get('/people', asyncHandler(NutritionController.getPeopleWithDietaryInfo));
 
 // Test data seeding

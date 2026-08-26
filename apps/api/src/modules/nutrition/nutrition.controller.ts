@@ -130,6 +130,12 @@ export class NutritionController {
     res.json(people);
   }
 
+  static async get7DayTrend(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    const trend = await NutritionRepository.get7DayTrend(orgId);
+    res.json(trend);
+  }
+
   static async seedTestNutritionData(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
     const userId = req.user!.userId;
