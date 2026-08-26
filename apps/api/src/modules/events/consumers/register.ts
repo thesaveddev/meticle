@@ -23,4 +23,6 @@ export function registerProductionConsumers(): void {
   registerConsumer('policy.review_due', MissionControlAlertConsumer);
   registerConsumer('care_plan.review_due', MissionControlAlertConsumer);
   registerConsumer('fluid.intake_below_target', MissionControlAlertConsumer);
+  registerConsumer('nutrition.appetite_decline', MissionControlAlertConsumer);
+  registerConsumer('nutrition.refused_meal', MissionControlAlertConsumer);
 }
