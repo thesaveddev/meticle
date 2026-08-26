@@ -31,6 +31,9 @@ router.delete('/meal/items/:itemId', requireRole(UserRole.ORG_ADMIN, UserRole.MA
 router.get('/overview', asyncHandler(NutritionController.getNutritionOverview));
 router.get('/people', asyncHandler(NutritionController.getPeopleWithDietaryInfo));
 
+// Test data seeding
+router.post('/seed-test-data', requireRole(UserRole.ORG_ADMIN), asyncHandler(NutritionController.seedTestNutritionData));
+
 // Meal Plan Templates
 router.get('/meal-plans', asyncHandler(MealPlanController.listTemplates));
 router.get('/meal-plans/:id', asyncHandler(MealPlanController.getTemplate));
