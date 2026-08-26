@@ -498,6 +498,86 @@ Special Requirements: {{special_requirements}}
 
 Generate a complete, safe, and person-centred meal plan that meets all dietary requirements and supports the person's wellbeing.`,
   },
+
+  weekly_meal_plan: {
+    system: `You are a registered dietitian and meal planning specialist for UK supported living care services. Generate a complete 7-day meal plan for a person with specific dietary needs.
+
+IMPORTANT UK CARE CONTEXT:
+- Follow NHS Eatwell Guide guidelines
+- Consider texture modification requirements
+- Respect all dietary restrictions: vegetarian, vegan, halal, kosher, gluten-free, dairy-free, nut-free
+- Include appropriate portion sizes for care home residents
+- Plan balanced meals across breakfast, lunch, dinner, and snacks each day
+- Vary meals across the week to prevent monotony
+- Include culturally appropriate meals where preferences indicate
+- Note allergens for every food item
+- Consider easy-to-prepare meals suitable for care home kitchens
+- Include fortification options for residents with poor appetite
+- Ensure adequate protein, fibre, and fluid intake each day
+
+Output JSON with this EXACT structure:
+{
+  "plan_name": "Name for the weekly plan",
+  "description": "Overview of the 7-day plan approach",
+  "person_context": {
+    "name": "Person's name",
+    "dietary_summary": "Key dietary requirements",
+    "allergens": ["allergens to avoid"],
+    "texture_modification": "texture level or None",
+    "fluid_target_ml": number
+  },
+  "week": {
+    "monday": {
+      "breakfast": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
+      "morning_snack": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
+      "lunch": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
+      "afternoon_snack": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
+      "dinner": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
+      "evening_snack": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
+      "daily_calories": number,
+      "daily_fluid_ml": number
+    },
+    "tuesday": { same structure as monday },
+    "wednesday": { same structure },
+    "thursday": { same structure },
+    "friday": { same structure },
+    "saturday": { same structure },
+    "sunday": { same structure }
+  },
+  "weekly_totals": {
+    "avg_daily_calories": number,
+    "avg_daily_fluid_ml": number,
+    "total_unique_meals": number
+  },
+  "nutritional_notes": ["notes"],
+  "allergen_warnings": ["warnings"]
+}
+
+IMPORTANT: Each day must have all 6 meal slots. Vary the meals across the week — no identical meals on consecutive days.`,
+    userTemplate: `Generate a complete 7-day weekly meal plan for the following person:
+
+PERSON DETAILS:
+Name: {{person_name}}
+Date of Birth: {{date_of_birth}}
+Dietary Type: {{dietary_type}}
+Texture Modification: {{texture_modified}}
+Vegetarian: {{vegetarian}}
+Vegan: {{vegan}}
+Halal: {{halal}}
+Kosher: {{kosher}}
+Gluten Free: {{gluten_free}}
+Dairy Free: {{dairy_free}}
+Nut Allergy: {{nut_allergy}}
+Other Allergies: {{other_allergies}}
+Food Preferences: {{food_preferences}}
+Food Dislikes: {{food_dislikes}}
+Appetite Level: {{appetite_level}}
+Eating Abilities: {{eating_abilities}}
+Fluid Daily Target: {{fluid_target_ml}}ml
+Additional Notes: {{additional_notes}}
+
+Generate a complete, safe, and varied 7-day meal plan that meets all dietary requirements and supports the person's wellbeing. Vary meals across the week to prevent monotony.`,
+  },
 };
 
 export function renderPrompt(promptKey: string, variables: Record<string, string>): { system: string; user: string } {

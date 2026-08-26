@@ -14,6 +14,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import NutritionTrendChart from '../../components/charts/NutritionTrendChart';
+import WeeklyMealGrid from '../../components/nutrition/WeeklyMealGrid';
 
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Breakfast', color: '#F59E0B', icon: '🌅' },
@@ -100,6 +101,7 @@ export default function MealPlanPage() {
   const [aiForm, setAiForm] = useState({ personId: '', mealType: 'lunch', dayOfWeek: '', specialRequirements: '' });
   const [aiResult, setAiResult] = useState<AIMealPlanResult | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'templates' | 'weekly'>('templates');
 
   const { data: people } = useQuery({
     queryKey: ['people-list'],
@@ -165,6 +167,29 @@ export default function MealPlanPage() {
         <NutritionTrendChart />
       </Box>
 
+      {/* View Toggle */}
+      <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
+        <Button
+          variant={viewMode === 'templates' ? 'contained' : 'outlined'}
+          onClick={() => setViewMode('templates')}
+          sx={{ borderRadius: 2, fontWeight: 700 }}
+        >
+          Templates View
+        </Button>
+        <Button
+          variant={viewMode === 'weekly' ? 'contained' : 'outlined'}
+          startIcon={<AIIcon />}
+          onClick={() => setViewMode('weekly')}
+          sx={{ borderRadius: 2, fontWeight: 700, bgcolor: viewMode === 'weekly' ? '#7C3AED' : undefined, '&:hover': { bgcolor: viewMode === 'weekly' ? '#6D28D9' : undefined } }}
+        >
+          Weekly Planner
+        </Button>
+      </Stack>
+
+      {viewMode === 'weekly' ? (
+        <WeeklyMealGrid people={people || []} />
+      ) : (
+      <>
       <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
         <MealIcon color="primary" />
         <Typography variant="subtitle2">Filter:</Typography>
@@ -314,6 +339,8 @@ export default function MealPlanPage() {
           <Button variant="contained" onClick={() => { if (!itf.food_name.trim() || !itemDlg.tplId) return; addFood.mutate({ tplId: itemDlg.tplId, d: itf }); }} disabled={!itf.food_name.trim() || addFood.isPending}>{itemDlg.edit ? 'Save' : 'Add'}</Button>
         </DialogActions>
       </Dialog>
+      </>
+      )}
 
       {/* AI Meal Plan Generator Dialog */}
       <Dialog open={aiDlg} onClose={() => setAiDlg(false)} maxWidth="lg" fullWidth>
