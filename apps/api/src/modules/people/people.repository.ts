@@ -547,6 +547,13 @@ export class PersonRepository {
           (SELECT email FROM users WHERE id = ho.recorded_by), (ho.recorded_date || ' ' || COALESCE(ho.recorded_time, '00:00:00'))::timestamp
         FROM fluid_intake ho WHERE ho.person_id = $1
         UNION ALL
+        SELECT 'meal' AS event_type, 'Meal: ' || UPPER(m.meal_type),
+          CASE WHEN m.refused = TRUE THEN 'Refused' ELSE COALESCE(m.amount_consumed, 'Consumed') || COALESCE(' (' || m.consumed_percent::text || '%)', '') END,
+          m.notes,
+          (SELECT first_name || ' ' || last_name FROM staff_profiles WHERE user_id = m.recorded_by),
+          (m.meal_date || ' ' || COALESCE(m.meal_time, '12:00:00'))::timestamp
+        FROM meal_records m WHERE m.person_id = $1
+        UNION ALL
         SELECT 'goal' AS event_type, 'Goal: ' || g.title,
           ('Progress: ' || g.progress || '%'),
           ('CQC domain: ' || COALESCE(g.cqc_domain, 'N/A')),

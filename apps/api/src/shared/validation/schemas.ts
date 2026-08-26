@@ -1471,3 +1471,74 @@ export const contactSchema = z.object({
   company: z.string().max(255).optional(),
   message: z.string().min(1, 'Message is required').max(5000),
 });
+
+// === Nutrition ===
+export const upsertDietaryProfileSchema = z.object({
+  dietary_type: z.string().max(100).nullable().optional(),
+  texture_modified: z.string().max(100).nullable().optional(),
+  vegetarian: z.boolean().optional(),
+  vegan: z.boolean().optional(),
+  halal: z.boolean().optional(),
+  kosher: z.boolean().optional(),
+  gluten_free: z.boolean().optional(),
+  dairy_free: z.boolean().optional(),
+  nut_allergy: z.boolean().optional(),
+  other_allergies: z.string().max(500).nullable().optional(),
+  food_preferences: z.string().max(2000).nullable().optional(),
+  food_dislikes: z.string().max(2000).nullable().optional(),
+  fluid_daily_target_ml: z.number().int().min(0).optional(),
+  appetite_level: z.enum(['poor', 'fair', 'good', 'excellent']).nullable().optional(),
+  eating_abilities: z.string().max(2000).nullable().optional(),
+  additional_notes: z.string().max(2000).nullable().optional(),
+});
+
+export const createMealSchema = z.object({
+  meal_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  meal_time: z.string().optional(),
+  meal_type: z.enum(['breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'evening_snack', 'supplement']),
+  notes: z.string().max(2000).optional(),
+  appetite_level: z.enum(['poor', 'fair', 'good', 'excellent']).nullable().optional(),
+  amount_offered: z.string().max(500).optional(),
+  amount_consumed: z.string().max(500).optional(),
+  consumed_percent: z.number().min(0).max(100).optional(),
+  refused: z.boolean().optional(),
+  refusal_reason: z.string().max(500).optional(),
+  staff_concerns: z.string().max(2000).optional(),
+  fluid_ml: z.number().int().min(0).optional(),
+  calories_estimate: z.number().int().min(0).optional(),
+  items: z.array(z.object({
+    food_name: z.string().min(1).max(255),
+    portion_size: z.string().max(100).optional(),
+    allergens: z.string().max(500).optional(),
+    preparation_notes: z.string().max(500).optional(),
+  })).optional(),
+});
+
+export const updateMealSchema = z.object({
+  meal_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  meal_time: z.string().optional(),
+  meal_type: z.enum(['breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'evening_snack', 'supplement']).optional(),
+  notes: z.string().max(2000).optional(),
+  appetite_level: z.enum(['poor', 'fair', 'good', 'excellent']).nullable().optional(),
+  amount_offered: z.string().max(500).optional(),
+  amount_consumed: z.string().max(500).optional(),
+  consumed_percent: z.number().min(0).max(100).optional(),
+  refused: z.boolean().optional(),
+  refusal_reason: z.string().max(500).optional(),
+  staff_concerns: z.string().max(2000).optional(),
+  fluid_ml: z.number().int().min(0).optional(),
+});
+
+export const addMealItemSchema = z.object({
+  food_name: z.string().min(1).max(255),
+  portion_size: z.string().max(100).optional(),
+  allergens: z.string().max(500).optional(),
+  preparation_notes: z.string().max(500).optional(),
+});
+
+export const updateMealItemSchema = z.object({
+  food_name: z.string().min(1).max(255).optional(),
+  portion_size: z.string().max(100).optional(),
+  allergens: z.string().max(500).optional(),
+  preparation_notes: z.string().max(500).optional(),
+});

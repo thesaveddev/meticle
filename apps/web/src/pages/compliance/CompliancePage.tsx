@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { Assignment as CompetencyIcon, Description as DocIcon, Assessment as ReadinessIcon, Verified as ComplianceIcon, People as PeopleIcon, Warning as WarningIcon, School as TrainingIcon, History as AuditIcon, TrendingUp as TrendIcon, Favorite as FavoriteIcon, Group as EngagementIcon, Search as SearchIcon, ExpandMore as ExpandMoreIcon, CheckCircle, Error as ErrorIcon, Security as ShieldIcon, VerifiedUser as DbsIcon, Refresh as PollIcon, Send as SubmitIcon, Add as AddIcon } from '@mui/icons-material'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
 import api from '../../services/api'
+import { PortalAccessManager } from '../compliance-portal/CompliancePortalPage'
 
 const QUALITY_RATINGS = [
   { min: 81, label: 'Good', color: '#16A34A' },
@@ -98,6 +99,7 @@ export default function CompliancePage() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4">Compliance Dashboard</Typography>
         <Stack direction="row" spacing={1}>
+          <PortalAccessManager orgId="" />
           <Button variant="outlined" startIcon={<AuditIcon />} onClick={() => setAuditOpen(true)} size="small">Audit Trail</Button>
         </Stack>
       </Stack>

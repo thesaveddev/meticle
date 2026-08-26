@@ -73,8 +73,6 @@ export async function publishAdministrationMissedEvent(args: {
 
   const row = lookup.rows[0];
   if (!row) {
-    // The controller would have already validated; if we get here, the row
-    // vanished mid-request. Don't publish a broken event — log and bail.
     logger.warn(
       { administrationId: args.administration.id, itemId: args.administration.emedication_item_id },
       'Skipping medication.administration_missed publish — item/record/join row missing'
@@ -107,6 +105,108 @@ export async function publishAdministrationMissedEvent(args: {
     aggregateType: 'emedication_administration',
     aggregateId: args.administration.id,
     correlationId: args.administration.id,
+    payload: payload as unknown as Record<string, unknown>,
+  });
+}
+
+// ── medication.administration_late ──
+
+export interface MedicationAdministrationLatePayload {
+  administration_id: string;
+  item_id: string;
+  person_id: string;
+  person_name: string;
+  medication_name: string;
+  scheduled_time: string;
+  location_id: string | null;
+  late_minutes: number;
+}
+
+/**
+ * Publish `medication.administration_late` for an administration that is past
+ * its scheduled time and still pending. Called by the scheduled cron/worker.
+ */
+export async function publishAdministrationLateEvent(args: {
+  organizationId: string;
+  administrationId: string;
+  itemId: string;
+  personId: string;
+  personName: string;
+  medicationName: string;
+  scheduledTime: string;
+  locationId: string | null;
+  lateMinutes: number;
+}): Promise<{ id: string }> {
+  const payload: MedicationAdministrationLatePayload = {
+    administration_id: args.administrationId,
+    item_id: args.itemId,
+    person_id: args.personId,
+    person_name: args.personName,
+    medication_name: args.medicationName,
+    scheduled_time: args.scheduledTime,
+    location_id: args.locationId,
+    late_minutes: args.lateMinutes,
+  };
+
+  return publishDomainEvent({
+    organizationId: args.organizationId,
+    eventName: 'medication.administration_late',
+    aggregateType: 'emedication_administration',
+    aggregateId: args.administrationId,
+    payload: payload as unknown as Record<string, unknown>,
+  });
+}
+
+// ── medication.stock_low ──
+
+export interface MedicationStockLowPayload {
+  stock_id: string;
+  medication_name: string;
+  dosage: string | null;
+  unit: string | null;
+  quantity: number;
+  reorder_level: number;
+  person_id: string | null;
+  person_name: string | null;
+  location_id: string | null;
+  location_name: string | null;
+}
+
+/**
+ * Publish `medication.stock_low` when stock quantity falls to or below the
+ * reorder level. Called after stock deduction or delivery consumption.
+ */
+export async function publishStockLowEvent(args: {
+  organizationId: string;
+  stockId: string;
+  medicationName: string;
+  dosage: string | null;
+  unit: string | null;
+  quantity: number;
+  reorderLevel: number;
+  personId: string | null;
+  personName: string | null;
+  locationId: string | null;
+  locationName: string | null;
+}): Promise<{ id: string }> {
+  const payload: MedicationStockLowPayload = {
+    stock_id: args.stockId,
+    medication_name: args.medicationName,
+    dosage: args.dosage,
+    unit: args.unit,
+    quantity: args.quantity,
+    reorder_level: args.reorderLevel,
+    person_id: args.personId,
+    person_name: args.personName,
+    location_id: args.locationId,
+    location_name: args.locationName,
+  };
+
+  return publishDomainEvent({
+    organizationId: args.organizationId,
+    eventName: 'medication.stock_low',
+    aggregateType: 'emedication_stock',
+    aggregateId: args.stockId,
     payload: payload as unknown as Record<string, unknown>,
   });
 }

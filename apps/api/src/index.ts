@@ -49,6 +49,7 @@ import roomCheckRoutes from './modules/room-checks/room-checks.routes';
 import mobileRoutes from './modules/mobile/mobile.routes';
 import goalRoutes from './modules/goals/goals.routes';
 import healthRoutes from './modules/health/health.routes';
+import nutritionRoutes from './modules/nutrition/nutrition.routes';
 import familyPortalRoutes, { publicRouter as familyPortalPublicRoutes } from './modules/family-portal/familyPortal.routes';
 import emedicationRoutes from './modules/emedication/emedication.routes';
 import aiRoutes from './modules/ai/ai.routes';
@@ -58,9 +59,11 @@ import dbsRoutes from './modules/dbs/dbs.routes';
 import expensesRoutes from './modules/expenses/expenses.routes';
 import platformAdminRoutes from './modules/platform-admin/platform-admin.routes';
 import dsptRoutes from './modules/dspt/dspt.routes';
+import compliancePortalRoutes from './modules/compliance-portal/compliance-portal.routes';
 import shiftAuditRoutes from './modules/shift-audit/shift-audit.routes';
 import contactRoutes from './modules/contact/contact.routes';
 import eventRoutes from './modules/events/events.routes';
+import missionControlRoutes from './modules/mission-control/mission-control.routes';
 import { BillingController } from './modules/billing/billing.controller';
 import { ComplianceController } from './modules/compliance/compliance.controller';
 import { ComplianceNotificationService } from './modules/compliance/compliance.notifications';
@@ -206,6 +209,7 @@ app.use('/cqc', cqcRoutes);
 app.use('/surveys', surveysRoutes);
 app.use('/api/surveys', surveyPublicRoutes);
 app.use('/dspt', dsptRoutes); // no auth — public survey form submission
+app.use('/compliance-portal', compliancePortalRoutes);
 app.use('/leave', leaveRoutes);
 app.use('/settings', settingsRoutes);
 app.use('/chat', chatRoutes);
@@ -222,6 +226,7 @@ app.use('/delegations', delegationRoutes);
 app.use('/agencies', agencyRoutes);
 app.use('/dbs', dbsRoutes);
 app.use('/expenses', expensesRoutes);
+app.use('/mission-control', missionControlRoutes);
 app.use('/platform-admin', platformAdminRoutes);
 // Health checks — must be BEFORE /health routes to avoid auth middleware clash
 app.get('/health/live', (_req: Request, res: Response) => {
@@ -237,6 +242,7 @@ app.get('/health/ready', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 app.use('/health', healthRoutes);
+app.use('/nutrition', nutritionRoutes);
 app.use('/tasks', taskRoutes);
 app.use('/room-checks', roomCheckRoutes);
 app.use('/mobile', mobileRoutes);
