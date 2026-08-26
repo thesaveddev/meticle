@@ -57,6 +57,14 @@ export default function CompliancePage() {
   })
   const docs = docsData?.data || []
 
+  const { data: nutritionData } = useQuery({
+    queryKey: ['nutrition-overview'],
+    queryFn: async () => {
+      const res = await api.get('/nutrition/overview')
+      return res.data as any[]
+    }
+  })
+
   const isLoading = configsLoading || recordsLoading || membersLoading || docsLoading
   const isError = configsError || recordsError || membersError || docsError
 
@@ -81,6 +89,13 @@ export default function CompliancePage() {
   const staffWithGaps = new Set((records || []).filter((r: any) => r.status !== 'complete').map((r: any) => r.staff_id)).size
 
   const rating = getRating(overallCompliance)
+
+  // Nutrition compliance metrics
+  const nutritionPeople = (nutritionData || []).filter((n: any) => n.dietary_type)
+  const totalNutritionPeople = nutritionPeople.length
+  const nutritionConcerns = nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0 || (n.refused_today || 0) > 0).length
+  const nutritionCompliant = totalNutritionPeople > 0 ? Math.round(((totalNutritionPeople - nutritionConcerns) / totalNutritionPeople) * 100) : 100
+  const nutritionRating = nutritionCompliant >= 80 ? { color: '#16A34A', label: 'Good' } : nutritionCompliant >= 60 ? { color: '#F59E0B', label: 'Watch' } : { color: '#DC2626', label: 'Concern' }
 
   if (isLoading) {
     return (
@@ -161,11 +176,24 @@ export default function CompliancePage() {
                 </Box>
               </Paper>
             </Grid>
+            <Grid item xs={6}>
+              <Paper onClick={() => navigate('/nutrition')}
+                sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, borderLeft: `4px solid ${nutritionRating.color}`, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
+                <FavoriteIcon sx={{ fontSize: 36, color: nutritionRating.color }} />
+                <Box>
+                  <Stack direction="row" spacing={1} alignItems="baseline">
+                    <Typography variant="h5" fontWeight={700}>{totalNutritionPeople}</Typography>
+                    <Chip label={`${nutritionCompliant}%`} size="small" sx={{ bgcolor: `${nutritionRating.color}18`, color: nutritionRating.color, fontWeight: 700 }} />
+                  </Stack>
+                  <Typography variant="body2" color="text.secondary">Nutrition Compliance</Typography>
+                </Box>
+              </Paper>
+            </Grid>
           </Grid>
         </Grid>
       </Grid>
 
-      {overallCompliance < 80 || pendingDocs > 0 || incompleteRequirements > 0 ? (
+      {overallCompliance < 80 || pendingDocs > 0 || incompleteRequirements > 0 || nutritionConcerns > 0 ? (
         <Paper sx={{ p: 2, mb: 3, bgcolor: '#FEF2F2', border: '1px solid #FECACA' }}>
           <Stack spacing={1.5}>
             {overallCompliance < 80 && (
@@ -211,12 +239,34 @@ export default function CompliancePage() {
                 <Button size="small" variant="outlined" color="warning" onClick={() => { setExpandedSection('requirements'); navigate('/compliance/records') }}>View All Records</Button>
               </Stack>
             )}
+            {nutritionConcerns > 0 && (
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <FavoriteIcon sx={{ color: nutritionRating.color, fontSize: 20 }} />
+                  <Box>
+                    <Typography variant="body2" fontWeight={600} color={nutritionRating.color === '#DC2626' ? 'error' : 'warning'}>
+                      {nutritionConcerns} person{nutritionConcerns > 1 ? 's' : ''} with nutrition concerns in the last 7 days
+                    </Typography>
+                    <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
+                      <Typography variant="caption" color="text.secondary">
+                        {nutritionPeople.filter((n: any) => (n.refused_today || 0) > 0).length > 0 &&
+                          `${nutritionPeople.filter((n: any) => (n.refused_today || 0) > 0).length} refused meals today`}
+                        {nutritionPeople.filter((n: any) => (n.refused_today || 0) > 0).length > 0 && nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0).length > 0 && ' · '}
+                        {nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0).length > 0 &&
+                          `${nutritionPeople.filter((n: any) => (n.nutrition_concerns_7d || 0) > 0).length} staff-flagged concerns`}
+                      </Typography>
+                      <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline' }} color="warning" onClick={() => navigate('/nutrition')}>View Nutrition</Button>
+                    </Stack>
+                  </Box>
+                </Stack>
+              </Stack>
+            )}
           </Stack>
         </Paper>
       ) : (
         <Paper sx={{ p: 2, mb: 3, bgcolor: '#F0FDF4', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: 1 }}>
           <CheckCircle color="success" />
-          <Typography fontWeight={600} color="success.main">All compliance areas are on track.</Typography>
+          <Typography fontWeight={600} color="success.main">All compliance areas are on track, including nutrition.</Typography>
         </Paper>
       )}
 
@@ -232,6 +282,7 @@ export default function CompliancePage() {
             { label: 'Satisfaction', icon: <FavoriteIcon sx={{ fontSize: 20 }} />, path: '/compliance/satisfaction', color: '#E11D48' },
             { label: 'Staff Engagement', icon: <EngagementIcon />, path: '/compliance/engagement', color: '#0EA5E9' },
             { label: 'NHS DSPT', icon: <ShieldIcon sx={{ fontSize: 20 }} />, path: '/compliance/dspt', color: '#005EB8' },
+            { label: 'Nutrition', icon: <FavoriteIcon sx={{ fontSize: 20 }} />, path: '/nutrition', color: nutritionRating.color },
           ].map((a) => (
             <Grid item key={a.label}>
               <Paper
