@@ -24,10 +24,11 @@ export class ComplianceNotificationService {
   }
 
   private static async _runAllChecks(organizationId?: string) {
-    const results = {
+    const results: any = {
       documents: { notified: 0, expiring: 0, expired: 0 },
       training: { notified: 0, expiring: 0, expired: 0 },
       competency: { notified: 0, due: 0 },
+      nutrition: { notified: 0, concerns: 0 },
       snapshots: 0,
     };
 
@@ -40,17 +41,20 @@ export class ComplianceNotificationService {
     const competencyResults = await this.checkCompetencyDue(organizationId);
     results.competency = competencyResults;
 
+    const nutritionResults = await this.checkNutritionAlerts(organizationId);
+    results.nutrition = nutritionResults;
+
     // Take compliance snapshots
     const snapshotsCount = await this.takeSnapshots(organizationId);
     results.snapshots = snapshotsCount;
 
     // Check escalation thresholds
     const escalated = await this.checkEscalationThresholds(organizationId);
-    (results as any).escalated = escalated;
+    results.escalated = escalated;
 
     // Check predictive alerts
     const predicted = await this.checkPredictiveAlerts(organizationId);
-    (results as any).predicted = predicted;
+    results.predicted = predicted;
 
     logger.info({ results }, 'Compliance check complete');
     return results;
@@ -409,6 +413,123 @@ export class ComplianceNotificationService {
 
       result.due++;
       result.notified++;
+    }
+
+    return result;
+  }
+
+  /** Check for nutrition-related compliance concerns: meal refusals, low intake, declining appetite */
+  static async checkNutritionAlerts(organizationId?: string) {
+    const result = { notified: 0, concerns: 0 };
+
+    let sql = `
+      SELECT p.id AS person_id, p.first_name, p.last_name, p.organization_id,
+             l.name AS location_name, l.manager_id,
+             dp.dietary_type, dp.appetite_level AS baseline_appetite,
+             dp.fluid_daily_target_ml,
+             (SELECT COUNT(*) FROM meal_records mr
+              WHERE mr.person_id = p.id AND mr.meal_date >= CURRENT_DATE - interval '7 days')::int AS meals_7d,
+             (SELECT COUNT(*) FROM meal_records mr
+              WHERE mr.person_id = p.id AND mr.meal_date >= CURRENT_DATE - interval '7 days'
+              AND mr.refused = true) AS refused_7d,
+             (SELECT ROUND(AVG(consumed_percent)::numeric, 0) FROM meal_records mr
+              WHERE mr.person_id = p.id AND mr.meal_date >= CURRENT_DATE - interval '7 days')::int AS avg_consumed_7d,
+             (SELECT COALESCE(SUM(fluid_ml), 0) FROM meal_records mr
+              WHERE mr.person_id = p.id AND mr.meal_date >= CURRENT_DATE - interval '7 days')::int AS total_fluid_7d,
+             (SELECT COUNT(*) FROM meal_records mr
+              WHERE mr.person_id = p.id AND mr.meal_date >= CURRENT_DATE - interval '7 days'
+              AND mr.staff_concerns IS NOT NULL)::int AS staff_concerns_7d,
+             (SELECT COUNT(*) FROM meal_records mr
+              WHERE mr.person_id = p.id AND mr.meal_date >= CURRENT_DATE - interval '1 days'
+              AND mr.refused = true) AS refused_today
+       FROM people p
+       LEFT JOIN dietary_profiles dp ON dp.person_id = p.id
+       LEFT JOIN locations l ON p.location_id = l.id
+       WHERE p.status = 'active'
+         AND (dp.dietary_type IS NOT NULL OR p.dietary_requirements IS NOT NULL)
+    `;
+    const params: any[] = [];
+    if (organizationId) {
+      sql += ` AND p.organization_id = $1`;
+      params.push(organizationId);
+    }
+
+    const peopleResult = await query(sql, params);
+
+    for (const person of peopleResult.rows) {
+      const personName = `${person.first_name} ${person.last_name}`;
+      const concerns: string[] = [];
+      let severity: 'low' | 'medium' | 'high' = 'low';
+
+      // Check for meal refusals (3+ in 7 days is high severity)
+      if ((person.refused_7d || 0) >= 3) {
+        concerns.push(`${personName} has refused ${person.refused_7d} meals in the last 7 days`);
+        severity = 'high';
+      } else if ((person.refused_7d || 0) >= 2) {
+        concerns.push(`${personName} has refused ${person.refused_7d} meals in the last 7 days`);
+        if (severity === 'low') severity = 'medium';
+      }
+
+      // Check for low average consumption (below 50%)
+      if (person.avg_consumed_7d && person.avg_consumed_7d < 50) {
+        concerns.push(`${personName} has an average consumption of only ${person.avg_consumed_7d}% in the last 7 days`);
+        if (severity === 'low') severity = 'medium';
+      }
+
+      // Check fluid deficit
+      const target = person.fluid_daily_target_ml || 2000;
+      const avgDailyFluid = person.meals_7d > 0 ? Math.round(person.total_fluid_7d / 7) : 0;
+      if (avgDailyFluid > 0 && avgDailyFluid < target * 0.6) {
+        concerns.push(`${personName}'s average daily fluid intake (${avgDailyFluid}ml) is below 60% of target (${target}ml)`);
+      }
+
+      // Staff concerns flagged during meal recording
+      if ((person.staff_concerns_7d || 0) > 0) {
+        concerns.push(`${personName} has ${person.staff_concerns_7d} staff-flagged nutrition concerns in the last 7 days`);
+        if (severity !== 'high') severity = 'medium';
+      }
+
+      if (concerns.length > 0) {
+        result.concerns++;
+
+        // Notify the location manager if available
+        if (person.manager_id) {
+          const mgrResult = await query(
+            `SELECT u.id, u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name
+             FROM users u
+             LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+             WHERE u.id = $1 AND u.status = 'active'`,
+            [person.manager_id]
+          );
+          if (mgrResult.rows.length > 0) {
+            const mgr = mgrResult.rows[0];
+            const severityEmoji = severity === 'high' ? '🔴' : severity === 'medium' ? '🟡' : '🟢';
+            await NotificationsController.createNotification(
+              mgr.id,
+              `${severityEmoji} Nutrition Alert — ${personName}`,
+              `${concerns.join('; ')}. Review dietary care plan and follow up with staff.`,
+              'compliance'
+            ).catch(logWarn('nutritionAlertNotification'));
+
+            if (mgr.email) {
+              await EmailService.sendEmail(
+                mgr.email,
+                `${severityEmoji} Nutrition Concern: ${personName} — ${person.location_name || 'Service'}`,
+                `<p>Hi ${mgr.name},</p><p>A nutrition concern has been flagged for <strong>${personName}</strong> at ${person.location_name || 'your service'}.</p>
+                <ul>${concerns.map(c => `<li>${c}</li>`).join('')}</ul>
+                <p><strong>Recommended actions:</strong></p>
+                <ul>
+                  <li>Review the person's dietary profile and care plan</li>
+                  <li>Discuss with the care team and update nutrition records</li>
+                  <li>Consider GP referral if appetite decline or weight loss is noted</li>
+                </ul>
+                <p><a href="${process.env.FRONTEND_URL || ''}/people/${person.person_id}" style="display:inline-block;padding:10px 24px;background:#0F4C81;color:#fff;text-decoration:none;border-radius:6px">View Person Profile →</a></p>`
+              ).catch(logWarn('nutritionAlertEmail'));
+            }
+            result.notified++;
+          }
+        }
+      }
     }
 
     return result;
