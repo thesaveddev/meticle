@@ -164,6 +164,23 @@ export class CompliancePortalRepository {
       ORDER BY p.last_name, p.first_name
     `, [orgId, locationId]);
 
+    // Nutrition alerts for this location (low intake, refused meals, appetite decline)
+    const nutritionAlerts = await query(`
+      SELECT na.id, na.alert_type, na.severity, na.title, na.message, na.created_at, na.dismissed,
+        p.id AS person_id, p.first_name || ' ' || p.last_name AS person_name,
+        p.room_number
+      FROM mission_control_alerts na
+      JOIN people p ON na.person_id = p.id
+      WHERE na.organization_id = $1
+        AND p.location_id = $2
+        AND na.alert_type IN ('nutrition.appetite_decline', 'nutrition.refused_meal', 'fluid.intake_below_target')
+        AND na.dismissed = FALSE
+      ORDER BY
+        CASE na.severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END,
+        na.created_at DESC
+      LIMIT 25
+    `, [orgId, locationId]);
+
     // MAR records at this location (recent)
     const recentMar = await query(`
       SELECT a.id, a.status, a.scheduled_time, a.administered_time,
@@ -193,6 +210,7 @@ export class CompliancePortalRepository {
       policies: policies.rows,
       location: location.rows[0] || null,
       nutrition: nutrition.rows,
+      nutritionAlerts: nutritionAlerts.rows,
       recentMar: recentMar.rows,
     };
   }
