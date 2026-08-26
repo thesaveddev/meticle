@@ -3,13 +3,13 @@ import {
   Box, Typography, Paper, Grid, Card, CardContent, CardActions, Button, Chip, Dialog,
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem, IconButton, Stack,
   Divider, List, ListItem, ListItemText, ListItemSecondaryAction,
-  Switch, FormControlLabel, Tooltip, CircularProgress, Alert, LinearProgress
+  Switch, FormControlLabel, Tooltip,  CircularProgress, Alert
 } from '@mui/material';
 import {
   Restaurant as MealIcon, Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
   ContentCopy as CloneIcon, ExpandMore as ExpandIcon, ExpandLess as CollapseIcon,
   LocalDining as FoodIcon, AccessTime as TimeIcon, AutoAwesome as AIIcon,
-  Save as SaveIcon, Cancel as CancelIcon
+  Save as SaveIcon
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
