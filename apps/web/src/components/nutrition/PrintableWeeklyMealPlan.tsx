@@ -6,6 +6,7 @@ import {
 import {
   AutoAwesome as AIIcon, Print as PrintIcon,
   Restaurant as MealIcon, Download as DownloadIcon,
+  CompareArrows as CompareIcon, ViewModule as GridIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
 import ShoppingList from './ShoppingList'
@@ -143,6 +144,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
   const [expandedCell, setExpandedCell] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [selectedOptions, setSelectedOptions] = useState<Record<string, 'a' | 'b'>>({})
+  const [viewMode, setViewMode] = useState<'grid' | 'compare'>('grid')
   const printRef = useRef<HTMLDivElement>(null)
 
   // Build a filtered week that uses only selected options for the shopping list
@@ -291,6 +293,14 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                 />
               )}
               <Button
+                size="small"
+                startIcon={viewMode === 'grid' ? <CompareIcon sx={{ fontSize: 16 }} /> : <GridIcon sx={{ fontSize: 16 }} />}
+                onClick={() => setViewMode(viewMode === 'grid' ? 'compare' : 'grid')}
+                sx={{ textTransform: 'none', fontSize: '0.7rem', color: '#7C3AED', border: '1px solid #E5E7EB', borderRadius: 2 }}
+              >
+                {viewMode === 'grid' ? 'Compare' : 'Grid'}
+              </Button>
+              <Button
                 variant="outlined" size="small"
                 startIcon={pdfLoading ? <CircularProgress size={14} /> : <DownloadIcon />}
                 onClick={handleDownloadPdf} disabled={pdfLoading}
@@ -414,7 +424,8 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
             </Alert>
           )}
 
-          {/* 7-Day Grid */}
+          {/* 7-Day Grid View */}
+          {viewMode === 'grid' && (
           <Box sx={{ overflowX: 'auto' }}>
             <Box sx={{ minWidth: 900 }}>
               {/* Day Headers */}
@@ -604,6 +615,134 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
               ))}
             </Box>
           </Box>
+          )}
+
+          {/* Compare View */}
+          {viewMode === 'compare' && (
+            <Box>
+              {DAYS.map(day => (
+                <Paper key={day} variant="outlined" sx={{ mb: 2, overflow: 'hidden' }} className="meal-card">
+                  <Box sx={{ bgcolor: '#F9FAFB', px: 2, py: 1, borderBottom: '1px solid #E5E7EB' }}>
+                    <Typography variant="subtitle2" fontWeight={700} color="#0F4C81">
+                      {DAY_LABELS[day]}{day === today ? ' (Today)' : ''}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ p: 2 }}>
+                    <Stack spacing={2}>
+                      {MEAL_TYPES.map(mt => {
+                        const slot = weeklyPlan.week?.[day]?.[mt.value]
+                        const { primary, secondary } = getMealDisplay(slot)
+                        if (!primary) return null
+                        const key = `${day}-${mt.value}`
+                        const selected = selectedOptions[key] || 'a'
+                        return (
+                          <Box key={mt.value}>
+                            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: mt.color, flexShrink: 0 }} />
+                              <Typography variant="caption" fontWeight={700} sx={{ color: mt.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                {mt.label}
+                              </Typography>
+                            </Stack>
+                            <Grid container spacing={2}>
+                              {/* Option A */}
+                              <Grid item xs={secondary ? 6 : 12}>
+                                <Paper
+                                  variant="outlined"
+                                  onClick={() => toggleOption(day, mt.value, 'a')}
+                                  sx={{
+                                    p: 1.5, cursor: 'pointer', transition: 'all 0.15s',
+                                    border: selected === 'a' ? `2px solid ${mt.color}` : '1px solid #E5E7EB',
+                                    bgcolor: selected === 'a' ? mt.color + '08' : 'white',
+                                    '&:hover': { borderColor: mt.color + '80' },
+                                  }}
+                                >
+                                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+                                    <Typography variant="caption" fontWeight={700} sx={{ color: mt.color }}>Option A (Recommended)</Typography>
+                                    <Button
+                                      size="small"
+                                      onClick={(e) => { e.stopPropagation(); toggleOption(day, mt.value, 'a') }}
+                                      sx={{ fontSize: '0.55rem', p: 0, minWidth: 0, textTransform: 'none', color: selected === 'a' ? mt.color : '#9CA3AF', fontWeight: selected === 'a' ? 700 : 400 }}
+                                    >
+                                      {selected === 'a' ? '✓ Selected' : 'Select'}
+                                    </Button>
+                                  </Stack>
+                                  <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>{primary.name}</Typography>
+                                  {primary.description && (
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>{primary.description}</Typography>
+                                  )}
+                                  <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                                    <Chip label={`${primary.estimated_calories} kcal`} size="small" sx={{ height: 18, bgcolor: '#FEF3C7', color: '#92400E', fontSize: '0.6rem' }} />
+                                    <Chip label={`${primary.items?.length || 0} items`} size="small" sx={{ height: 18, bgcolor: '#F3F4F6', color: '#374151', fontSize: '0.6rem' }} />
+                                  </Stack>
+                                  {primary.items && primary.items.length > 0 && (
+                                    <Box>
+                                      {primary.items.map((item, i) => (
+                                        <Stack key={i} direction="row" spacing={0.5} sx={{ mb: 0.25 }}>
+                                          <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.65rem' }}>•</Typography>
+                                          <Typography variant="caption" sx={{ color: '#374151', fontSize: '0.65rem', fontWeight: 500 }}>{item.name}</Typography>
+                                          <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.6rem' }}>({item.portion})</Typography>
+                                        </Stack>
+                                      ))}
+                                    </Box>
+                                  )}
+                                </Paper>
+                              </Grid>
+
+                              {/* Option B */}
+                              {secondary && (
+                                <Grid item xs={6}>
+                                  <Paper
+                                    variant="outlined"
+                                    onClick={() => toggleOption(day, mt.value, 'b')}
+                                    sx={{
+                                      p: 1.5, cursor: 'pointer', transition: 'all 0.15s',
+                                      border: selected === 'b' ? `2px solid ${mt.color}` : '1px solid #E5E7EB',
+                                      bgcolor: selected === 'b' ? mt.color + '08' : 'white',
+                                      '&:hover': { borderColor: mt.color + '80' },
+                                    }}
+                                  >
+                                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+                                      <Typography variant="caption" fontWeight={700} sx={{ color: mt.color + '99' }}>Option B (Alternative)</Typography>
+                                      <Button
+                                        size="small"
+                                        onClick={(e) => { e.stopPropagation(); toggleOption(day, mt.value, 'b') }}
+                                        sx={{ fontSize: '0.55rem', p: 0, minWidth: 0, textTransform: 'none', color: selected === 'b' ? mt.color : '#9CA3AF', fontWeight: selected === 'b' ? 700 : 400 }}
+                                      >
+                                        {selected === 'b' ? '✓ Selected' : 'Select'}
+                                      </Button>
+                                    </Stack>
+                                    <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5, color: '#374151' }}>{secondary.name}</Typography>
+                                    {secondary.description && (
+                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>{secondary.description}</Typography>
+                                    )}
+                                    <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                                      <Chip label={`${secondary.estimated_calories} kcal`} size="small" sx={{ height: 18, bgcolor: '#F3F4F6', color: '#6B7280', fontSize: '0.6rem' }} />
+                                      <Chip label={`${secondary.items?.length || 0} items`} size="small" sx={{ height: 18, bgcolor: '#F9FAFB', color: '#9CA3AF', fontSize: '0.6rem' }} />
+                                    </Stack>
+                                    {secondary.items && secondary.items.length > 0 && (
+                                      <Box>
+                                        {secondary.items.map((item, i) => (
+                                          <Stack key={i} direction="row" spacing={0.5} sx={{ mb: 0.25 }}>
+                                            <Typography variant="caption" sx={{ color: '#D1D5DB', fontSize: '0.65rem' }}>•</Typography>
+                                            <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.65rem' }}>{item.name}</Typography>
+                                            <Typography variant="caption" sx={{ color: '#D1D5DB', fontSize: '0.6rem' }}>({item.portion})</Typography>
+                                          </Stack>
+                                        ))}
+                                      </Box>
+                                    )}
+                                  </Paper>
+                                </Grid>
+                              )}
+                            </Grid>
+                          </Box>
+                        )
+                      })}
+                    </Stack>
+                  </Box>
+                </Paper>
+              ))}
+            </Box>
+          )}
 
           {/* Weekly Totals */}
           {weeklyPlan.weekly_totals && (
