@@ -49,6 +49,8 @@ interface WeeklyPlan {
 
 interface Props {
   weeklyPlan: WeeklyPlan
+  filteredWeek?: Record<string, Record<string, any>> // Selected options only
+  selectionSummary?: string // e.g. "15 of 42 meals selected"
 }
 
 const PRINT_STYLES = `
@@ -122,7 +124,7 @@ function getCategoryIcon(name: string): string {
   return '📦'
 }
 
-export default function ShoppingList({ weeklyPlan }: Props) {
+export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummary }: Props) {
   const [shoppingList, setShoppingList] = useState<ShoppingListData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -133,8 +135,10 @@ export default function ShoppingList({ weeklyPlan }: Props) {
     setLoading(true)
     setError(null)
     try {
+      // Use filtered week (selected options only) if available, otherwise use full week
+      const weekData = filteredWeek || weeklyPlan.week
       const res = await api.post('/ai/generate/shopping-list', {
-        weeklyPlan: weeklyPlan.week,
+        weeklyPlan: weekData,
         personName: weeklyPlan.person_context?.name || 'Unknown',
         dietarySummary: weeklyPlan.person_context?.dietary_summary || 'Standard',
         allergens: weeklyPlan.person_context?.allergens?.join(', ') || 'None',
@@ -182,7 +186,9 @@ export default function ShoppingList({ weeklyPlan }: Props) {
             <Typography variant="caption" color="text.secondary">
               {totalItems > 0
                 ? `${totalItems} items across ${categories.length} categories`
-                : 'Generate a shopping list from the weekly meal plan'}
+                : selectionSummary
+                  ? `From ${selectionSummary} — select meals above first`
+                  : 'Generate a shopping list from the weekly meal plan'}
             </Typography>
           </Box>
         </Stack>

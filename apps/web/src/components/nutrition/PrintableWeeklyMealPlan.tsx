@@ -142,7 +142,39 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
   const [error, setError] = useState<string | null>(null)
   const [expandedCell, setExpandedCell] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, 'a' | 'b'>>({})
   const printRef = useRef<HTMLDivElement>(null)
+
+  // Build a filtered week that uses only selected options for the shopping list
+  const filteredWeek = weeklyPlan?.week ? buildFilteredWeek(weeklyPlan.week, selectedOptions) : undefined
+
+  function buildFilteredWeek(week: Record<string, Record<string, MealSlot>>, selections: Record<string, 'a' | 'b'>): Record<string, Record<string, WeeklyMeal>> {
+    const filtered: Record<string, Record<string, WeeklyMeal>> = {}
+    for (const [day, meals] of Object.entries(week)) {
+      filtered[day] = {}
+      for (const [mealType, slot] of Object.entries(meals)) {
+        const key = `${day}-${mealType}`
+        const selection = selections[key] || 'a'
+        if (slot.option_a && slot.option_b) {
+          filtered[day][mealType] = selection === 'b' ? slot.option_b : slot.option_a
+        } else if (slot.option_a) {
+          filtered[day][mealType] = slot.option_a
+        } else if ((slot as any).name) {
+          filtered[day][mealType] = { name: (slot as any).name, items: (slot as any).items || [], estimated_calories: (slot as any).estimated_calories || 0 }
+        }
+      }
+    }
+    return filtered
+  }
+
+  const toggleOption = (day: string, mealType: string, option: 'a' | 'b') => {
+    const key = `${day}-${mealType}`
+    setSelectedOptions(prev => ({ ...prev, [key]: option }))
+  }
+
+  // Count how many slots have been selected
+  const totalSlots = weeklyPlan?.week ? Object.values(weeklyPlan.week).reduce((sum, day) => sum + Object.keys(day).length, 0) : 0
+  const selectedCount = Object.keys(selectedOptions).length
 
   const generateWeek = async () => {
     setLoading(true)
@@ -154,6 +186,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
         specialRequirements: '',
       })
       setWeeklyPlan(res.data.weeklyPlan)
+      setSelectedOptions({}) // Clear selections on new plan
     } catch (err: any) {
       setError(err.response?.data?.error?.message || 'Failed to generate weekly plan')
     } finally {
@@ -217,6 +250,46 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
           </Button>
           {weeklyPlan && (
             <>
+              <Button
+                size="small"
+                onClick={() => {
+                  // Select all A
+                  const allA: Record<string, 'a' | 'b'> = {}
+                  for (const [day, meals] of Object.entries(weeklyPlan.week)) {
+                    for (const mealType of Object.keys(meals)) {
+                      allA[`${day}-${mealType}`] = 'a'
+                    }
+                  }
+                  setSelectedOptions(allA)
+                }}
+                sx={{ textTransform: 'none', fontSize: '0.7rem', color: '#6B7280' }}
+              >
+                All A
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  // Select all B
+                  const allB: Record<string, 'a' | 'b'> = {}
+                  for (const [day, meals] of Object.entries(weeklyPlan.week)) {
+                    for (const mealType of Object.keys(meals)) {
+                      allB[`${day}-${mealType}`] = 'b'
+                    }
+                  }
+                  setSelectedOptions(allB)
+                }}
+                sx={{ textTransform: 'none', fontSize: '0.7rem', color: '#6B7280' }}
+              >
+                All B
+              </Button>
+              {selectedCount > 0 && (
+                <Chip
+                  label={`${selectedCount}/${totalSlots} selected`}
+                  size="small"
+                  onDelete={() => setSelectedOptions({})}
+                  sx={{ height: 22, bgcolor: '#ECFDF5', color: '#065F46', fontWeight: 600 }}
+                />
+              )}
               <Button
                 variant="outlined" size="small"
                 startIcon={pdfLoading ? <CircularProgress size={14} /> : <DownloadIcon />}
@@ -460,20 +533,51 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
 
                               {isExpanded && (
                                 <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid #E5E7EB' }}>
-                                  <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color }}>Option A:</Typography>
-                                  {primary.items?.map((item, i) => (
-                                    <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#6B7280', lineHeight: 1.4 }}>
-                                      • {item.name} ({item.portion})
-                                    </Typography>
-                                  ))}
-                                  {primary.description && (
-                                    <Typography variant="caption" sx={{ display: 'block', fontSize: '0.55rem', color: '#9CA3AF', fontStyle: 'italic', mt: 0.5 }}>
-                                      {primary.description}
-                                    </Typography>
-                                  )}
+                                  {/* Option A */}
+                                  <Box sx={{ p: 0.75, borderRadius: 1, bgcolor: selectedOptions[`${day}-${mt.value}`] === 'a' ? mt.color + '15' : 'transparent', border: selectedOptions[`${day}-${mt.value}`] === 'a' ? `1px solid ${mt.color}40` : '1px solid transparent' }}>
+                                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                      <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color }}>Option A (Recommended)</Typography>
+                                      <Button
+                                        size="small"
+                                        onClick={(e) => { e.stopPropagation(); toggleOption(day, mt.value, 'a') }}
+                                        sx={{
+                                          fontSize: '0.5rem', p: 0, minWidth: 0, textTransform: 'none',
+                                          color: selectedOptions[`${day}-${mt.value}`] === 'a' ? mt.color : '#9CA3AF',
+                                          fontWeight: selectedOptions[`${day}-${mt.value}`] === 'a' ? 700 : 400,
+                                        }}
+                                      >
+                                        {selectedOptions[`${day}-${mt.value}`] === 'a' ? '✓ Selected' : 'Select'}
+                                      </Button>
+                                    </Stack>
+                                    {primary.items?.map((item, i) => (
+                                      <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#6B7280', lineHeight: 1.4 }}>
+                                        • {item.name} ({item.portion})
+                                      </Typography>
+                                    ))}
+                                    {primary.description && (
+                                      <Typography variant="caption" sx={{ display: 'block', fontSize: '0.55rem', color: '#9CA3AF', fontStyle: 'italic', mt: 0.5 }}>
+                                        {primary.description}
+                                      </Typography>
+                                    )}
+                                  </Box>
+
+                                  {/* Option B */}
                                   {secondary && (
-                                    <>
-                                      <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color + '99', mt: 1, display: 'block' }}>Option B:</Typography>
+                                    <Box sx={{ p: 0.75, borderRadius: 1, mt: 0.5, bgcolor: selectedOptions[`${day}-${mt.value}`] === 'b' ? mt.color + '15' : 'transparent', border: selectedOptions[`${day}-${mt.value}`] === 'b' ? `1px solid ${mt.color}40` : '1px solid transparent' }}>
+                                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                        <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color + '99' }}>Option B (Alternative)</Typography>
+                                        <Button
+                                          size="small"
+                                          onClick={(e) => { e.stopPropagation(); toggleOption(day, mt.value, 'b') }}
+                                          sx={{
+                                            fontSize: '0.5rem', p: 0, minWidth: 0, textTransform: 'none',
+                                            color: selectedOptions[`${day}-${mt.value}`] === 'b' ? mt.color : '#9CA3AF',
+                                            fontWeight: selectedOptions[`${day}-${mt.value}`] === 'b' ? 700 : 400,
+                                          }}
+                                        >
+                                          {selectedOptions[`${day}-${mt.value}`] === 'b' ? '✓ Selected' : 'Select'}
+                                        </Button>
+                                      </Stack>
                                       {secondary.items?.map((item, i) => (
                                         <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#9CA3AF', lineHeight: 1.4 }}>
                                           • {item.name} ({item.portion})
@@ -484,7 +588,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                                           {secondary.description}
                                         </Typography>
                                       )}
-                                    </>
+                                    </Box>
                                   )}
                                 </Box>
                               )}
@@ -540,7 +644,11 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
 
           {/* Shopping List Section */}
           <Box sx={{ mt: 4 }} className="print-break-before">
-            <ShoppingList weeklyPlan={weeklyPlan} />
+            <ShoppingList
+              weeklyPlan={weeklyPlan}
+              filteredWeek={filteredWeek}
+              selectionSummary={selectedCount > 0 ? `${selectedCount} of ${totalSlots} meals selected` : undefined}
+            />
           </Box>
 
           {/* Footer - visible only when printing */}
