@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material'
-import { ArrowForward as ArrowForwardIcon, Check as CheckIcon } from '@mui/icons-material'
-import { keyframes } from '@emotion/react'
+import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import MarketingLayout from '../components/marketing/MarketingLayout'
 import PageMeta from '../components/PageMeta'
@@ -9,7 +8,6 @@ import {
   EmarIcon, CareNoteIcon, SupportPlanIcon, BodyMapIcon, AppointmentIcon, GoalsIcon,
   RotaIcon, LeaveIcon, IncidentIcon, TaskIcon, ChatIcon, TrainingIcon,
   ShieldIcon, EvidenceIcon, SurveyIcon, PolicyIcon, DsptIcon, AuditIcon,
-  ManagerIcon, CareWorkerIcon, FamilyIcon, OwnerIcon,
 } from '../components/marketing/icons'
 
 const structuredData = {
@@ -58,20 +56,14 @@ const HERO_IMAGE = '/illustrations/hero-care.svg'
 const SHOWCASE_IMAGE = '/illustrations/care-moment.svg'
 const TIMELINE_IMAGE = '/illustrations/timeline-card.svg'
 
-const pulse = keyframes`
-  0%, 100% { opacity: 1 }
-  50% { opacity: 0.35 }
-`
 
-
-
-function FadeSection({ children, direction = 'up', delay = 0, variant = 'slide' }: { children?: React.ReactNode; direction?: 'up' | 'down'; delay?: number; variant?: 'slide' | 'scale-slide' }) {
+function FadeSection({ children, direction = 'up', delay = 0 }: { children?: React.ReactNode; direction?: 'up' | 'down'; delay?: number }) {
   const [visible, setVisible] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce) { setVisible(true); return }
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (mql.matches) { setVisible(true); return }
     const el = ref.current
     if (!el) return
     const obs = new IntersectionObserver(
@@ -82,16 +74,19 @@ function FadeSection({ children, direction = 'up', delay = 0, variant = 'slide' 
     return () => obs.disconnect()
   }, [])
 
-  const y = direction === 'up' ? 40 : -40
-  const scaleIn = variant === 'scale-slide' ? ' scale(0.98)' : ''
-  const scaleOut = variant === 'scale-slide' ? ' scale(1)' : ''
   return (
     <Box
       ref={ref}
       sx={{
-        transform: visible ? `translateY(0)${scaleOut}` : `translateY(${y}px)${scaleIn}`,
+        transform: visible ? 'translateY(0)' : `translateY(${direction === 'up' ? 32 : -32}px)`,
         opacity: visible ? 1 : 0,
-        transition: `transform ${variant === 'scale-slide' ? '0.85s' : '0.75s'} cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, opacity ${variant === 'scale-slide' ? '0.7s' : '0.65s'} ease ${delay}ms`,
+        transition: 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.55s ease',
+        transitionDelay: visible ? '0ms' : `${delay}ms`,
+        '@media (prefers-reduced-motion: reduce)': {
+          transform: 'none',
+          opacity: 1,
+          transition: 'none',
+        },
       }}
     >
       {children}
@@ -168,52 +163,13 @@ Keep care records, medication, staffing and compliance in one working view — b
             <Grid item xs={12} lg={6}>
               <Box
                   sx={{
-                    transform: heroIn ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
+                    transform: heroIn ? 'translateY(0)' : 'translateY(20px)',
                     opacity: heroIn ? 1 : 0,
-                    transition: 'transform 0.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.9s ease',
+                    transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease',
                   }}
               >
-                <Box sx={{ position: 'relative' }}>
-                  <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E0D9CA`, bgcolor: '#FFFFFF', boxShadow: '0 32px 64px -28px rgba(20, 32, 45, 0.4)' }}>
-                    {/* Window chrome */}
-                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: { xs: 2, sm: 2.5 }, py: 1.5, borderBottom: `1px solid #F0EBE1`, bgcolor: '#FCFAF6' }}>
-                      <Stack direction="row" spacing={1.25} alignItems="center">
-                        <Box sx={{ width: 10, height: 10, borderRadius: 1, bgcolor: NAVY, flexShrink: 0 }} />
-                        <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.85rem' }}>MeticleCare</Typography>
-                      </Stack>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Box
-                          sx={{
-                            width: 8, height: 8, borderRadius: '50%', bgcolor: EMERALD, flexShrink: 0,
-                            animation: `${pulse} 2.4s ease-in-out infinite`,
-                            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                          }}
-                        />
-                        <Typography sx={{ fontSize: '0.7rem', color: MIST, fontWeight: 600 }}>Care in progress</Typography>
-                      </Stack>
-                    </Stack>
-                    <img src={HERO_IMAGE} alt="Stylised illustration of the MeticleCare tablet dashboard showing a person's daily support plan and medication administration chart, with a care note being recorded" width="1280" height="854" loading="eager" style={{ display: 'block', width: '100%', height: 'auto' }} />
-                  </Box>
-
-                  {/* Care-note toast */}
-                  <Box
-                    sx={{
-                      position: 'absolute', left: { xs: 12, sm: -18 }, bottom: 26,
-                      bgcolor: '#FFFFFF', border: `1px solid ${HAIRLINE}`, borderRadius: 2,
-                      boxShadow: '0 20px 44px -20px rgba(20, 32, 45, 0.45)',
-                      px: 1.75, py: 1.25, display: 'flex', alignItems: 'center', gap: 1.5,
-                      opacity: heroIn ? 1 : 0,
-                      transition: 'opacity 0.6s ease 1.05s',
-                    }}
-                  >
-                    <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: EMERALD, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <CheckIcon sx={{ fontSize: 14, color: '#FFFFFF' }} />
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontSize: '0.78rem', fontWeight: 800, color: INK, lineHeight: 1.2 }}>Care note recorded</Typography>
-                      <Typography sx={{ fontSize: '0.7rem', color: MIST, lineHeight: 1.3 }}>Saved to today's daily record</Typography>
-                    </Box>
-                  </Box>
+                <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E0D9CA`, bgcolor: '#FFFFFF' }}>
+                  <img src={HERO_IMAGE} alt="MeticleCare dashboard showing a person's daily support plan and medication administration chart" width="1280" height="854" fetchPriority="high" style={{ display: 'block', width: '100%', height: 'auto' }} />
                 </Box>
               </Box>
 
@@ -301,7 +257,7 @@ A clear working record for the people you support — and a calmer day for the t
       </Box>
 
       {/* TRUST & VALUE */}
-      <Box sx={{ py: { xs: 9, md: 12 }, bgcolor: '#FFFFFF' }}>
+      <Box sx={{ py: { xs: 7, md: 10 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <FadeSection>
             <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
@@ -336,7 +292,7 @@ A medication round, a care note, a staffing decision and an incident review belo
       </Box>
 
       {/* CORE CAPABILITIES */}
-      <Box sx={{ py: { xs: 9, md: 14 }, bgcolor: BONE }}>
+      <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: BONE }}>
         <Container maxWidth="lg">
           <FadeSection>
             <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '2.7rem' }, fontWeight: 800, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 2, maxWidth: 720 }}>
@@ -444,7 +400,7 @@ The tools your team uses every day, connected around the person and the service.
                 { t: 'Compliance scored', d: 'The record feeds readiness where it matters.' },
               ].map((step, i) => (
                 <Grid item xs={6} md key={step.t}>
-                  <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ borderTop: `2px solid ${EMERALD}`, pt: 1.5 }}>
+                  <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ borderTop: `2px solid ${NAVY}`, pt: 1.5 }}>
                     <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: NAVY, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0 }}>
                       {i + 1}
                     </Box>
@@ -476,7 +432,7 @@ The tools your team uses every day, connected around the person and the service.
       </Box>
 
       {/* ROLE-BASED BENEFITS */}
-      <Box sx={{ py: { xs: 9, md: 14 }, bgcolor: BONE }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: BONE }}>
         <Container maxWidth="lg">
           <FadeSection>
             <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '2.7rem' }, fontWeight: 800, lineHeight: 1.12, letterSpacing: '-0.025em', color: INK, mb: 2, maxWidth: 640 }}>
@@ -488,79 +444,94 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
           </FadeSection>
 
           <Grid container spacing={{ xs: 3, md: 3 }}>
-            {[
-              {
-                role: 'Registered managers',
-                tagline: 'See readiness before the inspector does.',
-                Icon: ManagerIcon,
-                items: ['Live compliance snapshot and inspection readiness', 'Rota planner with safe-staffing rules', 'Leave approvals, with delegation', 'Incident and safeguarding oversight', 'Reporting you can act on'],
-              },
-              {
-                role: 'Care workers',
-                tagline: 'The whole shift, in your pocket.',
-                Icon: CareWorkerIcon,
-                items: ['Mobile app with GPS check-in and voice notes', 'eMAR rounds on the 31-day chart', 'Claim open shifts from the marketplace', 'Secure team messaging'],
-              },
-              {
-                role: 'Relatives & families',
-                tagline: 'A quiet window into daily life.',
-                Icon: FamilyIcon,
-                items: ['Care notes, care plans and goals in the family portal', 'Observations you can see, not just hear about', 'A direct line to the team that cares'],
-              },
-              {
-                role: 'Owners & operations leads',
-                tagline: 'Every home, every number, one view.',
-                Icon: OwnerIcon,
-                items: ['Multi-location oversight in one dashboard', 'Insights and reporting across services', 'Agency and rate management', 'Billing and subscriptions in one place'],
-              },
-            ].map((r, idx) => (
-              <Grid item xs={12} sm={6} md={3} key={r.role}>
-                <FadeSection delay={idx * 90}>
+            {/* Primary role — wider card */}
+            <Grid item xs={12} md={7}>
+              <Box
+                sx={{
+                  height: '100%',
+                  bgcolor: '#FFFFFF',
+                  border: `1px solid ${HAIRLINE}`,
+                  borderRadius: 2,
+                  p: { xs: 3, md: 4 },
+                  transition: 'border-color 0.15s ease',
+                  '&:hover': { borderColor: NAVY },
+                }}
+              >
+                <Typography sx={{ color: NAVY, fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.06em', textTransform: 'uppercase', mb: 1.5 }}>
+                  Registered managers
+                </Typography>
+                <Typography sx={{ fontWeight: 800, color: INK, fontSize: '1.35rem', lineHeight: 1.15, mb: 1, letterSpacing: '-0.01em' }}>
+                  See readiness before the inspector does.
+                </Typography>
+                <Typography sx={{ color: MIST, fontSize: '0.95rem', lineHeight: 1.65, mb: 3, maxWidth: 480 }}>
+                  Live compliance, staffing, incidents and reporting — the full picture of your service in one view.
+                </Typography>
+                <Stack spacing={1.5}>
+                  {['Live compliance snapshot and inspection readiness', 'Rota planner with safe-staffing rules', 'Leave approvals, with delegation', 'Incident and safeguarding oversight', 'Reporting you can act on'].map((item) => (
+                    <Stack key={item} direction="row" spacing={1.5} alignItems="flex-start">
+                      <Box sx={{ width: 5, height: 5, borderRadius: 1, bgcolor: NAVY, mt: 0.6, flexShrink: 0 }} />
+                      <Typography sx={{ color: '#3A4551', fontSize: '0.88rem', lineHeight: 1.55 }}>{item}</Typography>
+                    </Stack>
+                  ))}
+                </Stack>
+              </Box>
+            </Grid>
+
+            {/* Secondary roles — stacked on right */}
+            <Grid item xs={12} md={5}>
+              <Stack spacing={{ xs: 3, md: 3 }}>
+                {[
+                  {
+                    role: 'Care workers',
+                    tagline: 'The whole shift, in your pocket.',
+                    items: ['Mobile app with GPS check-in and voice notes', 'eMAR rounds on the 31-day chart', 'Claim open shifts from the marketplace'],
+                  },
+                  {
+                    role: 'Relatives & families',
+                    tagline: 'A quiet window into daily life.',
+                    items: ['Care notes, care plans and goals in the family portal', 'Observations you can see, not just hear about', 'A direct line to the team that cares'],
+                  },
+                  {
+                    role: 'Owners & operations',
+                    tagline: 'Every home, every number, one view.',
+                    items: ['Multi-location oversight in one dashboard', 'Agency and rate management', 'Billing and subscriptions in one place'],
+                  },
+                ].map((r) => (
                   <Box
+                    key={r.role}
                     sx={{
-                      height: '100%',
                       bgcolor: '#FFFFFF',
                       border: `1px solid ${HAIRLINE}`,
-                      borderRadius: 3,
-                      p: { xs: 3, md: 3.5 },
-                      transition: 'border-color 0.15s ease, transform 0.15s ease',
-                      '&:hover': { borderColor: EMERALD, transform: 'translateY(-2px)' },
+                      borderRadius: 2,
+                      p: { xs: 2.5, md: 3 },
+                      transition: 'border-color 0.15s ease',
+                      '&:hover': { borderColor: NAVY },
                     }}
                   >
-                    <Box
-                      sx={{
-                        width: 44, height: 44, borderRadius: 1.5,
-                        bgcolor: 'rgba(15,76,129,0.08)', color: NAVY,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        mb: 2.5,
-                      }}
-                    >
-                      <r.Icon size={22} />
-                    </Box>
-                    <Typography variant="h3" sx={{ fontWeight: 800, color: INK, fontSize: '1.2rem', lineHeight: 1.2, mb: 0.75 }}>
+                    <Typography sx={{ fontWeight: 800, color: INK, fontSize: '1.05rem', lineHeight: 1.2, mb: 0.5 }}>
                       {r.role}
                     </Typography>
-                    <Typography sx={{ color: NAVY, fontWeight: 600, fontSize: '0.86rem', mb: 2.5 }}>
+                    <Typography sx={{ color: NAVY, fontWeight: 600, fontSize: '0.82rem', mb: 2 }}>
                       {r.tagline}
                     </Typography>
-                    <Stack spacing={1.25}>
+                    <Stack spacing={1}>
                       {r.items.map((item) => (
                         <Stack key={item} direction="row" spacing={1.25} alignItems="flex-start">
-                          <Box sx={{ width: 6, height: 6, borderRadius: 1, bgcolor: EMERALD, mt: 0.55, flexShrink: 0 }} />
-                          <Typography sx={{ color: '#3A4551', fontSize: '0.86rem', fontWeight: 500, lineHeight: 1.55 }}>{item}</Typography>
+                          <Box sx={{ width: 5, height: 5, borderRadius: 1, bgcolor: NAVY, mt: 0.55, flexShrink: 0 }} />
+                          <Typography sx={{ color: '#3A4551', fontSize: '0.84rem', lineHeight: 1.5 }}>{item}</Typography>
                         </Stack>
                       ))}
                     </Stack>
                   </Box>
-                </FadeSection>
-              </Grid>
-            ))}
+                ))}
+              </Stack>
+            </Grid>
           </Grid>
         </Container>
       </Box>
 
       {/* PRODUCT INTERFACE SHOWCASE */}
-      <Box sx={{ py: { xs: 9, md: 14 }, bgcolor: '#FFFFFF' }}>
+      <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <FadeSection>
             <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
@@ -641,7 +612,7 @@ When records are complete and current, compliance work becomes easier to evidenc
                   { t: 'Audit trail on every action', d: 'From administration to approval, every step is recorded.' },
                 ].map((item) => (
                   <Stack key={item.t} direction="row" spacing={2.25} alignItems="flex-start" sx={{ borderBottom: '1px solid rgba(255,255,255,0.24)', py: 2.5 }}>
-                    <Box sx={{ width: 9, height: 9, borderRadius: 1, bgcolor: EMERALD, mt: 0.6, flexShrink: 0 }} />
+                    <Box sx={{ width: 5, height: 5, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.5)', mt: 0.7, flexShrink: 0 }} />
                     <Box>
                       <Typography sx={{ fontWeight: 800, mb: 0.5, fontSize: '1rem' }}>{item.t}</Typography>
                       <Typography sx={{ opacity: 0.82, fontSize: '0.9rem', lineHeight: 1.6 }}>{item.d}</Typography>
@@ -658,7 +629,7 @@ When records are complete and current, compliance work becomes easier to evidenc
       {/* FINAL CTA */}
       <Box sx={{ py: { xs: 11, md: 15 }, bgcolor: INK_DARK, color: '#FFFFFF', textAlign: 'center' }}>
         <Container maxWidth="md">
-          <FadeSection variant="scale-slide" delay={200}>
+          <FadeSection delay={200}>
             <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}>
 Make the working day easier to see.
             </Typography>
