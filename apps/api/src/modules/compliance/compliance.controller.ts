@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import pool from '../../shared/database';
+import logger from '../../shared/utils/logger';
 import { ComplianceRepository } from './compliance.repository';
 import { ComplianceNotificationService } from './compliance.notifications';
 import { AppError } from '../../shared/middleware/error.middleware';
@@ -100,6 +101,29 @@ export class ComplianceController {
     if (org.rows[0]?.auto_approve_documents) {
       await ComplianceRepository.updateDocumentStatus(doc.id, user.organizationId!, 'approved');
       doc.status = 'approved';
+    }
+
+    // Run OCR on image uploads to extract text (DBS certificates, passports, etc.)
+    const isImage = file.mimetype.startsWith('image/');
+    if (isImage) {
+      try {
+        const { recognizeBuffer } = await import('../../shared/ocr');
+        const fs = await import('fs');
+        const filePath = file.path;
+        const buffer = fs.readFileSync(filePath);
+        const ocrResult = await recognizeBuffer(buffer);
+        if (ocrResult.text && ocrResult.text.trim().length > 0) {
+          await pool.query(
+            `UPDATE documents SET ocr_extracted_text = $1, ocr_confidence = $2 WHERE id = $3`,
+            [ocrResult.text.trim(), ocrResult.confidence, doc.id]
+          );
+          (doc as any).ocr_extracted_text = ocrResult.text.trim();
+          (doc as any).ocr_confidence = ocrResult.confidence;
+        }
+      } catch (ocrErr: any) {
+        // OCR is best-effort — don't fail the upload if OCR fails
+        logger.warn({ err: ocrErr?.message, docId: doc.id }, 'OCR extraction failed for uploaded document');
+      }
     }
 
     AuditRepository.log({ user_id: user.userId, action: 'upload', entity_type: 'document', entity_id: doc.id, new_data: { staffId, type, expiryDate }, ip_address: req.ip }).catch(() => {});

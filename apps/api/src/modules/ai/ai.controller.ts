@@ -141,10 +141,10 @@ export class AIController {
       } catch { /* audit logging non-critical */ }
 
       if (!parsed) {
-        return res.json({ analysis: { raw: result.content, validationWarning: validationError }, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
+        return res.json({ analysis: { raw: result.content, validationWarning: validationError }, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString(), usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
       }
 
-      res.json({ analysis: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
+      res.json({ analysis: { ...parsed, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString() }, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
     } catch (err: any) {
       try {
         await AIRepository.logAudit({
@@ -818,7 +818,7 @@ export class AIController {
         });
       } catch { /* audit non-critical */ }
 
-      res.json({ mealPlan: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
+      res.json({ mealPlan: { ...parsed, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString() }, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
     } catch (err: any) {
       try {
         await AIRepository.logAudit({
@@ -922,7 +922,7 @@ export class AIController {
         });
       } catch { /* audit non-critical */ }
 
-      res.json({ weeklyPlan: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
+      res.json({ weeklyPlan: { ...parsed, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString() }, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
     } catch (err: any) {
       try {
         await AIRepository.logAudit({
@@ -998,7 +998,7 @@ export class AIController {
         });
       } catch { /* audit non-critical */ }
 
-      res.json({ shoppingList: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
+      res.json({ shoppingList: { ...parsed, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString() }, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
     } catch (err: any) {
       try {
         await AIRepository.logAudit({
@@ -1083,7 +1083,7 @@ export class AIController {
         responseSummary: `Risk: ${parsed.audit_risk}, Gaps: ${parsed.gaps?.length || 0}, Nutrition flags: ${parsed.nutrition_flags?.length || 0}`,
       });
 
-      res.json({ analysis: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens } });
+      res.json({ analysis: { ...parsed, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString() }, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens } });
     } catch (err: any) {
       logger.error(err, 'Care plan gap analysis failed');
       res.status(500).json({ error: { message: 'Care plan gap analysis failed' } });
@@ -1136,7 +1136,7 @@ export class AIController {
         responseSummary: `Generated ${parsed.questions?.length || 0} questions for ${area}`,
       });
 
-      res.json({ questions: parsed.questions || [], cqcStatement: parsed.cqc_statement || cqcStatement,
+      res.json({ questions: (parsed.questions || []).map((q: any) => ({ ...q, generated_by_ai: true })), cqcStatement: parsed.cqc_statement || cqcStatement, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString(),
         usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens } });
     } catch (err: any) {
       logger.error(err, 'Competency question generation failed');
