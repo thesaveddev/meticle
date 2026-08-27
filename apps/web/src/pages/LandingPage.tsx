@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material'
+import { Box, Button, Chip, Container, Grid, Stack, Typography } from '@mui/material'
 import { ArrowForward as ArrowForwardIcon, Check as CheckIcon } from '@mui/icons-material'
 import { keyframes } from '@emotion/react'
 import { useNavigate } from 'react-router-dom'
@@ -63,68 +63,7 @@ const pulse = keyframes`
   50% { opacity: 0.35 }
 `
 
-const logoSlideUp = keyframes`
-  0% { opacity: 0; transform: translateY(24px) scale(0.92); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-`
 
-const logoPulseGlow = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(15, 76, 129, 0); }
-  50% { box-shadow: 0 0 16px 4px rgba(15, 76, 129, 0.08); }
-  100% { box-shadow: 0 0 0 0 rgba(15, 76, 129, 0); }
-`
-
-function LogoReveal({ logos }: { logos: { src: string; alt: string }[] }) {
-  const [visible, setVisible] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce) { setVisible(true); return }
-    const el = ref.current
-    if (!el) return
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect() } },
-      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' },
-    )
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [])
-
-  return (
-    <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center" ref={ref}>
-      {logos.map((logo, i) => (
-        <Grid item xs={6} sm={4} md key={logo.alt}>
-          <Box
-            sx={{
-              height: 52,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 2,
-              opacity: visible ? 1 : 0,
-              transform: visible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.92)',
-              filter: visible ? 'grayscale(100%) opacity(0.55)' : 'grayscale(100%) opacity(0)',
-              transition: 'none',
-              animation: visible ? `${logoSlideUp} 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${i * 120}ms both` : 'none',
-              '&:hover': {
-                filter: 'grayscale(0%) opacity(1) !important',
-                transform: 'scale(1.08) !important',
-                animation: `${logoPulseGlow} 1.5s ease-in-out 1`,
-              },
-            }}
-          >
-            <img
-              src={logo.src}
-              alt={logo.alt}
-              style={{ height: '100%', width: 'auto', maxWidth: '100%' }}
-            />
-          </Box>
-        </Grid>
-      ))}
-    </Grid>
-  )
-}
 
 function FadeSection({ children, direction = 'up', delay = 0, variant = 'slide' }: { children?: React.ReactNode; direction?: 'up' | 'down'; delay?: number; variant?: 'slide' | 'scale-slide' }) {
   const [visible, setVisible] = useState(false)
@@ -290,29 +229,164 @@ A clear working record for the people you support — and a calmer day for the t
       <Box
         component="section"
         aria-label="Standards MeticleCare is built for"
-        sx={{ bgcolor: '#FFFFFF', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}
+        sx={{
+          bgcolor: INK_DARK,
+          py: { xs: 6, md: 7 },
+          position: 'relative',
+          overflow: 'hidden',
+        }}
       >
-        <Container maxWidth="lg">
+        {/* Subtle grid pattern */}
+        <Box
+          sx={{
+            position: 'absolute', inset: 0,
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
+            backgroundSize: '48px 48px',
+          }}
+        />
+        {/* Gradient overlay */}
+        <Box
+          sx={{
+            position: 'absolute', inset: 0,
+            background: 'radial-gradient(ellipse at 50% 0%, rgba(15,76,129,0.25) 0%, transparent 70%)',
+          }}
+        />
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
           <FadeSection delay={100}>
-            <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
-              <Grid item xs={12} md={3}>
-                <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: NAVY, letterSpacing: '0.14em', textTransform: 'uppercase', mb: { xs: 1, md: 0 } }}>
-                  Built for the UK's care regulators
-                </Typography>
-              </Grid>
-              <Grid item xs={12} md={9}>
-                <LogoReveal
-                  logos={[
-                    { src: '/logos/cqc.svg', alt: 'CQC - Care Quality Commission' },
-                    { src: '/logos/ciw.svg', alt: 'CIW - Care Inspectorate Wales' },
-                    { src: '/logos/cis.svg', alt: 'Care Inspectorate Scotland' },
-                    { src: '/logos/rqia.svg', alt: 'RQIA - Quality & Improvement Northern Ireland' },
-                    { src: '/logos/nhs.svg', alt: 'NHS - National Health Service' },
-                    { src: '/logos/ukgdpr.svg', alt: 'UK GDPR and DPA 2018' },
-                  ]}
-                />
-              </Grid>
-            </Grid>
+            {/* Header */}
+            <Stack alignItems="center" sx={{ mb: { xs: 4, md: 5 } }}>
+              <Chip
+                label="REGULATORY COMPLIANCE"
+                size="small"
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.7)',
+                  fontWeight: 700,
+                  fontSize: '0.65rem',
+                  letterSpacing: '0.12em',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  mb: 2.5,
+                }}
+              />
+              <Typography
+                sx={{
+                  fontSize: { xs: '1.1rem', md: '1.35rem' },
+                  fontWeight: 700,
+                  color: 'white',
+                  textAlign: 'center',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Built for the UK's care regulators
+              </Typography>
+              <Typography
+                sx={{
+                  color: 'rgba(255,255,255,0.5)',
+                  fontSize: '0.85rem',
+                  textAlign: 'center',
+                  mt: 1,
+                  maxWidth: 480,
+                }}
+              >
+                Every record, audit trail and report is aligned to the standards your inspectors expect.
+              </Typography>
+            </Stack>
+
+            {/* Logo Grid */}
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: 'repeat(3, 1fr)', md: 'repeat(6, 1fr)' },
+                gap: { xs: 2, md: 3 },
+                alignItems: 'center',
+              }}
+            >
+              {[
+                { src: '/logos/cqc.png', alt: 'CQC - Care Quality Commission', name: 'CQC' },
+                { src: '/logos/ciw.png', alt: 'CIW - Care Inspectorate Wales', name: 'CIW' },
+                { src: '/logos/cis.png', alt: 'Care Inspectorate Scotland', name: 'CI Scotland' },
+                { src: '/logos/rqia.png', alt: 'RQIA - Quality & Improvement Northern Ireland', name: 'RQIA' },
+                { src: '/logos/nhs.svg', alt: 'NHS - National Health Service', name: 'NHS' },
+                { src: '/logos/ukgdpr.png', alt: 'UK GDPR and DPA 2018', name: 'UK GDPR' },
+              ].map((logo, i) => (
+                <Box
+                  key={logo.alt}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    py: 2,
+                    px: 1.5,
+                    borderRadius: 2,
+                    bgcolor: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    opacity: 0,
+                    transform: 'translateY(16px)',
+                    animation: `logoReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${i * 100 + 200}ms forwards`,
+                    transition: 'all 0.3s ease',
+                    cursor: 'default',
+                    '@keyframes logoReveal': {
+                      from: { opacity: 0, transform: 'translateY(16px)' },
+                      to: { opacity: 1, transform: 'translateY(0)' },
+                    },
+                    '@media (prefers-reduced-motion: reduce)': {
+                      animation: 'none',
+                      opacity: 1,
+                      transform: 'none',
+                    },
+                    '&:hover': {
+                      bgcolor: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      transform: 'translateY(-2px) !important',
+                    },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      height: 44,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      filter: 'brightness(0) invert(1) opacity(0.85)',
+                      transition: 'filter 0.3s ease',
+                      '&:hover': {
+                        filter: 'brightness(0) invert(1) opacity(1)',
+                      },
+                    }}
+                  >
+                    <img
+                      src={logo.src}
+                      alt={logo.alt}
+                      style={{ height: '100%', width: 'auto', maxWidth: '100%', objectFit: 'contain' }}
+                      loading="lazy"
+                    />
+                  </Box>
+                  <Typography
+                    sx={{
+                      fontSize: '0.6rem',
+                      fontWeight: 600,
+                      color: 'rgba(255,255,255,0.4)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      textAlign: 'center',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {logo.name}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+
+            {/* Bottom accent line */}
+            <Box
+              sx={{
+                mt: { xs: 4, md: 5 },
+                height: 1,
+                background: `linear-gradient(90deg, transparent, ${EMERALD}40, transparent)`,
+              }}
+            />
           </FadeSection>
         </Container>
       </Box>

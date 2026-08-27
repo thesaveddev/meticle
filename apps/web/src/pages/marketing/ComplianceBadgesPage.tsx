@@ -27,7 +27,7 @@ const badges: Badge[] = [
   {
     name: 'Care Quality Commission',
     acronym: 'CQC',
-    logo: '/logos/cqc.svg',
+    logo: '/logos/cqc.png',
     color: '#005EA5',
     region: 'England',
     description: 'The independent regulator of health and adult social care in England. CQC monitors, inspects and regulates services to ensure they meet fundamental standards of quality and safety.',
@@ -52,7 +52,7 @@ const badges: Badge[] = [
   {
     name: 'Care Inspectorate Wales',
     acronym: 'CIW',
-    logo: '/logos/ciw.svg',
+    logo: '/logos/ciw.png',
     color: '#00855A',
     region: 'Wales',
     description: 'The independent regulator and inspector of care and support services in Wales. CIW inspects against the Care and Social Services Inspectorate (Wales) Act 2001.',
@@ -77,7 +77,7 @@ const badges: Badge[] = [
   {
     name: 'Care Inspectorate Scotland',
     acronym: 'CIS',
-    logo: '/logos/cis.svg',
+    logo: '/logos/cis.png',
     color: '#0065BD',
     region: 'Scotland',
     description: 'The national regulator and inspector of care services in Scotland. CIS regulates care homes, domiciliary care, childminding and more under the Public Services Reform (Scotland) Act 2010.',
@@ -102,7 +102,7 @@ const badges: Badge[] = [
   {
     name: 'Regulation and Quality Improvement Authority',
     acronym: 'RQIA',
-    logo: '/logos/rqia.svg',
+    logo: '/logos/rqia.png',
     color: '#6D2077',
     region: 'Northern Ireland',
     description: 'The independent body responsible for inspecting and regulating health and social care services in Northern Ireland under the Health and Personal Social Services (Quality, Improvement and Regulation) Act (NI) 2003.',
@@ -152,7 +152,7 @@ const badges: Badge[] = [
   {
     name: 'UK GDPR & Data Protection Act 2018',
     acronym: 'DPA',
-    logo: '/logos/ukgdpr.svg',
+    logo: '/logos/ukgdpr.png',
     color: '#1B2430',
     region: 'United Kingdom',
     description: 'The UK General Data Protection Regulation and Data Protection Act 2018 set the rules for how personal data must be handled. The Data Security and Protection Toolkit (DSPT) is the NHS-specific self-assessment.',
