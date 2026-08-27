@@ -252,6 +252,19 @@ export class NutritionController {
       results,
     });
   }
+
+  // === PDF Export ===
+  static async exportMealPlanPdf(req: Request, res: Response) {
+    const { weeklyPlan, shoppingList } = req.body
+    if (!weeklyPlan) {
+      throw new AppError(400, 'Weekly plan data required')
+    }
+    const { generateMealPlanPdf } = await import('./meal-plan.pdf')
+    const pdf = await generateMealPlanPdf(weeklyPlan, shoppingList)
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="meal-plan-${weeklyPlan.person_context?.name?.replace(/\s+/g, '-') || 'export'}.pdf"`)
+    res.send(pdf)
+  }
 }
 
 /**

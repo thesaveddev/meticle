@@ -48,4 +48,7 @@ router.post('/meal-plans/:templateId/items', requireRole(UserRole.ORG_ADMIN, Use
 router.put('/meal-plans/items/:itemId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(MealPlanController.updateItem));
 router.delete('/meal-plans/items/:itemId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(MealPlanController.deleteItem));
 
+// PDF Export
+router.post('/export/meal-plan-pdf', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(NutritionController.exportMealPlanPdf));
+
 export default router;
