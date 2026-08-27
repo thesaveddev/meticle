@@ -64,6 +64,16 @@ export const MissionControlAlertConsumer: EventConsumer = {
         break;
       }
 
+      case 'shift.understaffed': {
+        const p = event.payload as any;
+        const severity = p.shortfall >= 2 ? 'high' : 'medium';
+        await upsertAlert(orgId, alertType, aggregateId, severity,
+          `Understaffed: ${p.location_name || 'Location'}`,
+          `${p.shift_type || 'Shift'} starting ${formatTime(p.start_time)} — ${p.assigned_staff} of ${p.minimum_staff} required (short ${p.shortfall})`,
+          `/scheduling`, null, null);
+        break;
+      }
+
       case 'training.expiring': {
         const p = event.payload as any;
         const severity = p.days_remaining <= 0 ? 'high' : p.days_remaining <= 14 ? 'medium' : 'low';

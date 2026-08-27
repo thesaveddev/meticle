@@ -176,7 +176,7 @@ export class MissionControlRepository {
     const categoryResult = await query(
       `SELECT
          COUNT(*) FILTER (WHERE alert_type LIKE 'medication.%' AND dismissed = FALSE)::int AS medication,
-         COUNT(*) FILTER (WHERE alert_type IN ('shift.unfilled', 'incident.action_overdue') AND dismissed = FALSE)::int AS staffing_safety,
+         COUNT(*) FILTER (WHERE alert_type IN ('shift.unfilled', 'shift.understaffed', 'incident.action_overdue') AND dismissed = FALSE)::int AS staffing_safety,
          COUNT(*) FILTER (WHERE alert_type IN ('training.expiring', 'dbs.expiring', 'policy.review_due') AND dismissed = FALSE)::int AS compliance,
          COUNT(*) FILTER (WHERE alert_type IN ('care_plan.review_due', 'fluid.intake_below_target') AND dismissed = FALSE)::int AS care
        FROM mission_control_alerts
@@ -208,6 +208,26 @@ export class MissionControlRepository {
          AND s.status NOT IN ('cancelled', 'completed')
          AND s.start_time > CURRENT_TIMESTAMP
          AND s.start_time < CURRENT_TIMESTAMP + interval '24 hours'`,
+      [orgId]
+    );
+
+    // Understaffed shifts (has staff but below minimum)
+    const understaffedShifts = await query(
+      `SELECT COUNT(*)::int AS count
+       FROM (
+         SELECT s.id
+         FROM shifts s
+         JOIN locations l ON s.location_id = l.id
+         LEFT JOIN shift_assignments sa ON sa.shift_id = s.id
+         WHERE l.organization_id = $1
+           AND s.status NOT IN ('cancelled', 'completed')
+           AND s.start_time > CURRENT_TIMESTAMP
+           AND s.start_time < CURRENT_TIMESTAMP + interval '24 hours'
+           AND l.minimum_staff_per_day IS NOT NULL
+           AND l.minimum_staff_per_day > 0
+         GROUP BY s.id, l.minimum_staff_per_day
+         HAVING COUNT(sa.id) > 0 AND COUNT(sa.id) < l.minimum_staff_per_day
+       ) sub`,
       [orgId]
     );
 
@@ -297,6 +317,7 @@ export class MissionControlRepository {
       categories: categoryResult.rows[0] || { medication: 0, staffing_safety: 0, compliance: 0, care: 0 },
       overdue_medications: overdueMeds.rows[0]?.count || 0,
       unfilled_shifts: unfilledShifts.rows[0]?.count || 0,
+      understaffed_shifts: understaffedShifts.rows[0]?.count || 0,
       expiring_training: expiringTraining.rows[0]?.count || 0,
       expiring_dbs: expiringDbs.rows[0]?.count || 0,
       overdue_care_plan_reviews: overdueCarePlanReviews.rows[0]?.count || 0,
