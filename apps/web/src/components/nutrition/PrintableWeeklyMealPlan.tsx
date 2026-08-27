@@ -5,7 +5,7 @@ import {
 } from '@mui/material'
 import {
   AutoAwesome as AIIcon, Print as PrintIcon,
-  Restaurant as MealIcon,
+  Restaurant as MealIcon, Download as DownloadIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
 import ShoppingList from './ShoppingList'
@@ -118,6 +118,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [expandedCell, setExpandedCell] = useState<string | null>(null)
+  const [pdfLoading, setPdfLoading] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
 
   const generateWeek = async () => {
@@ -139,6 +140,28 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
 
   const handlePrint = () => {
     window.print()
+  }
+
+  const handleDownloadPdf = async () => {
+    if (!weeklyPlan) return
+    setPdfLoading(true)
+    try {
+      const res = await api.post('/nutrition/export/meal-plan-pdf', {
+        weeklyPlan,
+      }, { responseType: 'blob' })
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `meal-plan-${personName.replace(/\s+/g, '-').toLowerCase()}.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'Failed to generate PDF')
+    } finally {
+      setPdfLoading(false)
+    }
   }
 
   const cellKey = (day: string, mealType: string) => `${day}-${mealType}`
@@ -170,14 +193,24 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
             {weeklyPlan ? 'Regenerate' : 'Generate Plan'}
           </Button>
           {weeklyPlan && (
-            <Button
-              variant="contained" size="small"
-              startIcon={<PrintIcon />}
-              onClick={handlePrint}
-              sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#0F4C81' }}
-            >
-              Print
-            </Button>
+            <>
+              <Button
+                variant="outlined" size="small"
+                startIcon={pdfLoading ? <CircularProgress size={14} /> : <DownloadIcon />}
+                onClick={handleDownloadPdf} disabled={pdfLoading}
+                sx={{ textTransform: 'none', borderRadius: 2, borderColor: '#059669', color: '#059669' }}
+              >
+                {pdfLoading ? 'Generating...' : 'Download PDF'}
+              </Button>
+              <Button
+                variant="contained" size="small"
+                startIcon={<PrintIcon />}
+                onClick={handlePrint}
+                sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#0F4C81' }}
+              >
+                Print
+              </Button>
+            </>
           )}
         </Stack>
       </Stack>
