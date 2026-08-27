@@ -1173,6 +1173,23 @@ export default function SettingsPage() {
     }
   }
 
+  const toggleAIFeature = async (featureKey: string) => {
+    if (!aiConfig) return
+    const current = aiConfig.enabledFeatures || []
+    const next = current.includes(featureKey)
+      ? current.filter((k: string) => k !== featureKey)
+      : [...current, featureKey]
+    setAIConfig((p: any) => ({ ...p, enabledFeatures: next }))
+    try {
+      const res = await api.put('/ai/config', { enabledFeatures: next })
+      setAIConfig(res.data.config)
+      showSnackbar('Feature updated', 'success')
+    } catch (e: any) {
+      setAIConfig((p: any) => ({ ...p, enabledFeatures: current }))
+      setError(e.response?.data?.error?.message || 'Failed to save feature toggle')
+    }
+  }
+
   const runGapAnalysis = async () => {
     setAIAnalyzing(true)
     setAIAnalysisResult(null)
@@ -1238,15 +1255,7 @@ export default function SettingsPage() {
                   <Switch
                     size="small"
                     checked={aiConfig?.enabledFeatures?.includes(f.key) || false}
-                    onChange={e => {
-                      const current = aiConfig?.enabledFeatures || []
-                      setAIConfig((p: any) => ({
-                        ...p,
-                        enabledFeatures: e.target.checked
-                          ? [...current, f.key]
-                          : current.filter((k: string) => k !== f.key),
-                      }))
-                    }}
+                    onChange={() => toggleAIFeature(f.key)}
                   />
                   <Box>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{f.label}</Typography>
