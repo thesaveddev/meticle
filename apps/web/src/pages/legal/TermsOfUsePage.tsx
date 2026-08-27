@@ -18,14 +18,14 @@ export default function TermsOfUsePage() {
       <PageMeta title="Terms of Use | MeticleCare" description="Terms and conditions for using MeticleCare, the care management platform for UK supported living providers." canonicalPath="/terms" />
     <Container maxWidth="md" sx={{ py: 8 }}>
       <Typography variant="h3" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Terms of Use</Typography>
-      <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: July 2026</Typography>
+      <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: August 2026</Typography>
 
       <Section title="1. Agreement">
-        <p>By accessing or using Meticle ("the Service"), you agree to be bound by these Terms of Use. If you are using the Service on behalf of an organisation, you represent that you have authority to bind that organisation.</p>
+        <p>By accessing or using MeticleCare ("the Service"), you agree to be bound by these Terms of Use. If you are using the Service on behalf of an organisation, you represent that you have authority to bind that organisation.</p>
       </Section>
 
       <Section title="2. Definitions">
-        <ul><li><strong>"We", "Us", "Meticle"</strong> — the Service provider</li><li><strong>"You", "Customer"</strong> — the organisation or individual using the Service</li><li><strong>"Person"</strong> — a person receiving care, whose data is stored in the Service</li><li><strong>"Staff"</strong> — employees or contractors of the Customer who access the Service</li></ul>
+        <ul><li><strong>"We", "Us", "MeticleCare"</strong> — the Service provider</li><li><strong>"You", "Customer"</strong> — the organisation or individual using the Service</li><li><strong>"Person"</strong> — a person receiving care, whose data is stored in the Service</li><li><strong>"Staff"</strong> — employees or contractors of the Customer who access the Service</li></ul>
       </Section>
 
       <Section title="3. Your Account">
@@ -38,7 +38,7 @@ export default function TermsOfUsePage() {
       </Section>
 
       <Section title="5. Data Processing">
-        <p>You are the data controller for all personal data you upload to Meticle. We act as a data processor. This relationship is governed by our Data Processing Agreement, incorporated by reference into these Terms. You are responsible for:</p>
+        <p>You are the data controller for all personal data you upload to MeticleCare. We act as a data processor. This relationship is governed by our Data Processing Terms (set out in Section 5 below and in our Privacy Policy), which are incorporated by reference into these Terms. You are responsible for:</p>
         <ul><li>Obtaining necessary consents from staff and people</li><li>Ensuring data is accurate and up to date</li><li>Complying with Subject Access Requests from your staff and people</li><li>Notifying us of any data breaches involving Service data</li></ul>
       </Section>
 
@@ -47,15 +47,15 @@ export default function TermsOfUsePage() {
       </Section>
 
       <Section title="7. Service Availability">
-        <p>We aim for 99.9% uptime but do not guarantee uninterrupted service. We will notify you of planned maintenance at least 48 hours in advance. We are not liable for downtime caused by factors outside our control (internet outages, third-party services, force majeure).</p>
+        <p>We target 99.9% uptime but cannot guarantee uninterrupted service. Planned maintenance is communicated at least 48 hours in advance. We are not liable for downtime caused by factors outside our reasonable control (internet outages, third-party services, force majeure).</p>
       </Section>
 
       <Section title="8. Limitation of Liability">
-        <p>Meticle is a compliance support tool, not a substitute for professional legal or regulatory advice. We are not liable for CQC inspection outcomes, regulatory fines, or penalties. Our total liability is limited to the fees paid by you in the 12 months preceding the claim. We are not liable for indirect, consequential, or special damages.</p>
+        <p>MeticleCare is a compliance support tool, not a substitute for professional legal or regulatory advice. We are not liable for CQC inspection outcomes, regulatory fines, or penalties. Our total liability is limited to the fees paid by you in the 12 months preceding the claim. We are not liable for indirect, consequential, or special damages.</p>
       </Section>
 
       <Section title="9. Intellectual Property">
-        <p>Meticle and all associated code, design, and documentation are protected by copyright and intellectual property laws. You retain ownership of all data you upload. We retain ownership of the Service, its code, and its algorithms.</p>
+        <p>MeticleCare and all associated code, design, and documentation are protected by copyright and intellectual property laws. You retain ownership of all data you upload. We retain ownership of the Service, its code, and its algorithms.</p>
       </Section>
 
       <Section title="10. Termination">
