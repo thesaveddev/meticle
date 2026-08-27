@@ -87,4 +87,31 @@ export class AIRepository {
     );
     return res.rows[0] || {};
   }
+
+  /** Check if org has exceeded its monthly token budget or cost cap. */
+  static async checkBudget(organizationId: string, config: AIConfig): Promise<{ allowed: boolean; reason?: string; currentTokens: number; budgetTokens: number; currentCostGBP: number; costCapGBP: number }> {
+    const res = await query(
+      `SELECT
+         COALESCE(SUM(total_tokens), 0)::bigint AS tokens_used,
+         COALESCE(SUM(total_tokens) * 0.000002, 0)::numeric(10,4) AS cost_gbp
+       FROM ai_audit_logs
+       WHERE organization_id = $1
+         AND created_at >= date_trunc('month', CURRENT_DATE)
+         AND success = TRUE`,
+      [organizationId]
+    );
+    const row = res.rows[0] || { tokens_used: 0, cost_gbp: 0 };
+    const currentTokens = Number(row.tokens_used);
+    const currentCostGBP = Number(row.cost_gbp);
+    const budgetTokens = config.monthlyTokenBudget || 0;
+    const costCapGBP = config.monthlyCostCapGBP || 0;
+
+    if (budgetTokens > 0 && currentTokens >= budgetTokens) {
+      return { allowed: false, reason: `Monthly token budget exceeded (${currentTokens.toLocaleString()} / ${budgetTokens.toLocaleString()})`, currentTokens, budgetTokens, currentCostGBP, costCapGBP };
+    }
+    if (costCapGBP > 0 && currentCostGBP >= costCapGBP) {
+      return { allowed: false, reason: `Monthly cost cap exceeded (£${currentCostGBP.toFixed(2)} / £${costCapGBP.toFixed(2)})`, currentTokens, budgetTokens, currentCostGBP, costCapGBP };
+    }
+    return { allowed: true, currentTokens, budgetTokens, currentCostGBP, costCapGBP };
+  }
 }

@@ -2,8 +2,49 @@ import { Request, Response } from 'express';
 import { AIRepository } from './ai.repository';
 import { getProvider } from './ai.provider';
 import { renderPrompt } from './ai.prompts';
-import { AIConfig } from './ai.types';
+import { AIConfig, AIProvider } from './ai.types';
 import logger from '../../shared/utils/logger';
+
+/**
+ * Centralised AI call helper with budget enforcement and provider fallback.
+ * All AI calls should go through this function.
+ */
+async function aiCall(
+  orgId: string,
+  config: AIConfig,
+  messages: Array<{ role: string; content: string }>,
+  options?: { model?: string; maxTokens?: number; temperature?: number },
+): Promise<{ content: string; promptTokens: number; completionTokens: number; totalTokens: number; provider: string }> {
+  // Budget check
+  const budget = await AIRepository.checkBudget(orgId, config);
+  if (!budget.allowed) {
+    throw new Error(`AI budget exceeded: ${budget.reason}`);
+  }
+
+  // Primary provider
+  const primaryProvider = getProvider(config);
+  try {
+    const result = await primaryProvider.chatCompletion(messages, options);
+    return { ...result, provider: config.provider };
+  } catch (err: any) {
+    logger.warn({ err: err.message, provider: config.provider, orgId }, 'Primary AI provider failed');
+
+    // Fallback provider
+    if (config.fallbackProvider && config.fallbackApiKey) {
+      logger.info({ fallback: config.fallbackProvider, orgId }, 'Attempting fallback AI provider');
+      const fallbackConfig: AIConfig = {
+        ...config,
+        provider: config.fallbackProvider,
+        apiKey: config.fallbackApiKey,
+        model: config.fallbackModel || config.model,
+      };
+      const fallbackProvider = getProvider(fallbackConfig);
+      const result = await fallbackProvider.chatCompletion(messages, options);
+      return { ...result, provider: config.fallbackProvider };
+    }
+    throw err;
+  }
+}
 
 export class AIController {
   static async getConfig(req: Request, res: Response) {
@@ -18,7 +59,7 @@ export class AIController {
     const orgId = req.user?.organizationId;
     if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
 
-    const { provider, model, enabledFeatures, apiKey } = req.body;
+    const { provider, model, enabledFeatures, apiKey, monthlyTokenBudget, monthlyCostCapGBP, fallbackProvider, fallbackApiKey, fallbackModel } = req.body;
     const update: Partial<AIConfig> = {};
     if (provider !== undefined) update.provider = provider;
     if (model !== undefined) update.model = model;
@@ -32,9 +73,21 @@ export class AIController {
       }
     }
     if (req.body.enabled !== undefined) update.enabled = req.body.enabled;
+    if (monthlyTokenBudget !== undefined) update.monthlyTokenBudget = Number(monthlyTokenBudget) || 0;
+    if (monthlyCostCapGBP !== undefined) update.monthlyCostCapGBP = Number(monthlyCostCapGBP) || 0;
+    if (fallbackProvider !== undefined) update.fallbackProvider = fallbackProvider;
+    if (fallbackModel !== undefined) update.fallbackModel = fallbackModel;
+    if (fallbackApiKey !== undefined) {
+      const trimmed = typeof fallbackApiKey === 'string' ? fallbackApiKey.trim() : fallbackApiKey;
+      if (trimmed === '' || (typeof trimmed === 'string' && trimmed.includes('••'))) {
+        // Don't overwrite masked key
+      } else {
+        update.fallbackApiKey = trimmed;
+      }
+    }
 
     const config = await AIRepository.updateConfig(orgId, update);
-    const sanitized = { ...config, apiKey: config.apiKey ? '••••••••' + config.apiKey.slice(-4) : '' };
+    const sanitized = { ...config, apiKey: config.apiKey ? '••••••••' + config.apiKey.slice(-4) : '', fallbackApiKey: config.fallbackApiKey ? '••••••••' + config.fallbackApiKey.slice(-4) : '' };
     res.json({ config: sanitized });
   }
 
@@ -61,15 +114,14 @@ export class AIController {
 
     const start = Date.now();
     try {
-      const provider = getProvider(config);
-      const result = await provider.chatCompletion(
+      const result = await aiCall(orgId, config,
         [{ role: 'system', content: system }, { role: 'user', content: user }],
         { model: config.model, temperature: 0.3 }
       );
 
-      let parsed;
-      try { parsed = JSON.parse(result.content); }
-      catch { parsed = { raw: result.content }; }
+      const { validateAIResponse } = await import('./ai.schemas');
+      const { ComplianceGapAnalysisSchema } = await import('./ai.schemas');
+      const { data: parsed, error: validationError } = validateAIResponse(ComplianceGapAnalysisSchema, result.content, 'Compliance gap analysis');
 
       try {
         await AIRepository.logAudit({
@@ -80,13 +132,17 @@ export class AIController {
           completionTokens: result.completionTokens,
           totalTokens: result.totalTokens,
           model: config.model,
-          provider: provider.name,
+          provider: result.provider,
           durationMs: Date.now() - start,
           createdBy: req.user?.userId,
           requestData: { regulator, overallRate },
-          responseSummary: typeof parsed === 'object' ? parsed.overall_assessment || 'Completed' : result.content.slice(0, 200),
+          responseSummary: parsed?.overall_assessment || 'Completed',
         });
       } catch { /* audit logging non-critical */ }
+
+      if (!parsed) {
+        return res.json({ analysis: { raw: result.content, validationWarning: validationError }, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
+      }
 
       res.json({ analysis: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
     } catch (err: any) {
@@ -130,15 +186,13 @@ export class AIController {
 
     const start = Date.now();
     try {
-      const provider = getProvider(config);
-      const result = await provider.chatCompletion(
+      const result = await aiCall(orgId, config,
         [{ role: 'system', content: system }, { role: 'user', content: user }],
         { model: config.model, temperature: 0.3 }
       );
 
-      let parsed;
-      try { parsed = JSON.parse(result.content); }
-      catch { parsed = { raw: result.content }; }
+      const { validateAIResponse, IncidentTriageSchema } = await import('./ai.schemas');
+      const { data: parsed, error: validationError } = validateAIResponse(IncidentTriageSchema, result.content, 'Incident triage');
 
       try {
         await AIRepository.logAudit({
@@ -149,12 +203,16 @@ export class AIController {
           completionTokens: result.completionTokens,
           totalTokens: result.totalTokens,
           model: config.model,
-          provider: provider.name,
+          provider: result.provider,
           durationMs: Date.now() - start,
           createdBy: req.user?.userId,
-          responseSummary: typeof parsed === 'object' ? `${parsed.severity} (${Math.round((parsed.confidence || 0) * 100)}%)` : result.content.slice(0, 200),
+          responseSummary: parsed ? `${parsed.severity} (${Math.round((parsed.confidence || 0) * 100)}%)` : 'Parse failed',
         });
       } catch { /* audit logging non-critical */ }
+
+      if (!parsed) {
+        return res.json({ triage: { raw: result.content, validationWarning: validationError }, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
+      }
 
       res.json({ triage: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
     } catch (err: any) {
@@ -955,6 +1013,134 @@ export class AIController {
       } catch { /* audit non-critical */ }
       logger.error(err, 'AI shopping list generation failed');
       res.status(500).json({ error: { message: 'AI shopping list generation failed' } });
+    }
+  }
+
+  /** POST /ai/daily-notes/:noteId/care-plan-gap — compare a visit note against care plan + nutrition */
+  static async analyzeCarePlanGap(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    if (!orgId) return res.status(400).json({ error: { message: 'Organization required' } });
+
+    const pool = (await import('../../shared/database')).default;
+    const { noteId } = req.params;
+
+    const noteResult = await pool.query(
+      `SELECT n.*, p.first_name, p.last_name, p.id as person_id
+       FROM daily_notes n JOIN people p ON p.id = n.person_id
+       WHERE n.id = $1 AND p.organization_id = $2`,
+      [noteId, orgId]
+    );
+    if (noteResult.rows.length === 0) {
+      return res.status(404).json({ error: { message: 'Note not found' } });
+    }
+    const note = noteResult.rows[0];
+
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return res.status(400).json({ error: { message: 'AI not configured' } });
+    }
+
+    const [carePlans, dietaryProfile, recentNutrition] = await Promise.all([
+      pool.query('SELECT title, goals, review_date FROM care_plans WHERE person_id = $1 AND status = $2', [note.person_id, 'active']),
+      pool.query('SELECT allergies, dietary_requirements, texture_modified, favourite_foods, disliked_foods, cultural_preferences FROM dietary_profiles WHERE person_id = $1', [note.person_id]),
+      pool.query(`SELECT meal_type, date, consumed_percentage, fluid_ml, appetite_level, refused, notes
+        FROM nutrition_records WHERE person_id = $1 AND date >= CURRENT_DATE - INTERVAL '7 days' ORDER BY date DESC`, [note.person_id]),
+    ]);
+
+    const { system, user: userTemplate } = renderPrompt('visit_note_care_plan_gap', {});
+    const userPrompt = userTemplate
+      .replace('{{care_plan}}', carePlans.rows.map((cp: any) => `${cp.title}: ${cp.goals || 'No goals recorded'}`).join('\n') || 'No active care plans')
+      .replace('{{visit_note}}', note.content)
+      .replace('{{dietary_profile}}', dietaryProfile.rows[0]
+        ? `Allergies: ${dietaryProfile.rows[0].allergies || 'None'}\nDietary: ${dietaryProfile.rows[0].dietary_requirements || 'None'}\nTexture: ${dietaryProfile.rows[0].texture_modified || 'Normal'}\nPreferences: ${dietaryProfile.rows[0].favourite_foods || 'None'}`
+        : 'No dietary profile on file')
+      .replace('{{recent_nutrition}}', recentNutrition.rows.map((r: any) =>
+        `${r.date} ${r.meal_type}: ${r.consumed_percentage || '?'}% consumed, ${r.fluid_ml || 0}ml fluid, appetite ${r.appetite_level || 'unknown'}${r.refused ? ' (REFUSED)' : ''}`
+      ).join('\n') || 'No nutrition records in last 7 days');
+
+    const start = Date.now();
+    try {
+      const provider = getProvider(config);
+      const result = await provider.chatCompletion(
+        [{ role: 'system', content: system }, { role: 'user', content: userPrompt }],
+        { model: config.model, temperature: 0.3, maxTokens: 1500 }
+      );
+
+      let parsed: any;
+      try {
+        const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: result.content, gaps: [], nutrition_flags: [], audit_risk: 'unknown' };
+      } catch {
+        parsed = { summary: result.content, gaps: [], nutrition_flags: [], audit_risk: 'unknown' };
+      }
+
+      await AIRepository.logAudit({
+        organizationId: orgId, feature: 'care_plan_gap_analysis', promptKey: 'visit_note_care_plan_gap',
+        success: true, promptTokens: result.promptTokens, completionTokens: result.completionTokens,
+        totalTokens: result.totalTokens, model: config.model, provider: provider.name,
+        durationMs: Date.now() - start, createdBy: req.user?.userId,
+        requestData: { noteId, personId: note.person_id },
+        responseSummary: `Risk: ${parsed.audit_risk}, Gaps: ${parsed.gaps?.length || 0}, Nutrition flags: ${parsed.nutrition_flags?.length || 0}`,
+      });
+
+      res.json({ analysis: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens } });
+    } catch (err: any) {
+      logger.error(err, 'Care plan gap analysis failed');
+      res.status(500).json({ error: { message: 'Care plan gap analysis failed' } });
+    }
+  }
+
+  /** POST /ai/competency/generate-questions — generate assessment questions from a CQC statement */
+  static async generateCompetencyQuestions(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    if (!orgId) return res.status(400).json({ error: { message: 'Organization required' } });
+
+    const { cqcStatement, role, area } = req.body;
+    if (!cqcStatement || !role || !area) {
+      return res.status(400).json({ error: { message: 'cqcStatement, role, and area are required' } });
+    }
+
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return res.status(400).json({ error: { message: 'AI not configured' } });
+    }
+
+    const { system, user: userTemplate } = renderPrompt('competency_assessment_assistant', {});
+    const userPrompt = userTemplate
+      .replace('{{cqc_statement}}', cqcStatement)
+      .replace('{{role}}', role)
+      .replace('{{area}}', area);
+
+    const start = Date.now();
+    try {
+      const provider = getProvider(config);
+      const result = await provider.chatCompletion(
+        [{ role: 'system', content: system }, { role: 'user', content: userPrompt }],
+        { model: config.model, temperature: 0.4, maxTokens: 2000 }
+      );
+
+      let parsed: any;
+      try {
+        const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { questions: [], cqc_statement: cqcStatement };
+      } catch {
+        parsed = { questions: [], cqc_statement: cqcStatement };
+      }
+
+      await AIRepository.logAudit({
+        organizationId: orgId, feature: 'competency_assessment_assistant', promptKey: 'competency_assessment_assistant',
+        success: true, promptTokens: result.promptTokens, completionTokens: result.completionTokens,
+        totalTokens: result.totalTokens, model: config.model, provider: provider.name,
+        durationMs: Date.now() - start, createdBy: req.user?.userId,
+        requestData: { cqcStatement, role, area },
+        responseSummary: `Generated ${parsed.questions?.length || 0} questions for ${area}`,
+      });
+
+      res.json({ questions: parsed.questions || [], cqcStatement: parsed.cqc_statement || cqcStatement,
+        usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens } });
+    } catch (err: any) {
+      logger.error(err, 'Competency question generation failed');
+      res.status(500).json({ error: { message: 'Competency question generation failed' } });
     }
   }
 }

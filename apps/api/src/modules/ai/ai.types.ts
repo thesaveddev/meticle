@@ -9,4 +9,14 @@ export interface AIConfig {
   apiKey: string;
   model: string;
   enabledFeatures: string[];
+  /** Monthly token budget — 0 means unlimited */
+  monthlyTokenBudget?: number;
+  /** Monthly cost cap in GBP — 0 means unlimited */
+  monthlyCostCapGBP?: number;
+  /** Fallback provider when primary fails */
+  fallbackProvider?: 'openai' | 'anthropic';
+  /** Fallback API key */
+  fallbackApiKey?: string;
+  /** Fallback model */
+  fallbackModel?: string;
 }
