@@ -29,6 +29,16 @@ interface WeeklyMeal {
   name: string
   items: Array<{ name: string; portion: string }>
   estimated_calories: number
+  description?: string
+}
+
+interface MealSlot {
+  option_a?: WeeklyMeal
+  option_b?: WeeklyMeal
+  // Legacy single-option support
+  name?: string
+  items?: Array<{ name: string; portion: string }>
+  estimated_calories?: number
 }
 
 interface WeeklyPlan {
@@ -41,7 +51,7 @@ interface WeeklyPlan {
     texture_modification: string
     fluid_target_ml: number
   }
-  week: Record<string, Record<string, WeeklyMeal>>
+  week: Record<string, Record<string, MealSlot>>
   weekly_totals: {
     avg_daily_calories: number
     avg_daily_fluid_ml: number
@@ -49,6 +59,19 @@ interface WeeklyPlan {
   }
   nutritional_notes: string[]
   allergen_warnings: string[]
+}
+
+// Helper to get meal data whether it's dual-option or legacy single
+function getMealDisplay(slot: MealSlot | undefined): { primary: WeeklyMeal | null; secondary: WeeklyMeal | null } {
+  if (!slot) return { primary: null, secondary: null }
+  if (slot.option_a) {
+    return { primary: slot.option_a, secondary: slot.option_b || null }
+  }
+  // Legacy single-option format
+  if (slot.name) {
+    return { primary: { name: slot.name, items: slot.items || [], estimated_calories: slot.estimated_calories || 0 }, secondary: null }
+  }
+  return { primary: null, secondary: null }
 }
 
 interface Props {
@@ -373,49 +396,96 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                     </Paper>
                   </Grid>
                   {DAYS.map(day => {
-                    const meal = weeklyPlan.week?.[day]?.[mt.value]
+                    const slot = weeklyPlan.week?.[day]?.[mt.value]
+                    const { primary, secondary } = getMealDisplay(slot)
                     const key = cellKey(day, mt.value)
                     const isExpanded = expandedCell === key
+                    const hasData = primary || secondary
                     return (
                       <Grid item xs key={day} sx={{ flex: 1 }}>
                         <Paper
                           variant="outlined"
                           className="meal-cell"
-                          onClick={() => meal && setExpandedCell(isExpanded ? null : key)}
+                          onClick={() => hasData && setExpandedCell(isExpanded ? null : key)}
                           sx={{
                             py: 1, px: 1, minHeight: 60,
                             borderColor: isExpanded ? mt.color : '#E5E7EB',
                             borderWidth: isExpanded ? 2 : 1,
-                            cursor: meal ? 'pointer' : 'default',
+                            cursor: hasData ? 'pointer' : 'default',
                             transition: 'all 0.15s',
-                            '&:hover': meal ? { borderColor: mt.color + '80', boxShadow: 1 } : {},
+                            '&:hover': hasData ? { borderColor: mt.color + '80', boxShadow: 1 } : {},
                             borderRadius: 2,
                           }}
                         >
-                          {meal ? (
+                          {primary ? (
                             <>
-                              <Typography
-                                variant="caption" fontWeight={700}
-                                sx={{ display: 'block', lineHeight: 1.2, mb: 0.5, fontSize: '0.75rem' }}
-                              >
-                                {meal.name}
-                              </Typography>
+                              {/* Option A (Recommended) */}
+                              <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.25 }}>
+                                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: mt.color, flexShrink: 0 }} />
+                                <Typography
+                                  variant="caption" fontWeight={700}
+                                  sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.7rem', color: '#1F2937' }}
+                                >
+                                  {primary.name}
+                                </Typography>
+                              </Stack>
                               <Typography
                                 variant="caption" color="text.secondary"
-                                sx={{ fontSize: '0.65rem', display: 'block' }}
+                                sx={{ fontSize: '0.6rem', display: 'block', ml: 1.25 }}
                               >
-                                {meal.estimated_calories} kcal
+                                {primary.estimated_calories} kcal
                               </Typography>
+
+                              {/* Option B (Alternative) */}
+                              {secondary && (
+                                <>
+                                  <Box sx={{ borderTop: '1px dashed #E5E7EB', my: 0.5 }} />
+                                  <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.25 }}>
+                                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: mt.color + '60', flexShrink: 0 }} />
+                                    <Typography
+                                      variant="caption" fontWeight={600}
+                                      sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.65rem', color: '#6B7280' }}
+                                    >
+                                      {secondary.name}
+                                    </Typography>
+                                  </Stack>
+                                  <Typography
+                                    variant="caption" color="text.secondary"
+                                    sx={{ fontSize: '0.55rem', display: 'block', ml: 1.25 }}
+                                  >
+                                    {secondary.estimated_calories} kcal
+                                  </Typography>
+                                </>
+                              )}
+
                               {isExpanded && (
                                 <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid #E5E7EB' }}>
-                                  {meal.items?.map((item, i) => (
-                                    <Typography
-                                      key={i} variant="caption"
-                                      sx={{ display: 'block', fontSize: '0.65rem', color: '#6B7280', lineHeight: 1.4 }}
-                                    >
+                                  <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color }}>Option A:</Typography>
+                                  {primary.items?.map((item, i) => (
+                                    <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#6B7280', lineHeight: 1.4 }}>
                                       • {item.name} ({item.portion})
                                     </Typography>
                                   ))}
+                                  {primary.description && (
+                                    <Typography variant="caption" sx={{ display: 'block', fontSize: '0.55rem', color: '#9CA3AF', fontStyle: 'italic', mt: 0.5 }}>
+                                      {primary.description}
+                                    </Typography>
+                                  )}
+                                  {secondary && (
+                                    <>
+                                      <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6rem', color: mt.color + '99', mt: 1, display: 'block' }}>Option B:</Typography>
+                                      {secondary.items?.map((item, i) => (
+                                        <Typography key={i} variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: '#9CA3AF', lineHeight: 1.4 }}>
+                                          • {item.name} ({item.portion})
+                                        </Typography>
+                                      ))}
+                                      {secondary.description && (
+                                        <Typography variant="caption" sx={{ display: 'block', fontSize: '0.55rem', color: '#D1D5DB', fontStyle: 'italic', mt: 0.5 }}>
+                                          {secondary.description}
+                                        </Typography>
+                                      )}
+                                    </>
+                                  )}
                                 </Box>
                               )}
                             </>

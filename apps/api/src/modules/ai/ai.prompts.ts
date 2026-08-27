@@ -528,12 +528,30 @@ Output JSON with this EXACT structure:
   },
   "week": {
     "monday": {
-      "breakfast": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
-      "morning_snack": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
-      "lunch": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
-      "afternoon_snack": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
-      "dinner": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
-      "evening_snack": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number },
+      "breakfast": {
+        "option_a": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description of the meal" },
+        "option_b": { "name": "Alternative meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description of the alternative" }
+      },
+      "morning_snack": {
+        "option_a": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description" },
+        "option_b": { "name": "Alternative meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description" }
+      },
+      "lunch": {
+        "option_a": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description" },
+        "option_b": { "name": "Alternative meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description" }
+      },
+      "afternoon_snack": {
+        "option_a": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description" },
+        "option_b": { "name": "Alternative meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description" }
+      },
+      "dinner": {
+        "option_a": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description" },
+        "option_b": { "name": "Alternative meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description" }
+      },
+      "evening_snack": {
+        "option_a": { "name": "Meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description" },
+        "option_b": { "name": "Alternative meal name", "items": [{ "name": "Food", "portion": "portion" }], "estimated_calories": number, "description": "Brief description" }
+      },
       "daily_calories": number,
       "daily_fluid_ml": number
     },
@@ -553,7 +571,7 @@ Output JSON with this EXACT structure:
   "allergen_warnings": ["warnings"]
 }
 
-IMPORTANT: Each day must have all 6 meal slots. Vary the meals across the week — no identical meals on consecutive days.`,
+IMPORTANT: Each day must have all 6 meal slots. Each meal slot MUST have TWO options (option_a and option_b). The options should be genuinely different meals (e.g., Option A: Porridge with berries, Option B: Scrambled eggs on toast). Vary the meals across the week \u2014 no identical meals on consecutive days. Option A is the recommended choice; Option B is an alternative the person might prefer.`,
     userTemplate: `Generate a complete 7-day weekly meal plan for the following person:
 
 PERSON DETAILS:
@@ -580,7 +598,7 @@ Generate a complete, safe, and varied 7-day meal plan that meets all dietary req
   },
 
   shopping_list_generation: {
-    system: 'You are a care home kitchen manager and procurement specialist. Given a complete weekly meal plan, generate a consolidated shopping list.\n\nYour task:\n1. Extract ALL unique food items from every meal across all 7 days\n2. Consolidate duplicate items (e.g., if chicken appears 3 times, combine into one entry with total quantity)\n3. Group items into logical shopping categories\n4. Estimate realistic total quantities needed for the week\n5. Consider that care homes typically serve portions to multiple residents\n\nOutput JSON with this EXACT structure:\n{\n  "shopping_list": {\n    "categories": [\n      {\n        "name": "Category Name",\n        "icon": "emoji icon",\n        "items": [\n          {\n            "name": "Item name",\n            "quantity": "Estimated total quantity for the week",\n            "unit": "kg/litres/packs/etc",\n            "used_in": ["List of meals this appears in"],\n            "allergens": ["Any allergens"],\n            "notes": "Optional preparation or storage notes"\n          }\n        ]\n      }\n    ],\n    "total_items": number,\n    "estimated_prep_time_minutes": number,\n    "storage_notes": ["Any special storage requirements"],\n    "tips": ["Helpful tips for kitchen staff"]\n  }\n}\n\nCATEGORIES to use (use only relevant ones):\n- Proteins (meat, fish, eggs, tofu, beans)\n- Fresh Vegetables\n- Fresh Fruit\n- Dairy and Eggs\n- Bread and Bakery\n- Cereals and Grains (rice, pasta, oats, cereals)\n- Tinned and Jarred Goods\n- Frozen Items\n- Herbs, Spices and Seasonings\n- Oils, Sauces and Condiments\n- Drinks and Fluids\n- Snacks and Desserts\n- Kitchen Supplies (foil, cling film, etc)\n- Supplements and Fortifiers\n\nIMPORTANT:\n- Estimate realistic quantities for a care home serving multiple residents\n- Use UK metric measurements (kg, litres, grams)\n- Note any items that need to be stored frozen or refrigerated\n- Include fortifier/shake supplements if the person has poor appetite\n- Group substitute alternatives together where possible',
+    system: 'You are a care home kitchen manager and procurement specialist. Given a complete weekly meal plan, generate a consolidated shopping list.\n\nYour task:\n1. Extract ALL unique food items from every meal across all 7 days\n2. Consolidate duplicate items (e.g., if chicken appears 3 times, combine into one entry with total quantity)\n3. Group items into logical shopping categories\n4. Estimate realistic total quantities needed for the week\n5. Consider that care homes typically serve portions to multiple residents\n\nOutput JSON with this EXACT structure:\n{\n  "shopping_list": {\n    "categories": [\n      {\n        "name": "Category Name",\n        "icon": "emoji icon",\n        "items": [\n          {\n            "name": "Item name",\n            "quantity": "Estimated total quantity for the week",\n            "unit": "kg/litres/packs/etc",\n            "used_in": ["List of meals this appears in"],\n            "allergens": ["Any allergens"],\n            "notes": "Optional preparation or storage notes"\n          }\n        ]\n      }\n    ],\n    "total_items": number,\n    "estimated_prep_time_minutes": number,\n    "storage_notes": ["Any special storage requirements"],\n    "tips": ["Helpful tips for kitchen staff"]\n  }\n}\n\nCATEGORIES to use (use only relevant ones):\n- Proteins (meat, fish, eggs, tofu, beans)\n- Fresh Vegetables\n- Fresh Fruit\n- Dairy and Eggs\n- Bread and Bakery\n- Cereals and Grains (rice, pasta, oats, cereals)\n- Tinned and Jarred Goods\n- Frozen Items\n- Herbs, Spices and Seasonings\n- Oils, Sauces and Condiments\n- Drinks and Fluids\n- Snacks and Desserts\n- Kitchen Supplies (foil, cling film, etc)\n- Supplements and Fortifiers\n\nIMPORTANT:\n- Each meal slot may have TWO options (option_a and option_b) — include items from BOTH options in the shopping list since the staff may choose either\n- Estimate realistic quantities for a care home serving multiple residents\n- Use UK metric measurements (kg, litres, grams)\n- Note any items that need to be stored frozen or refrigerated\n- Include fortifier/shake supplements if the person has poor appetite\n- Group substitute alternatives together where possible',
     userTemplate: 'Generate a consolidated weekly shopping list from the following meal plan:\n\nPERSON: {{person_name}}\nDIETARY REQUIREMENTS: {{dietary_summary}}\nALLERGENS TO AVOID: {{allergens}}\nTEXTURE MODIFICATION: {{texture_modification}}\n\nWEEKLY MEAL PLAN:\n{{weekly_plan_data}}\n\nGenerate a complete, categorized shopping list that consolidates all ingredients needed for this weekly plan. Estimate realistic quantities for a care home kitchen.',
   },
 };
