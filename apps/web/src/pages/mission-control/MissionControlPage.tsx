@@ -31,6 +31,7 @@ interface AlertSummary {
   categories: { medication: number; staffing_safety: number; compliance: number; care: number }
   overdue_medications: number
   unfilled_shifts: number
+  understaffed_shifts: number
   expiring_training: number
   expiring_dbs: number
   overdue_care_plan_reviews: number
@@ -85,7 +86,7 @@ const SeverityIcon = ({ severity }: { severity: string }) => {
 
 const categoryLabel = (type: string): string => {
   if (type.startsWith('medication.')) return 'Medication'
-  if (type === 'shift.unfilled') return 'Staffing'
+  if (type === 'shift.unfilled' || type === 'shift.understaffed') return 'Staffing'
   if (type === 'incident.action_overdue') return 'Safety'
   if (type === 'training.expiring') return 'Training'
   if (type === 'dbs.expiring') return 'DBS'
@@ -263,7 +264,7 @@ export default function MissionControlPage() {
           {/* Category Cards */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             {[{ label: 'Medication', icon: <MedsIcon />, count: (summary?.categories.medication || 0) + (summary?.overdue_medications || 0), detail: `${summary?.overdue_medications || 0} overdue`, path: '/emedication', color: '#DC2626' },
-              { label: 'Staffing & Safety', icon: <StaffingIcon />, count: (summary?.categories.staffing_safety || 0) + (summary?.unfilled_shifts || 0) + (summary?.overdue_incident_actions || 0), detail: `${summary?.unfilled_shifts || 0} unfilled shifts`, path: '/scheduling', color: '#D97706' },
+              { label: 'Staffing & Safety', icon: <StaffingIcon />, count: (summary?.categories.staffing_safety || 0) + (summary?.unfilled_shifts || 0) + (summary?.understaffed_shifts || 0) + (summary?.overdue_incident_actions || 0), detail: `${summary?.unfilled_shifts || 0} unfilled, ${summary?.understaffed_shifts || 0} understaffed`, path: '/scheduling', color: '#D97706' },
               { label: 'Compliance', icon: <ComplianceIcon />, count: (summary?.categories.compliance || 0) + (summary?.expiring_training || 0) + (summary?.expiring_dbs || 0) + (summary?.overdue_policy_reviews || 0), detail: `${summary?.expiring_training || 0} training, ${summary?.expiring_dbs || 0} DBS`, path: '/compliance', color: '#2563EB' },
               { label: 'Care Reviews', icon: <CareIcon />, count: (summary?.categories.care || 0) + (summary?.overdue_care_plan_reviews || 0) + (summary?.low_fluid_intake || 0), detail: `${summary?.overdue_care_plan_reviews || 0} care plans`, path: '/people', color: '#16A34A' },
             ].map(cat => (

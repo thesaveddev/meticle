@@ -2,7 +2,7 @@ import { query } from '../../shared/database';
 import logger from '../../shared/utils/logger';
 import { publishAdministrationLateEvent, publishStockLowEvent } from '../emedication/medication.events';
 import { publishIncidentActionOverdueEvent } from '../incidents/incidents.events';
-import { publishShiftUnfilledEvent } from '../scheduling/scheduling.events';
+import { publishShiftUnfilledEvent, publishShiftUnderstaffedEvent } from '../scheduling/scheduling.events';
 import { publishTrainingExpiringEvent } from '../training/training.events';
 import { publishDbsExpiringEvent } from '../compliance/compliance.events';
 import { publishPolicyReviewDueEvent } from '../policies/policies.events';
@@ -38,6 +38,10 @@ export async function publishBatchEvents(): Promise<Record<string, number>> {
       counts['shift.unfilled'] =
         (counts['shift.unfilled'] || 0) +
         await checkUnfilledShifts(orgId);
+
+      counts['shift.understaffed'] =
+        (counts['shift.understaffed'] || 0) +
+        await checkUnderstaffedShifts(orgId);
 
       counts['training.expiring'] =
         (counts['training.expiring'] || 0) +
@@ -208,6 +212,44 @@ async function checkUnfilledShifts(orgId: string): Promise<number> {
       shiftType: row.shift_type || 'day',
       hoursUntilStart: row.hours_until_start,
     }).catch(err => logger.error({ err }, 'Failed to publish shift.unfilled'));
+    count++;
+  }
+  return count;
+}
+
+async function checkUnderstaffedShifts(orgId: string): Promise<number> {
+  const result = await query(
+    `SELECT s.id AS shift_id, s.location_id, l.name AS location_name,
+            s.start_time, s.shift_type,
+            l.minimum_staff_per_day,
+            COUNT(sa.id) AS assigned_count
+     FROM shifts s
+     JOIN locations l ON s.location_id = l.id
+     LEFT JOIN shift_assignments sa ON sa.shift_id = s.id
+     WHERE l.organization_id = $1
+       AND s.status NOT IN ('cancelled', 'completed')
+       AND s.start_time > CURRENT_TIMESTAMP
+       AND s.start_time < CURRENT_TIMESTAMP + interval '8 hours'
+       AND l.minimum_staff_per_day IS NOT NULL
+       AND l.minimum_staff_per_day > 0
+     GROUP BY s.id, s.location_id, l.name, s.start_time, s.shift_type, l.minimum_staff_per_day
+     HAVING COUNT(sa.id) > 0 AND COUNT(sa.id) < l.minimum_staff_per_day
+     LIMIT 30`,
+    [orgId]
+  );
+
+  let count = 0;
+  for (const row of result.rows) {
+    await publishShiftUnderstaffedEvent({
+      organizationId: orgId,
+      shiftId: row.shift_id,
+      locationId: row.location_id,
+      locationName: row.location_name,
+      startTime: row.start_time?.toISOString?.() || String(row.start_time),
+      shiftType: row.shift_type || 'day',
+      assignedStaff: parseInt(row.assigned_count) || 0,
+      minimumStaff: row.minimum_staff_per_day,
+    }).catch(err => logger.error({ err }, 'Failed to publish shift.understaffed'));
     count++;
   }
   return count;

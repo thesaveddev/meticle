@@ -42,3 +42,48 @@ export async function publishShiftUnfilledEvent(args: {
     payload: payload as unknown as Record<string, unknown>,
   });
 }
+
+export interface ShiftUnderstaffedPayload {
+  shift_id: string;
+  location_id: string;
+  location_name: string;
+  start_time: string;
+  shift_type: string;
+  assigned_staff: number;
+  minimum_staff: number;
+  shortfall: number;
+}
+
+/**
+ * Publish `shift.understaffed` when a shift has some staff but fewer than
+ * the location's minimum_staff_per_day requirement.
+ */
+export async function publishShiftUnderstaffedEvent(args: {
+  organizationId: string;
+  shiftId: string;
+  locationId: string;
+  locationName: string;
+  startTime: string;
+  shiftType: string;
+  assignedStaff: number;
+  minimumStaff: number;
+}): Promise<{ id: string }> {
+  const payload: ShiftUnderstaffedPayload = {
+    shift_id: args.shiftId,
+    location_id: args.locationId,
+    location_name: args.locationName,
+    start_time: args.startTime,
+    shift_type: args.shiftType,
+    assigned_staff: args.assignedStaff,
+    minimum_staff: args.minimumStaff,
+    shortfall: args.minimumStaff - args.assignedStaff,
+  };
+
+  return publishDomainEvent({
+    organizationId: args.organizationId,
+    eventName: 'shift.understaffed',
+    aggregateType: 'shift',
+    aggregateId: args.shiftId,
+    payload: payload as unknown as Record<string, unknown>,
+  });
+}
