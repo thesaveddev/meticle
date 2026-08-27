@@ -54,7 +54,6 @@ const INK_DARK = '#141C24'
 
 const HERO_IMAGE = '/illustrations/hero-care.svg'
 const SHOWCASE_IMAGE = '/illustrations/care-moment.svg'
-const TIMELINE_IMAGE = '/illustrations/timeline-card.svg'
 
 
 function FadeSection({ children, direction = 'up', delay = 0 }: { children?: React.ReactNode; direction?: 'up' | 'down'; delay?: number }) {
@@ -185,12 +184,12 @@ A clear working record for the people you support — and a calmer day for the t
       <Box
         component="section"
         aria-label="Standards MeticleCare is built for"
-        sx={{ bgcolor: INK_DARK, py: { xs: 5, md: 5.5 } }}
+        sx={{ bgcolor: '#FFFFFF', py: { xs: 5, md: 5.5 }, borderTop: `1px solid ${HAIRLINE}`, borderBottom: `1px solid ${HAIRLINE}` }}
       >
         <Container maxWidth="lg">
           <Typography
             sx={{
-              color: 'rgba(255,255,255,0.4)',
+              color: MIST,
               fontSize: '0.72rem',
               fontWeight: 700,
               letterSpacing: '0.1em',
@@ -225,8 +224,8 @@ A clear working record for the people you support — and a calmer day for the t
                 sx={{
                   py: 2,
                   px: { xs: 1.5, md: 2.5 },
-                  borderRight: { xs: 'none', md: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none' },
-                  borderBottom: { xs: i < 3 ? '1px solid rgba(255,255,255,0.1)' : 'none', md: 'none' },
+                  borderRight: { xs: 'none', md: i < arr.length - 1 ? `1px solid ${HAIRLINE}` : 'none' },
+                  borderBottom: { xs: i < 3 ? `1px solid ${HAIRLINE}` : 'none', md: 'none' },
                   display: 'grid',
                   placeItems: 'center',
                 }}
@@ -237,7 +236,7 @@ A clear working record for the people you support — and a calmer day for the t
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    opacity: 0.7,
+                    opacity: 0.6,
                     transition: 'opacity 0.2s ease',
                     '&:hover': { opacity: 1 },
                   }}
@@ -373,24 +372,25 @@ The tools your team uses every day, connected around the person and the service.
           <FadeSection delay={150}>
             <Box
               sx={{
-                borderRadius: 3,
-                overflow: 'hidden',
-                border: `1px solid ${HAIRLINE}`,
-                bgcolor: '#FFFFFF',
-                boxShadow: '0 24px 60px -32px rgba(20, 32, 45, 0.25)',
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(5, 1fr)' },
+                gap: { xs: 2, md: 3 },
+                position: 'relative',
               }}
             >
-              <img
-                src={TIMELINE_IMAGE}
-                alt="A five-step flow showing how one care action travels through MeticleCare: care given, MAR updated, note recorded, family informed, compliance scored"
-                width="1280"
-                height="360"
-                loading="lazy"
-                style={{ display: 'block', width: '100%', height: 'auto' }}
+              {/* Connecting line */}
+              <Box
+                sx={{
+                  display: { xs: 'none', md: 'block' },
+                  position: 'absolute',
+                  top: 28,
+                  left: '10%',
+                  right: '10%',
+                  height: 2,
+                  bgcolor: `${NAVY}18`,
+                  zIndex: 0,
+                }}
               />
-            </Box>
-
-            <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mt: { xs: 3, md: 4 } }}>
               {[
                 { t: 'Care given', d: 'A medication or support task is recorded at the point of care.' },
                 { t: 'MAR updated', d: "The medication record updates for the day's round." },
@@ -398,19 +398,30 @@ The tools your team uses every day, connected around the person and the service.
                 { t: 'Family informed', d: 'Relatives see the note in their portal view.' },
                 { t: 'Compliance scored', d: 'The record feeds readiness where it matters.' },
               ].map((step, i) => (
-                <Grid item xs={6} md key={step.t}>
-                  <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ borderTop: `2px solid ${NAVY}`, pt: 1.5 }}>
-                    <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: NAVY, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0 }}>
-                      {i + 1}
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.92rem', lineHeight: 1.2, mb: 0.5 }}>{step.t}</Typography>
-                      <Typography sx={{ color: MIST, fontSize: '0.8rem', lineHeight: 1.55 }}>{step.d}</Typography>
-                    </Box>
-                  </Stack>
-                </Grid>
+                <Box key={step.t} sx={{ position: 'relative', zIndex: 1 }}>
+                  <Box
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      bgcolor: NAVY,
+                      color: '#FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.1rem',
+                      fontWeight: 800,
+                      mb: 2,
+                      mx: { xs: 'auto', md: 0 },
+                    }}
+                  >
+                    {i + 1}
+                  </Box>
+                  <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.95rem', lineHeight: 1.2, mb: 0.5, textAlign: { xs: 'center', md: 'left' } }}>{step.t}</Typography>
+                  <Typography sx={{ color: MIST, fontSize: '0.82rem', lineHeight: 1.55, textAlign: { xs: 'center', md: 'left' } }}>{step.d}</Typography>
+                </Box>
               ))}
-            </Grid>
+            </Box>
           </FadeSection>
 
           <FadeSection delay={250}>
