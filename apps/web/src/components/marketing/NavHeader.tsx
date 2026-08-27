@@ -63,6 +63,7 @@ const navItems = [
     children: [
       { name: 'Our Story', path: '/about' },
       { name: 'Case Studies', path: '/case-studies' },
+      { name: 'Compliance & Standards', path: '/compliance-badges' },
       { name: 'Contact', path: '/contact' },
     ]
   },

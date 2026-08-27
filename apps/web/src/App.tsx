@@ -31,6 +31,7 @@ const CaseStudiesPage = lazy(() => import('./pages/marketing/CaseStudiesPage'))
 const ContactPage = lazy(() => import('./pages/marketing/ContactPage'))
 const HowItWorksPage = lazy(() => import('./pages/marketing/HowItWorksPage'))
 const BlogPage = lazy(() => import('./pages/marketing/BlogPage'))
+const ComplianceBadgesPage = lazy(() => import('./pages/marketing/ComplianceBadgesPage'))
 const LearningCenterPage = lazy(() => import('./pages/learn/LearningCenterPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'))
 const TermsOfUsePage = lazy(() => import('./pages/legal/TermsOfUsePage'))
@@ -89,6 +90,7 @@ function App() {
       <Route path="/case-studies" element={<ErrorBoundary><Suspense fallback={null}><CaseStudiesPage /></Suspense></ErrorBoundary>} />
       <Route path="/contact" element={<ErrorBoundary><Suspense fallback={null}><ContactPage /></Suspense></ErrorBoundary>} />
       <Route path="/blog" element={<ErrorBoundary><Suspense fallback={null}><BlogPage /></Suspense></ErrorBoundary>} />
+      <Route path="/compliance-badges" element={<ErrorBoundary><Suspense fallback={null}><ComplianceBadgesPage /></Suspense></ErrorBoundary>} />
       <Route path="/login" element={<ErrorBoundary><MeticleThemeProvider><LoginPage /></MeticleThemeProvider></ErrorBoundary>} />
       <Route path="/register" element={<ErrorBoundary><MeticleThemeProvider><RegisterPage /></MeticleThemeProvider></ErrorBoundary>} />
       <Route path="/forgot-password" element={<ErrorBoundary><MeticleThemeProvider><ForgotPasswordPage /></MeticleThemeProvider></ErrorBoundary>} />
