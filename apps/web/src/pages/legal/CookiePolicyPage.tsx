@@ -16,14 +16,14 @@ export default function CookiePolicyPage() {
       <PageMeta title="Cookie Policy | MeticleCare" description="How MeticleCare uses cookies. Our care management platform uses only essential cookies to keep your data secure and your experience reliable." canonicalPath="/cookies" />
     <Container maxWidth="md" sx={{ py: 8 }}>
       <Typography variant="h3" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Cookie Policy</Typography>
-      <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: July 2026</Typography>
+      <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: August 2026</Typography>
 
       <S title="1. What Are Cookies">
         <p>Cookies are small text files stored on your device when you visit a website. They help the website remember your preferences and authenticate your session.</p>
       </S>
 
       <S title="2. Cookies We Use">
-        <p>Meticle uses only <strong>essential cookies</strong>:</p>
+        <p>MeticleCare uses only <strong>essential cookies</strong>:</p>
         <ul>
           <li><strong>Authentication token</strong> — stored in your browser to keep you logged in. Required for the Service to function.</li>
           <li><strong>CSRF token</strong> — prevents cross-site request forgery attacks.</li>
@@ -43,7 +43,7 @@ export default function CookiePolicyPage() {
       </S>
 
       <S title="4. Managing Cookies">
-        <p>Most browsers allow you to block or delete cookies. However, Meticle requires essential cookies to function — blocking them will prevent you from logging in.</p>
+        <p>Most browsers allow you to block or delete cookies. However, MeticleCare requires essential cookies to function — blocking them will prevent you from logging in.</p>
       </S>
 
       <S title="5. Changes">
