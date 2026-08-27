@@ -1122,7 +1122,7 @@ export default function PersonProfilePage() {
       {tab === 6 && <HealthTab personId={id!} fluidTarget={user?.fluid_daily_target} />}
 
       {/* Tab: Nutrition */}
-      {tab === 21 && <NutritionTab personId={id!} />}
+      {tab === 21 && <NutritionTab personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : undefined} />}
 
       {/* Tab: Body Map */}
       {tab === 7 && <BodyMapTab personId={id!} />}
