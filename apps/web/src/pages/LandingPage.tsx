@@ -233,14 +233,13 @@ A clear working record for the people you support — and a calmer day for the t
               >
                 <Box
                   sx={{
-                    height: { xs: 28, md: 36 },
+                    height: { xs: 32, md: 44 },
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    filter: 'brightness(0) invert(1)',
-                    opacity: 0.55,
+                    opacity: 0.7,
                     transition: 'opacity 0.2s ease',
-                    '&:hover': { opacity: 0.9 },
+                    '&:hover': { opacity: 1 },
                   }}
                 >
                   <img
