@@ -8,10 +8,16 @@ import { UserRole } from '@meticle/shared';
 const router = Router();
 router.use(authenticate);
 
-// Mission Control dashboard — accessible to admins, managers, and compliance officers
-router.get('/summary', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER), asyncHandler(MissionControlController.getSummary));
-router.get('/alerts', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER), asyncHandler(MissionControlController.getAlerts));
-router.patch('/alerts/:id/dismiss', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(MissionControlController.dismissAlert));
-router.patch('/alerts/type/:alertType/dismiss', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(MissionControlController.dismissByType));
+const mcRoles = [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER];
+const writeRoles = [UserRole.ORG_ADMIN, UserRole.MANAGER];
+
+router.get('/summary', requireRole(...mcRoles), asyncHandler(MissionControlController.getSummary));
+router.get('/alerts', requireRole(...mcRoles), asyncHandler(MissionControlController.getAlerts));
+router.get('/alerts/history', requireRole(...mcRoles), asyncHandler(MissionControlController.getAlertHistory));
+router.get('/trends', requireRole(...mcRoles), asyncHandler(MissionControlController.getTrends));
+router.patch('/alerts/batch-dismiss', requireRole(...writeRoles), asyncHandler(MissionControlController.batchDismiss));
+router.patch('/alerts/:id/dismiss', requireRole(...writeRoles), asyncHandler(MissionControlController.dismissAlert));
+router.patch('/alerts/:id/assign', requireRole(...writeRoles), asyncHandler(MissionControlController.assignAlert));
+router.patch('/alerts/type/:alertType/dismiss', requireRole(...writeRoles), asyncHandler(MissionControlController.dismissByType));
 
 export default router;
