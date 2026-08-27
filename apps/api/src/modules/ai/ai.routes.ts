@@ -25,5 +25,7 @@ router.get('/usage-stats', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIContr
 router.post('/generate/meal-plan', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(aiMealPlanGenerationSchema), asyncHandler(AIController.generateMealPlan));
 router.post('/generate/weekly-meal-plan', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(AIController.generateWeeklyMealPlan));
 router.post('/generate/shopping-list', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(AIController.generateShoppingList));
+router.post('/daily-notes/:noteId/care-plan-gap', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(AIController.analyzeCarePlanGap));
+router.post('/competency/generate-questions', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(AIController.generateCompetencyQuestions));
 
 export default router;

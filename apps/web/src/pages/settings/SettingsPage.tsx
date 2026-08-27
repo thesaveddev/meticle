@@ -82,6 +82,8 @@ export default function SettingsPage() {
     { key: 'rota_optimization', label: 'Rota Optimization', desc: 'AI-powered rota analysis with coverage warnings and staffing suggestions' },
     { key: 'daily_note_generation', label: 'AI Daily Notes', desc: 'Transform voice/text observations into structured, CQC-compliant care notes with mood analysis and safeguarding flags' },
     { key: 'meal_plan_generation', label: 'AI Meal Plans', desc: 'Generate person-centred meal plans based on dietary requirements, allergies, and texture modifications' },
+    { key: 'care_plan_gap_analysis', label: 'Care Plan Gap Analysis', desc: 'Compare visit notes against care plans and nutrition records to identify gaps and contradictions' },
+    { key: 'competency_assessment_assistant', label: 'Competency Assessment Generator', desc: 'Generate CQC-aligned assessment questions for staff competency evaluations' },
   ]
 
   // Pagination state
@@ -1163,6 +1165,11 @@ export default function SettingsPage() {
       }
       if (aiConfig.model !== undefined) body.model = aiConfig.model
       if (aiConfig.enabledFeatures !== undefined) body.enabledFeatures = aiConfig.enabledFeatures
+      if (aiConfig.monthlyBudgetCents !== undefined) body.monthlyBudgetCents = aiConfig.monthlyBudgetCents
+      if (aiConfig.fallbackProvider !== undefined) body.fallbackProvider = aiConfig.fallbackProvider
+      if (aiConfig.fallbackApiKey !== undefined && !aiConfig.fallbackApiKey.startsWith('••')) {
+        body.fallbackApiKey = aiConfig.fallbackApiKey
+      }
       const res = await api.put('/ai/config', body)
       setAIConfig(res.data.config)
       showSnackbar("Settings saved.", "success")
@@ -1248,6 +1255,68 @@ export default function SettingsPage() {
           </Paper>
 
           <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Budget & Limits</Typography>
+            <Stack spacing={2.5}>
+              <TextField
+                label="Monthly Budget Limit (GBP)"
+                type="number"
+                fullWidth
+                size="small"
+                value={aiConfig?.monthlyBudgetCents ? (aiConfig.monthlyBudgetCents / 100).toFixed(2) : ''}
+                onChange={e => {
+                  const pounds = parseFloat(e.target.value) || 0
+                  setAIConfig((p: any) => ({ ...p, monthlyBudgetCents: Math.round(pounds * 100) }))
+                }}
+                InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                helperText="Set to 0 for unlimited. AI features stop when budget is reached."
+              />
+              {aiUsageStats && aiConfig?.monthlyBudgetCents > 0 && (
+                <Box sx={{ p: 1.5, bgcolor: '#F8FAFC', borderRadius: 1, border: '1px solid #E2E8F0' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary">Budget used this month</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                      £{((aiUsageStats.estimated_cost_cents || 0) / 100).toFixed(2)} / £{(aiConfig.monthlyBudgetCents / 100).toFixed(2)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ height: 6, bgcolor: '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
+                    <Box sx={{
+                      height: '100%',
+                      width: `${Math.min(100, ((aiUsageStats.estimated_cost_cents || 0) / aiConfig.monthlyBudgetCents) * 100)}%`,
+                      bgcolor: ((aiUsageStats.estimated_cost_cents || 0) / aiConfig.monthlyBudgetCents) > 0.8 ? '#DC2626' : '#16A34A',
+                      borderRadius: 3,
+                      transition: 'width 0.3s',
+                    }} />
+                  </Box>
+                </Box>
+              )}
+            </Stack>
+          </Paper>
+
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Fallback Provider</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              If the primary provider is unavailable, requests will automatically fall back to this provider.
+            </Typography>
+            <Stack spacing={2.5}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Fallback Provider</InputLabel>
+                <Select value={aiConfig?.fallbackProvider || ''} label="Fallback Provider"
+                  onChange={e => setAIConfig((p: any) => ({ ...p, fallbackProvider: e.target.value || null }))}>
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  <MenuItem value="openai">OpenAI</MenuItem>
+                  <MenuItem value="anthropic">Anthropic</MenuItem>
+                </Select>
+              </FormControl>
+              {aiConfig?.fallbackProvider && (
+                <TextField label="Fallback API Key" type="password" fullWidth size="small"
+                  value={aiConfig?.fallbackApiKey || ''}
+                  onChange={e => setAIConfig((p: any) => ({ ...p, fallbackApiKey: e.target.value }))}
+                  helperText="Stored encrypted. Only used when primary provider fails." />
+              )}
+            </Stack>
+          </Paper>
+
+          <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Enabled Features</Typography>
             <Stack spacing={1.5}>
               {AI_FEATURES.map(f => (
@@ -1322,6 +1391,12 @@ export default function SettingsPage() {
                   <Typography variant="body2">Features Used</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>{aiUsageStats.features_used || 0}</Typography>
                 </Box>
+                {aiUsageStats.estimated_cost_cents !== undefined && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: '1px solid #E2E8F0', mt: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>Est. Cost</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F4C81' }}>£{((aiUsageStats.estimated_cost_cents || 0) / 100).toFixed(2)}</Typography>
+                  </Box>
+                )}
               </Stack>
             ) : (
               <Typography variant="body2" color="text.secondary">Enable AI features to see usage data</Typography>
