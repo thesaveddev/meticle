@@ -15,6 +15,13 @@ const DAY_LABELS: Record<string, string> = {
   thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday',
 }
 
+function getMealDisplay(slot: any): { primary: any; secondary: any } {
+  if (!slot) return { primary: null, secondary: null }
+  if (slot.option_a) return { primary: slot.option_a, secondary: slot.option_b || null }
+  if (slot.name) return { primary: { name: slot.name, items: slot.items || [], estimated_calories: slot.estimated_calories || 0 }, secondary: null }
+  return { primary: null, secondary: null }
+}
+
 export function buildMealPlanHtml(weeklyPlan: any, shoppingList?: any): string {
   const styles = buildReportStyles()
   const now = new Date().toLocaleString('en-GB')
@@ -52,14 +59,20 @@ export function buildMealPlanHtml(weeklyPlan: any, shoppingList?: any): string {
     gridHtml += `<tr>`
     gridHtml += `<td style="padding:6px 8px;border:1px solid #D1D5DB;background:${mt.color}10;font-weight:700;color:${mt.color};vertical-align:top;font-size:10px">${mt.label}</td>`
     for (const day of DAYS) {
-      const meal = week[day]?.[mt.value]
-      if (meal) {
-        const items = (meal.items || []).map((it: any) => `<div style="font-size:9px;color:#6B7280;margin-top:2px">• ${it.name} (${it.portion})</div>`).join('')
-        gridHtml += `<td style="padding:6px;border:1px solid #D1D5DB;vertical-align:top">
-          <div style="font-weight:600;font-size:10px;margin-bottom:2px">${meal.name}</div>
-          <div style="font-size:9px;color:#6B7280">${meal.estimated_calories || ''} kcal</div>
-          ${items}
-        </td>`
+      const slot = week[day]?.[mt.value]
+      const { primary, secondary } = getMealDisplay(slot)
+      if (primary) {
+        let cellContent = `<div style="font-weight:600;font-size:10px;margin-bottom:2px">${primary.name}</div>`
+        cellContent += `<div style="font-size:9px;color:#6B7280">${primary.estimated_calories || ''} kcal</div>`
+        cellContent += (primary.items || []).map((it: any) => `<div style="font-size:8px;color:#6B7280;margin-top:1px">• ${it.name} (${it.portion})</div>`).join('')
+        if (secondary) {
+          cellContent += `<div style="border-top:1px dashed #E5E7EB;margin-top:4px;padding-top:4px">
+            <div style="font-weight:500;font-size:9px;color:#9CA3AF;margin-bottom:1px">Or: ${secondary.name}</div>
+            <div style="font-size:8px;color:#D1D5DB">${secondary.estimated_calories || ''} kcal</div>
+            ${(secondary.items || []).map((it: any) => `<div style="font-size:8px;color:#D1D5DB;margin-top:1px">• ${it.name} (${it.portion})</div>`).join('')}
+          </div>`
+        }
+        gridHtml += `<td style="padding:6px;border:1px solid #D1D5DB;vertical-align:top">${cellContent}</td>`
       } else {
         gridHtml += `<td style="padding:6px;border:1px solid #D1D5DB;color:#D1D5DB;text-align:center">—</td>`
       }
