@@ -24,5 +24,6 @@ router.get('/audit-logs', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIContro
 router.get('/usage-stats', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.usageStats));
 router.post('/generate/meal-plan', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(aiMealPlanGenerationSchema), asyncHandler(AIController.generateMealPlan));
 router.post('/generate/weekly-meal-plan', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(AIController.generateWeeklyMealPlan));
+router.post('/generate/shopping-list', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(AIController.generateShoppingList));
 
 export default router;

@@ -8,6 +8,7 @@ import {
   Restaurant as MealIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
+import ShoppingList from './ShoppingList'
 
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Breakfast', color: '#F59E0B', icon: '🌅' },
@@ -433,6 +434,11 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
               ))}
             </Paper>
           )}
+
+          {/* Shopping List Section */}
+          <Box sx={{ mt: 4 }} className="print-break-before">
+            <ShoppingList weeklyPlan={weeklyPlan} />
+          </Box>
 
           {/* Footer - visible only when printing */}
           <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between' }}>

@@ -881,4 +881,80 @@ export class AIController {
       res.status(500).json({ error: { message: 'AI weekly meal plan generation failed' } });
     }
   }
+
+  static async generateShoppingList(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
+
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) {
+      return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
+    }
+    if (!config.enabledFeatures?.includes('meal_plan_generation')) {
+      return res.status(403).json({ error: { message: 'Meal Plan Generation is not enabled for your organization.' } });
+    }
+
+    const { weeklyPlan, personName, dietarySummary, allergens, textureModification } = req.body;
+    if (!weeklyPlan) {
+      return res.status(400).json({ error: { message: 'Weekly plan data required' } });
+    }
+
+    const { system, user } = renderPrompt('shopping_list_generation', {
+      person_name: personName || 'Unknown',
+      dietary_summary: dietarySummary || 'Standard',
+      allergens: allergens || 'None noted',
+      texture_modification: textureModification || 'None',
+      weekly_plan_data: JSON.stringify(weeklyPlan, null, 2),
+    });
+
+    const start = Date.now();
+    try {
+      const provider = getProvider(config);
+      const result = await provider.chatCompletion(
+        [{ role: 'system', content: system }, { role: 'user', content: user }],
+        { model: config.model, temperature: 0.3, maxTokens: 3000 }
+      );
+
+      let parsed;
+      try {
+        const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { raw: result.content };
+      } catch {
+        parsed = { raw: result.content };
+      }
+
+      try {
+        await AIRepository.logAudit({
+          organizationId: orgId,
+          feature: 'meal_plan_generation',
+          promptKey: 'shopping_list_generation',
+          promptTokens: result.promptTokens,
+          completionTokens: result.completionTokens,
+          totalTokens: result.totalTokens,
+          model: config.model,
+          provider: provider.name,
+          durationMs: Date.now() - start,
+          createdBy: req.user?.userId,
+          requestData: { personName },
+          responseSummary: typeof parsed === 'object' && parsed.shopping_list ? `Shopping list: ${parsed.shopping_list.total_items || 0} items` : 'Shopping list generated',
+        });
+      } catch { /* audit non-critical */ }
+
+      res.json({ shoppingList: parsed, usage: { promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens } });
+    } catch (err: any) {
+      try {
+        await AIRepository.logAudit({
+          organizationId: orgId,
+          feature: 'meal_plan_generation',
+          promptKey: 'shopping_list_generation',
+          success: false,
+          errorMessage: err.message,
+          durationMs: Date.now() - start,
+          createdBy: req.user?.userId,
+        });
+      } catch { /* audit non-critical */ }
+      logger.error(err, 'AI shopping list generation failed');
+      res.status(500).json({ error: { message: 'AI shopping list generation failed' } });
+    }
+  }
 }
