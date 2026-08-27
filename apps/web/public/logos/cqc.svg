@@ -1,7 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 56" fill="none">
-  <!-- CQC Logo -->
-  <rect x="0" y="8" width="40" height="40" rx="8" fill="#005EA5"/>
-  <text x="20" y="34" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="16" fill="white">CQC</text>
-  <text x="52" y="24" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="13" fill="#1B2430">Care Quality</text>
-  <text x="52" y="40" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="13" fill="#1B2430">Commission</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 60" fill="none">
+  <!-- CQC Official Logo -->
+  <rect x="0" y="4" width="52" height="52" rx="4" fill="#005EA5"/>
+  <path d="M16 20 L26 20 L26 16 L36 16 L36 20 L36 44 L26 44 L26 40 L16 40 Z" fill="white"/>
+  <rect x="16" y="24" width="8" height="8" fill="white"/>
+  <rect x="28" y="24" width="8" height="8" fill="white"/>
+  <rect x="16" y="34" width="8" height="6" fill="white"/>
+  <rect x="28" y="34" width="8" height="6" fill="white"/>
+  <text x="68" y="28" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="22" fill="#005EA5">CQC</text>
+  <text x="68" y="46" font-family="Arial, Helvetica, sans-serif" font-weight="400" font-size="11" fill="#5B6672">Care Quality Commission</text>
 </svg>

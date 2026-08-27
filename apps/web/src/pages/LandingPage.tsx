@@ -243,17 +243,19 @@ A clear working record for the people you support — and a calmer day for the t
                   { src: '/logos/ciw.svg', alt: 'CIW - Care Inspectorate Wales' },
                   { src: '/logos/cis.svg', alt: 'Care Inspectorate Scotland' },
                   { src: '/logos/rqia.svg', alt: 'RQIA - Quality & Improvement Northern Ireland' },
+                  { src: '/logos/nhs.svg', alt: 'NHS - National Health Service' },
                   { src: '/logos/ukgdpr.svg', alt: 'UK GDPR and DPA 2018' },
                 ].map((logo) => (
                   <Grid item xs={6} sm={4} md key={logo.alt}>
                     <Box
                       sx={{
-                        height: 48,
+                        height: 52,
                         display: 'flex',
                         alignItems: 'center',
-                        filter: 'grayscale(100%) opacity(0.6)',
-                        transition: 'filter 0.3s ease',
-                        '&:hover': { filter: 'grayscale(0%) opacity(1)' },
+                        justifyContent: 'center',
+                        filter: 'grayscale(100%) opacity(0.55)',
+                        transition: 'all 0.3s ease',
+                        '&:hover': { filter: 'grayscale(0%) opacity(1)', transform: 'scale(1.05)' },
                       }}
                     >
                       <img

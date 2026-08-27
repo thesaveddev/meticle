@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" fill="none">
-  <!-- Care Inspectorate Scotland -->
-  <rect x="0" y="8" width="40" height="40" rx="8" fill="#0065BD"/>
-  <text x="20" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="14" fill="white">CI</text>
-  <text x="20" y="42" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="10" fill="white">SCOT</text>
-  <text x="52" y="24" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="12" fill="#1B2430">Care Inspectorate</text>
-  <text x="52" y="40" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="12" fill="#1B2430">Scotland</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 60" fill="none">
+  <!-- Care Inspectorate Scotland Logo -->
+  <rect x="0" y="4" width="52" height="52" rx="4" fill="#0065BD"/>
+  <path d="M16 16 L26 16 L26 28 L36 28 L36 16 L36 44 L26 44 L26 32 L16 32 Z" fill="white"/>
+  <rect x="16" y="36" width="20" height="4" fill="white"/>
+  <text x="68" y="28" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="22" fill="#0065BD">Care Inspectorate</text>
+  <text x="68" y="46" font-family="Arial, Helvetica, sans-serif" font-weight="400" font-size="11" fill="#5B6672">Scotland</text>
 </svg>
