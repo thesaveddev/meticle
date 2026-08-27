@@ -83,6 +83,12 @@ export const IncidentTriageConsumer: EventConsumer = {
       parsed = { raw: completion.content };
     }
 
+    // Label as AI-generated for regulatory and audit purposes
+    parsed.generated_by_ai = true;
+    parsed.ai_model = config.model;
+    parsed.ai_provider = config.provider;
+    parsed.ai_generated_at = new Date().toISOString();
+
     await query(
       `UPDATE incidents SET ai_triage = $1 WHERE id = $2 AND organization_id = $3`,
       [JSON.stringify(parsed), payload.id, orgId]
