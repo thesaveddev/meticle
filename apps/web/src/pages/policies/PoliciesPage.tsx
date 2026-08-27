@@ -401,7 +401,7 @@ export default function PoliciesPage() {
                   type="button"
                   variant="outlined"
                   onClick={() => setSelectedPolicy(policy)}
-                  sx={{ width: '100%', textAlign: 'left', p: 0, overflow: 'hidden', borderColor: HAIRLINE, borderRadius: 2, bgcolor: '#FFFFFF', cursor: 'pointer', transition: 'transform .15s ease, box-shadow .15s ease, border-color .15s ease', '&:hover': { transform: 'translateY(-2px)', borderColor: NAVY, boxShadow: '0 14px 32px -22px rgba(15,76,129,.5)' } }}
+                  sx={{ width: '100%', textAlign: 'left', p: 0, overflow: 'hidden', borderColor: HAIRLINE, borderRadius: 2, bgcolor: '#FFFFFF', cursor: 'pointer', transition: 'border-color 0.15s ease', '&:hover': { borderColor: NAVY } }}
                 >
                   <Box sx={{ height: 5, bgcolor: color }} />
                   <Box sx={{ p: 2.5 }}>

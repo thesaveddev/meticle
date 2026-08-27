@@ -238,7 +238,7 @@ export default function DashboardPage() {
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
         {statCards.map((stat, i) => (
           <Grid item xs={12} sm={6} md={3} lg={statCards.length > 4 ? 1.7 : 3} key={i}>
-            <Paper className="enterprise-card" sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', cursor: stat.path ? 'pointer' : 'default', transition: 'box-shadow 0.2s', '&:hover': stat.path ? { boxShadow: '0 8px 20px rgba(0,0,0,0.1)' } : {} }}
+            <Paper className="enterprise-card" sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', cursor: stat.path ? 'pointer' : 'default', border: '1px solid #E5E7EB', borderRadius: 2, transition: 'border-color 0.15s ease', '&:hover': stat.path ? { borderColor: stat.color } : {} }}
               onClick={stat.path ? () => navigate(stat.path) : undefined}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
                 <Box sx={{ width: 40, height: 40, bgcolor: `${stat.color}10`, color: stat.color, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
