@@ -63,6 +63,69 @@ const pulse = keyframes`
   50% { opacity: 0.35 }
 `
 
+const logoSlideUp = keyframes`
+  0% { opacity: 0; transform: translateY(24px) scale(0.92); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+`
+
+const logoPulseGlow = keyframes`
+  0% { box-shadow: 0 0 0 0 rgba(15, 76, 129, 0); }
+  50% { box-shadow: 0 0 16px 4px rgba(15, 76, 129, 0.08); }
+  100% { box-shadow: 0 0 0 0 rgba(15, 76, 129, 0); }
+`
+
+function LogoReveal({ logos }: { logos: { src: string; alt: string }[] }) {
+  const [visible, setVisible] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce) { setVisible(true); return }
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect() } },
+      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' },
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  return (
+    <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center" ref={ref}>
+      {logos.map((logo, i) => (
+        <Grid item xs={6} sm={4} md key={logo.alt}>
+          <Box
+            sx={{
+              height: 52,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 2,
+              opacity: visible ? 1 : 0,
+              transform: visible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.92)',
+              filter: visible ? 'grayscale(100%) opacity(0.55)' : 'grayscale(100%) opacity(0)',
+              transition: 'none',
+              animation: visible ? `${logoSlideUp} 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${i * 120}ms both` : 'none',
+              '&:hover': {
+                filter: 'grayscale(0%) opacity(1) !important',
+                transform: 'scale(1.08) !important',
+                animation: `${logoPulseGlow} 1.5s ease-in-out 1`,
+              },
+            }}
+          >
+            <img
+              src={logo.src}
+              alt={logo.alt}
+              style={{ height: '100%', width: 'auto', maxWidth: '100%' }}
+            />
+          </Box>
+        </Grid>
+      ))}
+    </Grid>
+  )
+}
+
 function FadeSection({ children, direction = 'up', delay = 0, variant = 'slide' }: { children?: React.ReactNode; direction?: 'up' | 'down'; delay?: number; variant?: 'slide' | 'scale-slide' }) {
   const [visible, setVisible] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -230,45 +293,27 @@ A clear working record for the people you support — and a calmer day for the t
         sx={{ bgcolor: '#FFFFFF', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}
       >
         <Container maxWidth="lg">
-          <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
-            <Grid item xs={12} md={3}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: NAVY, letterSpacing: '0.14em', textTransform: 'uppercase', mb: { xs: 1, md: 0 } }}>
-                Built for the UK's care regulators
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={9}>
-              <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
-                {[
-                  { src: '/logos/cqc.svg', alt: 'CQC - Care Quality Commission' },
-                  { src: '/logos/ciw.svg', alt: 'CIW - Care Inspectorate Wales' },
-                  { src: '/logos/cis.svg', alt: 'Care Inspectorate Scotland' },
-                  { src: '/logos/rqia.svg', alt: 'RQIA - Quality & Improvement Northern Ireland' },
-                  { src: '/logos/nhs.svg', alt: 'NHS - National Health Service' },
-                  { src: '/logos/ukgdpr.svg', alt: 'UK GDPR and DPA 2018' },
-                ].map((logo) => (
-                  <Grid item xs={6} sm={4} md key={logo.alt}>
-                    <Box
-                      sx={{
-                        height: 52,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        filter: 'grayscale(100%) opacity(0.55)',
-                        transition: 'all 0.3s ease',
-                        '&:hover': { filter: 'grayscale(0%) opacity(1)', transform: 'scale(1.05)' },
-                      }}
-                    >
-                      <img
-                        src={logo.src}
-                        alt={logo.alt}
-                        style={{ height: '100%', width: 'auto', maxWidth: '100%' }}
-                      />
-                    </Box>
-                  </Grid>
-                ))}
+          <FadeSection delay={100}>
+            <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
+              <Grid item xs={12} md={3}>
+                <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: NAVY, letterSpacing: '0.14em', textTransform: 'uppercase', mb: { xs: 1, md: 0 } }}>
+                  Built for the UK's care regulators
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={9}>
+                <LogoReveal
+                  logos={[
+                    { src: '/logos/cqc.svg', alt: 'CQC - Care Quality Commission' },
+                    { src: '/logos/ciw.svg', alt: 'CIW - Care Inspectorate Wales' },
+                    { src: '/logos/cis.svg', alt: 'Care Inspectorate Scotland' },
+                    { src: '/logos/rqia.svg', alt: 'RQIA - Quality & Improvement Northern Ireland' },
+                    { src: '/logos/nhs.svg', alt: 'NHS - National Health Service' },
+                    { src: '/logos/ukgdpr.svg', alt: 'UK GDPR and DPA 2018' },
+                  ]}
+                />
               </Grid>
             </Grid>
-          </Grid>
+          </FadeSection>
         </Container>
       </Box>
 
