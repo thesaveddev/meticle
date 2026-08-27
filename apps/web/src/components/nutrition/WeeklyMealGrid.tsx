@@ -1,12 +1,13 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Box, Typography, Paper, Grid, Button, Chip, Stack,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
-  CircularProgress, Alert,
+  CircularProgress, Alert, IconButton, Tooltip,
 } from '@mui/material'
 import {
   AutoAwesome as AIIcon, Save as SaveIcon, Refresh as RefreshIcon,
-  LocalDining as FoodIcon,
+  LocalDining as FoodIcon, OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -58,6 +59,7 @@ interface Props {
 
 export default function WeeklyMealGrid({ people }: Props) {
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const [personId, setPersonId] = useState('')
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan | null>(null)
   const [loading, setLoading] = useState(false)
@@ -136,6 +138,17 @@ export default function WeeklyMealGrid({ people }: Props) {
         >
           {loading ? 'Generating...' : 'Generate Weekly Plan'}
         </Button>
+        {personId && (
+          <Tooltip title="View person profile with printable meal plan">
+            <IconButton
+              size="small"
+              onClick={() => navigate(`/people/${personId}?tab=nutrition`)}
+              sx={{ color: '#7C3AED', border: '1px solid #E5E7EB', borderRadius: 2 }}
+            >
+              <OpenInNewIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
       </Paper>
 
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}

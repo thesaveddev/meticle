@@ -13,6 +13,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { SectionHeader, ConfirmDialog, EmptyRow } from '../../components/ui'
+import PrintableWeeklyMealPlan from '../../components/nutrition/PrintableWeeklyMealPlan'
 
 const today = () => new Date().toISOString().split('T')[0]
 
@@ -719,13 +720,19 @@ function useDeleteConfirm() {
   return { deleteTarget, setDeleteTarget }
 }
 
+// ─── Weekly Meal Plan Section ───
+function WeeklyMealPlanSection({ personId, personName }: { personId: string; personName: string }) {
+  return <PrintableWeeklyMealPlan personId={personId} personName={personName} />
+}
+
 // ─── Main Nutrition Tab ───
 const TABS = [
   { label: 'Dietary Profile', Component: DietaryProfileSection },
   { label: 'Meals', Component: MealRecordsSection },
+  { label: 'Weekly Meal Plan', Component: WeeklyMealPlanSection },
 ]
 
-export default function NutritionTab({ personId }: { personId: string; fluidTarget?: number }) {
+export default function NutritionTab({ personId, personName }: { personId: string; personName?: string; fluidTarget?: number }) {
   const [innerTab, setInnerTab] = useState(0)
 
   // Pass fluidTarget from profile to summary
@@ -734,6 +741,14 @@ export default function NutritionTab({ personId }: { personId: string; fluidTarg
     queryFn: () => api.get(`/nutrition/${personId}/dietary-profile`).then(r => r.data),
   })
   const fluidTarget = profile?.fluid_daily_target_ml || 2000
+
+  // Fetch person name if not passed as prop
+  const { data: person } = useQuery({
+    queryKey: ['person', personId],
+    queryFn: () => api.get(`/people/${personId}`).then(r => r.data),
+    enabled: !personName,
+  })
+  const resolvedName = personName || (person ? `${person.first_name} ${person.last_name}` : 'this person')
 
   // Inline component that uses fluidTarget
   function DailySummaryWithTarget() {
@@ -757,6 +772,7 @@ export default function NutritionTab({ personId }: { personId: string; fluidTarg
       {/* Tab Content */}
       {innerTab === 0 && <DietaryProfileSection personId={personId} />}
       {innerTab === 1 && <MealRecordsSection personId={personId} />}
+      {innerTab === 2 && <WeeklyMealPlanSection personId={personId} personName={resolvedName} />}
     </Box>
   )
 }
