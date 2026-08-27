@@ -1,11 +1,35 @@
 import { query } from '../../shared/database';
 
 export class MissionControlRepository {
-  /** Get all active (undismissed) alerts for an org, grouped by severity. */
-  static async getAlerts(orgId: string) {
+  /** Get all active (undismissed) alerts for an org, with optional filters. */
+  static async getAlerts(orgId: string, filters?: { severity?: string; category?: string }) {
+    const conditions = ['organization_id = $1', 'dismissed = FALSE'];
+    const params: any[] = [orgId];
+    let idx = 2;
+
+    if (filters?.severity) {
+      conditions.push(`severity = $${idx}`);
+      params.push(filters.severity);
+      idx++;
+    }
+    if (filters?.category) {
+      const catMap: Record<string, string[]> = {
+        medication: ["alert_type LIKE 'medication.%'"],
+        staffing: ["alert_type IN ('shift.unfilled')"],
+        safety: ["alert_type IN ('incident.action_overdue')"],
+        compliance: ["alert_type IN ('training.expiring', 'dbs.expiring', 'policy.review_due')"],
+        care: ["alert_type IN ('care_plan.review_due', 'fluid.intake_below_target', 'nutrition.appetite_decline', 'nutrition.refused_meal')"],
+      };
+      const parts = catMap[filters.category];
+      if (parts) {
+        conditions.push(`(${parts.join(' OR ')})`);
+      }
+    }
+
+    const where = conditions.join(' AND ');
     const result = await query(
       `SELECT * FROM mission_control_alerts
-       WHERE organization_id = $1 AND dismissed = FALSE
+       WHERE ${where}
        ORDER BY
          CASE severity
            WHEN 'critical' THEN 0
@@ -14,7 +38,7 @@ export class MissionControlRepository {
            WHEN 'low' THEN 3
          END,
          created_at DESC`,
-      [orgId]
+      params
     );
     return result.rows;
   }
@@ -37,6 +61,92 @@ export class MissionControlRepository {
       [orgId, alertType]
     );
     return result.rowCount ?? 0;
+  }
+
+  /** Get dismissed alerts (history) for audit trail. */
+  static async getAlertHistory(orgId: string, limit = 50) {
+    const result = await query(
+      `SELECT * FROM mission_control_alerts
+       WHERE organization_id = $1 AND dismissed = TRUE
+       ORDER BY updated_at DESC
+       LIMIT $2`,
+      [orgId, limit]
+    );
+    return result.rows;
+  }
+
+  /** Assign an alert to a staff member. */
+  static async assignAlert(id: string, orgId: string, assignedTo: string, assignedName: string) {
+    const result = await query(
+      `UPDATE mission_control_alerts
+       SET assigned_to = $3, assigned_name = $4, updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2 RETURNING *`,
+      [id, orgId, assignedTo, assignedName]
+    );
+    return result.rows[0] || null;
+  }
+
+  /** Batch dismiss multiple alerts by IDs. */
+  static async batchDismiss(ids: string[], orgId: string) {
+    const result = await query(
+      `UPDATE mission_control_alerts SET dismissed = TRUE, updated_at = NOW()
+       WHERE id = ANY($1) AND organization_id = $2 AND dismissed = FALSE`,
+      [ids, orgId]
+    );
+    return result.rowCount ?? 0;
+  }
+
+  /** Get week-over-week alert trend data. */
+  static async getTrends(orgId: string) {
+    const result = await query(
+      `SELECT
+         DATE(created_at) AS date,
+         COUNT(*) FILTER (WHERE severity = 'critical')::int AS critical,
+         COUNT(*) FILTER (WHERE severity = 'high')::int AS high,
+         COUNT(*) FILTER (WHERE severity = 'medium')::int AS medium,
+         COUNT(*) FILTER (WHERE severity = 'low')::int AS low,
+         COUNT(*)::int AS total
+       FROM mission_control_alerts
+       WHERE organization_id = $1
+         AND created_at >= CURRENT_DATE - interval '14 days'
+       GROUP BY DATE(created_at)
+       ORDER BY date`,
+      [orgId]
+    );
+
+    const thisWeek = result.rows.filter((r: any) => {
+      const d = new Date(r.date);
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return d >= weekAgo;
+    });
+    const lastWeek = result.rows.filter((r: any) => {
+      const d = new Date(r.date);
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      return d >= twoWeeksAgo && d < weekAgo;
+    });
+
+    const sumField = (rows: any[], field: string) => rows.reduce((s, r) => s + (r[field] || 0), 0);
+
+    return {
+      daily: result.rows,
+      this_week: {
+        total: sumField(thisWeek, 'total'),
+        critical: sumField(thisWeek, 'critical'),
+        high: sumField(thisWeek, 'high'),
+        medium: sumField(thisWeek, 'medium'),
+        low: sumField(thisWeek, 'low'),
+      },
+      last_week: {
+        total: sumField(lastWeek, 'total'),
+        critical: sumField(lastWeek, 'critical'),
+        high: sumField(lastWeek, 'high'),
+        medium: sumField(lastWeek, 'medium'),
+        low: sumField(lastWeek, 'low'),
+      },
+    };
   }
 
   /**
