@@ -1099,13 +1099,24 @@ export default function PersonProfilePage() {
                 return (
                   <Fragment key="portal-actions">
                     {pm.access_token && (
-                      <MenuItem onClick={() => { const url = `${window.location.origin}/family-portal/${pm.access_token}`; navigator.clipboard?.writeText(url).then(() => showSnackbar('Portal link copied'), () => showSnackbar(url, 'info')); setContactMenuAnchor(null) }}>
-                        <ListItemIcon><FileIcon fontSize="small" sx={{ color: '#0F4C81' }} /></ListItemIcon><ListItemText>Copy Portal Link</ListItemText>
+                      <>
+                        <MenuItem onClick={() => { const url = `${window.location.origin}/family-portal/${pm.access_token}`; navigator.clipboard?.writeText(url).then(() => showSnackbar('Portal link copied to clipboard'), () => showSnackbar(url, 'info')); setContactMenuAnchor(null) }}>
+                          <ListItemIcon><FileIcon fontSize="small" sx={{ color: '#0F4C81' }} /></ListItemIcon>
+                          <ListItemText>
+                            <Typography variant="body2" fontWeight={600}>Copy Portal Link</Typography>
+                            <Typography variant="caption" color="#9CA3AF" sx={{ fontFamily: 'monospace' }}>{window.location.origin}/…{pm.access_token.slice(-8)}</Typography>
+                          </ListItemText>
+                        </MenuItem>
+                        <MenuItem onClick={() => { inlineCancelInviteMutation.mutate(pm.id); setContactMenuAnchor(null) }} disabled={inlineCancelInviteMutation.isPending}>
+                          <ListItemIcon><BlockIcon fontSize="small" color="warning" /></ListItemIcon><ListItemText sx={{ color: '#D97706' }}>Revoke Portal Access</ListItemText>
+                        </MenuItem>
+                      </>
+                    )}
+                    {!pm.access_token && pm.status === 'invited' && (
+                      <MenuItem onClick={() => { inlineCancelInviteMutation.mutate(pm.id); setContactMenuAnchor(null) }} disabled={inlineCancelInviteMutation.isPending}>
+                        <ListItemIcon><BlockIcon fontSize="small" color="warning" /></ListItemIcon><ListItemText sx={{ color: '#D97706' }}>Cancel Invitation</ListItemText>
                       </MenuItem>
                     )}
-                    <MenuItem onClick={() => { inlineCancelInviteMutation.mutate(pm.id); setContactMenuAnchor(null) }} disabled={inlineCancelInviteMutation.isPending}>
-                      <ListItemIcon><BlockIcon fontSize="small" color="warning" /></ListItemIcon><ListItemText sx={{ color: '#D97706' }}>Revoke Portal Access</ListItemText>
-                    </MenuItem>
                   </Fragment>
                 )
               }

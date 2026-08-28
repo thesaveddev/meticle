@@ -80,10 +80,22 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
   const [result, setResult] = useState<any>(null)
   const [locations, setLocations] = useState<any[]>([])
   const [form, setForm] = useState({ location_id: '', officer_name: '', email: '', expires_hours: 72 })
+  const [tokens, setTokens] = useState<any[]>([])
+  const [tokensLoading, setTokensLoading] = useState(false)
+  const [showTokens, setShowTokens] = useState(false)
 
   useEffect(() => {
     api.get('/settings/locations').then(r => setLocations(r.data)).catch(() => {})
   }, [])
+
+  const loadTokens = async () => {
+    setTokensLoading(true)
+    try {
+      const res = await api.get('/compliance-portal/access')
+      setTokens(res.data)
+    } catch { /* ignore */ }
+    setTokensLoading(false)
+  }
 
   const handleCreate = async () => {
     if (!form.location_id || !form.officer_name || !form.email) return
@@ -91,10 +103,26 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
     try {
       const res = await api.post('/compliance-portal/access', form)
       setResult(res.data)
+      loadTokens()
     } catch (e: any) {
       alert(e.response?.data?.message || 'Failed to create access')
     }
     setLoading(false)
+  }
+
+  const handleRevoke = async (tokenId: string) => {
+    try {
+      await api.post(`/compliance-portal/access/${tokenId}/revoke`)
+      setTokens(prev => prev.map(t => t.id === tokenId ? { ...t, revoked: true, revoked_at: new Date().toISOString() } : t))
+    } catch { /* ignore */ }
+  }
+
+  const truncateUrl = (url: string) => {
+    try {
+      const u = new URL(url)
+      const token = u.pathname.split('/').pop() || ''
+      return `${u.host}/…${token.slice(-8)}`
+    } catch { return url }
   }
 
   const copyLink = () => {
@@ -105,9 +133,80 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
 
   return (
     <>
-      <Button variant="outlined" startIcon={<LinkIcon />} onClick={() => setOpen(true)} sx={{ borderRadius: 2 }}>
-        Generate Portal Link
-      </Button>
+      <Stack direction="row" spacing={1}>
+        <Button variant="outlined" startIcon={<LinkIcon />} onClick={() => setOpen(true)} sx={{ borderRadius: 2 }}>
+          Generate Portal Link
+        </Button>
+        <Button variant="outlined" startIcon={<ClockIcon />} onClick={() => { setShowTokens(!showTokens); if (!showTokens) loadTokens() }} sx={{ borderRadius: 2 }}>
+          Active Links
+        </Button>
+      </Stack>
+
+      {/* Token management list */}
+      {showTokens && (
+        <Paper variant="outlined" sx={{ mt: 2, borderRadius: 2, overflow: 'hidden' }}>
+          <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #E5E7EB', bgcolor: '#F9FAFB' }}>
+            <Typography variant="subtitle2" fontWeight={800}>Compliance Portal Links</Typography>
+            <Typography variant="caption" color="#6B7280">Manage and revoke access tokens for compliance officers</Typography>
+          </Box>
+          {tokensLoading ? (
+            <Box sx={{ p: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>
+          ) : tokens.length === 0 ? (
+            <Box sx={{ p: 3, textAlign: 'center' }}><Typography color="#9CA3AF">No links generated yet</Typography></Box>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: '#F9FAFB' }}>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Officer</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Link</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Expires</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }} align="right">Action</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {tokens.map((t: any) => {
+                    const isExpired = new Date(t.expires_at) < new Date()
+                    const isRevoked = t.revoked
+                    const status = isRevoked ? 'Revoked' : isExpired ? 'Expired' : 'Active'
+                    const statusColor = isRevoked ? '#DC2626' : isExpired ? '#9CA3AF' : '#16A34A'
+                    return (
+                      <TableRow key={t.id} sx={{ opacity: isRevoked || isExpired ? 0.6 : 1 }}>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600}>{t.officer_name}</Typography>
+                          <Typography variant="caption" color="#6B7280">{t.email}</Typography>
+                        </TableCell>
+                        <TableCell><Typography variant="body2">{t.location_name}</Typography></TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <Typography variant="caption" fontFamily="monospace" color="#6B7280">…{t.id.slice(-8)}</Typography>
+                            {!isRevoked && !isExpired && (
+                              <IconButton size="small" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/compliance-portal/login?token=${t.id}`) }}>
+                                <CopyIcon sx={{ fontSize: 14 }} />
+                              </IconButton>
+                            )}
+                          </Stack>
+                        </TableCell>
+                        <TableCell><Typography variant="caption" color="#6B7280">{new Date(t.expires_at).toLocaleDateString('en-GB')}</Typography></TableCell>
+                        <TableCell><Chip label={status} size="small" sx={{ bgcolor: statusColor, color: 'white', fontWeight: 700, fontSize: 11 }} /></TableCell>
+                        <TableCell align="right">
+                          {!isRevoked && !isExpired && (
+                            <Button size="small" color="error" onClick={() => handleRevoke(t.id)} sx={{ textTransform: 'none', fontSize: 12 }}>
+                              Revoke
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Paper>
+      )}
 
       <Dialog open={open} onClose={() => { setOpen(false); setResult(null) }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -122,11 +221,15 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
                 Share this link with {result.officerName} for access to {result.locationName}.
                 <br />Access expires: {new Date(result.expiresAt).toLocaleString('en-GB')}
               </Typography>
-              <Paper variant="outlined" sx={{ p: 2, mb: 2, wordBreak: 'break-all', bgcolor: '#F0F9FF' }}>
-                <Typography variant="body2" fontFamily="monospace">{result.portalUrl}</Typography>
+              <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#F0F9FF' }}>
+                <Typography variant="caption" color="#6B7280" display="block" sx={{ mb: 0.5 }}>Link (tap to copy)</Typography>
+                <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                  <Typography variant="body2" fontFamily="monospace" sx={{ wordBreak: 'break-all' }}>{truncateUrl(result.portalUrl)}</Typography>
+                  <IconButton size="small" onClick={copyLink}><CopyIcon sx={{ fontSize: 16 }} /></IconButton>
+                </Stack>
               </Paper>
               <Button startIcon={<CopyIcon />} variant="contained" onClick={copyLink} sx={{ bgcolor: '#0F4C81' }}>
-                Copy Link
+                Copy Full Link
               </Button>
             </Box>
           ) : (
