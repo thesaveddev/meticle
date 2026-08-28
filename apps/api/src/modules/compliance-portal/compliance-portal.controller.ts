@@ -29,6 +29,7 @@ export class CompliancePortalController {
     );
     if (locResult.rows.length === 0) throw new AppError(404, 'Location not found');
 
+    // Create token record first (without JWT)
     const tokenRecord = await CompliancePortalRepository.createToken({
       organization_id: user.organizationId!,
       location_id,
@@ -38,7 +39,7 @@ export class CompliancePortalController {
       created_by: user.userId,
     });
 
-    // Generate JWT
+    // Generate JWT using the record ID
     const jwtPayload = {
       portalId: tokenRecord.id,
       officer_name,
@@ -52,6 +53,9 @@ export class CompliancePortalController {
     const token = jwt.sign(jwtPayload, getJwtSecret(), {
       expiresIn: `${expires_hours || 72}h`,
     });
+
+    // Store the JWT in the record for later retrieval
+    await query(`UPDATE compliance_portal_tokens SET jwt_token = $1 WHERE id = $2`, [token, tokenRecord.id]);
 
     // Build portal URL
     const baseUrl = process.env.PORTAL_URL || process.env.FRONTEND_URL || 'http://localhost:5173';

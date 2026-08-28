@@ -3,6 +3,7 @@ import {
   Box, Typography, Paper, Stack, Tabs, Tab, Chip, CircularProgress,
   Avatar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
 } from '@mui/material'
+import { Warning as WarningIcon } from '@mui/icons-material'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
@@ -58,14 +59,27 @@ export default function FamilyPortalPage() {
   if (infoError || !info) {
     const status = (infoError as any)?.response?.status
     const expired = status === 404
+    const msg = (infoError as any)?.response?.data?.message || ''
+    const isRevoked = msg.includes('revoked')
+    const isExpired = msg.includes('expired') || expired
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#F9FAFB', p: 4 }}>
-        <Paper sx={{ p: 6, textAlign: 'center', maxWidth: 480, borderRadius: 3 }}>
-          <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>{expired ? 'Link Expired or Revoked' : 'Something Went Wrong'}</Typography>
-          <Typography color="#6B7280" sx={{ mb: 3 }}>
-            {expired
-              ? 'This portal link is no longer valid — it may have expired or been revoked. Please contact the care provider for a new invitation.'
-              : 'We couldn\u2019t load your portal right now. Please try again in a moment, or contact the care provider if the problem persists.'}
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#F9FAFB', p: 2 }}>
+        <Paper sx={{ p: 5, textAlign: 'center', maxWidth: 440, borderRadius: 3, border: '1px solid #E5E7EB' }}>
+          <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: isRevoked ? '#FEF2F2' : '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
+            <WarningIcon sx={{ fontSize: 36, color: isRevoked ? '#DC2626' : '#D97706' }} />
+          </Box>
+          <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>
+            {isRevoked ? 'Access Revoked' : isExpired ? 'Link Expired' : 'Link Invalid'}
+          </Typography>
+          <Typography color="#6B7280" sx={{ mb: 3, lineHeight: 1.6 }}>
+            {isRevoked
+              ? 'This portal link has been revoked by the care provider. Please contact them if you need continued access.'
+              : isExpired
+                ? 'This link has passed its expiry date. Each link is valid for a limited time for security. Ask the care provider for a new one.'
+                : 'This link could not be verified. It may be malformed, expired, or revoked. Contact the care provider for a new access link.'}
+          </Typography>
+          <Typography variant="caption" color="#9CA3AF">
+            Need help? Contact the care home directly.
           </Typography>
         </Paper>
       </Box>

@@ -34,6 +34,12 @@ const processQueue = (error: any, token: string | null = null) => {
 }
 
 api.interceptors.request.use((config) => {
+  // Compliance portal uses its own token stored under 'portal_token'
+  const portalToken = localStorage.getItem('portal_token')
+  if (portalToken) {
+    config.headers.Authorization = `Bearer ${portalToken}`
+    return config
+  }
   const token = localStorage.getItem('accessToken')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -50,6 +56,14 @@ api.interceptors.response.use(
       // Skip refresh logic for auth endpoints (login, register, refresh)
       const authPaths = ['/auth/login', '/auth/register', '/auth/refresh']
       if (authPaths.some(p => originalRequest.url?.includes(p))) {
+        return Promise.reject(error)
+      }
+
+      // Portal users: clear token and redirect to portal login (not app login)
+      const isPortal = !!localStorage.getItem('portal_token')
+      if (isPortal) {
+        localStorage.removeItem('portal_token')
+        window.location.href = '/portal/login?error=session_expired'
         return Promise.reject(error)
       }
 
