@@ -10,16 +10,17 @@ export class CompliancePortalRepository {
     email: string;
     expires_hours: number;
     created_by: string;
+    jwt_token?: string;
   }) {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + data.expires_hours);
 
     const result = await query(
       `INSERT INTO compliance_portal_tokens
-        (organization_id, location_id, officer_name, email, expires_at, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6)
+        (organization_id, location_id, officer_name, email, expires_at, created_by, jwt_token)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [data.organization_id, data.location_id, data.officer_name, data.email, expiresAt.toISOString(), data.created_by]
+      [data.organization_id, data.location_id, data.officer_name, data.email, expiresAt.toISOString(), data.created_by, data.jwt_token || null]
     );
     return result.rows[0];
   }
@@ -35,7 +36,9 @@ export class CompliancePortalRepository {
 
   static async listTokens(orgId: string) {
     const result = await query(
-      `SELECT cpt.*, l.name as location_name,
+      `SELECT cpt.id, cpt.organization_id, cpt.location_id, cpt.officer_name, cpt.email,
+        cpt.expires_at, cpt.revoked, cpt.revoked_at, cpt.accessed_at, cpt.created_at,
+        cpt.jwt_token, l.name as location_name,
         (SELECT first_name || ' ' || last_name FROM staff_profiles WHERE user_id = cpt.created_by) AS created_by_name
        FROM compliance_portal_tokens cpt
        JOIN locations l ON l.id = cpt.location_id

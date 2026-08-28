@@ -14,6 +14,7 @@ import {
   Visibility as ViewIcon, Close as CloseIcon, Logout as LogoutIcon,
   Link as LinkIcon, ContentCopy as CopyIcon,
   CheckCircle as CheckIcon, Cancel as CancelIcon, AccessTime as ClockIcon,
+  Block as BlockIcon,
   LocalDrink as WaterIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
@@ -34,38 +35,95 @@ const STATUS_COLORS: Record<string, string> = {
 export function PortalLoginPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [errorType, setErrorType] = useState<string | null>(null)
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const token = params.get('token')
-    if (!token) {
-      setError('No access token provided. Please request a valid portal link from the care provider.')
+    const errorParam = params.get('error')
+
+    if (errorParam === 'session_expired') {
+      setError('Your session has expired. Please request a new access link from the care provider.')
+      setErrorType('session_expired')
       setLoading(false)
       return
     }
+
+    if (!token) {
+      setError('No access token provided. Please request a valid portal link from the care provider.')
+      setErrorType('no_token')
+      setLoading(false)
+      return
+    }
+
     localStorage.setItem('portal_token', token)
     api.get('/compliance-portal/portal/verify')
       .then(() => {
         window.location.href = '/portal/dashboard'
       })
       .catch(err => {
-        setError(err.response?.data?.message || 'Invalid or expired access link')
+        const msg = err.response?.data?.message || 'Invalid or expired access link'
+        setError(msg)
+        setErrorType(msg.includes('expired') ? 'expired' : msg.includes('revoked') ? 'revoked' : 'invalid')
+        localStorage.removeItem('portal_token')
         setLoading(false)
       })
   }, [])
 
+  const getErrorIcon = () => {
+    switch (errorType) {
+      case 'expired': return <ClockIcon sx={{ fontSize: 56, color: '#D97706' }} />
+      case 'revoked': return <BlockIcon sx={{ fontSize: 56, color: '#DC2626' }} />
+      case 'session_expired': return <ClockIcon sx={{ fontSize: 56, color: '#D97706' }} />
+      default: return <ShieldIcon sx={{ fontSize: 56, color: '#DC2626' }} />
+    }
+  }
+
+  const getErrorTitle = () => {
+    switch (errorType) {
+      case 'expired': return 'Link Expired'
+      case 'revoked': return 'Access Revoked'
+      case 'session_expired': return 'Session Expired'
+      case 'no_token': return 'No Access Link'
+      default: return 'Invalid Access Link'
+    }
+  }
+
+  const getErrorHint = () => {
+    switch (errorType) {
+      case 'expired': return 'This link has passed its expiry date. Each link is valid for a limited time for security. Ask the care provider to generate a new one.'
+      case 'revoked': return 'This access link has been revoked by the administrator. Contact the care provider if you need continued access.'
+      case 'session_expired': return 'Your portal session timed out. For security, portal access expires automatically. Request a new link from the care provider.'
+      case 'no_token': return 'The link you followed does not contain an access token. Make sure you copied the full link from the email.'
+      default: return 'This link could not be verified. It may be malformed, expired, or revoked. Contact the care provider for a new access link.'
+    }
+  }
+
   if (loading) return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
-      <CircularProgress />
+      <Stack alignItems="center" spacing={2}>
+        <CircularProgress size={32} sx={{ color: '#0F4C81' }} />
+        <Typography variant="body2" color="#6B7280">Verifying access...</Typography>
+      </Stack>
     </Box>
   )
 
   if (error) return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
-      <Paper sx={{ p: 4, maxWidth: 480, textAlign: 'center', borderRadius: 3 }}>
-        <WarningIcon sx={{ fontSize: 48, color: '#EF4444', mb: 2 }} />
-        <Typography variant="h6" fontWeight={700} gutterBottom>Access Issue</Typography>
-        <Typography color="text.secondary" sx={{ mb: 3 }}>{error}</Typography>
-        <Button variant="outlined" href="/login">Go to Login</Button>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', px: 2 }}>
+      <Paper sx={{ p: 5, maxWidth: 440, textAlign: 'center', borderRadius: 3, border: '1px solid #E5E7EB' }}>
+        <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: errorType === 'expired' || errorType === 'session_expired' ? '#FFF7ED' : '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
+          {getErrorIcon()}
+        </Box>
+        <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>{getErrorTitle()}</Typography>
+        <Typography variant="body2" color="#6B7280" sx={{ mb: 3, lineHeight: 1.6 }}>{getErrorHint()}</Typography>
+        <Stack spacing={1.5} alignItems="center">
+          <Button variant="contained" href="/login" sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 2, px: 4 }}>
+            Go to Login
+          </Button>
+          <Typography variant="caption" color="#9CA3AF">
+            Need help? Contact the care home directly.
+          </Typography>
+        </Stack>
       </Paper>
     </Box>
   )
@@ -182,8 +240,8 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
                         <TableCell>
                           <Stack direction="row" spacing={0.5} alignItems="center">
                             <Typography variant="caption" fontFamily="monospace" color="#6B7280">…{t.id.slice(-8)}</Typography>
-                            {!isRevoked && !isExpired && (
-                              <IconButton size="small" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/compliance-portal/login?token=${t.id}`) }}>
+                            {!isRevoked && !isExpired && t.jwt_token && (
+                              <IconButton size="small" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/login?token=${t.jwt_token}`) }}>
                                 <CopyIcon sx={{ fontSize: 14 }} />
                               </IconButton>
                             )}
