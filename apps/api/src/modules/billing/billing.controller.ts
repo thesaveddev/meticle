@@ -192,6 +192,38 @@ export class BillingController {
 
   static async getInvoices(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
+    // Backfill from Stripe so invoices appear (and can be downloaded) even if a
+    // webhook was missed or the org subscribed outside the app.
+    const org = await pool.query('SELECT stripe_customer_id FROM organizations WHERE id = $1', [orgId]);
+    const stripe = getStripe();
+    if (stripe && org.rows[0]?.stripe_customer_id) {
+      try {
+        const stripeInvoices = await stripe.invoices.list({ customer: org.rows[0].stripe_customer_id, limit: 24 });
+        for (const inv of stripeInvoices.data) {
+          const amount = (inv.amount_paid || inv.amount_due || 0) / 100;
+          const status = inv.status === 'paid' ? 'paid' : inv.status === 'open' ? 'open' : inv.status;
+          const description = inv.lines?.data?.[0]?.description || inv.description || 'Meticle subscription';
+          const existing = await pool.query(
+            'SELECT id FROM invoices WHERE organization_id = $1 AND stripe_invoice_id = $2',
+            [orgId, inv.id]
+          );
+          if (existing.rows.length > 0) {
+            await pool.query(
+              `UPDATE invoices SET status = $1, amount = $2, description = $3, issued_at = to_timestamp($4) WHERE id = $5`,
+              [status, amount, description, inv.created, existing.rows[0].id]
+            );
+          } else {
+            await pool.query(
+              `INSERT INTO invoices (organization_id, invoice_number, description, amount, currency, status, stripe_invoice_id, issued_at, paid_at)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, to_timestamp($8), CASE WHEN $6 = 'paid' THEN to_timestamp($8) ELSE NULL END)`,
+              [orgId, inv.number || `STRIPE-${inv.id.slice(-8)}`, description, amount, inv.currency?.toUpperCase() || 'GBP', status, inv.id, inv.created]
+            );
+          }
+        }
+      } catch (err: any) {
+        logWarn('stripe invoice backfill')(err);
+      }
+    }
     const result = await pool.query(
       `SELECT * FROM invoices WHERE organization_id = $1 ORDER BY issued_at DESC NULLS LAST, created_at DESC`,
       [orgId]

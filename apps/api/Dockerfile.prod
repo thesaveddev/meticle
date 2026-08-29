@@ -11,7 +11,12 @@ RUN npm run build --workspace=@meticle/api
 
 # Production stage
 FROM node:20-alpine
-RUN apk add --no-cache tini
+# Chromium is required by puppeteer-core for PDF generation (invoices,
+# evidence packs, compliance reports). puppeteer-core does NOT bundle a
+# browser, so without this every PDF download 500s in production.
+RUN apk add --no-cache tini chromium nss freetype harfbuzz ca-certificates ttf-freefont font-noto-emoji \
+  && rm -rf /var/cache/apk/*
+ENV CHROME_PATH=/usr/bin/chromium
 WORKDIR /app
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/apps/api/package*.json ./apps/api/

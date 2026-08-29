@@ -1,15 +1,62 @@
 import { migrateQuery } from '../database';
 import { EmailService } from './email.service';
+import { getStripe } from '../services/stripe.service';
 
 const SUBSCRIPTION_REMINDER_DAYS = [7, 3, 1];
 
 const EXPIRY_STATUSES = new Set(['trial', 'active', 'past_due']);
 const WINBACK_STATUSES = new Set(['trial', 'active', 'past_due', 'canceled']);
 
+/**
+ * Reconcile live Stripe state into the DB before the reminder pass. Webhooks can
+ * be missed (server down, misconfigured endpoint) — this makes the job
+ * self-healing so current_period_end / status stay accurate for both
+ * enforcement (auth middleware) and reminder emails.
+ */
+async function reconcileStripeSubscriptions() {
+  const stripe = getStripe();
+  if (!stripe) return;
+  const orgs = await migrateQuery(
+    `SELECT id, stripe_customer_id FROM organizations
+     WHERE stripe_customer_id IS NOT NULL
+       AND subscription_status IN ('trial', 'active', 'past_due')`
+  );
+  for (const org of orgs.rows) {
+    try {
+      const subs = await stripe.subscriptions.list({ customer: org.stripe_customer_id, limit: 1, status: 'all' });
+      const sub = subs.data[0];
+      if (!sub) {
+        // Customer exists but no subscription — the plan lapsed on Stripe's side.
+        await migrateQuery(`UPDATE organizations SET subscription_status = 'canceled' WHERE id = $1`, [org.id]);
+        continue;
+      }
+      const mapped =
+        sub.status === 'active' ? 'active' :
+        sub.status === 'trialing' ? 'trial' :
+        sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' :
+        sub.status === 'canceled' ? 'canceled' : null;
+      const periodEnd = (sub as any).current_period_end ? new Date((sub as any).current_period_end * 1000).toISOString() : null;
+      const trialEnd = (sub as any).trial_end ? new Date((sub as any).trial_end * 1000).toISOString() : null;
+      await migrateQuery(
+        `UPDATE organizations SET
+           subscription_status = COALESCE($1, subscription_status),
+           current_period_end = COALESCE($2, current_period_end),
+           trial_ends_at = COALESCE($3, trial_ends_at)
+         WHERE id = $4`,
+        [mapped, periodEnd, trialEnd, org.id]
+      );
+    } catch {
+      /* best-effort — a failed Stripe lookup must not break the reminder pass */
+    }
+  }
+}
+
 export async function checkSubscriptionExpirations() {
   // Background job — no RLS session context, so every query uses migrateQuery
   // (superuser pool) to avoid the FORCE-RLS tables (users, trial_reminders)
   // silently filtering all rows to zero.
+  await reconcileStripeSubscriptions();
+
   const result = await migrateQuery(
     `SELECT o.id, o.name as org_name, o.subscription_status, o.trial_ends_at, o.current_period_end,
             u.email, COALESCE(sp.first_name, u.email) as name,
@@ -49,17 +96,21 @@ export async function checkSubscriptionExpirations() {
       );
     };
 
-    // 7 / 3 / 1-day renewal reminders (canceled/expired orgs don't get nudged)
-    if (daysLeft >= 1 && EXPIRY_STATUSES.has(status) && SUBSCRIPTION_REMINDER_DAYS.includes(daysLeft)) {
-      if (await alreadyNotified(daysLeft)) continue;
-
-      await markNotified(daysLeft);
-      if (isTrial) {
-        EmailService.sendTrialExpiringEmail(org.email, org.name, org.org_name, daysLeft, hasCard).catch(() => {});
-      } else {
-        EmailService.sendSubscriptionExpiringEmail(org.email, org.name, org.org_name, daysLeft, hasCard).catch(() => {});
+    // 7 / 3 / 1-day renewal reminders (canceled/expired orgs don't get nudged).
+    // Send the closest milestone that's due and not yet sent — this fires even if
+    // the job was down on the exact day, and each milestone is deduped so a single
+    // run can never spam multiple reminders.
+    if (daysLeft >= 1 && EXPIRY_STATUSES.has(status)) {
+      const milestone = SUBSCRIPTION_REMINDER_DAYS.find(d => daysLeft <= d) ?? 1;
+      if (!(await alreadyNotified(milestone))) {
+        await markNotified(milestone);
+        if (isTrial) {
+          EmailService.sendTrialExpiringEmail(org.email, org.name, org.org_name, daysLeft, hasCard).catch(() => {});
+        } else {
+          EmailService.sendSubscriptionExpiringEmail(org.email, org.name, org.org_name, daysLeft, hasCard).catch(() => {});
+        }
+        reminded++;
       }
-      reminded++;
     }
 
     // Period end passed — win-back email + transition to expired (backstop for webhooks)

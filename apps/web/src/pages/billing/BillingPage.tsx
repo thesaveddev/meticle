@@ -258,6 +258,13 @@ function BillingPageInner() {
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 800, mb: 4 }}>Billing</Typography>
 
+      {subscription?.stripeUnavailable && (
+        <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }}>
+          <Typography variant="subtitle2" fontWeight={700}>Stripe billing is not configured on the server</Typography>
+          <Typography variant="body2">Payment cards, subscriptions and invoices are unavailable until the administrator adds a valid live Stripe key and webhook secret. Please contact your system administrator.</Typography>
+        </Alert>
+      )}
+
       {message && (
         <Alert severity={message.includes('Failed') ? 'error' : 'success'} sx={{ mb: 4, borderRadius: 2 }} onClose={() => setMessage('')}>
           {message}
