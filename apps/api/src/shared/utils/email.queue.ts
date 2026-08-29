@@ -7,10 +7,10 @@ const POLL_INTERVAL = 5000; // 5 seconds
 let processorInterval: ReturnType<typeof setInterval> | null = null;
 
 export class EmailQueue {
-  static enqueue(to: string, subject: string, htmlBody: string) {
+  static enqueue(to: string, subject: string, htmlBody: string, fromEmail?: string) {
     return query(
-      `INSERT INTO email_queue (to_email, subject, html_body) VALUES ($1, $2, $3) RETURNING *`,
-      [to, subject, htmlBody]
+      `INSERT INTO email_queue (to_email, subject, html_body, from_email) VALUES ($1, $2, $3, $4) RETURNING *`,
+      [to, subject, htmlBody, fromEmail || null]
     );
   }
 
@@ -34,7 +34,7 @@ export class EmailQueue {
     for (const email of batch.rows) {
       try {
         if (transporter) {
-          const from = process.env.SMTP_FROM || 'noreply@meticlecare.com';
+          const from = email.from_email || process.env.SMTP_FROM || 'noreply@meticlecare.com';
           await transporter.sendMail({ from, to: email.to_email, subject: email.subject, html: email.html_body });
           logger.info({ queueId: email.id, to: email.to_email }, 'Email sent via queue');
         } else {
