@@ -62,6 +62,34 @@ Copy the endpoint signing secret into `STRIPE_WEBHOOK_SECRET`. The API verifies 
    - the Stripe dashboard shows the correct metadata key: `organizationId`.
 6. Confirm production logs do not contain card numbers, CVCs, or client secrets.
 
+## SMTP / transactional email
+
+All transactional email (verification, reminders, receipts, dunning, portal links)
+is sent from the API via SMTP. Configure in the VPS `/opt/meticle/.env`:
+
+```text
+SMTP_HOST=smtp.<your-host>.com        # e.g. smtp.zoho.eu, smtp.gmail.com
+SMTP_PORT=587                          # 465 when SMTP_SECURE=true
+SMTP_SECURE=false
+SMTP_USER=notifications@meticlecare.com
+SMTP_PASS=<mailbox password or app password>
+SMTP_FROM=notifications@meticlecare.com
+```
+
+Notes:
+
+- Create the `notifications@meticlecare.com` mailbox at your email/domain host
+  first; the SMTP password is that mailbox's password (or an app password for
+  providers that require one — historically SMTP/IMAP needs an app password).
+- `SMTP_FROM` controls the visible sender. Keep it the same address as
+  `SMTP_USER` to avoid SPF/DKIM alignment warnings.
+- Enable SPF (`include:<provider>`), DKIM, and DMARC records for `meticlecare.com`
+  in the domain's DNS so emails don't land in spam.
+- After editing `.env`, recreate the API container so the new values load:
+  `docker compose -f docker-compose.prod.yml up -d --force-recreate api`
+- Verify delivery: send a password-reset or portal-link email and check it
+  arrives; tail container logs for `Email queue batch processed` or errors.
+
 ## Local Stripe CLI
 
 For local testing only:
