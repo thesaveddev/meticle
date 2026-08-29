@@ -1,7 +1,11 @@
 import { usePageMeta } from '../../components/PageMeta'
 import { useState } from 'react'
-import { Box, Button, TextField, Typography, Paper, Container, Link, Alert, CircularProgress, Stack } from '@mui/material'
+import {
+  TextField, Button, Box, Typography, Container,
+  Link, Stack, CircularProgress, InputAdornment,
+} from '@mui/material'
 import { useNavigate } from 'react-router-dom'
+import { MarkEmailRead as MailIcon } from '@mui/icons-material'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -25,59 +29,152 @@ export default function ForgotPasswordPage() {
       } else {
         setError('Something went wrong. Please try again.')
       }
-    } catch (err) {
+    } catch {
       setError('Failed to connect to the server.')
     } finally {
       setLoading(false)
     }
   }
 
-  usePageMeta({ title: 'Forgot Password | MeticleCare', description: 'Reset your MeticleCare account password.', noindex: true })
+  usePageMeta({ title: 'Reset Password | MeticleCare', description: 'Reset your MeticleCare account password.', noindex: true })
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', bgcolor: '#020617' }}>
-      <Container maxWidth="xs">
-        <Paper className="glass-morphism" sx={{ p: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, color: 'white' }}>
-            Recovery
-          </Typography>
-          <Typography variant="body2" color="#94a3b8" sx={{ mb: 4 }}>
-            Enter your email to receive a password reset link.
-          </Typography>
+    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'white' }}>
+      <Box sx={{
+        flex: { xs: 1, md: 0.8, lg: 0.6 },
+        display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4,
+      }}>
+        <Container maxWidth="xs" sx={{ mx: 'auto' }}>
+          <Box sx={{ mb: 6 }}>
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }}
+              onClick={() => navigate('/')}
+            >
+              Meticle
+            </Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
+              Reset your password
+            </Typography>
+            <Typography sx={{ color: '#6B7280' }}>
+              Enter your email and we'll send you a reset link.
+            </Typography>
+          </Box>
+
+          {error && (
+            <Box sx={{
+              mb: 3, p: 2, borderRadius: 2,
+              bgcolor: '#FEF2F2', border: '1px solid #FECACA',
+            }}>
+              <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 500 }}>{error}</Typography>
+            </Box>
+          )}
 
           {submitted ? (
-            <Alert severity="success" sx={{ bgcolor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-              If an account exists for {email}, you will receive a reset link shortly.
-              <Button sx={{ mt: 2, color: '#10b981' }} onClick={() => navigate('/login')}>Back to Login</Button>
-            </Alert>
+            <Box>
+              <Box sx={{
+                display: 'flex', alignItems: 'center', gap: 1.5, mb: 3,
+                p: 2.5, borderRadius: 2, bgcolor: '#F0FDF4', border: '1px solid #BBF7D0',
+              }}>
+                <MailIcon sx={{ color: '#16A34A', fontSize: 22 }} />
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#166534' }}>Check your inbox</Typography>
+                  <Typography variant="caption" sx={{ color: '#15803D' }}>
+                    If an account exists for {email}, you'll receive a reset link shortly.
+                  </Typography>
+                </Box>
+              </Box>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => navigate('/login')}
+                sx={{
+                  borderColor: '#E5E7EB', color: '#374151', fontWeight: 600,
+                  textTransform: 'none', borderRadius: 2, py: 1.5,
+                  '&:hover': { borderColor: '#D1D5DB', bgcolor: '#F9FAFB' },
+                }}
+              >
+                Back to sign in
+              </Button>
+            </Box>
           ) : (
-            <form onSubmit={handleSubmit}>
+            <Box component="form" onSubmit={handleSubmit}>
               <Stack spacing={3}>
-                <TextField
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Email address</Typography>
+                  <TextField
+                    fullWidth
+                    placeholder="name@organization.com"
+                    variant="outlined"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoFocus
+                    autoComplete="email"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <MailIcon sx={{ color: '#9CA3AF', fontSize: 20 }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        '&.Mui-focused fieldset': { borderColor: '#0F4C81' },
+                      },
+                    }}
+                  />
+                </Box>
+
+                <Button
                   fullWidth
-                  label="Email Address"
-                  variant="outlined"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                {error && <Typography color="error" variant="caption">{error}</Typography>}
-                <Button fullWidth variant="contained" type="submit" disabled={loading} sx={{ py: 1.5, bgcolor: '#10b981', fontWeight: 700 }}>
-                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Send Reset Link'}
-                </Button>
-                <Link 
-                  component="button" 
-                  variant="body2" 
-                  onClick={() => navigate('/login')}
-                  sx={{ color: '#94a3b8', textDecoration: 'none', '&:hover': { color: 'white' } }}
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  disabled={loading}
+                  sx={{
+                    bgcolor: '#0F4C81', py: 1.8, fontWeight: 700,
+                    borderRadius: 2, fontSize: '1rem', textTransform: 'none',
+                    '&:hover': { bgcolor: '#0D3F6E' },
+                  }}
                 >
-                  Return to Login
-                </Link>
+                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Send reset link'}
+                </Button>
+
+                <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                    Remember your password?{' '}
+                    <Link
+                      onClick={() => navigate('/login')}
+                      sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}
+                    >
+                      Sign in
+                    </Link>
+                  </Typography>
+                </Box>
               </Stack>
-            </form>
+            </Box>
           )}
-        </Paper>
-      </Container>
+        </Container>
+      </Box>
+
+      <Box sx={{
+        flex: { xs: 0, md: 1.2, lg: 1.6 },
+        display: { xs: 'none', md: 'flex' },
+        flexDirection: 'column', bgcolor: '#F8FAFC', p: 8,
+        alignItems: 'center', justifyContent: 'center',
+        borderLeft: '1px solid #E5E7EB',
+      }}>
+        <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>
+            Your data stays safe
+          </Typography>
+          <Typography sx={{ color: '#6B7280', lineHeight: 1.7 }}>
+            Password resets are sent only to verified email addresses. The link expires in 1 hour and can only be used once.
+          </Typography>
+        </Box>
+      </Box>
     </Box>
   )
 }

@@ -1,7 +1,10 @@
 import { usePageMeta } from '../../components/PageMeta'
 import { useState } from 'react'
-import { Box, Button, TextField, Typography, Paper, Container, Stack, Alert, IconButton, InputAdornment } from '@mui/material'
-import { Visibility, VisibilityOff } from '@mui/icons-material'
+import {
+  TextField, Button, Box, Typography, Container,
+  Link, Stack, CircularProgress, InputAdornment, IconButton,
+} from '@mui/material'
+import { Visibility, VisibilityOff, LockReset as LockIcon } from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 export default function ResetPasswordPage() {
@@ -13,6 +16,7 @@ export default function ResetPasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,7 +28,7 @@ export default function ResetPasswordPage() {
     if (newPassword.length < 8) {
       return setError('Password must be at least 8 characters')
     }
-
+    setLoading(true)
     try {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
@@ -38,8 +42,10 @@ export default function ResetPasswordPage() {
         const data = await res.json()
         setError(data.message || 'Reset failed')
       }
-    } catch (err) {
+    } catch {
       setError('Failed to connect to the server')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -47,77 +53,116 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <Container maxWidth="xs" sx={{ mt: 10 }}>
-        <Alert severity="error">Invalid reset link. Please request a new one.</Alert>
-      </Container>
+      <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'white' }}>
+        <Box sx={{ flex: { xs: 1, md: 0.8, lg: 0.6 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
+          <Container maxWidth="xs" sx={{ mx: 'auto' }}>
+            <Box sx={{ mb: 6 }}>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
+                Meticle
+              </Typography>
+            </Box>
+            <Box sx={{ p: 3, borderRadius: 2, bgcolor: '#FEF2F2', border: '1px solid #FECACA' }}>
+              <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 600, mb: 1 }}>Invalid reset link</Typography>
+              <Typography variant="body2" sx={{ color: '#991B1B' }}>
+                This link is invalid or has expired. Please request a new password reset.
+              </Typography>
+            </Box>
+            <Button fullWidth variant="outlined" onClick={() => navigate('/forgot-password')}
+              sx={{ mt: 3, borderColor: '#E5E7EB', color: '#374151', fontWeight: 600, textTransform: 'none', borderRadius: 2, py: 1.5, '&:hover': { borderColor: '#D1D5DB', bgcolor: '#F9FAFB' } }}>
+              Request new reset link
+            </Button>
+          </Container>
+        </Box>
+        <Box sx={{ flex: { xs: 0, md: 1.2, lg: 1.6 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: '#F8FAFC', p: 8, alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid #E5E7EB' }}>
+          <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>Link expired?</Typography>
+            <Typography sx={{ color: '#6B7280', lineHeight: 1.7 }}>
+              Reset links expire after 1 hour for security. Request a new one and check your inbox.
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
     )
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', bgcolor: '#020617' }}>
-      <Container maxWidth="xs">
-        <Paper className="glass-morphism" sx={{ p: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, color: 'white' }}>
-            New Password
-          </Typography>
-          <Typography variant="body2" color="#94a3b8" sx={{ mb: 4 }}>
-            Set a strong, 8+ character password.
-          </Typography>
+    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'white' }}>
+      <Box sx={{ flex: { xs: 1, md: 0.8, lg: 0.6 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
+        <Container maxWidth="xs" sx={{ mx: 'auto' }}>
+          <Box sx={{ mb: 6 }}>
+            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
+              Meticle
+            </Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>Set new password</Typography>
+            <Typography sx={{ color: '#6B7280' }}>Choose a strong password with 8+ characters.</Typography>
+          </Box>
+
+          {error && (
+            <Box sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: '#FEF2F2', border: '1px solid #FECACA' }}>
+              <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 500 }}>{error}</Typography>
+            </Box>
+          )}
 
           {success ? (
-            <Alert severity="success" sx={{ bgcolor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-              Password reset successful. Redirecting to login...
-            </Alert>
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3, p: 2.5, borderRadius: 2, bgcolor: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+                <LockIcon sx={{ color: '#16A34A', fontSize: 22 }} />
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#166534' }}>Password updated</Typography>
+                  <Typography variant="caption" sx={{ color: '#15803D' }}>Redirecting to sign in...</Typography>
+                </Box>
+              </Box>
+              <Button fullWidth variant="outlined" onClick={() => navigate('/login')}
+                sx={{ borderColor: '#E5E7EB', color: '#374151', fontWeight: 600, textTransform: 'none', borderRadius: 2, py: 1.5, '&:hover': { borderColor: '#D1D5DB', bgcolor: '#F9FAFB' } }}>
+                Sign in now
+              </Button>
+            </Box>
           ) : (
-            <form onSubmit={handleSubmit}>
+            <Box component="form" onSubmit={handleSubmit}>
               <Stack spacing={3}>
-                <TextField
-                  fullWidth
-                  label="New Password"
-                  type={showNewPassword ? 'text' : 'password'}
-                  variant="outlined"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowNewPassword(!showNewPassword)} edge="end" size="small">
-                          {showNewPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  fullWidth
-                  label="Confirm New Password"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  variant="outlined"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end" size="small">
-                          {showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                {error && <Typography color="error" variant="caption">{error}</Typography>}
-                <Box sx={{ textAlign: 'center' }}>
-                  <Button variant="contained" type="submit" sx={{ px: 6, py: 1.5, bgcolor: '#10b981', fontWeight: 700 }}>
-                    Reset Password
-                  </Button>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>New password</Typography>
+                  <TextField fullWidth type={showNewPassword ? 'text' : 'password'} placeholder="••••••••" variant="outlined"
+                    value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required autoFocus autoComplete="new-password"
+                    InputProps={{
+                      startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: '#9CA3AF', fontSize: 20 }} /></InputAdornment>),
+                      endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowNewPassword(!showNewPassword)} edge="end" size="small">{showNewPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</IconButton></InputAdornment>),
+                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, '&.Mui-focused fieldset': { borderColor: '#0F4C81' } } }} />
+                </Box>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Confirm password</Typography>
+                  <TextField fullWidth type={showConfirmPassword ? 'text' : 'password'} placeholder="••••••••" variant="outlined"
+                    value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required autoComplete="new-password"
+                    InputProps={{
+                      startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: '#9CA3AF', fontSize: 20 }} /></InputAdornment>),
+                      endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end" size="small">{showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</IconButton></InputAdornment>),
+                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, '&.Mui-focused fieldset': { borderColor: '#0F4C81' } } }} />
+                </Box>
+                <Button fullWidth type="submit" variant="contained" size="large" disabled={loading}
+                  sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 700, borderRadius: 2, fontSize: '1rem', textTransform: 'none', '&:hover': { bgcolor: '#0D3F6E' } }}>
+                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Reset password'}
+                </Button>
+                <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                    Remember your password?{' '}
+                    <Link onClick={() => navigate('/login')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
+                  </Typography>
                 </Box>
               </Stack>
-            </form>
+            </Box>
           )}
-        </Paper>
-      </Container>
+        </Container>
+      </Box>
+      <Box sx={{ flex: { xs: 0, md: 1.2, lg: 1.6 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: '#F8FAFC', p: 8, alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid #E5E7EB' }}>
+        <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>Almost there</Typography>
+          <Typography sx={{ color: '#6B7280', lineHeight: 1.7 }}>
+            Your new password must be at least 8 characters with a mix of uppercase, lowercase, numbers, and special characters.
+          </Typography>
+        </Box>
+      </Box>
     </Box>
   )
 }
