@@ -94,17 +94,22 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const isExempt = subExemptPaths.some(p => req.originalUrl.startsWith(p));
     if (!isExempt && decoded.organizationId) {
       const orgResult = await query(
-        `SELECT subscription_status, trial_ends_at FROM organizations WHERE id = $1`,
+        `SELECT subscription_status, trial_ends_at, current_period_end FROM organizations WHERE id = $1`,
         [decoded.organizationId]
       );
       if (orgResult.rows.length > 0) {
         const org = orgResult.rows[0];
         const status = org.subscription_status;
         const trialEnded = org.trial_ends_at && new Date(org.trial_ends_at) < new Date();
+        // If the billing period end has passed, the subscription has lapsed — this
+        // catches missed webhooks that never flipped the DB status.
+        const periodEnded = org.current_period_end && new Date(org.current_period_end) < new Date();
         let blocked = false;
         if (status === 'active' || status === 'past_due') {
-          // past_due is a grace period — Stripe is retrying; keep access so teams aren't hard-locked
-          blocked = false;
+          // Within the current billing period both keep access (past_due is a grace
+          // period while Stripe retries). Once the period end passes, treat as lapsed
+          // so the team is steered to /billing instead of silently keeping full access.
+          blocked = !!periodEnded;
         } else if (status === 'trial' || !status) {
           blocked = !!trialEnded;
         } else {
