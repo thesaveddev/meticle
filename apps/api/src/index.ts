@@ -244,6 +244,16 @@ app.use('/platform-admin', platformAdminRoutes);
 app.get('/health/live', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+app.get('/health/email', (_req: Request, res: Response) => {
+  const configured = !!(process.env.SMTP_HOST && process.env.SMTP_USER);
+  res.json({
+    configured,
+    smtp_host: process.env.SMTP_HOST || 'NOT SET',
+    smtp_user: process.env.SMTP_USER || 'NOT SET',
+    smtp_from: process.env.SMTP_FROM || 'NOT SET',
+    timestamp: new Date().toISOString(),
+  });
+});
 app.get('/health/ready', asyncHandler(async (req: Request, res: Response) => {
   const dbOk = await healthCheck();
   res.status(dbOk ? 200 : 503).json({
@@ -427,6 +437,13 @@ setTimeout(() => {
 // Start email queue processor
 import { EmailQueue } from './shared/utils/email.queue';
 EmailQueue.startProcessor();
+
+// Warn if SMTP is not configured — emails will silently fail
+if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+  logger.warn('SMTP not configured — emails will NOT be delivered. Set SMTP_HOST, SMTP_USER, SMTP_PASS in .env');
+} else {
+  logger.info({ host: process.env.SMTP_HOST, user: process.env.SMTP_USER }, 'Email: SMTP configured');
+}
 
 // Start the domain event outbox worker
 import { EventWorker } from './modules/events/events.worker';
