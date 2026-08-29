@@ -244,13 +244,32 @@ app.use('/platform-admin', platformAdminRoutes);
 app.get('/health/live', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-app.get('/health/email', (_req: Request, res: Response) => {
+app.get('/health/email', async (_req: Request, res: Response) => {
   const configured = !!(process.env.SMTP_HOST && process.env.SMTP_USER);
+  let queueStats: Record<string, any> | { error: string } | null = null;
+  try {
+    const { query } = await import('./shared/database');
+    const result = await query(
+      `SELECT status, COUNT(*)::int as count FROM email_queue GROUP BY status`
+    );
+    const stats: Record<string, any> = {};
+    for (const row of result.rows) {
+      stats[row.status] = row.count;
+    }
+    const failed = await query(
+      `SELECT id, to_email, subject, error_message, retry_count, created_at FROM email_queue WHERE status = 'failed' ORDER BY created_at DESC LIMIT 5`
+    );
+    stats.recent_failures = failed.rows;
+    queueStats = stats;
+  } catch {
+    queueStats = { error: 'Could not query email_queue table' };
+  }
   res.json({
     configured,
     smtp_host: process.env.SMTP_HOST || 'NOT SET',
     smtp_user: process.env.SMTP_USER || 'NOT SET',
     smtp_from: process.env.SMTP_FROM || 'NOT SET',
+    queue: queueStats,
     timestamp: new Date().toISOString(),
   });
 });
