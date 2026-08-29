@@ -2,6 +2,18 @@ import nodemailer from 'nodemailer';
 import { buildEmailHtml, buildCodeEmailHtml, buildStatusEmailHtml } from './email.template';
 import logger from './logger';
 
+// ── Sender addresses ──
+// Each category uses a distinct 'From' address for brand trust and deliverability.
+const SENDERS = {
+  notifications: process.env.SMTP_FROM_NOTIFICATIONS || 'notifications@meticlecare.com',
+  billing:      process.env.SMTP_FROM_BILLING      || 'billing@meticlecare.com',
+  security:     process.env.SMTP_FROM_SECURITY      || 'security@meticlecare.com',
+  support:      process.env.SMTP_FROM_SUPPORT       || 'support@meticlecare.com',
+  team:         process.env.SMTP_FROM_TEAM          || 'hello@meticlecare.com',
+} as const;
+
+export type SenderCategory = keyof typeof SENDERS;
+
 let transporter: nodemailer.Transporter | null = null;
 
 export function getTransporter() {
@@ -28,13 +40,13 @@ export function getTransporter() {
   return transporter!;
 }
 
-async function sendMail(to: string, subject: string, html: string) {
+async function sendMail(to: string, subject: string, html: string, category: SenderCategory = 'notifications') {
   try {
     const { EmailQueue } = await import('./email.queue');
-    await EmailQueue.enqueue(to, subject, html);
-    logger.info({ to, subject }, 'Email queued');
+    await EmailQueue.enqueue(to, subject, html, SENDERS[category]);
+    logger.info({ to, subject, category, from: SENDERS[category] }, 'Email queued');
   } catch (err: any) {
-    logger.error({ err: err.message, to, subject }, 'Email enqueue failed');
+    logger.error({ err: err.message, to, subject, category }, 'Email enqueue failed');
   }
 }
 
@@ -56,11 +68,11 @@ export class EmailService {
     await sendMail(email, 'Verify your Meticle account',
       buildEmailHtml('Verify Email', 'Verify your email address',
         `<p>Click the button below to verify your email address and activate your account.</p>`,
-        { label: 'Verify Email', url }));
+        { label: 'Verify Email', url }), 'security');
   }
 
   static async sendVerificationCode(email: string, code: string) {
-    await sendMail(email, 'Your Meticle Verification Code', buildCodeEmailHtml(code));
+    await sendMail(email, 'Your Meticle Verification Code', buildCodeEmailHtml(code), 'security');
   }
 
   static async sendPasswordResetEmail(email: string, token: string) {
@@ -68,7 +80,7 @@ export class EmailService {
     await sendMail(email, 'Reset your Meticle password',
       buildEmailHtml('Reset Password', 'Reset your password',
         `<p>Click the button below to reset your password. This link expires in 1 hour.</p>`,
-        { label: 'Reset Password', url }));
+        { label: 'Reset Password', url }), 'security');
   }
 
   static async sendInviteEmail(email: string, orgName: string, token: string) {
@@ -76,7 +88,7 @@ export class EmailService {
     await sendMail(email, `You've been invited to join ${orgName} on Meticle`,
       buildEmailHtml('Invitation', `You've been invited to ${orgName}`,
         `<p>Click below to create your account and join ${orgName} on Meticle.</p>`,
-        { label: 'Accept Invitation', url }));
+        { label: 'Accept Invitation', url }), 'team');
   }
 
   static async sendWelcomeEmail(email: string, name: string, orgName?: string, isAdmin?: boolean) {
@@ -107,7 +119,7 @@ export class EmailService {
           `<p style="margin:0 0 16px 0;font-size:14px;color:#1F2937"><strong>5.</strong> Run your first CQC readiness assessment</p>` +
           `<p style="margin:0;font-size:14px;color:#4B5563">If you need anything, just reply to this email — we're here to help.</p>` +
           `<p style="margin:16px 0 0 0;font-size:13px;color:#9CA3AF">The Meticle Team</p>`,
-          { label: 'Go to Dashboard', url }));
+          { label: 'Go to Dashboard', url }), 'team');
     } else {
       await sendMail(email, subject,
         buildEmailHtml('Welcome',
@@ -124,7 +136,7 @@ export class EmailService {
           `</table>` +
           `<p style="margin:0 0 16px 0;font-size:14px;color:#4B5563">Your manager will assign your shifts and set up any training you need. If you have questions, reach out to your team lead or reply to this email.</p>` +
           `<p style="margin:0;font-size:13px;color:#9CA3AF">The Meticle Team</p>`,
-          { label: 'Go to Dashboard', url }));
+          { label: 'Go to Dashboard', url }), 'team');
     }
   }
 
@@ -281,21 +293,21 @@ export class EmailService {
     await sendMail(email, 'MFA Enabled',
       buildEmailHtml('Security', `Hi ${name},`,
         `<p>Multi-factor authentication has been enabled on your account.</p>`,
-        { label: 'Settings', url: `${baseUrl()}/settings` }));
+        { label: 'Settings', url: `${baseUrl()}/settings` }), 'security');
   }
 
   static async sendMfaBackupCodesEmail(email: string, backupCodes: string[], name: string) {
     await sendMail(email, 'Your MFA Backup Codes',
       buildEmailHtml('Backup Codes', `Hi ${name},`,
         `<p>Save these backup codes in a safe place. Each code can only be used once:</p><pre>${backupCodes.join('\n')}</pre>`,
-        { label: 'Settings', url: `${baseUrl()}/settings` }));
+        { label: 'Settings', url: `${baseUrl()}/settings` }), 'security');
   }
 
   static async sendMfaResetAdminEmail(email: string, name: string) {
     await sendMail(email, 'MFA Reset by Admin',
       buildEmailHtml('MFA Reset', `Hi ${name},`,
         `<p>An administrator has reset your multi-factor authentication. Next time you log in you will be asked to set up MFA again.</p>`,
-        { label: 'Login', url: `${baseUrl()}/login` }));
+        { label: 'Login', url: `${baseUrl()}/login` }), 'security');
   }
 
   // ── Shift Swaps ──
@@ -337,7 +349,7 @@ export class EmailService {
   /** Generic send used by chat notifications and other modules */
   static async sendEmail(to: string, subject: string, htmlBody: string) {
     const html = buildEmailHtml(subject, subject, htmlBody);
-    await sendMail(to, subject, html);
+    await sendMail(to, subject, html, 'notifications');
   }
 
   // ── Family Portal ──
@@ -350,7 +362,7 @@ export class EmailService {
         `<p>Through this secure portal you can see:</p>` +
         `<ul><li>Daily care notes</li><li>Care plans</li><li>Goals and progress</li><li>Health observations</li></ul>` +
         `<p style="margin-top:16px">This link expires in <strong>14 days</strong> and is unique to you. Do not share it.</p>`,
-        { label: 'View Care Information', url }));
+        { label: 'View Care Information', url }), 'team');
   }
 
   // ── Misc ──
@@ -367,7 +379,7 @@ export class EmailService {
 
   static async sendQueued(to: string, subject: string, htmlBody: string) {
     const html = buildEmailHtml(subject, subject, htmlBody);
-    await sendMail(to, subject, html);
+    await sendMail(to, subject, html, 'notifications');
   }
 
   // ── Trial Reminders ──
@@ -383,7 +395,7 @@ export class EmailService {
           `<p>Your 14-day trial for <strong>${org}</strong> ${daysLeft > 1 ? `ends in <strong>${daysLeft} days</strong>` : '<strong>ends tomorrow</strong>'}. We'll charge the card on file on the expiry date.</p>` +
           `<p>You can view or update your payment method at any time.</p>` +
           `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
-          { label: 'View Billing', url }));
+          { label: 'View Billing', url }), 'billing');
     } else {
       await sendMail(email,
         daysLeft > 1 ? `Your trial ends in ${daysLeft} days — add a card to continue` : `Your trial ends tomorrow — add a card today`,
@@ -393,7 +405,7 @@ export class EmailService {
           `<p>Your 14-day trial for <strong>${org}</strong> ${daysLeft > 1 ? `ends in <strong>${daysLeft} days</strong>` : '<strong>ends tomorrow</strong>'}. You'll lose access to CQC scoring, evidence packs, rota planning, eMAR, and all compliance records.</p>` +
           `<p>Adding a payment card takes 30 seconds. <strong>You won't be charged until your trial ends.</strong></p>` +
           `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
-          { label: 'Add Payment Card', url }));
+          { label: 'Add Payment Card', url }), 'billing');
     }
   }
 
@@ -407,7 +419,7 @@ export class EmailService {
           `<p>Your 14-day trial has ended. Your card on file has been charged and your subscription is now active.</p>` +
           `<p>You can manage your plan and billing from the Billing page.</p>` +
           `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
-          { label: 'Manage Billing', url }));
+          { label: 'Manage Billing', url }), 'billing');
     } else {
       await sendMail(email, 'Your Meticle trial has ended — add a card to restore access',
         buildEmailHtml('Trial Expired', `Your trial for ${org} has ended`,
@@ -415,7 +427,7 @@ export class EmailService {
           `<p>Your 14-day free trial has ended. Your data is safe — nothing has been deleted. Add a card to continue using Meticle.</p>` +
           `<p><strong>No card = no charges.</strong> You control when to resume.</p>` +
           `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
-          { label: 'Reactivate Now', url }));
+          { label: 'Reactivate Now', url }), 'billing');
     }
   }
 
@@ -437,7 +449,7 @@ export class EmailService {
         `<li>Incident reporting and compliance tracking</li></ul>` +
         `<p>If your subscription lapses, your team's access will pause. <strong>Nothing is deleted</strong> — all your data stays safe and ready to pick back up the moment you renew.</p>` +
         `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
-        { label: hasCard ? 'View Billing' : 'Add Payment Card', url }));
+        { label: hasCard ? 'View Billing' : 'Add Payment Card', url }), 'billing');
   }
 
   static async sendSubscriptionExpiredEmail(email: string, name: string, orgName: string) {
@@ -455,7 +467,7 @@ export class EmailService {
         `<li>Incident reporting and compliance tracking</li></ul>` +
         `<p>We'd love to have you back.</p>` +
         `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
-        { label: 'Reactivate Now', url }));
+        { label: 'Reactivate Now', url }), 'billing');
   }
 
   // ── Payment receipts & recovery (industry-standard dunning) ──
@@ -484,7 +496,7 @@ export class EmailService {
         `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Next billing date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${next}</td></tr>` +
         `</table>` +
         `<p style="font-size:13px;color:#9CA3AF">Questions about this charge? Reply to this email and we'll help.</p>`,
-        { label: 'View Billing', url }));
+        { label: 'View Billing', url }), 'billing');
   }
 
   static async sendPaymentFailedEmail(email: string, name: string, orgName: string, opts: {
@@ -536,7 +548,7 @@ export class EmailService {
     }
     await sendMail(email, subject,
       buildEmailHtml('Payment Update', heading, body,
-        { label: opts.manualRetry ? 'Retry Payment' : 'Update Payment Method', url }));
+        { label: opts.manualRetry ? 'Retry Payment' : 'Update Payment Method', url }), 'billing');
   }
 
   static async sendPaymentActionRequiredEmail(email: string, name: string, orgName: string, opts: {
@@ -551,7 +563,7 @@ export class EmailService {
         `<p>Hi ${name},</p>` +
         `<p>To keep your <strong>${org}</strong> subscription running, your bank needs you to confirm a recent payment of <strong>${opts.currency} ${opts.amount.toFixed(2)}</strong> (3D Secure authentication).</p>` +
         `<p>This usually takes under a minute and your subscription stays active once confirmed.</p>`,
-        { label: 'Complete Payment', url }));
+        { label: 'Complete Payment', url }), 'billing');
   }
 
   // -- Daily Shift Audit --
