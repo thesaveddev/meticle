@@ -86,6 +86,12 @@ jobs:
             git fetch origin master
             git reset --hard origin/master
 
+            echo "=== Ensure CORS_ORIGINS is set in .env ==="
+            if ! grep -q '^CORS_ORIGINS=' .env 2>/dev/null; then
+              echo 'CORS_ORIGINS=https://meticlecare.com,https://www.meticlecare.com' >> .env
+              echo "Added CORS_ORIGINS to .env"
+            fi
+
             echo "=== Pull new images ==="
             docker pull "ghcr.io/${GHCR_owner}/meticle-api:${IMAGE_TAG}"
             docker pull "ghcr.io/${GHCR_owner}/meticle-web:${IMAGE_TAG}"
