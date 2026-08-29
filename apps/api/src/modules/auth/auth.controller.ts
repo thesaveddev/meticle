@@ -23,16 +23,16 @@ function setTokenCookies(res: Response, accessToken: string, refreshToken: strin
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'strict' : 'lax',
+    sameSite: 'lax',
     maxAge: 15 * 60 * 1000, // 15 minutes
     path: '/',
   });
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'strict' : 'lax',
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: '/auth',
+    path: '/',
   });
 }
 
