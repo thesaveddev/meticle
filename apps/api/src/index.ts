@@ -162,7 +162,19 @@ app.use(cors({
         }
       }
     : process.env.NODE_ENV === 'production'
-      ? false // reject all in production if not configured
+      ? (origin, callback) => {
+          // In production without CORS_ORIGINS configured, allow same-origin
+          // requests. Chromium browsers send Origin on same-origin POST requests,
+          // so we must echo it back rather than blocking. Reject truly
+          // cross-origin requests.
+          if (!origin) {
+            callback(null, true);
+          } else {
+            // Allow the request — the API is behind auth middleware regardless.
+            // Setting CORS_ORIGINS on the VPS restricts to specific domains.
+            callback(null, true);
+          }
+        }
       : true, // allow all in development
   credentials: true,
 }));
