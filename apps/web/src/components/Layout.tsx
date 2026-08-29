@@ -11,7 +11,7 @@ import {
   Logout as LogoutIcon,
   School as SchoolIcon,
   AccountCircle as ProfileIcon,
-  Check as CheckIcon,
+  Close as CloseIcon,
   CreditCard as BillingIcon,
   BeachAccess as LeaveIcon,
   Warning as WarningIcon,
@@ -50,6 +50,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [chatUnreadCount, setChatUnreadCount] = useState(0)
   const { isActive, loading: subLoading, status: subStatus } = useSubscriptionStatus()
@@ -158,12 +159,22 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     const token = localStorage.getItem('accessToken')
     if (!token) return
 
+    const fetchNotifications = async () => {
+      setNotificationsLoading(true)
+      try {
+        const res = await api.get('/notifications')
+        const items = Array.isArray(res.data) ? res.data : []
+        setNotifications(items)
+      } catch { /* silent */ }
+      finally { setNotificationsLoading(false) }
+    }
     const fetchUnreadCount = async () => {
       try {
         const res = await api.get('/notifications/unread-count')
         setUnreadCount(res.data.count)
       } catch { /* silent */ }
     }
+    fetchNotifications()
     fetchUnreadCount()
     // Poll fallback so the bell stays accurate even if the socket is down.
     const unreadPoll = setInterval(fetchUnreadCount, 60000)
@@ -186,6 +197,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     const socket = connectSocket(() => localStorage.getItem('accessToken'))
     // After a genuine reconnect, resync unread counts and notifications
     const offReconnect = onReconnect(() => {
+      fetchNotifications()
       fetchUnreadCount()
     })
     socket.on('notification', (notif: any) => {
@@ -225,12 +237,18 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
 
   const handleOpenNotif = () => {
     setNotifOpen(true)
+  }
+
+  const handleMarkAllRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     setUnreadCount(0)
     api.patch('/notifications/read-all').catch(() => {})
   }
 
   const handleMarkAsRead = (id: string) => {
+    const target = notifications.find(n => n.id === id)
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    if (target && !target.read) setUnreadCount(c => Math.max(0, c - 1))
     api.patch(`/notifications/${id}/read`).catch(() => {})
   }
 
@@ -462,7 +480,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           </Stack>
 
           <Stack direction="row" spacing={2} alignItems="center">
-            <IconButton size="small" sx={{ bgcolor: theme.palette.action.hover }} onClick={handleOpenNotif}>
+            <IconButton aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`} size="small" sx={{ bgcolor: theme.palette.action.hover }} onClick={handleOpenNotif}>
               <Badge badgeContent={unreadCount} color="error" max={99}>
                 <NotificationsIcon fontSize="small" />
               </Badge>
@@ -616,47 +634,53 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         anchor="right"
         open={notifOpen}
         onClose={() => setNotifOpen(false)}
-        PaperProps={{ sx: { width: 360, borderLeft: `1px solid ${theme.palette.divider}` } }}
+        PaperProps={{ sx: { width: { xs: '100%', sm: 390 }, borderLeft: `1px solid ${theme.palette.divider}` } }}
       >
-        <Box sx={{ p: 3 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>Notifications</Typography>
-            {notifications.length > 0 && (
-              <Button size="small" onClick={() => { api.patch('/notifications/read-all').catch(() => {}); setNotifications(prev => prev.map(n => ({ ...n, read: true }))) }}>
-                Mark all read
-              </Button>
-            )}
-          </Stack>
-          {notifications.length === 0 ? (
-            <Typography variant="body2" sx={{ color: theme.palette.text.disabled, textAlign: 'center', py: 4 }}>No notifications yet.</Typography>
-          ) : (
-            <Stack spacing={2}>
-              {notifications.map((n: any) => (
-                <Paper
-                  key={n.id}
-                  variant="outlined"
-                  sx={{
-                    p: 2, borderRadius: 2,
-                    borderLeft: 4,
-                    borderLeftColor: n.type === 'warning' ? theme.palette.warning.main : n.type === 'success' ? theme.palette.success.main : branding.primary_color,
-                    bgcolor: n.read ? theme.palette.background.paper : theme.palette.action.hover,
-                    cursor: 'pointer',
-                    '&:hover': { bgcolor: theme.palette.action.selected },
-                  }}
-                  onClick={() => handleMarkAsRead(n.id)}
-                >
-                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: n.read ? 600 : 800, mb: 0.5 }}>{n.title}</Typography>
-                      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mb: 0.5 }}>{n.message}</Typography>
-                      <Typography variant="caption" sx={{ color: theme.palette.text.disabled }}>{timeAgo(n.created_at)}</Typography>
-                    </Box>
-                    {!n.read && <CheckIcon sx={{ fontSize: 16, color: branding.primary_color, mt: 0.5 }} />}
-                  </Stack>
-                </Paper>
-              ))}
+        <Box sx={{ minHeight: '100%', bgcolor: theme.palette.background.default }}>
+          <Box sx={{ px: 3, pt: 3, pb: 2, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.paper }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+              <Box>
+                <Typography variant="overline" sx={{ color: branding.primary_color, fontWeight: 800, letterSpacing: 1.2 }}>Inbox</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>Notifications</Typography>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.75 }}>Updates that need your attention.</Typography>
+              </Box>
+              <IconButton aria-label="Close notifications" size="small" onClick={() => setNotifOpen(false)}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
             </Stack>
-          )}
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
+              <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>{notifications.length} recent {notifications.length === 1 ? 'update' : 'updates'}</Typography>
+              {notifications.some(n => !n.read) && (
+                <Button size="small" onClick={handleMarkAllRead} sx={{ textTransform: 'none', fontWeight: 700, minWidth: 0 }}>Mark all read</Button>
+              )}
+            </Stack>
+          </Box>
+          <Box sx={{ p: 2 }}>
+            {notificationsLoading ? (
+              <Stack spacing={1.25}>{[1, 2, 3].map(i => <Paper key={i} variant="outlined" sx={{ height: 92, borderRadius: 2, bgcolor: theme.palette.background.paper, opacity: 0.6 }} />)}</Stack>
+            ) : notifications.length === 0 ? (
+              <Box sx={{ py: 10, px: 3, textAlign: 'center' }}>
+                <Box sx={{ width: 48, height: 48, mx: 'auto', mb: 2, display: 'grid', placeItems: 'center', borderRadius: '50%', bgcolor: `${branding.primary_color}12`, color: branding.primary_color }}><NotificationsIcon /></Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Nothing new</Typography>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>You’re up to date.</Typography>
+              </Box>
+            ) : (
+              <Stack spacing={1.25}>
+                {notifications.map((n: any) => (
+                  <Paper key={n.id} component="button" type="button" onClick={() => handleMarkAsRead(n.id)} variant="outlined" sx={{ width: '100%', textAlign: 'left', p: 2, borderRadius: 2, borderColor: n.read ? theme.palette.divider : `${branding.primary_color}66`, borderLeft: 4, borderLeftColor: n.type === 'warning' ? theme.palette.warning.main : n.type === 'success' ? theme.palette.success.main : branding.primary_color, bgcolor: n.read ? theme.palette.background.paper : `${branding.primary_color}0D`, cursor: 'pointer', transition: 'background-color 160ms ease, border-color 160ms ease', '&:hover': { bgcolor: theme.palette.action.hover }, '&:focus-visible': { outline: `2px solid ${branding.primary_color}`, outlineOffset: 2 } }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: n.read ? 600 : 800, mb: 0.5, overflowWrap: 'anywhere' }}>{n.title || 'Notification'}</Typography>
+                        <Typography variant="body2" sx={{ color: theme.palette.text.secondary, display: 'block', mb: 1, overflowWrap: 'anywhere' }}>{n.message || 'You have a new update.'}</Typography>
+                        <Typography variant="caption" sx={{ color: theme.palette.text.disabled }}>{timeAgo(n.created_at)}</Typography>
+                      </Box>
+                      {!n.read && <Box sx={{ width: 8, height: 8, mt: 0.75, borderRadius: '50%', bgcolor: branding.primary_color, flexShrink: 0 }} />}
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            )}
+          </Box>
         </Box>
       </Drawer>
     </Box>
