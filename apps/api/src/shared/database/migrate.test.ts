@@ -82,16 +82,24 @@ describe('runMigrations', () => {
     )
   })
 
-  it('acknowledges a reviewed checksum without executing migration SQL', async () => {
-    await acknowledgeMigrationChecksum('001_initial', 'a'.repeat(64))
+  it('acknowledges a reviewed checksum with an audit record', async () => {
+    await acknowledgeMigrationChecksum('001_initial', 'a'.repeat(64), 'Reviewed against the production schema definition', 'test')
     expect(mockMigrateQuery).toHaveBeenCalledWith(
-      'UPDATE _migrations SET checksum = $1 WHERE name = $2',
+      expect.stringContaining('INSERT INTO _migration_baselines'),
+      ['001_initial', 'a'.repeat(64), 'test', 'Reviewed against the production schema definition']
+    )
+    expect(mockMigrateQuery).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE _migrations SET checksum'),
       ['a'.repeat(64), '001_initial']
     )
   })
 
   it('rejects malformed checksum acknowledgements', async () => {
-    await expect(acknowledgeMigrationChecksum('001_initial', 'not-a-checksum')).rejects.toThrow(/Invalid migration checksum/)
+    await expect(acknowledgeMigrationChecksum('001_initial', 'not-a-checksum', 'review')).rejects.toThrow(/Invalid migration checksum/)
+  })
+
+  it('requires a review reason', async () => {
+    await expect(acknowledgeMigrationChecksum('001_initial', 'a'.repeat(64), ' ')).rejects.toThrow(/review reason/)
   })
 
   it('applies a fresh migration whose version is above the watermark', async () => {
