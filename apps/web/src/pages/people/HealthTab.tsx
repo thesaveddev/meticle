@@ -4,6 +4,7 @@ import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Close as CloseI
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { SectionHeader, ConfirmDialog, EmptyRow } from '../../components/ui'
+import SleepTab from './SleepTab'
 
 const BRISTOL_LABELS: Record<number, string> = { 1: 'Type 1: Separate hard lumps', 2: 'Type 2: Sausage-shaped but lumpy', 3: 'Type 3: Sausage-shaped with cracks', 4: 'Type 4: Smooth, soft sausage', 5: 'Type 5: Soft blobs with clear edges', 6: 'Type 6: Fluffy, mushy pieces', 7: 'Type 7: Watery, no solid pieces' }
 const BRISTOL_COLORS: Record<number, string> = { 1: '#6B4226', 2: '#8B5E3C', 3: '#A0785A', 4: '#8FBC8F', 5: '#D4A76A', 6: '#D2B48C', 7: '#C4A882' }
@@ -492,6 +493,7 @@ const HEALTH_TABS: { label: string; Component: HealthSectionComponent }[] = [
   { label: 'Fluid', Component: FluidSection },
   { label: 'Bowel', Component: BowelSection },
   { label: 'Dental', Component: DentalSection },
+  { label: 'Sleep', Component: SleepTab as any },
 ]
 
 export default function HealthTab({ personId, fluidTarget }: HealthSectionProps) {

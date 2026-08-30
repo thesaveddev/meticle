@@ -763,6 +763,30 @@ const MIGRATION_009: Migration = {
   ],
 };
 
+const MIGRATION_049: Migration = {
+  name: '049_sleep_records',
+  strict: false,
+  statements: [
+    `CREATE TABLE IF NOT EXISTS sleep_records (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+      record_date DATE NOT NULL DEFAULT CURRENT_DATE,
+      bedtime TIME NOT NULL,
+      wake_time TIME NOT NULL,
+      sleep_quality SMALLINT NOT NULL CHECK (sleep_quality BETWEEN 1 AND 5),
+      night_disturbances BOOLEAN DEFAULT FALSE,
+      disturbance_count INTEGER DEFAULT 0 CHECK (disturbance_count >= 0),
+      disturbance_reasons TEXT,
+      notes TEXT,
+      recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_sleep_records_person ON sleep_records(person_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_sleep_records_date ON sleep_records(person_id, record_date DESC)`,
+  ],
+};
+
 const INITIAL_MIGRATION: Migration = {
   name: '001_initial',
   strict: false,
@@ -2310,7 +2334,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043, MIGRATION_044, MIGRATION_045, MIGRATION_046, MIGRATION_047, MIGRATION_048]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043, MIGRATION_044, MIGRATION_045, MIGRATION_046, MIGRATION_047, MIGRATION_048, MIGRATION_049]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

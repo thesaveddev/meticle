@@ -5,6 +5,7 @@ export class HealthRepository {
   private static readonly BOWEL_UPDATE_COLUMNS = new Set(['recorded_date', 'recorded_time', 'bristol_type', 'color', 'frequency', 'consistency', 'notes']);
   private static readonly DENTAL_UPDATE_COLUMNS = new Set(['checkup_date', 'dentist_name', 'findings', 'actions_taken', 'next_checkup_date', 'notes']);
   private static readonly FLUID_UPDATE_COLUMNS = new Set(['recorded_date', 'recorded_time', 'amount_ml', 'fluid_type', 'notes']);
+  private static readonly SLEEP_UPDATE_COLUMNS = new Set(['record_date', 'bedtime', 'wake_time', 'sleep_quality', 'night_disturbances', 'disturbance_count', 'disturbance_reasons', 'notes']);
 
   // === Health Observations ===
   static async findObservations(personId: string, limit = 50) {
@@ -166,6 +167,45 @@ export class HealthRepository {
     if (fields.length === 0) return null;
     values.push(id, personId);
     const result = await query(`UPDATE fluid_intake SET ${fields.join(', ')} WHERE id = $${idx} AND person_id = $${idx + 1} RETURNING *`, values);
+    return result.rows[0] || null;
+  }
+
+  // === Sleep Records ===
+  static async findSleepRecords(personId: string, limit = 50) {
+    const result = await query(
+      `SELECT sr.*, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS recorded_by_name
+      FROM sleep_records sr
+      LEFT JOIN users u ON u.id = sr.recorded_by
+      LEFT JOIN staff_profiles sp ON sp.user_id = sr.recorded_by
+      WHERE sr.person_id = $1
+      ORDER BY sr.record_date DESC, sr.created_at DESC
+      LIMIT $2
+    `, [personId, limit]);
+    return result.rows;
+  }
+
+  static async createSleepRecord(data: any) {
+    const { person_id, record_date, bedtime, wake_time, sleep_quality, night_disturbances, disturbance_count, disturbance_reasons, notes, recorded_by } = data;
+    const result = await query(
+      `INSERT INTO sleep_records (person_id, record_date, bedtime, wake_time, sleep_quality, night_disturbances, disturbance_count, disturbance_reasons, notes, recorded_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *
+    `, [person_id, record_date || new Date().toISOString().split('T')[0], bedtime, wake_time, sleep_quality, night_disturbances || false, disturbance_count || 0, disturbance_reasons || null, notes || null, recorded_by]);
+    return result.rows[0];
+  }
+
+  static async deleteSleepRecord(id: string, personId: string) {
+    await query('DELETE FROM sleep_records WHERE id = $1 AND person_id = $2', [id, personId]);
+  }
+
+  static async updateSleepRecord(id: string, personId: string, data: any) {
+    const fields: string[] = []; const values: any[] = []; let idx = 1;
+    for (const [key, val] of Object.entries(data)) {
+      if (!HealthRepository.SLEEP_UPDATE_COLUMNS.has(key)) continue;
+      if (val !== undefined) { fields.push(`${key} = $${idx}`); values.push(val); idx++; }
+    }
+    if (fields.length === 0) return null;
+    values.push(id, personId);
+    const result = await query(`UPDATE sleep_records SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${idx} AND person_id = $${idx + 1} RETURNING *`, values);
     return result.rows[0] || null;
   }
 }
