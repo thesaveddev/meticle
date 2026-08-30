@@ -27,7 +27,7 @@ function formatDuration(bedtime: string, wakeTime: string): string {
   if (!bedtime || !wakeTime) return ''
   const [bh, bm] = bedtime.split(':').map(Number)
   const [wh, wm] = wakeTime.split(':').map(Number)
-  let bedMin = bh * 60 + bm
+  const bedMin = bh * 60 + bm
   let wakeMin = wh * 60 + wm
   if (wakeMin <= bedMin) wakeMin += 24 * 60
   const diff = wakeMin - bedMin
