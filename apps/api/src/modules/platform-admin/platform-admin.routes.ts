@@ -11,9 +11,14 @@ router.use(authenticate);
 router.use(requireRole(UserRole.SUPER_ADMIN));
 
 router.get('/stats', asyncHandler(PlatformAdminController.getStats));
+router.get('/finance', asyncHandler(PlatformAdminController.getFinanceOverview));
+router.get('/audit-log', asyncHandler(PlatformAdminController.getAuditLog));
+router.get('/system-health', asyncHandler(PlatformAdminController.getSystemHealth));
 router.get('/organizations', asyncHandler(PlatformAdminController.listOrganizations));
 router.get('/organizations/:id', asyncHandler(PlatformAdminController.getOrganization));
 router.patch('/organizations/:id/status', asyncHandler(PlatformAdminController.updateOrganizationStatus));
+router.patch('/organizations/:id/billing', asyncHandler(PlatformAdminController.updateOrgBilling));
 router.get('/users', asyncHandler(PlatformAdminController.listUsers));
+router.patch('/users/:id/status', asyncHandler(PlatformAdminController.updateUserStatus));
 
 export default router;

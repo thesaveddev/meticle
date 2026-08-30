@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 import {
   Box, Typography, Stack, Paper, Grid, Chip, Button, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Alert, CircularProgress, Dialog,
-  DialogTitle, DialogContent, DialogActions,
+  DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
 } from '@mui/material'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowBack as BackIcon } from '@mui/icons-material'
+import { ArrowBack as BackIcon, Edit as EditIcon } from '@mui/icons-material'
 import api from '../../services/api'
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
@@ -25,6 +25,8 @@ export default function AdminOrganizationDetailPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [confirmDialog, setConfirmDialog] = useState<'suspend' | 'reactivate' | null>(null)
+  const [billingDialog, setBillingDialog] = useState(false)
+  const [billingForm, setBillingForm] = useState({ subscription_status: '', plan: '', trial_ends_at: '' })
 
   const loadOrg = async () => {
     try {
@@ -37,6 +39,17 @@ export default function AdminOrganizationDetailPage() {
   }
 
   useEffect(() => { if (id) loadOrg() }, [id])
+
+  const handleBillingSave = async () => {
+    setActionLoading(true)
+    try {
+      await api.patch(`/platform-admin/organizations/${id}/billing`, billingForm)
+      setMessage('Billing updated successfully')
+      setBillingDialog(false)
+      loadOrg()
+    } catch { setMessage('Failed to update billing') }
+    setActionLoading(false)
+  }
 
   const handleStatusToggle = async () => {
     if (!org) return
@@ -86,6 +99,22 @@ export default function AdminOrganizationDetailPage() {
             </Button>
           )}
         </Stack>
+      </Paper>
+
+      {/* Billing override */}
+      <Paper sx={{ p: 4, borderRadius: 2.5, mb: 3 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>Billing Controls</Typography>
+          <Button size="small" startIcon={<EditIcon />} onClick={() => {
+            setBillingForm({ subscription_status: org.subscription_status || '', plan: org.plan || '', trial_ends_at: org.trial_ends_at ? new Date(org.trial_ends_at).toISOString().slice(0, 10) : '' })
+            setBillingDialog(true)
+          }}>Override Billing</Button>
+        </Stack>
+        <Grid container spacing={2}>
+          <Grid item xs={4}><Typography variant="caption" color="#6B7280">Plan</Typography><Typography variant="body2" fontWeight={600}>{org.plan || '—'}</Typography></Grid>
+          <Grid item xs={4}><Typography variant="caption" color="#6B7280">Status</Typography><Typography variant="body2" fontWeight={600}>{org.subscription_status || '—'}</Typography></Grid>
+          <Grid item xs={4}><Typography variant="caption" color="#6B7280">Trial Ends</Typography><Typography variant="body2" fontWeight={600}>{org.trial_ends_at ? new Date(org.trial_ends_at).toLocaleDateString('en-GB') : '—'}</Typography></Grid>
+        </Grid>
       </Paper>
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -194,6 +223,31 @@ export default function AdminOrganizationDetailPage() {
             color={confirmDialog === 'suspend' ? 'error' : 'success'}>
             {actionLoading ? 'Processing...' : confirmDialog === 'suspend' ? 'Suspend' : 'Reactivate'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Billing override dialog */}
+      <Dialog open={billingDialog} onClose={() => setBillingDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Override Billing — {org.name}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField select label="Subscription Status" value={billingForm.subscription_status} onChange={e => setBillingForm({ ...billingForm, subscription_status: e.target.value })} fullWidth size="small">
+              <MenuItem value="trial">Trial</MenuItem>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="past_due">Past Due</MenuItem>
+              <MenuItem value="canceled">Canceled</MenuItem>
+              <MenuItem value="expired">Expired</MenuItem>
+            </TextField>
+            <TextField select label="Plan" value={billingForm.plan} onChange={e => setBillingForm({ ...billingForm, plan: e.target.value })} fullWidth size="small">
+              <MenuItem value="starter">Starter</MenuItem>
+              <MenuItem value="professional">Professional</MenuItem>
+            </TextField>
+            <TextField type="date" label="Trial Ends At" value={billingForm.trial_ends_at} onChange={e => setBillingForm({ ...billingForm, trial_ends_at: e.target.value })} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBillingDialog(false)}>Cancel</Button>
+          <Button onClick={handleBillingSave} variant="contained" disabled={actionLoading}>{actionLoading ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
       </Dialog>
     </Box>
