@@ -142,4 +142,9 @@ export async function transaction<T>(fn: (client: PoolClient) => Promise<T>): Pr
 }
 
 export { migratePool };
+
+export async function closeDatabasePools(): Promise<void> {
+  await Promise.all([pool.end(), migratePool.end()]);
+}
+
 export default pool;

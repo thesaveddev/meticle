@@ -1,29 +1,30 @@
 import { Routes, Route } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
-import LoginPage from './pages/auth/LoginPage'
-import RegisterPage from './pages/auth/RegisterPage'
-import DashboardPage from './pages/dashboard/DashboardPage'
-import RotaPlannerPage from './pages/scheduling/RotaPlannerPage'
-import OvertimeClaimsPage from './pages/scheduling/OvertimeClaimsPage'
-import MarketplacePage from './pages/marketplace/MarketplacePage'
-import ReportingPage from './pages/reporting/ReportingPage'
-import ReportBuilder from './pages/reporting/ReportBuilder'
-import InsightsPage from './pages/insights/InsightsPage'
 import Layout from './components/Layout'
-import LandingPage from './pages/LandingPage'
 import AuthGuard from './components/AuthGuard'
 import ModuleGuard from './components/ModuleGuard'
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
-import ResetPasswordPage from './pages/auth/ResetPasswordPage'
-import VerifyEmailPage from './pages/auth/VerifyEmailPage'
-import MfaChallengePage from './pages/auth/MfaChallengePage'
-import MfaSetupPage from './pages/auth/MfaSetupPage'
-import OnboardingFlow from './pages/onboarding/OnboardingFlow'
-import StaffDirectoryPage from './pages/staff/StaffDirectoryPage'
-import StaffProfilePage from './pages/staff/StaffProfilePage'
-import LocationDetailPage from './pages/locations/LocationDetailPage'
-import LocationsPage from './pages/locations/LocationsPage'
-// Lazy-loaded marketing pages for code splitting
+
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'))
+const RotaPlannerPage = lazy(() => import('./pages/scheduling/RotaPlannerPage'))
+const OvertimeClaimsPage = lazy(() => import('./pages/scheduling/OvertimeClaimsPage'))
+const MarketplacePage = lazy(() => import('./pages/marketplace/MarketplacePage'))
+const ReportingPage = lazy(() => import('./pages/reporting/ReportingPage'))
+const ReportBuilder = lazy(() => import('./pages/reporting/ReportBuilder'))
+const InsightsPage = lazy(() => import('./pages/insights/InsightsPage'))
+const LandingPage = lazy(() => import('./pages/LandingPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'))
+const VerifyEmailPage = lazy(() => import('./pages/auth/VerifyEmailPage'))
+const MfaChallengePage = lazy(() => import('./pages/auth/MfaChallengePage'))
+const MfaSetupPage = lazy(() => import('./pages/auth/MfaSetupPage'))
+const OnboardingFlow = lazy(() => import('./pages/onboarding/OnboardingFlow'))
+const StaffDirectoryPage = lazy(() => import('./pages/staff/StaffDirectoryPage'))
+const StaffProfilePage = lazy(() => import('./pages/staff/StaffProfilePage'))
+const LocationDetailPage = lazy(() => import('./pages/locations/LocationDetailPage'))
+const LocationsPage = lazy(() => import('./pages/locations/LocationsPage'))
+// Lazy-loaded marketing and application pages for code splitting
 const FeaturesPage = lazy(() => import('./pages/marketing/FeaturesPage'))
 const PricingPage = lazy(() => import('./pages/marketing/PricingPage'))
 const AboutPage = lazy(() => import('./pages/marketing/AboutPage'))
@@ -36,52 +37,61 @@ const LearningCenterPage = lazy(() => import('./pages/learn/LearningCenterPage')
 const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'))
 const TermsOfUsePage = lazy(() => import('./pages/legal/TermsOfUsePage'))
 const CookiePolicyPage = lazy(() => import('./pages/legal/CookiePolicyPage'))
-import CompliancePage from './pages/compliance/CompliancePage'
-import IdentityMonitoringPage from './pages/compliance/IdentityMonitoringPage'
-import CompetencyAssessmentsPage from './pages/compliance/CompetencyAssessmentsPage'
-import EvidencePacksPage from './pages/compliance/EvidencePacksPage'
-import CqcReadinessPage from './pages/compliance/CqcReadinessPage'
-import SatisfactionSurveysPage from './pages/compliance/SatisfactionSurveysPage'
-import StaffEngagementPage from './pages/compliance/StaffEngagementPage'
-import DSPTPage from './pages/dspt/DSPTPage'
-import OrganizationPage from './pages/organization/OrganizationPage'
-import SettingsPage from './pages/settings/SettingsPage'
-import BillingPage from './pages/billing/BillingPage'
-import LeaveManagerPage from './pages/leave/LeaveManagerPage'
-import ShiftMarketplacePage from './pages/shift-marketplace/ShiftMarketplacePage'
-import AgenciesPage from './pages/agencies/AgenciesPage'
-import ExpensesPage from './pages/expenses/ExpensesPage'
-import PersonDirectoryPage from './pages/people/PersonDirectoryPage'
-import PersonProfilePage from './pages/people/PersonProfilePage'
-import IncidentDirectoryPage from './pages/incidents/IncidentDirectoryPage'
-import IncidentDetailPage from './pages/incidents/IncidentDetailPage'
-import ChatPage from './pages/chat/ChatPage'
-import TrainingMatrixPage from './pages/training/TrainingMatrixPage'
-import SurveyFormPage from './pages/SurveyFormPage'
-import TasksPage from './pages/tasks/TasksPage'
-import RoomChecksPage from './pages/room-checks/RoomChecksPage'
-import CheckInPage from './pages/mobile/CheckInPage'
-import VoiceNotesPage from './pages/mobile/MobileNotesPage'
-import FamilyPortalPage from './pages/FamilyPortalPage'
-import ComplianceRecordsPage from './pages/compliance/ComplianceRecordsPage'
-import AppointmentsPage from './pages/appointments/AppointmentsPage'
-import PoliciesPage from './pages/policies/PoliciesPage'
-import MissionControlPage from './pages/mission-control/MissionControlPage'
-import CompliancePortalPage, { PortalLoginPage } from './pages/compliance-portal/CompliancePortalPage'
-import EMedicationPage from './pages/emedication/EMedicationPage'
-import ArchivedMarPage from './pages/emedication/ArchivedMarPage'
-import MealPlanPage from './pages/nutrition/MealPlanPage'
-import UnauthorizedPage from './pages/errors/UnauthorizedPage'
-import NotFoundPage from './pages/errors/NotFoundPage'
-import PlatformAdminPage from './pages/admin/PlatformAdminPage'
-import AdminOrganizationDetailPage from './pages/admin/AdminOrganizationDetailPage'
+const CompliancePage = lazy(() => import('./pages/compliance/CompliancePage'))
+const IdentityMonitoringPage = lazy(() => import('./pages/compliance/IdentityMonitoringPage'))
+const CompetencyAssessmentsPage = lazy(() => import('./pages/compliance/CompetencyAssessmentsPage'))
+const EvidencePacksPage = lazy(() => import('./pages/compliance/EvidencePacksPage'))
+const CqcReadinessPage = lazy(() => import('./pages/compliance/CqcReadinessPage'))
+const SatisfactionSurveysPage = lazy(() => import('./pages/compliance/SatisfactionSurveysPage'))
+const StaffEngagementPage = lazy(() => import('./pages/compliance/StaffEngagementPage'))
+const DSPTPage = lazy(() => import('./pages/dspt/DSPTPage'))
+const OrganizationPage = lazy(() => import('./pages/organization/OrganizationPage'))
+const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'))
+const BillingPage = lazy(() => import('./pages/billing/BillingPage'))
+const LeaveManagerPage = lazy(() => import('./pages/leave/LeaveManagerPage'))
+const ShiftMarketplacePage = lazy(() => import('./pages/shift-marketplace/ShiftMarketplacePage'))
+const AgenciesPage = lazy(() => import('./pages/agencies/AgenciesPage'))
+const ExpensesPage = lazy(() => import('./pages/expenses/ExpensesPage'))
+const PersonDirectoryPage = lazy(() => import('./pages/people/PersonDirectoryPage'))
+const PersonProfilePage = lazy(() => import('./pages/people/PersonProfilePage'))
+const IncidentDirectoryPage = lazy(() => import('./pages/incidents/IncidentDirectoryPage'))
+const IncidentDetailPage = lazy(() => import('./pages/incidents/IncidentDetailPage'))
+const ChatPage = lazy(() => import('./pages/chat/ChatPage'))
+const TrainingMatrixPage = lazy(() => import('./pages/training/TrainingMatrixPage'))
+const SurveyFormPage = lazy(() => import('./pages/SurveyFormPage'))
+const TasksPage = lazy(() => import('./pages/tasks/TasksPage'))
+const RoomChecksPage = lazy(() => import('./pages/room-checks/RoomChecksPage'))
+const CheckInPage = lazy(() => import('./pages/mobile/CheckInPage'))
+const VoiceNotesPage = lazy(() => import('./pages/mobile/MobileNotesPage'))
+const FamilyPortalPage = lazy(() => import('./pages/FamilyPortalPage'))
+const ComplianceRecordsPage = lazy(() => import('./pages/compliance/ComplianceRecordsPage'))
+const AppointmentsPage = lazy(() => import('./pages/appointments/AppointmentsPage'))
+const PoliciesPage = lazy(() => import('./pages/policies/PoliciesPage'))
+const MissionControlPage = lazy(() => import('./pages/mission-control/MissionControlPage'))
+const CompliancePortalPage = lazy(() => import('./pages/compliance-portal/CompliancePortalPage'))
+const PortalLoginPage = lazy(async () => {
+  const module = await import('./pages/compliance-portal/CompliancePortalPage')
+  return { default: module.PortalLoginPage }
+})
+const EMedicationPage = lazy(() => import('./pages/emedication/EMedicationPage'))
+const ArchivedMarPage = lazy(() => import('./pages/emedication/ArchivedMarPage'))
+const MealPlanPage = lazy(() => import('./pages/nutrition/MealPlanPage'))
+const UnauthorizedPage = lazy(() => import('./pages/errors/UnauthorizedPage'))
+const NotFoundPage = lazy(() => import('./pages/errors/NotFoundPage'))
+const PlatformAdminPage = lazy(() => import('./pages/admin/PlatformAdminPage'))
+const AdminOrganizationDetailPage = lazy(() => import('./pages/admin/AdminOrganizationDetailPage'))
 import { UserRole } from '@meticle/shared'
 import ErrorBoundary from './components/ErrorBoundary'
 import { MeticleThemeProvider } from './context/ThemeContext'
 
+function RouteLoading() {
+  return <div role="status" aria-live="polite" style={{ padding: '2rem', textAlign: 'center' }}>Loading…</div>
+}
+
 function App() {
   return (
-    <Routes>
+    <Suspense fallback={<RouteLoading />}>
+      <Routes>
       <Route path="/" element={<ErrorBoundary><LandingPage /></ErrorBoundary>} />
       <Route path="/features" element={<ErrorBoundary><Suspense fallback={null}><FeaturesPage /></Suspense></ErrorBoundary>} />
       <Route path="/how-it-works" element={<ErrorBoundary><Suspense fallback={null}><HowItWorksPage /></Suspense></ErrorBoundary>} />
@@ -168,7 +178,8 @@ function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>
-    </Routes>
+      </Routes>
+    </Suspense>
   )
 }
 
