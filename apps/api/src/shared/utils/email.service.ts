@@ -275,7 +275,7 @@ export class EmailService {
 
     await sendMail(staffEmail, `Your shift preview for ${fmtDate(date)}`,
       buildEmailHtml('Shift Preview', `Hi ${staffName},`,
-        `<p>Here's what you need to know before your shift on <strong>${fmtDate(date)}</strong>:</p>
+        `<p>Here are the details for your shift on <strong>${fmtDate(date)}</strong>.</p>
          <table border="0" cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #F0EDE6;border-radius:8px;margin-top:12px">
            <tr style="background:#F7F4EE">
              <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280">Time</th>
@@ -284,9 +284,9 @@ export class EmailService {
              <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280">Person</th>
            </tr>${shiftRows}
          </table>
-         ${peopleRows ? `<p style="margin-top:20px;font-weight:600">People to look out for</p><table border="0" cellpadding="0" cellspacing="0" style="width:100%">${peopleRows}</table>` : ''}
+         ${peopleRows ? `<p style="margin-top:20px;font-weight:600">People requiring attention</p><table border="0" cellpadding="0" cellspacing="0" style="width:100%">${peopleRows}</table>` : ''}
          ${appList}${incList}
-         <p style="margin-top:24px">You can view the full rota at any time.</p>`,
+         <p style="margin-top:24px">Open the rota for the latest information.</p>`,
         { label: 'View Rota', url: `${baseUrl()}/scheduling` }));
   }
 
@@ -384,53 +384,42 @@ export class EmailService {
     await sendMail(to, subject, html, category);
   }
 
+  static buildTrialFollowupEmailHtml(name: string, orgName: string, message: string) {
+    const url = `${baseUrl()}/billing`;
+    return buildEmailHtml(
+      'A note from Meticle',
+      'Checking in about your Meticle trial',
+      `<p>Hi ${name},</p><p>${message.replace(/\n/g, '<br>')}</p><p>Your organisation, <strong>${orgName}</strong>, can review its plan and reactivate access from Billing.</p>`,
+      { label: 'Review billing', url }
+    );
+  }
+
   // ── Trial Reminders ──
   static async sendTrialExpiringEmail(email: string, name: string, orgName: string, daysLeft: number, hasCard: boolean) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    if (hasCard) {
-      await sendMail(email,
-        daysLeft > 1 ? `Your trial ends in ${daysLeft} days — your card will be charged on the expiry date` : `Your trial ends tomorrow — your card will be charged`,
-        buildEmailHtml('Trial Reminder',
-          daysLeft > 1 ? `Your trial ends in ${daysLeft} days` : 'Your trial ends tomorrow',
-          `<p>Hi ${name},</p>` +
-          `<p>Your 14-day trial for <strong>${org}</strong> ${daysLeft > 1 ? `ends in <strong>${daysLeft} days</strong>` : '<strong>ends tomorrow</strong>'}. We'll charge the card on file on the expiry date.</p>` +
-          `<p>You can view or update your payment method at any time.</p>` +
-          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
-          { label: 'View Billing', url }), 'billing');
-    } else {
-      await sendMail(email,
-        daysLeft > 1 ? `Your trial ends in ${daysLeft} days — add a card to continue` : `Your trial ends tomorrow — add a card today`,
-        buildEmailHtml('Trial Reminder',
-          daysLeft > 1 ? `Your trial ends in ${daysLeft} days` : 'Your trial ends tomorrow',
-          `<p>Hi ${name},</p>` +
-          `<p>Your 14-day trial for <strong>${org}</strong> ${daysLeft > 1 ? `ends in <strong>${daysLeft} days</strong>` : '<strong>ends tomorrow</strong>'}. You'll lose access to CQC scoring, evidence packs, rota planning, eMAR, and all compliance records.</p>` +
-          `<p>Adding a payment card takes 30 seconds. <strong>You won't be charged until your trial ends.</strong></p>` +
-          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
-          { label: 'Add Payment Card', url }), 'billing');
-    }
+    const timing = daysLeft === 1 ? 'tomorrow' : `in ${daysLeft} days`;
+    const subject = hasCard
+      ? `Your Meticle trial ends ${timing}`
+      : `Your Meticle trial ends ${timing} — payment method needed`;
+    const body = hasCard
+      ? `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> ends ${timing}. We will charge the payment method on file when the trial ends.</p><p>You can review your plan or update your payment method from Billing.</p>`
+      : `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> ends ${timing}. Add a payment method before then if you want uninterrupted access after the trial.</p><p>Your account and data will remain available for reactivation if you decide not to continue.</p>`;
+    await sendMail(email, subject,
+      buildEmailHtml('Trial ending', daysLeft === 1 ? 'Your trial ends tomorrow' : `Your trial ends in ${daysLeft} days`, body,
+        { label: hasCard ? 'Review billing' : 'Add payment method', url }), 'billing');
   }
 
   static async sendTrialExpiredEmail(email: string, name: string, orgName: string, hasCard: boolean) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    if (hasCard) {
-      await sendMail(email, 'Your Meticle trial has ended — your card has been charged',
-        buildEmailHtml('Trial Ended', `Your trial for ${org} has ended`,
-          `<p>Hi ${name},</p>` +
-          `<p>Your 14-day trial has ended. Your card on file has been charged and your subscription is now active.</p>` +
-          `<p>You can manage your plan and billing from the Billing page.</p>` +
-          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
-          { label: 'Manage Billing', url }), 'billing');
-    } else {
-      await sendMail(email, 'Your Meticle trial has ended — add a card to restore access',
-        buildEmailHtml('Trial Expired', `Your trial for ${org} has ended`,
-          `<p>Hi ${name},</p>` +
-          `<p>Your 14-day free trial has ended. Your data is safe — nothing has been deleted. Add a card to continue using Meticle.</p>` +
-          `<p><strong>No card = no charges.</strong> You control when to resume.</p>` +
-          `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
-          { label: 'Reactivate Now', url }), 'billing');
-    }
+    const subject = hasCard ? 'Your Meticle trial has ended' : 'Your Meticle trial has ended — choose whether to continue';
+    const body = hasCard
+      ? `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> has ended and your subscription is now active. The payment method on file was charged.</p><p>You can review your plan, invoices and payment method in Billing.</p>`
+      : `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> has ended. No payment was taken because no payment method was on file.</p><p>Your data has been retained. Add a payment method if you want to reactivate the service.</p>`;
+    await sendMail(email, subject,
+      buildEmailHtml('Trial ended', `Your trial for ${org} has ended`, body,
+        { label: hasCard ? 'Open billing' : 'Reactivate service', url }), 'billing');
   }
 
   // ── Subscription Renewal ──
@@ -440,17 +429,12 @@ export class EmailService {
     const plural = daysLeft !== 1;
     const headline = plural ? `Your subscription ends in ${daysLeft} days` : 'Your subscription ends tomorrow';
     await sendMail(email,
-      plural ? `Your Meticle subscription ends in ${daysLeft} days — keep your team running` : `Your Meticle subscription ends tomorrow — keep your team running`,
+      plural ? `Your Meticle subscription ends in ${daysLeft} days` : 'Your Meticle subscription ends tomorrow',
       buildEmailHtml('Subscription Renewal', headline,
         `<p>Hi ${name},</p>` +
         `<p>Your Meticle subscription for <strong>${org}</strong> ${plural ? `ends in <strong>${daysLeft} days</strong>` : '<strong>ends tomorrow</strong>'}.</p>` +
-        `<p>Your subscription keeps your team on top of:</p>` +
-        `<ul><li>Rota planning and shift management</li>` +
-        `<li>eMAR medication records</li>` +
-        `<li>CQC readiness scoring and evidence packs</li>` +
-        `<li>Incident reporting and compliance tracking</li></ul>` +
-        `<p>If your subscription lapses, your team's access will pause. <strong>Nothing is deleted</strong> — all your data stays safe and ready to pick back up the moment you renew.</p>` +
-        `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
+        `<p>After this date, access to operational changes will be restricted. Your data will be retained.</p>` +
+        `<p>${hasCard ? 'Review your payment method if anything has changed.' : 'Add a payment method before the end date if you want service to continue.'}</p>`,
         { label: hasCard ? 'View Billing' : 'Add Payment Card', url }), 'billing');
   }
 
@@ -461,14 +445,8 @@ export class EmailService {
       buildEmailHtml('Subscription Ended', `Your subscription for ${org} has ended`,
         `<p>Hi ${name},</p>` +
         `<p>Your Meticle subscription for <strong>${org}</strong> has ended, so your team's access has been paused.</p>` +
-        `<p><strong>Good news — nothing has been deleted.</strong> Your rota, eMAR medication records, CQC evidence packs, care notes and compliance data are all safe and waiting for you.</p>` +
-        `<p>Reactivating takes under a minute and gives your whole team full access back immediately:</p>` +
-        `<ul><li>Rota planning and shift management</li>` +
-        `<li>eMAR medication records</li>` +
-        `<li>CQC readiness scoring and evidence packs</li>` +
-        `<li>Incident reporting and compliance tracking</li></ul>` +
-        `<p>We'd love to have you back.</p>` +
-        `<p style="font-size:13px;color:#9CA3AF">Opeyemi Olorunfemi<br>CEO, Meticle</p>`,
+        `<p>Your data has been retained. Renewing restores access for your organisation.</p>` +
+        `<p>Open Billing to choose a plan or update your payment method.</p>`,
         { label: 'Reactivate Now', url }), 'billing');
   }
 
@@ -550,29 +528,26 @@ export class EmailService {
       subject = `Final notice: your Meticle subscription will pause`;
       body = `<p>Hi ${name},</p>` +
         `<p>It's been two weeks since our first failed attempt to charge <strong>${currency} ${amount}</strong> for <strong>${org}</strong>. Your access will be paused soon unless the payment goes through.</p>` +
-        `<p><strong>Your data is safe</strong> — nothing is deleted, and you can reactivate at any time.</p>` +
-        `<p>Updating your card takes about 30 seconds:</p>`;
+        `<p>Your data will be retained, and you can reactivate the service from Billing.</p>`;
     } else if (opts.daysSinceFirstFailure >= 7) {
       heading = 'Action needed — your payment is still failing';
       subject = `Action needed: payment for ${org} is still failing`;
       body = `<p>Hi ${name},</p>` +
         `<p>We've tried several times to charge <strong>${currency} ${amount}</strong> for <strong>${org}</strong> and the payment is still failing (${opts.cardInfo}).</p>` +
-        `<p>Your account is now in a <strong>grace period</strong>. Access continues for now, but will pause if the payment can't be resolved. ${retryStr}</p>` +
-        `<p>One click fixes this:</p>`;
+        `<p>Your account is now in a restricted grace period. Read-only access remains available until the grace period ends. Changes are restricted until payment is resolved. ${retryStr}</p><p>The grace period starts when the billing period ends and lasts seven days unless payment is resolved sooner.</p>`;
     } else if (opts.daysSinceFirstFailure >= 3) {
       heading = 'We tried your card again — action still needed';
       subject = `We tried your card again for ${org}`;
       body = `<p>Hi ${name},</p>` +
         `<p>We tried charging <strong>${currency} ${amount}</strong> for <strong>${org}</strong> again and it didn't go through (${opts.cardInfo}).</p>` +
-        `<p>This happens all the time — usually it's an expired card, a spending limit, or a temporary bank hold. ${retryStr}</p>` +
-        `<p>Your subscription is still active for now.</p>` +
-        `<p>Here's the fastest fix:</p>`;
+        `<p>The bank may have declined the charge because the card is expired, restricted, or temporarily unavailable. ${retryStr}</p>` +
+        `<p>Your subscription remains active for now. Review the payment method before the next attempt.</p><p>If the billing period ends while payment remains unresolved, the seven-day restricted grace period will begin.</p>`;
     } else {
       subject = `Quick update: your Meticle payment didn't go through`;
       body = `<p>Hi ${name},</p>` +
         `<p>Our charge of <strong>${currency} ${amount}</strong> for <strong>${org}</strong> didn't go through (${opts.cardInfo}).</p>` +
-        `<p>This happens all the time — usually it's an expired card, a spending limit, or a temporary bank hold. ${retryStr}</p>` +
-        `<p>Your access continues while we sort this out. Updating your card takes about 30 seconds:</p>`;
+        `<p>The bank may have declined the charge because the card is expired, restricted, or temporarily unavailable. ${retryStr}</p>` +
+        `<p>Your access continues while we sort this out. Review the payment method in Billing. If the billing period ends while payment remains unresolved, a seven-day restricted grace period will begin.</p>`;
     }
 
     // Generate draft invoice PDF attachment
@@ -613,7 +588,7 @@ export class EmailService {
       buildEmailHtml('Payment Action Required', 'Your bank needs you to confirm a payment',
         `<p>Hi ${name},</p>` +
         `<p>To keep your <strong>${org}</strong> subscription running, your bank needs you to confirm a recent payment of <strong>${opts.currency} ${opts.amount.toFixed(2)}</strong> (3D Secure authentication).</p>` +
-        `<p>This usually takes under a minute and your subscription stays active once confirmed.</p>`,        { label: 'Complete Payment', url }), 'billing');
+        `<p>Complete the confirmation to keep your subscription active.</p>`,        { label: 'Complete Payment', url }), 'billing');
   }
 
   // Build invoice notification email HTML (used by webhook handler and reminder job)
@@ -628,7 +603,7 @@ export class EmailService {
       `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:#0F4C81;text-align:right">${symbol}${amount.toFixed(2)}</td></tr>` +
       `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Due date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#DC2626;text-align:right">${dueDateStr}</td></tr>` +
       `</table>` +
-      `<p>Your card on file will be charged automatically on the due date. You can update your payment method at any time from the Billing page.</p>`,
+      `<p>If a payment method is on file, it will be charged automatically on the due date. Review the invoice and payment method in Billing.</p>`,
       { label: 'View Invoice', url });
   }
 
@@ -651,19 +626,19 @@ export class EmailService {
       subject = `Payment due tomorrow for ${org}`;
       body = `<p>Hi ${name},</p>` +
         `<p>Your Meticle invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due <strong>tomorrow</strong> (${dueDateStr}).</p>` +
-        `<p>Your card on file will be charged automatically. If you need to update your payment method, do so before tomorrow.</p>`;
+        `<p>If a payment method is on file, it will be charged automatically. Review it in Billing before the due date if anything has changed.</p>`;
     } else if (opts.daysUntilDue <= 3) {
       heading = `Payment due in ${opts.daysUntilDue} days`;
       subject = `Payment due in ${opts.daysUntilDue} days for ${org}`;
       body = `<p>Hi ${name},</p>` +
         `<p>Your Meticle invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due on <strong>${dueDateStr}</strong>.</p>` +
-        `<p>Your card on file will be charged automatically. You can update your payment method from the Billing page.</p>`;
+        `<p>If a payment method is on file, it will be charged automatically. You can review it in Billing.</p>`;
     } else {
       heading = `Payment due in ${opts.daysUntilDue} days`;
       subject = `Upcoming payment for ${org} — ${dueDateStr}`;
       body = `<p>Hi ${name},</p>` +
         `<p>This is a friendly reminder that your Meticle invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due on <strong>${dueDateStr}</strong>.</p>` +
-        `<p>Your card on file will be charged automatically. No action needed if your payment method is up to date.</p>`;
+        `<p>No action is needed if your payment method is up to date.</p>`;
     }
     await sendMail(email, subject,
       buildEmailHtml('Payment Reminder', heading, body,

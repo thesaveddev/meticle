@@ -229,6 +229,67 @@ const MIGRATION_021: Migration = {
   ],
 };
 
+const MIGRATION_055: Migration = {
+  name: '055_reconcile_historical_schema',
+  strict: false,
+  statements: [
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS current_period_end TIMESTAMPTZ`,
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`,
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(50) DEFAULT 'trial'`,
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ`,
+    `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS description TEXT`,
+    `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS currency VARCHAR(3) DEFAULT 'GBP'`,
+    `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ`,
+    `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS stripe_invoice_id TEXT`,
+    `ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS stripe_payment_method_id TEXT`,
+    `ALTER TABLE incidents ADD COLUMN IF NOT EXISTS is_near_miss BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE incidents ADD COLUMN IF NOT EXISTS is_confidential BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE incidents ADD COLUMN IF NOT EXISTS investigation_notes TEXT`,
+    `ALTER TABLE incidents ADD COLUMN IF NOT EXISTS lessons_learned TEXT`,
+    `ALTER TABLE incident_actions ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending'`,
+    `CREATE TABLE IF NOT EXISTS incident_attachments (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), incident_id UUID NOT NULL REFERENCES incidents(id) ON DELETE CASCADE, file_name VARCHAR(255) NOT NULL, file_url TEXT NOT NULL, file_type VARCHAR(100), file_size BIGINT, uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE INDEX IF NOT EXISTS idx_incident_attachments_incident ON incident_attachments(incident_id)`,
+    `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence VARCHAR(20) NOT NULL DEFAULT 'once'`,
+    `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS notes TEXT`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS notes TEXT`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS recurrence VARCHAR(20) NOT NULL DEFAULT 'once'`,
+    `ALTER TABLE person_expenses ALTER COLUMN person_id DROP NOT NULL`,
+    `ALTER TABLE person_expenses ADD COLUMN IF NOT EXISTS money_source VARCHAR(20) NOT NULL DEFAULT 'person'`,
+    `ALTER TABLE person_expenses ADD COLUMN IF NOT EXISTS payment_method VARCHAR(30)`,
+  ],
+};
+
+const MIGRATION_054: Migration = {
+  name: '054_webhook_processing_state',
+  strict: false,
+  statements: [
+    `ALTER TABLE stripe_webhook_events ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'processed'`,
+    `ALTER TABLE stripe_webhook_events ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE stripe_webhook_events ADD COLUMN IF NOT EXISTS last_error TEXT`,
+    `ALTER TABLE stripe_webhook_events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    `CREATE INDEX IF NOT EXISTS idx_stripe_webhook_retry ON stripe_webhook_events(status, updated_at)`,
+  ],
+};
+
+const MIGRATION_053: Migration = {
+  name: '053_billing_schema_reconciliation',
+  strict: false,
+  statements: [
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS grace_period_days INTEGER NOT NULL DEFAULT 7`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS uq_invoices_org_stripe_invoice ON invoices(organization_id, stripe_invoice_id) WHERE stripe_invoice_id IS NOT NULL`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS uq_stripe_webhook_event_id ON stripe_webhook_events(event_id)`,
+  ],
+};
+
+const MIGRATION_052: Migration = {
+  name: '052_subscription_grace_period',
+  strict: false,
+  statements: [
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS grace_period_ends_at TIMESTAMP WITH TIME ZONE`,
+    `CREATE INDEX IF NOT EXISTS idx_organizations_grace_period_ends ON organizations(grace_period_ends_at) WHERE grace_period_ends_at IS NOT NULL`,
+  ],
+};
+
 const MIGRATION_022: Migration = {
   name: '022_subscription_expiry_tracking',
   strict: false,
@@ -2351,7 +2412,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043, MIGRATION_044, MIGRATION_045, MIGRATION_046, MIGRATION_047, MIGRATION_048, MIGRATION_049, MIGRATION_050, MIGRATION_051]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043, MIGRATION_044, MIGRATION_045, MIGRATION_046, MIGRATION_047, MIGRATION_048, MIGRATION_049, MIGRATION_050, MIGRATION_051, MIGRATION_052, MIGRATION_053, MIGRATION_054, MIGRATION_055]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

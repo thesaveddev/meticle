@@ -78,7 +78,12 @@ export default function MfaSetupPage() {
               navigate(u?.role === 'SUPER_ADMIN' ? '/platform-admin' : '/dashboard')
             }}
               sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' }, py: 1.5, fontWeight: 700 }}>
-              Go to Dashboard
+              {(() => {
+                const raw = localStorage.getItem('user')
+                let isPlatformAdmin = false
+                try { isPlatformAdmin = JSON.parse(raw || '{}')?.role === 'SUPER_ADMIN' } catch { /* ignore malformed local state */ }
+                return isPlatformAdmin ? 'Open platform admin' : 'Go to dashboard'
+              })()}
             </Button>
           </Paper>
         </Container>

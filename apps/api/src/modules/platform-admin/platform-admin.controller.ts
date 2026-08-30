@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
+import { EmailService } from '../../shared/utils/email.service';
+import { AuditRepository } from '../audit/audit.repository';
 
 export class PlatformAdminController {
   static async getStats(_req: Request, res: Response) {
@@ -294,6 +296,88 @@ export class PlatformAdminController {
       emailQueue: emailQueue.rows,
       webhookEvents: webhookEvents.rows[0],
     });
+  }
+
+  static async listTrialFollowups(_req: Request, res: Response) {
+    const result = await pool.query(`
+      SELECT o.id, o.name, o.plan, o.trial_ends_at, o.updated_at,
+        COALESCE(o.subscription_status, 'trial') as subscription_status,
+        u.id as contact_user_id, u.email as contact_email,
+        COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as contact_name,
+        u.last_login_at,
+        EXISTS (
+          SELECT 1 FROM invoices i
+          WHERE i.organization_id = o.id AND i.status = 'paid'
+        ) as has_paid_invoice,
+        EXISTS (
+          SELECT 1 FROM payment_methods pm
+          WHERE pm.organization_id = o.id
+        ) as has_payment_method,
+        EXISTS (
+          SELECT 1 FROM audit_logs al
+          WHERE al.entity_id = o.id AND al.action = 'TRIAL_FOLLOWUP_EMAIL'
+            AND al.created_at > NOW() - INTERVAL '14 days'
+        ) as contacted_recently
+      FROM organizations o
+      JOIN users u ON u.organization_id = o.id
+        AND u.role = 'ORG_ADMIN' AND u.status = 'active'
+      LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+      WHERE COALESCE(o.trial_ends_at, TIMESTAMP 'epoch') < NOW()
+        AND COALESCE(o.subscription_status, 'trial') IN ('trial', 'expired', 'canceled')
+        AND NOT EXISTS (
+          SELECT 1 FROM invoices i
+          WHERE i.organization_id = o.id AND i.status = 'paid'
+        )
+      ORDER BY o.trial_ends_at DESC NULLS LAST, o.created_at DESC
+    `);
+
+    res.json({ followups: result.rows });
+  }
+
+  static async sendTrialFollowupEmail(req: Request, res: Response) {
+    const { organizationId } = req.params;
+    const { subject, message } = req.body || {};
+    const trimmedMessage = typeof message === 'string' ? message.trim() : '';
+    if (!trimmedMessage || trimmedMessage.length > 4000) {
+      throw new AppError(400, 'A message between 1 and 4,000 characters is required');
+    }
+
+    const recipient = await pool.query(`
+      SELECT o.name as org_name, u.id as user_id, u.email,
+        COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name
+      FROM organizations o
+      JOIN users u ON u.organization_id = o.id
+        AND u.role = 'ORG_ADMIN' AND u.status = 'active'
+      LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+      WHERE o.id = $1
+        AND COALESCE(o.trial_ends_at, TIMESTAMP 'epoch') < NOW()
+        AND COALESCE(o.subscription_status, 'trial') IN ('trial', 'expired', 'canceled')
+        AND NOT EXISTS (
+          SELECT 1 FROM invoices i
+          WHERE i.organization_id = o.id AND i.status = 'paid'
+        )
+      ORDER BY u.created_at ASC
+      LIMIT 1
+    `, [organizationId]);
+    if (recipient.rows.length === 0) throw new AppError(404, 'No eligible unpaid trial contact found');
+
+    const contact = recipient.rows[0];
+    const safeSubject = typeof subject === 'string' && subject.trim().length > 0
+      ? subject.trim().slice(0, 160)
+      : 'Checking in about your Meticle trial';
+    const html = EmailService.buildTrialFollowupEmailHtml(contact.name, contact.org_name, trimmedMessage);
+    await EmailService.sendQueued(contact.email, safeSubject, html, 'support');
+
+    await AuditRepository.log({
+      user_id: req.user!.userId,
+      action: 'TRIAL_FOLLOWUP_EMAIL',
+      entity_type: 'organization',
+      entity_id: organizationId,
+      new_data: { recipient: contact.email, subject: safeSubject },
+      ip_address: req.ip,
+    });
+
+    res.json({ message: 'Trial follow-up email queued', recipient: contact.email });
   }
 
   static async updateUserStatus(req: Request, res: Response) {

@@ -3,15 +3,20 @@ import { EmailService } from '../../shared/utils/email.service';
 import logger from '../../shared/utils/logger';
 import { SchedulingRepository } from './scheduling.repository';
 
-/** How far ahead of shift start the preview email goes out (once per staff + day). */
-const SHIFT_PREVIEW_LEAD_HOURS = 24;
+/**
+ * Shift previews are sent only inside this lead-time window. The lower bound
+ * prevents a preview arriving too early; the upper bound gives the five-minute
+ * worker enough time to catch the shift once.
+ */
+const SHIFT_PREVIEW_MIN_LEAD_HOURS = 2;
+const SHIFT_PREVIEW_MAX_LEAD_HOURS = 4;
 
 export class SchedulingNotificationService {
   /** Check for upcoming shifts and email assigned staff their daily plan with key info for the shift. */
   static async sendShiftStartNotifications() {
     const now = new Date();
-    const windowStart = now;
-    const windowEnd = new Date(now.getTime() + SHIFT_PREVIEW_LEAD_HOURS * 60 * 60 * 1000);
+    const windowStart = new Date(now.getTime() + SHIFT_PREVIEW_MIN_LEAD_HOURS * 60 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() + SHIFT_PREVIEW_MAX_LEAD_HOURS * 60 * 60 * 1000);
 
     // Background job context (no authenticated RLS session): enumerate orgs
     // with assigned shifts in the window via the superuser pool.
