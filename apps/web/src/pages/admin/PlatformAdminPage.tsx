@@ -36,6 +36,11 @@ export default function PlatformAdminPage() {
   const [userSearchDebounce, setUserSearchDebounce] = useState('')
   const [userRoleFilter, setUserRoleFilter] = useState('')
   const [userStatusFilter, setUserStatusFilter] = useState('')
+  const [trialFollowups, setTrialFollowups] = useState<any[]>([])
+  const [followupMessage, setFollowupMessage] = useState('')
+  const [followupSubject, setFollowupSubject] = useState('Checking in about your Meticle trial')
+  const [followupSending, setFollowupSending] = useState<string | null>(null)
+  const [followupNotice, setFollowupNotice] = useState('')
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchDebounce), 400)
@@ -79,11 +84,29 @@ export default function PlatformAdminPage() {
     try { const res = await api.get('/platform-admin/system-health'); setHealth(res.data) } catch { /* silent */ }
   }, [])
 
+  const loadTrialFollowups = useCallback(async () => {
+    try { const res = await api.get('/platform-admin/trial-followups'); setTrialFollowups(res.data.followups || []) } catch { /* silent */ }
+  }, [])
+
+  const sendFollowup = async (organizationId: string) => {
+    if (!followupMessage.trim()) { setFollowupNotice('Write a message before sending.'); return }
+    setFollowupSending(organizationId)
+    setFollowupNotice('')
+    try {
+      await api.post(`/platform-admin/trial-followups/${organizationId}/email`, { subject: followupSubject, message: followupMessage })
+      setFollowupNotice('Email queued and recorded in the audit log.')
+      await loadTrialFollowups()
+    } catch (err: any) {
+      setFollowupNotice(err.response?.data?.message || 'The email could not be queued.')
+    } finally { setFollowupSending(null) }
+  }
+
   useEffect(() => { loadData() }, [loadData])
   useEffect(() => { if (tab === 2) loadUsers() }, [tab, loadUsers])
   useEffect(() => { if (tab === 3) loadFinance() }, [tab, loadFinance])
   useEffect(() => { if (tab === 4) loadAuditLog() }, [tab, loadAuditLog])
   useEffect(() => { if (tab === 5) loadHealth() }, [tab, loadHealth])
+  useEffect(() => { if (tab === 6) loadTrialFollowups() }, [tab, loadTrialFollowups])
 
   const statCards = stats ? [
     { label: 'Organizations', value: stats.totalOrganizations, icon: <BusinessIcon />, color: '#0F4C81' },
@@ -92,7 +115,7 @@ export default function PlatformAdminPage() {
     { label: 'Signups (30d)', value: stats.recentSignups, icon: <PersonAddIcon />, color: '#D97706' },
   ] : []
 
-  const tabLabels = ['Overview', 'Organizations', 'Users', 'Finance', 'Audit Log', 'System Health']
+  const tabLabels = ['Overview', 'Organizations', 'Users', 'Finance', 'Audit Log', 'System Health', 'Trial follow-up']
 
   return (
     <Box>
@@ -405,6 +428,43 @@ export default function PlatformAdminPage() {
             </TableContainer>
           ) : <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No audit entries</Typography>}
         </Paper>
+      )}
+
+      {/* ─── Trial Follow-up Tab ─── */}
+      {tab === 6 && (
+        <Stack spacing={3}>
+          <Paper sx={{ p: 3, borderRadius: 2.5 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Trial follow-up</Typography>
+            <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+              Organisations whose trial ended without a recorded paid invoice. This list is for account-related follow-up, not bulk marketing.
+            </Typography>
+            <Stack spacing={2}>
+              <TextField size="small" label="Subject" value={followupSubject} onChange={e => setFollowupSubject(e.target.value)} />
+              <TextField multiline minRows={4} label="Message" placeholder="Write a helpful, relevant follow-up..." value={followupMessage} onChange={e => setFollowupMessage(e.target.value)} helperText="Messages are sent only when you press Send and are recorded in the audit log." />
+              {followupNotice && <Typography variant="body2" color={followupNotice.startsWith('Email') ? 'success.main' : 'error.main'}>{followupNotice}</Typography>}
+            </Stack>
+          </Paper>
+          <Paper sx={{ p: 3, borderRadius: 2.5 }}>
+            <TableContainer>
+              <Table size="small">
+                <TableHead><TableRow><TableCell>Organisation</TableCell><TableCell>Contact</TableCell><TableCell>Trial ended</TableCell><TableCell>Status</TableCell><TableCell>Last login</TableCell><TableCell>Action</TableCell></TableRow></TableHead>
+                <TableBody>
+                  {trialFollowups.map((lead: any) => (
+                    <TableRow key={lead.id} hover>
+                      <TableCell><Typography variant="body2" fontWeight={600}>{lead.name}</Typography><Typography variant="caption" color="#6B7280">{planLabels[lead.plan] || lead.plan || '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2">{lead.contact_name}</Typography><Typography variant="caption" color="#6B7280">{lead.contact_email}</Typography></TableCell>
+                      <TableCell>{lead.trial_ends_at ? new Date(lead.trial_ends_at).toLocaleDateString('en-GB') : '—'}</TableCell>
+                      <TableCell><Chip size="small" label={lead.subscription_status} color={statusColors[lead.subscription_status] || 'default'} /></TableCell>
+                      <TableCell>{lead.last_login_at ? new Date(lead.last_login_at).toLocaleDateString('en-GB') : '—'}</TableCell>
+                      <TableCell><Button size="small" variant="outlined" disabled={!!lead.contacted_recently || followupSending === lead.id} onClick={() => sendFollowup(lead.id)}>{followupSending === lead.id ? 'Sending…' : lead.contacted_recently ? 'Contacted recently' : 'Send email'}</Button></TableCell>
+                    </TableRow>
+                  ))}
+                  {trialFollowups.length === 0 && <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No unpaid expired trials found</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Stack>
       )}
 
       {/* ─── System Health Tab ─── */}

@@ -17,7 +17,9 @@ export default function AuthGuard({ allowedRoles, children }: AuthGuardProps) {
     return <Navigate to="/login" replace />
   }
 
-  if (allowedRoles && user && user.role !== UserRole.SUPER_ADMIN && !allowedRoles.includes(user.role)) {
+  // Keep the role check fail-closed while auth state is being restored. A stale
+  // or missing local user record must never make a protected route appear open.
+  if (allowedRoles && (!user || !allowedRoles.includes(user.role))) {
     return <Navigate to="/unauthorized" replace />
   }
 

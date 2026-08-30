@@ -45,7 +45,7 @@ export async function syncStripeSubscriptionStatus(): Promise<{ synced: number; 
   // Get ALL orgs with a Stripe customer ID — not just active ones.
   // A previously canceled org might have been reactivated on Stripe.
   const orgs = await migrateQuery(
-    `SELECT id, name, subscription_status, stripe_customer_id, current_period_end, trial_ends_at
+    `SELECT id, name, subscription_status, stripe_customer_id, current_period_end, trial_ends_at, grace_period_days
      FROM organizations
      WHERE stripe_customer_id IS NOT NULL AND stripe_customer_id <> ''`
   );
@@ -68,7 +68,7 @@ export async function syncStripeSubscriptionStatus(): Promise<{ synced: number; 
         // Stripe customer exists but no subscription — mark as canceled if not already
         if (org.subscription_status !== 'canceled' && org.subscription_status !== 'expired') {
           await migrateQuery(
-            `UPDATE organizations SET subscription_status = 'canceled' WHERE id = $1`,
+            `UPDATE organizations SET subscription_status = 'canceled', grace_period_ends_at = NULL WHERE id = $1`,
             [org.id]
           );
           logger.info({ orgId: org.id, orgName: org.name, prevStatus: org.subscription_status },
@@ -90,6 +90,9 @@ export async function syncStripeSubscriptionStatus(): Promise<{ synced: number; 
       const periodEnd = (sub as any).current_period_end
         ? new Date((sub as any).current_period_end * 1000).toISOString()
         : null;
+      const gracePeriodEndsAt = periodEnd
+        ? new Date(new Date(periodEnd).getTime() + (Number(org.grace_period_days || 7) * 24 * 60 * 60 * 1000)).toISOString()
+        : null;
       const trialEnd = (sub as any).trial_end
         ? new Date((sub as any).trial_end * 1000).toISOString()
         : null;
@@ -104,13 +107,15 @@ export async function syncStripeSubscriptionStatus(): Promise<{ synced: number; 
           `UPDATE organizations SET
              subscription_status = COALESCE($1, subscription_status),
              current_period_end = COALESCE($2, current_period_end),
-             trial_ends_at = COALESCE($3, trial_ends_at)
+             trial_ends_at = COALESCE($3, trial_ends_at),
+             grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5 ELSE NULL END
            WHERE id = $4`,
           [
             statusChanged ? newStatus : null,
             periodEndChanged ? periodEnd : null,
             trialEndChanged ? trialEnd : null,
             org.id,
+            gracePeriodEndsAt,
           ]
         );
 
@@ -231,31 +236,31 @@ function getEmailHtml(name: string, orgName: string, oldStatus: string | null, n
   if (oldStatus === 'canceled' && newStatus === 'active') {
     return `
       <p>Hi ${name},</p>
-      <p>Good news — <strong>${orgName}</strong>'s Meticle subscription is now <strong>active</strong>.</p>
+      <p><strong>${orgName}</strong>'s Meticle subscription is now <strong>active</strong>.</p>
       <p>Full access has been restored. You can continue managing your care home as usual.</p>
       <p>If you have any questions, reply to this email.</p>
-      <p>— The Meticle Team</p>`;
+      <p>The Meticle Team</p>`;
   }
   if (oldStatus === 'active' && newStatus === 'canceled') {
     return `
       <p>Hi ${name},</p>
-      <p>We wanted to let you know that <strong>${orgName}</strong>'s Meticle subscription has been <strong>canceled</strong>.</p>
-      <p>Your data is safe and will be retained for 30 days. To restore access, visit the Billing page and renew your subscription.</p>
+      <p><strong>${orgName}</strong>'s Meticle subscription has been <strong>canceled</strong>.</p>
+      <p>Your data will be retained for 30 days. To restore access, visit the Billing page and renew your subscription.</p>
       <p><a href="${process.env.FRONTEND_URL || 'https://meticlecare.com'}/billing" style="display:inline-block;padding:12px 24px;background:#0F4C81;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">Renew Subscription</a></p>
-      <p>— The Meticle Team</p>`;
+      <p>The Meticle Team</p>`;
   }
   if (oldStatus === 'trial' && newStatus === 'canceled') {
     return `
       <p>Hi ${name},</p>
-      <p>Your Meticle trial for <strong>${orgName}</strong> has ended.</p>
+      <p>Your Meticle trial for <strong>${orgName}</strong> has ended. The paid-subscription grace period does not apply to trial accounts.</p>
       <p>To keep using Meticle, please add a payment method and choose a plan on the Billing page.</p>
       <p><a href="${process.env.FRONTEND_URL || 'https://meticlecare.com'}/billing" style="display:inline-block;padding:12px 24px;background:#0F4C81;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">Add Payment Method</a></p>
-      <p>— The Meticle Team</p>`;
+      <p>The Meticle Team</p>`;
   }
   return `
     <p>Hi ${name},</p>
     <p>Your Meticle subscription for <strong>${orgName}</strong> has been updated.</p>
     <p>Status: <strong>${newStatus}</strong></p>
     <p>If you have questions, reply to this email.</p>
-    <p>— The Meticle Team</p>`;
+    <p>The Meticle Team</p>`;
 }

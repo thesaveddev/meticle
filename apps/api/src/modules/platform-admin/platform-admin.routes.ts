@@ -19,6 +19,8 @@ router.get('/organizations/:id', asyncHandler(PlatformAdminController.getOrganiz
 router.patch('/organizations/:id/status', asyncHandler(PlatformAdminController.updateOrganizationStatus));
 router.patch('/organizations/:id/billing', asyncHandler(PlatformAdminController.updateOrgBilling));
 router.get('/users', asyncHandler(PlatformAdminController.listUsers));
+router.get('/trial-followups', asyncHandler(PlatformAdminController.listTrialFollowups));
+router.post('/trial-followups/:organizationId/email', asyncHandler(PlatformAdminController.sendTrialFollowupEmail));
 router.patch('/users/:id/status', asyncHandler(PlatformAdminController.updateUserStatus));
 
 export default router;

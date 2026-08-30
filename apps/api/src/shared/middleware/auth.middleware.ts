@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   organizationId?: string;
+  billingRestricted?: boolean;
 }
 
 declare global {
@@ -89,34 +90,39 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return res.status(401).json({ statusCode: 401, message: 'Your permissions have changed. Please log in again.' });
     }
 
-    // Subscription enforcement — exempt auth, billing, mfa, health, onboarding, learning, and platform admin
+    // Subscription enforcement. Billing, auth, recovery, health, onboarding,
+    // learning and platform-admin remain available after expiry. Paid accounts
+    // receive a seven-day restricted grace period after the billing period ends.
+    const path = req.originalUrl.split('?')[0];
     const subExemptPaths = ['/auth', '/billing', '/mfa', '/health', '/onboarding', '/platform-admin', '/learn'];
-    const isExempt = subExemptPaths.some(p => req.originalUrl.startsWith(p));
+    const isExempt = subExemptPaths.some(p => path.startsWith(p));
     if (!isExempt && decoded.organizationId) {
       const orgResult = await query(
-        `SELECT subscription_status, trial_ends_at, current_period_end FROM organizations WHERE id = $1`,
+        `SELECT subscription_status, trial_ends_at, current_period_end, grace_period_ends_at FROM organizations WHERE id = $1`,
         [decoded.organizationId]
       );
       if (orgResult.rows.length > 0) {
         const org = orgResult.rows[0];
         const status = org.subscription_status;
-        const trialEnded = org.trial_ends_at && new Date(org.trial_ends_at) < new Date();
-        // If the billing period end has passed, the subscription has lapsed — this
-        // catches missed webhooks that never flipped the DB status.
-        const periodEnded = org.current_period_end && new Date(org.current_period_end) < new Date();
-        let blocked = false;
-        if (status === 'active' || status === 'past_due') {
-          // Within the current billing period both keep access (past_due is a grace
-          // period while Stripe retries). Once the period end passes, treat as lapsed
-          // so the team is steered to /billing instead of silently keeping full access.
-          blocked = !!periodEnded;
-        } else if (status === 'trial' || !status) {
-          blocked = !!trialEnded;
+        const now = new Date();
+        const trialEnded = org.trial_ends_at && new Date(org.trial_ends_at) < now;
+        const periodEnded = org.current_period_end && new Date(org.current_period_end) < now;
+        const graceEndsAt = org.grace_period_ends_at ? new Date(org.grace_period_ends_at) : null;
+        const inPaidGrace = (status === 'active' || status === 'past_due') && !!periodEnded && !!graceEndsAt && graceEndsAt > now;
+        const isReadOnlyPath = req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
+        const allowedGracePaths = ['/files/', '/reports', '/reporting', '/insights', '/people', '/compliance', '/audit', '/dashboard'];
+        const isAllowedGracePath = allowedGracePaths.some(p => path.startsWith(p));
+
+        if (inPaidGrace) {
+          if (!isReadOnlyPath || !isAllowedGracePath) {
+            return res.status(403).json({ statusCode: 403, code: 'BILLING_RESTRICTED', message: 'Your subscription is in a restricted grace period. Update billing to make changes.', redirect: '/billing' });
+          }
+          decoded.billingRestricted = true;
         } else {
-          blocked = true;
-        }
-        if (blocked) {
-          return res.status(403).json({ statusCode: 403, message: 'Your subscription is no longer active. Please update your billing information.', redirect: '/billing' });
+          const expired = (status === 'trial' || !status) ? !!trialEnded : (!!periodEnded || ['canceled', 'expired'].includes(status));
+          if (expired) {
+            return res.status(403).json({ statusCode: 403, message: 'Your subscription is no longer active. Please update your billing information.', redirect: '/billing' });
+          }
         }
       }
     }

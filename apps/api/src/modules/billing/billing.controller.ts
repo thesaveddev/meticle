@@ -22,6 +22,9 @@ export class BillingController {
     );
     if (result.rows.length === 0) throw new AppError(404, 'Organization not found');
     const org = result.rows[0];
+    if (org.stripe_customer_id && typeof org.stripe_customer_id !== 'string') {
+      throw new AppError(500, 'Invalid Stripe customer configuration');
+    }
     const trialEndsAt = org.trial_ends_at ? new Date(org.trial_ends_at) : null;
     const daysRemaining = trialEndsAt
       ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / 86400000))
@@ -33,7 +36,7 @@ export class BillingController {
     // Guard: skip ALL Stripe reconciliation when stripe_customer_id is missing.
     // Without this guard, clearing the customer ID for local trial testing causes
     // the billing controller to overwrite local trial dates or cancel the org.
-    const hasStripeCustomer = stripe && org.stripe_customer_id && org.stripe_customer_id.trim() !== '';
+    const hasStripeCustomer = !!(stripe && typeof org.stripe_customer_id === 'string' && org.stripe_customer_id.trim() !== '');
     if (hasStripeCustomer) {
       let subs: Stripe.ApiList<Stripe.Subscription>;
       try {
@@ -81,9 +84,10 @@ export class BillingController {
             `UPDATE organizations SET
                subscription_status = COALESCE($1, subscription_status),
                current_period_end = COALESCE($2, current_period_end),
-               trial_ends_at = COALESCE($3, trial_ends_at)
+               trial_ends_at = COALESCE($3, trial_ends_at),
+               grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5 ELSE NULL END
              WHERE id = $4`,
-            [stripeMapped, subPeriodEnd ? new Date(subPeriodEnd * 1000).toISOString() : null, subTrialEnd ? new Date(subTrialEnd * 1000).toISOString() : null, orgId]
+            [stripeMapped, subPeriodEnd ? new Date(subPeriodEnd * 1000).toISOString() : null, subTrialEnd ? new Date(subTrialEnd * 1000).toISOString() : null, orgId, subPeriodEnd ? new Date((subPeriodEnd + 7 * 86400) * 1000).toISOString() : null]
           );
           if (stripeMapped) org.subscription_status = stripeMapped;
           if (subPeriodEnd) org.current_period_end = new Date(subPeriodEnd * 1000).toISOString();
@@ -134,6 +138,9 @@ export class BillingController {
 
     const stripe = getStripe();
     if (!stripe && process.env.NODE_ENV === 'production') throw new AppError(503, 'Stripe is not configured for production billing');
+    if (stripe && !process.env.STRIPE_PRICE_STARTER && !process.env.STRIPE_PRICE_PROFESSIONAL && process.env.NODE_ENV === 'production') {
+      throw new AppError(503, 'Stripe price IDs are not configured for production billing');
+    }
     if (stripe) {
       try {
         const customerId = await getOrCreateCustomer(orgId, userEmail, 'Meticle organisation');
@@ -166,12 +173,13 @@ export class BillingController {
                 sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' :
                 sub.status === 'canceled' ? 'canceled' : null;
               await pool.query(
-                `UPDATE organizations SET
+                `            UPDATE organizations SET
                    subscription_status = COALESCE($1, subscription_status),
                    current_period_end = COALESCE($2, current_period_end),
-                   trial_ends_at = COALESCE($3, trial_ends_at)
+                   trial_ends_at = COALESCE($3, trial_ends_at),
+                   grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5 ELSE NULL END
                  WHERE id = $4`,
-                [mapped, (sub as any).current_period_end ? new Date((sub as any).current_period_end * 1000).toISOString() : null, (sub as any).trial_end ? new Date((sub as any).trial_end * 1000).toISOString() : null, orgId]
+                [mapped, (sub as any).current_period_end ? new Date((sub as any).current_period_end * 1000).toISOString() : null, (sub as any).trial_end ? new Date((sub as any).trial_end * 1000).toISOString() : null, orgId, (sub as any).current_period_end ? new Date(((sub as any).current_period_end + 7 * 86400) * 1000).toISOString() : null]
               );
             }
           }
@@ -251,7 +259,8 @@ export class BillingController {
     );
     const orgName = org.rows[0]?.name || 'Meticle customer';
     const primaryColor = org.rows[0]?.primary_color || '#0F4C81';
-    const pdf = await generatePdf(buildInvoiceHtml(inv.rows[0], { name: orgName, primary_color: primaryColor }));
+    const invoiceStatus = inv.rows[0].status || 'open';
+    const pdf = await generatePdf(buildInvoiceHtml({ ...inv.rows[0], status: invoiceStatus }, { name: orgName, primary_color: primaryColor }));
     const filename = `invoice-${(inv.rows[0].invoice_number || id).replace(/[^A-Za-z0-9-_]/g, '')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -415,8 +424,20 @@ export class BillingController {
 
     // Stripe can deliver the same event multiple times — process each event exactly once
     // so receipts / dunning emails are never duplicated.
-    const dupCheck = await pool.query('SELECT 1 FROM stripe_webhook_events WHERE event_id = $1', [event.id]);
-    if (dupCheck.rows.length > 0) {
+    // Claim atomically. A processed event is immutable; a failed or stale
+    // processing event can be reclaimed so Stripe retries are not lost.
+    const claimed = await pool.query(
+      `INSERT INTO stripe_webhook_events (event_id, event_type, status, attempt_count, updated_at)
+       VALUES ($1, $2, 'processing', 1, CURRENT_TIMESTAMP)
+       ON CONFLICT (event_id) DO UPDATE SET
+         status = 'processing', attempt_count = stripe_webhook_events.attempt_count + 1,
+         last_error = NULL, updated_at = CURRENT_TIMESTAMP
+       WHERE stripe_webhook_events.status = 'failed'
+          OR (stripe_webhook_events.status = 'processing' AND stripe_webhook_events.updated_at < CURRENT_TIMESTAMP - INTERVAL '10 minutes')
+       RETURNING event_id`,
+      [event.id, event.type]
+    );
+    if (claimed.rows.length === 0) {
       res.json({ received: true, duplicate: true });
       return;
     }
@@ -429,13 +450,14 @@ export class BillingController {
       for (const admin of admins.rows) {
         NotificationsController.createNotification(admin.id, title, msg, 'billing').catch(logWarn('billing notification'));
         if (sendEmail) {
-          EmailService.sendQueued(admin.email, sendEmail.subject, sendEmail.html).catch(logWarn('billing email'));
+          EmailService.sendQueued(admin.email, sendEmail.subject, sendEmail.html, 'billing').catch(logWarn('billing email'));
         }
       }
     };
 
-    switch (event.type) {
-      case 'invoice.paid': {
+    try {
+      switch (event.type) {
+        case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
         const customer = await stripe.customers.retrieve(invoice.customer as string) as Stripe.Customer;
         const orgId = invoice.metadata?.organizationId || customer.metadata?.organizationId || invoice.metadata?.orgId || customer.metadata?.orgId;
@@ -465,7 +487,7 @@ export class BillingController {
           const periodEnd = invoice.lines?.data?.[0]?.period?.end;
           if (periodEnd) {
             await pool.query(
-              `UPDATE organizations SET current_period_end = to_timestamp($1) WHERE id = $2`,
+              `UPDATE organizations SET current_period_end = to_timestamp($1), grace_period_ends_at = to_timestamp($1 + (COALESCE(grace_period_days, 7) * 86400)) WHERE id = $2`,
               [periodEnd, orgId]
             );
           }
@@ -597,7 +619,7 @@ export class BillingController {
         if (orgIdSub) {
           const status = sub.status === 'active' ? 'active' : sub.status === 'trialing' ? 'trial' : sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' : sub.status === 'canceled' ? 'canceled' : null;
           await pool.query(
-            `UPDATE organizations SET subscription_status = COALESCE($1, subscription_status), current_period_end = COALESCE(to_timestamp($3), current_period_end), trial_ends_at = COALESCE(to_timestamp($4), trial_ends_at) WHERE id = $2`,
+            `UPDATE organizations SET subscription_status = COALESCE($1, subscription_status), current_period_end = COALESCE(to_timestamp($3), current_period_end), trial_ends_at = COALESCE(to_timestamp($4), trial_ends_at), grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $3 IS NOT NULL THEN to_timestamp($3 + (COALESCE(grace_period_days, 7) * 86400)) ELSE NULL END WHERE id = $2`,
             [status, orgIdSub, (sub as any).current_period_end || null, (sub as any).trial_end || null]
           );
         }
@@ -610,8 +632,23 @@ export class BillingController {
         if (orgIdDel) {
           // Keep current_period_end so the win-back email can still fire
           await pool.query(
-            `UPDATE organizations SET subscription_status = 'canceled', current_period_end = COALESCE(to_timestamp($2), current_period_end) WHERE id = $1`,
+            `UPDATE organizations SET subscription_status = 'canceled', current_period_end = COALESCE(to_timestamp($2), current_period_end), grace_period_ends_at = NULL WHERE id = $1`,
             [orgIdDel, (deletedSub as any).current_period_end || null]
+          );
+        }
+        break;
+      }
+      case 'invoice.voided':
+      case 'invoice.marked_uncollectible':
+      case 'invoice.deleted': {
+        const lifecycleInvoice = event.data.object as Stripe.Invoice;
+        const lifecycleCustomer = await stripe.customers.retrieve(lifecycleInvoice.customer as string) as Stripe.Customer;
+        const lifecycleOrgId = lifecycleInvoice.metadata?.organizationId || lifecycleCustomer.metadata?.organizationId || lifecycleInvoice.metadata?.orgId || lifecycleCustomer.metadata?.orgId;
+        if (lifecycleOrgId && lifecycleInvoice.id) {
+          const lifecycleStatus = event.type === 'invoice.voided' ? 'void' : event.type === 'invoice.marked_uncollectible' ? 'uncollectible' : 'deleted';
+          await pool.query(
+            `UPDATE invoices SET status = $1, paid_at = CASE WHEN $1 = 'paid' THEN paid_at ELSE NULL END WHERE organization_id = $2 AND stripe_invoice_id = $3`,
+            [lifecycleStatus, lifecycleOrgId, lifecycleInvoice.id]
           );
         }
         break;
@@ -660,13 +697,18 @@ export class BillingController {
       }
     }
 
-    // Mark the event as processed — if anything above throws, we 500 and Stripe retries
     await pool.query(
-      'INSERT INTO stripe_webhook_events (event_id, event_type) VALUES ($1, $2)',
-      [event.id, event.type]
+      `UPDATE stripe_webhook_events SET status = 'processed', processed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, last_error = NULL WHERE event_id = $1`,
+      [event.id]
     );
-
     res.json({ received: true });
+    } catch (err: any) {
+      await pool.query(
+        `UPDATE stripe_webhook_events SET status = 'failed', last_error = $2, updated_at = CURRENT_TIMESTAMP WHERE event_id = $1 AND status = 'processing'`,
+        [event.id, String(err?.message || err).slice(0, 2000)]
+      ).catch(logWarn('mark webhook failed'));
+      throw err;
+    }
   }
 
   static async retryPayment(req: Request, res: Response) {
@@ -700,7 +742,7 @@ export class BillingController {
     );
     const notifyAdminsOfResult = async (subject: string, html: string) => {
       for (const admin of admins.rows) {
-        EmailService.sendQueued(admin.email, subject, html).catch(logWarn('payment retry email'));
+        EmailService.sendQueued(admin.email, subject, html, 'billing').catch(logWarn('payment retry email'));
       }
     };
 
@@ -765,7 +807,7 @@ export class BillingController {
     const periodEnd = paid.lines?.data?.[0]?.period?.end;
     if (periodEnd) {
       await pool.query(
-        `UPDATE organizations SET current_period_end = to_timestamp($1) WHERE id = $2`,
+        `UPDATE organizations SET current_period_end = to_timestamp($1), grace_period_ends_at = to_timestamp($1 + (COALESCE(grace_period_days, 7) * 86400)) WHERE id = $2`,
         [periodEnd, orgId]
       );
     }
