@@ -43,6 +43,19 @@ export default defineConfig({
       devOptions: { enabled: true },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          mui: ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+          data: ['@tanstack/react-query', 'axios'],
+          charts: ['recharts'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 700,
+  },
   resolve: {
     alias: {
       '@meticle/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),

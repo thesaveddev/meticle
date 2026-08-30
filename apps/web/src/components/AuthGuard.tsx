@@ -1,6 +1,7 @@
-import { ReactNode } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
+import api from '../services/api'
 
 interface AuthGuardProps {
   allowedRoles?: UserRole[]
@@ -9,16 +10,41 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ allowedRoles, children }: AuthGuardProps) {
   const token = localStorage.getItem('accessToken')
-  const userStr = localStorage.getItem('user')
-  let user: any = null
-  try { user = userStr ? JSON.parse(userStr) : null } catch { user = null }
+  const [user, setUser] = useState<any>(() => {
+    try {
+      const value = localStorage.getItem('user')
+      return value ? JSON.parse(value) : null
+    } catch {
+      return null
+    }
+  })
+  const [checking, setChecking] = useState(Boolean(token))
 
-  if (!token) {
-    return <Navigate to="/login" replace />
-  }
+  useEffect(() => {
+    if (!token) {
+      setChecking(false)
+      return
+    }
 
-  // Keep the role check fail-closed while auth state is being restored. A stale
-  // or missing local user record must never make a protected route appear open.
+    let mounted = true
+    api.get('/auth/me')
+      .then(({ data }) => {
+        const currentUser = data.user
+        if (!mounted) return
+        setUser(currentUser)
+        localStorage.setItem('user', JSON.stringify(currentUser))
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (mounted) setChecking(false)
+      })
+
+    return () => { mounted = false }
+  }, [token])
+
+  if (!token) return <Navigate to="/login" replace />
+  if (checking) return <div role="status" aria-live="polite" style={{ padding: '2rem', textAlign: 'center' }}>Checking access…</div>
+
   if (allowedRoles && (!user || !allowedRoles.includes(user.role))) {
     return <Navigate to="/unauthorized" replace />
   }
