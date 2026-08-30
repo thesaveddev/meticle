@@ -150,11 +150,19 @@ export class BillingController {
             const existingSubs = await stripe.subscriptions.list({ customer: customerId, limit: 1, status: 'all' });
             let sub: Stripe.Subscription | null = null;
             if (existingSubs.data.length > 0) {
-              await stripe.subscriptions.update(existingSubs.data[0].id, {
-                items: [{ id: existingSubs.data[0].items.data[0].id, price }],
+              const activeSubscriptions = existingSubs.data.filter((candidate) => ['active', 'trialing', 'past_due', 'unpaid', 'incomplete'].includes(candidate.status));
+              if (activeSubscriptions.length !== 1) {
+                throw new AppError(409, activeSubscriptions.length > 1 ? 'Multiple Stripe subscriptions require support review' : 'No active Stripe subscription is available to update');
+              }
+              const existingSubscription = activeSubscriptions[0];
+              const subscriptionItem = existingSubscription.items.data[0];
+              if (!subscriptionItem?.id) throw new AppError(409, 'Stripe subscription has no billable item to update');
+              await stripe.subscriptions.update(existingSubscription.id, {
+                items: [{ id: subscriptionItem.id, price }],
                 proration_behavior: 'none',
+                cancel_at_period_end: false,
               });
-              sub = await stripe.subscriptions.retrieve(existingSubs.data[0].id);
+              sub = await stripe.subscriptions.retrieve(existingSubscription.id);
             } else {
               sub = await stripe.subscriptions.create({
                 customer: customerId,
@@ -315,9 +323,11 @@ export class BillingController {
     if (!payment_method_id) throw new AppError(400, 'A Stripe payment method is required');
     if (stripe && payment_method_id) {
       const org = await pool.query('SELECT stripe_customer_id FROM organizations WHERE id = $1', [orgId]);
-      if (org.rows[0]?.stripe_customer_id) {
-        await stripe.paymentMethods.attach(payment_method_id, { customer: org.rows[0].stripe_customer_id });
-      }
+      if (!org.rows[0]?.stripe_customer_id) throw new AppError(409, 'Your Stripe customer is not configured');
+      const stripeCustomerId = org.rows[0].stripe_customer_id;
+      const pmBefore = await stripe.paymentMethods.retrieve(payment_method_id);
+      if (pmBefore.customer && pmBefore.customer !== stripeCustomerId) throw new AppError(409, 'This payment method belongs to another customer');
+      if (!pmBefore.customer) await stripe.paymentMethods.attach(payment_method_id, { customer: stripeCustomerId });
       try {
         const pm = await stripe.paymentMethods.retrieve(payment_method_id);
         if (pm.card) {
@@ -349,11 +359,19 @@ export class BillingController {
       'SELECT id FROM payment_methods WHERE organization_id = $1', [orgId]
     );
     const isDefault = existing.rows.length === 0;
-    const result = await pool.query(
-      `INSERT INTO payment_methods (organization_id, card_last_four, card_brand, cardholder_name, expiry_month, expiry_year, is_default, stripe_payment_method_id, stripe_fingerprint)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [orgId, card_last_four || '', card_brand || '', cardholder_name || null, expiry_month || 0, expiry_year || 0, isDefault, payment_method_id || null, stripeFingerprint]
-    );
+    let result;
+    try {
+      result = await pool.query(
+        `INSERT INTO payment_methods (organization_id, card_last_four, card_brand, cardholder_name, expiry_month, expiry_year, is_default, stripe_payment_method_id, stripe_fingerprint)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        [orgId, card_last_four || '', card_brand || '', cardholder_name || null, expiry_month || 0, expiry_year || 0, isDefault, payment_method_id || null, stripeFingerprint]
+      );
+    } catch (err) {
+      if (stripe && payment_method_id) {
+        try { await stripe.paymentMethods.detach(payment_method_id); } catch (detachError) { logWarn('payment method compensation failed')(detachError); }
+      }
+      throw err;
+    }
     res.status(201).json(result.rows[0]);
   }
 
@@ -647,8 +665,10 @@ export class BillingController {
         if (lifecycleOrgId && lifecycleInvoice.id) {
           const lifecycleStatus = event.type === 'invoice.voided' ? 'void' : event.type === 'invoice.marked_uncollectible' ? 'uncollectible' : 'deleted';
           await pool.query(
-            `UPDATE invoices SET status = $1, paid_at = CASE WHEN $1 = 'paid' THEN paid_at ELSE NULL END WHERE organization_id = $2 AND stripe_invoice_id = $3`,
-            [lifecycleStatus, lifecycleOrgId, lifecycleInvoice.id]
+            `INSERT INTO invoices (organization_id, invoice_number, description, amount, currency, status, stripe_invoice_id, issued_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, to_timestamp($8))
+             ON CONFLICT (organization_id, stripe_invoice_id) DO UPDATE SET status = EXCLUDED.status, description = EXCLUDED.description, amount = EXCLUDED.amount, currency = EXCLUDED.currency`,
+            [lifecycleOrgId, lifecycleInvoice.number || `STRIPE-${lifecycleInvoice.id.slice(-8)}`, lifecycleInvoice.description || `Stripe invoice ${lifecycleInvoice.id}`, (lifecycleInvoice.amount_due || lifecycleInvoice.amount_paid || 0) / 100, (lifecycleInvoice.currency || 'gbp').toUpperCase(), lifecycleStatus, lifecycleInvoice.id, lifecycleInvoice.created]
           );
         }
         break;
@@ -665,7 +685,7 @@ export class BillingController {
           const description = finInvoice.lines?.data?.[0]?.description || finInvoice.description || 'Meticle subscription';
           const dueDate = finInvoice.due_date ? new Date(finInvoice.due_date * 1000).toISOString().split('T')[0] : null;
           const existing = await pool.query(
-            'SELECT id FROM invoices WHERE organization_id = $1 AND stripe_invoice_id = $2',
+            'SELECT id, status FROM invoices WHERE organization_id = $1 AND stripe_invoice_id = $2',
             [orgIdFin, finInvoice.id]
           );
           if (existing.rows.length === 0) {
@@ -688,7 +708,7 @@ export class BillingController {
           } else {
             // Update existing invoice if it was backfilled as paid before finalization
             await pool.query(
-              `UPDATE invoices SET status = 'open', amount = $1, due_date = $2 WHERE id = $3 AND status = 'paid'`,
+              `UPDATE invoices SET status = CASE WHEN status IN ('void', 'uncollectible', 'deleted') THEN status ELSE 'open' END, amount = $1, due_date = $2 WHERE id = $3`,
               [amount, dueDate, existing.rows[0].id]
             );
           }
