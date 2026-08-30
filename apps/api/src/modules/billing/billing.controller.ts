@@ -423,7 +423,7 @@ export class BillingController {
 
     const notifyAdmins = async (orgId: string, title: string, msg: string, sendEmail?: { subject: string; html: string }) => {
       const admins = await pool.query(
-        "SELECT id, email, COALESCE(first_name, '') as first_name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN'",
+        "SELECT u.id, u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN'",
         [orgId]
       );
       for (const admin of admins.rows) {
@@ -472,7 +472,7 @@ export class BillingController {
           // Send the customer a receipt — only for paid subscription invoices (amount > 0)
           if ((invoice as any).subscription && (invoice.amount_paid || 0) > 0) {
             const admins = await pool.query(
-              "SELECT email, COALESCE(first_name, '') as name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND status = 'active'",
+              "SELECT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'",
               [orgId]
             );
             const amount = (invoice.amount_paid || 0) / 100;
@@ -541,7 +541,7 @@ export class BillingController {
             [dunning.milestoneDay, orgIdFailed]
           );
           const admins = await pool.query(
-            "SELECT email, COALESCE(first_name, '') as name, COALESCE((SELECT name FROM organizations WHERE id = $1), '') as org_name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND status = 'active'",
+            "SELECT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name, COALESCE((SELECT name FROM organizations WHERE id = $1), '') as org_name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'",
             [orgIdFailed]
           );
           for (const admin of admins.rows) {
@@ -580,7 +580,7 @@ export class BillingController {
           const amount = (actionInvoice.amount_due || 0) / 100;
           const currency = (actionInvoice.currency || 'gbp').toUpperCase();
           const admins = await pool.query(
-            "SELECT email, COALESCE(first_name, '') as name, COALESCE((SELECT name FROM organizations WHERE id = $1), '') as org_name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND status = 'active'",
+            "SELECT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name, COALESCE((SELECT name FROM organizations WHERE id = $1), '') as org_name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'",
             [orgIdAction]
           );
           for (const admin of admins.rows) {
@@ -638,10 +638,8 @@ export class BillingController {
               [orgIdFin, finInvoice.number || `STRIPE-${finInvoice.id.slice(-8)}`, description, amount, currency, finInvoice.id, finInvoice.created, dueDate]
             );
             // Send the invoice to the org admin so they know it's coming
-            const admins = await pool.query(
-              "SELECT email, COALESCE(first_name, '') as name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND status = 'active'",
-              [orgIdFin]
-            );
+            const admins = await pool.query(              "SELECT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'",
+              [orgIdFin]);
             const dueDateStr = dueDate ? new Date(dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'soon';
             for (const admin of admins.rows) {
               EmailService.sendQueued(admin.email,
@@ -697,7 +695,7 @@ export class BillingController {
     const currency = (invoice.currency || 'gbp').toUpperCase();
 
     const admins = await pool.query(
-      "SELECT email, COALESCE(first_name, '') as name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND status = 'active'",
+      "SELECT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'",
       [orgId]
     );
     const notifyAdminsOfResult = async (subject: string, html: string) => {
