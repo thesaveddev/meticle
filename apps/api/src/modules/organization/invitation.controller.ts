@@ -4,6 +4,9 @@ import { EmailService } from '../../shared/utils/email.service';
 import { randomUUID } from 'crypto';
 import { AppError } from '../../shared/middleware/error.middleware';
 
+const TRIAL_STAFF_LIMIT = 10;
+const PROFESSIONAL_STAFF_LIMIT = 100;
+
 export class InvitationController {
   static async invite(req: Request, res: Response) {
     const { email, role, location_id } = req.body;
@@ -11,6 +14,22 @@ export class InvitationController {
 
     if (!organizationId) {
       throw new AppError(403, 'Only organization admins can invite staff.');
+    }
+
+    // Check trial staff limit
+    const org = await pool.query(
+      'SELECT subscription_status, plan FROM organizations WHERE id = $1',
+      [organizationId]
+    );
+    if (org.rows.length > 0 && org.rows[0].subscription_status === 'trial') {
+      const limit = org.rows[0].plan === 'professional' ? PROFESSIONAL_STAFF_LIMIT : TRIAL_STAFF_LIMIT;
+      const count = await pool.query(
+        'SELECT COUNT(*)::int as count FROM users WHERE organization_id = $1',
+        [organizationId]
+      );
+      if (count.rows[0].count >= limit) {
+        throw new AppError(403, `Trial plan is limited to ${limit} staff members. Please upgrade to add more.`);
+      }
     }
 
     // Check for existing pending invitation
