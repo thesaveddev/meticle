@@ -408,6 +408,17 @@ function checkOverdueReviews() {
 }
 setInterval(checkOverdueReviews, 5 * 60 * 1000);
 
+// Stripe subscription status sync (every hour — keeps DB in sync with Stripe)
+// This is the source of truth for subscription status. Webhooks may be missed,
+// but this job self-heals by comparing Stripe's canonical state against the DB.
+import { syncStripeSubscriptionStatus } from './shared/utils/stripe-sync';
+setTimeout(() => {
+  syncStripeSubscriptionStatus().catch(err => logger.error(err, 'Stripe sync failed'));
+  setInterval(() => {
+    syncStripeSubscriptionStatus().catch(err => logger.error(err, 'Stripe sync failed'));
+  }, 60 * 60 * 1000); // Every hour
+}, 20_000);
+
 // Subscription expiry reminder check (every 12 hours — sends at 7d, 3d, 1d, and expiry/win-back milestones)
 import { checkSubscriptionExpirations, checkInvoiceReminders } from './shared/utils/trial-reminders';
 setTimeout(() => {
