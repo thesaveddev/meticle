@@ -59,7 +59,7 @@ export async function checkSubscriptionExpirations() {
 
   const result = await migrateQuery(
     `SELECT o.id, o.name as org_name, o.subscription_status, o.trial_ends_at, o.current_period_end,
-            u.email, COALESCE(sp.first_name, u.email) as name,
+            u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name,
             (SELECT COUNT(*) FROM payment_methods WHERE organization_id = o.id) as card_count
      FROM organizations o
      JOIN users u ON u.organization_id = o.id AND u.role = 'ORG_ADMIN' AND u.status = 'active'
@@ -168,7 +168,7 @@ export async function checkInvoiceReminders() {
 
     // Get admin emails for this org
     const admins = await migrateQuery(
-      "SELECT email, COALESCE(sp.first_name, u.email) as name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'",
+      "SELECT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'",
       [inv.organization_id]
     );
 
