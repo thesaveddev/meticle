@@ -145,4 +145,37 @@ export class HealthController {
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'fluid_intake', entity_id: id, ip_address: req.ip }).catch(() => {});
     res.json(updated);
   }
+
+  // === Sleep Records ===
+  static async getSleepRecords(req: Request, res: Response) {
+    const { personId } = req.params;
+    const records = await HealthRepository.findSleepRecords(personId);
+    res.json(records);
+  }
+
+  static async createSleepRecord(req: Request, res: Response) {
+    const { personId } = req.params;
+    const record = await HealthRepository.createSleepRecord({
+      ...req.body,
+      person_id: personId,
+      recorded_by: req.user!.userId,
+    });
+    AuditRepository.log({ user_id: req.user!.userId, action: 'create', entity_type: 'sleep_record', entity_id: record.id, ip_address: req.ip }).catch(() => {});
+    res.status(201).json(record);
+  }
+
+  static async deleteSleepRecord(req: Request, res: Response) {
+    const { personId, id } = req.params;
+    await HealthRepository.deleteSleepRecord(id, personId);
+    AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'sleep_record', entity_id: id, ip_address: req.ip }).catch(() => {});
+    res.json({ message: 'Sleep record deleted' });
+  }
+
+  static async updateSleepRecord(req: Request, res: Response) {
+    const { personId, id } = req.params;
+    const updated = await HealthRepository.updateSleepRecord(id, personId, req.body);
+    if (!updated) throw new AppError(404, 'Sleep record not found');
+    AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'sleep_record', entity_id: id, ip_address: req.ip }).catch(() => {});
+    res.json(updated);
+  }
 }

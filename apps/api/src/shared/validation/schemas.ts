@@ -1254,6 +1254,19 @@ export const createFluidIntakeSchema = z.object({
 export const updateObservationSchema = createObservationSchema.partial();
 export const updateBowelMovementSchema = createBowelMovementSchema.partial();
 export const updateDentalRecordSchema = createDentalRecordSchema.partial();
+export const createSleepRecordSchema = z.object({
+  record_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  bedtime: z.string().regex(/^\d{2}:\d{2}/),
+  wake_time: z.string().regex(/^\d{2}:\d{2}/),
+  sleep_quality: z.number().int().min(1).max(5),
+  night_disturbances: z.boolean().optional(),
+  disturbance_count: z.number().int().min(0).optional(),
+  disturbance_reasons: z.string().max(2000).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const updateSleepRecordSchema = createSleepRecordSchema.partial();
+
 export const updateFluidIntakeSchema = createFluidIntakeSchema.partial();
 export const updateDailyNoteSchema = createDailyNoteSchema.partial();
 

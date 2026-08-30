@@ -5,7 +5,7 @@ import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { UserRole } from '@meticle/shared';
-import { createObservationSchema, createBowelMovementSchema, createDentalRecordSchema, createFluidIntakeSchema, updateObservationSchema, updateBowelMovementSchema, updateDentalRecordSchema, updateFluidIntakeSchema } from '../../shared/validation/schemas';
+import { createObservationSchema, createBowelMovementSchema, createDentalRecordSchema, createFluidIntakeSchema, createSleepRecordSchema, updateObservationSchema, updateBowelMovementSchema, updateDentalRecordSchema, updateFluidIntakeSchema, updateSleepRecordSchema } from '../../shared/validation/schemas';
 
 const router = Router();
 router.use(authenticate);
@@ -34,5 +34,11 @@ router.get('/:personId/fluid/total', asyncHandler(HealthController.getDailyFluid
 router.post('/:personId/fluid', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createFluidIntakeSchema), asyncHandler(HealthController.createFluidIntake));
 router.patch('/:personId/fluid/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateFluidIntakeSchema), asyncHandler(HealthController.updateFluidIntake));
 router.delete('/:personId/fluid/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(HealthController.deleteFluidIntake));
+
+// Sleep Records
+router.get('/:personId/sleep', asyncHandler(HealthController.getSleepRecords));
+router.post('/:personId/sleep', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), validate(createSleepRecordSchema), asyncHandler(HealthController.createSleepRecord));
+router.patch('/:personId/sleep/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateSleepRecordSchema), asyncHandler(HealthController.updateSleepRecord));
+router.delete('/:personId/sleep/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(HealthController.deleteSleepRecord));
 
 export default router;
