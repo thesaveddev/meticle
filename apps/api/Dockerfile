@@ -13,6 +13,7 @@ RUN apk add --no-cache tini
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/apps/api/package*.json ./apps/api/
 COPY --from=builder /app/apps/api/dist/apps/api/src ./apps/api/dist
+COPY --from=builder /app/apps/api/src/shared/database/migrations ./apps/api/dist/shared/database/migrations
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/node_modules ./node_modules
 RUN mkdir -p uploads
