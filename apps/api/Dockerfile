@@ -16,7 +16,7 @@ COPY --from=builder /app/apps/api/dist/apps/api/src ./apps/api/dist
 COPY --from=builder /app/apps/api/src/shared/database/migrations ./apps/api/dist/shared/database/migrations
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/node_modules ./node_modules
-RUN mkdir -p node_modules/@meticle && ln -s /app/packages/shared node_modules/@meticle/shared && mkdir -p uploads
+RUN mkdir -p node_modules/@meticle/shared && cp -r /app/packages/shared/. node_modules/@meticle/shared/ && mkdir -p uploads
 EXPOSE 3002
 ENTRYPOINT ["tini", "--"]
 CMD ["node", "apps/api/dist/index.js"]
