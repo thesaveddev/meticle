@@ -6,11 +6,18 @@ const BATCH_SIZE = 10;
 const POLL_INTERVAL = 5000; // 5 seconds
 let processorInterval: ReturnType<typeof setInterval> | null = null;
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
 export class EmailQueue {
-  static enqueue(to: string, subject: string, htmlBody: string, fromEmail?: string) {
+  static enqueue(to: string, subject: string, htmlBody: string, fromEmail?: string, attachments?: EmailAttachment[]) {
+    const attachmentMeta = attachments?.map(a => ({ filename: a.filename, contentType: a.contentType || 'application/pdf' })) || [];
     return query(
-      `INSERT INTO email_queue (to_email, subject, html_body, from_email) VALUES ($1, $2, $3, $4) RETURNING *`,
-      [to, subject, htmlBody, fromEmail || null]
+      `INSERT INTO email_queue (to_email, subject, html_body, from_email, attachments) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [to, subject, htmlBody, fromEmail || null, JSON.stringify(attachmentMeta)]
     );
   }
 
@@ -35,7 +42,10 @@ export class EmailQueue {
       try {
         if (transporter) {
           const from = email.from_email || process.env.SMTP_FROM || 'noreply@meticlecare.com';
-          await transporter.sendMail({ from, to: email.to_email, subject: email.subject, html: email.html_body });
+          const attachments = email.attachments?.length > 0
+            ? email.attachments.map((a: any) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64'), contentType: a.contentType || 'application/pdf' }))
+            : [];
+          await transporter.sendMail({ from, to: email.to_email, subject: email.subject, html: email.html_body, attachments });
           logger.info({ queueId: email.id, to: email.to_email }, 'Email sent via queue');
         } else {
           logger.warn({ queueId: email.id }, 'No transporter — email queued but not sent');

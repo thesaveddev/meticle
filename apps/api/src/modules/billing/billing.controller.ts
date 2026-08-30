@@ -478,6 +478,7 @@ export class BillingController {
                 invoiceNumber: invoice.number || invoice.id,
                 planName: invoice.lines?.data?.[0]?.description || 'Meticle subscription',
                 nextBillingDate: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+                organizationId: orgId,
               }).catch(logWarn('payment receipt email'));
             }
           }
@@ -545,6 +546,7 @@ export class BillingController {
               attemptCount,
               nextAttempt,
               daysSinceFirstFailure: dunning.urgency,
+              organizationId: orgIdFailed,
             }).catch(logWarn('payment failed email'));
           }
           notifyAdmins(
