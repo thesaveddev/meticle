@@ -30,7 +30,11 @@ export class BillingController {
     const stripe = getStripe();
     let stripeSubscription: any = null;
     let stripeUnavailable = false;
-    if (stripe && org.stripe_customer_id) {
+    // Guard: skip ALL Stripe reconciliation when stripe_customer_id is missing.
+    // Without this guard, clearing the customer ID for local trial testing causes
+    // the billing controller to overwrite local trial dates or cancel the org.
+    const hasStripeCustomer = stripe && org.stripe_customer_id && org.stripe_customer_id.trim() !== '';
+    if (hasStripeCustomer) {
       let subs: Stripe.ApiList<Stripe.Subscription>;
       try {
         subs = await stripe.subscriptions.list({ customer: org.stripe_customer_id, limit: 1, status: 'all' });
@@ -87,7 +91,9 @@ export class BillingController {
         }
       } else {
         // No Stripe subscription found but DB thinks it's active — mark expired
-        if (org.subscription_status === 'active' || org.subscription_status === 'past_due') {
+        // ONLY if this org actually has a Stripe subscription (not a local trial).
+        // Trial orgs without a Stripe customer should never be auto-canceled here.
+        if ((org.subscription_status === 'active' || org.subscription_status === 'past_due') && org.stripe_customer_id) {
           await pool.query(
             `UPDATE organizations SET subscription_status = 'canceled' WHERE id = $1`,
             [orgId]
@@ -99,7 +105,7 @@ export class BillingController {
 
     // Expose whether there's an open (unpaid) invoice so the UI can offer a manual retry
     let hasUnpaidInvoice = false;
-    if (stripe && org.stripe_customer_id) {
+    if (hasStripeCustomer) {
       try {
         const openInvoices = await stripe.invoices.list({ customer: org.stripe_customer_id, status: 'open', limit: 1 });
         hasUnpaidInvoice = openInvoices.data.length > 0;
