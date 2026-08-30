@@ -3,6 +3,7 @@ import logger from '../utils/logger';
 import crypto from 'crypto';
 
 const MIGRATIONS_TABLE = '_migrations';
+const MIGRATION_BASELINES_TABLE = '_migration_baselines';
 
 export async function ensureMigrationsTable(): Promise<void> {
   await query(`
@@ -13,6 +14,15 @@ export async function ensureMigrationsTable(): Promise<void> {
       statements_count INTEGER NOT NULL DEFAULT 0,
       applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       duration_ms INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS ${MIGRATION_BASELINES_TABLE} (
+      name VARCHAR(255) PRIMARY KEY,
+      checksum TEXT NOT NULL,
+      reviewed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      reviewed_by VARCHAR(255),
+      reason TEXT NOT NULL
     )
   `);
 }
@@ -28,10 +38,13 @@ export async function getAppliedMigrations(): Promise<Map<string, string>> {
  * rerun SQL or conceal an unknown drift: the caller must supply the expected
  * checksum from a controlled review/deployment process.
  */
-export async function acknowledgeMigrationChecksum(name: string, approvedChecksum: string): Promise<void> {
+export async function acknowledgeMigrationChecksum(name: string, approvedChecksum: string, reason: string, reviewedBy = process.env.MIGRATION_REVIEWED_BY || 'migration-review'): Promise<void> {
   if (!/^\d+_[a-z0-9][a-z0-9_-]*$/i.test(name)) throw new Error(`Invalid migration name: ${name}`);
   if (!/^[a-f0-9]{64}$/i.test(approvedChecksum)) throw new Error('Invalid migration checksum');
-  await query(`UPDATE ${MIGRATIONS_TABLE} SET checksum = $1 WHERE name = $2`, [approvedChecksum.toLowerCase(), name]);
+  if (!reason.trim()) throw new Error('A review reason is required');
+  const checksum = approvedChecksum.toLowerCase();
+  await query(`INSERT INTO ${MIGRATION_BASELINES_TABLE} (name, checksum, reviewed_by, reason) VALUES ($1, $2, $3, $4) ON CONFLICT (name) DO UPDATE SET checksum = EXCLUDED.checksum, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = EXCLUDED.reviewed_by, reason = EXCLUDED.reason`, [name, checksum, reviewedBy, reason.trim()]);
+  await query(`UPDATE ${MIGRATIONS_TABLE} SET checksum = $1 WHERE name = $2`, [checksum, name]);
 }
 
 function computeChecksum(statements: string[]): string {
