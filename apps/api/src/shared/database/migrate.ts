@@ -22,6 +22,18 @@ export async function getAppliedMigrations(): Promise<Map<string, string>> {
   return new Map(result.rows.map((r: { name: string; checksum: string }) => [r.name, r.checksum]));
 }
 
+/**
+ * Explicitly records that a historical migration was reviewed and that the
+ * current file is the approved source for future deployments. This does not
+ * rerun SQL or conceal an unknown drift: the caller must supply the expected
+ * checksum from a controlled review/deployment process.
+ */
+export async function acknowledgeMigrationChecksum(name: string, approvedChecksum: string): Promise<void> {
+  if (!/^\d+_[a-z0-9][a-z0-9_-]*$/i.test(name)) throw new Error(`Invalid migration name: ${name}`);
+  if (!/^[a-f0-9]{64}$/i.test(approvedChecksum)) throw new Error('Invalid migration checksum');
+  await query(`UPDATE ${MIGRATIONS_TABLE} SET checksum = $1 WHERE name = $2`, [approvedChecksum.toLowerCase(), name]);
+}
+
 function computeChecksum(statements: string[]): string {
   const hash = crypto.createHash('sha256');
   for (const stmt of statements) {
@@ -111,7 +123,7 @@ export async function runMigrations(migrations: Migration[]): Promise<void> {
       if (checksum !== appliedChecksum) {
         logger.error(
           { migration: migration.name, previousChecksum: appliedChecksum, currentChecksum: checksum },
-          'Migration already applied but checksum differs — statements were modified after apply and will NOT re-run. Ship a new numbered migration instead.'
+          'Migration checksum drift detected — review the applied definition and explicitly acknowledge it before deployment.'
         );
       } else {
         logger.debug(`Migration ${migration.name} already applied, skipping`);

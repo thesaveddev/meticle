@@ -4,7 +4,7 @@ vi.mock('./index', () => ({
   migrateQuery: vi.fn(),
 }))
 
-import { getMigrationVersion, sortMigrations, runMigrations, Migration } from './migrate'
+import { getMigrationVersion, sortMigrations, runMigrations, acknowledgeMigrationChecksum, Migration } from './migrate'
 import { migrateQuery } from './index'
 
 const mockMigrateQuery = migrateQuery as unknown as ReturnType<typeof vi.fn>
@@ -80,6 +80,18 @@ describe('runMigrations', () => {
     await expect(runMigrations([m('010_backfill', ['stmt-backfill'])])).rejects.toThrow(
       /010_backfill.*older than the newest applied migration \(30\)/
     )
+  })
+
+  it('acknowledges a reviewed checksum without executing migration SQL', async () => {
+    await acknowledgeMigrationChecksum('001_initial', 'a'.repeat(64))
+    expect(mockMigrateQuery).toHaveBeenCalledWith(
+      'UPDATE _migrations SET checksum = $1 WHERE name = $2',
+      ['a'.repeat(64), '001_initial']
+    )
+  })
+
+  it('rejects malformed checksum acknowledgements', async () => {
+    await expect(acknowledgeMigrationChecksum('001_initial', 'not-a-checksum')).rejects.toThrow(/Invalid migration checksum/)
   })
 
   it('applies a fresh migration whose version is above the watermark', async () => {

@@ -90,8 +90,8 @@ export async function syncStripeSubscriptionStatus(): Promise<{ synced: number; 
       const periodEnd = (sub as any).current_period_end
         ? new Date((sub as any).current_period_end * 1000).toISOString()
         : null;
-      const gracePeriodEndsAt = periodEnd
-        ? new Date(new Date(periodEnd).getTime() + (Number(org.grace_period_days || 7) * 24 * 60 * 60 * 1000)).toISOString()
+      const gracePeriodEndsAt = ['active', 'past_due'].includes(newStatus) && periodEnd
+        ? new Date(new Date(periodEnd).getTime() + (Math.max(0, Math.min(30, Number(org.grace_period_days ?? 7))) * 24 * 60 * 60 * 1000)).toISOString()
         : null;
       const trialEnd = (sub as any).trial_end
         ? new Date((sub as any).trial_end * 1000).toISOString()
