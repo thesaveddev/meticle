@@ -6,14 +6,16 @@ import {
 } from '@mui/material'
 import {
   Search as SearchIcon, Menu as MenuIcon, Close as CloseIcon,
-  ExpandMore, ExpandLess, School as LearnIcon,
+  ExpandMore, ExpandLess, School as LearnIcon, ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material'
 import { getLearnSections, type LearnSection } from '../../data/learn-content'
 import PageMeta from '../../components/PageMeta'
+import { useNavigate } from 'react-router-dom'
 
 const DRAWER_WIDTH = 300
 
 export default function LearningCenterPage() {
+  const navigate = useNavigate()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [drawerOpen, setDrawerOpen] = useState(!isMobile)
@@ -186,6 +188,14 @@ export default function LearningCenterPage() {
       <Box sx={{ flex: 1, pt: isMobile ? 8 : 3, px: isMobile ? 2 : 4, pb: 8, maxWidth: 900, mx: 'auto', width: '100%' }}>
         {currentSection && currentSubsection ? (
           <>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+              <IconButton aria-label="Back to dashboard" onClick={() => navigate('/dashboard')} size="small" sx={{ color: '#0F4C81' }}>
+                <ArrowBackIcon fontSize="small" />
+              </IconButton>
+              <Box component="button" onClick={() => navigate('/dashboard')} sx={{ border: 0, bgcolor: 'transparent', p: 0, cursor: 'pointer', color: '#0F4C81', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'inherit' }}>
+                Back to dashboard
+              </Box>
+            </Stack>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
               <Chip label={currentCategory} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
               <Chip label={currentSection.title} size="small" color="primary" variant="outlined" />
