@@ -237,8 +237,11 @@ function BillingPageInner() {
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
 
   const redirectReason = localStorage.getItem('redirectReason')
-  if (redirectReason === 'subscription_expired') {
+  const subMessage = localStorage.getItem('subscriptionMessage')
+  const isRedirectedFromBlock = redirectReason === 'subscription_expired'
+  if (isRedirectedFromBlock) {
     localStorage.removeItem('redirectReason')
+    localStorage.removeItem('subscriptionMessage')
   }
 
   const subStatus = subscription?.subscriptionStatus
@@ -256,7 +259,19 @@ function BillingPageInner() {
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ fontWeight: 800, mb: 4 }}>Billing</Typography>
+      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 800 }}>Billing</Typography>
+        {isActive && (
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => window.location.href = '/'}
+            sx={{ textTransform: 'none', color: '#6B7280' }}
+          >
+            ← Back to dashboard
+          </Button>
+        )}
+      </Stack>
 
       {subscription?.stripeUnavailable && (
         <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }}>
@@ -269,17 +284,26 @@ function BillingPageInner() {
         <Alert severity={message.includes('Failed') ? 'error' : 'success'} sx={{ mb: 4, borderRadius: 2 }} onClose={() => setMessage('')}>
           {message}
         </Alert>
-      )}      {!isActive && (
+      )}      {isRedirectedFromBlock && (
+        <Alert severity="warning" sx={{ mb: 4, borderRadius: 2, bgcolor: '#FFFBEB', border: '1px solid #FDE68A' }}>
+          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Welcome back</Typography>
+          <Typography variant="body2">
+            {subMessage || 'Your subscription needs attention. Please update your billing information below to restore access.'}
+          </Typography>
+        </Alert>
+      )}
+
+      {!isActive && (
         <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '2px solid #FEE2E2', bgcolor: '#FEF2F2' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <Box sx={{ flex: 1 }}>
               <Typography variant="h6" fontWeight={800} color="#991B1B" sx={{ mb: 0.5 }}>
-                Your subscription has ended
+                {subStatus === 'canceled' ? 'Your subscription has been canceled' : subStatus === 'trial' ? 'Your trial has ended' : 'Your subscription has ended'}
               </Typography>
               <Typography variant="body2" color="#991B1B">
                 {subStatus === 'past_due' || subscription?.hasUnpaidInvoice
                   ? 'There is an unpaid invoice. Update your payment method and retry to restore access.'
-                  : 'Add a payment card and renew your plan to restore access to the platform.'}
+                  : 'Add a payment card and renew your plan to restore full access to Meticle.'}
               </Typography>
               {subscription?.hasUnpaidInvoice && (
                 <Typography variant="caption" color="#B91C1C" sx={{ mt: 0.5, display: 'block' }}>
@@ -333,7 +357,7 @@ function BillingPageInner() {
                 sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A66' }, textTransform: 'none', fontWeight: 700 }}
                 onClick={() => handleUpgradeClick(subscription?.plan || 'starter')}
               >
-                {updating ? <CircularProgress size={18} color="inherit" /> : 'Renew Now'}
+                {updating ? <CircularProgress size={18} color="inherit" /> : (subStatus === 'canceled' ? 'Renew Subscription' : subStatus === 'trial' ? 'Subscribe Now' : 'Renew Now')}
               </Button>
             </Stack>
           </Stack>

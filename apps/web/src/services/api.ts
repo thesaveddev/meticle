@@ -105,6 +105,20 @@ api.interceptors.response.use(
       }
     }
 
+    // Handle 403 subscription expired — redirect to billing with context
+    if (error.response?.status === 403 && error.response?.data?.redirect) {
+      const redirectPath = error.response.data.redirect
+      const msg = error.response.data.message || 'Your subscription needs attention'
+      // Don't redirect if already on billing or if this is a portal request
+      const isPortal = !!localStorage.getItem('portal_token')
+      if (!isPortal && !window.location.pathname.startsWith(redirectPath)) {
+        localStorage.setItem('redirectReason', 'subscription_expired')
+        localStorage.setItem('subscriptionMessage', msg)
+        window.location.href = redirectPath + '?reason=subscription_expired'
+      }
+      return Promise.reject(error)
+    }
+
     if (error.response?.status && error.response.status >= 400 && error.response.status < 500 && originalRequest?.url) {
       const skipPaths = ['/auth/me', '/auth/login', '/auth/register', '/billing']
       if (!skipPaths.some(p => originalRequest.url.includes(p))) {
