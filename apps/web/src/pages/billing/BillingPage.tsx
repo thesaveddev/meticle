@@ -313,8 +313,17 @@ function BillingPageInner() {
               {retrying ? <CircularProgress size={18} color="inherit" /> : 'Retry Payment'}
             </Button>
           ) : null}
+        </Alert>      )}
+
+      {isTrialActive && (
+        <Alert severity="info" sx={{ mb: 4, borderRadius: 2, bgcolor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Trial limitations</Typography>
+          <Typography variant="body2" color="#6B7280">
+            Your trial is limited to <strong>10 staff members</strong>. You currently have access to all features including AI insights, compliance tracking, and the rota planner. Upgrade anytime to remove the limit and continue after your trial expires.
+          </Typography>
         </Alert>
       )}
+
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={4}>

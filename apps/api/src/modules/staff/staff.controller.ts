@@ -24,9 +24,32 @@ async function checkNotLastAdmin(orgId: string | undefined, excludeUserId?: stri
   }
 }
 
+const TRIAL_STAFF_LIMIT = 10;
+const PROFESSIONAL_STAFF_LIMIT = 100;
+
+async function checkStaffLimit(organizationId: string) {
+  const org = await pool.query(
+    'SELECT subscription_status, plan FROM organizations WHERE id = $1',
+    [organizationId]
+  );
+  if (org.rows.length === 0) return;
+  const { subscription_status, plan } = org.rows[0];
+  if (subscription_status !== 'trial') return;
+  const limit = plan === 'professional' ? PROFESSIONAL_STAFF_LIMIT : TRIAL_STAFF_LIMIT;
+  const count = await pool.query(
+    'SELECT COUNT(*)::int as count FROM users WHERE organization_id = $1',
+    [organizationId]
+  );
+  if (count.rows[0].count >= limit) {
+    throw new AppError(403, `Trial plan is limited to ${limit} staff members. Please upgrade to add more.`);
+  }
+}
+
 export class StaffController {
   static async createProfile(req: Request, res: Response) {
     const user = req.user!;
+    // Check trial staff limit
+    await checkStaffLimit(user.organizationId!);
     // Verify user belongs to same org
     if (req.body.user_id) {
       const userCheck = await pool.query('SELECT 1 FROM users WHERE id = $1 AND organization_id = $2', [req.body.user_id, user.organizationId]);
