@@ -98,6 +98,20 @@ describe('Auth Integration — POST /auth/login', () => {
     expect(res.body.user.email).toBe(email)
   }, 30_000)
 
+  it('should authenticate regardless of email casing', async () => {
+    const org = await createOrg()
+    const email = `Case.Login-${Date.now()}@Test.com`
+    await createUser({ email, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+
+    const res = await request(app)
+      .post('/auth/login')
+      .send({ email: email.toUpperCase(), password: 'TestPass123!' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.accessToken).toBeDefined()
+    expect(res.body.user.email).toBe(email)
+  }, 30_000)
+
   it('should reject invalid password', async () => {
     const email = `wrongpass-${Date.now()}@test.com`
     await createUser({ email, password: 'TestPass123!', role: 'CARE_WORKER' })

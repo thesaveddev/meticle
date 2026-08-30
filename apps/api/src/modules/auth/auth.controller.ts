@@ -248,7 +248,8 @@ export class AuthController {
    */
   static async login(req: Request, res: Response) {
     const validated = loginSchema.parse(req.body);
-    const { email, password } = validated;
+    const email = validated.email.trim().toLowerCase();
+    const { password } = validated;
 
     // Check login lockout
     const lockoutKey = email.toLowerCase();
