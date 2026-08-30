@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer';
 import { buildEmailHtml, buildCodeEmailHtml, buildStatusEmailHtml } from './email.template';
+import { buildInvoiceHtml, generatePdf } from '../../modules/billing/billing.pdf';
+import pool from '../database';
 import logger from './logger';
 
 // ── Sender addresses ──
@@ -40,10 +42,10 @@ export function getTransporter() {
   return transporter!;
 }
 
-async function sendMail(to: string, subject: string, html: string, category: SenderCategory = 'notifications') {
+async function sendMail(to: string, subject: string, html: string, category: SenderCategory = 'notifications', attachments?: { filename: string; content: Buffer; contentType?: string }[]) {
   try {
     const { EmailQueue } = await import('./email.queue');
-    await EmailQueue.enqueue(to, subject, html, SENDERS[category]);
+    await EmailQueue.enqueue(to, subject, html, SENDERS[category], attachments);
     logger.info({ to, subject, category, from: SENDERS[category] }, 'Email queued');
   } catch (err: any) {
     logger.error({ err: err.message, to, subject, category }, 'Email enqueue failed');
@@ -478,12 +480,37 @@ export class EmailService {
     planName: string
     nextBillingDate?: string | null
     isRetry?: boolean
+    organizationId?: string
   }) {
     const url = `${baseUrl()}/billing`;
     const org = orgName || 'your organisation';
     const next = opts.nextBillingDate
       ? new Date(opts.nextBillingDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
       : 'your next billing date';
+
+    // Generate invoice PDF attachment
+    let attachments: { filename: string; content: Buffer; contentType?: string }[] | undefined;
+    try {
+      if (opts.organizationId) {
+        const orgResult = await pool.query('SELECT name, primary_color FROM organizations WHERE id = $1', [opts.organizationId]);
+        const orgData = orgResult.rows[0] || {};
+        const invoiceData = {
+          amount: opts.amount,
+          currency: opts.currency,
+          invoice_number: opts.invoiceNumber,
+          description: opts.planName,
+          status: 'paid',
+          issued_at: new Date().toISOString(),
+          paid_at: new Date().toISOString(),
+        };
+        const invoiceHtml = buildInvoiceHtml(invoiceData, { name: orgData.name || org, primary_color: orgData.primary_color });
+        const pdfBuffer = await generatePdf(invoiceHtml);
+        attachments = [{ filename: `invoice-${opts.invoiceNumber}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }];
+      }
+    } catch (err: any) {
+      logger.warn({ err: err.message }, 'Failed to generate invoice PDF for receipt email');
+    }
+
     await sendMail(email,
       `Receipt for ${opts.currency} ${opts.amount.toFixed(2)} — Meticle`,
       buildEmailHtml('Payment Receipt', `${opts.isRetry ? 'Payment received' : 'Thank you for your payment'}`,
@@ -495,8 +522,8 @@ export class EmailService {
         `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:#0F4C81;text-align:right">${opts.currency} ${opts.amount.toFixed(2)}</td></tr>` +
         `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Next billing date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${next}</td></tr>` +
         `</table>` +
-        `<p style="font-size:13px;color:#9CA3AF">Questions about this charge? Reply to this email and we'll help.</p>`,
-        { label: 'View Billing', url }), 'billing');
+        `<p style="font-size:13px;color:#9CA3AF">Your invoice is attached to this email. Questions about this charge? Reply and we'll help.</p>`,
+        { label: 'View Billing', url }), 'billing', attachments);
   }
 
   static async sendPaymentFailedEmail(email: string, name: string, orgName: string, opts: {
@@ -507,6 +534,7 @@ export class EmailService {
     nextAttempt?: string | null
     daysSinceFirstFailure: number
     manualRetry?: boolean
+    organizationId?: string
   }) {
     const url = `${baseUrl()}/billing`;
     const org = orgName || 'your organisation';
@@ -546,9 +574,32 @@ export class EmailService {
         `<p>This happens all the time — usually it's an expired card, a spending limit, or a temporary bank hold. ${retryStr}</p>` +
         `<p>Your access continues while we sort this out. Updating your card takes about 30 seconds:</p>`;
     }
+
+    // Generate draft invoice PDF attachment
+    let attachments: { filename: string; content: Buffer; contentType?: string }[] | undefined;
+    try {
+      if (opts.organizationId) {
+        const orgResult = await pool.query('SELECT name, primary_color FROM organizations WHERE id = $1', [opts.organizationId]);
+        const orgData = orgResult.rows[0] || {};
+        const invoiceData = {
+          amount: opts.amount,
+          currency: opts.currency,
+          invoice_number: `DRAFT-${Date.now().toString(36).toUpperCase()}`,
+          description: `${org} subscription — payment pending`,
+          status: 'open',
+          issued_at: new Date().toISOString(),
+        };
+        const invoiceHtml = buildInvoiceHtml(invoiceData, { name: orgData.name || org, primary_color: orgData.primary_color });
+        const pdfBuffer = await generatePdf(invoiceHtml);
+        attachments = [{ filename: `invoice-draft-${org.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }];
+      }
+    } catch (err: any) {
+      logger.warn({ err: err.message }, 'Failed to generate draft invoice PDF for failure email');
+    }
+
     await sendMail(email, subject,
       buildEmailHtml('Payment Update', heading, body,
-        { label: opts.manualRetry ? 'Retry Payment' : 'Update Payment Method', url }), 'billing');
+        { label: opts.manualRetry ? 'Retry Payment' : 'Update Payment Method', url }), 'billing', attachments);
   }
 
   static async sendPaymentActionRequiredEmail(email: string, name: string, orgName: string, opts: {
