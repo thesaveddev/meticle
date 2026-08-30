@@ -269,51 +269,76 @@ function BillingPageInner() {
         <Alert severity={message.includes('Failed') ? 'error' : 'success'} sx={{ mb: 4, borderRadius: 2 }} onClose={() => setMessage('')}>
           {message}
         </Alert>
-      )}
-
-      {!isActive && (
-        <Alert severity="warning" sx={{ mb: 4, borderRadius: 2 }}>
-          <Typography variant="subtitle2" fontWeight={700}>Your subscription is no longer active</Typography>
-          <Typography variant="body2">Add a payment card to restore access to the platform.</Typography>
-          {subStatus === 'past_due' || subscription?.hasUnpaidInvoice ? (
-            <Button
-              variant="contained"
-              size="small"
-              disabled={retrying}
-              sx={{ mt: 1.5, bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, textTransform: 'none' }}
-              onClick={async () => {
-                setRetrying(true)
-                setMessage('')
-                try {
-                  const { data } = await api.post('/billing/retry-payment')
-                  if (data.requiresAction && data.clientSecret && stripePromise) {
-                    setMessage('Your bank requires you to confirm this payment — please complete the pop-up.')
-                    const stripe = await stripePromise
-                    if (!stripe) { setMessage('Payment not confirmed — try again in a moment.'); return }
-                    const result = await stripe.confirmCardPayment(data.clientSecret)
-                    if (result.error) {
-                      setMessage(`Payment not confirmed: ${result.error.message}`)
-                    } else {
-                      setMessage('Payment successful!')
-                      loadBillingData()
-                      window.dispatchEvent(new Event('subscriptionUpdated'))
+      )}      {!isActive && (
+        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '2px solid #FEE2E2', bgcolor: '#FEF2F2' }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'stretch', sm: 'center' }}>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" fontWeight={800} color="#991B1B" sx={{ mb: 0.5 }}>
+                Your subscription has ended
+              </Typography>
+              <Typography variant="body2" color="#991B1B">
+                {subStatus === 'past_due' || subscription?.hasUnpaidInvoice
+                  ? 'There is an unpaid invoice. Update your payment method and retry to restore access.'
+                  : 'Add a payment card and renew your plan to restore access to the platform.'}
+              </Typography>
+              {subscription?.hasUnpaidInvoice && (
+                <Typography variant="caption" color="#B91C1C" sx={{ mt: 0.5, display: 'block' }}>
+                  Unpaid invoice: {invoices.find(i => i.status === 'open')?.description || 'subscription invoice'}
+                </Typography>
+              )}
+            </Box>
+            <Stack direction="row" spacing={2} flexShrink={0}>
+              {(subStatus === 'past_due' || subscription?.hasUnpaidInvoice) && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  disabled={retrying}
+                  sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, textTransform: 'none', fontWeight: 700 }}
+                  onClick={async () => {
+                    setRetrying(true)
+                    setMessage('')
+                    try {
+                      const { data } = await api.post('/billing/retry-payment')
+                      if (data.requiresAction && data.clientSecret && stripePromise) {
+                        setMessage('Your bank requires you to confirm this payment — please complete the pop-up.')
+                        const stripe = await stripePromise
+                        if (!stripe) { setMessage('Payment not confirmed — try again in a moment.'); return }
+                        const result = await stripe.confirmCardPayment(data.clientSecret)
+                        if (result.error) {
+                          setMessage(`Payment not confirmed: ${result.error.message}`)
+                        } else {
+                          setMessage('Payment successful!')
+                          loadBillingData()
+                          window.dispatchEvent(new Event('subscriptionUpdated'))
+                        }
+                      } else {
+                        setMessage('Payment successful!')
+                        loadBillingData()
+                        window.dispatchEvent(new Event('subscriptionUpdated'))
+                      }
+                    } catch (err: any) {
+                      setMessage(err?.response?.data?.message || 'Retry failed — check your payment method.')
+                    } finally {
+                      setRetrying(false)
                     }
-                  } else {
-                    setMessage('Payment successful!')
-                    loadBillingData()
-                    window.dispatchEvent(new Event('subscriptionUpdated'))
-                  }
-                } catch (err: any) {
-                  setMessage(err?.response?.data?.message || 'Retry failed — check your payment method.')
-                } finally {
-                  setRetrying(false)
-                }
-              }}
-            >
-              {retrying ? <CircularProgress size={18} color="inherit" /> : 'Retry Payment'}
-            </Button>
-          ) : null}
-        </Alert>      )}
+                  }}
+                >
+                  {retrying ? <CircularProgress size={18} color="inherit" /> : 'Retry Payment'}
+                </Button>
+              )}
+              <Button
+                variant="contained"
+                size="small"
+                disabled={updating}
+                sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A66' }, textTransform: 'none', fontWeight: 700 }}
+                onClick={() => handleUpgradeClick(subscription?.plan || 'starter')}
+              >
+                {updating ? <CircularProgress size={18} color="inherit" /> : 'Renew Now'}
+              </Button>
+            </Stack>
+          </Stack>
+        </Paper>
+      )}
 
       {isTrialActive && (
         <Alert severity="info" sx={{ mb: 4, borderRadius: 2, bgcolor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
@@ -401,10 +426,10 @@ function BillingPageInner() {
                 </Stack>
               </CardContent>
               <Box sx={{ px: 3, pb: 3 }}>
-                <Button fullWidth variant={subscription?.plan === plan.id ? 'outlined' : 'contained'}
-                  disabled={subscription?.plan === plan.id || updating}
+                <Button fullWidth variant={subscription?.plan === plan.id && isActive ? 'outlined' : 'contained'}
+                  disabled={(subscription?.plan === plan.id && isActive) || updating}
                   onClick={() => handleUpgradeClick(plan.id)} sx={{ py: 1.5, fontWeight: 800 }}>
-                  {subscription?.plan === plan.id ? 'Current Plan' : updating ? 'Updating...' : 'Select Plan'}
+                  {subscription?.plan === plan.id && isActive ? 'Current Plan' : !isActive ? (updating ? 'Renewing...' : 'Renew') : updating ? 'Updating...' : 'Select Plan'}
                 </Button>
               </Box>
             </Card>
