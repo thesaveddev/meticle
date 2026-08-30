@@ -379,9 +379,9 @@ export class EmailService {
         { label: 'View Compliance', url: `${baseUrl()}/compliance` }));
   }
 
-  static async sendQueued(to: string, subject: string, htmlBody: string) {
+  static async sendQueued(to: string, subject: string, htmlBody: string, category: SenderCategory = 'notifications') {
     const html = buildEmailHtml(subject, subject, htmlBody);
-    await sendMail(to, subject, html, 'notifications');
+    await sendMail(to, subject, html, category);
   }
 
   // ── Trial Reminders ──
@@ -613,8 +613,61 @@ export class EmailService {
       buildEmailHtml('Payment Action Required', 'Your bank needs you to confirm a payment',
         `<p>Hi ${name},</p>` +
         `<p>To keep your <strong>${org}</strong> subscription running, your bank needs you to confirm a recent payment of <strong>${opts.currency} ${opts.amount.toFixed(2)}</strong> (3D Secure authentication).</p>` +
-        `<p>This usually takes under a minute and your subscription stays active once confirmed.</p>`,
-        { label: 'Complete Payment', url }), 'billing');
+        `<p>This usually takes under a minute and your subscription stays active once confirmed.</p>`,        { label: 'Complete Payment', url }), 'billing');
+  }
+
+  // Build invoice notification email HTML (used by webhook handler and reminder job)
+  static buildInvoiceEmailHtml(name: string, amount: number, currency: string, description: string, dueDateStr: string) {
+    const url = `${baseUrl()}/billing`;
+    const symbol = currency === 'GBP' ? '£' : currency === 'USD' ? '$' : currency + ' ';
+    return buildEmailHtml('Invoice', 'Your invoice is ready',
+      `<p>Hi ${name},</p>` +
+      `<p>A new invoice has been generated for your Meticle subscription:</p>` +
+      `<table border="0" cellpadding="0" cellspacing="0" style="margin:12px 0;background:#F9FAFB;border-radius:12px;padding:16px;width:100%">` +
+      `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Description</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${description}</td></tr>` +
+      `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:#0F4C81;text-align:right">${symbol}${amount.toFixed(2)}</td></tr>` +
+      `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Due date</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#DC2626;text-align:right">${dueDateStr}</td></tr>` +
+      `</table>` +
+      `<p>Your card on file will be charged automatically on the due date. You can update your payment method at any time from the Billing page.</p>`,
+      { label: 'View Invoice', url });
+  }
+
+  // Pre-due invoice reminder emails
+  static async sendInvoiceReminderEmail(email: string, name: string, orgName: string, opts: {
+    amount: number
+    currency: string
+    dueDate: string
+    daysUntilDue: number
+  }) {
+    const url = `${baseUrl()}/billing`;
+    const org = orgName || 'your organisation';
+    const symbol = opts.currency === 'GBP' ? '£' : opts.currency === 'USD' ? '$' : opts.currency + ' ';
+    const dueDateStr = new Date(opts.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    let heading: string;
+    let body: string;
+    let subject: string;
+    if (opts.daysUntilDue <= 1) {
+      heading = 'Payment due tomorrow';
+      subject = `Payment due tomorrow for ${org}`;
+      body = `<p>Hi ${name},</p>` +
+        `<p>Your Meticle invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due <strong>tomorrow</strong> (${dueDateStr}).</p>` +
+        `<p>Your card on file will be charged automatically. If you need to update your payment method, do so before tomorrow.</p>`;
+    } else if (opts.daysUntilDue <= 3) {
+      heading = `Payment due in ${opts.daysUntilDue} days`;
+      subject = `Payment due in ${opts.daysUntilDue} days for ${org}`;
+      body = `<p>Hi ${name},</p>` +
+        `<p>Your Meticle invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due on <strong>${dueDateStr}</strong>.</p>` +
+        `<p>Your card on file will be charged automatically. You can update your payment method from the Billing page.</p>`;
+    } else {
+      heading = `Payment due in ${opts.daysUntilDue} days`;
+      subject = `Upcoming payment for ${org} — ${dueDateStr}`;
+      body = `<p>Hi ${name},</p>` +
+        `<p>This is a friendly reminder that your Meticle invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due on <strong>${dueDateStr}</strong>.</p>` +
+        `<p>Your card on file will be charged automatically. No action needed if your payment method is up to date.</p>`;
+    }
+    await sendMail(email, subject,
+      buildEmailHtml('Payment Reminder', heading, body,
+        { label: 'View Billing', url }), 'billing');
   }
 
   // -- Daily Shift Audit --

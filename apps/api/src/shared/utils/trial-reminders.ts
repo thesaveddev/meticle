@@ -132,3 +132,63 @@ export async function checkSubscriptionExpirations() {
 
   return { reminded, expired };
 }
+
+const INVOICE_REMINDER_DAYS = [7, 3, 1];
+
+/**
+ * Send reminder emails for open invoices approaching their due date.
+ * Runs alongside the subscription expiry check.
+ */
+export async function checkInvoiceReminders() {
+  const result = await migrateQuery(
+    `SELECT i.id, i.organization_id, i.amount, i.currency, i.description, i.due_date,
+            o.name as org_name
+     FROM invoices i
+     JOIN organizations o ON o.id = i.organization_id
+     WHERE i.status = 'open' AND i.due_date IS NOT NULL AND i.due_date >= CURRENT_DATE`
+  );
+
+  let reminded = 0;
+
+  for (const inv of result.rows) {
+    const daysUntilDue = Math.ceil((new Date(inv.due_date).getTime() - Date.now()) / 86400000);
+    if (daysUntilDue < 0) continue;
+
+    // Find the closest reminder milestone (7, 3, or 1 day before due)
+    const milestone = INVOICE_REMINDER_DAYS.find(d => daysUntilDue <= d);
+    if (!milestone) continue;
+
+    // Dedupe: check if we already sent this reminder for this invoice
+    const key = `inv_reminder_${inv.id}_${milestone}`;
+    const existing = await migrateQuery(
+      'SELECT id FROM trial_reminders WHERE organization_id = $1 AND kind = $2 AND reminder_days = $3',
+      [inv.organization_id, key, milestone]
+    );
+    if (existing.rows.length > 0) continue;
+
+    // Get admin emails for this org
+    const admins = await migrateQuery(
+      "SELECT email, COALESCE(sp.first_name, u.email) as name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'",
+      [inv.organization_id]
+    );
+
+    for (const admin of admins.rows) {
+      if (!admin.email) continue;
+      EmailService.sendInvoiceReminderEmail(admin.email, admin.name || admin.email, inv.org_name, {
+        amount: inv.amount,
+        currency: inv.currency,
+        dueDate: inv.due_date,
+        daysUntilDue: milestone,
+      }).catch(() => {});
+    }
+
+    // Mark as reminded
+    await migrateQuery(
+      'INSERT INTO trial_reminders (organization_id, kind, reminder_days) VALUES ($1, $2, $3)',
+      [inv.organization_id, key, milestone]
+    );
+    reminded++;
+  }
+
+  return { reminded };
+}
