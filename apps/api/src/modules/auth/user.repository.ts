@@ -21,7 +21,8 @@ export class UserRepository {
    * Uses migrateQuery (superuser) because auth routes must find users regardless of org.
    */
   static async findByEmail(email: string): Promise<UserRow | null> {
-    const result = await migrateQuery('SELECT * FROM users WHERE email = $1 ORDER BY created_at DESC LIMIT 1', [email]);
+    const normalizedEmail = email.trim().toLowerCase();
+    const result = await migrateQuery('SELECT * FROM users WHERE LOWER(TRIM(email)) = $1 ORDER BY created_at DESC LIMIT 1', [normalizedEmail]);
     return result.rows[0] || null;
   }
 
@@ -43,7 +44,7 @@ export class UserRepository {
     const { email, password_hash, role, organization_id } = data;
     const result = await migrateQuery(
       'INSERT INTO users (email, password_hash, role, organization_id) VALUES ($1, $2, $3, $4) RETURNING *',
-      [email, password_hash, role, organization_id]
+      [email?.trim().toLowerCase(), password_hash, role, organization_id]
     );
     return result.rows[0];
   }
