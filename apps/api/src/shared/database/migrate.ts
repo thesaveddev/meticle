@@ -32,6 +32,15 @@ export async function getAppliedMigrations(): Promise<Map<string, string>> {
   return new Map(result.rows.map((r: { name: string; checksum: string }) => [r.name, r.checksum]));
 }
 
+export async function getMigrationBaselines(): Promise<Map<string, string>> {
+  try {
+    const result = await query(`SELECT name, checksum FROM ${MIGRATION_BASELINES_TABLE}`);
+    return new Map(result.rows.map((r: { name: string; checksum: string }) => [r.name, r.checksum]));
+  } catch {
+    return new Map();
+  }
+}
+
 /**
  * Explicitly records that a historical migration was reviewed and that the
  * current file is the approved source for future deployments. This does not
@@ -108,6 +117,7 @@ const HARMLESS_CODES = new Set([
 export async function runMigrations(migrations: Migration[]): Promise<void> {
   await ensureMigrationsTable();
   const applied = await getAppliedMigrations();
+  const baselines = await getMigrationBaselines();
 
   // Ordering is derived from the numeric prefix, never the array position.
   const ordered = sortMigrations(migrations);
@@ -133,6 +143,12 @@ export async function runMigrations(migrations: Migration[]): Promise<void> {
       // after the migration ran. The runner cannot safely re-apply them (it skips by name),
       // so surface the drift loudly instead of silently running without the new DDL.
       const checksum = computeChecksum(migration.statements);
+      const approvedChecksum = baselines.get(migration.name);
+      if (approvedChecksum === checksum && appliedChecksum !== checksum) {
+        await query(`UPDATE ${MIGRATIONS_TABLE} SET checksum = $1 WHERE name = $2`, [checksum, migration.name]);
+        logger.info({ migration: migration.name }, 'Applied reviewed migration checksum baseline');
+        continue;
+      }
       if (checksum !== appliedChecksum) {
         logger.error(
           { migration: migration.name, previousChecksum: appliedChecksum, currentChecksum: checksum },
