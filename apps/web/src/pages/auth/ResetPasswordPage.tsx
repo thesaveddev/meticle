@@ -4,7 +4,7 @@ import {
   TextField, Button, Box, Typography, Container,
   Link, Stack, CircularProgress, InputAdornment, IconButton,
 } from '@mui/material'
-import { Visibility, VisibilityOff, LockReset as LockIcon } from '@mui/icons-material'
+import { Visibility, VisibilityOff, LockReset as LockIcon, CheckCircleOutline as CheckIcon } from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 export default function ResetPasswordPage() {
@@ -93,8 +93,14 @@ export default function ResetPasswordPage() {
             <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
               Meticle
             </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>Set new password</Typography>
-            <Typography sx={{ color: '#6B7280' }}>Choose a strong password with 8+ characters.</Typography>
+            <Box sx={{
+              width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '50%', bgcolor: '#EAF2F8', color: '#0F4C81', mb: 3,
+            }}>
+              <LockIcon sx={{ fontSize: 22 }} />
+            </Box>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>Choose a new password</Typography>
+            <Typography sx={{ color: '#6B7280', lineHeight: 1.6 }}>Use a password you do not use anywhere else.</Typography>
           </Box>
 
           {error && (
@@ -106,7 +112,7 @@ export default function ResetPasswordPage() {
           {success ? (
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3, p: 2.5, borderRadius: 2, bgcolor: '#F0FDF4', border: '1px solid #BBF7D0' }}>
-                <LockIcon sx={{ color: '#16A34A', fontSize: 22 }} />
+                <CheckIcon sx={{ color: '#16A34A', fontSize: 22 }} />
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: '#166534' }}>Password updated</Typography>
                   <Typography variant="caption" sx={{ color: '#15803D' }}>Redirecting to sign in...</Typography>
@@ -142,7 +148,7 @@ export default function ResetPasswordPage() {
                 </Box>
                 <Button fullWidth type="submit" variant="contained" size="large" disabled={loading}
                   sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 700, borderRadius: 2, fontSize: '1rem', textTransform: 'none', '&:hover': { bgcolor: '#0D3F6E' } }}>
-                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Reset password'}
+                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Save new password'}
                 </Button>
                 <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
                   <Typography variant="body2" sx={{ color: '#6B7280' }}>
@@ -157,9 +163,12 @@ export default function ResetPasswordPage() {
       </Box>
       <Box sx={{ flex: { xs: 0, md: 1.2, lg: 1.6 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: '#F8FAFC', p: 8, alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid #E5E7EB' }}>
         <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>Almost there</Typography>
+          <Typography variant="body2" sx={{ color: '#0F4C81', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', mb: 2 }}>
+            Account security
+          </Typography>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>A private moment for your account</Typography>
           <Typography sx={{ color: '#6B7280', lineHeight: 1.7 }}>
-            Your new password must be at least 8 characters with a mix of uppercase, lowercase, numbers, and special characters.
+            This reset link is single-use and expires after one hour. Your password is never shown to anyone at Meticle.
           </Typography>
         </Box>
       </Box>
