@@ -160,6 +160,7 @@ function App() {
           <Route path="/emedication" element={<ModuleGuard module="emedication"><EMedicationPage /></ModuleGuard>} />
           <Route path="/emedication/archived" element={<ModuleGuard module="emedication"><ArchivedMarPage /></ModuleGuard>} />
           <Route path="/meal-plans" element={<ModuleGuard module="emedication"><MealPlanPage /></ModuleGuard>} />
+          <Route path="/nutrition" element={<ModuleGuard module="emedication"><MealPlanPage /></ModuleGuard>} />
           <Route path="/tasks" element={<ModuleGuard module="tasks"><TasksPage /></ModuleGuard>} />
           <Route path="/platform-admin" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><PlatformAdminPage /></AuthGuard>} />
           <Route path="/platform-admin/organizations/:id" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><AdminOrganizationDetailPage /></AuthGuard>} />
