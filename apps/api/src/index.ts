@@ -409,10 +409,14 @@ function checkOverdueReviews() {
 setInterval(checkOverdueReviews, 5 * 60 * 1000);
 
 // Subscription expiry reminder check (every 12 hours — sends at 7d, 3d, 1d, and expiry/win-back milestones)
-import { checkSubscriptionExpirations } from './shared/utils/trial-reminders';
+import { checkSubscriptionExpirations, checkInvoiceReminders } from './shared/utils/trial-reminders';
 setTimeout(() => {
   checkSubscriptionExpirations().catch(err => logger.error(err, 'Subscription reminder check failed'));
-  setInterval(() => checkSubscriptionExpirations().catch(err => logger.error(err, 'Subscription reminder check failed')), 12 * 60 * 60 * 1000);
+  checkInvoiceReminders().catch(err => logger.error(err, 'Invoice reminder check failed'));
+  setInterval(() => {
+    checkSubscriptionExpirations().catch(err => logger.error(err, 'Subscription reminder check failed'));
+    checkInvoiceReminders().catch(err => logger.error(err, 'Invoice reminder check failed'));
+  }, 12 * 60 * 60 * 1000);
 }, 15_000);
 
 // Daily shift audit — send location managers a summary email at 7pm (19:00)

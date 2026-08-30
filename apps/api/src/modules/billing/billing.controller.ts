@@ -610,6 +610,50 @@ export class BillingController {
         }
         break;
       }
+      case 'invoice.finalized': {
+        // Record the invoice immediately so it appears in the billing page
+        // before payment. This lets the org see what they owe and plan ahead.
+        const finInvoice = event.data.object as Stripe.Invoice;
+        const finCustomer = await stripe.customers.retrieve(finInvoice.customer as string) as Stripe.Customer;
+        const orgIdFin = finInvoice.metadata?.organizationId || finCustomer.metadata?.organizationId || finInvoice.metadata?.orgId || finCustomer.metadata?.orgId;
+        if (orgIdFin && finInvoice.id && (finInvoice.amount_due || 0) > 0) {
+          const amount = (finInvoice.amount_due || 0) / 100;
+          const currency = (finInvoice.currency || 'gbp').toUpperCase();
+          const description = finInvoice.lines?.data?.[0]?.description || finInvoice.description || 'Meticle subscription';
+          const dueDate = finInvoice.due_date ? new Date(finInvoice.due_date * 1000).toISOString().split('T')[0] : null;
+          const existing = await pool.query(
+            'SELECT id FROM invoices WHERE organization_id = $1 AND stripe_invoice_id = $2',
+            [orgIdFin, finInvoice.id]
+          );
+          if (existing.rows.length === 0) {
+            await pool.query(
+              `INSERT INTO invoices (organization_id, invoice_number, description, amount, currency, status, stripe_invoice_id, issued_at, due_date)
+               VALUES ($1, $2, $3, $4, $5, 'open', $6, to_timestamp($7), $8)`,
+              [orgIdFin, finInvoice.number || `STRIPE-${finInvoice.id.slice(-8)}`, description, amount, currency, finInvoice.id, finInvoice.created, dueDate]
+            );
+            // Send the invoice to the org admin so they know it's coming
+            const admins = await pool.query(
+              "SELECT email, COALESCE(first_name, '') as name FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND status = 'active'",
+              [orgIdFin]
+            );
+            const dueDateStr = dueDate ? new Date(dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'soon';
+            for (const admin of admins.rows) {
+              EmailService.sendQueued(admin.email,
+                `Invoice for ${currency} ${amount.toFixed(2)} — due ${dueDateStr}`,
+                EmailService.buildInvoiceEmailHtml(admin.name || admin.email, amount, currency, description, dueDateStr),
+                'billing'
+              ).catch(logWarn('invoice finalized email'));
+            }
+          } else {
+            // Update existing invoice if it was backfilled as paid before finalization
+            await pool.query(
+              `UPDATE invoices SET status = 'open', amount = $1, due_date = $2 WHERE id = $3 AND status = 'paid'`,
+              [amount, dueDate, existing.rows[0].id]
+            );
+          }
+        }
+        break;
+      }
     }
 
     // Mark the event as processed — if anything above throws, we 500 and Stripe retries
