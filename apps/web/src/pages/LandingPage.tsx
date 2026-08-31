@@ -107,7 +107,7 @@ export default function LandingPage() {
     <MarketingLayout>
       <PageMeta
         title="Supported Living Care Management Software | MeticleCare"
-        description="MeticleCare brings care planning, staffing, compliance, medication, incidents and daily operations together in one connected platform for UK supported living providers. Start a free 14-day trial."
+        description="Care plans, daily notes, medication, staffing and compliance in one platform for UK supported living providers. 14-day free trial."
         canonicalPath="/"
         structuredData={structuredData}
       />
