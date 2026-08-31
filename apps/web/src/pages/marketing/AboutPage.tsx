@@ -51,7 +51,7 @@ export default function AboutPage() {
     <MarketingLayout>
       <PageMeta
         title="About MeticleCare | MeticleCare"
-        description="MeticleCare was built for UK supported living providers. Our team combines care-sector experience with technology to simplify care operations."
+        description="MeticleCare was built for UK supported living providers. Our team combines care-sector experience with technology to simplify operations."
         canonicalPath="/about"
       />
 

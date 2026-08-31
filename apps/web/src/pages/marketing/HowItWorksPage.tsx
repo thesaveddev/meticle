@@ -127,7 +127,7 @@ export default function HowItWorksPage() {
     <MarketingLayout>
       <PageMeta
         title="How MeticleCare Works | MeticleCare"
-        description="See how MeticleCare connects care planning, staff rotas, medication records and compliance into one working platform for UK supported living providers."
+        description="See how MeticleCare connects care planning, staff rotas, medication records and compliance into one platform for UK care providers."
         canonicalPath="/how-it-works"
       />
 

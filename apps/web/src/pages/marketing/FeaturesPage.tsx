@@ -331,7 +331,7 @@ export default function FeaturesPage() {
     <MarketingLayout>
       <PageMeta
         title="Care Management Software Features | MeticleCare"
-        description="Explore MeticleCare features: eMAR medication management, staff rostering, care planning, compliance oversight, incident reporting, and daily care records for UK care providers."
+        description="eMAR, care notes, support plans, staff rotas, incidents, training matrix, compliance and audit — all in one UK care platform."
         canonicalPath="/features"
       />
 
