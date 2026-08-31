@@ -191,8 +191,9 @@ async function checkUnfilledShifts(orgId: string): Promise<number> {
             EXTRACT(EPOCH FROM (s.start_time - CURRENT_TIMESTAMP))::int / 3600 AS hours_until_start
      FROM shifts s
      JOIN locations l ON s.location_id = l.id
+     LEFT JOIN shift_assignments sa ON sa.shift_id = s.id
      WHERE l.organization_id = $1
-       AND s.staff_id IS NULL
+       AND sa.id IS NULL
        AND s.status NOT IN ('cancelled', 'completed')
        AND s.start_time > CURRENT_TIMESTAMP
        AND s.start_time < CURRENT_TIMESTAMP + interval '8 hours'
