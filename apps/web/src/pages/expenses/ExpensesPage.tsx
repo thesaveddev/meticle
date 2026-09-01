@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   Box, Button, Card, CardContent, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, Grid, IconButton, MenuItem, Paper, Stack, Tab, Table,
   TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Typography,
-  Alert,
+  Alert, Snackbar,
 } from '@mui/material'
 import { Add as AddIcon, Edit as EditIcon, History as HistoryIcon, Receipt as ReceiptIcon, Wallet as WalletIcon, Search as SearchIcon, Block as VoidIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -31,6 +31,10 @@ export default function ExpensesPage() {
   const [reportLoading, setReportLoading] = useState(false)
   const [pettyCashSearch, setPettyCashSearch] = useState('')
   const [pettyCashFilter, setPettyCashFilter] = useState<'all' | 'house' | 'person'>('all')
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' })
+
+  const showError = (msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })
+  const showSuccess = (msg: string) => setSnackbar({ open: true, message: msg, severity: 'success' })
 
   // Queries
   const { data: expenseData, isLoading } = useQuery({
@@ -56,30 +60,36 @@ export default function ExpensesPage() {
   const { data: locationsData } = useQuery({ queryKey: ['locations'], queryFn: () => api.get('/settings/locations').then(r => r.data) })
   const locations = asArray(locationsData, ['locations'])
 
-  // Mutations
+  // Mutations with error feedback
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses', data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setCreateOpen(false) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setCreateOpen(false); showSuccess('Expense added') },
+    onError: (e: any) => showError(e.response?.data?.error || 'Failed to add expense'),
   })
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: any) => api.patch(`/expenses/${id}`, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setEditId(null) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setEditId(null); showSuccess('Entry updated') },
+    onError: (e: any) => showError(e.response?.data?.error || 'Failed to update entry'),
   })
   const voidMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => api.put(`/expenses/${id}/void`, { reason }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setVoidId(null); setVoidReason('') },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setVoidId(null); setVoidReason(''); showSuccess('Entry voided') },
+    onError: (e: any) => showError(e.response?.data?.error || 'Failed to void entry'),
   })
   const topUpMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses/petty-cash/top-up', data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['petty-cash-balances'] }); qc.invalidateQueries({ queryKey: ['petty-cash-transactions'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setTopUpOpen(false) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['petty-cash-balances'] }); qc.invalidateQueries({ queryKey: ['petty-cash-transactions'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setTopUpOpen(false); showSuccess('Cash topped up') },
+    onError: (e: any) => showError(e.response?.data?.error || 'Failed to top up cash'),
   })
   const reconcileMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses/petty-cash/reconcile', data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['petty-cash-balances'] }); qc.invalidateQueries({ queryKey: ['petty-cash-transactions'] }); setReconcileOpen(false) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['petty-cash-balances'] }); qc.invalidateQueries({ queryKey: ['petty-cash-transactions'] }); setReconcileOpen(false); showSuccess('Cash reconciled') },
+    onError: (e: any) => showError(e.response?.data?.error || 'Failed to reconcile cash'),
   })
   const dailyCheckMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses/petty-cash/daily-check', data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cash-balance-checks'] }); setCashCheckOpen(false) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cash-balance-checks'] }); setCashCheckOpen(false); showSuccess('Cash check saved') },
+    onError: (e: any) => showError(e.response?.data?.error || 'Failed to save cash check'),
   })
 
   // Summary computations
@@ -141,7 +151,7 @@ export default function ExpensesPage() {
         ))}
       </Grid>
 
-      {/* Tabs: 0=Spending ledger, 1=Petty cash, 2=Daily cash check */}
+      {/* Tabs */}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: '1px solid #E5E7EB' }}>
         <Tab icon={<ReceiptIcon />} iconPosition="start" label="Spending ledger" sx={{ textTransform: 'none' }} />
         <Tab icon={<WalletIcon />} iconPosition="start" label="Petty cash" sx={{ textTransform: 'none' }} />
@@ -199,7 +209,7 @@ export default function ExpensesPage() {
                       {e.is_voided && e.void_reason && (
                         <Typography variant="caption" display="block" color="error.main" sx={{ mt: 0.5 }}>
                           Void reason: {e.void_reason}
-                          {e.voided_by_name && ` — by ${e.voided_by_name}`}
+                          {e.voided_by_name && ` \u2014 by ${e.voided_by_name}`}
                         </Typography>
                       )}
                     </TableCell>
@@ -239,11 +249,11 @@ export default function ExpensesPage() {
                 const r = await api.get('/expenses/report')
                 const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' })
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `expenses-report-${today()}.json`; a.click(); URL.revokeObjectURL(a.href)
-              } finally { setReportLoading(false) }
+              } catch { showError('Failed to download report') }
+              finally { setReportLoading(false) }
             }} disabled={reportLoading}>Download report</Button>
           </Stack>
 
-          {/* Summary row */}
           <Paper sx={{ p: 2, mb: 2, border: '1px solid #E5E7EB' }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
               <Box><Typography variant="caption" color="text.secondary">House cash in tins</Typography><Typography variant="h6" fontWeight={800} color="info.main">{'\u00A3'}{(pettyCashTotals.house / 100).toFixed(2)}</Typography></Box>
@@ -253,7 +263,6 @@ export default function ExpensesPage() {
             </Stack>
           </Paper>
 
-          {/* Search + filter */}
           <Paper sx={{ p: 1.5, mb: 2, border: '1px solid #E5E7EB' }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
               <TextField size="small" placeholder="Search by name..." value={pettyCashSearch} onChange={e => setPettyCashSearch(e.target.value)}
@@ -268,7 +277,6 @@ export default function ExpensesPage() {
             </Stack>
           </Paper>
 
-          {/* Balances table */}
           <TableContainer component={Paper} sx={{ border: '1px solid #E5E7EB', mb: 3 }}>
             <Table size="small">
               <TableHead>
@@ -294,7 +302,6 @@ export default function ExpensesPage() {
             </Table>
           </TableContainer>
 
-          {/* Transaction history */}
           <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1 }}>Transaction history</Typography>
           <TableContainer component={Paper} sx={{ border: '1px solid #E5E7EB' }}>
             <Table size="small">
@@ -351,24 +358,17 @@ export default function ExpensesPage() {
       )}
 
       {/* Dialogs */}
-      {/* Create expense */}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Add expense</DialogTitle>
         <ExpenseForm people={people} onSubmit={data => createMutation.mutate(data)} onCancel={() => setCreateOpen(false)} isLoading={createMutation.isPending} />
       </Dialog>
 
-      {/* Edit expense — description and category only */}
+      {/* Edit — key={editId} forces remount so state resets per expense */}
       <Dialog open={!!editId} onClose={() => setEditId(null)} maxWidth="sm" fullWidth>
         <DialogTitle>Edit entry</DialogTitle>
-        <EditExpenseForm
-          expense={expenses.find((e: any) => e.id === editId)}
-          onSubmit={data => { if (editId) updateMutation.mutate({ id: editId, data }) }}
-          onCancel={() => setEditId(null)}
-          isLoading={updateMutation.isPending}
-        />
+        {editId && <EditExpenseForm key={editId} expense={expenses.find((e: any) => e.id === editId)} onSubmit={data => updateMutation.mutate({ id: editId, data })} onCancel={() => setEditId(null)} isLoading={updateMutation.isPending} />}
       </Dialog>
 
-      {/* Void confirmation */}
       <Dialog open={!!voidId} onClose={() => { setVoidId(null); setVoidReason('') }} maxWidth="sm" fullWidth>
         <DialogTitle>Void expense entry</DialogTitle>
         <DialogContent>
@@ -383,22 +383,24 @@ export default function ExpensesPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Top up */}
       <PettyCashDialog open={topUpOpen} title="Top up cash" locations={locations} people={people} onClose={() => setTopUpOpen(false)}
         onSubmit={(data: any) => topUpMutation.mutate(data)} kind="top_up" isLoading={topUpMutation.isPending} />
 
-      {/* Reconcile */}
       <PettyCashDialog open={reconcileOpen} title="Reconcile cash" locations={locations} people={people} onClose={() => setReconcileOpen(false)}
         onSubmit={(data: any) => reconcileMutation.mutate(data)} kind="reconcile" isLoading={reconcileMutation.isPending} />
 
-      {/* Daily cash check */}
       <PettyCashDialog open={cashCheckOpen} title="Daily cash balance check" locations={locations} people={people} onClose={() => setCashCheckOpen(false)}
         onSubmit={(data: any) => dailyCheckMutation.mutate(data)} kind="daily_check" isLoading={dailyCheckMutation.isPending} />
+
+      {/* Error/success snackbar */}
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))} variant="filled" sx={{ width: '100%' }}>{snackbar.message}</Alert>
+      </Snackbar>
     </Box>
   )
 }
 
-/* ---------- Add expense form (full fields) ---------- */
+/* ---------- Add expense form ---------- */
 function ExpenseForm({ people, onSubmit, onCancel, isLoading }: { people: any[]; onSubmit: (data: any) => void; onCancel: () => void; isLoading: boolean }) {
   const [source, setSource] = useState('person')
   const [personId, setPersonId] = useState('')
@@ -458,7 +460,7 @@ function EditExpenseForm({ expense, onSubmit, onCancel, isLoading }: { expense: 
       <DialogContent>
         <Alert severity="info" sx={{ mb: 2 }}>Only the description and category can be edited. All other fields are part of the audit record.</Alert>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label="Category" fullWidth value={category} onChange={e => setCategory(e.target.value)}>
+          <TextField select label="Category" fullWidth value={category} onChange={e => setCategory(e.target.value)}>
             {CATEGORIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
           </TextField>
           <TextField label="Description" fullWidth multiline rows={3} value={description} onChange={e => setDescription(e.target.value)} />
@@ -474,7 +476,7 @@ function EditExpenseForm({ expense, onSubmit, onCancel, isLoading }: { expense: 
   )
 }
 
-/* ---------- Petty cash dialog (top up / reconcile / daily check) ---------- */
+/* ---------- Petty cash dialog ---------- */
 function PettyCashDialog({ open, title, locations, people, onClose, onSubmit, kind, isLoading }: any) {
   const [moneySource, setMoneySource] = useState('house')
   const [locationId, setLocationId] = useState('')
@@ -483,6 +485,19 @@ function PettyCashDialog({ open, title, locations, people, onClose, onSubmit, ki
   const [expected, setExpected] = useState(0)
   const [notes, setNotes] = useState('')
   const [checkDate, setCheckDate] = useState(today())
+
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (open) {
+      setMoneySource('house')
+      setLocationId('')
+      setPersonId('')
+      setAmount(0)
+      setExpected(0)
+      setNotes('')
+      setCheckDate(today())
+    }
+  }, [open])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

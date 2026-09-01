@@ -85,11 +85,12 @@ export async function updateExpense(orgId: string, expenseId: string, data: Part
   params.push(userId);
   params.push(expenseId, orgId);
 
-  const result = await query(
+  await query(
     `UPDATE person_expenses SET ${fields.join(', ')} WHERE id = $${idx++} AND organization_id = $${idx} RETURNING *`,
     params
   );
-  return result.rows[0];
+  // Return fresh data with joins
+  return getExpense(orgId, expenseId);
 }
 
 export async function voidExpense(orgId: string, expenseId: string, userId: string, reason: string): Promise<Expense> {
