@@ -52,7 +52,7 @@ describe('Expenses â€” CRUD, stats, petty cash', () => {
     const updated = await request(app)
       .patch(`/expenses/${created.body.id}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ amountPence: 1500 })
+      .send({ description: 'Updated groceries' })
     expect(updated.status).toBe(200)
 
     const topUp = await request(app)
@@ -71,10 +71,12 @@ describe('Expenses â€” CRUD, stats, petty cash', () => {
       .set('Authorization', `Bearer ${token}`)
     expect(transactions.status).toBe(200)
 
-    const deleted = await request(app)
-      .delete(`/expenses/${created.body.id}`)
+    const voided = await request(app)
+      .put(`/expenses/${created.body.id}/void`)
       .set('Authorization', `Bearer ${token}`)
-    expect(deleted.status).toBe(204)
+      .send({ reason: 'Test void - duplicate entry' })
+    expect(voided.status).toBe(200)
+    expect(voided.body.is_voided).toBe(true)
   })
 
   it('should let a CARE_WORKER list but not create expenses', async () => {
