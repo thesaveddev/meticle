@@ -433,7 +433,7 @@ function ExpenseForm({ people, onSubmit, onCancel, isLoading }: { people: any[];
             <MenuItem value="bank_transfer">Bank transfer</MenuItem>
             <MenuItem value="direct_debit">Direct debit</MenuItem>
           </TextField>
-          <TextField label="Amount ({'\u00A3'})" type="number" fullWidth value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} inputProps={{ min: 0.01, step: 0.01 }} />
+          <TextField label="Amount (£)" type="number" fullWidth value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} inputProps={{ min: 0.01, step: 0.01 }} />
           <TextField label="Description / reason" fullWidth multiline rows={3} value={description} onChange={e => setDescription(e.target.value)} />
           <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={date} onChange={e => setDate(e.target.value)} />
         </Stack>
@@ -521,13 +521,13 @@ function PettyCashDialog({ open, title, locations, people, onClose, onSubmit, ki
             <TextField label="Check date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={checkDate} onChange={e => setCheckDate(e.target.value)} />
           )}
           <TextField
-            label={kind === 'top_up' ? 'Amount (\u00A3)' : kind === 'daily_check' ? 'Expected cash (\u00A3)' : 'Actual balance (\u00A3)'}
+            label={kind === 'top_up' ? 'Amount (£)' : kind === 'daily_check' ? 'Expected cash (£)' : 'Actual balance (£)'}
             type="number" fullWidth value={kind === 'daily_check' ? expected : amount}
             onChange={e => (kind === 'daily_check' ? setExpected(parseFloat(e.target.value) || 0) : setAmount(parseFloat(e.target.value) || 0))}
             inputProps={{ min: 0, step: 0.01 }}
           />
           {kind === 'daily_check' && (
-            <TextField label="Physical cash in money tin (\u00A3)" type="number" fullWidth value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} inputProps={{ min: 0, step: 0.01 }} />
+            <TextField label="Physical cash in money tin (£)" type="number" fullWidth value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} inputProps={{ min: 0, step: 0.01 }} />
           )}
           <TextField label="Notes" multiline rows={2} fullWidth value={notes} onChange={e => setNotes(e.target.value)} />
         </Stack>
