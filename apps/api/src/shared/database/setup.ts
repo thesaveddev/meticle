@@ -233,8 +233,23 @@ const MIGRATION_058: Migration = {
   name: '058_cash_check_escalation',
   strict: false,
   statements: [
-    `ALTER TABLE cash_balance_checks ADD COLUMN IF NOT EXISTS escalated BOOLEAN DEFAULT FALSE`,
-    `ALTER TABLE cash_balance_checks ADD COLUMN IF NOT EXISTS escalation_reason TEXT`,
+    `CREATE TABLE IF NOT EXISTS cash_balance_checks (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      money_source VARCHAR(20) NOT NULL CHECK (money_source IN ('house','person')),
+      location_id UUID REFERENCES locations(id),
+      person_id UUID REFERENCES people(id),
+      check_date DATE NOT NULL,
+      expected_balance_pence INTEGER NOT NULL DEFAULT 0,
+      physical_balance_pence INTEGER NOT NULL DEFAULT 0,
+      variance_pence INTEGER NOT NULL DEFAULT 0,
+      notes TEXT,
+      checked_by UUID REFERENCES users(id),
+      escalated BOOLEAN DEFAULT FALSE,
+      escalation_reason TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_cash_checks_org_date ON cash_balance_checks(organization_id, check_date DESC)`,
   ],
 };
 
