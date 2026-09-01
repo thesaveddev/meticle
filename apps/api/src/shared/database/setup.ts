@@ -250,6 +250,8 @@ const MIGRATION_058: Migration = {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`,
     `CREATE INDEX IF NOT EXISTS idx_cash_checks_org_date ON cash_balance_checks(organization_id, check_date DESC)`,
+    `GRANT ALL ON TABLE cash_balance_checks TO meticle_app`,
+    `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO meticle_app`,
   ],
 };
 
