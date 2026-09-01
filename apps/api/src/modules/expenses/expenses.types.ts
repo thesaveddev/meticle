@@ -37,6 +37,12 @@ export interface Expense {
   created_by_name?: string;
   created_at: string;
   updated_at: string;
+  is_voided?: boolean;
+  void_reason?: string;
+  voided_by?: string;
+  voided_by_name?: string;
+  voided_at?: string;
+  updated_by?: string;
 }
 
 export interface ExpenseInput {
