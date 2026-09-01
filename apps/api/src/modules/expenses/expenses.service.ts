@@ -23,7 +23,7 @@ export async function createExpense(orgId: string, userId: string, data: Expense
   return result.rows[0];
 }
 
-export async function getExpenses(orgId: string, filters: { person_id?: string; location_id?: string; money_source?: string; category?: string; from?: string; to?: string }): Promise<Expense[]> {
+export async function getExpenses(orgId: string, filters: { person_id?: string; location_id?: string; money_source?: string; category?: string; from?: string; to?: string; include_voided?: boolean }): Promise<Expense[]> {
   const conditions: string[] = ['e.organization_id = $1'];
   const params: any[] = [orgId];
   let idx = 2;
@@ -34,14 +34,17 @@ export async function getExpenses(orgId: string, filters: { person_id?: string; 
   if (filters.category) { conditions.push(`e.category = $${idx++}`); params.push(filters.category); }
   if (filters.from) { conditions.push(`e.incurred_date >= $${idx++}`); params.push(filters.from); }
   if (filters.to) { conditions.push(`e.incurred_date <= $${idx++}`); params.push(filters.to); }
+  if (!filters.include_voided) { conditions.push('e.is_voided = FALSE'); }
 
   const result = await query(
     `SELECT e.*, COALESCE(su.first_name || ' ' || su.last_name, 'House funds') as person_name,
-            l.name as location_name, sp.first_name || ' ' || sp.last_name as created_by_name
+            l.name as location_name, sp.first_name || ' ' || sp.last_name as created_by_name,
+            vu.first_name || ' ' || vu.last_name as voided_by_name
      FROM person_expenses e
      LEFT JOIN people su ON e.person_id = su.id
      LEFT JOIN locations l ON e.location_id = l.id
      LEFT JOIN staff_profiles sp ON sp.user_id = e.created_by
+     LEFT JOIN staff_profiles vu ON vu.user_id = e.voided_by
      WHERE ${conditions.join(' AND ')}
      ORDER BY e.incurred_date DESC, e.created_at DESC`,
     params
@@ -64,37 +67,22 @@ export async function getExpense(orgId: string, expenseId: string): Promise<Expe
   return result.rows[0];
 }
 
-export async function updateExpense(orgId: string, expenseId: string, data: Partial<ExpenseInput>): Promise<Expense> {
+export async function updateExpense(orgId: string, expenseId: string, data: Partial<ExpenseInput>, userId: string): Promise<Expense> {
   const existing = await getExpense(orgId, expenseId);
-  const nextMoneySource = data.money_source ?? existing.money_source;
-  const nextPersonId = data.person_id !== undefined ? data.person_id : existing.person_id;
 
-  if (nextMoneySource === 'person') {
-    const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [nextPersonId, orgId]);
-    if (person.rows.length === 0) throw new AppError(404, 'Person not found');
-  }
-  if (data.location_id) {
-    const location = await query('SELECT id FROM locations WHERE id = $1 AND organization_id = $2', [data.location_id, orgId]);
-    if (location.rows.length === 0) throw new AppError(404, 'Location not found');
-  }
-
+  // Only description and category may be edited after creation (audit trail requirement)
   const fields: string[] = [];
   const params: any[] = [];
   let idx = 1;
 
   if (data.category !== undefined) { fields.push(`category = $${idx++}`); params.push(data.category); }
-  if (data.amount_pence !== undefined) { fields.push(`amount_pence = $${idx++}`); params.push(data.amount_pence); }
   if (data.description !== undefined) { fields.push(`description = $${idx++}`); params.push(data.description); }
-  if (data.receipt_url !== undefined) { fields.push(`receipt_url = $${idx++}`); params.push(data.receipt_url); }
-  if (data.incurred_date !== undefined) { fields.push(`incurred_date = $${idx++}`); params.push(data.incurred_date); }
-  if (data.location_id !== undefined) { fields.push(`location_id = $${idx++}`); params.push(data.location_id); }
-  if (data.person_id !== undefined) { fields.push(`person_id = $${idx++}`); params.push(data.person_id); }
-  if (data.money_source !== undefined) { fields.push(`money_source = $${idx++}`); params.push(data.money_source); }
-  if (data.payment_method !== undefined) { fields.push(`payment_method = $${idx++}`); params.push(data.payment_method); }
 
   if (fields.length === 0) return existing;
 
   fields.push('updated_at = NOW()');
+  fields.push(`updated_by = $${idx++}`);
+  params.push(userId);
   params.push(expenseId, orgId);
 
   const result = await query(
@@ -104,9 +92,16 @@ export async function updateExpense(orgId: string, expenseId: string, data: Part
   return result.rows[0];
 }
 
-export async function deleteExpense(orgId: string, expenseId: string): Promise<void> {
-  const result = await query('DELETE FROM person_expenses WHERE id = $1 AND organization_id = $2', [expenseId, orgId]);
-  if (result.rowCount === 0) throw new AppError(404, 'Expense not found');
+export async function voidExpense(orgId: string, expenseId: string, userId: string, reason: string): Promise<Expense> {
+  const existing = await getExpense(orgId, expenseId);
+  if (existing.is_voided) throw new AppError(400, 'Expense is already voided');
+
+  const result = await query(
+    `UPDATE person_expenses SET is_voided = TRUE, void_reason = $1, voided_by = $2, voided_at = NOW(), updated_at = NOW()
+     WHERE id = $3 AND organization_id = $4 RETURNING *`,
+    [reason, userId, expenseId, orgId]
+  );
+  return result.rows[0];
 }
 
 export async function getExpenseStats(orgId: string, from?: string, to?: string): Promise<ExpenseStats> {
@@ -119,25 +114,26 @@ export async function getExpenseStats(orgId: string, from?: string, to?: string)
 
   const where = conditions.join(' AND ');
 
-  const total = await query(`SELECT COUNT(*)::int as count, COALESCE(SUM(e.amount_pence), 0) as total FROM person_expenses e WHERE ${where}`, params);
+  const voidedCondition = ' AND e.is_voided = FALSE';
+  const total = await query(`SELECT COUNT(*)::int as count, COALESCE(SUM(e.amount_pence), 0) as total FROM person_expenses e WHERE ${where}${voidedCondition}`, params);
   const byCat = await query(
     `SELECT e.category, COUNT(*)::int as count, COALESCE(SUM(e.amount_pence), 0) as total
-     FROM person_expenses e WHERE ${where} GROUP BY e.category ORDER BY total DESC`,
+     FROM person_expenses e WHERE ${where}${voidedCondition} GROUP BY e.category ORDER BY total DESC`,
     params
   );
   const bySu = await query(
-    `     SELECT e.person_id, COALESCE(su.first_name || ' ' || su.last_name, 'House funds') as person_name,
+    `SELECT e.person_id, COALESCE(su.first_name || ' ' || su.last_name, 'House funds') as person_name,
             COUNT(*)::int as count, COALESCE(SUM(e.amount_pence), 0) as total
      FROM person_expenses e
      LEFT JOIN people su ON e.person_id = su.id
-     WHERE ${where} GROUP BY e.person_id, su.first_name, su.last_name ORDER BY total DESC LIMIT 20`,
+     WHERE ${where}${voidedCondition} GROUP BY e.person_id, su.first_name, su.last_name ORDER BY total DESC LIMIT 20`,
     params
   );
   const byLoc = await query(
     `SELECT e.location_id, COALESCE(l.name, 'Unknown') as location_name, COALESCE(SUM(e.amount_pence), 0) as total
      FROM person_expenses e
      LEFT JOIN locations l ON e.location_id = l.id
-     WHERE ${where} AND e.location_id IS NOT NULL
+     WHERE ${where} AND e.location_id IS NOT NULL${voidedCondition}
      GROUP BY e.location_id, l.name ORDER BY total DESC`,
     params
   );

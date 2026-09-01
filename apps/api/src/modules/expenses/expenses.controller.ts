@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import {
-  createExpense, getExpenses, getExpense, updateExpense, deleteExpense, getExpenseStats,
+  createExpense, getExpenses, getExpense, updateExpense, voidExpense, getExpenseStats,
   getPettyCashBalances, topUpPettyCash, reconcilePettyCash, getPettyCashTransactions, dailyCashCheck, getDailyCashChecks, getExpenseReport,
 } from './expenses.service';
 
@@ -43,24 +43,25 @@ export class ExpensesController {
 
   static async update(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
+    const userId = req.user!.userId;
+    // Only description and category may be edited after creation
     const expense = await updateExpense(orgId, req.params.id, {
-      person_id: req.body.personId,
-      location_id: req.body.locationId,
-      money_source: req.body.moneySource,
-      payment_method: req.body.paymentMethod,
       category: req.body.category,
-      amount_pence: req.body.amountPence,
       description: req.body.description,
-      receipt_url: req.body.receiptUrl,
-      incurred_date: req.body.incurredDate,
-    });
+    }, userId);
     res.json(expense);
   }
 
-  static async remove(req: Request, res: Response) {
+  static async void(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
-    await deleteExpense(orgId, req.params.id);
-    res.status(204).send();
+    const userId = req.user!.userId;
+    const { reason } = req.body;
+    if (!reason || reason.trim().length < 3) {
+      res.status(400).json({ error: 'A reason is required to void an expense entry' });
+      return;
+    }
+    const expense = await voidExpense(orgId, req.params.id, userId, reason.trim());
+    res.json(expense);
   }
 
   static async stats(req: Request, res: Response) {
