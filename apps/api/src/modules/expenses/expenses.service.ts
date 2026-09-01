@@ -250,7 +250,7 @@ export async function reconcilePettyCash(orgId: string, userId: string, target: 
   return { balance: updated.rows[0], transaction: txn.rows[0] };
 }
 
-export async function dailyCashCheck(orgId: string, userId: string, data: { moneySource: 'house' | 'person'; locationId?: string; personId?: string; expectedBalancePence: number; physicalBalancePence: number; checkDate: string; notes?: string }) {
+export async function dailyCashCheck(orgId: string, userId: string, data: { moneySource: 'house' | 'person'; locationId?: string; personId?: string; expectedBalancePence: number; physicalBalancePence: number; checkDate: string; notes?: string; escalate?: boolean; escalationReason?: string }) {
   if (data.moneySource === 'house' && data.locationId) {
     const loc = await query('SELECT id FROM locations WHERE id = $1 AND organization_id = $2', [data.locationId, orgId]);
     if (!loc.rows.length) throw new AppError(404, 'Location not found');
@@ -258,7 +258,9 @@ export async function dailyCashCheck(orgId: string, userId: string, data: { mone
     const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [data.personId, orgId]);
     if (!person.rows.length) throw new AppError(404, 'Person not found');
   }
-  const result = await query(`INSERT INTO cash_balance_checks (organization_id, money_source, location_id, person_id, check_date, expected_balance_pence, physical_balance_pence, variance_pence, notes, checked_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`, [orgId, data.moneySource, data.locationId || null, data.personId || null, data.checkDate, data.expectedBalancePence, data.physicalBalancePence, data.physicalBalancePence - data.expectedBalancePence, data.notes || null, userId]);
+  const variance = data.physicalBalancePence - data.expectedBalancePence;
+  const escalated = data.escalate || false;
+  const result = await query(`INSERT INTO cash_balance_checks (organization_id, money_source, location_id, person_id, check_date, expected_balance_pence, physical_balance_pence, variance_pence, notes, checked_by, escalated, escalation_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`, [orgId, data.moneySource, data.locationId || null, data.personId || null, data.checkDate, data.expectedBalancePence, data.physicalBalancePence, variance, data.notes || null, userId, escalated, data.escalationReason || null]);
   return result.rows[0];
 }
 
