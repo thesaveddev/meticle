@@ -42,10 +42,12 @@ const cashCheckSchema = z.object({
   moneySource: z.enum(['house', 'person']),
   locationId: z.string().uuid().nullish(),
   personId: z.string().uuid().nullish(),
-  expectedBalancePence: z.number().int().min(0),
-  physicalBalancePence: z.number().int().min(0),
+  expectedBalancePence: z.number().min(0),
+  physicalBalancePence: z.number().min(0),
   checkDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   notes: z.string().max(500).optional(),
+  escalate: z.boolean().optional(),
+  escalationReason: z.string().max(500).optional(),
 }).refine(data => data.moneySource === 'house' ? !!data.locationId : !!data.personId, { message: 'Select a location for house funds or a person for person funds' });
 
 const reconcileSchema = z.object({

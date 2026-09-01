@@ -332,32 +332,7 @@ export default function ExpensesPage() {
 
       {/* Tab 2: Daily cash checks */}
       {tab === 2 && (
-        <Box sx={{ pt: 2 }}>
-          <Stack direction="row" spacing={1} mb={2}>
-            <Button variant="outlined" onClick={() => setCashCheckOpen(true)}>New cash check</Button>
-          </Stack>
-          <TableContainer component={Paper} sx={{ border: '1px solid #E5E7EB' }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>{['Date', 'Account', 'Expected', 'Physical in tin', 'Variance', 'Notes'].map(h => <TableCell key={h} sx={{ fontWeight: 800, color: 'text.secondary' }}>{h}</TableCell>)}</TableRow>
-              </TableHead>
-              <TableBody>
-                {cashChecks.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No cash checks recorded.</TableCell></TableRow>
-                ) : cashChecks.map((c: any) => (
-                  <TableRow key={c.id} hover>
-                    <TableCell>{new Date(c.check_date).toLocaleDateString('en-GB')}</TableCell>
-                    <TableCell>{c.money_source === 'house' ? c.location_name : c.person_name}</TableCell>
-                    <TableCell align="right">{'\u00A3'}{(Number(c.expected_balance_pence) / 100).toFixed(2)}</TableCell>
-                    <TableCell align="right">{'\u00A3'}{(Number(c.physical_balance_pence) / 100).toFixed(2)}</TableCell>
-                    <TableCell align="right" sx={{ color: Number(c.variance_pence) === 0 ? 'success.main' : 'error.main', fontWeight: 700 }}>{'\u00A3'}{(Number(c.variance_pence) / 100).toFixed(2)}</TableCell>
-                    <TableCell>{c.notes || '\u2014'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
+        <CashChecksTab cashChecks={cashChecks} onNewCheck={() => setCashCheckOpen(true)} />
       )}
 
       {/* Dialogs */}
@@ -392,7 +367,7 @@ export default function ExpensesPage() {
       <PettyCashDialog open={reconcileOpen} title="Reconcile cash" locations={locations} people={people} onClose={() => setReconcileOpen(false)}
         onSubmit={(data: any) => reconcileMutation.mutate(data)} kind="reconcile" isLoading={reconcileMutation.isPending} />
 
-      <PettyCashDialog open={cashCheckOpen} title="Daily cash balance check" locations={locations} people={people} onClose={() => setCashCheckOpen(false)}
+      <PettyCashDialog open={cashCheckOpen} title="Daily cash balance check" locations={locations} people={people} balances={balances} onClose={() => setCashCheckOpen(false)}
         onSubmit={(data: any) => dailyCheckMutation.mutate(data)} kind="daily_check" isLoading={dailyCheckMutation.isPending} />
 
       {/* Error/success snackbar */}
@@ -479,8 +454,81 @@ function EditExpenseForm({ expense, onSubmit, onCancel, isLoading }: { expense: 
   )
 }
 
+/* ---------- Cash checks tab with pagination + search ---------- */
+const CHECKS_PER_PAGE = 15
+function CashChecksTab({ cashChecks, onNewCheck }: { cashChecks: any[]; onNewCheck: () => void }) {
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
+
+  const filtered = useMemo(() => {
+    if (!search) return cashChecks
+    const q = search.toLowerCase()
+    return cashChecks.filter((c: any) => {
+      const name = c.money_source === 'house' ? c.location_name : c.person_name
+      return name?.toLowerCase().includes(q) || c.notes?.toLowerCase().includes(q)
+    })
+  }, [cashChecks, search])
+
+  const totalPages = Math.ceil(filtered.length / CHECKS_PER_PAGE)
+  const paged = filtered.slice(page * CHECKS_PER_PAGE, (page + 1) * CHECKS_PER_PAGE)
+
+  useEffect(() => { setPage(0) }, [search])
+
+  return (
+    <Box sx={{ pt: 2 }}>
+      <Stack direction="row" spacing={1} mb={2}>
+        <Button variant="outlined" onClick={onNewCheck}>New cash check</Button>
+      </Stack>
+      <Paper sx={{ p: 1.5, mb: 2, border: '1px solid #E5E7EB' }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+          <TextField size="small" placeholder="Search by name or notes..." value={search} onChange={e => setSearch(e.target.value)}
+            InputProps={{ startAdornment: <SearchIcon fontSize="small" sx={{ mr: 0.5, color: 'text.secondary' }} /> }} sx={{ minWidth: 250 }} />
+          <Box sx={{ flexGrow: 1 }} />
+          <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>{filtered.length} of {cashChecks.length} checks</Typography>
+        </Stack>
+      </Paper>
+      <TableContainer component={Paper} sx={{ border: '1px solid #E5E7EB' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              {['Date', 'Account', 'Expected', 'Physical in tin', 'Variance', 'Escalated', 'Notes'].map(h => <TableCell key={h} sx={{ fontWeight: 800, color: 'text.secondary' }}>{h}</TableCell>)}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {paged.length === 0 ? (
+              <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No cash checks recorded.</TableCell></TableRow>
+            ) : paged.map((c: any) => (
+              <TableRow key={c.id} hover>
+                <TableCell>{new Date(c.check_date).toLocaleDateString('en-GB')}</TableCell>
+                <TableCell>{c.money_source === 'house' ? c.location_name : c.person_name}</TableCell>
+                <TableCell align="right">£{(Number(c.expected_balance_pence) / 100).toFixed(2)}</TableCell>
+                <TableCell align="right">£{(Number(c.physical_balance_pence) / 100).toFixed(2)}</TableCell>
+                <TableCell align="right" sx={{ color: Number(c.variance_pence) === 0 ? 'success.main' : 'error.main', fontWeight: 700 }}>£{(Number(c.variance_pence) / 100).toFixed(2)}</TableCell>
+                <TableCell>
+                  {c.escalated ? <Chip size="small" label="Escalated" color="warning" variant="outlined" /> : '—'}
+                  {c.escalated && c.escalation_reason && (
+                    <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>{c.escalation_reason}</Typography>
+                  )}
+                </TableCell>
+                <TableCell>{c.notes || '—'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      {totalPages > 1 && (
+        <Stack direction="row" justifyContent="center" spacing={1} mt={2}>
+          <Button size="small" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Previous</Button>
+          <Typography variant="body2" sx={{ alignSelf: 'center' }}>Page {page + 1} of {totalPages}</Typography>
+          <Button size="small" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next</Button>
+        </Stack>
+      )}
+    </Box>
+  )
+}
+
 /* ---------- Petty cash dialog ---------- */
-function PettyCashDialog({ open, title, locations, people, onClose, onSubmit, kind, isLoading }: any) {
+function PettyCashDialog({ open, title, locations, people, balances, onClose, onSubmit, kind, isLoading }: any) {
   const [moneySource, setMoneySource] = useState('house')
   const [locationId, setLocationId] = useState('')
   const [personId, setPersonId] = useState('')
@@ -488,6 +536,17 @@ function PettyCashDialog({ open, title, locations, people, onClose, onSubmit, ki
   const [expected, setExpected] = useState(0)
   const [notes, setNotes] = useState('')
   const [checkDate, setCheckDate] = useState(today())
+  const [escalate, setEscalate] = useState(false)
+  const [escalationReason, setEscalationReason] = useState('')
+
+  // Auto-populate expected from balance when account is selected (daily_check only)
+  const selectedBalance = useMemo(() => {
+    if (kind !== 'daily_check' || !balances) return 0
+    const id = moneySource === 'house' ? locationId : personId
+    if (!id) return 0
+    const match = balances.find((b: any) => b.money_source === moneySource && (moneySource === 'house' ? b.location_id : b.person_id) === id)
+    return match ? Number(match.current_balance_pence || 0) / 100 : 0
+  }, [kind, moneySource, locationId, personId, balances])
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -499,15 +558,24 @@ function PettyCashDialog({ open, title, locations, people, onClose, onSubmit, ki
       setExpected(0)
       setNotes('')
       setCheckDate(today())
+      setEscalate(false)
+      setEscalationReason('')
     }
   }, [open])
+
+  // Update expected when balance changes (daily_check only)
+  useEffect(() => {
+    if (kind === 'daily_check') setExpected(selectedBalance)
+  }, [selectedBalance, kind])
+
+  const hasVariance = kind === 'daily_check' && amount > 0 && Math.abs(amount - expected) > 0.001
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField select label="Cash belongs to" fullWidth value={moneySource} onChange={e => setMoneySource(e.target.value)}>
+          <TextField select label="Cash belongs to" fullWidth value={moneySource} onChange={e => { setMoneySource(e.target.value); setLocationId(''); setPersonId('') }}>
             <MenuItem value="house">House</MenuItem>
             <MenuItem value="person">Person</MenuItem>
           </TextField>
@@ -523,14 +591,25 @@ function PettyCashDialog({ open, title, locations, people, onClose, onSubmit, ki
           {kind === 'daily_check' && (
             <TextField label="Check date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={checkDate} onChange={e => setCheckDate(e.target.value)} />
           )}
-          <TextField
-            label={kind === 'top_up' ? 'Amount (£)' : kind === 'daily_check' ? 'Expected cash (£)' : 'Actual balance (£)'}
-            type="number" fullWidth value={kind === 'daily_check' ? expected : amount}
-            onChange={e => (kind === 'daily_check' ? setExpected(parseFloat(e.target.value) || 0) : setAmount(parseFloat(e.target.value) || 0))}
-            inputProps={{ min: 0, step: 0.01 }}
-          />
+          {kind === 'daily_check' ? (
+            <TextField label="Expected cash (£)" type="number" fullWidth value={expected} InputProps={{ readOnly: true }} sx={{ '& .MuiInputBase-input.Mui-readOnly': { bgcolor: '#F3F4F6' } }} />
+          ) : (
+            <TextField label={kind === 'top_up' ? 'Amount (£)' : 'Actual balance (£)'} type="number" fullWidth value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} inputProps={{ min: 0, step: 0.01 }} />
+          )}
           {kind === 'daily_check' && (
             <TextField label="Physical cash in money tin (£)" type="number" fullWidth value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} inputProps={{ min: 0, step: 0.01 }} />
+          )}
+          {kind === 'daily_check' && hasVariance && (
+            <>
+              <Alert severity="warning">Variance detected: £{(amount - expected).toFixed(2)} difference between expected and physical cash.</Alert>
+              <TextField select label="Escalate to manager?" fullWidth value={escalate ? 'yes' : 'no'} onChange={e => setEscalate(e.target.value === 'yes')}>
+                <MenuItem value="no">No</MenuItem>
+                <MenuItem value="yes">Yes, escalate</MenuItem>
+              </TextField>
+              {escalate && (
+                <TextField label="Escalation reason" fullWidth multiline rows={2} value={escalationReason} onChange={e => setEscalationReason(e.target.value)} placeholder="Explain the variance..." />
+              )}
+            </>
           )}
           <TextField label="Notes" multiline rows={2} fullWidth value={notes} onChange={e => setNotes(e.target.value)} />
         </Stack>
@@ -538,11 +617,11 @@ function PettyCashDialog({ open, title, locations, people, onClose, onSubmit, ki
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="contained"
-          disabled={(moneySource === 'house' ? !locationId : !personId) || (kind === 'top_up' ? amount <= 0 : kind === 'daily_check' ? expected < 0 || amount < 0 : amount < 0) || isLoading}
+          disabled={(moneySource === 'house' ? !locationId : !personId) || (kind === 'top_up' ? amount <= 0 : kind === 'daily_check' ? amount < 0 : amount < 0) || isLoading}
           onClick={() => onSubmit(kind === 'top_up'
             ? { moneySource, locationId: moneySource === 'house' ? locationId : undefined, personId: moneySource === 'person' ? personId : undefined, amountPence: Math.round(amount * 100), notes }
             : kind === 'daily_check'
-              ? { moneySource, locationId: moneySource === 'house' ? locationId : undefined, personId: moneySource === 'person' ? personId : undefined, expectedBalancePence: Math.round(expected * 100), physicalBalancePence: Math.round(amount * 100), checkDate, notes }
+              ? { moneySource, locationId: moneySource === 'house' ? locationId : undefined, personId: moneySource === 'person' ? personId : undefined, expectedBalancePence: Math.round(expected * 100), physicalBalancePence: Math.round(amount * 100), checkDate, notes, escalate, escalationReason: escalate ? escalationReason : undefined }
               : { moneySource, locationId, actualBalancePence: Math.round(amount * 100), notes }
           )}>
           {isLoading ? <CircularProgress size={20} /> : kind === 'top_up' ? 'Top up' : kind === 'daily_check' ? 'Save check' : 'Reconcile'}

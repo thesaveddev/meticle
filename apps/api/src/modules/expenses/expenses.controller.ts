@@ -91,7 +91,17 @@ export class ExpensesController {
   }
 
   static async dailyCashCheck(req: Request, res: Response) {
-    const result = await dailyCashCheck(req.user!.organizationId!, req.user!.userId, req.body);
+    const result = await dailyCashCheck(req.user!.organizationId!, req.user!.userId, {
+      moneySource: req.body.moneySource,
+      locationId: req.body.locationId,
+      personId: req.body.personId,
+      expectedBalancePence: req.body.expectedBalancePence,
+      physicalBalancePence: req.body.physicalBalancePence,
+      checkDate: req.body.checkDate,
+      notes: req.body.notes,
+      escalate: req.body.escalate,
+      escalationReason: req.body.escalationReason,
+    });
     res.status(201).json(result);
   }
 
