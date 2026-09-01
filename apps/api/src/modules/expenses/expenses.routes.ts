@@ -61,18 +61,21 @@ const reconcileSchema = z.object({
 const router = Router();
 router.use(authenticate);
 
-router.get('/', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(ExpensesController.list));
-router.get('/stats', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ExpensesController.stats));
-router.get('/petty-cash/balances', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ExpensesController.getBalances));
-router.post('/petty-cash/top-up', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(topUpSchema), asyncHandler(ExpensesController.topUp));
-router.post('/petty-cash/reconcile', requireRole(UserRole.ORG_ADMIN), validate(reconcileSchema), asyncHandler(ExpensesController.reconcile));
-router.post('/petty-cash/daily-check', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(cashCheckSchema), asyncHandler(ExpensesController.dailyCashCheck));
-router.get('/petty-cash/daily-checks', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ExpensesController.getDailyCashChecks));
-router.get('/report', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ExpensesController.report));
-router.get('/petty-cash/transactions', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ExpensesController.getTransactions));
-router.post('/', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createExpenseSchema), asyncHandler(ExpensesController.create));
-router.get('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(ExpensesController.get));
-router.patch('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateExpenseSchema), asyncHandler(ExpensesController.update));
-router.put('/:id/void', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(voidExpenseSchema), asyncHandler(ExpensesController.void));
+const ADMIN_ROLES = [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER];
+const VIEW_ROLES = [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER];
+
+router.get('/', requireRole(...VIEW_ROLES), asyncHandler(ExpensesController.list));
+router.get('/stats', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.stats));
+router.get('/petty-cash/balances', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.getBalances));
+router.post('/petty-cash/top-up', requireRole(...ADMIN_ROLES), validate(topUpSchema), asyncHandler(ExpensesController.topUp));
+router.post('/petty-cash/reconcile', requireRole(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN), validate(reconcileSchema), asyncHandler(ExpensesController.reconcile));
+router.post('/petty-cash/daily-check', requireRole(...ADMIN_ROLES), validate(cashCheckSchema), asyncHandler(ExpensesController.dailyCashCheck));
+router.get('/petty-cash/daily-checks', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.getDailyCashChecks));
+router.get('/report', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.report));
+router.get('/petty-cash/transactions', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.getTransactions));
+router.post('/', requireRole(...ADMIN_ROLES), validate(createExpenseSchema), asyncHandler(ExpensesController.create));
+router.get('/:id', requireRole(...VIEW_ROLES), asyncHandler(ExpensesController.get));
+router.patch('/:id', requireRole(...ADMIN_ROLES), validate(updateExpenseSchema), asyncHandler(ExpensesController.update));
+router.put('/:id/void', requireRole(...ADMIN_ROLES), validate(voidExpenseSchema), asyncHandler(ExpensesController.void));
 
 export default router;
