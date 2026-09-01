@@ -9,8 +9,8 @@ import { UserRole } from '@meticle/shared';
 import { ExpenseCategory } from './expenses.types';
 
 const expenseFields = z.object({
-  personId: z.string().uuid().optional().nullable(),
-  locationId: z.string().uuid().optional(),
+  personId: z.string().uuid().nullish(),
+  locationId: z.string().uuid().nullish(),
   moneySource: z.enum(['house', 'person']).default('person'),
   paymentMethod: z.string().max(30).optional(),
   category: z.nativeEnum(ExpenseCategory),
@@ -20,7 +20,7 @@ const expenseFields = z.object({
   incurredDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
-const createExpenseSchema = expenseFields.refine(data => data.moneySource === 'house' ? !!data.locationId : !!data.personId, { message: 'Select a location for house funds or a person for person funds', path: ['locationId'] });
+const createExpenseSchema = expenseFields.refine(data => data.moneySource === 'house' ? Boolean(data.locationId) : Boolean(data.personId), { message: 'Select a location for house funds or a person for person funds', path: ['locationId'] });
 const updateExpenseSchema = z.object({
   category: z.nativeEnum(ExpenseCategory).optional(),
   description: z.string().max(500).optional(),
@@ -32,16 +32,16 @@ const voidExpenseSchema = z.object({
 
 const topUpSchema = z.object({
   moneySource: z.enum(['house', 'person']),
-  locationId: z.string().uuid().optional(),
-  personId: z.string().uuid().optional(),
+  locationId: z.string().uuid().nullish(),
+  personId: z.string().uuid().nullish(),
   amountPence: z.number().int().positive(),
   notes: z.string().max(500).optional(),
 }).refine(data => data.moneySource === 'house' ? !!data.locationId : !!data.personId, { message: 'Select a location for house funds or a person for person funds' });
 
 const cashCheckSchema = z.object({
   moneySource: z.enum(['house', 'person']),
-  locationId: z.string().uuid().optional(),
-  personId: z.string().uuid().optional(),
+  locationId: z.string().uuid().nullish(),
+  personId: z.string().uuid().nullish(),
   expectedBalancePence: z.number().int().min(0),
   physicalBalancePence: z.number().int().min(0),
   checkDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -50,8 +50,8 @@ const cashCheckSchema = z.object({
 
 const reconcileSchema = z.object({
   moneySource: z.enum(['house', 'person']),
-  locationId: z.string().uuid().optional(),
-  personId: z.string().uuid().optional(),
+  locationId: z.string().uuid().nullish(),
+  personId: z.string().uuid().nullish(),
   actualBalancePence: z.number().int().min(0),
   notes: z.string().max(500).optional(),
 }).refine(data => data.moneySource === 'house' ? !!data.locationId : !!data.personId, { message: 'Select a location for house funds or a person for person funds' });

@@ -247,21 +247,24 @@ export default function ExpensesPage() {
               setReportLoading(true)
               try {
                 const r = await api.get('/expenses/report')
-                const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' })
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `expenses-report-${today()}.json`; a.click(); URL.revokeObjectURL(a.href)
+                const expenses = r.data.expenses || []
+                const header = 'Date,Source,Person,Category,Description,Amount,Added by,Voided\n'
+                const rows = expenses.map((e: any) => [
+                  e.incurred_date,
+                  e.money_source === 'house' ? 'House' : 'Person',
+                  e.person_name || '',
+                  e.category,
+                  (e.description || '').replace(/,/g, ';'),
+                  (Number(e.amount_pence || 0) / 100).toFixed(2),
+                  e.created_by_name || '',
+                  e.is_voided ? 'Yes' : 'No',
+                ].join(',')).join('\n')
+                const blob = new Blob([header + rows], { type: 'text/csv' })
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `expenses-report-${today()}.csv`; a.click(); URL.revokeObjectURL(a.href)
               } catch { showError('Failed to download report') }
               finally { setReportLoading(false) }
             }} disabled={reportLoading}>Download report</Button>
           </Stack>
-
-          <Paper sx={{ p: 2, mb: 2, border: '1px solid #E5E7EB' }}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
-              <Box><Typography variant="caption" color="text.secondary">House cash in tins</Typography><Typography variant="h6" fontWeight={800} color="info.main">{'\u00A3'}{(pettyCashTotals.house / 100).toFixed(2)}</Typography></Box>
-              <Box><Typography variant="caption" color="text.secondary">Person cash on hand</Typography><Typography variant="h6" fontWeight={800}>{'\u00A3'}{(pettyCashTotals.person / 100).toFixed(2)}</Typography></Box>
-              <Box><Typography variant="caption" color="text.secondary">Total cash managed</Typography><Typography variant="h6" fontWeight={800}>{'\u00A3'}{(pettyCashTotals.total / 100).toFixed(2)}</Typography></Box>
-              <Box><Typography variant="caption" color="text.secondary">Accounts</Typography><Typography variant="h6" fontWeight={800}>{pettyCashTotals.count}</Typography></Box>
-            </Stack>
-          </Paper>
 
           <Paper sx={{ p: 1.5, mb: 2, border: '1px solid #E5E7EB' }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
