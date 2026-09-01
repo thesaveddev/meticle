@@ -21,7 +21,14 @@ const expenseFields = z.object({
 });
 
 const createExpenseSchema = expenseFields.refine(data => data.moneySource === 'house' ? !!data.locationId : !!data.personId, { message: 'Select a location for house funds or a person for person funds', path: ['locationId'] });
-const updateExpenseSchema = expenseFields.partial();
+const updateExpenseSchema = z.object({
+  category: z.nativeEnum(ExpenseCategory).optional(),
+  description: z.string().max(500).optional(),
+});
+
+const voidExpenseSchema = z.object({
+  reason: z.string().min(3, 'Reason is required to void an entry').max(500),
+});
 
 const topUpSchema = z.object({
   moneySource: z.enum(['house', 'person']),
@@ -64,6 +71,6 @@ router.get('/petty-cash/transactions', requireRole(UserRole.ORG_ADMIN, UserRole.
 router.post('/', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createExpenseSchema), asyncHandler(ExpensesController.create));
 router.get('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), asyncHandler(ExpensesController.get));
 router.patch('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateExpenseSchema), asyncHandler(ExpensesController.update));
-router.delete('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ExpensesController.remove));
+router.put('/:id/void', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(voidExpenseSchema), asyncHandler(ExpensesController.void));
 
 export default router;

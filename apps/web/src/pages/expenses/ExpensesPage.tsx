@@ -3,8 +3,9 @@ import {
   Box, Button, Card, CardContent, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, Grid, IconButton, MenuItem, Paper, Stack, Tab, Table,
   TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Typography,
+  Alert,
 } from '@mui/material'
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, History as HistoryIcon, Receipt as ReceiptIcon, Wallet as WalletIcon, Search as SearchIcon } from '@mui/icons-material'
+import { Add as AddIcon, Edit as EditIcon, History as HistoryIcon, Receipt as ReceiptIcon, Wallet as WalletIcon, Search as SearchIcon, Block as VoidIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 
@@ -19,6 +20,8 @@ export default function ExpensesPage() {
   const [tab, setTab] = useState(0)
   const [createOpen, setCreateOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [voidId, setVoidId] = useState<string | null>(null)
+  const [voidReason, setVoidReason] = useState('')
   const [filterSource, setFilterSource] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterPerson, setFilterPerson] = useState('')
@@ -29,48 +32,31 @@ export default function ExpensesPage() {
   const [pettyCashSearch, setPettyCashSearch] = useState('')
   const [pettyCashFilter, setPettyCashFilter] = useState<'all' | 'house' | 'person'>('all')
 
+  // Queries
   const { data: expenseData, isLoading } = useQuery({
     queryKey: ['expenses', filterSource, filterCategory, filterPerson],
     queryFn: () => api.get('/expenses', { params: { moneySource: filterSource || undefined, category: filterCategory || undefined, personId: filterPerson || undefined } }).then(r => r.data),
   })
-  const expenses = asArray(expenseData, ['expenses'])
+  const expenses = asArray(expenseData)
 
-  const { data: stats } = useQuery({
-    queryKey: ['expense-stats'],
-    queryFn: () => api.get('/expenses/stats').then(r => r.data),
-  })
+  const { data: stats } = useQuery({ queryKey: ['expense-stats'], queryFn: () => api.get('/expenses/stats').then(r => r.data) })
 
-  const { data: peopleData } = useQuery({
-    queryKey: ['people-expenses'],
-    queryFn: () => api.get('/people?limit=200').then(r => r.data),
-  })
+  const { data: peopleData } = useQuery({ queryKey: ['people-expenses'], queryFn: () => api.get('/people?limit=200').then(r => r.data) })
   const people = asArray(peopleData, ['people'])
 
-  const { data: balancesData } = useQuery({
-    queryKey: ['petty-cash-balances'],
-    queryFn: () => api.get('/expenses/petty-cash/balances').then(r => r.data),
-  })
+  const { data: balancesData } = useQuery({ queryKey: ['petty-cash-balances'], queryFn: () => api.get('/expenses/petty-cash/balances').then(r => r.data) })
   const balances = asArray(balancesData, ['balances'])
 
-  const { data: transactionData } = useQuery({
-    queryKey: ['petty-cash-transactions'],
-    queryFn: () => api.get('/expenses/petty-cash/transactions').then(r => r.data),
-  })
+  const { data: transactionData } = useQuery({ queryKey: ['petty-cash-transactions'], queryFn: () => api.get('/expenses/petty-cash/transactions').then(r => r.data) })
   const transactions = asArray(transactionData, ['transactions'])
 
-  const { data: cashCheckData } = useQuery({
-    queryKey: ['cash-balance-checks'],
-    queryFn: () => api.get('/expenses/petty-cash/daily-checks').then(r => r.data),
-  })
+  const { data: cashCheckData } = useQuery({ queryKey: ['cash-balance-checks'], queryFn: () => api.get('/expenses/petty-cash/daily-checks').then(r => r.data) })
   const cashChecks = asArray(cashCheckData, ['checks'])
 
-  const { data: locationsData } = useQuery({
-    queryKey: ['locations'],
-    queryFn: () => api.get('/settings/locations').then(r => r.data),
-  })
+  const { data: locationsData } = useQuery({ queryKey: ['locations'], queryFn: () => api.get('/settings/locations').then(r => r.data) })
   const locations = asArray(locationsData, ['locations'])
 
-  // --- Mutations ---
+  // Mutations
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses', data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setCreateOpen(false) },
@@ -79,36 +65,24 @@ export default function ExpensesPage() {
     mutationFn: ({ id, data }: any) => api.patch(`/expenses/${id}`, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setEditId(null) },
   })
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/expenses/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }) },
+  const voidMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.put(`/expenses/${id}/void`, { reason }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setVoidId(null); setVoidReason('') },
   })
-
   const topUpMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses/petty-cash/top-up', data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['petty-cash-balances'] })
-      qc.invalidateQueries({ queryKey: ['petty-cash-transactions'] })
-      qc.invalidateQueries({ queryKey: ['expense-stats'] })
-      setTopUpOpen(false)
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['petty-cash-balances'] }); qc.invalidateQueries({ queryKey: ['petty-cash-transactions'] }); qc.invalidateQueries({ queryKey: ['expense-stats'] }); setTopUpOpen(false) },
   })
-
   const reconcileMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses/petty-cash/reconcile', data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['petty-cash-balances'] })
-      qc.invalidateQueries({ queryKey: ['petty-cash-transactions'] })
-      setReconcileOpen(false)
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['petty-cash-balances'] }); qc.invalidateQueries({ queryKey: ['petty-cash-transactions'] }); setReconcileOpen(false) },
   })
-
   const dailyCheckMutation = useMutation({
     mutationFn: (data: any) => api.post('/expenses/petty-cash/daily-check', data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['cash-balance-checks'] }); setCashCheckOpen(false) },
   })
 
-  // --- Summary computations ---
+  // Summary computations
   const pettyCashTotals = useMemo(() => {
     const house = balances.filter((b: any) => b.money_source === 'house').reduce((s: number, b: any) => s + Number(b.current_balance_pence || 0), 0)
     const person = balances.filter((b: any) => b.money_source === 'person').reduce((s: number, b: any) => s + Number(b.current_balance_pence || 0), 0)
@@ -118,7 +92,6 @@ export default function ExpensesPage() {
   const totalHouseSpent = useMemo(() => expenses.filter((e: any) => e.money_source === 'house').reduce((sum: number, e: any) => sum + Number(e.amount_pence || 0), 0), [expenses])
   const totalPersonSpent = useMemo(() => expenses.filter((e: any) => e.money_source !== 'house').reduce((sum: number, e: any) => sum + Number(e.amount_pence || 0), 0), [expenses])
 
-  // Filtered balances for petty cash tab
   const filteredBalances = useMemo(() => {
     let result = balances
     if (pettyCashFilter !== 'all') result = result.filter((b: any) => b.money_source === pettyCashFilter)
@@ -148,7 +121,7 @@ export default function ExpensesPage() {
         </Stack>
       </Stack>
 
-      {/* Top bar — 4 summary cards */}
+      {/* Top bar */}
       <Grid container spacing={2} mb={3}>
         {[
           { label: 'Total ledger', value: `£${(stats?.total_amount_pounds || 0).toLocaleString()}`, sub: `${stats?.total_expenses || 0} entries` },
@@ -168,15 +141,20 @@ export default function ExpensesPage() {
         ))}
       </Grid>
 
-      {/* Tabs */}
+      {/* Tabs: 0=Spending ledger, 1=Petty cash, 2=Daily cash check */}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: '1px solid #E5E7EB' }}>
         <Tab icon={<ReceiptIcon />} iconPosition="start" label="Spending ledger" sx={{ textTransform: 'none' }} />
         <Tab icon={<WalletIcon />} iconPosition="start" label="Petty cash" sx={{ textTransform: 'none' }} />
+        <Tab icon={<HistoryIcon />} iconPosition="start" label="Cash checks" sx={{ textTransform: 'none' }} />
       </Tabs>
 
       {/* Tab 0: Spending ledger */}
       {tab === 0 && (
         <Box sx={{ pt: 2 }}>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Entries cannot be deleted. Managers may void entries with a reason, or edit the description and category only.
+          </Alert>
+
           <Paper sx={{ p: 1.5, mb: 2, border: '1px solid #E5E7EB' }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
               <TextField select size="small" label="Money source" value={filterSource} onChange={e => setFilterSource(e.target.value)} sx={{ minWidth: 170 }}>
@@ -199,7 +177,7 @@ export default function ExpensesPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  {['Date', 'Money source', 'Person', 'Category', 'Description', 'Amount', 'Added by', ''].map(h => (
+                  {['Date', 'Source', 'Person', 'Category', 'Description', 'Amount', 'Added by', ''].map(h => (
                     <TableCell key={h} sx={{ fontWeight: 800, color: 'text.secondary' }}>{h}</TableCell>
                   ))}
                 </TableRow>
@@ -208,17 +186,38 @@ export default function ExpensesPage() {
                 {expenses.length === 0 ? (
                   <TableRow><TableCell colSpan={8} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No expenses recorded.</TableCell></TableRow>
                 ) : expenses.map((e: any) => (
-                  <TableRow key={e.id} hover>
+                  <TableRow key={e.id} hover sx={e.is_voided ? { opacity: 0.5 } : {}}>
                     <TableCell>{new Date(e.incurred_date).toLocaleDateString('en-GB')}</TableCell>
-                    <TableCell><Chip size="small" label={SOURCE_LABELS[e.money_source] || 'Person funds'} color={e.money_source === 'house' ? 'info' : 'default'} /></TableCell>
+                    <TableCell>
+                      <Chip size="small" label={SOURCE_LABELS[e.money_source] || 'Person funds'} color={e.money_source === 'house' ? 'info' : 'default'} />
+                      {e.is_voided && <Chip size="small" label="VOID" color="error" sx={{ ml: 0.5 }} />}
+                    </TableCell>
                     <TableCell>{e.money_source === 'house' ? '\u2014' : e.person_name || '\u2014'}</TableCell>
                     <TableCell><Chip label={e.category} size="small" /></TableCell>
-                    <TableCell>{e.description || '\u2014'}</TableCell>
-                    <TableCell>{'\u00A3'}{(Number(e.amount_pence || 0) / 100).toFixed(2)}</TableCell>
+                    <TableCell>
+                      {e.description || '\u2014'}
+                      {e.is_voided && e.void_reason && (
+                        <Typography variant="caption" display="block" color="error.main" sx={{ mt: 0.5 }}>
+                          Void reason: {e.void_reason}
+                          {e.voided_by_name && ` — by ${e.voided_by_name}`}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell sx={e.is_voided ? { textDecoration: 'line-through' } : {}}>
+                      {'\u00A3'}{(Number(e.amount_pence || 0) / 100).toFixed(2)}
+                    </TableCell>
                     <TableCell>{e.created_by_name || '\u2014'}</TableCell>
                     <TableCell>
-                      <IconButton size="small" onClick={() => setEditId(e.id)}><EditIcon fontSize="small" /></IconButton>
-                      <IconButton size="small" color="error" onClick={() => deleteMutation.mutate(e.id)}><DeleteIcon fontSize="small" /></IconButton>
+                      {!e.is_voided && (
+                        <>
+                          <IconButton size="small" onClick={() => setEditId(e.id)} title="Edit description or category">
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" color="warning" onClick={() => { setVoidId(e.id); setVoidReason('') }} title="Void this entry">
+                            <VoidIcon fontSize="small" />
+                          </IconButton>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -228,24 +227,18 @@ export default function ExpensesPage() {
         </Box>
       )}
 
-      {/* Tab 1: Petty cash — redesigned */}
+      {/* Tab 1: Petty cash */}
       {tab === 1 && (
         <Box sx={{ pt: 2 }}>
-          {/* Action buttons */}
           <Stack direction="row" spacing={1} mb={2}>
             <Button variant="outlined" startIcon={<WalletIcon />} onClick={() => setTopUpOpen(true)}>Top up</Button>
             <Button variant="outlined" startIcon={<HistoryIcon />} onClick={() => setReconcileOpen(true)}>Reconcile</Button>
-            <Button variant="outlined" onClick={() => setCashCheckOpen(true)}>Daily cash check</Button>
             <Button variant="outlined" onClick={async () => {
               setReportLoading(true)
               try {
                 const r = await api.get('/expenses/report')
                 const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' })
-                const a = document.createElement('a')
-                a.href = URL.createObjectURL(blob)
-                a.download = `expenses-report-${today()}.json`
-                a.click()
-                URL.revokeObjectURL(a.href)
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `expenses-report-${today()}.json`; a.click(); URL.revokeObjectURL(a.href)
               } finally { setReportLoading(false) }
             }} disabled={reportLoading}>Download report</Button>
           </Stack>
@@ -253,45 +246,25 @@ export default function ExpensesPage() {
           {/* Summary row */}
           <Paper sx={{ p: 2, mb: 2, border: '1px solid #E5E7EB' }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
-              <Box>
-                <Typography variant="caption" color="text.secondary">House cash in tins</Typography>
-                <Typography variant="h6" fontWeight={800} color="info.main">{'\u00A3'}{(pettyCashTotals.house / 100).toFixed(2)}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">Person cash on hand</Typography>
-                <Typography variant="h6" fontWeight={800}>{'\u00A3'}{(pettyCashTotals.person / 100).toFixed(2)}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">Total cash managed</Typography>
-                <Typography variant="h6" fontWeight={800}>{'\u00A3'}{(pettyCashTotals.total / 100).toFixed(2)}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">Accounts</Typography>
-                <Typography variant="h6" fontWeight={800}>{pettyCashTotals.count}</Typography>
-              </Box>
+              <Box><Typography variant="caption" color="text.secondary">House cash in tins</Typography><Typography variant="h6" fontWeight={800} color="info.main">{'\u00A3'}{(pettyCashTotals.house / 100).toFixed(2)}</Typography></Box>
+              <Box><Typography variant="caption" color="text.secondary">Person cash on hand</Typography><Typography variant="h6" fontWeight={800}>{'\u00A3'}{(pettyCashTotals.person / 100).toFixed(2)}</Typography></Box>
+              <Box><Typography variant="caption" color="text.secondary">Total cash managed</Typography><Typography variant="h6" fontWeight={800}>{'\u00A3'}{(pettyCashTotals.total / 100).toFixed(2)}</Typography></Box>
+              <Box><Typography variant="caption" color="text.secondary">Accounts</Typography><Typography variant="h6" fontWeight={800}>{pettyCashTotals.count}</Typography></Box>
             </Stack>
           </Paper>
 
-          {/* Search and filter */}
+          {/* Search + filter */}
           <Paper sx={{ p: 1.5, mb: 2, border: '1px solid #E5E7EB' }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-              <TextField
-                size="small"
-                placeholder="Search by name..."
-                value={pettyCashSearch}
-                onChange={e => setPettyCashSearch(e.target.value)}
-                InputProps={{ startAdornment: <SearchIcon fontSize="small" sx={{ mr: 0.5, color: 'text.secondary' }} /> }}
-                sx={{ minWidth: 250 }}
-              />
+              <TextField size="small" placeholder="Search by name..." value={pettyCashSearch} onChange={e => setPettyCashSearch(e.target.value)}
+                InputProps={{ startAdornment: <SearchIcon fontSize="small" sx={{ mr: 0.5, color: 'text.secondary' }} /> }} sx={{ minWidth: 250 }} />
               <TextField select size="small" label="Show" value={pettyCashFilter} onChange={e => setPettyCashFilter(e.target.value as any)} sx={{ minWidth: 150 }}>
                 <MenuItem value="all">All accounts</MenuItem>
                 <MenuItem value="house">House only</MenuItem>
                 <MenuItem value="person">Person only</MenuItem>
               </TextField>
               <Box sx={{ flexGrow: 1 }} />
-              <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
-                {filteredBalances.length} of {balances.length} accounts
-              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>{filteredBalances.length} of {balances.length} accounts</Typography>
             </Stack>
           </Paper>
 
@@ -311,24 +284,10 @@ export default function ExpensesPage() {
                   <TableRow><TableCell colSpan={4} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No accounts found.</TableCell></TableRow>
                 ) : filteredBalances.map((b: any) => (
                   <TableRow key={`${b.money_source}-${b.id}`} hover>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={600}>
-                        {b.money_source === 'person' ? b.person_name : b.location_name}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip size="small" label={b.money_source === 'person' ? 'Person funds' : 'House funds'} color={b.money_source === 'house' ? 'info' : 'default'} variant="outlined" />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" fontWeight={700} color={Number(b.current_balance_pence) > 0 ? 'success.main' : 'text.secondary'}>
-                        {'\u00A3'}{(Number(b.current_balance_pence || 0) / 100).toFixed(2)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {b.last_reconciled_at ? new Date(b.last_reconciled_at).toLocaleDateString('en-GB') : 'Never'}
-                      </Typography>
-                    </TableCell>
+                    <TableCell><Typography variant="body2" fontWeight={600}>{b.money_source === 'person' ? b.person_name : b.location_name}</Typography></TableCell>
+                    <TableCell><Chip size="small" label={b.money_source === 'person' ? 'Person funds' : 'House funds'} color={b.money_source === 'house' ? 'info' : 'default'} variant="outlined" /></TableCell>
+                    <TableCell align="right"><Typography variant="body2" fontWeight={700} color={Number(b.current_balance_pence) > 0 ? 'success.main' : 'text.secondary'}>{'\u00A3'}{(Number(b.current_balance_pence || 0) / 100).toFixed(2)}</Typography></TableCell>
+                    <TableCell><Typography variant="body2" color="text.secondary">{b.last_reconciled_at ? new Date(b.last_reconciled_at).toLocaleDateString('en-GB') : 'Never'}</Typography></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -337,14 +296,10 @@ export default function ExpensesPage() {
 
           {/* Transaction history */}
           <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1 }}>Transaction history</Typography>
-          <TableContainer component={Paper} sx={{ border: '1px solid #E5E7EB', mb: 3 }}>
+          <TableContainer component={Paper} sx={{ border: '1px solid #E5E7EB' }}>
             <Table size="small">
               <TableHead>
-                <TableRow>
-                  {['Date', 'Account', 'Type', 'Amount', 'Balance', 'Notes'].map(h => (
-                    <TableCell key={h} sx={{ fontWeight: 800, color: 'text.secondary' }}>{h}</TableCell>
-                  ))}
-                </TableRow>
+                <TableRow>{['Date', 'Account', 'Type', 'Amount', 'Balance', 'Notes'].map(h => <TableCell key={h} sx={{ fontWeight: 800, color: 'text.secondary' }}>{h}</TableCell>)}</TableRow>
               </TableHead>
               <TableBody>
                 {transactions.length === 0 ? (
@@ -362,17 +317,19 @@ export default function ExpensesPage() {
               </TableBody>
             </Table>
           </TableContainer>
+        </Box>
+      )}
 
-          {/* Daily cash checks */}
-          <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1 }}>Daily cash balance checks</Typography>
+      {/* Tab 2: Daily cash checks */}
+      {tab === 2 && (
+        <Box sx={{ pt: 2 }}>
+          <Stack direction="row" spacing={1} mb={2}>
+            <Button variant="outlined" onClick={() => setCashCheckOpen(true)}>New cash check</Button>
+          </Stack>
           <TableContainer component={Paper} sx={{ border: '1px solid #E5E7EB' }}>
             <Table size="small">
               <TableHead>
-                <TableRow>
-                  {['Date', 'Account', 'Expected', 'Physical in tin', 'Variance', 'Notes'].map(h => (
-                    <TableCell key={h} sx={{ fontWeight: 800, color: 'text.secondary' }}>{h}</TableCell>
-                  ))}
-                </TableRow>
+                <TableRow>{['Date', 'Account', 'Expected', 'Physical in tin', 'Variance', 'Notes'].map(h => <TableCell key={h} sx={{ fontWeight: 800, color: 'text.secondary' }}>{h}</TableCell>)}</TableRow>
               </TableHead>
               <TableBody>
                 {cashChecks.length === 0 ? (
@@ -383,9 +340,7 @@ export default function ExpensesPage() {
                     <TableCell>{c.money_source === 'house' ? c.location_name : c.person_name}</TableCell>
                     <TableCell align="right">{'\u00A3'}{(Number(c.expected_balance_pence) / 100).toFixed(2)}</TableCell>
                     <TableCell align="right">{'\u00A3'}{(Number(c.physical_balance_pence) / 100).toFixed(2)}</TableCell>
-                    <TableCell align="right" sx={{ color: Number(c.variance_pence) === 0 ? 'success.main' : 'error.main', fontWeight: 700 }}>
-                      {'\u00A3'}{(Number(c.variance_pence) / 100).toFixed(2)}
-                    </TableCell>
+                    <TableCell align="right" sx={{ color: Number(c.variance_pence) === 0 ? 'success.main' : 'error.main', fontWeight: 700 }}>{'\u00A3'}{(Number(c.variance_pence) / 100).toFixed(2)}</TableCell>
                     <TableCell>{c.notes || '\u2014'}</TableCell>
                   </TableRow>
                 ))}
@@ -396,61 +351,62 @@ export default function ExpensesPage() {
       )}
 
       {/* Dialogs */}
-      <Dialog open={createOpen || !!editId} onClose={() => { setCreateOpen(false); setEditId(null) }} maxWidth="sm" fullWidth>
-        <DialogTitle>{editId ? 'Edit expense' : 'Add expense'}</DialogTitle>
-        <ExpenseForm
-          people={people}
-          initialData={editId ? expenses.find((e: any) => e.id === editId) : undefined}
-          onSubmit={data => editId ? updateMutation.mutate({ id: editId, data }) : createMutation.mutate(data)}
-          onCancel={() => { setCreateOpen(false); setEditId(null) }}
-          isLoading={createMutation.isPending || updateMutation.isPending}
+      {/* Create expense */}
+      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add expense</DialogTitle>
+        <ExpenseForm people={people} onSubmit={data => createMutation.mutate(data)} onCancel={() => setCreateOpen(false)} isLoading={createMutation.isPending} />
+      </Dialog>
+
+      {/* Edit expense — description and category only */}
+      <Dialog open={!!editId} onClose={() => setEditId(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit entry</DialogTitle>
+        <EditExpenseForm
+          expense={expenses.find((e: any) => e.id === editId)}
+          onSubmit={data => { if (editId) updateMutation.mutate({ id: editId, data }) }}
+          onCancel={() => setEditId(null)}
+          isLoading={updateMutation.isPending}
         />
       </Dialog>
 
-      <PettyCashDialog
-        open={topUpOpen}
-        title="Top up cash"
-        locations={locations}
-        people={people}
-        onClose={() => setTopUpOpen(false)}
-        onSubmit={(data: any) => topUpMutation.mutate(data)}
-        kind="top_up"
-        isLoading={topUpMutation.isPending}
-      />
+      {/* Void confirmation */}
+      <Dialog open={!!voidId} onClose={() => { setVoidId(null); setVoidReason('') }} maxWidth="sm" fullWidth>
+        <DialogTitle>Void expense entry</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>This action cannot be undone. The entry will be marked as voided and excluded from totals.</Alert>
+          <TextField label="Reason for voiding" fullWidth multiline rows={3} value={voidReason} onChange={e => setVoidReason(e.target.value)} placeholder="Explain why this entry is being voided..." />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setVoidId(null); setVoidReason('') }}>Cancel</Button>
+          <Button variant="contained" color="warning" disabled={voidReason.trim().length < 3 || voidMutation.isPending} onClick={() => { if (voidId) voidMutation.mutate({ id: voidId, reason: voidReason.trim() }) }}>
+            {voidMutation.isPending ? <CircularProgress size={20} /> : 'Void entry'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      <PettyCashDialog
-        open={reconcileOpen}
-        title="Reconcile cash"
-        locations={locations}
-        people={people}
-        onClose={() => setReconcileOpen(false)}
-        onSubmit={(data: any) => reconcileMutation.mutate(data)}
-        kind="reconcile"
-        isLoading={reconcileMutation.isPending}
-      />
+      {/* Top up */}
+      <PettyCashDialog open={topUpOpen} title="Top up cash" locations={locations} people={people} onClose={() => setTopUpOpen(false)}
+        onSubmit={(data: any) => topUpMutation.mutate(data)} kind="top_up" isLoading={topUpMutation.isPending} />
 
-      <PettyCashDialog
-        open={cashCheckOpen}
-        title="Daily cash balance check"
-        locations={locations}
-        people={people}
-        onClose={() => setCashCheckOpen(false)}
-        onSubmit={(data: any) => dailyCheckMutation.mutate(data)}
-        kind="daily_check"
-        isLoading={dailyCheckMutation.isPending}
-      />
+      {/* Reconcile */}
+      <PettyCashDialog open={reconcileOpen} title="Reconcile cash" locations={locations} people={people} onClose={() => setReconcileOpen(false)}
+        onSubmit={(data: any) => reconcileMutation.mutate(data)} kind="reconcile" isLoading={reconcileMutation.isPending} />
+
+      {/* Daily cash check */}
+      <PettyCashDialog open={cashCheckOpen} title="Daily cash balance check" locations={locations} people={people} onClose={() => setCashCheckOpen(false)}
+        onSubmit={(data: any) => dailyCheckMutation.mutate(data)} kind="daily_check" isLoading={dailyCheckMutation.isPending} />
     </Box>
   )
 }
 
-function ExpenseForm({ people, initialData, onSubmit, onCancel, isLoading }: { people: any[]; initialData?: any; onSubmit: (data: any) => void; onCancel: () => void; isLoading: boolean }) {
-  const [source, setSource] = useState(initialData?.money_source || 'person')
-  const [personId, setPersonId] = useState(initialData?.person_id || '')
-  const [category, setCategory] = useState(initialData?.category || 'food')
-  const [amount, setAmount] = useState(initialData ? Number(initialData.amount_pence) / 100 : 0)
-  const [description, setDescription] = useState(initialData?.description || '')
-  const [paymentMethod, setPaymentMethod] = useState(initialData?.payment_method || 'cash')
-  const [date, setDate] = useState(initialData?.incurred_date || today())
+/* ---------- Add expense form (full fields) ---------- */
+function ExpenseForm({ people, onSubmit, onCancel, isLoading }: { people: any[]; onSubmit: (data: any) => void; onCancel: () => void; isLoading: boolean }) {
+  const [source, setSource] = useState('person')
+  const [personId, setPersonId] = useState('')
+  const [category, setCategory] = useState('food')
+  const [amount, setAmount] = useState(0)
+  const [description, setDescription] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [date, setDate] = useState(today())
 
   return (
     <>
@@ -475,33 +431,50 @@ function ExpenseForm({ people, initialData, onSubmit, onCancel, isLoading }: { p
             <MenuItem value="bank_transfer">Bank transfer</MenuItem>
             <MenuItem value="direct_debit">Direct debit</MenuItem>
           </TextField>
-          <TextField label="Amount (\u00A3)" type="number" fullWidth value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} inputProps={{ min: 0.01, step: 0.01 }} />
+          <TextField label="Amount ({'\u00A3'})" type="number" fullWidth value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} inputProps={{ min: 0.01, step: 0.01 }} />
           <TextField label="Description / reason" fullWidth multiline rows={3} value={description} onChange={e => setDescription(e.target.value)} />
           <TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={date} onChange={e => setDate(e.target.value)} />
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel}>Cancel</Button>
-        <Button
-          variant="contained"
-          onClick={() => onSubmit({
-            personId: source === 'person' ? personId : null,
-            moneySource: source,
-            paymentMethod,
-            category,
-            amountPence: Math.round(amount * 100),
-            description,
-            incurredDate: date,
-          })}
-          disabled={!amount || !date || (source === 'person' && !personId) || isLoading}
-        >
-          {isLoading ? <CircularProgress size={20} /> : initialData ? 'Update expense' : 'Add expense'}
+        <Button variant="contained" onClick={() => onSubmit({ personId: source === 'person' ? personId : null, moneySource: source, paymentMethod, category, amountPence: Math.round(amount * 100), description, incurredDate: date })} disabled={!amount || !date || (source === 'person' && !personId) || isLoading}>
+          {isLoading ? <CircularProgress size={20} /> : 'Add expense'}
         </Button>
       </DialogActions>
     </>
   )
 }
 
+/* ---------- Edit expense form (description + category only) ---------- */
+function EditExpenseForm({ expense, onSubmit, onCancel, isLoading }: { expense: any; onSubmit: (data: any) => void; onCancel: () => void; isLoading: boolean }) {
+  const [category, setCategory] = useState(expense?.category || 'food')
+  const [description, setDescription] = useState(expense?.description || '')
+
+  if (!expense) return null
+
+  return (
+    <>
+      <DialogContent>
+        <Alert severity="info" sx={{ mb: 2 }}>Only the description and category can be edited. All other fields are part of the audit record.</Alert>
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <TextField label="Category" fullWidth value={category} onChange={e => setCategory(e.target.value)}>
+            {CATEGORIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+          </TextField>
+          <TextField label="Description" fullWidth multiline rows={3} value={description} onChange={e => setDescription(e.target.value)} />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onCancel}>Cancel</Button>
+        <Button variant="contained" onClick={() => onSubmit({ category, description })} disabled={isLoading}>
+          {isLoading ? <CircularProgress size={20} /> : 'Save changes'}
+        </Button>
+      </DialogActions>
+    </>
+  )
+}
+
+/* ---------- Petty cash dialog (top up / reconcile / daily check) ---------- */
 function PettyCashDialog({ open, title, locations, people, onClose, onSubmit, kind, isLoading }: any) {
   const [moneySource, setMoneySource] = useState('house')
   const [locationId, setLocationId] = useState('')
@@ -534,9 +507,7 @@ function PettyCashDialog({ open, title, locations, people, onClose, onSubmit, ki
           )}
           <TextField
             label={kind === 'top_up' ? 'Amount (\u00A3)' : kind === 'daily_check' ? 'Expected cash (\u00A3)' : 'Actual balance (\u00A3)'}
-            type="number"
-            fullWidth
-            value={kind === 'daily_check' ? expected : amount}
+            type="number" fullWidth value={kind === 'daily_check' ? expected : amount}
             onChange={e => (kind === 'daily_check' ? setExpected(parseFloat(e.target.value) || 0) : setAmount(parseFloat(e.target.value) || 0))}
             inputProps={{ min: 0, step: 0.01 }}
           />
@@ -548,16 +519,14 @@ function PettyCashDialog({ open, title, locations, people, onClose, onSubmit, ki
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button
-          variant="contained"
+        <Button variant="contained"
           disabled={(moneySource === 'house' ? !locationId : !personId) || (kind === 'top_up' ? amount <= 0 : kind === 'daily_check' ? expected < 0 || amount < 0 : amount < 0) || isLoading}
           onClick={() => onSubmit(kind === 'top_up'
             ? { moneySource, locationId: moneySource === 'house' ? locationId : undefined, personId: moneySource === 'person' ? personId : undefined, amountPence: Math.round(amount * 100), notes }
             : kind === 'daily_check'
               ? { moneySource, locationId: moneySource === 'house' ? locationId : undefined, personId: moneySource === 'person' ? personId : undefined, expectedBalancePence: Math.round(expected * 100), physicalBalancePence: Math.round(amount * 100), checkDate, notes }
               : { moneySource, locationId, actualBalancePence: Math.round(amount * 100), notes }
-          )}
-        >
+          )}>
           {isLoading ? <CircularProgress size={20} /> : kind === 'top_up' ? 'Top up' : kind === 'daily_check' ? 'Save check' : 'Reconcile'}
         </Button>
       </DialogActions>
