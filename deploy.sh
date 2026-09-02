@@ -29,18 +29,22 @@ for net in $(docker network ls --format '{{.Name}}' | grep "^${PROJECT_NAME}_");
   fi
 done
 
-# 3. Pull latest code
+# 3. Clean up old Docker images to prevent disk filling up
+echo "Cleaning old Docker images..."
+docker image prune -af --filter 'until=168h' 2>/dev/null && echo "  Removed images older than 7 days" || echo "  Image prune skipped"
+
+# 4. Pull latest code
 echo "Pulling latest code..."
 cd "$COMPOSE_DIR"
 git pull origin master
 
-# 4. Ensure Redis port is correct (defensive — prevents the recurring 6379 conflict)
+# 5. Ensure Redis port is correct (defensive — prevents the recurring 6379 conflict)
 if grep -q "'6379:6379'" docker-compose.yml; then
   echo "Fixing Redis port conflict (6379 -> 6380)..."
   sed -i "s/'6379:6379'/'6380:6379'/g" docker-compose.yml
 fi
 
-# 5. Fix postgres superuser login via single-user mode (recurring issue)
+# 6. Fix postgres superuser login via single-user mode (recurring issue)
 echo "Ensuring postgres superuser can log in..."
 docker stop meticle-api-1 2>/dev/null || true
 docker stop meticle-postgres-1 2>/dev/null || true
@@ -53,15 +57,15 @@ docker run --rm -u postgres \
 docker start meticle-postgres-1
 sleep 5
 
-# 6. Build and start
+# 7. Build and start
 echo "Building and starting services..."
 docker compose up -d --build --force-recreate api web
 
-# 7. Wait for health
+# 8. Wait for health
 echo "Waiting for API to start..."
 sleep 15
 
-# 8. Verify
+# 9. Verify
 echo "=== Verification ==="
 echo "Containers:"
 docker ps --format 'table {{.Names}}\t{{.Status}}' | grep meticle
