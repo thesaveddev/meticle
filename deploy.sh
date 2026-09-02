@@ -46,12 +46,17 @@ fi
 
 # 6. Fix postgres superuser login via single-user mode (recurring issue)
 echo "Ensuring postgres superuser can log in..."
+if [ -f .env ]; then
+  DB_PASS=$(grep '^POSTGRES_PASSWORD=' .env | cut -d'=' -f2)
+else
+  DB_PASS='postgres'
+fi
 docker stop meticle-api-1 2>/dev/null || true
 docker stop meticle-postgres-1 2>/dev/null || true
 docker run --rm -u postgres \
   -v ${PROJECT_NAME}_postgres_data:/var/lib/postgresql/data \
   postgres:15-alpine sh -c \
-  "echo \"ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';\" | postgres --single -D /var/lib/postgresql/data postgres 2>&1" \
+  "echo \"ALTER ROLE postgres WITH LOGIN PASSWORD '${DB_PASS}';\" | postgres --single -D /var/lib/postgresql/data postgres 2>&1" \
   && echo "  Postgres superuser login enabled" || echo "  Warning: could not fix postgres role (may already be OK)"
 
 docker start meticle-postgres-1
