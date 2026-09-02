@@ -85,10 +85,27 @@ services:
     networks:
       - meticle
 
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    volumes:
+      - uptime_data:/app/data
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3001/ || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - meticle
+
 volumes:
   postgres_data:
   redis_data:
   uploads_data:
+  uptime_data:
 
 networks:
   meticle:
