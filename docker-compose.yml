@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
@@ -19,12 +17,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - meticle
 
   redis:
     image: redis:7-alpine
     restart: always
     ports:
-      - '6379:6379'
+      - '6380:6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -32,6 +32,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - meticle
 
   api:
     build:
@@ -55,6 +57,8 @@ services:
         condition: service_healthy
     volumes:
       - uploads_data:/app/uploads
+    networks:
+      - meticle
 
   web:
     build:
@@ -64,8 +68,14 @@ services:
       - '3000:80'
     depends_on:
       - api
+    networks:
+      - meticle
 
 volumes:
   postgres_data:
   redis_data:
   uploads_data:
+
+networks:
+  meticle:
+    driver: bridge

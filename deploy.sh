@@ -40,15 +40,28 @@ if grep -q "'6379:6379'" docker-compose.yml; then
   sed -i "s/'6379:6379'/'6380:6379'/g" docker-compose.yml
 fi
 
-# 5. Build and start
+# 5. Fix postgres superuser login via single-user mode (recurring issue)
+echo "Ensuring postgres superuser can log in..."
+docker stop meticle-api-1 2>/dev/null || true
+docker stop meticle-postgres-1 2>/dev/null || true
+docker run --rm -u postgres \
+  -v ${PROJECT_NAME}_postgres_data:/var/lib/postgresql/data \
+  postgres:15-alpine sh -c \
+  "echo \"ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';\" | postgres --single -D /var/lib/postgresql/data postgres 2>&1" \
+  && echo "  Postgres superuser login enabled" || echo "  Warning: could not fix postgres role (may already be OK)"
+
+docker start meticle-postgres-1
+sleep 5
+
+# 6. Build and start
 echo "Building and starting services..."
 docker compose up -d --build --force-recreate api web
 
-# 6. Wait for health
+# 7. Wait for health
 echo "Waiting for API to start..."
 sleep 15
 
-# 7. Verify
+# 8. Verify
 echo "=== Verification ==="
 echo "Containers:"
 docker ps --format 'table {{.Names}}\t{{.Status}}' | grep meticle
