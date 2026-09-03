@@ -169,7 +169,10 @@ jobs:
               exit 1
             fi
             chmod 750 "$DEPLOY_SCRIPT"
-            exec "$DEPLOY_SCRIPT"
+            case "$DEPLOY_SCRIPT" in
+              /*|./*) exec "$DEPLOY_SCRIPT" ;;
+              *) exec "./$DEPLOY_SCRIPT" ;;
+            esac
 
   notify-failure:
     name: Notify failed deployment
@@ -178,16 +181,18 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
+      - name: Check out notification helper
+        uses: actions/checkout@v4
       - name: Send Slack and email alerts
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.DEPLOY_SLACK_WEBHOOK_URL }}
-          SMTP_HOST: ${{ secrets.DEPLOY_SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.DEPLOY_SMTP_PORT }}
-          SMTP_SECURE: ${{ secrets.DEPLOY_SMTP_SECURE }}
-          SMTP_USER: ${{ secrets.DEPLOY_SMTP_USER }}
-          SMTP_PASS: ${{ secrets.DEPLOY_SMTP_PASS }}
-          SMTP_FROM: ${{ secrets.DEPLOY_SMTP_FROM }}
-          ALERT_TO: ${{ vars.DEPLOY_ALERT_TO }}
+          DEPLOY_SMTP_HOST: ${{ secrets.DEPLOY_SMTP_HOST }}
+          DEPLOY_SMTP_PORT: ${{ secrets.DEPLOY_SMTP_PORT }}
+          DEPLOY_SMTP_SECURE: ${{ secrets.DEPLOY_SMTP_SECURE }}
+          DEPLOY_SMTP_USER: ${{ secrets.DEPLOY_SMTP_USER }}
+          DEPLOY_SMTP_PASS: ${{ secrets.DEPLOY_SMTP_PASS }}
+          DEPLOY_SMTP_FROM: ${{ secrets.DEPLOY_SMTP_FROM }}
+          DEPLOY_ALERT_TO: ${{ vars.DEPLOY_ALERT_TO }}
           BUILD_CONFIG_RESULT: ${{ needs.validate-production-config.result }}
           BUILD_API_RESULT: ${{ needs.build-api.result }}
           BUILD_WEB_RESULT: ${{ needs.build-web.result }}
@@ -204,53 +209,5 @@ jobs:
           else
             FAILED_STAGE="production deployment or rollback"
           fi
-          SUBJECT="Meticle deployment failed: ${FAILED_STAGE}"
-          MESSAGE=$(printf 'Meticle deployment failed.\n\nStage: %s\nCommit: %s\nBranch: %s\nAPI build: %s\nWeb build: %s\nDeploy result: %s\n\nReview the workflow: %s' \
-            "$FAILED_STAGE" "$COMMIT_SHA" "$BRANCH_NAME" "$BUILD_API_RESULT" "$BUILD_WEB_RESULT" "$DEPLOY_RESULT" "$RUN_URL")
-
-          if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
-            export SLACK_MESSAGE="$MESSAGE"
-            if python3 - <<'PY' | curl -fsS -X POST -H 'Content-Type: application/json' --data-binary @- "$SLACK_WEBHOOK_URL"
-            import json, os
-            print(json.dumps({"text": os.environ["SLACK_MESSAGE"]}))
-            PY
-            then
-              echo "Slack deployment alert sent"
-            else
-              echo "::warning::Slack deployment alert could not be sent"
-            fi
-          else
-            echo "::warning::DEPLOY_SLACK_WEBHOOK_URL is not configured; Slack alert skipped"
-          fi
-
-          if [ -n "${SMTP_HOST:-}" ] && [ -n "${SMTP_USER:-}" ] && [ -n "${SMTP_PASS:-}" ] && [ -n "${SMTP_FROM:-}" ] && [ -n "${ALERT_TO:-}" ]; then
-            export ALERT_SUBJECT="$SUBJECT"
-            export ALERT_BODY="$MESSAGE"
-            if python3 - <<'PY'
-            import os, smtplib, ssl
-            from email.mime.text import MIMEText
-            host = os.environ["SMTP_HOST"]
-            port = int(os.environ.get("SMTP_PORT") or "587")
-            secure = os.environ.get("SMTP_SECURE", "false").lower() == "true"
-            msg = MIMEText(os.environ["ALERT_BODY"], "plain", "utf-8")
-            msg["Subject"] = os.environ["ALERT_SUBJECT"]
-            msg["From"] = os.environ["SMTP_FROM"]
-            msg["To"] = os.environ["ALERT_TO"]
-            if secure:
-                with smtplib.SMTP_SSL(host, port, timeout=20, context=ssl.create_default_context()) as server:
-                    server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
-                    server.send_message(msg)
-            else:
-                with smtplib.SMTP(host, port, timeout=20) as server:
-                    server.starttls(context=ssl.create_default_context())
-                    server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
-                    server.send_message(msg)
-            PY
-            then
-              echo "Email deployment alert sent"
-            else
-              echo "::warning::Email deployment alert could not be sent"
-            fi
-          else
-            echo "::warning::DEPLOY_SMTP_* secrets are not fully configured; email alert skipped"
-          fi
+          export FAILED_STAGE
+          python3 .github/scripts/notify-deploy.py
