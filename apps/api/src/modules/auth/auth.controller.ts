@@ -55,7 +55,7 @@ setInterval(() => {
   for (const [key, entry] of loginLockoutMap) {
     if (now > entry.lockedUntil) loginLockoutMap.delete(key);
   }
-}, 120_000);
+}, 120_000).unref();
 
 const REGISTRATION_ALLOWED_ROLES = ['CARE_WORKER'];
 

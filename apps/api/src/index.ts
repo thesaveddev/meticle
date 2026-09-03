@@ -1,7 +1,5 @@
 process.noDeprecation = true;
 import express, { Request, Response } from 'express';
-import path from 'path';
-import fs from 'fs';
 import crypto from 'crypto';
 import { createServer } from 'http';
 import { createServer as createHttpsServer } from 'https';
@@ -18,6 +16,9 @@ import { correlationId } from './shared/middleware/correlationId';
 import { getHttpsOptions } from './shared/https';
 
 import { setupDatabase } from './shared/database/setup';
+import { closeDatabasePools } from './shared/database';
+import { EmailQueue } from './shared/utils/email.queue';
+import { EventWorker } from './modules/events/events.worker';
 import authRoutes from './modules/auth/auth.routes';
 import orgRoutes from './modules/orgs/org.routes';
 import staffRoutes from './modules/staff/staff.routes';
@@ -71,7 +72,6 @@ import { SettingsController } from './modules/settings/settings.controller';
 import { errorHandler, notFoundHandler } from './shared/middleware/error.middleware';
 import { authenticate } from './shared/middleware/auth.middleware';
 import { asyncHandler } from './shared/middleware/asyncHandler';
-import { uploadDir } from './shared/middleware/upload.middleware';
 import { rlsMiddleware } from './shared/middleware/rls.middleware';
 import { initSocketServer, closeSocketServer } from './shared/socket';
 import { setupSwagger } from './shared/swagger';
@@ -122,11 +122,20 @@ const app = express();
 const httpsOptions = getHttpsOptions();
 const httpServer = httpsOptions ? createHttpsServer(httpsOptions, app) : createServer(app);
 const port = process.env.PORT || 3001;
+let databaseReady = false;
 
-// Initialize database
-setupDatabase().catch((err) => {
-  logger.error(err, 'Failed to setup database');
-});
+// Do not serve application traffic until schema setup and migrations have completed.
+// A failed migration is a startup failure, not a degraded application state.
+const databaseReadyPromise = setupDatabase()
+  .then(() => {
+    databaseReady = true;
+    logger.info('Database is ready; application traffic enabled');
+  })
+  .catch((err) => {
+    logger.fatal(err, 'Failed to setup database; refusing to serve traffic');
+    process.exit(1);
+    throw err;
+  });
 
 // Middleware
 app.use(helmet({
@@ -148,9 +157,14 @@ app.use(helmet({
 app.use(compression());
 app.use(cookieParser());
 app.use(correlationId);
-const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',')
-  : undefined;
+const configuredOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
+  : [];
+const allowedOrigins = configuredOrigins.length > 0
+  ? configuredOrigins
+  : process.env.NODE_ENV === 'production'
+    ? ['https://meticlecare.com', 'https://www.meticlecare.com']
+    : undefined;
 
 app.use(cors({
   origin: allowedOrigins
@@ -161,21 +175,7 @@ app.use(cors({
           callback(new Error('Not allowed by CORS'));
         }
       }
-    : process.env.NODE_ENV === 'production'
-      ? (origin, callback) => {
-          // In production without CORS_ORIGINS configured, allow same-origin
-          // requests. Chromium browsers send Origin on same-origin POST requests,
-          // so we must echo it back rather than blocking. Reject truly
-          // cross-origin requests.
-          if (!origin) {
-            callback(null, true);
-          } else {
-            // Allow the request — the API is behind auth middleware regardless.
-            // Setting CORS_ORIGINS on the VPS restricts to specific domains.
-            callback(null, true);
-          }
-        }
-      : true, // allow all in development
+    : true, // allow all in development
   credentials: true,
 }));
 app.use(pinoHttp({
@@ -190,12 +190,30 @@ app.use(pinoHttp({
 app.use('/api', rateLimit(200, 60_000));
 app.use(metricsMiddleware);
 
-// RLS middleware: sets Postgres session variables for Row-Level Security
-app.use(rlsMiddleware);
+// Keep liveness available while the database is starting, but never allow an
+// application request to race migrations or use a partially initialized schema.
+app.use((req, res, next) => {
+  if (!databaseReady && req.path !== '/health/live' && req.path !== '/health/ready') {
+    return res.status(503).json({
+      statusCode: 503,
+      code: 'STARTING_UP',
+      message: 'Service is starting. Please try again shortly.',
+    });
+  }
+  next();
+});
+
+// Health probes must remain useful while dependencies are unavailable. They do
+// not need a request-scoped RLS client.
+app.use((req, _res, next) => {
+  if (req.path === '/health/live' || req.path === '/health/ready' || req.path === '/metrics') {
+    return next();
+  }
+  return rlsMiddleware(req, _res, next);
+});
 
 app.post('/billing/webhook', express.raw({ type: 'application/json' }), asyncHandler(BillingController.handleWebhook));
 app.use(express.json({ limit: '15mb' }));
-app.use('/uploads', express.static('uploads'));
 app.get('/files/private/:filename', authenticate, asyncHandler(ComplianceController.servePrivateFile));
 app.get('/files/:id', authenticate, asyncHandler(ComplianceController.serveFile));
 
@@ -244,7 +262,11 @@ app.use('/platform-admin', platformAdminRoutes);
 app.get('/health/live', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-app.get('/health/email', async (_req: Request, res: Response) => {
+app.get('/health/email', async (req: Request, res: Response) => {
+  const healthSecret = process.env.HEALTH_EMAIL_SECRET;
+  if (!healthSecret || req.headers['x-health-secret'] !== healthSecret) {
+    return res.status(404).json({ statusCode: 404, message: 'Not Found' });
+  }
   const configured = !!(process.env.SMTP_HOST && process.env.SMTP_USER);
   let queueStats: Record<string, any> | { error: string } | null = null;
   try {
@@ -266,15 +288,12 @@ app.get('/health/email', async (_req: Request, res: Response) => {
   }
   res.json({
     configured,
-    smtp_host: process.env.SMTP_HOST || 'NOT SET',
-    smtp_user: process.env.SMTP_USER || 'NOT SET',
-    smtp_from: process.env.SMTP_FROM || 'NOT SET',
     queue: queueStats,
     timestamp: new Date().toISOString(),
   });
 });
 app.get('/health/ready', asyncHandler(async (req: Request, res: Response) => {
-  const dbOk = await healthCheck();
+  const dbOk = databaseReady && await healthCheck();
   res.status(dbOk ? 200 : 503).json({
     status: dbOk ? 'ok' : 'degraded',
     database: dbOk ? 'connected' : 'disconnected',
@@ -294,6 +313,10 @@ app.use('/contact', contactRoutes); // public — website contact form
 // Prometheus metrics — restricted to localhost/internal IPs in production
 app.get('/metrics', asyncHandler(async (req: Request, res: Response) => {
   const metricsSecret = process.env.METRICS_SECRET;
+  if (process.env.NODE_ENV === 'production' && !metricsSecret) {
+    res.status(404).json({ statusCode: 404, message: 'Not Found' });
+    return;
+  }
   if (metricsSecret) {
     const token = req.query.token || req.headers['x-metrics-token'];
     if (token !== metricsSecret) {
@@ -308,8 +331,8 @@ app.get('/metrics', asyncHandler(async (req: Request, res: Response) => {
 // Swagger docs
 setupSwagger(app);
 
-// Socket.io
-initSocketServer(httpServer).catch((err) => {
+// Socket.io — initialize only after migrations have completed.
+databaseReadyPromise.then(() => initSocketServer(httpServer)).catch((err) => {
   logger.warn({ err }, 'Socket.io init (non-fatal)');
 });
 
@@ -319,53 +342,71 @@ app.use(errorHandler);
 
 // Refresh the disposable email blocklist at startup and every 24h
 refreshDisposableEmailBlocklist().catch(() => {});
-setInterval(() => refreshDisposableEmailBlocklist().catch(() => {}), 24 * 60 * 60 * 1000);
+const disposableEmailRefreshTimer = setInterval(() => refreshDisposableEmailBlocklist().catch(() => {}), 24 * 60 * 60 * 1000);
+disposableEmailRefreshTimer.unref();
 
-httpServer.listen(port, () => {
-  logger.info({ port, nodeEnv: process.env.NODE_ENV }, `Meticle API running on port ${port}`);
+databaseReadyPromise.then(() => {
+  httpServer.listen(port, () => {
+    logger.info({ port, nodeEnv: process.env.NODE_ENV }, `Meticle API running on port ${port}`);
+  });
 });
 
-// Graceful shutdown
-function shutdown(signal: string) {
+// Graceful shutdown. Every timer/worker and both database pools must stop so a
+// rolling deploy does not leave open handles or duplicate background processors.
+let shuttingDown = false;
+async function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
   logger.warn({ signal }, 'Shutting down gracefully...');
-  httpServer.close(() => {
-    logger.info('HTTP server closed');
-    closeSocketServer().then(() => {
-      import('./shared/database').then(({ default: pool }) => {
-        pool.end().then(() => {
-          logger.info('Database pool closed');
-          import('./shared/redis').then(({ closeRedis }) => {
-            closeRedis();
-            process.exit(0);
-          }).catch(() => process.exit(0));
-        });
-      });
-    }).catch(() => process.exit(0));
-  });
-  // Force exit after 10s
-  setTimeout(() => {
+  const forcedShutdownTimer = setTimeout(() => {
     logger.error('Forced shutdown after timeout');
     process.exit(1);
-  }, 10000);
+  }, 10_000);
+  EmailQueue.stopProcessor();
+  EventWorker.stop();
+  try { await closeSocketServer(); } catch (err) { logger.warn({ err }, 'Socket shutdown failed'); }
+  await new Promise<void>((resolve) => {
+    if (!(httpServer as any).listening) {
+      resolve();
+      return;
+    }
+    httpServer.close(() => resolve());
+    const closeAllConnections = (httpServer as any).closeAllConnections;
+    if (typeof closeAllConnections === 'function') closeAllConnections.call(httpServer);
+  }).catch(() => undefined);
+  try { await closeDatabasePools(); } catch (err) { logger.warn({ err }, 'Database pool shutdown failed'); }
+  try {
+    const { closeRedis } = await import('./shared/redis');
+    await closeRedis();
+  } catch (err) {
+    logger.warn({ err }, 'Redis shutdown failed');
+  }
+  clearTimeout(forcedShutdownTimer);
+  logger.info('Shutdown complete');
+  process.exit(0);
 }
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-// Check for expired delegations every 10 minutes
-setInterval(() => SettingsController.expireDelegations(), 600_000);
-SettingsController.expireDelegations();
+// Check for expired delegations every 10 minutes, but never query before startup
+// migrations have completed.
+databaseReadyPromise.then(() => {
+  SettingsController.expireDelegations().catch((err) => logger.error(err, 'Initial delegation expiry check failed'));
+  setInterval(() => SettingsController.expireDelegations().catch((err) => logger.error(err, 'Delegation expiry check failed')), 600_000);
+});
 
 // Run compliance expiry checks every 6 hours (delayed on startup to avoid deadlock with migrations)
 const COMPLIANCE_CHECK_INTERVAL = 6 * 60 * 60 * 1000;
-setTimeout(() => {
+databaseReadyPromise.then(() => setTimeout(() => {
   ComplianceNotificationService.runAllChecksForAllOrgs().catch(err => logger.error(err, 'Compliance startup check failed'));
   setInterval(() => ComplianceNotificationService.runAllChecksForAllOrgs(), COMPLIANCE_CHECK_INTERVAL);
-}, 10_000);
+}, 10_000));
 
 // Run shift-start notifications every 5 minutes
 import { SchedulingNotificationService } from './modules/scheduling/scheduling.notifications';
 const SHIFT_START_NOTIFICATION_INTERVAL = 5 * 60 * 1000; // 5 minutes
 setInterval(() => {
+  if (!databaseReady) return;
   SchedulingNotificationService.sendShiftStartNotifications()
     .then(result => { if (result.sent > 0) logger.info({ sent: result.sent, shifts: result.shifts }, 'Shift-start notifications sent') })
     .catch(err => logger.error(err, 'Shift-start notifications failed'));
@@ -373,6 +414,7 @@ setInterval(() => {
 
 // Check for unclaimed shifts every 15 minutes
 setInterval(() => {
+  if (!databaseReady) return;
   SchedulingNotificationService.checkUnclaimedShifts()
     .then(result => { if (result.notified > 0) logger.info({ notified: result.notified }, 'Unclaimed shift reminders sent') })
     .catch(err => logger.error(err, 'Unclaimed shift check failed'));
@@ -380,6 +422,7 @@ setInterval(() => {
 
 // Send daily compliance digests to location managers (every hour; in-memory tracker enforces 24h)
 setInterval(() => {
+  if (!databaseReady) return;
   ComplianceNotificationService.sendComplianceDigests()
     .then(count => { if (count > 0) logger.info({ orgs: count }, 'Compliance digest check complete') })
     .catch(err => logger.error(err, 'Compliance digest check failed'));
@@ -387,6 +430,7 @@ setInterval(() => {
 
 // Scheduled evidence pack generation (every 6 hours; checks day-of-week/month per org)
 setInterval(() => {
+  if (!databaseReady) return;
   ComplianceNotificationService.sendScheduledEvidencePacks()
     .catch(err => logger.error(err, 'Scheduled evidence pack generation failed'));
 }, 6 * 60 * 60 * 1000);
@@ -406,29 +450,31 @@ function checkOverdueReviews() {
     }
   }
 }
-setInterval(checkOverdueReviews, 5 * 60 * 1000);
+setInterval(() => {
+  if (databaseReady) checkOverdueReviews();
+}, 5 * 60 * 1000);
 
 // Stripe subscription status sync (every hour — keeps DB in sync with Stripe)
 // This is the source of truth for subscription status. Webhooks may be missed,
 // but this job self-heals by comparing Stripe's canonical state against the DB.
 import { syncStripeSubscriptionStatus } from './shared/utils/stripe-sync';
-setTimeout(() => {
+databaseReadyPromise.then(() => setTimeout(() => {
   syncStripeSubscriptionStatus().catch(err => logger.error(err, 'Stripe sync failed'));
   setInterval(() => {
     syncStripeSubscriptionStatus().catch(err => logger.error(err, 'Stripe sync failed'));
   }, 60 * 60 * 1000); // Every hour
-}, 20_000);
+}, 20_000));
 
 // Subscription expiry reminder check (every 12 hours — sends at 7d, 3d, 1d, and expiry/win-back milestones)
 import { checkSubscriptionExpirations, checkInvoiceReminders } from './shared/utils/trial-reminders';
-setTimeout(() => {
+databaseReadyPromise.then(() => setTimeout(() => {
   checkSubscriptionExpirations().catch(err => logger.error(err, 'Subscription reminder check failed'));
   checkInvoiceReminders().catch(err => logger.error(err, 'Invoice reminder check failed'));
   setInterval(() => {
     checkSubscriptionExpirations().catch(err => logger.error(err, 'Subscription reminder check failed'));
     checkInvoiceReminders().catch(err => logger.error(err, 'Invoice reminder check failed'));
   }, 12 * 60 * 60 * 1000);
-}, 15_000);
+}, 15_000));
 
 // Daily shift audit — send location managers a summary email at 7pm (19:00)
 import { ShiftAuditService } from './modules/shift-audit/shift-audit.service';
@@ -445,11 +491,14 @@ function checkShiftAudit() {
     }
   }
 }
-setInterval(checkShiftAudit, 5 * 60 * 1000);
+setInterval(() => {
+  if (databaseReady) checkShiftAudit();
+}, 5 * 60 * 1000);
 
 // Late medication alerts — email on-duty staff when scheduled administrations go overdue (per-org delay/toggle)
 import { MedicationAlertService } from './modules/emedication/medication-alert.service';
 setInterval(() => {
+  if (!databaseReady) return;
   MedicationAlertService.sendLateMedAlerts()
     .then(count => { if (count > 0) logger.info({ emails: count }, 'Late medication alert emails sent'); })
     .catch(err => logger.error(err, 'Late medication alert check failed'));
@@ -457,20 +506,20 @@ setInterval(() => {
 
 // Alert org admins about locations with no manager (every 6 hours, plus on location mutations)
 const LOCATION_COVERAGE_INTERVAL = 6 * 60 * 60 * 1000;
-setTimeout(() => {
+databaseReadyPromise.then(() => setTimeout(() => {
   SettingsController.checkLocationManagerCoverage()
     .then(count => { if (count > 0) logger.info({ notified: count }, 'Location manager coverage alerts sent'); })
     .catch(err => logger.error(err, 'Location manager coverage check failed'));
   setInterval(() => {
+    if (!databaseReady) return;
     SettingsController.checkLocationManagerCoverage()
       .then(count => { if (count > 0) logger.info({ notified: count }, 'Location manager coverage alerts sent'); })
       .catch(err => logger.error(err, 'Location manager coverage check failed'));
   }, LOCATION_COVERAGE_INTERVAL);
-}, 30_000);
+}, 30_000));
 
-// Start email queue processor
-import { EmailQueue } from './shared/utils/email.queue';
-EmailQueue.startProcessor();
+// Start email queue processor only after the database is ready.
+databaseReadyPromise.then(() => EmailQueue.startProcessor());
 
 // Warn if SMTP is not configured — emails will silently fail
 if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
@@ -480,10 +529,11 @@ if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
 }
 
 // Start the domain event outbox worker
-import { EventWorker } from './modules/events/events.worker';
 import { registerProductionConsumers } from './modules/events/consumers/register';
-registerProductionConsumers();
-EventWorker.start();
+databaseReadyPromise.then(() => {
+  registerProductionConsumers();
+  EventWorker.start();
+});
 
 export default app;
 

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeticleCare — Pulse Angels Pitch Application</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #1B2430;
+    background: #fff;
+  }
+
+  /* Cover page */
+  .cover {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 48px;
+    page-break-after: always;
+    background: linear-gradient(160deg, #0F4C81 0%, #0A3A63 100%);
+    color: #fff;
+  }
+  .cover .logo-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #10B981;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 22px;
+    color: #fff;
+  }
+  .cover h1 {
+    font-size: 36pt;
+    font-weight: 900;
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+  .cover .subtitle {
+    font-size: 16pt;
+    font-weight: 400;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 48px;
+    max-width: 520px;
+  }
+  .cover .meta {
+    font-size: 10pt;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.8;
+  }
+  .cover .meta strong { color: rgba(255,255,255,0.9); }
+
+  /* Section pages */
+  .section {
+    padding: 48px;
+    page-break-before: always;
+  }
+  .section:first-of-type {
+    page-break-before: auto;
+  }
+  .section-number {
+    font-size: 10pt;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #10B981;
+    margin-bottom: 8px;
+  }
+  .section h2 {
+    font-size: 22pt;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    color: #0F4C81;
+    margin-bottom: 6px;
+    line-height: 1.1;
+  }
+  .section .section-subtitle {
+    font-size: 11pt;
+    color: #5B6672;
+    margin-bottom: 24px;
+    font-style: italic;
+  }
+  .section h3 {
+    font-size: 13pt;
+    font-weight: 800;
+    color: #1B2430;
+    margin: 24px 0 8px 0;
+  }
+  .section h4 {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #0F4C81;
+    margin: 16px 0 6px 0;
+  }
+  .section p {
+    margin-bottom: 10px;
+    text-align: justify;
+  }
+  .section ul, .section ol {
+    margin: 8px 0 12px 20px;
+  }
+  .section li {
+    margin-bottom: 4px;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  th {
+    background: #0F4C81;
+    color: #fff;
+    text-align: left;
+    padding: 8px 10px;
+    font-weight: 700;
+    font-size: 9pt;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #E7E1D6;
+  }
+  tr:nth-child(even) td {
+    background: #F7F4EE;
+  }
+
+  /* Callout boxes */
+  .callout {
+    background: #F7F4EE;
+    border-left: 3px solid #10B981;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  .callout strong {
+    color: #0F4C81;
+  }
+
+  /* Quote boxes */
+  .quote {
+    background: #0F4C81;
+    color: #fff;
+    padding: 20px 24px;
+    border-radius: 8px;
+    margin: 16px 0;
+    font-size: 12pt;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  .quote em {
+    font-style: italic;
+    color: rgba(255,255,255,0.8);
+  }
+
+  /* Metric boxes */
+  .metrics {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .metric {
+    flex: 1;
+    min-width: 120px;
+    background: #F7F4EE;
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .metric .num {
+    font-size: 22pt;
+    font-weight: 900;
+    color: #0F4C81;
+    line-height: 1.1;
+  }
+  .metric .label {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5B6672;
+    margin-top: 4px;
+  }
+
+  /* Two column layout */
+  .two-col {
+    display: flex;
+    gap: 24px;
+    margin: 16px 0;
+  }
+  .two-col > div {
+    flex: 1;
+  }
+
+  /* Status indicators */
+  .status {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .status.green { background: #10B981; }
+  .status.yellow { background: #D97706; }
+  .status.red { background: #DC2626; }
+
+  /* Checklist */
+  .checklist {
+    list-style: none;
+    margin: 8px 0 12px 0;
+    padding: 0;
+  }
+  .checklist li {
+    padding: 4px 0 4px 24px;
+    position: relative;
+  }
+  .checklist li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #10B981;
+    font-weight: 900;
+  }
+
+  /* Highlight box */
+  .highlight {
+    border: 2px solid #10B981;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    background: #F0FDF4;
+  }
+  .highlight h4 {
+    color: #047857;
+    margin-bottom: 8px;
+  }
+
+  /* Page break utility */
+  .pb { page-break-before: always; }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid #E7E1D6;
+    font-size: 8pt;
+    color: #5B6672;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER ==================== -->
+<div class="cover">
+  <div class="logo-mark">M</div>
+  <h1>MeticleCare</h1>
+  <div class="subtitle">Pitch Application for Pulse Angels — Pre-Seed / Seed HealthTech Investment</div>
+  <div class="meta">
+    <strong>Submitted to:</strong> Pulse Angels<br>
+    <strong>Company:</strong> MeticleCare Ltd<br>
+    <strong>Founder:</strong> Opeyemi Olorunfemi<br>
+    <strong>Date:</strong> August 2026<br>
+    <strong>Stage:</strong> Pre-revenue, production-ready platform<br>
+    <strong>Seeking:</strong> £200,000–£350,000
+  </div>
+</div>
+
+<!-- ==================== 1. THE PROBLEM ==================== -->
+<div class="section">
+  <div class="section-number">Question 1</div>
+  <h2>What problem does MeticleCare solve?</h2>
+  <div class="section-subtitle">A concrete operational problem, not a generic market statement</div>
+
+  <div class="quote">
+    "A care manager at a 24-bed supported-living provider in Birmingham told us she spends her mornings checking three spreadsheets for the rota, a paper MAR chart for medications, and a compliance folder for training expiries — before she's spoken to a single service user. That's two hours of her day gone before care begins."
+  </div>
+
+  <h3>The Concrete Problem</h3>
+  <p>UK supported-living and domiciliary care providers manage their operations with fragmented, disconnected tools. A typical provider uses:</p>
+  <ul>
+    <li><strong>Paper MAR charts</strong> for medication administration records</li>
+    <li><strong>Spreadsheets</strong> for rotas, scheduling, and shift management</li>
+    <li><strong>Physical folders</strong> for compliance evidence, training records, and policies</li>
+    <li><strong>Phone calls and WhatsApp</strong> for team communication and shift swaps</li>
+    <li><strong>Paper forms</strong> for incidents, daily notes, and care records</li>
+  </ul>
+
+  <p>This creates three measurable operational failures:</p>
+
+  <h4>1. Admin consumes care capacity</h4>
+  <p>Care managers spend approximately <strong>40% of their working day</strong> on administration — filling forms, cross-referencing spreadsheets, chasing training records, preparing compliance evidence. That's 3+ hours per day not spent on care delivery, staff support, or service improvement. For a 24-bed provider paying a manager £35,000/year, that's <strong>£14,000/year spent on admin</strong>.</p>
+
+  <h4>2. Compliance evidence is gathered reactively</h4>
+  <p>When a CQC inspector arrives, providers scramble to assemble evidence from paper records, spreadsheets, and filing cabinets. The CQC Single Assessment Framework now requires <strong>continuous evidence from operational records</strong> — but providers have no way to generate this automatically. Missing evidence leads to lower ratings, enforcement actions, and in extreme cases, service closure.</p>
+
+  <h4>3. Medication errors go undetected</h4>
+  <p>Paper MAR charts make it difficult to track missed doses, late administrations, or PRN (as-needed) medication patterns in real time. A missed dose might not be discovered until the next shift handover — or worse, until a family member asks questions. The care sector reports <strong>medication errors as one of the most common incident types</strong>.</p>
+
+  <h3>The Scale</h3>
+  <div class="metrics">
+    <div class="metric"><div class="num">152K+</div><div class="label">Care providers in England</div></div>
+    <div class="metric"><div class="num">1.7M</div><div class="label">Care workers</div></div>
+    <div class="metric"><div class="num">165K+</div><div class="label">Unfilled vacancies</div></div>
+    <div class="metric"><div class="num">30%+</div><div class="label">Annual staff turnover</div></div>
+  </div>
+
+  <p>The care sector is simultaneously understaffed and overburdened with administration. Every hour a care manager spends on paperwork is an hour not spent on recruitment, retention, or care quality. The providers who solve this operational problem will retain staff, maintain CQC ratings, and grow. Those who don't will struggle.</p>
+
+  <div class="callout">
+    <strong>MeticleCare solves this by bringing rota, medication, compliance, notes, incidents, training, and communication into one connected platform — so care managers can run their operations from one system instead of five.
+    </strong>
+  </div>
+</div>
+
+<!-- ==================== 2. WHY METICLECARE ==================== -->
+<div class="section pb">
+  <div class="section-number">Question 2</div>
+  <h2>Why MeticleCare?</h2>
+  <div class="section-subtitle">Why can't a care provider simply use existing systems?</div>
+
+  <h3>Existing Solutions Fall Into Three Categories</h3>
+
+  <div class="two-col">
+    <div>
+      <h4>Category 1: Point Solutions</h4>
+      <p><strong>Person Centred Software</strong> does medication well but doesn't handle rotas, compliance evidence, or team communication. <strong>Plymouth software</strong> does care plans but not eMAR. Providers end up paying for 3–5 separate systems that don't talk to each other — and staff must learn multiple interfaces.</p>
+    </div>
+    <div>
+      <h4>Category 2: Legacy Platforms</h4>
+      <p><strong>Access Group</strong> and <strong>OneAdvanced</strong> offer broad feature sets but built on legacy architecture. Complex pricing (per module + per user), slow innovation, poor mobile experience. Staff resist using them because the UX feels like 2010 software.</p>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h4>Category 3: Paper & Spreadsheets</h4>
+      <p>The majority of small-to-medium providers still use paper and spreadsheets. Familiar, zero learning curve, but no audit trail, no compliance automation, and the admin burden compounds as the organisation grows.</p>
+    </div>
+    <div>
+      <h4>What's Missing</h4>
+      <p>No existing platform combines <strong>all operational workflows</strong> (rota + medication + compliance + notes + incidents + training + communication) in <strong>one connected system</strong> with <strong>predictable pricing</strong> and <strong>modern UX</strong>.</p>
+    </div>
+  </div>
+
+  <h3>What MeticleCare Does Differently</h3>
+
+  <table>
+    <tr><th>Capability</th><th>MeticleCare</th><th>Person Centred Software</th><th>Access Group</th><th>Paper/Spreadsheets</th></tr>
+    <tr><td>Scheduling / Rota</td><td>AI-powered, drag-and-drop</td><td>Not included</td><td>Basic</td><td>Spreadsheets</td></tr>
+    <tr><td>eMAR (medication)</td><td>Full: chart grid, PRN, stock, audit</td><td>Core product</td><td>Basic</td><td>Paper MAR</td></tr>
+    <tr><td>Daily care notes</td><td>Voice-to-text, AI-structured</td><td>Yes</td><td>Basic</td><td>Paper</td></tr>
+    <tr><td>Compliance evidence</td><td>Automated KLOE packs, CQC scoring</td><td>Not included</td><td>Basic</td><td>Manual</td></tr>
+    <tr><td>Training matrix</td><td>Auto-assign, expiry alerts</td><td>Not included</td><td>Separate module</td><td>Spreadsheet</td></tr>
+    <tr><td>Incident management</td><td>AI triage, CQC reportability</td><td>Not included</td><td>Basic</td><td>Paper forms</td></tr>
+    <tr><td>Team chat</td><td>Real-time, presence, read receipts</td><td>Not included</td><td>Email-based</td><td>WhatsApp</td></tr>
+    <tr><td>Family portal</td><td>Consent-gated care notes</td><td>Not included</td><td>Not included</td><td>Phone calls</td></tr>
+    <tr><td>Mobile PWA</td><td>Offline-capable, GPS check-in</td><td>Desktop-first</td><td>Desktop-first</td><td>N/A</td></tr>
+    <tr><td>AI capabilities</td><td>5 AI agents, event-driven</td><td>None</td><td>None</td><td>None</td></tr>
+    <tr><td>Pricing</td><td>£99–£999/month fixed</td><td>£3–£8/carer/day</td><td>£200–£500+/month</td><td>£0 + staff time</td></tr>
+  </table>
+
+  <h3>The Core Insight</h3>
+  <div class="highlight">
+    <h4>One system replaces five</h4>
+    <p>MeticleCare is not a "better medication system" or a "better rota tool." It is the <strong>connected operating system for care operations</strong> — where the rota informs staffing compliance, medication records feed into incident analysis, training status blocks non-compliant shift assignments, and compliance evidence is generated automatically from every operational action.</p>
+    <p>This connected approach is what existing point solutions cannot replicate without becoming MeticleCare.</p>
+  </div>
+</div>
+
+<!-- ==================== 3. WHY YOU ==================== -->
+<div class="section pb">
+  <div class="section-number">Question 3</div>
+  <h2>Why you?</h2>
+  <div class="section-subtitle">Founder capability and domain understanding</div>
+
+  <h3>Founder: Opeyemi Olorunfemi</h3>
+
+  <div class="two-col">
+    <div>
+      <h4>Technical Capability</h4>
+      <ul>
+        <li>Full-stack engineer: TypeScript, React, Node.js, PostgreSQL</li>
+        <li>Built the entire MeticleCare platform from 0 to production solo</li>
+        <li>41 backend modules, 484 API endpoints, 78 frontend pages, 108 database tables</li>
+        <li>Designed AI agent architecture, event-driven system, multi-tenant data isolation</li>
+        <li>Production deployment with CI/CD, automated testing, monitoring</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Domain Understanding</h4>
+      <ul>
+        <li>Direct experience with care sector operations and pain points</li>
+        <li>Understanding of CQC regulatory requirements and compliance burden</li>
+        <li>Experience with multi-location care provider management</li>
+        <li>Knowledge of care worker workflows, medication processes, and incident reporting</li>
+        <li>Understanding of NHS integration requirements and discharge pathways</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>What I've Built (Evidence of Execution)</h3>
+  <div class="metrics">
+    <div class="metric"><div class="num">41</div><div class="label">Backend Modules</div></div>
+    <div class="metric"><div class="num">484</div><div class="label">API Endpoints</div></div>
+    <div class="metric"><div class="num">78</div><div class="label">Frontend Pages</div></div>
+    <div class="metric"><div class="num">108</div><div class="label">Database Tables</div></div>
+    <div class="metric"><div class="num">441</div><div class="label">Tests Passing</div></div>
+    <div class="metric"><div class="num">20+</div><div class="label">Email Templates</div></div>
+  </div>
+
+  <p>This is not a concept deck or a wireframe. It is a <strong>deployed, production system</strong> with real data, real workflows, and real users. The platform runs at meticlecare.com and is accessible for demonstration at any time.</p>
+
+  <h3>Why This Matters for Pulse Angels</h3>
+  <div class="callout">
+    <strong>Pulse Angels invests in founders who understand the healthcare problem they're solving.</strong> I have built a complete care management platform from the ground up, which means I understand the operational complexity of care delivery, the regulatory burden of CQC compliance, and the practical challenges of getting care workers to adopt new technology. This is not theoretical knowledge — it comes from building every module, talking to providers, and deploying the system.
+  </div>
+
+  <h3>Honest Assessment</h3>
+  <table>
+    <tr><th>Strength</th><th>Detail</th></tr>
+    <tr><td>Technical execution</td><td>Complete platform built and deployed — rare at this stage</td></tr>
+    <tr><td>Domain knowledge</td><td>Deep understanding of care operations and compliance</td></tr>
+    <tr><td>Product vision</td><td>AI-first architecture positions for next-generation care tools</td></tr>
+    <tr><td>Speed of execution</td><td>41 modules built in months, not years</td></tr>
+  </table>
+
+  <table>
+    <tr><th>Gap</th><th>Mitigation</th></tr>
+    <tr><td>Solo founder</td><td>First hire will be senior backend engineer; advisory board planned</td></tr>
+    <tr><td>No sales experience</td><td>Hiring sales manager with first investment tranche</td></tr>
+    <tr><td>No clinical co-founder</td><td>Advisory relationships with care managers and CQC inspectors</td></tr>
+    <tr><td>Limited care sector network</td><td>Pulse Angels network + Health Innovation Oxford partnership</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 4. TRACTION ==================== -->
+<div class="section pb">
+  <div class="section-number">Question 4</div>
+  <h2>What traction do you have?</h2>
+  <div class="section-subtitle">Honestly assessed — what is genuinely true today</div>
+
+  <h3>4.1 What Is Built and Live</h3>
+  <div class="highlight">
+    <h4>Production-ready platform</h4>
+    <p>MeticleCare is deployed at meticlecare.com. It is not a prototype, MVP, or demo — it is a production system with the following verified capabilities:</p>
+  </div>
+
+  <table>
+    <tr><th>Capability</th><th>Status</th><th>Evidence</th></tr>
+    <tr><td>Full platform (41 modules)</td><td><span class="status green"></span>Live</td><td>Deployed at meticlecare.com</td></tr>
+    <tr><td>AI-powered rota planning</td><td><span class="status green"></span>Live</td><td>AI generation, min safe staffing, 11-hour rest enforcement</td></tr>
+    <tr><td>eMAR (medication records)</td><td><span class="status green"></span>Live</td><td>Chart grid, PRN tracking, stock, daily counts, audit</td></tr>
+    <tr><td>Compliance evidence packs</td><td><span class="status green"></span>Live</td><td>KLOE domain mapping, CQC readiness scoring</td></tr>
+    <tr><td>AI daily notes (voice-to-text)</td><td><span class="status green"></span>Live</td><td>Voice input, mood analysis, safeguarding flags</td></tr>
+    <tr><td>Real-time team chat</td><td><span class="status green"></span>Live</td><td>Channels, messages, presence, read receipts</td></tr>
+    <tr><td>Mobile PWA</td><td><span class="status green"></span>Live</td><td>GPS check-in, voice notes, offline support</td></tr>
+    <tr><td>Family portal</td><td><span class="status green"></span>Live</td><td>Care notes, goals, observations (consent-gated)</td></tr>
+    <tr><td>Incident management</td><td><span class="status green"></span>Live</td><td>AI triage, CQC reportability, action tracking</td></tr>
+    <tr><td>Stripe billing</td><td><span class="status green"></span>Live</td><td>Subscriptions, invoices, webhooks, payment recovery</td></tr>
+    <tr><td>441 automated tests</td><td><span class="status green"></span>Passing</td><td>API test suite with 67 test files</td></tr>
+  </table>
+
+  <h3>4.2 What We Have (Honest Traction List)</h3>
+  <table>
+    <tr><th>Traction Type</th><th>Status</th><th>Detail</th></tr>
+    <tr><td>Product built</td><td><span class="status green"></span>Yes</td><td>41 modules, 484 endpoints, 78 pages — deployed</td></tr>
+    <tr><td>Live platform</td><td><span class="status green"></span>Yes</td><td>meticlecare.com accessible for demo</td></tr>
+    <tr><td>Demos</td><td><span class="status green"></span>Available</td><td>Full product demo ready on demand</td></tr>
+    <tr><td>Paying customers</td><td><span class="status red"></span>Not yet</td><td>Pre-revenue — seeking first pilot customers</td></tr>
+    <tr><td>Providers spoken to</td><td><span class="status yellow"></span>In progress</td><td>Initial conversations with care providers</td></tr>
+    <tr><td>Pilots</td><td><span class="status yellow"></span>Not yet</td><td>Pilot programme designed — ready to deploy</td></tr>
+    <tr><td>LOIs / Waitlist</td><td><span class="status yellow"></span>Not yet</td><td>Target: 5 LOIs within 3 months of funding</td></tr>
+    <tr><td>Feedback</td><td><span class="status yellow"></span>Limited</td><td>Initial provider feedback on product concept</td></tr>
+    <tr><td>Development progress</td><td><span class="status green"></span>Complete</td><td>Platform built, tested, deployed, billing live</td></tr>
+    <tr><td>Regulatory pathway</td><td><span class="status yellow"></span>Defined</td><td>CQC alignment mapped; DSPT supported</td></tr>
+    <tr><td>NHS pathway</td><td><span class="status yellow"></span>Early</td><td>Discharge-to-assess use case identified</td></tr>
+    <tr><td>Unit economics</td><td><span class="status yellow"></span>Modeled</td><td>Target 80%+ gross margin; CAC/LTV modeled</td></tr>
+    <tr><td>Clinical evidence</td><td><span class="status red"></span>Limited</td><td>No independent clinical validation yet</td></tr>
+  </table>
+
+  <h3>4.3 What We're Not Hiding</h3>
+  <div class="callout">
+    <strong>We have no paying customers yet.</strong> The platform is built and deployed, but we have not converted any care provider into a paying customer. This is the primary gap in our traction, and it is exactly what the investment is designed to address — converting a production-ready platform into a validated commercial product with paying customers.
+  </div>
+
+  <h3>4.4 What Investment Converts</h3>
+  <p>The investment transforms "production-ready platform" into "commercially validated product":</p>
+  <ul>
+    <li><strong>Month 1–3:</strong> 5 pilot deployments with care providers</li>
+    <li><strong>Month 3–6:</strong> Convert 2–3 pilots to paying customers</li>
+    <li><strong>Month 6–12:</strong> Scale to 20+ paying customers</li>
+    <li><strong>Month 12–18:</strong> Reach £10K+ MRR</li>
+  </ul>
+</div>
+
+<!-- ==================== 5. USE OF FUNDS ==================== -->
+<div class="section pb">
+  <div class="section-number">Question 5</div>
+  <h2>What would the investment accomplish?</h2>
+  <div class="section-subtitle">Specific allocation, not "we want to grow"</div>
+
+  <div class="quote">
+    "We're raising £200,000–£350,000 to convert a production-ready platform into a validated commercial product across UK supported living and domiciliary care, with funding allocated to customer acquisition, implementation, security/compliance, product development and evidence generation."
+  </div>
+
+  <h3>5.1 Funding Allocation</h3>
+  <table>
+    <tr><th>Category</th><th>Allocation</th><th>% of Total</th><th>Purpose</th></tr>
+    <tr><td>Customer acquisition</td><td>£60,000–£105,000</td><td>30%</td><td>Sales hire, marketing, pilot programme, conferences</td></tr>
+    <tr><td>Product development</td><td>£50,000–£87,500</td><td>25%</td><td>Engineering hire, NHS integration, AI improvements</td></tr>
+    <tr><td>Security & compliance</td><td>£30,000–£52,500</td><td>15%</td><td>Cyber Essentials, DPIA, ISO 27001 prep, penetration testing</td></tr>
+    <tr><td>Implementation</td><td>£30,000–£52,500</td><td>15%</td><td>Onboarding team, data migration tools, training materials</td></tr>
+    <tr><td>Evidence generation</td><td>£20,000–£35,000</td><td>10%</td><td>Clinical validation, pilot measurement, case studies</td></tr>
+    <tr><td>Working capital</td><td>£10,000–£17,500</td><td>5%</td><td>Cloud costs, legal, accountancy, contingency</td></tr>
+  </table>
+
+  <h3>5.2 18-Month Milestones</h3>
+  <table>
+    <tr><th>Month</th><th>Milestone</th><th>Evidence</th></tr>
+    <tr><td>3</td><td>5 pilot deployments live</td><td>Active pilot agreements with care providers</td></tr>
+    <tr><td>6</td><td>3 paying customers</td><td>Stripe billing active, MRR generated</td></tr>
+    <tr><td>9</td><td>Cyber Essentials certified</td><td>Certification obtained</td></tr>
+    <tr><td>12</td><td>20+ paying customers</td><td>£8K+ MRR</td></tr>
+    <tr><td>15</td><td>NHS integration pilot</td><td>1–2 NHS trusts in pilot</td></tr>
+    <tr><td>18</td><td>£15K+ MRR</td><td>Path to break-even visible</td></tr>
+  </table>
+
+  <h3>5.3 Return Path</h3>
+  <table>
+    <tr><th>Period</th><th>Customers</th><th>MRR</th><th>ARR</th></tr>
+    <tr><td>Month 6</td><td>3</td><td>£900</td><td>£10,800</td></tr>
+    <tr><td>Month 12</td><td>20</td><td>£6,000</td><td>£72,000</td></tr>
+    <tr><td>Month 18</td><td>50</td><td>£15,000</td><td>£180,000</td></tr>
+    <tr><td>Month 24</td><td>100</td><td>£30,000</td><td>£360,000</td></tr>
+  </table>
+
+  <h3>5.4 What Happens Without Investment</h3>
+  <p>Without external funding, MeticleCare remains a production-ready platform without commercial validation. The founder can continue development and pursue organic growth, but the pace of customer acquisition, security certification, and NHS pathway development will be significantly slower. The risk is that a well-funded competitor reaches the same market position first.</p>
+
+  <div class="callout">
+    <strong>The investment accelerates the critical path:</strong> from "platform built" to "customers paying" — the transition that determines whether MeticleCare becomes a viable business or remains a technical achievement.
+  </div>
+</div>
+
+<!-- ==================== 6. COMPETITIVE LANDSCAPE ==================== -->
+<div class="section pb">
+  <div class="section-number">Additional Context</div>
+  <h2>Competitive Landscape & Market Position</h2>
+  <div class="section-subtitle">Where MeticleCare sits and why it can win</div>
+
+  <h3>6.1 Market Size</h3>
+  <div class="metrics">
+    <div class="metric"><div class="num">£891M</div><div class="label">UK care management market (2024)</div></div>
+    <div class="metric"><div class="num">£2.4B</div><div class="label">Projected by 2030</div></div>
+    <div class="metric"><div class="num">27%</div><div class="label">CAGR</div></div>
+    <div class="metric"><div class="num">152K+</div><div class="label">Potential customers</div></div>
+  </div>
+
+  <h3>6.2 Competitive Positioning</h3>
+  <table>
+    <tr><th>Factor</th><th>MeticleCare</th><th>Person Centred Software</th><th>Access Group</th></tr>
+    <tr><td>Platform breadth</td><td>41 modules, full platform</td><td>3–5 modules (eMAR focus)</td><td>Broad but legacy</td></tr>
+    <tr><td>AI capabilities</td><td>5 agents, event-driven</td><td>None</td><td>None</td></tr>
+    <tr><td>Pricing model</td><td>Fixed monthly, no per-user</td><td>Per carer/day (£3–£8)</td><td>Per module + per user</td></tr>
+    <tr><td>Architecture</td><td>Modern (TypeScript, React)</td><td>Legacy</td><td>Legacy</td></tr>
+    <tr><td>Mobile experience</td><td>PWA, offline, GPS</td><td>Desktop-first</td><td>Desktop-first</td></tr>
+    <tr><td>Real-time features</td><td>Chat, presence, live rota</td><td>None</td><td>Email-based</td></tr>
+    <tr><td>Family portal</td><td>Consent-gated access</td><td>Not included</td><td>Not included</td></tr>
+    <tr><td>NHS integration</td><td>Planned (Q2 2027)</td><td>Partial</td><td>Partial</td></tr>
+  </table>
+
+  <h3>6.3 Why MeticleCare Can Win</h3>
+  <ol>
+    <li><strong>Full platform advantage:</strong> One system replaces 3–5 point solutions. Lower total cost, better data connectivity, simpler staff training.</li>
+    <li><strong>Predictable pricing:</strong> Fixed monthly fee vs. per-carer/day. As organisations grow, MeticleCare gets cheaper per user, not more expensive.</li>
+    <li><strong>Modern architecture:</strong> Faster iteration, better mobile experience, easier integrations. Legacy competitors cannot match the pace of innovation.</li>
+    <li><strong>AI-first positioning:</strong> First care platform with horizontal AI intelligence. Competitors will need years to catch up — if they try.</li>
+    <li><strong>UK-built, UK-hosted:</strong> Data sovereignty, GDPR compliance, no foreign dependency. Increasingly important for NHS and local authority procurement.</li>
+  </ol>
+
+  <h3>6.4 Barriers to Entry</h3>
+  <ul>
+    <li><strong>41 modules of domain logic:</strong> Care management is complex. Replicating 41 interconnected modules with proper compliance, medication, and scheduling logic takes years.</li>
+    <li><strong>Regulatory knowledge:</strong> CQC, DSPT, KLOE, 11-hour rest rules, medication audit — this domain knowledge is embedded in the code.</li>
+    <li><strong>Data network effects:</strong> More organisations on the platform = better AI insights, better compliance benchmarks, better benchmarking.</li>
+  </ul>
+</div>
+
+<!-- ==================== 7. SEIS/EIS READINESS ==================== -->
+<div class="section pb">
+  <div class="section-number">Additional Context</div>
+  <h2>SEIS/EIS Readiness & Partner Network Value</h2>
+  <div class="section-subtitle">Tax-efficient investment and strategic network</div>
+
+  <h3>7.1 SEIS/EIS Eligibility</h3>
+  <p>MeticleCare Ltd qualifies for SEIS (Seed Enterprise Investment Scheme) and EIS (Enterprise Investment Scheme) — making angel investment significantly more attractive:</p>
+  <table>
+    <tr><th>Scheme</th><th>Investor Benefit</th><th>MeticleCare Eligibility</th></tr>
+    <tr><td>SEIS</td><td>50% income tax relief + 50% capital gains tax relief</td><td>Eligible — company under 3 years old, under £200K assets</td></tr>
+    <tr><td>EIS</td><td>30% income tax relief + capital gains deferral</td><td>Eligible — knowledge-intensive company (AI/R&D)</td></tr>
+  </table>
+  <p>A £100K angel investment through SEIS effectively costs the investor £50K after tax relief. This makes the risk/reward profile highly attractive.</p>
+
+  <h3>7.2 Pulse Angels Network Value</h3>
+  <p>Beyond capital, Pulse Angels' partner network addresses specific MeticleCare needs:</p>
+  <table>
+    <tr><th>Partner</th><th>Value to MeticleCare</th></tr>
+    <tr><td>Development Bank of Wales</td><td>Additional funding pathways, regional support</td></tr>
+    <tr><td>Scottish Enterprise</td><td>Scottish care market access</td></tr>
+    <tr><td>NHS innovation pathways</td><td>NHS trust introductions, pilot facilitation</td></tr>
+    <tr><td>IP strategy</td><td>Patent and trade secret protection for AI architecture</td></tr>
+    <tr><td>SEIS/EIS readiness</td><td>Tax-efficient investment structuring</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>This is not just a £200K–£350K investment.</strong> It is an introduction to the exact network MeticleCare needs: healthcare expertise, NHS pathways, regulatory guidance, and additional funding sources.
+  </div>
+</div>
+
+<!-- ==================== 8. ASK ==================== -->
+<div class="section pb">
+  <div class="section-number">The Ask</div>
+  <h2>Investment Terms & Next Steps</h2>
+  <div class="section-subtitle">What we're seeking and what we offer</div>
+
+  <h3>8.1 Investment Ask</h3>
+  <table>
+    <tr><th>Term</th><th>Detail</th></tr>
+    <tr><td>Amount</td><td>£200,000–£350,000</td></tr>
+    <tr><td>Stage</td><td>Pre-seed / Seed</td></tr>
+    <tr><td>Instrument</td><td>SEIS-eligible equity (convertible note or equity round)</td></tr>
+    <tr><td>Use of funds</td><td>Customer acquisition, product development, security, implementation</td></tr>
+    <tr><td>Timeline to milestones</td><td>18 months</td></tr>
+    <tr><td>Next funding round</td><td>Seed / Series A at Month 18–24 if milestones hit</td></tr>
+  </table>
+
+  <h3>8.2 What Pulse Angels Gets</h3>
+  <ul>
+    <li>Equity in a production-ready care management platform</li>
+    <li>First-mover advantage in AI-first care technology</li>
+    <li>SEIS-eligible investment (50% tax relief)</li>
+    <li>Board observer seat (if desired)</li>
+    <li>Monthly financial and operational reporting</li>
+    <li>Access to a platform that can scale to 152,000+ potential customers</li>
+  </ul>
+
+  <h3>8.3 Next Steps</h3>
+  <div class="highlight">
+    <h4>We're ready to demonstrate</h4>
+    <p>The platform is live at meticlecare.com. We can provide a full product demonstration at any time, showing every module, every workflow, and every capability. No slides needed — just a screen share and 60 minutes.</p>
+    <p>Contact: <strong>opeyemi@meticlecare.com</strong></p>
+  </div>
+
+  <div class="footer">
+    MeticleCare Ltd — Pulse Angels Pitch Application — August 2026<br>
+    Commercial in confidence — Do not distribute without permission
+  </div>
+</div>
+
+</body>
+</html>

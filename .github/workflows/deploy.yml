@@ -11,149 +11,246 @@ permissions:
   contents: read
   packages: write
 
+env:
+  RELEASE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+  RELEASE_BRANCH: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
-  build-and-push:
+  validate-production-config:
+    name: Validate production deploy configuration
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    strategy:
-      matrix:
-        include:
-          - context: .
-            dockerfile: apps/api/Dockerfile.prod
-            image: meticle-api
-          - context: .
-            dockerfile: apps/web/Dockerfile
-            image: meticle-web
+    environment: production
     steps:
-      - uses: actions/checkout@v4
+      - name: Require deployment variables and smoke-test credentials
+        env:
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+          COMPOSE_FILE: ${{ vars.COMPOSE_FILE }}
+          DEPLOY_SCRIPT: ${{ vars.DEPLOY_SCRIPT }}
+          PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL }}
+          PUBLIC_API_HEALTH_URL: ${{ vars.PUBLIC_API_HEALTH_URL }}
+          INTERNAL_API_HEALTH_URL: ${{ vars.INTERNAL_API_HEALTH_URL }}
+          INTERNAL_WEB_URL: ${{ vars.INTERNAL_WEB_URL }}
+          AUTH_LOGIN_URL: ${{ vars.AUTH_LOGIN_URL }}
+          AUTH_ME_URL: ${{ vars.AUTH_ME_URL }}
+          DEPLOY_LOCK_FILE: ${{ vars.DEPLOY_LOCK_FILE }}
+          RELEASE_STATE_DIR: ${{ vars.RELEASE_STATE_DIR }}
+          RELEASE_RETENTION_COUNT: ${{ vars.RELEASE_RETENTION_COUNT }}
+          MIN_FREE_KB: ${{ vars.MIN_FREE_KB }}
+          DEPLOY_ALERT_TO: ${{ vars.DEPLOY_ALERT_TO }}
+          AUTH_SMOKE_EMAIL: ${{ secrets.DEPLOY_SMOKE_EMAIL }}
+          AUTH_SMOKE_PASSWORD: ${{ secrets.DEPLOY_SMOKE_PASSWORD }}
+        run: |
+          set -Eeuo pipefail
+          missing=()
+          for name in DEPLOY_DIR COMPOSE_FILE DEPLOY_SCRIPT PUBLIC_SITE_URL PUBLIC_API_HEALTH_URL INTERNAL_API_HEALTH_URL INTERNAL_WEB_URL AUTH_LOGIN_URL AUTH_ME_URL DEPLOY_LOCK_FILE RELEASE_STATE_DIR RELEASE_RETENTION_COUNT MIN_FREE_KB DEPLOY_ALERT_TO AUTH_SMOKE_EMAIL AUTH_SMOKE_PASSWORD; do
+            if [ -z "${!name:-}" ]; then missing+=("$name"); fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf 'Missing production configuration: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+          echo "Production deployment configuration is present"
 
+  build-api:
+    name: Build API image
+    runs-on: ubuntu-latest
+    environment: production
+    if: ${{ (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') && needs.validate-production-config.result == 'success' }}
+    needs: validate-production-config
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Check out triggering release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
       - uses: docker/setup-buildx-action@v3
-
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: docker/build-push-action@v6
+      - name: Build and publish immutable API image
+        id: build
+        uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          context: .
+          file: apps/api/Dockerfile.prod
+          push: true
+          platforms: linux/amd64
+          provenance: false
+          tags: ghcr.io/${{ github.repository_owner }}/meticle-api:${{ env.RELEASE_SHA }}
+          cache-from: type=gha,scope=meticle-api
+          cache-to: type=gha,scope=meticle-api,mode=max
+
+  build-web:
+    name: Build web image
+    runs-on: ubuntu-latest
+    environment: production
+    if: ${{ (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') && needs.validate-production-config.result == 'success' }}
+    needs: validate-production-config
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Check out triggering release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish immutable web image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
           push: true
           platforms: linux/amd64
           provenance: false
           build-args: |
+            VITE_PUBLIC_SITE_URL=${{ vars.PUBLIC_SITE_URL }}
             VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
-          cache-from: type=gha,scope=${{ matrix.image }}-${{ github.sha }}
-          cache-to: type=gha,scope=${{ matrix.image }}-${{ github.sha }},mode=max
+          tags: ghcr.io/${{ github.repository_owner }}/meticle-web:${{ env.RELEASE_SHA }}
+          cache-from: type=gha,scope=meticle-web
+          cache-to: type=gha,scope=meticle-web,mode=max
 
   deploy:
+    name: Deploy immutable release
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: [build-api, build-web]
     environment: production
     steps:
-      - name: Deploy to VPS
+      - name: Deploy immutable release to VPS
         uses: appleboy/ssh-action@v1
+        env:
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+          COMPOSE_FILE: ${{ vars.COMPOSE_FILE }}
+          DEPLOY_SCRIPT: ${{ vars.DEPLOY_SCRIPT }}
+          RELEASE_SHA: ${{ env.RELEASE_SHA }}
+          API_IMAGE_REF: ghcr.io/${{ github.repository_owner }}/meticle-api@${{ needs.build-api.outputs.digest }}
+          WEB_IMAGE_REF: ghcr.io/${{ github.repository_owner }}/meticle-web@${{ needs.build-web.outputs.digest }}
+          PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL }}
+          PUBLIC_API_HEALTH_URL: ${{ vars.PUBLIC_API_HEALTH_URL }}
+          INTERNAL_API_HEALTH_URL: ${{ vars.INTERNAL_API_HEALTH_URL }}
+          INTERNAL_WEB_URL: ${{ vars.INTERNAL_WEB_URL }}
+          AUTH_LOGIN_URL: ${{ vars.AUTH_LOGIN_URL }}
+          AUTH_ME_URL: ${{ vars.AUTH_ME_URL }}
+          AUTH_SMOKE_EMAIL: ${{ secrets.DEPLOY_SMOKE_EMAIL }}
+          AUTH_SMOKE_PASSWORD: ${{ secrets.DEPLOY_SMOKE_PASSWORD }}
+          DEPLOY_ALERT_TO: ${{ vars.DEPLOY_ALERT_TO }}
+          DEPLOY_LOCK_FILE: ${{ vars.DEPLOY_LOCK_FILE }}
+          RELEASE_STATE_DIR: ${{ vars.RELEASE_STATE_DIR }}
+          RELEASE_RETENTION_COUNT: ${{ vars.RELEASE_RETENTION_COUNT }}
+          MIN_FREE_KB: ${{ vars.MIN_FREE_KB }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: DEPLOY_DIR,COMPOSE_FILE,DEPLOY_SCRIPT,RELEASE_SHA,API_IMAGE_REF,WEB_IMAGE_REF,PUBLIC_SITE_URL,PUBLIC_API_HEALTH_URL,INTERNAL_API_HEALTH_URL,INTERNAL_WEB_URL,AUTH_LOGIN_URL,AUTH_ME_URL,AUTH_SMOKE_EMAIL,AUTH_SMOKE_PASSWORD,DEPLOY_ALERT_TO,DEPLOY_LOCK_FILE,RELEASE_STATE_DIR,RELEASE_RETENTION_COUNT,MIN_FREE_KB
           script: |
-            set -euo pipefail
-            cd /opt/meticle
-
-            GHCR_owner="${{ github.repository_owner }}"
-            IMAGE_TAG="${{ github.sha }}"
-            export GHCR_OWNER="$GHCR_owner"
-
-            echo "=== Pre-deploy checks ==="
-            df -h / | awk 'NR==2 {printf "Disk: %s used of %s (%s)\n", $3, $2, $5}'
-            AVAIL_KB=$(df / --output=avail -k | tail -1 | tr -d ' ')
-            if [ "$AVAIL_KB" -lt 2048000 ]; then
-              echo "ERROR: Less than 2GB free disk space"
+            set -Eeuo pipefail
+            : "${DEPLOY_DIR:?DEPLOY_DIR is required}"
+            : "${RELEASE_SHA:?RELEASE_SHA is required}"
+            cd "$DEPLOY_DIR"
+            git fetch origin master --quiet
+            git cat-file -e "$RELEASE_SHA^{commit}"
+            git reset --hard "$RELEASE_SHA" --quiet
+            if [ ! -f "$DEPLOY_SCRIPT" ]; then
+              echo "ERROR: deployment script not found after release sync: $DEPLOY_SCRIPT" >&2
               exit 1
             fi
+            chmod 750 "$DEPLOY_SCRIPT"
+            exec "$DEPLOY_SCRIPT"
 
-            if [ ! -f .env ]; then
-              echo "ERROR: .env file missing"
-              exit 1
+  notify-failure:
+    name: Notify failed deployment
+    if: ${{ always() && (needs.validate-production-config.result == 'failure' || needs.build-api.result == 'failure' || needs.build-web.result == 'failure' || needs.deploy.result == 'failure') }}
+    needs: [validate-production-config, build-api, build-web, deploy]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Send Slack and email alerts
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.DEPLOY_SLACK_WEBHOOK_URL }}
+          SMTP_HOST: ${{ secrets.DEPLOY_SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.DEPLOY_SMTP_PORT }}
+          SMTP_SECURE: ${{ secrets.DEPLOY_SMTP_SECURE }}
+          SMTP_USER: ${{ secrets.DEPLOY_SMTP_USER }}
+          SMTP_PASS: ${{ secrets.DEPLOY_SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.DEPLOY_SMTP_FROM }}
+          ALERT_TO: ${{ vars.DEPLOY_ALERT_TO }}
+          BUILD_CONFIG_RESULT: ${{ needs.validate-production-config.result }}
+          BUILD_API_RESULT: ${{ needs.build-api.result }}
+          BUILD_WEB_RESULT: ${{ needs.build-web.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ env.RELEASE_SHA }}
+          BRANCH_NAME: ${{ env.RELEASE_BRANCH }}
+        run: |
+          set -euo pipefail
+          if [ "$BUILD_CONFIG_RESULT" = "failure" ]; then
+            FAILED_STAGE="production configuration validation"
+          elif [ "$BUILD_API_RESULT" = "failure" ] || [ "$BUILD_WEB_RESULT" = "failure" ]; then
+            FAILED_STAGE="image build"
+          else
+            FAILED_STAGE="production deployment or rollback"
+          fi
+          SUBJECT="Meticle deployment failed: ${FAILED_STAGE}"
+          MESSAGE=$(printf 'Meticle deployment failed.\n\nStage: %s\nCommit: %s\nBranch: %s\nAPI build: %s\nWeb build: %s\nDeploy result: %s\n\nReview the workflow: %s' \
+            "$FAILED_STAGE" "$COMMIT_SHA" "$BRANCH_NAME" "$BUILD_API_RESULT" "$BUILD_WEB_RESULT" "$DEPLOY_RESULT" "$RUN_URL")
+
+          if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+            export SLACK_MESSAGE="$MESSAGE"
+            if python3 - <<'PY' | curl -fsS -X POST -H 'Content-Type: application/json' --data-binary @- "$SLACK_WEBHOOK_URL"
+            import json, os
+            print(json.dumps({"text": os.environ["SLACK_MESSAGE"]}))
+            PY
+            then
+              echo "Slack deployment alert sent"
+            else
+              echo "::warning::Slack deployment alert could not be sent"
             fi
+          else
+            echo "::warning::DEPLOY_SLACK_WEBHOOK_URL is not configured; Slack alert skipped"
+          fi
 
-            echo "=== Sync source on VPS ==="
-            git fetch origin master
-            git reset --hard origin/master
-
-            echo "=== Ensure CORS_ORIGINS is set in .env ==="
-            if ! grep -q '^CORS_ORIGINS=' .env 2>/dev/null; then
-              echo 'CORS_ORIGINS=https://meticlecare.com,https://www.meticlecare.com' >> .env
-              echo "Added CORS_ORIGINS to .env"
+          if [ -n "${SMTP_HOST:-}" ] && [ -n "${SMTP_USER:-}" ] && [ -n "${SMTP_PASS:-}" ] && [ -n "${SMTP_FROM:-}" ] && [ -n "${ALERT_TO:-}" ]; then
+            export ALERT_SUBJECT="$SUBJECT"
+            export ALERT_BODY="$MESSAGE"
+            if python3 - <<'PY'
+            import os, smtplib, ssl
+            from email.mime.text import MIMEText
+            host = os.environ["SMTP_HOST"]
+            port = int(os.environ.get("SMTP_PORT") or "587")
+            secure = os.environ.get("SMTP_SECURE", "false").lower() == "true"
+            msg = MIMEText(os.environ["ALERT_BODY"], "plain", "utf-8")
+            msg["Subject"] = os.environ["ALERT_SUBJECT"]
+            msg["From"] = os.environ["SMTP_FROM"]
+            msg["To"] = os.environ["ALERT_TO"]
+            if secure:
+                with smtplib.SMTP_SSL(host, port, timeout=20, context=ssl.create_default_context()) as server:
+                    server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
+                    server.send_message(msg)
+            else:
+                with smtplib.SMTP(host, port, timeout=20) as server:
+                    server.starttls(context=ssl.create_default_context())
+                    server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
+                    server.send_message(msg)
+            PY
+            then
+              echo "Email deployment alert sent"
+            else
+              echo "::warning::Email deployment alert could not be sent"
             fi
-
-            echo "=== Pull new images ==="
-            docker pull "ghcr.io/${GHCR_owner}/meticle-api:${IMAGE_TAG}"
-            docker pull "ghcr.io/${GHCR_owner}/meticle-web:${IMAGE_TAG}"
-
-            echo "=== Pin image tags for every compose invocation ==="
-            export API_TAG="$IMAGE_TAG"
-            export WEB_TAG="$IMAGE_TAG"
-
-            echo "=== Save current running tags for rollback ==="
-            PREV_API_TAG=$(docker inspect meticle-api-1 --format='{{.Config.Image}}' 2>/dev/null | sed 's/.*://;s/.*@//' || echo "latest")
-            PREV_WEB_TAG=$(docker inspect meticle-web-1 --format='{{.Config.Image}}' 2>/dev/null | sed 's/.*://;s/.*@//' || echo "latest")
-            echo "Previous API tag: $PREV_API_TAG"
-            echo "Previous Web tag: $PREV_WEB_TAG"
-
-            echo "=== Ensure infrastructure running ==="
-            docker compose -f docker-compose.prod.yml up -d db redis uptime
-
-            echo "=== Run migrations ==="
-            docker compose -f docker-compose.prod.yml run --rm api sh -c "node apps/api/dist/shared/database/setup.js"
-
-            echo "=== Wait for DB migration ==="
-            sleep 3
-
-            echo "=== Deploy API (with rollback) ==="
-            docker compose -f docker-compose.prod.yml up -d --force-recreate api
-            API_HEALTHY=false
-            for i in $(seq 1 30); do
-              if docker compose -f docker-compose.prod.yml exec -T api wget -qO- http://localhost:3002/health/live 2>/dev/null | grep -q '"status":"ok"'; then
-                echo "API healthy"
-                API_HEALTHY=true
-                break
-              fi
-              sleep 2
-            done
-            if [ "$API_HEALTHY" = false ]; then
-              echo "API health check failed — rolling back"
-              API_TAG="$PREV_API_TAG" docker compose -f docker-compose.prod.yml up -d --force-recreate api
-              exit 1
-            fi
-
-            echo "=== Deploy Web (with rollback) ==="
-            docker compose -f docker-compose.prod.yml up -d --force-recreate web
-            WEB_HEALTHY=false
-            for i in $(seq 1 30); do
-              if curl -sf http://127.0.0.1:3000/ >/dev/null 2>&1; then
-                echo "Web healthy"
-                WEB_HEALTHY=true
-                break
-              fi
-              sleep 2
-            done
-            if [ "$WEB_HEALTHY" = false ]; then
-              echo "Web health check failed — rolling back"
-              WEB_TAG="$PREV_WEB_TAG" docker compose -f docker-compose.prod.yml up -d --force-recreate web
-              exit 1
-            fi
-
-            echo "=== Verify production ==="
-            curl -sf -o /dev/null https://meticlecare.com || { echo "ERROR: Frontend unreachable"; exit 1; }
-            curl -sf https://meticlecare.com/api/health/live | grep -q '"status":"ok"' || { echo "ERROR: API unreachable via nginx"; exit 1; }
-
-            echo "=== Cleanup old images ==="
-            docker image prune -af --filter "until=168h" || true
-
-            echo "=== Deployment complete ==="
+          else
+            echo "::warning::DEPLOY_SMTP_* secrets are not fully configured; email alert skipped"
+          fi

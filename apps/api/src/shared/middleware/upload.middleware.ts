@@ -64,7 +64,7 @@ export function uploadMultipleWithScan(fieldName: string, maxCount: number = 10)
     (req: Request, res: Response, next: NextFunction) => {
       if (!req.files || !(req.files as Express.Multer.File[]).length) return next();
       for (const file of req.files as Express.Multer.File[]) {
-        const result = scanFile(file.path);
+        const result = scanFile(file.path, file.originalname);
         if (!result.safe) {
           fs.unlink(file.path, () => {});
           return res.status(400).json({ error: { message: `File rejected: ${result.reason}` } });

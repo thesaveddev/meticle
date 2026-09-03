@@ -14,7 +14,14 @@ export interface EmailAttachment {
 
 export class EmailQueue {
   static enqueue(to: string, subject: string, htmlBody: string, fromEmail?: string, attachments?: EmailAttachment[]) {
-    const attachmentMeta = attachments?.map(a => ({ filename: a.filename, contentType: a.contentType || 'application/pdf' })) || [];
+    // Persist the attachment bytes in the queue row. Storing only the filename
+    // silently produced empty attachments when the worker later tried to send
+    // the message.
+    const attachmentMeta = attachments?.map(a => ({
+      filename: a.filename,
+      content: a.content.toString('base64'),
+      contentType: a.contentType || 'application/pdf',
+    })) || [];
     return query(
       `INSERT INTO email_queue (to_email, subject, html_body, from_email, attachments) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [to, subject, htmlBody, fromEmail || null, JSON.stringify(attachmentMeta)]
@@ -23,11 +30,20 @@ export class EmailQueue {
 
   static async processBatch() {
     // Get pending emails ordered by creation date
+    const transporter = getTransporter();
+    if (!transporter) {
+      // Do not claim rows or increment retry counters when SMTP is unavailable.
+      // They remain pending until configuration is restored.
+      logger.warn('No SMTP transporter — leaving queued emails pending');
+      return 0;
+    }
+
     const batch = await query(
-      `UPDATE email_queue SET status = 'sending', retry_count = retry_count + 1
+      `UPDATE email_queue SET status = 'sending', sending_at = CURRENT_TIMESTAMP, retry_count = retry_count + 1, error_message = NULL
        WHERE id IN (
          SELECT id FROM email_queue
-         WHERE status = 'pending' AND retry_count < max_retries
+         WHERE (status = 'pending' OR (status = 'sending' AND (sending_at IS NULL OR sending_at < CURRENT_TIMESTAMP - INTERVAL '10 minutes')))
+           AND retry_count < max_retries
          ORDER BY created_at ASC
          LIMIT $1
          FOR UPDATE SKIP LOCKED
@@ -35,28 +51,16 @@ export class EmailQueue {
        RETURNING *`,
       [BATCH_SIZE]
     );
-
-    const transporter = getTransporter();
-
     for (const email of batch.rows) {
       try {
-        if (transporter) {
-          const from = email.from_email || process.env.SMTP_FROM || 'noreply@meticlecare.com';
-          const attachments = email.attachments?.length > 0
-            ? email.attachments.map((a: any) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64'), contentType: a.contentType || 'application/pdf' }))
-            : [];
-          await transporter.sendMail({ from, to: email.to_email, subject: email.subject, html: email.html_body, attachments });
-          logger.info({ queueId: email.id, to: email.to_email }, 'Email sent via queue');
-        } else {
-          logger.warn({ queueId: email.id }, 'No transporter — email queued but not sent');
-          await query(
-            `UPDATE email_queue SET status = 'pending' WHERE id = $1`,
-            [email.id]
-          );
-          continue;
-        }
+        const from = email.from_email || process.env.SMTP_FROM || 'noreply@meticlecare.com';
+        const attachments = email.attachments?.length > 0
+          ? email.attachments.map((a: any) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64'), contentType: a.contentType || 'application/pdf' }))
+          : [];
+        await transporter.sendMail({ from, to: email.to_email, subject: email.subject, html: email.html_body, attachments });
+        logger.info({ queueId: email.id, to: email.to_email }, 'Email sent via queue');
         await query(
-          `UPDATE email_queue SET status = 'sent', sent_at = CURRENT_TIMESTAMP WHERE id = $1`,
+          `UPDATE email_queue SET status = 'sent', sent_at = CURRENT_TIMESTAMP, sending_at = NULL, error_message = NULL WHERE id = $1`,
           [email.id]
         );
       } catch (err: any) {
@@ -64,7 +68,7 @@ export class EmailQueue {
         const nextStatus = (email.retry_count + 1) >= email.max_retries ? 'failed' : 'pending';
         logger.error({ err: err.message, code: err.code, command: err.command, smtpCode: err.responseCode, queueId: email.id, retryCount: email.retry_count + 1, nextStatus }, 'Email queue send failed');
         await query(
-          `UPDATE email_queue SET status = $1, error_message = $2 WHERE id = $3`,
+          `UPDATE email_queue SET status = $1, sending_at = NULL, error_message = $2 WHERE id = $3`,
           [nextStatus, `${err.code ? err.code + ': ' : ''}${err.message || 'Unknown error'}`, email.id]
         );
       }

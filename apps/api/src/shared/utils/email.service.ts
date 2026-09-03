@@ -18,28 +18,28 @@ export type SenderCategory = keyof typeof SENDERS;
 
 let transporter: nodemailer.Transporter | null = null;
 
-export function getTransporter() {
-  if (!transporter) {
-    const useSmtp = process.env.SMTP_HOST && process.env.SMTP_USER;
-    if (useSmtp) {
-      logger.info('Email: Using SMTP');
-      transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: parseInt(process.env.SMTP_PORT || '587') === 465,
-        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-      });
-    } else {
-      logger.info('Email: Using test account');
-      nodemailer.createTestAccount().then(acc => {
-        transporter = nodemailer.createTransport({
-          host: 'smtp.ethereal.email', port: 587, secure: false,
-          auth: { user: acc.user, pass: acc.pass },
-        });
-      });
-    }
-  }
-  return transporter!;
+/**
+ * Return the configured production SMTP transport, or null when email is not
+ * configured. Never create an implicit Ethereal account in production: that
+ * makes messages appear to succeed while no customer receives them.
+ */
+export function getTransporter(): nodemailer.Transporter | null {
+  if (transporter) return transporter;
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!host || !user || !pass) return null;
+
+  const port = Number.parseInt(process.env.SMTP_PORT || '587', 10);
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+  });
+  logger.info({ host, port, secure }, 'Email: SMTP transport configured');
+  return transporter;
 }
 
 async function sendMail(to: string, subject: string, html: string, category: SenderCategory = 'notifications', attachments?: { filename: string; content: Buffer; contentType?: string }[]) {

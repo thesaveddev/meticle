@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeticleCare — NHS & Care Provider Sales Package</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #1B2430;
+    background: #fff;
+  }
+
+  /* Cover page */
+  .cover {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 48px;
+    page-break-after: always;
+    background: linear-gradient(160deg, #0F4C81 0%, #0A3A63 100%);
+    color: #fff;
+  }
+  .cover .logo-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #10B981;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 22px;
+    color: #fff;
+  }
+  .cover h1 {
+    font-size: 36pt;
+    font-weight: 900;
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+  .cover .subtitle {
+    font-size: 16pt;
+    font-weight: 400;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 48px;
+    max-width: 520px;
+  }
+  .cover .meta {
+    font-size: 10pt;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.8;
+  }
+  .cover .meta strong { color: rgba(255,255,255,0.9); }
+
+  /* Section pages */
+  .section {
+    padding: 48px;
+    page-break-before: always;
+  }
+  .section:first-of-type {
+    page-break-before: auto;
+  }
+  .section-number {
+    font-size: 10pt;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #10B981;
+    margin-bottom: 8px;
+  }
+  .section h2 {
+    font-size: 22pt;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    color: #0F4C81;
+    margin-bottom: 6px;
+    line-height: 1.1;
+  }
+  .section .section-subtitle {
+    font-size: 11pt;
+    color: #5B6672;
+    margin-bottom: 24px;
+    font-style: italic;
+  }
+  .section h3 {
+    font-size: 13pt;
+    font-weight: 800;
+    color: #1B2430;
+    margin: 24px 0 8px 0;
+  }
+  .section h4 {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #0F4C81;
+    margin: 16px 0 6px 0;
+  }
+  .section p {
+    margin-bottom: 10px;
+    text-align: justify;
+  }
+  .section ul, .section ol {
+    margin: 8px 0 12px 20px;
+  }
+  .section li {
+    margin-bottom: 4px;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  th {
+    background: #0F4C81;
+    color: #fff;
+    text-align: left;
+    padding: 8px 10px;
+    font-weight: 700;
+    font-size: 9pt;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #E7E1D6;
+  }
+  tr:nth-child(even) td {
+    background: #F7F4EE;
+  }
+
+  /* Callout boxes */
+  .callout {
+    background: #F7F4EE;
+    border-left: 3px solid #10B981;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  .callout strong {
+    color: #0F4C81;
+  }
+
+  /* Alert boxes */
+  .alert {
+    background: #FEF3CD;
+    border-left: 3px solid #D97706;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  .alert strong {
+    color: #92400E;
+  }
+
+  /* Metric boxes */
+  .metrics {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .metric {
+    flex: 1;
+    min-width: 120px;
+    background: #F7F4EE;
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .metric .num {
+    font-size: 22pt;
+    font-weight: 900;
+    color: #0F4C81;
+    line-height: 1.1;
+  }
+  .metric .label {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5B6672;
+    margin-top: 4px;
+  }
+
+  /* Two column layout */
+  .two-col {
+    display: flex;
+    gap: 24px;
+    margin: 16px 0;
+  }
+  .two-col > div {
+    flex: 1;
+  }
+
+  /* Checklist */
+  .checklist {
+    list-style: none;
+    margin: 8px 0 12px 0;
+    padding: 0;
+  }
+  .checklist li {
+    padding: 4px 0 4px 24px;
+    position: relative;
+  }
+  .checklist li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #10B981;
+    font-weight: 900;
+  }
+
+  /* Pricing card */
+  .pricing-card {
+    border: 1px solid #E7E1D6;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 12px 0;
+    background: #fff;
+  }
+  .pricing-card.highlighted {
+    border-color: #10B981;
+    background: #F0FDF4;
+  }
+  .pricing-card h4 {
+    font-size: 14pt;
+    font-weight: 900;
+    color: #0F4C81;
+    margin-bottom: 4px;
+  }
+  .pricing-card .price {
+    font-size: 24pt;
+    font-weight: 900;
+    color: #10B981;
+    margin: 8px 0;
+  }
+  .pricing-card .price span {
+    font-size: 10pt;
+    font-weight: 400;
+    color: #5B6672;
+  }
+  .pricing-card ul {
+    margin: 12px 0 0 16px;
+  }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    background: #0F4C81;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 9pt;
+    font-weight: 700;
+    text-align: center;
+    min-width: 80px;
+  }
+  .flow-arrow {
+    color: #10B981;
+    font-weight: 900;
+    font-size: 16pt;
+  }
+
+  /* Timeline */
+  .timeline {
+    margin: 16px 0;
+    padding-left: 24px;
+    border-left: 2px solid #E7E1D6;
+  }
+  .timeline-item {
+    padding: 12px 0 12px 16px;
+    position: relative;
+  }
+  .timeline-item::before {
+    content: "";
+    position: absolute;
+    left: -30px;
+    top: 16px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #10B981;
+  }
+  .timeline-item h4 {
+    margin: 0 0 4px 0;
+    font-size: 10pt;
+  }
+  .timeline-item p {
+    margin: 0;
+    font-size: 9pt;
+    color: #5B6672;
+  }
+
+  /* Page break utility */
+  .pb { page-break-before: always; }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid #E7E1D6;
+    font-size: 8pt;
+    color: #5B6672;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER ==================== -->
+<div class="cover">
+  <div class="logo-mark">M</div>
+  <h1>MeticleCare</h1>
+  <div class="subtitle">NHS & Care Provider Sales Package — Everything you need to make a decision</div>
+  <div class="meta">
+    <strong>Document type:</strong> Sales package — for care providers and NHS trusts<br>
+    <strong>Prepared for:</strong> Prospective care provider partners<br>
+    <strong>Applicant:</strong> MeticleCare Ltd<br>
+    <strong>Date:</strong> August 2026<br>
+    <strong>Version:</strong> 1.0<br>
+    <strong>Classification:</strong> Commercial in confidence
+  </div>
+</div>
+
+<!-- ==================== 1. ONE-PAGE OVERVIEW ==================== -->
+<div class="section">
+  <div class="section-number">Section 1</div>
+  <h2>Company & Product Overview</h2>
+  <div class="section-subtitle">One page — problem, solution, outcomes</div>
+
+  <h3>The Problem</h3>
+  <p>UK care providers manage complex operations across multiple locations with fragmented tools: paper MAR charts, spreadsheet rotas, manual compliance checklists, separate training records, and ad-hoc incident forms. This creates duplicated work, missed compliance deadlines, and staff spending more time on administration than care delivery.</p>
+
+  <div class="metrics">
+    <div class="metric"><div class="num">40%</div><div class="label">Manager time on admin</div></div>
+    <div class="metric"><div class="num">165K+</div><div class="label">Unfilled vacancies</div></div>
+    <div class="metric"><div class="num">30%+</div><div class="label">Staff turnover rate</div></div>
+    <div class="metric"><div class="num">152K+</div><div class="label">Care providers in England</div></div>
+  </div>
+
+  <h3>The Solution</h3>
+  <p>MeticleCare is a single connected platform that runs the entire care working day — rota, medication, notes, compliance, leave, incidents, training — from one system. Built for UK CQC-regulated supported-living providers managing multiple locations with shift-based staffing.</p>
+
+  <div class="metrics">
+    <div class="metric"><div class="num">41</div><div class="label">Modules</div></div>
+    <div class="metric"><div class="num">484</div><div class="label">API Endpoints</div></div>
+    <div class="metric"><div class="num">78</div><div class="label">Pages</div></div>
+    <div class="metric"><div class="num">108</div><div class="label">Database Tables</div></div>
+  </div>
+
+  <h3>Key Capabilities</h3>
+  <div class="two-col">
+    <div>
+      <h4>Operations</h4>
+      <ul>
+        <li>AI-powered rota planner with min safe staffing</li>
+        <li>Full eMAR: chart grid, PRN, stock, daily counts</li>
+        <li>Voice-to-text daily care notes</li>
+        <li>Real-time team chat with presence</li>
+        <li>Mobile PWA with GPS check-in</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Compliance</h4>
+      <ul>
+        <li>Automated evidence packs (KLOE)</li>
+        <li>CQC readiness scoring from live data</li>
+        <li>Training matrix with auto-assign</li>
+        <li>Competency assessments</li>
+        <li>DSPT (Data Security & Protection Toolkit)</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Outcomes</h3>
+  <table>
+    <tr><th>Metric</th><th>Before MeticleCare</th><th>After MeticleCare</th></tr>
+    <tr><td>Admin time (manager)</td><td>40% of day</td><td>Under 20%</td></tr>
+    <tr><td>Compliance evidence gathering</td><td>Manual, weeks before inspection</td><td>Continuous, real-time</td></tr>
+    <tr><td>Rota management</td><td>Spreadsheets, phone calls</td><td>AI-powered, drag-and-drop</td></tr>
+    <tr><td>Medication records</td><td>Paper MAR charts</td><td>Digital eMAR with audit trail</td></tr>
+    <tr><td>Incident reporting</td><td>Paper forms, delayed</td><td>Digital with AI triage</td></tr>
+    <tr><td>Family communication</td><td>Phone calls, letters</td><td>Family portal with care notes</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 2. NHS/CARE VALUE PROPOSITION ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 2</div>
+  <h2>NHS & Care Value Proposition</h2>
+  <div class="section-subtitle">Why a provider should switch to MeticleCare</div>
+
+  <h3>2.1 The Case for Change</h3>
+  <p>The UK care sector is at a turning point. CQC's Single Assessment Framework requires continuous evidence from operational records, not point-in-time inspections. The People at the Heart of Care white paper mandates digital care records. Integrated Care Systems demand data sharing between NHS and social care. Providers who remain on paper or fragmented systems face increasing regulatory risk, rising agency costs, and staff attrition.</p>
+
+  <h3>2.2 What MeticleCare Delivers</h3>
+
+  <h4>For Care Managers</h4>
+  <ul>
+    <li><strong>One system, not five:</strong> Replace spreadsheets, paper MARs, compliance checklists, training matrices, and incident forms with one connected platform</li>
+    <li><strong>AI-powered insights:</strong> Daily briefing tells you what needs attention — staffing gaps, overdue care plans, compliance risks, medication concerns</li>
+    <li><strong>Inspection-ready evidence:</strong> Compliance evidence packs generated automatically from real operational records</li>
+    <li><strong>Real-time visibility:</strong> See what's happening across all locations from one dashboard</li>
+  </ul>
+
+  <h4>For Care Workers</h4>
+  <ul>
+    <li><strong>Less paperwork:</strong> Voice-to-text daily notes, digital MAR, mobile check-in</li>
+    <li><strong>Better communication:</strong> Real-time team chat, shift notifications, rota visibility</li>
+    <li><strong>Easier leave management:</strong> Request, view, and manage leave from your phone</li>
+    <li><strong>Professional development:</strong> Training matrix, competency assessments, career progression</li>
+  </ul>
+
+  <h4>For Organisation Owners</h4>
+  <ul>
+    <li><strong>Cost reduction:</strong> Less admin time, less agency dependency, fewer compliance failures</li>
+    <li><strong>Risk mitigation:</strong> Continuous monitoring, automated alerts, audit trails</li>
+    <li><strong>Growth enablement:</strong> Multi-location management, scalable platform, API integrations</li>
+    <li><strong>Revenue protection:</strong> Maintain CQC ratings, reduce enforcement risk</li>
+  </ul>
+
+  <h3>2.3 Specific Value Drivers</h3>
+  <table>
+    <tr><th>Value Driver</th><th>Impact</th><th>Estimated Saving</th></tr>
+    <tr><td>Reduced admin time</td><td>Manager saves 7+ hours/week</td><td>£7,000/year per provider</td></tr>
+    <tr><td>Lower agency spend</td><td>Better internal utilisation</td><td>£5,000–£15,000/year per provider</td></tr>
+    <tr><td>Compliance automation</td><td>Continuous evidence generation</td><td>£2,000–£10,000/year per provider</td></tr>
+    <tr><td>Reduced staff turnover</td><td>Less admin burden, better tools</td><td>£5,000–£10,000 per retained worker</td></tr>
+    <tr><td>Faster discharge pathways</td><td>Family portal, care plan tracking</td><td>Reduced NHS bed occupancy</td></tr>
+  </table>
+
+  <h3>2.4 Why Now</h3>
+  <ul>
+    <li><strong>CQC Single Assessment Framework:</strong> Requires continuous evidence from operational records</li>
+    <li><strong>People at the Heart of Care:</strong> Mandates digital care records for all providers</li>
+    <li><strong>Integrated Care Systems:</strong> NHS and social care data sharing requires digital infrastructure</li>
+    <li><strong>Agency cost crisis:</strong> Rising rates make internal staffing optimisation critical</li>
+    <li><strong>Workforce shortage:</strong> 165,000+ unfilled vacancies require better retention tools</li>
+  </ul>
+
+  <div class="callout">
+    <strong>The bottom line:</strong> MeticleCare doesn't just digitise existing processes — it transforms how care organisations operate. Every compliance claim, every readiness score, every insight is backed by real records the team already keeps.
+  </div>
+</div>
+
+<!-- ==================== 3. EVIDENCE PLAN ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 3</div>
+  <h2>Evidence Plan</h2>
+  <div class="section-subtitle">What you can demonstrate now vs. what needs validation</div>
+
+  <h3>3.1 Currently Demonstrable (Live in Production)</h3>
+  <table>
+    <tr><th>Capability</th><th>Status</th><th>Evidence</th></tr>
+    <tr><td>Full platform (41 modules)</td><td>Live</td><td>Production deployment at meticlecare.com</td></tr>
+    <tr><td>AI-powered rota planning</td><td>Live</td><td>AI generation, analysis, min safe staffing enforcement</td></tr>
+    <tr><td>eMAR (medication records)</td><td>Live</td><td>Chart grid, PRN tracking, stock, daily counts, audit</td></tr>
+    <tr><td>Compliance evidence packs</td><td>Live</td><td>KLOE domain mapping, CQC readiness scoring</td></tr>
+    <tr><td>AI daily notes (voice-to-text)</td><td>Live</td><td>Voice input, mood analysis, safeguarding flags</td></tr>
+    <tr><td>Real-time team chat</td><td>Live</td><td>Channels, messages, presence, read receipts</td></tr>
+    <tr><td>Mobile PWA</td><td>Live</td><td>GPS check-in, voice notes, offline support</td></tr>
+    <tr><td>Family portal</td><td>Live</td><td>Care notes, goals, observations (consent-gated)</td></tr>
+    <tr><td>Incident management</td><td>Live</td><td>AI triage, CQC reportability, action tracking</td></tr>
+    <tr><td>Training matrix</td><td>Live</td><td>Auto-assign, expiry alerts, bulk operations</td></tr>
+    <tr><td>Multi-location management</td><td>Live</td><td>Location-based rota, compliance, reporting</td></tr>
+    <tr><td>Stripe billing</td><td>Live</td><td>Subscriptions, invoices, webhooks, payment recovery</td></tr>
+    <tr><td>AI compliance gap analysis</td><td>Live</td><td>CQC readiness scoring from real data</td></tr>
+    <tr><td>AI incident triage</td><td>Live</td><td>Severity classification, CQC notification flagging</td></tr>
+  </table>
+
+  <h3>3.2 Requires Validation (Pilot-Dependent)</h3>
+  <table>
+    <tr><th>Capability</th><th>What Needs Validating</th><th>Validation Method</th></tr>
+    <tr><td>Clinical safety of AI outputs</td><td>AI daily notes accuracy in real care settings</td><td>Controlled pilot with 2–3 providers</td></tr>
+    <tr><td>Staff adoption rates</td><td>How quickly staff transition from paper to digital</td><td>Usage metrics during pilot</td></tr>
+    <tr><td>Compliance evidence quality</td><td>Whether CQC inspectors accept AI-generated evidence packs</td><td>Feedback from CQC inspectors</td></tr>
+    <tr><td>ROI validation</td><td>Actual time savings vs. projected</td><td>Before/after time studies during pilot</td></tr>
+    <tr><td>Integration with NHS systems</td><td>Data sharing with NHS trusts for discharge pathways</td><td>NHS integration pilot</td></tr>
+    <tr><td>Scale performance</td><td>Platform behaviour with 50+ concurrent users</td><td>Load testing + pilot monitoring</td></tr>
+    <tr><td>Multi-tenancy under load</td><td>Data isolation with multiple organisations</td><td>Security audit + penetration testing</td></tr>
+  </table>
+
+  <h3>3.3 Independent Validation Planned</h3>
+  <ul>
+    <li><strong>Care Quality Commission (CQC):</strong> Engagement with CQC inspectors to validate evidence pack quality</li>
+    <li><strong>NHS Digital:</strong> Integration testing for NHS Spine and GP system connectivity</li>
+    <li><strong>Cyber Essentials:</strong> Certification for information security baseline</li>
+    <li><strong>ISO 27001:</strong> Preparation for information security management certification</li>
+    <li><strong>User research:</strong> Structured feedback from care managers, care workers, and organisation owners during pilot</li>
+  </ul>
+
+  <div class="callout">
+    <strong>Key principle:</strong> We do not claim validated outcomes without evidence. Everything in this document is either demonstrably live in production or clearly marked as requiring pilot validation. We will not overstate capabilities.
+  </div>
+</div>
+
+<!-- ==================== 4. PRICING ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 4</div>
+  <h2>Pricing</h2>
+  <div class="section-subtitle">Simple, defensible provider pricing</div>
+
+  <h3>4.1 Pricing Model</h3>
+  <p>MeticleCare uses a transparent per-organisation monthly subscription. No per-user fees. No hidden costs. No long-term contracts required (month-to-month billing available).</p>
+
+  <div class="pricing-card">
+    <h4>Starter</h4>
+    <div class="price">£99 <span>/month</span></div>
+    <p>Ideal for small providers (1–3 locations) getting started with digital care management.</p>
+    <ul class="checklist">
+      <li>Core modules: scheduling, daily notes, basic compliance</li>
+      <li>Leave management, incidents, training</li>
+      <li>Team chat, notifications</li>
+      <li>Dashboard with KPIs</li>
+      <li>Email support</li>
+      <li>Up to 25 staff members</li>
+    </ul>
+  </div>
+
+  <div class="pricing-card highlighted">
+    <h4>Professional</h4>
+    <div class="price">£299 <span>/month</span></div>
+    <p>For growing providers (4–15 locations) needing full compliance and AI capabilities.</p>
+    <ul class="checklist">
+      <li>Everything in Starter</li>
+      <li>Full eMAR: chart grid, PRN, stock, daily counts, audit</li>
+      <li>AI daily notes (voice-to-text)</li>
+      <li>CQC readiness scoring and evidence packs</li>
+      <li>Family portal</li>
+      <li>Agency management with rate comparison</li>
+      <li>Advanced reporting and insights</li>
+      <li>Priority support</li>
+      <li>Unlimited staff members</li>
+    </ul>
+  </div>
+
+  <div class="pricing-card">
+    <h4>Enterprise</h4>
+    <div class="price">£499–£999 <span>/month</span></div>
+    <p>For large providers (15+ locations) needing API access, custom integrations, and dedicated support.</p>
+    <ul class="checklist">
+      <li>Everything in Professional</li>
+      <li>API access for custom integrations</li>
+      <li>Dedicated account manager</li>
+      <li>SLA with guaranteed response times</li>
+      <li>Multi-region support</li>
+      <li>Custom AI prompts and configurations</li>
+      <li>White-label options</li>
+      <li>On-site training</li>
+    </ul>
+  </div>
+
+  <h3>4.2 Pricing Comparison</h3>
+  <table>
+    <tr><th>Platform</th><th>Pricing Model</th><th>Typical Cost (20-bed provider)</th></tr>
+    <tr><td>MeticleCare Professional</td><td>Fixed monthly fee</td><td>£299/month</td></tr>
+    <tr><td>Person Centred Software</td><td>Per carer/day</td><td>£480–£1,280/month (20 carers × £3–£8/day)</td></tr>
+    <tr><td>Access Group</td><td>Per module + per user</td><td>£400–£800/month</td></tr>
+    <tr><td>Paper/spreadsheets</td><td>£0 + staff time</td><td>£1,167/month (40% admin time × £35K salary)</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Value proposition:</strong> MeticleCare Professional at £299/month replaces £400–£1,280/month in competitor costs plus £1,167/month in admin time — a total saving of £500–£2,148/month per provider.
+  </div>
+
+  <h3>4.3 What's Included</h3>
+  <table>
+    <tr><th>Included</th><th>Not Included (Add-ons)</th></tr>
+    <tr><td>All platform features for your tier</td><td>Custom development (quoted per project)</td></tr>
+    <tr><td>Unlimited locations (within tier limits)</td><td>On-site training (£500/day)</td></tr>
+    <tr><td>Email and chat support</td><td>Phone support (Enterprise only)</td></tr>
+    <tr><td>Automatic updates and new features</td><td>Data migration from legacy systems (quoted)</td></tr>
+    <tr><td>SSL encryption and daily backups</td><td>Custom integrations (quoted)</td></tr>
+    <tr><td>99.9% uptime SLA (Professional+)</td><td></td></tr>
+  </table>
+</div>
+
+<!-- ==================== 5. PILOT PROPOSITION ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 5</div>
+  <h2>Pilot Proposition</h2>
+  <div class="section-subtitle">An easy way for a care organisation to trial MeticleCare</div>
+
+  <h3>5.1 Why a Pilot</h3>
+  <p>We recognise that switching care management platforms is a significant decision. A structured pilot lets you evaluate MeticleCare with real staff, real data, and real workflows — without committing to a full deployment.</p>
+
+  <h3>5.2 Pilot Structure</h3>
+
+  <div class="flow">
+    <div class="flow-step">Week 1<br>Setup</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Week 2–4<br>Onboarding</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Week 5–12<br>Pilot</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Week 13<br>Review</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Decision</div>
+  </div>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <h4>Week 1: Setup & Configuration</h4>
+      <p>Configure MeticleCare for your organisation: locations, departments, teams, staff roles, compliance settings. Import existing staff and service user data.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Weeks 2–4: Onboarding & Training</h4>
+      <p>Onboard pilot group (recommended: 5–10 staff across roles). Training sessions for managers and care workers. Set up eMAR, rota, and compliance modules.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Weeks 5–12: Active Pilot</h4>
+      <p>Use MeticleCare alongside existing systems (dual-running). Daily usage monitored. Weekly check-ins with our team. Feedback collected at Week 8 and Week 12.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Week 13: Pilot Review & Decision</h4>
+      <p>Review usage data, feedback, and outcomes. Present findings to leadership. Decide: full deployment, extended pilot, or decline.</p>
+    </div>
+  </div>
+
+  <h3>5.3 Pilot Terms</h3>
+  <table>
+    <tr><th>Term</th><th>Detail</th></tr>
+    <tr><td>Duration</td><td>12 weeks</td></tr>
+    <tr><td>Cost</td><td>Free for the pilot period</td></tr>
+    <tr><td>Staff limit</td><td>Up to 15 staff members</td></tr>
+    <tr><td>Locations</td><td>Up to 2 locations</td></tr>
+    <tr><td>Features</td><td>Full Professional tier access</td></tr>
+    <tr><td>Support</td><td>Dedicated onboarding specialist + weekly check-ins</td></tr>
+    <tr><td>Data</td><td>Your data remains yours — exported if you decline</td></tr>
+    <tr><td>Commitment</td><td>None — walk away at any time</td></tr>
+  </table>
+
+  <h3>5.4 What We Measure During the Pilot</h3>
+  <table>
+    <tr><th>Metric</th><th>How We Measure</th><th>Target</th></tr>
+    <tr><td>Staff adoption rate</td><td>Daily active users / total pilot users</td><td>80%+ by Week 8</td></tr>
+    <tr><td>Time to complete daily notes</td><td>Self-reported + system timestamps</td><td>50% reduction vs. paper</td></tr>
+    <tr><td>Rota creation time</td><td>Manager self-reported</td><td>70% reduction vs. spreadsheet</td></tr>
+    <tr><td>Compliance evidence coverage</td><td>System-generated evidence packs</td><td>90%+ KLOE coverage</td></tr>
+    <tr><td>Staff satisfaction</td><td>End-of-pilot survey (NPS)</td><td>NPS 30+</td></tr>
+    <tr><td>Support tickets</td><td>Count and resolution time</td><td>Under 4 hours average</td></tr>
+  </table>
+
+  <h3>5.5 Pilot Deliverables</h3>
+  <ul>
+    <li>Usage analytics report (Week 8 and Week 12)</li>
+    <li>Staff satisfaction survey results</li>
+    <li>Time-saving analysis (before/after comparison)</li>
+    <li>Compliance evidence quality assessment</li>
+    <li>Recommendation report with full deployment plan</li>
+    <li>Data export if you decline (within 30 days)</li>
+  </ul>
+
+  <div class="callout">
+    <strong>No risk:</strong> The pilot is free, the data is yours, and there's no commitment. If MeticleCare doesn't work for you, we'll help you export your data and part ways professionally.
+  </div>
+</div>
+
+<!-- ==================== 6. PROCUREMENT READINESS ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 6</div>
+  <h2>Procurement Readiness</h2>
+  <div class="section-subtitle">Security, GDPR, DPIA, data hosting, backups, support</div>
+
+  <h3>6.1 Data Protection & GDPR</h3>
+  <table>
+    <tr><th>Requirement</th><th>Status</th><th>Detail</th></tr>
+    <tr><td>UK GDPR compliance</td><td>Implemented</td><td>Data processing agreements, privacy notices, consent management</td></tr>
+    <tr><td>Data Protection Impact Assessment (DPIA)</td><td>In progress</td><td>Full DPIA planned before pilot deployments</td></tr>
+    <tr><td>Data minimisation</td><td>Implemented</td><td>Collect only what's needed for care operations</td></tr>
+    <tr><td>Right to erasure</td><td>Implemented</td><td>Data export and deletion on request</td></tr>
+    <tr><td>Data portability</td><td>Implemented</td><td>CSV/JSON export of all organisational data</td></tr>
+    <tr><td>Breach notification</td><td>Implemented</td><td>72-hour notification process to ICO and affected parties</td></tr>
+    <tr><td>Record of processing</td><td>Implemented</td><td>Documented data flows and processing activities</td></tr>
+  </table>
+
+  <h3>6.2 Security</h3>
+  <table>
+    <tr><th>Layer</th><th>Measure</th></tr>
+    <tr><td>Transport</td><td>TLS 1.3 encryption for all data in transit</td></tr>
+    <tr><td>Storage</td><td>AES-256-GCM encryption for sensitive data at rest</td></tr>
+    <tr><td>Authentication</td><td>JWT access + refresh tokens, MFA (TOTP), RBAC</td></tr>
+    <tr><td>Authorisation</td><td>Per-request permission checks, tenant isolation</td></tr>
+    <tr><td>API security</td><td>Rate limiting, input validation (Zod), CORS, CSP</td></tr>
+    <tr><td>File uploads</td><td>MIME allowlist, extension blocking, magic-byte validation</td></tr>
+    <tr><td>Audit logging</td><td>Centralised audit trail across 40+ mutation points</td></tr>
+    <tr><td>Vulnerability management</td><td>Regular dependency updates, automated scanning</td></tr>
+  </table>
+
+  <h3>6.3 Infrastructure & Hosting</h3>
+  <table>
+    <tr><th>Component</th><th>Detail</th></tr>
+    <tr><td>Hosting region</td><td>UK (AWS London / Azure UK South)</td></tr>
+    <tr><td>Database</td><td>PostgreSQL 15 with daily automated backups</td></tr>
+    <tr><td>Backup retention</td><td>30 days rolling, with point-in-time recovery</td></tr>
+    <tr><td>Uptime SLA</td><td>99.9% (Professional tier and above)</td></tr>
+    <tr><td>Disaster recovery</td><td>Documented RTO: 4 hours, RPO: 1 hour</td></tr>
+    <tr><td>SSL certificates</td><td>Automated renewal via Let's Encrypt</td></tr>
+    <tr><td>CDN</td><td>Static asset caching for performance</td></tr>
+  </table>
+
+  <h3>6.4 Support</h3>
+  <table>
+    <tr><th>Tier</th><th>Support Level</th><th>Response Time</th></tr>
+    <tr><td>Starter</td><td>Email support</td><td>24 hours</td></tr>
+    <tr><td>Professional</td><td>Email + chat support</td><td>4 hours</td></tr>
+    <tr><td>Enterprise</td><td>Email + chat + phone</td><td>1 hour</td></tr>
+  </table>
+
+  <h3>6.5 Certifications (Planned)</h3>
+  <ul>
+    <li><strong>Cyber Essentials:</strong> Target Q4 2026</li>
+    <li><strong>ISO 27001:</strong> Target Q2 2027</li>
+    <li><strong>SOC 2 Type II:</strong> Target Q4 2027</li>
+  </ul>
+
+  <h3>6.6 Insurance</h3>
+  <ul>
+    <li>Professional indemnity insurance</li>
+    <li>Cyber liability insurance</li>
+    <li>Public liability insurance</li>
+  </ul>
+
+  <div class="callout">
+    <strong>Procurement note:</strong> We are a UK-registered company with UK-hosted infrastructure. All data processing occurs within the UK. No data leaves UK jurisdiction. We are happy to complete any NHS trust or local authority procurement documentation.
+  </div>
+</div>
+
+<!-- ==================== 7. COMPETITOR POSITIONING ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 7</div>
+  <h2>Competitor Positioning</h2>
+  <div class="section-subtitle">Why MeticleCare rather than established platforms</div>
+
+  <h3>7.1 Competitive Landscape</h3>
+  <table>
+    <tr><th>Competitor</th><th>Focus</th><th>Pricing</th><th>Strengths</th><th>Weaknesses</th></tr>
+    <tr>
+      <td><strong>Person Centred Software</strong></td>
+      <td>eMAR + digital care notes</td>
+      <td>£3–£8/carer/day</td>
+      <td>Market leader in eMAR; NHS partnerships</td>
+      <td>Not a full platform; high per-user cost; no AI; no rota</td>
+    </tr>
+    <tr>
+      <td><strong>Access Group</strong></td>
+      <td>Enterprise care software</td>
+      <td>£200–£500+/month</td>
+      <td>Large customer base; broad feature set</td>
+      <td>Legacy architecture; slow innovation; complex pricing; poor UX</td>
+    </tr>
+    <tr>
+      <td><strong>Person Centred Software</strong></td>
+      <td>eMAR + care plans</td>
+      <td>Per carer/day</td>
+      <td>Strong in medication</td>
+      <td>Not connected; no scheduling; no compliance evidence</td>
+    </tr>
+    <tr>
+      <td><strong>Paper/spreadsheets</strong></td>
+      <td>Manual</td>
+      <td>£0 + staff time</td>
+      <td>Familiar; no learning curve</td>
+      <td>No audit trail; compliance risk; high admin burden</td>
+    </tr>
+  </table>
+
+  <h3>7.2 MeticleCare Differentiation</h3>
+  <table>
+    <tr><th>Differentiator</th><th>MeticleCare</th><th>Competitors</th></tr>
+    <tr><td>Full platform (not point solution)</td><td>41 modules, one system</td><td>Typically 3–5 modules</td></tr>
+    <tr><td>AI-first architecture</td><td>5 AI agents, event-driven intelligence</td><td>No AI or bolt-on features</td></tr>
+    <tr><td>Predictable pricing</td><td>Fixed monthly fee, no per-user charges</td><td>Per carer/day or per module</td></tr>
+    <tr><td>Modern architecture</td><td>TypeScript, React, PostgreSQL</td><td>Legacy tech stacks</td></tr>
+    <tr><td>UK-built and hosted</td><td>UK company, UK data centres</td><td>Often US/EU hosted</td></tr>
+    <tr><td>Mobile-first PWA</td><td>Offline-capable, GPS check-in</td><td>Desktop-first or basic mobile</td></tr>
+    <tr><td>Real-time collaboration</td><td>Socket.IO chat, live presence</td><td>Email-based communication</td></tr>
+    <tr><td>Family portal</td><td>Consent-gated access to care records</td><td>Rarely included</td></tr>
+    <tr><td>CQC evidence automation</td><td>Continuous evidence from operational records</td><td>Manual evidence gathering</td></tr>
+    <tr><td>Open API</td><td>484 endpoints, full API access</td><td>Limited or no API</td></tr>
+  </table>
+
+  <h3>7.3 Objection Handling</h3>
+  <table>
+    <tr><th>Objection</th><th>Response</th></tr>
+    <tr><td>"You're a startup — what if you fail?"</td><td>Your data is yours. We provide full data export at any time. We also maintain daily backups with 30-day retention. If we cease trading, you retain your data.</td></tr>
+    <tr><td>"We already use Person Centred Software"</td><td>MeticleCare replaces the need for multiple point solutions. One platform instead of 3–5. Lower total cost. Plus AI capabilities that PCS doesn't offer.</td></tr>
+    <tr><td>"We're not ready for AI"</td><td>AI is optional. You can use MeticleCare without any AI features. When you're ready, AI capabilities are there — but they're never required.</td></tr>
+    <tr><td>"Our staff won't adopt new software"</td><td>Our pilot includes dedicated onboarding and training. We've designed the UX for care workers on phones and tablets — not desktops. Voice-to-text means less typing, not more.</td></tr>
+    <tr><td>"What about CQC?"</td><td>MeticleCare generates CQC evidence automatically from operational records. The Single Assessment Framework requires continuous evidence — we provide it.</td></tr>
+    <tr><td>"We need NHS integration"</td><td>NHS Spine integration is on our roadmap for Q2 2027. We're building toward it with pilot partnerships.</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Positioning statement:</strong> MeticleCare is the only UK care management platform that combines a full operational system (41 modules) with AI-first intelligence, predictable pricing, and modern architecture. Competitors offer point solutions at higher cost. We offer a complete operating system at a predictable price.
+  </div>
+</div>
+
+<!-- ==================== 8. NEXT STEPS ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 8</div>
+  <h2>Next Steps</h2>
+  <div class="section-subtitle">How to get started</div>
+
+  <h3>8.1 Immediate Actions</h3>
+  <div class="flow">
+    <div class="flow-step">1. Introduction call<br>30 minutes</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">2. Product demo<br>60 minutes</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">3. Pilot proposal<br>We prepare</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">4. Pilot begins<br>12 weeks</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">5. Decision<br>You decide</div>
+  </div>
+
+  <h3>8.2 What We Need From You</h3>
+  <ul>
+    <li>30-minute introduction call with the care manager or operations director</li>
+    <li>Overview of your current systems and pain points</li>
+    <li>Number of locations, staff, and service users</li>
+    <li>Compliance requirements (CQC, CIW, Care Inspectorate, RQIA)</li>
+    <li>Decision-maker identification</li>
+  </ul>
+
+  <h3>8.3 What We'll Deliver</h3>
+  <ul>
+    <li>Personalised demo based on your specific workflows</li>
+    <li>Tailored pilot proposal within 5 working days</li>
+    <li>Data migration plan (from existing systems)</li>
+    <li>Training schedule for pilot staff</li>
+    <li>Dedicated onboarding specialist for the pilot period</li>
+  </ul>
+
+  <div class="callout">
+    <strong>Contact:</strong> Opeyemi Olorunfemi, Founder & CEO — MeticleCare Ltd<br>
+    <strong>Email:</strong> opeyemi@meticlecare.com<br>
+    <strong>Web:</strong> meticlecare.com
+  </div>
+
+  <div class="footer">
+    MeticleCare Ltd — NHS & Care Provider Sales Package — August 2026<br>
+    Commercial in confidence — Do not distribute without permission
+  </div>
+</div>
+
+</body>
+</html>

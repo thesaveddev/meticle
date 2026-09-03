@@ -48,15 +48,22 @@ const cashCheckSchema = z.object({
   notes: z.string().max(500).optional(),
   escalate: z.boolean().optional(),
   escalationReason: z.string().max(500).optional(),
-}).refine(data => data.moneySource === 'house' ? !!data.locationId : !!data.personId, { message: 'Select a location for house funds or a person for person funds' });
+  handedOverTo: z.string().uuid(),
+}).refine(data => data.moneySource === 'house' ? !!data.locationId : !!data.personId, { message: 'Select a location for house funds or person for person funds' });
 
 const reconcileSchema = z.object({
   moneySource: z.enum(['house', 'person']),
   locationId: z.string().uuid().nullish(),
   personId: z.string().uuid().nullish(),
   actualBalancePence: z.number().int().min(0),
+  handedOverTo: z.string().uuid(),
   notes: z.string().max(500).optional(),
 }).refine(data => data.moneySource === 'house' ? !!data.locationId : !!data.personId, { message: 'Select a location for house funds or a person for person funds' });
+
+const reconciliationReviewSchema = z.object({
+  decision: z.enum(['accepted', 'rejected']),
+  rejectionReason: z.string().max(500).optional(),
+}).refine(data => data.decision !== 'rejected' || Boolean(data.rejectionReason?.trim()), { message: 'A reason is required when rejecting a reconciliation', path: ['rejectionReason'] });
 
 const router = Router();
 router.use(authenticate);
@@ -68,9 +75,12 @@ router.get('/', requireRole(...VIEW_ROLES), asyncHandler(ExpensesController.list
 router.get('/stats', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.stats));
 router.get('/petty-cash/balances', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.getBalances));
 router.post('/petty-cash/top-up', requireRole(...ADMIN_ROLES), validate(topUpSchema), asyncHandler(ExpensesController.topUp));
-router.post('/petty-cash/reconcile', requireRole(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN), validate(reconcileSchema), asyncHandler(ExpensesController.reconcile));
+router.post('/petty-cash/reconcile', requireRole(...ADMIN_ROLES), validate(reconcileSchema), asyncHandler(ExpensesController.reconcile));
+router.get('/petty-cash/reconciliations', requireRole(...VIEW_ROLES), asyncHandler(ExpensesController.getReconciliations));
+router.post('/petty-cash/reconciliations/:id/review', requireRole(...VIEW_ROLES), validate(reconciliationReviewSchema), asyncHandler(ExpensesController.reviewReconciliation));
 router.post('/petty-cash/daily-check', requireRole(...ADMIN_ROLES), validate(cashCheckSchema), asyncHandler(ExpensesController.dailyCashCheck));
-router.get('/petty-cash/daily-checks', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.getDailyCashChecks));
+router.get('/petty-cash/daily-checks', requireRole(...VIEW_ROLES), asyncHandler(ExpensesController.getDailyCashChecks));
+router.post('/petty-cash/daily-checks/:id/accept', requireRole(...VIEW_ROLES), asyncHandler(ExpensesController.acceptDailyCashCheck));
 router.get('/report', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.report));
 router.get('/petty-cash/transactions', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.getTransactions));
 router.post('/', requireRole(...ADMIN_ROLES), validate(createExpenseSchema), asyncHandler(ExpensesController.create));

@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeticleCare — SEIS Advance Assurance Application Package</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #1B2430;
+    background: #fff;
+  }
+
+  /* Cover page */
+  .cover {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 48px;
+    page-break-after: always;
+    background: linear-gradient(160deg, #0F4C81 0%, #0A3A63 100%);
+    color: #fff;
+  }
+  .cover .logo-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #10B981;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 22px;
+    color: #fff;
+  }
+  .cover h1 {
+    font-size: 36pt;
+    font-weight: 900;
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+  .cover .subtitle {
+    font-size: 16pt;
+    font-weight: 400;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 48px;
+    max-width: 520px;
+  }
+  .cover .meta {
+    font-size: 10pt;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.8;
+  }
+  .cover .meta strong { color: rgba(255,255,255,0.9); }
+
+  /* Section pages */
+  .section {
+    padding: 48px;
+    page-break-before: always;
+  }
+  .section:first-of-type { page-break-before: auto; }
+  .section-number {
+    font-size: 10pt;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #10B981;
+    margin-bottom: 8px;
+  }
+  .section h2 {
+    font-size: 22pt;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    color: #0F4C81;
+    margin-bottom: 6px;
+    line-height: 1.1;
+  }
+  .section .section-subtitle {
+    font-size: 11pt;
+    color: #5B6672;
+    margin-bottom: 24px;
+    font-style: italic;
+  }
+  .section h3 {
+    font-size: 13pt;
+    font-weight: 800;
+    color: #1B2430;
+    margin: 24px 0 8px 0;
+  }
+  .section h4 {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #0F4C81;
+    margin: 16px 0 6px 0;
+  }
+  .section p {
+    margin-bottom: 10px;
+    text-align: justify;
+  }
+  .section ul, .section ol {
+    margin: 8px 0 12px 20px;
+  }
+  .section li { margin-bottom: 4px; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  th {
+    background: #0F4C81;
+    color: #fff;
+    text-align: left;
+    padding: 8px 10px;
+    font-weight: 700;
+    font-size: 9pt;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #E7E1D6;
+  }
+  tr:nth-child(even) td { background: #F7F4EE; }
+
+  /* Callout boxes */
+  .callout {
+    background: #F7F4EE;
+    border-left: 3px solid #10B981;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  .callout strong { color: #0F4C81; }
+
+  /* Checklist */
+  .checklist {
+    list-style: none;
+    margin: 8px 0 12px 0;
+    padding: 0;
+  }
+  .checklist li {
+    padding: 6px 0 6px 28px;
+    position: relative;
+    font-size: 10pt;
+  }
+  .checklist li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #10B981;
+    font-weight: 900;
+    font-size: 12pt;
+  }
+  .checklist li.pending::before {
+    content: "○";
+    color: #D97706;
+  }
+  .checklist li.na::before {
+    content: "—";
+    color: #5B6672;
+  }
+
+  /* Info box */
+  .info-box {
+    background: #EFF6FF;
+    border-left: 3px solid #3B82F6;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  .info-box strong { color: #1E40AF; }
+
+  /* Warning box */
+  .warning-box {
+    background: #FEF3CD;
+    border-left: 3px solid #D97706;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  .warning-box strong { color: #92400E; }
+
+  /* Form field */
+  .form-field {
+    margin: 12px 0;
+    padding: 10px 14px;
+    border: 1px solid #E7E1D6;
+    border-radius: 6px;
+    background: #FAFAF8;
+  }
+  .form-field .label {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5B6672;
+    margin-bottom: 4px;
+  }
+  .form-field .value {
+    font-size: 11pt;
+    color: #1B2430;
+  }
+
+  /* Two column */
+  .two-col {
+    display: flex;
+    gap: 24px;
+    margin: 16px 0;
+  }
+  .two-col > div { flex: 1; }
+
+  /* Page break */
+  .pb { page-break-before: always; }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid #E7E1D6;
+    font-size: 8pt;
+    color: #5B6672;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER ==================== -->
+<div class="cover">
+  <div class="logo-mark">M</div>
+  <h1>MeticleCare Ltd</h1>
+  <div class="subtitle">SEIS Advance Assurance Application Package — Prepared for HMRC Submission</div>
+  <div class="meta">
+    <strong>Document type:</strong> Advance assurance application supporting documents<br>
+    <strong>Scheme:</strong> Seed Enterprise Investment Scheme (SEIS)<br>
+    <strong>Company:</strong> MeticleCare Ltd<br>
+    <strong>Company number:</strong> [To be confirmed at incorporation]<br>
+    <strong>Date prepared:</strong> August 2026<br>
+    <strong>Version:</strong> 1.0<br>
+    <strong>Classification:</strong> Commercial in confidence
+  </div>
+</div>
+
+<!-- ==================== 1. COVER LETTER ==================== -->
+<div class="section">
+  <div class="section-number">Document 1</div>
+  <h2>Cover Letter to HMRC</h2>
+  <div class="section-subtitle">Formal application for advance assurance under SEIS</div>
+
+  <div class="form-field">
+    <div class="label">To</div>
+    <div class="value">HM Revenue & Customs<br>Enterprise Centre<br>SEIS Advance Assurance Team</div>
+  </div>
+
+  <div class="form-field">
+    <div class="label">Date</div>
+    <div class="value">[Date of submission]</div>
+  </div>
+
+  <div class="form-field">
+    <div class="label">From</div>
+    <div class="value">Opeyemi Olorunfemi, Director<br>MeticleCare Ltd<br>[Registered address]<br>United Kingdom</div>
+  </div>
+
+  <div class="form-field">
+    <div class="label">Re</div>
+    <div class="value">Application for Advance Assurance — Seed Enterprise Investment Scheme (SEIS)</div>
+  </div>
+
+  <p>Dear Sir/Madam,</p>
+
+  <p>I write on behalf of MeticleCare Ltd ("the Company") to apply for advance assurance under the Seed Enterprise Investment Scheme (SEIS) pursuant to Part 5A of the Income Tax Act 2007.</p>
+
+  <p>The Company proposes to raise up to <strong>£200,000</strong> through the issue of ordinary shares to eligible investors. The investment will be used to convert a production-ready care management platform into a validated commercial product across UK supported living and domiciliary care providers.</p>
+
+  <p>We believe the Company meets the qualifying conditions for SEIS as set out in the accompanying documentation, specifically:</p>
+
+  <ul>
+    <li>The Company is a UK-registered company (company number: [TBC])</li>
+    <li>The Company was incorporated less than 3 years ago</li>
+    <li>The Company has fewer than 25 employees</li>
+    <li>The Company's gross assets do not exceed £350,000</li>
+    <li>The Company carries on a qualifying trade (development of software for the healthcare sector)</li>
+    <li>The Company is not excluded under any of the statutory exclusions</li>
+  </ul>
+
+  <p>The enclosed documentation includes:</p>
+  <ol>
+    <li>This cover letter</li>
+    <li>Company information and eligibility self-assessment</li>
+    <li>Business plan</li>
+    <li>Three-year financial forecasts</li>
+    <li>Details of proposed investors</li>
+    <li>Risk to capital condition statement</li>
+    <li>Articles of Association (draft)</li>
+  </ol>
+
+  <p>We confirm that all information provided is accurate and complete to the best of our knowledge. We understand that advance assurance is not a guarantee of SEIS eligibility for investors, and that investors should conduct their own due diligence.</p>
+
+  <p>We would be grateful for your consideration of this application and are available to provide any further information you may require.</p>
+
+  <p style="margin-top: 32px;">Yours faithfully,</p>
+  <p style="margin-top: 48px;">
+    <strong>Opeyemi Olorunfemi</strong><br>
+    Director<br>
+    MeticleCare Ltd
+  </p>
+
+  <div class="footer">
+    MeticleCare Ltd — SEIS Advance Assurance Application — August 2026
+  </div>
+</div>
+
+<!-- ==================== 2. COMPANY INFORMATION ==================== -->
+<div class="section pb">
+  <div class="section-number">Document 2</div>
+  <h2>Company Information & Eligibility</h2>
+  <div class="section-subtitle">Statutory details and SEIS qualifying conditions</div>
+
+  <h3>2.1 Company Details</h3>
+  <div class="two-col">
+    <div>
+      <div class="form-field">
+        <div class="label">Company name</div>
+        <div class="value">MeticleCare Ltd</div>
+      </div>
+      <div class="form-field">
+        <div class="label">Company number</div>
+        <div class="value">[To be confirmed at Companies House registration]</div>
+      </div>
+      <div class="form-field">
+        <div class="label">Date of incorporation</div>
+        <div class="value">[To be confirmed — must be less than 3 years ago]</div>
+      </div>
+      <div class="form-field">
+        <div class="label">Registered office</div>
+        <div class="value">[To be confirmed]</div>
+      </div>
+    </div>
+    <div>
+      <div class="form-field">
+        <div class="label">SIC code</div>
+        <div class="value">62011 — Development of computer software</div>
+      </div>
+      <div class="form-field">
+        <div class="label">Principal trading activity</div>
+        <div class="value">Development and provision of care management software (SaaS)</div>
+      </div>
+      <div class="form-field">
+        <div class="label">Country of registration</div>
+        <div class="value">England and Wales</div>
+      </div>
+      <div class="form-field">
+        <div class="label">VAT registration</div>
+        <div class="value">[To be confirmed]</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>2.2 Directors and Officers</h3>
+  <table>
+    <tr><th>Name</th><th>Role</th><th>Nationality</th><th>Appointed</th></tr>
+    <tr><td>Opeyemi Olorunfemi</td><td>Director</td><td>British</td><td>[Date of incorporation]</td></tr>
+    <tr><td>[Additional directors if any]</td><td>[Role]</td><td>[Nationality]</td><td>[Date]</td></tr>
+  </table>
+
+  <h3>2.3 Shareholders (Current)</h3>
+  <table>
+    <tr><th>Shareholder</th><th>Shares</th><th>Class</th><th>% Holding</th></tr>
+    <tr><td>Opeyemi Olorunfemi</td><td>100</td><td>Ordinary</td><td>100%</td></tr>
+  </table>
+
+  <h3>2.4 SEIS Qualifying Conditions — Self-Assessment</h3>
+  <table>
+    <tr><th>Condition</th><th>Requirement</th><th>MeticleCare Status</th><th>Met?</th></tr>
+    <tr><td>UK company</td><td>Incorporated in the UK</td><td>England & Wales</td><td style="color: #10B981; font-weight: 900;">✓</td></tr>
+    <tr><td>Age</td><td>Less than 3 years old at share issue</td><td>[Date of incorporation] — under 3 years</td><td style="color: #10B981; font-weight: 900;">✓</td></tr>
+    <tr><td>Employees</td><td>Fewer than 25 employees</td><td>1 employee (founder)</td><td style="color: #10B981; font-weight: 900;">✓</td></tr>
+    <tr><td>Gross assets</td><td>Not more than £350,000</td><td>Under £50,000</td><td style="color: #10B981; font-weight: 900;">✓</td></tr>
+    <tr><td>Qualifying trade</td><td>Carrying on a qualifying trade</td><td>Software development (SIC 62011)</td><td style="color: #10B981; font-weight: 900;">✓</td></tr>
+    <tr><td>Not excluded trade</td><td>Not on excluded list</td><td>Software development — not excluded</td><td style="color: #10B981; font-weight: 900;">✓</td></tr>
+    <tr><td>Not listed</td><td>Not on AIM or recognised stock exchange</td><td>Private company</td><td style="color: #10B981; font-weight: 900;">✓</td></tr>
+    <tr><td>Not controlled</td><td>Not controlled by another company</td><td>Independent company</td><td style="color: #10B981; font-weight: 900;">✓</td></tr>
+    <tr><td>Risk to capital</td><td>Money at risk, no guaranteed return</td><td>Ordinary shares, no preferential return</td><td style="color: #10B981; font-weight: 900;">✓</td></tr>
+    <tr><td>Use of funds</td><td>Used for growth and development</td><td>Customer acquisition, product development</td><td style="color: #10B981; font-weight: 900;">✓</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Key point:</strong> MeticleCare Ltd meets all 10 SEIS qualifying conditions. The Company is a genuine startup developing software for the UK care sector — a qualifying trade under SEIS.
+  </div>
+</div>
+
+<!-- ==================== 3. BUSINESS PLAN ==================== -->
+<div class="section pb">
+  <div class="section-number">Document 3</div>
+  <h2>Business Plan</h2>
+  <div class="section-subtitle">Three-year business plan for HMRC review</div>
+
+  <h3>3.1 Executive Summary</h3>
+  <p>MeticleCare is an AI-first care management platform built for UK CQC-regulated supported-living providers. The platform replaces fragmented paper systems, spreadsheets, and multiple disconnected software tools with a single connected system covering rota planning, medication records (eMAR), daily care notes, compliance evidence, leave management, incidents, training, and family communication.</p>
+
+  <p>The platform is deployed in production with 41 backend modules, 484 API endpoints, 78 frontend pages, and 108 database tables. The investment will fund the transition from production-ready platform to validated commercial product with paying customers.</p>
+
+  <h3>3.2 Market Opportunity</h3>
+  <table>
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>UK care management solutions market (2024)</td><td>£891 million</td></tr>
+    <tr><td>Projected market size (2030)</td><td>£2.4 billion (27% CAGR)</td></tr>
+    <tr><td>Care providers in England</td><td>152,000+</td></tr>
+    <tr><td>Care workers in the UK</td><td>1.7 million</td></tr>
+    <tr><td>Unfilled care vacancies</td><td>165,000+</td></tr>
+  </table>
+
+  <h3>3.3 Product Description</h3>
+  <p>MeticleCare is a multi-tenant SaaS platform with the following core capabilities:</p>
+  <ul>
+    <li><strong>Operations:</strong> AI-powered rota planner, full eMAR, voice-to-text daily notes, real-time team chat, mobile PWA</li>
+    <li><strong>Compliance:</strong> Automated evidence packs (KLOE), CQC readiness scoring, training matrix, competency assessments</li>
+    <li><strong>Intelligence:</strong> 5 AI agents (Compliance Officer, Operations Manager, Documentation Specialist, Resident Intelligence, Medication Safety)</li>
+    <li><strong>Finance:</strong> Stripe billing, agency management, expense tracking</li>
+    <li><strong>Communication:</strong> Team chat, family portal, notifications</li>
+  </ul>
+
+  <h3>3.4 Revenue Model</h3>
+  <table>
+    <tr><th>Tier</th><th>Monthly Price</th><th>Target Segment</th></tr>
+    <tr><td>Starter</td><td>£99/month</td><td>1–3 locations, ≤25 staff</td></tr>
+    <tr><td>Professional</td><td>£299/month</td><td>4–15 locations, unlimited staff</td></tr>
+    <tr><td>Enterprise</td><td>£499–£999/month</td><td>15+ locations, API, SLA</td></tr>
+  </table>
+
+  <h3>3.5 Competitive Advantage</h3>
+  <ul>
+    <li><strong>Full platform:</strong> 41 modules in one system (competitors offer 3–5)</li>
+    <li><strong>AI-first:</strong> 5 domain-specific AI agents (competitors have none)</li>
+    <li><strong>Predictable pricing:</strong> Fixed monthly fee, no per-user charges</li>
+    <li><strong>Modern architecture:</strong> TypeScript, React, PostgreSQL (competitors on legacy stacks)</li>
+    <li><strong>UK-built, UK-hosted:</strong> Data sovereignty, GDPR compliance</li>
+  </ul>
+
+  <h3>3.6 Go-to-Market Strategy</h3>
+  <p><strong>Phase 1 (Months 1–6):</strong> Direct sales to 20–50 supported-living providers in South East England. Free 30-day trial → £99/month Starter → upsell to Professional.</p>
+  <p><strong>Phase 2 (Months 6–12):</strong> Channel partnerships with care sector consultants, CQC inspectors, and payroll providers.</p>
+  <p><strong>Phase 3 (Months 12–18):</strong> NHS integration for discharge-to-assess pathways. Trust-level procurement.</p>
+
+  <h3>3.7 Use of SEIS Funds</h3>
+  <p>The £200,000 raised through SEIS will be used as follows:</p>
+  <table>
+    <tr><th>Category</th><th>Amount</th><th>%</th><th>Purpose</th></tr>
+    <tr><td>Customer acquisition</td><td>£60,000</td><td>30%</td><td>Sales hire, marketing, pilot programme</td></tr>
+    <tr><td>Product development</td><td>£50,000</td><td>25%</td><td>Engineering hire, NHS integration, AI improvements</td></tr>
+    <tr><td>Security & compliance</td><td>£30,000</td><td>15%</td><td>Cyber Essentials, DPIA, penetration testing</td></tr>
+    <tr><td>Implementation</td><td>£30,000</td><td>15%</td><td>Onboarding team, data migration, training</td></tr>
+    <tr><td>Evidence generation</td><td>£20,000</td><td>10%</td><td>Clinical validation, pilot measurement</td></tr>
+    <tr><td>Working capital</td><td>£10,000</td><td>5%</td><td>Cloud costs, legal, contingency</td></tr>
+  </table>
+
+  <h3>3.8 Three-Year Milestones</h3>
+  <table>
+    <tr><th>Period</th><th>Milestone</th><th>Evidence</th></tr>
+    <tr><td>Month 3</td><td>5 pilot deployments</td><td>Active pilot agreements</td></tr>
+    <tr><td>Month 6</td><td>3 paying customers</td><td>Stripe billing active</td></tr>
+    <tr><td>Month 12</td><td>29 customers, £9K MRR</td><td>Revenue reports</td></tr>
+    <tr><td>Month 18</td><td>55 customers, £17K MRR</td><td>Revenue reports</td></tr>
+    <tr><td>Month 30</td><td>EBITDA break-even</td><td>Financial statements</td></tr>
+    <tr><td>Month 36</td><td>255 customers, £79K MRR</td><td>Revenue reports</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 4. FINANCIAL FORECASTS ==================== -->
+<div class="section pb">
+  <div class="section-number">Document 4</div>
+  <h2>Three-Year Financial Forecasts</h2>
+  <div class="section-subtitle">Revenue, costs, and cash flow projections</div>
+
+  <h3>4.1 Revenue Forecast</h3>
+  <table>
+    <tr><th>Revenue Stream</th><th>Year 1</th><th>Year 2</th><th>Year 3</th></tr>
+    <tr><td>Starter subscriptions</td><td class="right">£28,400</td><td class="right">£98,200</td><td class="right">£180,000</td></tr>
+    <tr><td>Professional subscriptions</td><td class="right">£38,100</td><td class="right">£190,000</td><td class="right">£450,000</td></tr>
+    <tr><td>Enterprise subscriptions</td><td class="right">£16,200</td><td class="right">£110,000</td><td class="right">£338,000</td></tr>
+    <tr><td>Services (onboarding, training)</td><td class="right">£12,500</td><td class="right">£39,200</td><td class="right">£82,000</td></tr>
+    <tr class="total"><td><strong>Total revenue</strong></td><td class="right"><strong>£95,200</strong></td><td class="right"><strong>£437,400</strong></td><td class="right"><strong>£1,050,000</strong></td></tr>
+  </table>
+
+  <h3>4.2 Cost Forecast</h3>
+  <table>
+    <tr><th>Cost Category</th><th>Year 1</th><th>Year 2</th><th>Year 3</th></tr>
+    <tr><td>Personnel (salaries & benefits)</td><td class="right">£235,000</td><td class="right">£501,000</td><td class="right">£785,000</td></tr>
+    <tr><td>COGS (cloud, AI, email, Stripe)</td><td class="right">£17,561</td><td class="right">£58,285</td><td class="right">£124,050</td></tr>
+    <tr><td>Operating expenses</td><td class="right">£84,368</td><td class="right">£155,434</td><td class="right">£229,703</td></tr>
+    <tr class="total"><td><strong>Total costs</strong></td><td class="right"><strong>£336,929</strong></td><td class="right"><strong>£714,719</strong></td><td class="right"><strong>£1,138,753</strong></td></tr>
+  </table>
+
+  <h3>4.3 Profit & Loss</h3>
+  <table>
+    <tr><th></th><th>Year 1</th><th>Year 2</th><th>Year 3</th></tr>
+    <tr><td>Revenue</td><td class="right">£95,200</td><td class="right">£437,400</td><td class="right">£1,050,000</td></tr>
+    <tr><td>Gross profit</td><td class="right">£77,639</td><td class="right">£379,115</td><td class="right">£925,950</td></tr>
+    <tr><td>Gross margin</td><td class="right">81.6%</td><td class="right">86.7%</td><td class="right">88.2%</td></tr>
+    <tr><td>EBITDA</td><td class="right" style="color: #DC2626;">-£241,729</td><td class="right" style="color: #DC2626;">-£277,319</td><td class="right">£35,297</td></tr>
+    <tr><td>Cash position (cumulative)</td><td class="right" style="color: #DC2626;">-£241,729</td><td class="right" style="color: #DC2626;">-£467,048</td><td class="right" style="color: #DC2626;">-£431,801</td></tr>
+  </table>
+
+  <h3>4.4 Cash Flow</h3>
+  <table>
+    <tr><th></th><th>Year 1</th><th>Year 2</th><th>Year 3</th></tr>
+    <tr><td>Opening cash</td><td class="right">£0</td><td class="right">-£241,729</td><td class="right">-£467,048</td></tr>
+    <tr><td>SEIS investment</td><td class="right">£200,000</td><td class="right">£0</td><td class="right">£0</td></tr>
+    <tr><td>Revenue received</td><td class="right">£95,200</td><td class="right">£437,400</td><td class="right">£1,050,000</td></tr>
+    <tr><td>Costs paid</td><td class="right">-£336,929</td><td class="right">-£714,719</td><td class="right">-£1,138,753</td></tr>
+    <tr class="total"><td><strong>Closing cash</strong></td><td class="right"><strong>-£241,729</strong></td><td class="right"><strong>-£467,048</strong></td><td class="right"><strong>-£431,801</strong></td></tr>
+  </table>
+
+  <div class="warning-box">
+    <strong>Note to HMRC:</strong> The financial forecasts show the Company requiring additional funding (bridge round) in Year 2 to reach break-even in Year 3. This is consistent with the SEIS qualifying condition that the investment is used for growth and development — the Company is genuinely deploying capital to build a commercial business.
+  </div>
+
+  <h3>4.5 Key Assumptions</h3>
+  <table>
+    <tr><th>Assumption</th><th>Year 1</th><th>Year 2</th><th>Year 3</th></tr>
+    <tr><td>New customers/month (avg)</td><td>3</td><td>8</td><td>15</td></tr>
+    <tr><td>Monthly churn rate</td><td>3.0%</td><td>2.0%</td><td>1.5%</td></tr>
+    <tr><td>Blended ARPU</td><td>£250</td><td>£310</td><td>£310</td></tr>
+    <tr><td>Gross margin</td><td>81.6%</td><td>86.7%</td><td>88.2%</td></tr>
+    <tr><td>Headcount</td><td>6</td><td>12</td><td>20</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 5. INVESTOR DETAILS ==================== -->
+<div class="section pb">
+  <div class="section-number">Document 5</div>
+  <h2>Details of Proposed Investors</h2>
+  <div class="section-subtitle">HMRC requires details of potential investors for first-time SEIS applicants</div>
+
+  <div class="info-box">
+    <strong>HMRC requirement:</strong> As a first-time SEIS applicant, the Company must provide the name and address of at least one prospective investor. This information is required for HMRC to consider the advance assurance application.
+  </div>
+
+  <h3>5.1 Proposed Investors</h3>
+  <table>
+    <tr><th>Investor Name</th><th>Address</th><th>Proposed Investment</th><th>Relationship</th></tr>
+    <tr>
+      <td>[Investor 1 name]</td>
+      <td>[Address]</td>
+      <td class="right">£[Amount]</td>
+      <td>[Independent / Connected]</td>
+    </tr>
+    <tr>
+      <td>[Investor 2 name — if applicable]</td>
+      <td>[Address]</td>
+      <td class="right">£[Amount]</td>
+      <td>[Independent / Connected]</td>
+    </tr>
+  </table>
+
+  <div class="warning-box">
+    <strong>Action required:</strong> Before submitting this application to HMRC, you must replace the placeholder investor details above with the actual names and addresses of at least one prospective investor. HMRC will not consider an application without investor details.
+  </div>
+
+  <h3>5.2 Total Proposed Raise</h3>
+  <div class="form-field">
+    <div class="label">Amount to be raised under SEIS</div>
+    <div class="value">£200,000</div>
+  </div>
+
+  <div class="form-field">
+    <div class="label">Maximum investment per investor</div>
+    <div class="value">£200,000 (SEIS annual limit)</div>
+  </div>
+
+  <h3>5.3 Investor Eligibility (SEIS)</h3>
+  <p>To claim SEIS tax relief, investors must meet the following conditions:</p>
+  <ul>
+    <li>UK resident for tax purposes</li>
+    <li>Not employed by the Company (or connected company)</li>
+    <li>Not a director of the Company (unless shares are issued for commercial reasons)</li>
+    <li>Not holding more than 30% of the Company's shares</li>
+    <li>Investment in ordinary shares (not preference shares)</li>
+  </ul>
+
+  <h3>5.4 Tax Relief for Investors</h3>
+  <table>
+    <tr><th>Relief</th><th>Detail</th></tr>
+    <tr><td>Income tax relief</td><td>50% of investment amount, against income tax liability</td></tr>
+    <tr><td>Annual investment limit</td><td>£200,000 per tax year</td></tr>
+    <tr><td>Capital gains exemption</td><td>Any gain on SEIS shares is exempt from CGT if held for 3+ years</td></tr>
+    <tr><td>Loss relief</td><td>If shares are disposed of at a loss, the loss can be set against income or capital gains</td></tr>
+    <tr><td>Gift relief</td><td>Shares can be gifted without triggering CGT</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Example:</strong> An investor invests £50,000 in MeticleCare under SEIS. They receive £25,000 income tax relief (50%). If the company succeeds and the shares are worth £150,000 after 3 years, the gain is CGT-free. If the company fails and the shares are worth £0, the investor can claim loss relief against income or capital gains.
+  </div>
+</div>
+
+<!-- ==================== 6. RISK TO CAPITAL ==================== -->
+<div class="section pb">
+  <div class="section-number">Document 6</div>
+  <h2>Risk to Capital Condition</h2>
+  <div class="section-subtitle">Statement confirming the investment carries genuine risk</div>
+
+  <h3>6.1 The Condition</h3>
+  <p>HMRC requires that the investment must carry a genuine risk of loss to the investor — there must be no mechanism to guarantee a return of capital or provide a preferential return.</p>
+
+  <h3>6.2 MeticleCare's Position</h3>
+
+  <h4>No guaranteed return</h4>
+  <p>The shares to be issued are ordinary shares with no preferential dividend, no capital guarantee, and no redemption mechanism. Investors' capital is at risk — if the Company fails, investors may lose part or all of their investment.</p>
+
+  <h4>No buyback or redemption</h4>
+  <p>The Company will not enter into any agreement to buy back, redeem, or return capital to shareholders outside of a genuine winding-up. There are no side agreements, convertible notes, or other instruments that would provide a preferential return.</p>
+
+  <h4>No asset-backed security</h4>
+  <p>The shares are not secured against any Company assets. There is no charge, lien, or other security interest in favour of investors.</p>
+
+  <h4>Commercial rationale</h4>
+  <p>The investment is made on a commercial basis — the Company will use the funds to grow its care management platform and generate revenue from paying customers. The investors' return depends entirely on the Company's commercial success.</p>
+
+  <h4>No connected party arrangements</h4>
+  <p>There are no arrangements between the Company and the shareholders (other than the subscription agreement) that would reduce the investor's risk below the level expected for an ordinary equity investment.</p>
+
+  <div class="callout">
+    <strong>Confirmation:</strong> The investment in MeticleCare Ltd carries a genuine risk of loss to the investor. There are no mechanisms to guarantee a return of capital, provide a preferential return, or otherwise reduce the investor's risk below the level expected for an ordinary equity investment in an early-stage company.
+  </div>
+</div>
+
+<!-- ==================== 7. ARTICLES OF ASSOCIATION ==================== -->
+<div class="section pb">
+  <div class="section-number">Document 7</div>
+  <h2>Articles of Association (Draft)</h2>
+  <div class="section-subtitle">Company constitution — key provisions for SEIS compliance</div>
+
+  <div class="info-box">
+    <strong>Note:</strong> This is a summary of the key provisions required for SEIS compliance. The full Articles of Association should be prepared by a solicitor and filed with Companies House at incorporation.
+  </div>
+
+  <h3>7.1 Share Capital</h3>
+  <div class="form-field">
+    <div class="label">Authorised share capital</div>
+    <div class="value">1,000 ordinary shares of £1 each</div>
+  </div>
+  <div class="form-field">
+    <div class="label">Issued share capital (pre-investment)</div>
+    <div class="value">100 ordinary shares (held by Opeyemi Olorunfemi)</div>
+  </div>
+  <div class="form-field">
+    <div class="label">Shares to be issued under SEIS</div>
+    <div class="value">Up to 200,000 ordinary shares (at £1 per share, or at a premium)</div>
+  </div>
+
+  <h3>7.2 Key Provisions</h3>
+  <table>
+    <tr><th>Provision</th><th>SEIS Requirement</th><th>Articles Draft</th></tr>
+    <tr><td>Share class</td><td>Ordinary shares only</td><td>Single class of ordinary shares</td></tr>
+    <tr><td>Dividends</td><td>No preferential dividend</td><td>Dividends declared at directors' discretion, pro rata to holdings</td></tr>
+    <tr><td>Voting</td><td>One vote per share</td><td>Ordinary resolution: simple majority; special resolution: 75%</td></tr>
+    <tr><td>Capital on winding up</td><td>Pro rata to holdings</td><td>Rank equally for return of capital</td></tr>
+    <tr><td>Redemption</td><td>No redemption of SEIS shares</td><td>No redemption provisions</td></tr>
+    <tr><td>Transfer restrictions</td><td>Permitted (not a disqualifying feature)</td><td>Directors' approval required for transfers</td></tr>
+  </table>
+
+  <h3>7.3 SEIS-Specific Provisions</h3>
+  <ul>
+    <li>No share premium account requirements for SEIS shares</li>
+    <li>No pre-emption rights that would prevent SEIS share issues</li>
+    <li>No provisions requiring the Company to acquire its own shares</li>
+    <li>No provisions for convertible instruments or loan notes</li>
+    <li>No arrangements for guaranteed returns or capital protection</li>
+  </ul>
+
+  <div class="warning-box">
+    <strong>Action required:</strong> The full Articles of Association must be prepared by a solicitor and filed with Companies House at incorporation. The Articles must be consistent with the SEIS qualifying conditions. Have the solicitor confirm SEIS compliance before filing.
+  </div>
+</div>
+
+<!-- ==================== 8. COMPLIANCE CHECKLIST ==================== -->
+<div class="section pb">
+  <div class="section-number">Document 8</div>
+  <h2>HMRC Submission Checklist</h2>
+  <div class="section-subtitle">Documents required for advance assurance application</div>
+
+  <h3>8.1 Required Documents (per HMRC guidance)</h3>
+  <ul class="checklist">
+    <li>Cover letter (Document 1)</li>
+    <li>Company information and eligibility (Document 2)</li>
+    <li>Business plan (Document 3)</li>
+    <li>Three-year financial forecasts (Document 4)</li>
+    <li>Details of proposed investors (Document 5)</li>
+    <li>Risk to capital condition statement (Document 6)</li>
+    <li>Articles of Association — draft (Document 7)</li>
+    <li class="pending">Latest accounts or bank statements — [required if company is trading]</li>
+    <li class="pending">Register of members — [required at date of application]</li>
+    <li class="pending">Pitch deck / investor documents — [reference to separate document]</li>
+    <li class="pending">Details of any other shareholder agreements</li>
+    <li class="pending">Details of trading and activities with expected expenditure per activity</li>
+  </ul>
+
+  <h3>8.2 Application Process</h3>
+  <table>
+    <tr><th>Step</th><th>Action</th><th>Status</th></tr>
+    <tr><td>1</td><td>Complete HMRC online form at GOV.UK</td><td style="color: #D97706; font-weight: 700;">Pending</td></tr>
+    <tr><td>2</td><td>Upload all supporting documents</td><td style="color: #D97706; font-weight: 700;">Pending</td></tr>
+    <tr><td>3</td><td>Submit application</td><td style="color: #D97706; font-weight: 700;">Pending</td></tr>
+    <tr><td>4</td><td>HMRC review (typically 4–6 weeks)</td><td style="color: #5B6672;">—</td></tr>
+    <tr><td>5</td><td>Receive advance assurance statement</td><td style="color: #5B6672;">—</td></tr>
+    <tr><td>6</td><td>Issue shares to investors</td><td style="color: #5B6672;">—</td></tr>
+    <tr><td>7</td><td>Submit compliance statement (form EIS1/SEIS1)</td><td style="color: #5B6672;">—</td></tr>
+    <tr><td>8</td><td>Issue certificates to investors (form EIS5/SEIS5)</td><td style="color: #5B6672;">—</td></tr>
+  </table>
+
+  <h3>8.3 Key Deadlines</h3>
+  <table>
+    <tr><th>Deadline</th><th>Detail</th></tr>
+    <tr><td>Advance assurance validity</td><td>Valid for the proposed investment (no expiry date, but must reflect current position)</td></tr>
+    <tr><td>Share issue deadline</td><td>Must issue shares within 5 years of incorporation</td></tr>
+    <tr><td>Compliance statement</td><td>Must be submitted within 30 days of share issue</td></tr>
+    <tr><td>Investor certificates</td><td>Must be issued within 30 days of compliance statement</td></tr>
+    <tr><td>Investor claim deadline</td><td>Investors must claim relief within 5 years of the tax year of investment</td></tr>
+  </table>
+
+  <h3>8.4 HMRC Contact</h3>
+  <div class="form-field">
+    <div class="label">Enterprise Centre email</div>
+    <div class="value">enterprise.centre@hmrc.gov.uk</div>
+  </div>
+  <div class="form-field">
+    <div class="label">Online application</div>
+    <div class="value">https://www.gov.uk/guidance/venture-capital-schemes-apply-for-advance-assurance</div>
+  </div>
+
+  <div class="callout">
+    <strong>Next step:</strong> Complete the HMRC online form, upload all documents in this package, and submit. HMRC typically responds within 4–6 weeks. If advance assurance is granted, the Company can proceed to issue SEIS-eligible shares to investors.
+  </div>
+
+  <div class="footer">
+    MeticleCare Ltd — SEIS Advance Assurance Application Package — August 2026<br>
+    Commercial in confidence — Do not distribute without permission
+  </div>
+</div>
+
+</body>
+</html>

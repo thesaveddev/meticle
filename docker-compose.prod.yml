@@ -1,6 +1,6 @@
 services:
   web:
-    image: ghcr.io/${GHCR_OWNER:-thesaveddev}/meticle-web:${WEB_TAG:-latest}
+    image: ${WEB_IMAGE:?WEB_IMAGE must be a digest-pinned image reference}
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:80"
@@ -16,7 +16,7 @@ services:
       - meticle
 
   api:
-    image: ghcr.io/${GHCR_OWNER:-thesaveddev}/meticle-api:${API_TAG:-latest}
+    image: ${API_IMAGE:?API_IMAGE must be a digest-pinned image reference}
     restart: unless-stopped
     expose:
       - 3002
@@ -31,8 +31,8 @@ services:
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - FRONTEND_URL=https://meticlecare.com
-      - CORS_ORIGINS=${CORS_ORIGINS:-https://meticlecare.com}
+      - FRONTEND_URL=${FRONTEND_URL:?FRONTEND_URL must be configured}
+      - CORS_ORIGINS=${CORS_ORIGINS:?CORS_ORIGINS must be configured}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_SECURE=${SMTP_SECURE:-false}
@@ -60,7 +60,7 @@ services:
       - meticle
 
   db:
-    image: postgres:15-alpine
+    image: postgres@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f
     restart: unless-stopped
     environment:
       - POSTGRES_USER=meticle
@@ -79,7 +79,7 @@ services:
       - meticle
 
   redis:
-    image: redis:7-alpine
+    image: redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -92,7 +92,7 @@ services:
       - meticle
 
   backup:
-    image: postgres:15-alpine
+    image: postgres@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f
     restart: unless-stopped
     environment:
       - DB_HOST=db
@@ -106,7 +106,7 @@ services:
     entrypoint: |
       sh -c '
         apk add --no-cache bash > /dev/null 2>&1
-        echo "0 2 * * * /usr/local/bin/backup.sh" > /etc/crontabs/root
+        echo "0 2 * * * sh /usr/local/bin/backup.sh" > /etc/crontabs/root
         echo "[$$] Backup service ready. Runs daily at 2am."
         crond -f -l 2
       '
@@ -117,7 +117,7 @@ services:
       - meticle
 
   uptime:
-    image: louislam/uptime-kuma:latest
+    image: louislam/uptime-kuma@sha256:3d632903e6af34139a37f18055c4f1bfd9b7205ae1138f1e5e8940ddc1d176f
     restart: unless-stopped
     ports:
       - "127.0.0.1:3099:3001"

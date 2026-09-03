@@ -5,7 +5,7 @@ import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { z } from 'zod';
 import { validate } from '../../shared/middleware/validate.middleware';
-import { upload } from '../../shared/middleware/upload.middleware';
+import { uploadWithScan } from '../../shared/middleware/upload.middleware';
 import { UserRole } from '@meticle/shared';
 
 const createGroupSchema = z.object({
@@ -61,7 +61,7 @@ router.post('/channels/dm/:targetUserId', asyncHandler(ChatController.getOrCreat
 
 // Shared files
 router.get('/channels/:channelId/files', asyncHandler(ChatController.getFiles));
-router.post('/channels/:channelId/files', upload.single('file'), asyncHandler(ChatController.uploadFile));
+router.post('/channels/:channelId/files', ...uploadWithScan('file'), asyncHandler(ChatController.uploadFile));
 router.delete('/channels/:channelId/files/:fileId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ChatController.deleteFile));
 
 // Utilities
