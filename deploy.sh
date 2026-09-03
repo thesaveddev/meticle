@@ -123,6 +123,7 @@ assert_schema() {
       WHEN (SELECT COUNT(*) FROM _migrations WHERE name = '059_email_queue_recovery') <> 1 THEN 'missing migration 059'
       WHEN (SELECT COUNT(*) FROM _migrations WHERE name = '060_cash_check_two_person_control') <> 1 THEN 'missing migration 060'
       WHEN (SELECT COUNT(*) FROM _migrations WHERE name = '061_cash_reconciliation_two_person') <> 1 THEN 'missing migration 061'
+      WHEN (SELECT COUNT(*) FROM _migrations WHERE name = '062_cash_check_columns') <> 1 THEN 'missing migration 062'
       WHEN NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'email_queue' AND column_name = 'sending_at') THEN 'missing email_queue.sending_at'
       WHEN NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'cash_balance_checks') THEN 'missing cash_balance_checks'
       WHEN NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'person_expenses' AND column_name = 'is_voided') THEN 'missing expense audit columns'
