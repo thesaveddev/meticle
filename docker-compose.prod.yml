@@ -27,6 +27,7 @@ services:
       - PORT=3002
       - DATABASE_URL=postgresql://meticle_app:${APP_ROLE_PASSWORD}@db:5432/meticle
       - DATABASE_MIGRATE_URL=postgresql://meticle:${POSTGRES_PASSWORD}@db:5432/meticle
+      - APP_ROLE_PASSWORD=${APP_ROLE_PASSWORD}
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}

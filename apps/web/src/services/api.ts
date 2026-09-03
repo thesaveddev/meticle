@@ -12,8 +12,11 @@ export function setOnApiError(handler: ErrorHandler) {
   onApiError = handler
 }
 
-let isRefreshing = false
-let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = []
+let refreshPromise: Promise<string> | null = null
+
+function isPortalRequest(url?: string): boolean {
+  return !!url && (url.includes('/compliance-portal/portal/verify') || url.includes('/compliance-portal/portal/dashboard') || url.includes('/compliance-portal/portal/person/'))
+}
 
 function getErrorMessage(error: any): string {
   if (error.response?.data?.message) return error.response.data.message
@@ -22,28 +25,39 @@ function getErrorMessage(error: any): string {
   return 'An unexpected error occurred'
 }
 
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(prom => {
-    if (token) {
-      prom.resolve(token)
-    } else {
-      prom.reject(error)
-    }
-  })
-  failedQueue = []
+function clearAppSession() {
+  localStorage.removeItem('accessToken')
+  localStorage.removeItem('refreshToken')
+  localStorage.removeItem('user')
+}
+
+export function refreshAccessToken(): Promise<string> {
+  if (refreshPromise) return refreshPromise
+
+  const refreshToken = localStorage.getItem('refreshToken')
+  if (!refreshToken) return Promise.reject(new Error('No refresh token available'))
+
+  refreshPromise = axios.post('/api/auth/refresh', { refreshToken }, { withCredentials: true })
+    .then(({ data }) => {
+      if (!data.accessToken) throw new Error('Refresh response did not include an access token')
+      localStorage.setItem('accessToken', data.accessToken)
+      if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken)
+      return data.accessToken as string
+    })
+    .finally(() => {
+      refreshPromise = null
+    })
+
+  return refreshPromise
 }
 
 api.interceptors.request.use((config) => {
-  // Compliance portal uses its own token stored under 'portal_token'
-  const portalToken = localStorage.getItem('portal_token')
-  if (portalToken) {
-    config.headers.Authorization = `Bearer ${portalToken}`
-    return config
-  }
-  const token = localStorage.getItem('accessToken')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
+  // Portal tokens apply only to portal endpoints. A stale portal token must
+  // never override the signed-in user's application token.
+  const token = isPortalRequest(config.url)
+    ? localStorage.getItem('portal_token')
+    : localStorage.getItem('accessToken')
+  if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
@@ -52,7 +66,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       // Skip refresh logic for auth endpoints (login, register, refresh)
       const authPaths = ['/auth/login', '/auth/register', '/auth/refresh']
       if (authPaths.some(p => originalRequest.url?.includes(p))) {
@@ -60,48 +74,23 @@ api.interceptors.response.use(
       }
 
       // Portal users: clear token and redirect to portal login (not app login)
-      const isPortal = !!localStorage.getItem('portal_token')
+      const isPortal = isPortalRequest(originalRequest.url)
       if (isPortal) {
         localStorage.removeItem('portal_token')
         window.location.href = '/portal/login?error=session_expired'
         return Promise.reject(error)
       }
 
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject })
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return api(originalRequest)
-        })
-      }
-
       originalRequest._retry = true
-      isRefreshing = true
-
-      const refreshToken = localStorage.getItem('refreshToken')
-      if (!refreshToken) {
-        localStorage.clear()
-        window.location.href = '/login'
-        return Promise.reject(error)
-      }
 
       try {
-        const { data } = await axios.post('/api/auth/refresh', { refreshToken }, { withCredentials: true })
-        localStorage.setItem('accessToken', data.accessToken)
-        if (data.refreshToken) {
-          localStorage.setItem('refreshToken', data.refreshToken)
-        }
-        processQueue(null, data.accessToken)
-        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`
+        const accessToken = await refreshAccessToken()
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return api(originalRequest)
       } catch (refreshError) {
-        processQueue(refreshError, null)
-        localStorage.clear()
+        clearAppSession()
         window.location.href = '/login'
         return Promise.reject(refreshError)
-      } finally {
-        isRefreshing = false
       }
     }
 
@@ -110,7 +99,7 @@ api.interceptors.response.use(
       const redirectPath = error.response.data.redirect
       const msg = error.response.data.message || 'Your subscription needs attention'
       // Don't redirect if already on billing or if this is a portal request
-      const isPortal = !!localStorage.getItem('portal_token')
+      const isPortal = isPortalRequest(originalRequest?.url)
       if (!isPortal && !window.location.pathname.startsWith(redirectPath)) {
         localStorage.setItem('redirectReason', 'subscription_expired')
         localStorage.setItem('subscriptionMessage', msg)

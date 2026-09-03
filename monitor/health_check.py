@@ -19,19 +19,40 @@ COMPOSE_DIR = "/opt/meticle"
 STATE_FILE = f"{COMPOSE_DIR}/monitor/.health_state.json"
 LOG_FILE = f"{COMPOSE_DIR}/monitor/health_check.log"
 
-SMTP_HOST = os.environ.get("SMTP_HOST", "safari.mxrouting.net")
+
+def load_env_file(path):
+    """Load simple KEY=VALUE entries without overriding the process environment."""
+    try:
+        with open(path) as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                value = value.strip()
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+                    value = value[1:-1]
+                os.environ.setdefault(key.strip(), value)
+    except OSError:
+        pass
+
+
+load_env_file(f"{COMPOSE_DIR}/.env")
+SMTP_HOST = os.environ.get("SMTP_HOST")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USER = os.environ.get("SMTP_USER", "notifications@meticlecare.com")
-SMTP_PASS = os.environ.get("SMTP_PASS", "BlackDragon@Holland2026!")
-SMTP_FROM = os.environ.get("SMTP_FROM", "notifications@meticlecare.com")
+SMTP_USER = os.environ.get("SMTP_USER")
+SMTP_PASS = os.environ.get("SMTP_PASS")
+SMTP_FROM = os.environ.get("SMTP_FROM")
 ALERT_TO = os.environ.get("ALERT_TO", "itsopeyemi@gmail.com")
 
-# Containers to monitor
+# Services to monitor. Resolve the current container ID through Compose so
+# recreates, project-name changes, and container suffixes do not create false
+# "missing container" alerts.
 CONTAINERS = {
-    "meticle-api-1": {"role": "API server", "critical": True},
-    "meticle-web-1": {"role": "Web frontend", "critical": True},
-    "meticle-postgres-1": {"role": "PostgreSQL database", "critical": True},
-    "meticle-redis-1": {"role": "Redis cache", "critical": True},
+    "api": {"role": "API server", "critical": True},
+    "web": {"role": "Web frontend", "critical": True},
+    "db": {"role": "PostgreSQL database", "critical": True},
+    "redis": {"role": "Redis cache", "critical": True},
 }
 
 # Health endpoints to probe
@@ -76,12 +97,19 @@ def save_state(state):
         json.dump(state, f, indent=2)
 
 
-def check_container(name):
+def check_container(service):
     try:
+        container = subprocess.run(
+            ["docker", "compose", "-f", f"{COMPOSE_DIR}/docker-compose.prod.yml", "ps", "-q", service],
+            capture_output=True, text=True, timeout=10
+        )
+        container_id = container.stdout.strip().splitlines()[0] if container.returncode == 0 and container.stdout.strip() else ""
+        if not container_id:
+            return {"status": "missing", "health": "unknown", "restarts": 0}
         result = subprocess.run(
             ["docker", "inspect", "--format",
              "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}|{{.RestartCount}}",
-             name],
+             container_id],
             capture_output=True, text=True, timeout=10
         )
         if result.returncode != 0:
@@ -159,6 +187,9 @@ def clear_alert(state, key):
 
 
 def send_email(subject, body):
+    if not all((SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM, ALERT_TO)):
+        log("Alert email skipped: SMTP configuration is incomplete")
+        return False
     try:
         msg = MIMEText(body, "plain")
         msg["Subject"] = f"[Meticle Monitor] {subject}"
@@ -188,13 +219,13 @@ def run_checks():
         alert_key = f"container:{name}"
 
         if info["status"] != "running":
-            issues.append(f"Container {name} ({config['role']}) is {info['status'].upper()}")
+            issues.append(f"Container service {name} ({config['role']}) is {info['status'].upper()}")
             if should_alert(state, alert_key):
                 send_email(
                     f"ALERT: {config['role']} is {info['status']}",
-                    f"The container '{name}' ({config['role']}) is {info['status']}.\n\n"
-                    f"Run: docker logs {name} --tail=50\n"
-                    f"Fix: cd {COMPOSE_DIR} && docker compose restart"
+                    f"The Compose service '{name}' ({config['role']}) is {info['status']}.\n\n"
+                    f"Run: cd {COMPOSE_DIR} && docker compose -f docker-compose.prod.yml logs {name} --tail=50\n"
+                    f"Fix: cd {COMPOSE_DIR} && docker compose -f docker-compose.prod.yml restart {name}"
                 )
                 mark_alerted(state, alert_key)
         elif info["health"] == "unhealthy":
@@ -202,8 +233,8 @@ def run_checks():
             if should_alert(state, alert_key):
                 send_email(
                     f"ALERT: {config['role']} is unhealthy",
-                    f"The container '{name}' ({config['role']}) reports unhealthy status.\n\n"
-                    f"Run: docker inspect --format '{{{{.State.Health.Log}}}}' {name}"
+                    f"The Compose service '{name}' ({config['role']}) reports unhealthy status.\n\n"
+                    f"Run: cd {COMPOSE_DIR} && docker compose -f docker-compose.prod.yml ps {name} && docker compose -f docker-compose.prod.yml logs {name} --tail=50"
                 )
                 mark_alerted(state, alert_key)
         elif info["restarts"] > 5:
@@ -211,8 +242,8 @@ def run_checks():
             if should_alert(state, f"{alert_key}:restarts"):
                 send_email(
                     f"WARNING: {config['role']} restarting frequently",
-                    f"The container '{name}' ({config['role']}) has restarted {info['restarts']} times.\n\n"
-                    f"Check: docker logs {name} --tail=100"
+                    f"The Compose service '{name}' ({config['role']}) has restarted {info['restarts']} times.\n\n"
+                    f"Check: cd {COMPOSE_DIR} && docker compose -f docker-compose.prod.yml logs {name} --tail=100"
                 )
                 mark_alerted(state, f"{alert_key}:restarts")
         else:

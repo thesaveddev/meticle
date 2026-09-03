@@ -129,7 +129,24 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     req.user = decoded;
     next();
-  } catch (error) {
+  } catch (error: any) {
+    // Do not turn database/Redis outages into authentication failures. A 401
+    // causes the client to discard valid credentials and can misroute users to
+    // billing; infrastructure failures must be retriable as 503 instead.
+    const errorMessage = String(error?.message || '').toLowerCase();
+    const dependencyFailure = error?.code === 'ECONNREFUSED'
+      || error?.code === 'ETIMEDOUT'
+      || error?.code === 'ENOTFOUND'
+      || error?.code === 'EAI_AGAIN'
+      || error?.code === '28P01'
+      || error?.code === '57P01'
+      || error?.name === 'DatabaseError'
+      || error?.name === 'RedisError'
+      || errorMessage.includes('connection terminated')
+      || errorMessage.includes('connection timeout');
+    if (dependencyFailure) {
+      return res.status(503).json({ statusCode: 503, code: 'AUTH_DEPENDENCY_UNAVAILABLE', message: 'Authentication service temporarily unavailable. Please try again.' });
+    }
     return res.status(401).json({ statusCode: 401, message: 'Invalid token' });
   }
 };

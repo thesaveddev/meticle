@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client'
-import axios from 'axios'
+import { refreshAccessToken } from './api'
 
 let socket: Socket | null = null
 let reconnectCallbacks: Array<() => void> = []
@@ -10,21 +10,6 @@ let hasConnected = false
 export function onReconnect(cb: () => void) {
   reconnectCallbacks.push(cb)
   return () => { reconnectCallbacks = reconnectCallbacks.filter(c => c !== cb) }
-}
-
-async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = localStorage.getItem('refreshToken')
-  if (!refreshToken) return null
-  try {
-    const { data } = await axios.post('/api/auth/refresh', { refreshToken }, { withCredentials: true })
-    localStorage.setItem('accessToken', data.accessToken)
-    if (data.refreshToken) {
-      localStorage.setItem('refreshToken', data.refreshToken)
-    }
-    return data.accessToken as string
-  } catch {
-    return null
-  }
 }
 
 function isAuthError(message: string): boolean {
@@ -66,7 +51,8 @@ export function connectSocket(tokenProvider: (() => string | null) | null = null
     const now = Date.now()
     if (now - lastAuthRetry < 30000) return
     lastAuthRetry = now
-    const fresh = await refreshAccessToken()
+    let fresh: string | null = null
+    try { fresh = await refreshAccessToken() } catch { /* app interceptor handles session expiry */ }
     if (fresh && socket) {
       // auth is functional (getToken reads the fresh token from localStorage),
       // so a simple reconnect is enough — do not overwrite socket.auth.
