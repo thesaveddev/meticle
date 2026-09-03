@@ -7,7 +7,7 @@ const BLOCKED_EXTENSIONS = new Set([
   '.psm1', '.psd1', '.jar', '.zip', '.rar', '.7z',
 ]);
 
-const TEXT_MIME_PREFIXES = ['text/', 'application/json', 'application/xml', 'application/javascript'];
+const OFFICE_EXTENSIONS = new Set(['.docx', '.xlsx', '.pptx']);
 
 function getFileSignature(buffer: Buffer): string {
   return buffer.slice(0, 8).toString('hex').toUpperCase();
@@ -41,8 +41,13 @@ export function scanBuffer(buffer: Buffer, originalName: string): ScanResult {
   const sig = getFileSignature(buffer);
   for (const [magic, label] of Object.entries(MAGIC_SIGNATURES)) {
     if (sig.startsWith(magic)) {
-      if (['exe/dll', 'zip', 'zip/office', 'rar', '7z'].includes(label)) {
+      if (label === 'exe/dll' || label === 'rar' || label === '7z' || (label === 'zip' && !OFFICE_EXTENSIONS.has(ext))) {
         return { safe: false, reason: `Executable or archive files are not allowed (detected: ${label})` };
+      }
+      // DOCX/XLSX/PPTX are ZIP containers by design. Their MIME and extension
+      // have already been checked by Multer, so allow those specific formats.
+      if (label === 'zip/office' && !OFFICE_EXTENSIONS.has(ext)) {
+        return { safe: false, reason: 'Office archive signature does not match the uploaded file type' };
       }
       break;
     }
@@ -51,7 +56,7 @@ export function scanBuffer(buffer: Buffer, originalName: string): ScanResult {
   return { safe: true };
 }
 
-export function scanFile(filePath: string): ScanResult {
+export function scanFile(filePath: string, originalName = filePath): ScanResult {
   const buffer = readFileSync(filePath);
-  return scanBuffer(buffer, filePath);
+  return scanBuffer(buffer, originalName);
 }

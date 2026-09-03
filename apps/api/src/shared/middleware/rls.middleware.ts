@@ -40,8 +40,13 @@ export function rlsMiddleware(req: Request, res: Response, next: NextFunction) {
       next();
     });
   }).catch(err => {
-    logger.error({ err }, 'Failed to acquire DB client for request — falling back to pool');
-    // Fallback: proceed without request-scoped client (queries will use the pool directly)
-    next();
+    // Never fall back to an unscoped pool query. That would allow a request to
+    // continue without the RLS session variables that enforce tenant isolation.
+    logger.error({ err }, 'Failed to acquire DB client for request');
+    res.status(503).json({
+      statusCode: 503,
+      code: 'DATABASE_UNAVAILABLE',
+      message: 'Service temporarily unavailable. Please try again.',
+    });
   });
 }

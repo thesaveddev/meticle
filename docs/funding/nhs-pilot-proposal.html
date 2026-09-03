@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeticleCare — NHS Trust Pilot Proposal: Discharge-to-Assess Pathways</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #1B2430;
+    background: #fff;
+  }
+
+  /* Cover page */
+  .cover {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 48px;
+    page-break-after: always;
+    background: linear-gradient(160deg, #0F4C81 0%, #0A3A63 100%);
+    color: #fff;
+  }
+  .cover .logo-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #10B981;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 22px;
+    color: #fff;
+  }
+  .cover h1 {
+    font-size: 36pt;
+    font-weight: 900;
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+  .cover .subtitle {
+    font-size: 16pt;
+    font-weight: 400;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 48px;
+    max-width: 520px;
+  }
+  .cover .meta {
+    font-size: 10pt;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.8;
+  }
+  .cover .meta strong { color: rgba(255,255,255,0.9); }
+
+  /* Section pages */
+  .section {
+    padding: 48px;
+    page-break-before: always;
+  }
+  .section:first-of-type { page-break-before: auto; }
+  .section-number {
+    font-size: 10pt;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #10B981;
+    margin-bottom: 8px;
+  }
+  .section h2 {
+    font-size: 22pt;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    color: #0F4C81;
+    margin-bottom: 6px;
+    line-height: 1.1;
+  }
+  .section .section-subtitle {
+    font-size: 11pt;
+    color: #5B6672;
+    margin-bottom: 24px;
+    font-style: italic;
+  }
+  .section h3 {
+    font-size: 13pt;
+    font-weight: 800;
+    color: #1B2430;
+    margin: 24px 0 8px 0;
+  }
+  .section h4 {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #0F4C81;
+    margin: 16px 0 6px 0;
+  }
+  .section p {
+    margin-bottom: 10px;
+    text-align: justify;
+  }
+  .section ul, .section ol {
+    margin: 8px 0 12px 20px;
+  }
+  .section li { margin-bottom: 4px; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  th {
+    background: #0F4C81;
+    color: #fff;
+    text-align: left;
+    padding: 8px 10px;
+    font-weight: 700;
+    font-size: 9pt;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #E7E1D6;
+  }
+  tr:nth-child(even) td { background: #F7F4EE; }
+
+  /* Callout boxes */
+  .callout {
+    background: #F7F4EE;
+    border-left: 3px solid #10B981;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  .callout strong { color: #0F4C81; }
+
+  /* Info box */
+  .info-box {
+    background: #EFF6FF;
+    border-left: 3px solid #3B82F6;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  .info-box strong { color: #1E40AF; }
+
+  /* Warning box */
+  .warning-box {
+    background: #FEF3CD;
+    border-left: 3px solid #D97706;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  .warning-box strong { color: #92400E; }
+
+  /* Quote */
+  .quote-block {
+    border-left: 4px solid #10B981;
+    padding: 16px 20px;
+    background: rgba(16, 185, 129, 0.05);
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+  }
+  .quote-block p {
+    font-size: 12pt;
+    font-style: italic;
+    color: #1B2430;
+    margin: 0;
+  }
+
+  /* Metric boxes */
+  .metrics {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .metric {
+    flex: 1;
+    min-width: 120px;
+    background: #F7F4EE;
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .metric .num {
+    font-size: 22pt;
+    font-weight: 900;
+    color: #0F4C81;
+    line-height: 1.1;
+  }
+  .metric .label {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5B6672;
+    margin-top: 4px;
+  }
+
+  /* Two column */
+  .two-col {
+    display: flex;
+    gap: 24px;
+    margin: 16px 0;
+  }
+  .two-col > div { flex: 1; }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    background: #0F4C81;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 9pt;
+    font-weight: 700;
+    text-align: center;
+    min-width: 100px;
+  }
+  .flow-arrow {
+    color: #10B981;
+    font-weight: 900;
+    font-size: 16pt;
+  }
+
+  /* Timeline */
+  .timeline {
+    margin: 16px 0;
+    padding-left: 24px;
+    border-left: 2px solid #E7E1D6;
+  }
+  .timeline-item {
+    padding: 12px 0 12px 16px;
+    position: relative;
+  }
+  .timeline-item::before {
+    content: "";
+    position: absolute;
+    left: -30px;
+    top: 16px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #10B981;
+  }
+  .timeline-item h4 { margin: 0 0 4px 0; font-size: 10pt; }
+  .timeline-item p { margin: 0; font-size: 9pt; color: #5B6672; }
+
+  /* Pathway boxes */
+  .pathway-box {
+    border: 2px solid #E7E1D6;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+  }
+  .pathway-box h4 {
+    margin: 0 0 8px 0;
+    font-size: 12pt;
+  }
+  .pathway-box.p1 { border-color: #10B981; background: #F0FDF4; }
+  .pathway-box.p2 { border-color: #3B82F6; background: #EFF6FF; }
+  .pathway-box.p3 { border-color: #8B5CF6; background: #F5F3FF; }
+
+  /* Page break */
+  .pb { page-break-before: always; }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid #E7E1D6;
+    font-size: 8pt;
+    color: #5B6672;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER ==================== -->
+<div class="cover">
+  <div class="logo-mark">M</div>
+  <h1>MeticleCare</h1>
+  <div class="subtitle">NHS Trust Pilot Proposal — Discharge-to-Assess Pathways</div>
+  <div class="meta">
+    <strong>Document type:</strong> Pilot proposal — for NHS trust partnership<br>
+    <strong>Prepared for:</strong> [NHS Trust name — to be completed]<br>
+    <strong>Applicant:</strong> MeticleCare Ltd<br>
+    <strong>Date:</strong> August 2026<br>
+    <strong>Version:</strong> 1.0<br>
+    <strong>Classification:</strong> Commercial in confidence
+  </div>
+</div>
+
+<!-- ==================== 1. EXECUTIVE SUMMARY ==================== -->
+<div class="section">
+  <div class="section-number">Section 1</div>
+  <h2>Executive Summary</h2>
+  <div class="section-subtitle">The proposal in one page</div>
+
+  <h3>The Problem</h3>
+  <p>Delayed discharges cost the NHS approximately <strong>£400–£500 per patient per day</strong>. In England, there are typically <strong>12,000–14,000 delayed discharge days per week</strong>, representing an annual cost of <strong>£2.5–£3.5 billion</strong>. The primary cause is the gap between hospital readiness to discharge and community readiness to receive — patients are clinically optimised but lack arranged care and support.</p>
+
+  <h3>The Proposal</h3>
+  <p>MeticleCare proposes a <strong>12-week pilot partnership</strong> with [Trust name] to demonstrate how a connected care management platform can reduce delayed discharges by improving information flow between hospital discharge teams and community care providers.</p>
+
+  <div class="metrics">
+    <div class="metric"><div class="num">12</div><div class="label">Week pilot</div></div>
+    <div class="metric"><div class="num">50</div><div class="label">Discharges tracked</div></div>
+    <div class="metric"><div class="num">3</div><div class="label">Care providers onboarded</div></div>
+    <div class="metric"><div class="num">£0</div><div class="label">Cost to trust</div></div>
+  </div>
+
+  <h3>What MeticleCare Offers</h3>
+  <ul>
+    <li><strong>Connected information flow:</strong> Hospital discharge teams share patient summary, care needs, and medication information directly with receiving care providers through one platform</li>
+    <li><strong>Care plan visibility:</strong> Community care providers can access discharge summaries, care plans, and medication records before the patient arrives</li>
+    <li><strong>Real-time status tracking:</strong> Trust discharge coordinators can see when care is arranged, when the patient is received, and when assessment is completed</li>
+    <li><strong>Family portal:</strong> Families can access care notes and updates, reducing phone calls to wards and improving satisfaction</li>
+    <li><strong>Compliance evidence:</strong> D2A pathway compliance is automatically documented for ICB reporting</li>
+  </ul>
+
+  <h3>Expected Outcomes</h3>
+  <table>
+    <tr><th>Metric</th><th>Current</th><th>Target (pilot)</th></tr>
+    <tr><td>Delayed discharge days (per 50 discharges)</td><td>~150 days</td><td>&lt;75 days (50% reduction)</td></tr>
+    <tr><td>Time to care arrangement</td><td>48–72 hours</td><td>&lt;24 hours</td></tr>
+    <tr><td>Information completeness at handover</td><td>60%</td><td>&gt;90%</td></tr>
+    <tr><td>Family satisfaction (NPS)</td><td>Unknown</td><td>&gt;40</td></tr>
+    <tr><td>Cost to trust</td><td>—</td><td>£0 (pilot period)</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Key proposition:</strong> MeticleCare provides the digital infrastructure to connect hospital discharge teams with community care providers — the missing link in the D2A pathway. This pilot demonstrates whether connected information flow reduces delayed discharges and improves patient outcomes.
+  </div>
+</div>
+
+<!-- ==================== 2. THE D2A CHALLENGE ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 2</div>
+  <h2>The Discharge-to-Assess Challenge</h2>
+  <div class="section-subtitle">Understanding the current D2A pathway and its failures</div>
+
+  <h3>2.1 What is Discharge-to-Assess?</h3>
+  <p>The Discharge-to-Assess (D2A) model allows patients who are clinically optimised to be discharged from hospital before their long-term care needs are formally assessed. Assessment happens in the community — in the patient's own home or in a care setting. The model has three pathways:</p>
+
+  <div class="pathway-box p1">
+    <h4>Pathway 1: Home with support</h4>
+    <p>Patient returns home with short-term care and support (reablement, rehabilitation). Assessment of long-term needs happens at home. This is the most common pathway — approximately 70% of D2A discharges.</p>
+  </div>
+
+  <div class="pathway-box p2">
+    <h4>Pathway 2: Short-term care placement</h4>
+    <p>Patient is placed in a care home or residential setting for short-term care (typically up to 6 weeks). Long-term care needs are assessed during the placement. Funded by the local authority or NHS.</p>
+  </div>
+
+  <div class="pathway-box p3">
+    <h4>Pathway 3: Intermediate care / reablement</h4>
+    <p>Patient receives NHS-funded intermediate care or reablement (typically up to 6 weeks). Focus on rehabilitation and recovery. Assessment happens during or after the placement.</p>
+  </div>
+
+  <h3>2.2 Where the Pathway Fails</h3>
+  <p>Despite the D2A model being in place since 2020, delayed discharges remain a persistent problem. The failures are not clinical — they are informational and logistical:</p>
+
+  <table>
+    <tr><th>Failure Point</th><th>Impact</th><th>MeticleCare Solution</th></tr>
+    <tr><td><strong>Information gap</strong></td><td>Receiving care provider doesn't have patient information until arrival</td><td>Pre-arrival care plan and medication sharing</td></tr>
+    <tr><td><strong>Coordination delay</strong></td><td>Care provider takes 48–72 hours to arrange care after referral</td><td>Real-time availability tracking and instant notification</td></tr>
+    <tr><td><strong>Medication mismatch</strong></td><td>Medication records not transferred accurately, causing delays</td><td>Digital MAR transfer with verification</td></tr>
+    <tr><td><strong>Family confusion</strong></td><td>Families not informed of discharge plan, causing delays</td><td>Family portal with real-time updates</td></tr>
+    <tr><td><strong>Assessment lag</strong></td><td>Long-term needs assessment delayed by weeks</td><td>Structured assessment data captured at point of care</td></tr>
+    <tr><td><strong>Reporting gap</strong></td><td>ICB cannot track D2A pathway compliance in real time</td><td>Automated D2A compliance dashboard</td></tr>
+  </table>
+
+  <h3>2.3 The Cost of Failure</h3>
+  <div class="metrics">
+    <div class="metric"><div class="num">£400–£500</div><div class="label">Cost per delayed discharge day</div></div>
+    <div class="metric"><div class="num">12K–14K</div><div class="label">Delayed days per week (England)</div></div>
+    <div class="metric"><div class="num">£2.5–3.5B</div><div class="label">Annual cost to NHS</div></div>
+  </div>
+
+  <div class="quote-block">
+    <p>"The D2A model is sound in principle. The failures are not clinical — they are informational. Care providers don't have patient information until arrival. Families aren't informed until the last minute. Assessment data isn't captured until weeks later. The digital infrastructure to support the pathway doesn't exist."</p>
+  </div>
+</div>
+
+<!-- ==================== 3. HOW METICLECARE SUPPORTS D2A ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 3</div>
+  <h2>How MeticleCare Supports D2A Pathways</h2>
+  <div class="section-subtitle">Platform capabilities mapped to discharge pathway requirements</div>
+
+  <h3>3.1 Connected Information Flow</h3>
+  <p>MeticleCare provides the digital infrastructure to share information between hospital discharge teams and community care providers:</p>
+
+  <div class="flow">
+    <div class="flow-step">Hospital discharge<br>team creates<br>discharge summary</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">MeticleCare<br>shares care plan<br>with provider</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Provider<br>reviews &<br>prepares</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Patient<br>arrives with<br>complete records</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Assessment<br>captured in<br>real time</div>
+  </div>
+
+  <h3>3.2 Platform Features for D2A</h3>
+  <table>
+    <tr><th>D2A Requirement</th><th>MeticleCare Feature</th><th>Benefit</th></tr>
+    <tr><td>Patient summary transfer</td><td>Discharge summary module with structured data</td><td>Receiving provider has full context before arrival</td></tr>
+    <tr><td>Care plan sharing</td><td>Care plans accessible to authorised providers</td><td>Care is arranged based on actual needs, not assumptions</td></tr>
+    <tr><td>Medication transfer</td><td>eMAR with discharge medication list</td><td>Medication records accurate from day one</td></tr>
+    <tr><td>Family communication</td><td>Family portal with care notes and updates</td><td>Families informed, reducing anxiety and phone calls</td></tr>
+    <tr><td>Care provider availability</td><td>Multi-provider capacity tracking</td><td>Discharge coordinator sees available beds in real time</td></tr>
+    <tr><td>Assessment capture</td><td>Structured assessment forms (capacity, wellbeing, health)</td><td>Assessment data captured at point of care, not weeks later</td></tr>
+    <tr><td>Incident reporting</td><td>Digital incidents with AI triage</td><td>Safeguarding concerns flagged immediately</td></tr>
+    <tr><td>Compliance tracking</td><td>D2A pathway compliance dashboard</td><td>ICB can track compliance in real time</td></tr>
+    <tr><td>Real-time status</td><td>Live status tracking for discharge coordinators</td><td>Trust knows exactly where every patient is in the pathway</td></tr>
+    <tr><td>Data export</td><td>CSV/JSON export for ICB reporting</td><td>Automated reporting for system-level oversight</td></tr>
+  </table>
+
+  <h3>3.3 User Roles in the D2A Pilot</h3>
+  <table>
+    <tr><th>Role</th><th>Organisation</th><th>MeticleCare Access</th></tr>
+    <tr><td>Discharge coordinator</td><td>NHS Trust</td><td>Create discharge summaries, track status, view provider availability</td></tr>
+    <tr><td>Ward nurse / therapist</td><td>NHS Trust</td><td>Complete discharge assessment, share care plan, record medications</td></tr>
+    <tr><td>Care manager</td><td>Community care provider</td><td>Receive discharge summary, prepare care plan, allocate staff</td></tr>
+    <tr><td>Care worker</td><td>Community care provider</td><td>Receive patient, record daily notes, complete assessments</td></tr>
+    <tr><td>Family member</td><td>Patient's family</td><td>View care notes, updates, and assessment progress (consent-gated)</td></tr>
+    <tr><td>ICB analyst</td><td>Integrated Care Board</td><td>View D2A compliance dashboard, export data for reporting</td></tr>
+  </table>
+
+  <h3>3.4 Data Sharing Agreement</h3>
+  <p>MeticleCare operates under a Data Processing Agreement compliant with UK GDPR. Key provisions for the pilot:</p>
+  <ul>
+    <li><strong>Data controller:</strong> NHS Trust (for patient data) and MeticleCare Ltd (for platform data)</li>
+    <li><strong>Data processor:</strong> MeticleCare Ltd processes patient data only on the Trust's instructions</li>
+    <li><strong>Data residency:</strong> All data hosted in UK data centres (AWS London / Azure UK South)</li>
+    <li><strong>Encryption:</strong> TLS 1.3 in transit, AES-256-GCM at rest</li>
+    <li><strong>Access control:</strong> Role-based access, per-request permission checks, audit logging</li>
+    <li><strong>Data retention:</strong> Patient data retained for pilot duration + 30 days, then deleted or exported</li>
+    <li><strong>Breach notification:</strong> 72-hour notification to Trust and ICO</li>
+  </ul>
+</div>
+
+<!-- ==================== 4. PILOT DESIGN ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 4</div>
+  <h2>Pilot Design</h2>
+  <div class="section-subtitle">12-week structured pilot with clear success criteria</div>
+
+  <h3>4.1 Pilot Objectives</h3>
+  <ol>
+    <li>Demonstrate that connected information flow reduces time to care arrangement</li>
+    <li>Measure the impact on delayed discharge days</li>
+    <li>Assess information completeness at patient handover</li>
+    <li>Evaluate family satisfaction with the discharge process</li>
+    <li>Test D2A pathway compliance reporting for ICB oversight</li>
+    <li>Identify integration requirements for NHS system connectivity</li>
+  </ol>
+
+  <h3>4.2 Pilot Scope</h3>
+  <table>
+    <tr><th>Parameter</th><th>Detail</th></tr>
+    <tr><td>Duration</td><td>12 weeks</td></tr>
+    <tr><td>Patient cohort</td><td>50 discharges (Pathways 1, 2, and 3)</td></tr>
+    <tr><td>Ward(s)</td><td>[To be agreed — recommend geriatric assessment unit or stroke rehabilitation]</td></tr>
+    <tr><td>Care providers</td><td>3 community care providers (mix of residential and home care)</td></tr>
+    <tr><td>Family members</td><td>Up to 50 families (consent-gated access)</td></tr>
+    <tr><td>ICB involvement</td><td>Observer access to compliance dashboard</td></tr>
+  </table>
+
+  <h3>4.3 Pilot Phases</h3>
+  <div class="timeline">
+    <div class="timeline-item">
+      <h4>Weeks 1–2: Setup & Onboarding</h4>
+      <p>Configure MeticleCare for the trust. Onboard discharge team (5–10 staff). Onboard 3 care providers (2–3 staff each). Set up data sharing agreements. Configure D2A compliance dashboard.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Weeks 3–4: Training & Soft Launch</h4>
+      <p>Training sessions for all users. First 5 discharges tracked (with parallel paper process). Identify and resolve integration issues. Baseline data collection.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Weeks 5–10: Active Pilot</h4>
+      <p>All discharges tracked through MeticleCare. Weekly check-ins with pilot coordinator. Data collection on all metrics. Issue resolution and process refinement.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Weeks 11–12: Evaluation & Reporting</h4>
+      <p>Final data collection. Pilot evaluation report. Presentation to trust leadership. Decision: full deployment, extended pilot, or decline.</p>
+    </div>
+  </div>
+
+  <h3>4.4 Success Criteria</h3>
+  <table>
+    <tr><th>Metric</th><th>Baseline (pre-pilot)</th><th>Target (pilot)</th><th>Measurement</th></tr>
+    <tr><td>Delayed discharge days (per 50 discharges)</td><td>~150 days</td><td>&lt;75 days</td><td>Trust discharge data</td></tr>
+    <tr><td>Time to care arrangement</td><td>48–72 hours</td><td>&lt;24 hours</td><td>System timestamps</td></tr>
+    <tr><td>Information completeness at handover</td><td>60%</td><td>&gt;90%</td><td>Structured checklist</td></tr>
+    <tr><td>Medication accuracy at transfer</td><td>85%</td><td>&gt;98%</td><td>eMAR verification</td></tr>
+    <tr><td>Family satisfaction (NPS)</td><td>Unknown</td><td>&gt;40</td><td>End-of-pilot survey</td></tr>
+    <tr><td>Staff satisfaction (NPS)</td><td>Unknown</td><td>&gt;30</td><td>End-of-pilot survey</td></tr>
+    <tr><td>D2A pathway compliance</td><td>70%</td><td>&gt;90%</td><td>Compliance dashboard</td></tr>
+    <tr><td>Cost to trust</td><td>—</td><td>£0</td><td>No charge during pilot</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 5. IMPLEMENTATION PLAN ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 5</div>
+  <h2>Implementation Plan</h2>
+  <div class="section-subtitle">Detailed activities and responsibilities</div>
+
+  <h3>5.1 Week-by-Week Plan</h3>
+  <table>
+    <tr><th>Week</th><th>Activity</th><th>MeticleCare</th><th>Trust</th><th>Care Providers</th></tr>
+    <tr><td>1</td><td>Platform configuration</td><td>Configure D2A workflow, user roles, permissions</td><td>Provide ward details, staff list</td><td>—</td></tr>
+    <tr><td>1</td><td>Data sharing agreement</td><td>Finalise DPA</td><td>Legal review, sign</td><td>Sign DPA</td></tr>
+    <tr><td>2</td><td>Provider onboarding</td><td>Onboard 3 care providers</td><td>Introduce providers</td><td>Complete onboarding</td></tr>
+    <tr><td>2</td><td>Discharge team training</td><td>Deliver training (2 sessions)</td><td>Arrange attendance</td><td>—</td></tr>
+    <tr><td>3</td><td>Provider training</td><td>Deliver training (2 sessions)</td><td>—</td><td>Attend training</td></tr>
+    <tr><td>3</td><td>Soft launch (5 discharges)</td><td>Support, monitor, resolve issues</td><td>Process 5 discharges via platform</td><td>Receive 5 patients via platform</td></tr>
+    <tr><td>4</td><td>Soft launch review</td><td>Analyze issues, refine process</td><td>Feedback session</td><td>Feedback session</td></tr>
+    <tr><td>5–10</td><td>Active pilot</td><td>Weekly check-ins, issue resolution</td><td>Process all discharges via platform</td><td>Receive all patients via platform</td></tr>
+    <tr><td>8</td><td>Mid-pilot review</td><td>Present interim findings</td><td>Review progress</td><td>Review progress</td></tr>
+    <tr><td>11</td><td>Data collection close</td><td>Final data extraction</td><td>Confirm completion</td><td>Confirm completion</td></tr>
+    <tr><td>12</td><td>Evaluation report</td><td>Deliver pilot evaluation</td><td>Review, present to leadership</td><td>Review findings</td></tr>
+  </table>
+
+  <h3>5.2 Resources Required</h3>
+  <div class="two-col">
+    <div>
+      <h4>MeticleCare Will Provide</h4>
+      <ul>
+        <li>Dedicated pilot coordinator</li>
+        <li>Platform access for all users</li>
+        <li>Onboarding and training</li>
+        <li>Weekly check-ins and support</li>
+        <li>Data analysis and reporting</li>
+        <li>Pilot evaluation report</li>
+        <li>All at no cost during pilot</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Trust Will Provide</h4>
+      <ul>
+        <li>Discharge coordinator access (2–3 users)</li>
+        <li>Ward staff access (5–10 users)</li>
+        <li>Patient consent for data sharing</li>
+        <li>Baseline discharge data</li>
+        <li>Feedback sessions (30 min/week)</li>
+        <li>Leadership sponsor for pilot</li>
+        <li>ICB observer access</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>5.3 Risk Register</h3>
+  <table>
+    <tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr>
+    <tr><td>Staff resist using new system</td><td>Medium</td><td>High</td><td>Dedicated training, parallel running in weeks 3–4, champion identification</td></tr>
+    <tr><td>Patient consent issues</td><td>Medium</td><td>Medium</td><td>Clear consent process, opt-out mechanism, GDPR compliance</td></tr>
+    <tr><td>Integration with NHS systems</td><td>High</td><td>Medium</td><td>Manual data entry initially, NHS integration planned for post-pilot</td></tr>
+    <tr><td>Low patient volume</td><td>Low</td><td>Medium</td><td>Flexible pilot duration, extend if needed</td></tr>
+    <tr><td>Data breach</td><td>Low</td><td>High</td><td>UK hosting, encryption, access controls, audit logging, breach notification</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 6. COMMERCIAL MODEL ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 6</div>
+  <h2>Commercial Model</h2>
+  <div class="section-subtitle">Pilot terms and post-pilot pricing</div>
+
+  <h3>6.1 Pilot Terms</h3>
+  <table>
+    <tr><th>Term</th><th>Detail</th></tr>
+    <tr><td>Duration</td><td>12 weeks</td></tr>
+    <tr><td>Cost to trust</td><td>£0</td></tr>
+    <tr><td>Cost to care providers</td><td>£0</td></tr>
+    <tr><td>Platform access</td><td>Full Professional tier</td></tr>
+    <tr><td>Support</td><td>Dedicated coordinator + weekly check-ins</td></tr>
+    <tr><td>Data</td><td>Patient data returned/deleted at pilot end</td></tr>
+    <tr><td>Commitment</td><td>None — walk away at any time</td></tr>
+  </table>
+
+  <h3>6.2 Post-Pilot Pricing (if deployed)</h3>
+  <table>
+    <tr><th>Component</th><th>Monthly Cost</th><th>Notes</th></tr>
+    <tr><td>Trust licence (discharge coordination)</td><td>£499/month</td><td>Unlimited discharge coordinators</td></tr>
+    <tr><td>Care provider licence (per provider)</td><td>£299/month</td><td>Professional tier, unlimited staff</td></tr>
+    <tr><td>Family portal (per patient)</td><td>£0</td><td>Included in care provider licence</td></tr>
+    <tr><td>ICB dashboard</td><td>£0</td><td>Included in trust licence</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Value proposition:</strong> If the pilot achieves a 50% reduction in delayed discharge days (from 150 to 75 days for 50 patients), the saving is approximately <strong>£37,500–£46,875</strong> (75 days × £500/day). The annual post-pilot cost for trust + 3 providers is approximately <strong>£14,364</strong>. ROI: <strong>2.6–3.3x</strong> in the first year.
+  </div>
+
+  <h3>6.3 NHS Procurement Pathway</h3>
+  <ul>
+    <li><strong>Pilot:</strong> No procurement required (free trial, no contract)</li>
+    <li><strong>Short-term deployment:</strong> NHS Light Touch Process (under £138K threshold)</li>
+    <li><strong>Long-term contract:</strong> Competitive dialogue or restricted procedure (over £138K)</li>
+    <li><strong>Framework:</strong> NHS Digital / Technology Framework (if available)</li>
+  </ul>
+</div>
+
+<!-- ==================== 7. EVIDENCE AND EVALUATION ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 7</div>
+  <h2>Evidence & Evaluation Framework</h2>
+  <div class="section-subtitle">How success will be measured and reported</div>
+
+  <h3>7.1 Data Collection</h3>
+  <table>
+    <tr><th>Data Point</th><th>Source</th><th>Frequency</th></tr>
+    <tr><td>Discharge date/time</td><td>Trust discharge system</td><td>Per patient</td></tr>
+    <tr><td>Care arrangement date/time</td><td>MeticleCare timestamps</td><td>Per patient</td></tr>
+    <tr><td>Patient arrival at provider</td><td>MeticleCare timestamps</td><td>Per patient</td></tr>
+    <tr><td>Assessment completion date</td><td>MeticleCare timestamps</td><td>Per patient</td></tr>
+    <tr><td>Information completeness</td><td>Structured checklist in MeticleCare</td><td>Per patient</td></tr>
+    <tr><td>Medication accuracy</td><td>eMAR verification</td><td>Per patient</td></tr>
+    <tr><td>Family portal usage</td><td>MeticleCare analytics</td><td>Weekly</td></tr>
+    <tr><td>Staff satisfaction</td><td>Survey (Week 6 and Week 12)</td><td>Twice</td></tr>
+    <tr><td>Family satisfaction</td><td>Survey (Week 12)</td><td>Once</td></tr>
+  </table>
+
+  <h3>7.2 Evaluation Report</h3>
+  <p>At Week 12, MeticleCare will deliver a pilot evaluation report including:</p>
+  <ul>
+    <li>Quantitative analysis of all metrics against success criteria</li>
+    <li>Qualitative feedback from discharge coordinators, care staff, and families</li>
+    <li>Case studies of successful discharges</li>
+    <li>Identification of process improvements and integration requirements</li>
+    <li>Recommendations for full deployment</li>
+    <li>Cost-benefit analysis for trust procurement</li>
+  </ul>
+
+  <h3>7.3 NHS Evidence Standards</h3>
+  <table>
+    <tr><th>Standard</th><th>MeticleCare Approach</th></tr>
+    <tr><td>Clinical safety (DCB0129/DCB0160)</td><td>Clinical safety case report to be developed during pilot</td></tr>
+    <tr><td>Data security (DSPT)</td><td>DSPT toolkit completed; annual assessment planned</td></tr>
+    <tr><td>Interoperability (FHIR)</td><td>FHIR API planned for NHS Spine integration (post-pilot)</td></tr>
+    <tr><td>Accessibility (WCAG 2.1)</td><td>AA compliance targeted; keyboard navigation, contrast ratios</td></tr>
+    <tr><td>Usability (ISO 62366)</td><td>User-centred design; pilot feedback informs improvements</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 8. ABOUT METICLECARE ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 8</div>
+  <h2>About MeticleCare</h2>
+  <div class="section-subtitle">Company and platform credentials</div>
+
+  <h3>8.1 Company Overview</h3>
+  <p>MeticleCare Ltd is a UK-registered company developing an AI-first care management platform for UK supported-living and domiciliary care providers. The platform is deployed in production with 41 backend modules, 484 API endpoints, 78 frontend pages, and 108 database tables.</p>
+
+  <h3>8.2 Platform Capabilities</h3>
+  <div class="metrics">
+    <div class="metric"><div class="num">41</div><div class="label">Modules</div></div>
+    <div class="metric"><div class="num">484</div><div class="label">API Endpoints</div></div>
+    <div class="metric"><div class="num">78</div><div class="label">Pages</div></div>
+    <div class="metric"><div class="num">108</div><div class="label">Tables</div></div>
+    <div class="metric"><div class="num">441</div><div class="label">Tests</div></div>
+  </div>
+
+  <h3>8.3 Security & Compliance</h3>
+  <table>
+    <tr><th>Requirement</th><th>Status</th></tr>
+    <tr><td>UK GDPR compliance</td><td>Implemented</td></tr>
+    <tr><td>Data Processing Agreement</td><td>Template ready</td></tr>
+    <tr><td>UK data residency</td><td>AWS London / Azure UK South</td></tr>
+    <tr><td>Encryption (transit)</td><td>TLS 1.3</td></tr>
+    <tr><td>Encryption (rest)</td><td>AES-256-GCM</td></tr>
+    <tr><td>Authentication</td><td>JWT + MFA (TOTP)</td></tr>
+    <tr><td>Access control</td><td>RBAC + per-request permissions</td></tr>
+    <tr><td>Audit logging</td><td>40+ mutation points logged</td></tr>
+    <tr><td>Breach notification</td><td>72-hour process</td></tr>
+    <tr><td>Cyber Essentials</td><td>Target Q4 2026</td></tr>
+    <tr><td>DSPT</td><td>Toolkit completed</td></tr>
+  </table>
+
+  <h3>8.4 Regulatory Framework Support</h3>
+  <table>
+    <tr><th>Regulator</th><th>Jurisdiction</th><th>Status</th></tr>
+    <tr><td>CQC</td><td>England</td><td>Implemented</td></tr>
+    <tr><td>CIW</td><td>Wales</td><td>Supported</td></tr>
+    <tr><td>Care Inspectorate</td><td>Scotland</td><td>Supported</td></tr>
+    <tr><td>RQIA</td><td>Northern Ireland</td><td>Supported</td></tr>
+  </table>
+
+  <h3>8.5 Contact</h3>
+  <div class="callout">
+    <strong>Opeyemi Olorunfemi</strong><br>
+    Founder & CEO, MeticleCare Ltd<br>
+    Email: opeyemi@meticlecare.com<br>
+    Web: meticlecare.com<br>
+    Platform demo available on request.
+  </div>
+
+  <div class="footer">
+    MeticleCare Ltd — NHS Trust Pilot Proposal: Discharge-to-Assess Pathways — August 2026<br>
+    Commercial in confidence — Do not distribute without permission
+  </div>
+</div>
+
+</body>
+</html>

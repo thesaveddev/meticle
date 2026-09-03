@@ -4,6 +4,14 @@ import { AppError } from '../../shared/middleware/error.middleware';
 import { EmailService } from '../../shared/utils/email.service';
 import { AuditRepository } from '../audit/audit.repository';
 
+function pageParams(page: unknown, limit: unknown) {
+  const parsedPage = Number.parseInt(String(page ?? '1'), 10);
+  const parsedLimit = Number.parseInt(String(limit ?? '50'), 10);
+  const safePage = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
+  const safeLimit = Number.isFinite(parsedLimit) ? Math.min(100, Math.max(1, parsedLimit)) : 50;
+  return { limit: safeLimit, offset: (safePage - 1) * safeLimit };
+}
+
 export class PlatformAdminController {
   static async getStats(_req: Request, res: Response) {
     const [orgs, users, subs, recentSignups] = await Promise.all([
@@ -38,7 +46,7 @@ export class PlatformAdminController {
 
   static async listOrganizations(req: Request, res: Response) {
     const { status, plan, search, page = '1', limit = '50' } = req.query;
-    const offset = (Math.max(1, parseInt(page as string)) - 1) * parseInt(limit as string);
+    const pagination = pageParams(page, limit);
 
     const conditions: string[] = [];
     const params: any[] = [];
@@ -58,8 +66,8 @@ export class PlatformAdminController {
       FROM organizations o
       ${where}
       ORDER BY o.created_at DESC
-      LIMIT ${parseInt(limit as string)} OFFSET $${idx}
-    `, [...params, offset]);
+      LIMIT ${pagination.limit} OFFSET $${idx}
+    `, [...params, pagination.offset]);
 
     const countResult = await pool.query(
       `SELECT COUNT(*)::int as total FROM organizations o ${where}`,
@@ -136,14 +144,14 @@ export class PlatformAdminController {
     const org = await pool.query('SELECT id, name FROM organizations WHERE id = $1', [id]);
     if (org.rows.length === 0) throw new AppError(404, 'Organization not found');
 
-    await pool.query('UPDATE organizations SET subscription_status = $1, updated_at = NOW() WHERE id = $2', [status, id]);
+    await pool.query('UPDATE organizations SET status = $1, updated_at = NOW() WHERE id = $2', [status, id]);
 
     res.json({ message: `Organization ${status === 'suspended' ? 'suspended' : 'reactivated'}`, status });
   }
 
   static async listUsers(req: Request, res: Response) {
     const { role, status, search, organization_id, page = '1', limit = '50' } = req.query;
-    const offset = (Math.max(1, parseInt(page as string)) - 1) * parseInt(limit as string);
+    const pagination = pageParams(page, limit);
 
     const conditions: string[] = [];
     const params: any[] = [];
@@ -157,14 +165,14 @@ export class PlatformAdminController {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const result = await pool.query(`
-      SELECT u.id, u.email, u.role, u.status, u.created_at, u.last_login_at, u.mfa_enabled,
+      SELECT u.id, u.email, u.role, u.status, u.created_at, NULL::timestamptz as last_login_at, u.mfa_enabled,
         o.name as organization_name, o.id as organization_id
       FROM users u
       LEFT JOIN organizations o ON u.organization_id = o.id
       ${where}
       ORDER BY u.created_at DESC
-      LIMIT ${parseInt(limit as string)} OFFSET $${idx}
-    `, [...params, offset]);
+      LIMIT ${pagination.limit} OFFSET $${idx}
+    `, [...params, pagination.offset]);
 
     const countResult = await pool.query(
       `SELECT COUNT(*)::int as total FROM users u LEFT JOIN organizations o ON u.organization_id = o.id ${where}`,
@@ -245,19 +253,19 @@ export class PlatformAdminController {
 
   static async getAuditLog(req: Request, res: Response) {
     const { page = '1', limit = '50' } = req.query;
-    const offset = (Math.max(1, parseInt(page as string)) - 1) * parseInt(limit as string);
+    const pagination = pageParams(page, limit);
 
     const result = await pool.query(`
       SELECT a.id, a.action, a.entity_type, a.entity_id, a.ip_address, a.created_at,
         u.email as user_email, o.name as org_name
-      FROM audit_log a
+      FROM audit_logs a
       LEFT JOIN users u ON a.user_id = u.id
       LEFT JOIN organizations o ON u.organization_id = o.id
       ORDER BY a.created_at DESC
-      LIMIT ${parseInt(limit as string)} OFFSET $1
-    `, [offset]);
+      LIMIT ${pagination.limit} OFFSET $1
+    `, [pagination.offset]);
 
-    const countResult = await pool.query(`SELECT COUNT(*)::int as total FROM audit_log`);
+    const countResult = await pool.query(`SELECT COUNT(*)::int as total FROM audit_logs`);
 
     res.json({ logs: result.rows, total: countResult.rows[0].total });
   }
@@ -272,7 +280,7 @@ export class PlatformAdminController {
         UNION ALL SELECT 'shifts', COUNT(*)::int FROM shifts
         UNION ALL SELECT 'incidents', COUNT(*)::int FROM incidents
         UNION ALL SELECT 'invoices', COUNT(*)::int FROM invoices
-        UNION ALL SELECT 'audit_log', COUNT(*)::int FROM audit_log
+        UNION ALL SELECT 'audit_logs', COUNT(*)::int FROM audit_logs
         UNION ALL SELECT 'email_queue', COUNT(*)::int FROM email_queue
       `),
       pool.query(`
@@ -302,9 +310,10 @@ export class PlatformAdminController {
     const result = await pool.query(`
       SELECT o.id, o.name, o.plan, o.trial_ends_at, o.updated_at,
         COALESCE(o.subscription_status, 'trial') as subscription_status,
-        u.id as contact_user_id, u.email as contact_email,
+        u.id as        contact_user_id, u.email as contact_email,
         COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as contact_name,
-        u.last_login_at,
+        NULL::timestamptz as last_login_at,
+
         EXISTS (
           SELECT 1 FROM invoices i
           WHERE i.organization_id = o.id AND i.status = 'paid'

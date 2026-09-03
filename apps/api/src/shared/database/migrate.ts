@@ -154,9 +154,11 @@ export async function runMigrations(migrations: Migration[]): Promise<void> {
           { migration: migration.name, previousChecksum: appliedChecksum, currentChecksum: checksum },
           'Migration checksum drift detected — review the applied definition and explicitly acknowledge it before deployment.'
         );
-      } else {
-        logger.debug(`Migration ${migration.name} already applied, skipping`);
+        throw new Error(
+          `Migration checksum drift for "${migration.name}". Review the applied definition and explicitly acknowledge the approved checksum before deployment.`
+        );
       }
+      logger.debug(`Migration ${migration.name} already applied, skipping`);
       continue;
     }
 

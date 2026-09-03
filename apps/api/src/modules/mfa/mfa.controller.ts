@@ -16,7 +16,7 @@ setInterval(() => {
   for (const [key, entry] of mfaSetupLockout) {
     if (now > entry.lockedUntil) mfaSetupLockout.delete(key);
   }
-}, 120_000);
+}, 120_000).unref();
 
 function generateBackupCodes(): { plain: string[]; hashed: string[] } {
   const codes: string[] = [];

@@ -411,7 +411,13 @@ export function getOnlineUsers(): Set<string> {
 
 /** Drop all sockets and close the server. Called during graceful shutdown. */
 export async function closeSocketServer(): Promise<void> {
-  if (!io) return;
+  if (!io) {
+    if (adapterRedisClient) {
+      await adapterRedisClient.quit().catch(() => {});
+      adapterRedisClient = null;
+    }
+    return;
+  }
   io.disconnectSockets(true);
   await new Promise<void>((resolve) => io!.close(() => resolve()));
   io = null;

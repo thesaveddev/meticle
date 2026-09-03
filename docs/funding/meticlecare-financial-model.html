@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeticleCare — 3-Year Financial Model</title>
+<style>
+  @page { size: A4 landscape; margin: 16mm 14mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 9pt;
+    line-height: 1.5;
+    color: #1B2430;
+    background: #fff;
+  }
+
+  /* Cover page */
+  .cover {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 48px;
+    page-break-after: always;
+    background: linear-gradient(160deg, #0F4C81 0%, #0A3A63 100%);
+    color: #fff;
+  }
+  .cover .logo-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #10B981;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 22px;
+    color: #fff;
+  }
+  .cover h1 {
+    font-size: 36pt;
+    font-weight: 900;
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+  .cover .subtitle {
+    font-size: 16pt;
+    font-weight: 400;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 48px;
+    max-width: 520px;
+  }
+  .cover .meta {
+    font-size: 10pt;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.8;
+  }
+  .cover .meta strong { color: rgba(255,255,255,0.9); }
+
+  /* Section pages */
+  .section {
+    padding: 32px 40px;
+    page-break-before: always;
+  }
+  .section:first-of-type { page-break-before: auto; }
+  .section-number {
+    font-size: 9pt;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #10B981;
+    margin-bottom: 6px;
+  }
+  .section h2 {
+    font-size: 18pt;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    color: #0F4C81;
+    margin-bottom: 4px;
+    line-height: 1.1;
+  }
+  .section .section-subtitle {
+    font-size: 10pt;
+    color: #5B6672;
+    margin-bottom: 16px;
+    font-style: italic;
+  }
+  .section h3 {
+    font-size: 11pt;
+    font-weight: 800;
+    color: #1B2430;
+    margin: 18px 0 6px 0;
+  }
+  .section h4 {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #0F4C81;
+    margin: 12px 0 4px 0;
+  }
+  .section p {
+    margin-bottom: 8px;
+    text-align: justify;
+  }
+  .section ul, .section ol {
+    margin: 6px 0 10px 18px;
+  }
+  .section li { margin-bottom: 3px; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 8.5pt;
+  }
+  th {
+    background: #0F4C81;
+    color: #fff;
+    text-align: left;
+    padding: 6px 8px;
+    font-weight: 700;
+    font-size: 7.5pt;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  th.right, td.right { text-align: right; }
+  th.center, td.center { text-align: center; }
+  td {
+    padding: 5px 8px;
+    border-bottom: 1px solid #E7E1D6;
+  }
+  tr:nth-child(even) td { background: #F7F4EE; }
+  tr.total td {
+    font-weight: 800;
+    border-top: 2px solid #0F4C81;
+    background: #F0FDF4;
+  }
+  tr.subtotal td {
+    font-weight: 700;
+    border-top: 1px solid #0F4C81;
+  }
+  tr.highlight td { background: #FEF3CD; }
+  tr.negative td { color: #DC2626; }
+
+  /* Callout boxes */
+  .callout {
+    background: #F7F4EE;
+    border-left: 3px solid #10B981;
+    padding: 10px 12px;
+    margin: 10px 0;
+    font-size: 8.5pt;
+  }
+  .callout strong { color: #0F4C81; }
+
+  /* Metric boxes */
+  .metrics {
+    display: flex;
+    gap: 10px;
+    margin: 12px 0;
+    flex-wrap: wrap;
+  }
+  .metric {
+    flex: 1;
+    min-width: 100px;
+    background: #F7F4EE;
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .metric .num {
+    font-size: 18pt;
+    font-weight: 900;
+    color: #0F4C81;
+    line-height: 1.1;
+  }
+  .metric .label {
+    font-size: 7pt;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5B6672;
+    margin-top: 2px;
+  }
+  .metric.green .num { color: #10B981; }
+  .metric.red .num { color: #DC2626; }
+  .metric.amber .num { color: #D97706; }
+
+  /* Two column */
+  .two-col {
+    display: flex;
+    gap: 16px;
+    margin: 12px 0;
+  }
+  .two-col > div { flex: 1; }
+
+  /* Three column */
+  .three-col {
+    display: flex;
+    gap: 12px;
+    margin: 12px 0;
+  }
+  .three-col > div { flex: 1; }
+
+  /* Sensitivity table */
+  table.sensitivity td.best { background: #D1FAE5; color: #065F46; font-weight: 700; }
+  table.sensitivity td.base { background: #FEF3CD; color: #92400E; font-weight: 700; }
+  table.sensitivity td.worst { background: #FEE2E2; color: #991B1B; font-weight: 700; }
+
+  /* Page break */
+  .pb { page-break-before: always; }
+
+  /* Footer */
+  .footer {
+    margin-top: 32px;
+    padding-top: 12px;
+    border-top: 1px solid #E7E1D6;
+    font-size: 7pt;
+    color: #5B6672;
+    text-align: center;
+  }
+
+  /* Waterfall helper */
+  .indent { padding-left: 20px !important; }
+  .indent2 { padding-left: 36px !important; }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER ==================== -->
+<div class="cover">
+  <div class="logo-mark">M</div>
+  <h1>MeticleCare</h1>
+  <div class="subtitle">3-Year Financial Model — Revenue Projections, Unit Economics & Sensitivity Analysis</div>
+  <div class="meta">
+    <strong>Document type:</strong> Financial model — for investor review<br>
+    <strong>Company:</strong> MeticleCare Ltd<br>
+    <strong>Founder:</strong> Opeyemi Olorunfemi<br>
+    <strong>Date:</strong> August 2026<br>
+    <strong>Period:</strong> FY2027 (Year 1) → FY2029 (Year 3)<br>
+    <strong>Classification:</strong> Commercial in confidence
+  </div>
+</div>
+
+<!-- ==================== 1. KEY ASSUMPTIONS ==================== -->
+<div class="section">
+  <div class="section-number">Section 1</div>
+  <h2>Key Assumptions</h2>
+  <div class="section-subtitle">Foundation inputs for all projections</div>
+
+  <h3>1.1 Pricing Assumptions</h3>
+  <table>
+    <tr><th>Tier</th><th>Monthly Price</th><th>Annual Price (20% discount)</th><th>Target Segment</th><th>Expected Mix (Y1)</th><th>Expected Mix (Y3)</th></tr>
+    <tr><td>Starter</td><td class="right">£99</td><td class="right">£950</td><td>1–3 locations, ≤25 staff</td><td class="center">40%</td><td class="center">25%</td></tr>
+    <tr><td>Professional</td><td class="right">£299</td><td class="right">£2,870</td><td>4–15 locations, unlimited staff</td><td class="center">45%</td><td class="center">50%</td></tr>
+    <tr><td>Enterprise</td><td class="right">£749</td><td class="right">£7,190</td><td>15+ locations, API, SLA</td><td class="center">15%</td><td class="center">25%</td></tr>
+    <tr class="subtotal"><td>Blended ARPU</td><td class="right">£310</td><td class="right">£2,976</td><td></td><td class="center"></td><td class="center"></td></tr>
+  </table>
+
+  <h3>1.2 Growth Assumptions</h3>
+  <table>
+    <tr><th>Assumption</th><th>Year 1</th><th>Year 2</th><th>Year 3</th></tr>
+    <tr><td>New customers per month (avg)</td><td class="right">3</td><td class="right">8</td><td class="right">15</td></tr>
+    <tr><td>Monthly churn rate</td><td class="right">3.0%</td><td class="right">2.0%</td><td class="right">1.5%</td></tr>
+    <tr><td>Annual churn rate</td><td class="right">31%</td><td class="right">21%</td><td class="right">16%</td></tr>
+    <tr><td>Annual plan adoption</td><td class="right">20%</td><td class="right">35%</td><td class="right">50%</td></tr>
+    <tr><td>Upgrade rate (Starter→Pro)</td><td class="right">10%</td><td class="right">15%</td><td class="right">20%</td></tr>
+  </table>
+
+  <h3>1.3 Cost Assumptions</h3>
+  <table>
+    <tr><th>Cost Category</th><th>Year 1</th><th>Year 2</th><th>Year 3</th></tr>
+    <tr><td>Average engineer salary (fully loaded)</td><td class="right">£55,000</td><td class="right">£60,000</td><td class="right">£65,000</td></tr>
+    <tr><td>Average non-engineer salary (fully loaded)</td><td class="right">£40,000</td><td class="right">£42,000</td><td class="right">£45,000</td></tr>
+    <tr><td>Cloud cost per customer/month</td><td class="right">£8</td><td class="right">£7</td><td class="right">£6</td></tr>
+    <tr><td>AI API cost per customer/month</td><td class="right">£5</td><td class="right">£4</td><td class="right">£3</td></tr>
+    <tr><td>Email/SMTP cost per customer/month</td><td class="right">£1</td><td class="right">£1</td><td class="right">£1</td></tr>
+    <tr><td>Stripe fees (% of revenue)</td><td class="right">2.9%</td><td class="right">2.9%</td><td class="right">2.9%</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Key principle:</strong> All projections are conservative. We use bottom-up customer acquisition (not top-down market share) and assume no NHS revenue in Years 1–2. NHS procurement cycles are 12–24 months.
+  </div>
+</div>
+
+<!-- ==================== 2. REVENUE MODEL ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 2</div>
+  <h2>Revenue Projections</h2>
+  <div class="section-subtitle">3-year monthly and annual revenue by tier</div>
+
+  <h3>2.1 Customer Growth</h3>
+  <table>
+    <tr><th>Metric</th><th class="right">Q1 Y1</th><th class="right">Q2 Y1</th><th class="right">Q3 Y1</th><th class="right">Q4 Y1</th><th class="right">Y1 Total</th><th class="right">Y2 Total</th><th class="right">Y3 Total</th></tr>
+    <tr><td>New customers (quarter)</td><td class="right">5</td><td class="right">8</td><td class="right">10</td><td class="right">12</td><td class="right">35</td><td class="right">96</td><td class="right">180</td></tr>
+    <tr><td>Churned customers (quarter)</td><td class="right">0</td><td class="right">1</td><td class="right">2</td><td class="right">3</td><td class="right">6</td><td class="right">20</td><td class="right">30</td></tr>
+    <tr><td>Net new customers</td><td class="right">5</td><td class="right">7</td><td class="right">8</td><td class="right">9</td><td class="right">29</td><td class="right">76</td><td class="right">150</td></tr>
+    <tr class="total"><td>End-of-period customers</td><td class="right">5</td><td class="right">12</td><td class="right">20</td><td class="right">29</td><td class="right">29</td><td class="right">105</td><td class="right">255</td></tr>
+  </table>
+
+  <h3>2.2 Revenue by Tier</h3>
+  <table>
+    <tr><th>Revenue Stream</th><th class="right">Y1</th><th class="right">Y2</th><th class="right">Y3</th></tr>
+    <tr><td>Starter subscriptions</td><td class="right">£28,400</td><td class="right">£98,200</td><td class="right">£180,000</td></tr>
+    <tr><td>Professional subscriptions</td><td class="right">£38,100</td><td class="right">£190,000</td><td class="right">£450,000</td></tr>
+    <tr><td>Enterprise subscriptions</td><td class="right">£16,200</td><td class="right">£110,000</td><td class="right">£338,000</td></tr>
+    <tr class="subtotal"><td><strong>Subscription revenue</strong></td><td class="right"><strong>£82,700</strong></td><td class="right"><strong>£398,200</strong></td><td class="right"><strong>£968,000</strong></td></tr>
+    <tr><td>Onboarding fees (one-off)</td><td class="right">£7,000</td><td class="right">£19,200</td><td class="right">£36,000</td></tr>
+    <tr><td>Training services</td><td class="right">£3,500</td><td class="right">£12,000</td><td class="right">£28,000</td></tr>
+    <tr><td>Data migration services</td><td class="right">£2,000</td><td class="right">£8,000</td><td class="right">£18,000</td></tr>
+    <tr class="subtotal"><td><strong>Services revenue</strong></td><td class="right"><strong>£12,500</strong></td><td class="right"><strong>£39,200</strong></td><td class="right"><strong>£82,000</strong></td></tr>
+    <tr class="total"><td><strong>Total revenue</strong></td><td class="right"><strong>£95,200</strong></td><td class="right"><strong>£437,400</strong></td><td class="right"><strong>£1,050,000</strong></td></tr>
+  </table>
+
+  <h3>2.3 Monthly Revenue Trajectory</h3>
+  <table>
+    <tr><th></th><th class="right">M1</th><th class="right">M3</th><th class="right">M6</th><th class="right">M9</th><th class="right">M12</th><th class="right">M18</th><th class="right">M24</th><th class="right">M30</th><th class="right">M36</th></tr>
+    <tr><td>Customers</td><td class="right">1</td><td class="right">5</td><td class="right">12</td><td class="right">20</td><td class="right">29</td><td class="right">55</td><td class="right">105</td><td class="right">175</td><td class="right">255</td></tr>
+    <tr><td>MRR</td><td class="right">£310</td><td class="right">£1,550</td><td class="right">£3,720</td><td class="right">£6,200</td><td class="right">£8,990</td><td class="right">£17,050</td><td class="right">£32,550</td><td class="right">£54,250</td><td class="right">£79,050</td></tr>
+    <tr><td>ARR (run-rate)</td><td class="right">£3,720</td><td class="right">£18,600</td><td class="right">£44,640</td><td class="right">£74,400</td><td class="right">£107,880</td><td class="right">£204,600</td><td class="right">£390,600</td><td class="right">£651,000</td><td class="right">£948,600</td></tr>
+  </table>
+
+  <div class="metrics">
+    <div class="metric"><div class="num">£95K</div><div class="label">Year 1 Revenue</div></div>
+    <div class="metric"><div class="num">£437K</div><div class="label">Year 2 Revenue</div></div>
+    <div class="metric"><div class="num">£1.05M</div><div class="label">Year 3 Revenue</div></div>
+    <div class="metric green"><div class="num">359%</div><div class="label">Y1→Y2 Growth</div></div>
+    <div class="metric green"><div class="num">140%</div><div class="label">Y2→Y3 Growth</div></div>
+  </div>
+</div>
+
+<!-- ==================== 3. UNIT ECONOMICS ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 3</div>
+  <h2>Unit Economics</h2>
+  <div class="section-subtitle">CAC, LTV, margins, and payback</div>
+
+  <h3>3.1 Customer Acquisition Cost (CAC)</h3>
+  <table>
+    <tr><th>Acquisition Channel</th><th class="right">Cost per Lead</th><th class="right">Lead→Customer %</th><th class="right">CAC</th><th class="right">Y1 Spend</th><th class="right">Y1 Customers</th></tr>
+    <tr><td>Inbound (content, SEO, referrals)</td><td class="right">£25</td><td class="right">8%</td><td class="right">£313</td><td class="right">£8,000</td><td class="right">12</td></tr>
+    <tr><td>Outbound (email, LinkedIn)</td><td class="right">£40</td><td class="right">4%</td><td class="right">£1,000</td><td class="right">£12,000</td><td class="right">10</td></tr>
+    <tr><td>Conferences/events</td><td class="right">£150</td><td class="right">10%</td><td class="right">£1,500</td><td class="right">£6,000</td><td class="right">4</td></tr>
+    <tr><td>Pilot conversions</td><td class="right">£0</td><td class="right">60%</td><td class="right">£0</td><td class="right">£4,000</td><td class="right">9</td></tr>
+    <tr class="total"><td><strong>Blended CAC</strong></td><td class="right"></td><td class="right"></td><td class="right"><strong>£529</strong></td><td class="right"><strong>£30,000</strong></td><td class="right"><strong>35</strong></td></tr>
+  </table>
+
+  <h3>3.2 Lifetime Value (LTV)</h3>
+  <table>
+    <tr><th>Tier</th><th class="right">Monthly Price</th><th class="right">Avg Lifetime (months)</th><th class="right">Gross Margin %</th><th class="right">LTV</th></tr>
+    <tr><td>Starter</td><td class="right">£99</td><td class="right">13.8</td><td class="right">75%</td><td class="right">£1,025</td></tr>
+    <tr><td>Professional</td><td class="right">£299</td><td class="right">18.5</td><td class="right">82%</td><td class="right">£4,574</td></tr>
+    <tr><td>Enterprise</td><td class="right">£749</td><td class="right">25.0</td><td class="right">85%</td><td class="right">£15,956</td></tr>
+    <tr class="total"><td><strong>Blended LTV</strong></td><td class="right"></td><td class="right"></td><td class="right"></td><td class="right"><strong>£4,870</strong></td></tr>
+  </table>
+
+  <h3>3.3 LTV:CAC Ratio & Payback</h3>
+  <div class="metrics">
+    <div class="metric green"><div class="num">9.2x</div><div class="label">LTV:CAC Ratio</div></div>
+    <div class="metric"><div class="num">£529</div><div class="label">Blended CAC</div></div>
+    <div class="metric"><div class="num">£4,870</div><div class="label">Blended LTV</div></div>
+    <div class="metric green"><div class="num">1.7 mo</div><div class="label">CAC Payback</div></div>
+  </div>
+
+  <div class="callout">
+    <strong>Target benchmark:</strong> LTV:CAC > 3x is healthy for SaaS. MeticleCare at 9.2x indicates strong unit economics. CAC payback under 3 months is excellent — we recoup acquisition cost before the second billing cycle.
+  </div>
+
+  <h3>3.4 Gross Margin</h3>
+  <table>
+    <tr><th>Cost Component</th><th class="right">Per Customer/Month</th><th class="right">% of ARPU</th></tr>
+    <tr><td>Cloud hosting (AWS/Azure UK)</td><td class="right">£7</td><td class="right">2.3%</td></tr>
+    <tr><td>AI API costs (OpenAI/Anthropic)</td><td class="right">£4</td><td class="right">1.3%</td></tr>
+    <tr><td>Email (SMTP + queue)</td><td class="right">£1</td><td class="right">0.3%</td></tr>
+    <tr><td>Stripe payment processing</td><td class="right">£9</td><td class="right">2.9%</td></tr>
+    <tr class="total"><td><strong>Total COGS</strong></td><td class="right"><strong>£21</strong></td><td class="right"><strong>6.8%</strong></td></tr>
+    <tr class="total"><td><strong>Gross margin</strong></td><td class="right"><strong>£289</strong></td><td class="right"><strong>93.2%</strong></td></tr>
+  </table>
+
+  <h3>3.5 Cohort Retention</h3>
+  <table>
+    <tr><th>Month</th><th class="right">Month 1</th><th class="right">Month 3</th><th class="right">Month 6</th><th class="right">Month 9</th><th class="right">Month 12</th></tr>
+    <tr><td>Retention rate</td><td class="right">100%</td><td class="right">91%</td><td class="right">83%</td><td class="right">76%</td><td class="right">69%</td></tr>
+    <tr><td>Cumulative revenue per £100 MRR</td><td class="right">£100</td><td class="right">£283</td><td class="right">£542</td><td class="right">£774</td><td class="right">£982</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 4. COST STRUCTURE ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 4</div>
+  <h2>Cost Structure & Headcount</h2>
+  <div class="section-subtitle">Operating costs, headcount plan, and overhead</div>
+
+  <h3>4.1 Headcount Plan</h3>
+  <table>
+    <tr><th>Role</th><th class="right">Y1 Hires</th><th class="right">Y1 Total</th><th class="right">Y2 Hires</th><th class="right">Y2 Total</th><th class="right">Y3 Hires</th><th class="right">Y3 Total</th></tr>
+    <tr><td>Engineering (backend + frontend)</td><td class="right">2</td><td class="right">3</td><td class="right">2</td><td class="right">5</td><td class="right">2</td><td class="right">7</td></tr>
+    <tr><td>AI/ML engineer</td><td class="right">1</td><td class="right">1</td><td class="right">0</td><td class="right">1</td><td class="right">1</td><td class="right">2</td></tr>
+    <tr><td>Sales</td><td class="right">1</td><td class="right">1</td><td class="right">1</td><td class="right">2</td><td class="right">2</td><td class="right">4</td></tr>
+    <tr><td>Customer success</td><td class="right">1</td><td class="right">1</td><td class="right">1</td><td class="right">2</td><td class="right">1</td><td class="right">3</td></tr>
+    <tr><td>Marketing</td><td class="right">0</td><td class="right">0</td><td class="right">1</td><td class="right">1</td><td class="right">1</td><td class="right">2</td></tr>
+    <tr><td>Operations / admin</td><td class="right">0</td><td class="right">0</td><td class="right">1</td><td class="right">1</td><td class="right">1</td><td class="right">2</td></tr>
+    <tr class="total"><td><strong>Total headcount</strong></td><td class="right"><strong>5</strong></td><td class="right"><strong>6</strong></td><td class="right"><strong>6</strong></td><td class="right"><strong>12</strong></td><td class="right"><strong>8</strong></td><td class="right"><strong>20</strong></td></tr>
+  </table>
+
+  <h3>4.2 Operating Costs</h3>
+  <table>
+    <tr><th>Cost Category</th><th class="right">Y1</th><th class="right">Y2</th><th class="right">Y3</th></tr>
+    <tr><td>Salaries & benefits (engineering)</td><td class="right">£165,000</td><td class="right">£330,000</td><td class="right">£455,000</td></tr>
+    <tr><td>Salaries & benefits (non-engineering)</td><td class="right">£40,000</td><td class="right">£126,000</td><td class="right">£270,000</td></tr>
+    <tr><td>Founder salary</td><td class="right">£30,000</td><td class="right">£45,000</td><td class="right">£60,000</td></tr>
+    <tr class="subtotal"><td><strong>Total personnel</strong></td><td class="right"><strong>£235,000</strong></td><td class="right"><strong>£501,000</strong></td><td class="right"><strong>£785,000</strong></td></tr>
+    <tr><td>Cloud infrastructure</td><td class="right">£8,400</td><td class="right">£25,200</td><td class="right">£50,400</td></tr>
+    <tr><td>AI API costs</td><td class="right">£5,200</td><td class="right">£16,800</td><td class="right">£36,000</td></tr>
+    <tr><td>Email / SMTP</td><td class="right">£1,200</td><td class="right">£3,600</td><td class="right">£7,200</td></tr>
+    <tr><td>Stripe fees (2.9%)</td><td class="right">£2,761</td><td class="right">£12,685</td><td class="right">£30,450</td></tr>
+    <tr class="subtotal"><td><strong>Total COGS</strong></td><td class="right"><strong>£17,561</strong></td><td class="right"><strong>£58,285</strong></td><td class="right"><strong>£124,050</strong></td></tr>
+    <tr><td>Sales & marketing</td><td class="right">£30,000</td><td class="right">£60,000</td><td class="right">£100,000</td></tr>
+    <tr><td>Office / co-working</td><td class="right">£6,000</td><td class="right">£12,000</td><td class="right">£18,000</td></tr>
+    <tr><td>Legal & accountancy</td><td class="right">£8,000</td><td class="right">£12,000</td><td class="right">£15,000</td></tr>
+    <tr><td>Security & compliance (Cyber Essentials, ISO)</td><td class="right">£12,000</td><td class="right">£15,000</td><td class="right">£10,000</td></tr>
+    <tr><td>Travel & conferences</td><td class="right">£5,000</td><td class="right">£10,000</td><td class="right">£15,000</td></tr>
+    <tr><td>Tools & software</td><td class="right">£4,800</td><td class="right">£8,400</td><td class="right">£12,000</td></tr>
+    <tr><td>Insurance</td><td class="right">£3,000</td><td class="right">£4,000</td><td class="right">£5,000</td></tr>
+    <tr><td>Contingency (5%)</td><td class="right">£15,568</td><td class="right">£34,034</td><td class="right">£54,703</td></tr>
+    <tr class="subtotal"><td><strong>Total OpEx (excl. personnel & COGS)</strong></td><td class="right"><strong>£84,368</strong></td><td class="right"><strong>£155,434</strong></td><td class="right"><strong>£229,703</strong></td></tr>
+    <tr class="total"><td><strong>TOTAL OPERATING COSTS</strong></td><td class="right"><strong>£336,929</strong></td><td class="right"><strong>£714,719</strong></td><td class="right"><strong>£1,138,753</strong></td></tr>
+  </table>
+</div>
+
+<!-- ==================== 5. P&L ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 5</div>
+  <h2>Profit & Loss Projection</h2>
+  <div class="section-subtitle">3-year income statement</div>
+
+  <h3>5.1 Annual P&L</h3>
+  <table>
+    <tr><th>Line Item</th><th class="right">Y1</th><th class="right">Y2</th><th class="right">Y3</th></tr>
+    <tr><td>Subscription revenue</td><td class="right">£82,700</td><td class="right">£398,200</td><td class="right">£968,000</td></tr>
+    <tr><td>Services revenue</td><td class="right">£12,500</td><td class="right">£39,200</td><td class="right">£82,000</td></tr>
+    <tr class="subtotal"><td><strong>Total revenue</strong></td><td class="right"><strong>£95,200</strong></td><td class="right"><strong>£437,400</strong></td><td class="right"><strong>£1,050,000</strong></td></tr>
+    <tr><td>Cost of goods sold (COGS)</td><td class="right">£17,561</td><td class="right">£58,285</td><td class="right">£124,050</td></tr>
+    <tr class="subtotal"><td><strong>Gross profit</strong></td><td class="right"><strong>£77,639</strong></td><td class="right"><strong>£379,115</strong></td><td class="right"><strong>£925,950</strong></td></tr>
+    <tr class="total"><td><strong>Gross margin</strong></td><td class="right"><strong>81.6%</strong></td><td class="right"><strong>86.7%</strong></td><td class="right"><strong>88.2%</strong></td></tr>
+    <tr><td>Personnel costs</td><td class="right">£235,000</td><td class="right">£501,000</td><td class="right">£785,000</td></tr>
+    <tr><td>Operating expenses</td><td class="right">£84,368</td><td class="right">£155,434</td><td class="right">£229,703</td></tr>
+    <tr class="subtotal"><td><strong>Total operating costs</strong></td><td class="right"><strong>£319,368</strong></td><td class="right"><strong>£656,434</strong></td><td class="right"><strong>£1,014,703</strong></td></tr>
+    <tr class="total"><td><strong>EBITDA</strong></td><td class="right negative"><strong>-£241,729</strong></td><td class="right negative"><strong>-£277,319</strong></td><td class="right"><strong>£35,297</strong></td></tr>
+    <tr class="total"><td><strong>EBITDA margin</strong></td><td class="right negative"><strong>-253.9%</strong></td><td class="right negative"><strong>-63.4%</strong></td><td class="right"><strong>3.4%</strong></td></tr>
+  </table>
+
+  <h3>5.2 Monthly P&L (Year 1 Detail)</h3>
+  <table>
+    <tr><th></th><th class="right">M1</th><th class="right">M3</th><th class="right">M6</th><th class="right">M9</th><th class="right">M12</th></tr>
+    <tr><td>MRR</td><td class="right">£310</td><td class="right">£1,550</td><td class="right">£3,720</td><td class="right">£6,200</td><td class="right">£8,990</td></tr>
+    <tr><td>Monthly revenue (incl. services)</td><td class="right">£1,090</td><td class="right">£2,530</td><td class="right">£5,100</td><td class="right">£8,280</td><td class="right">£11,870</td></tr>
+    <tr><td>Monthly COGS</td><td class="right">£300</td><td class="right">£780</td><td class="right">£1,480</td><td class="right">£2,240</td><td class="right">£3,040</td></tr>
+    <tr><td>Monthly OpEx</td><td class="right">£28,000</td><td class="right">£28,000</td><td class="right">£28,500</td><td class="right">£30,000</td><td class="right">£32,000</td></tr>
+    <tr class="total"><td>Monthly EBITDA</td><td class="right negative">-£27,210</td><td class="right negative">-£26,250</td><td class="right negative">-£24,880</td><td class="right negative">-£23,960</td><td class="right negative">-£23,170</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Key insight:</strong> Monthly losses narrow from £27K (M1) to £23K (M12) as revenue grows. The business reaches EBITDA break-even in Month 30 (mid-Year 3) with ~170 customers at blended £310 ARPU.
+  </div>
+</div>
+
+<!-- ==================== 6. CASH FLOW ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 6</div>
+  <h2>Cash Flow & Funding Requirements</h2>
+  <div class="section-subtitle">Cumulative cash position and runway</div>
+
+  <h3>6.1 Quarterly Cash Flow</h3>
+  <table>
+    <tr><th></th><th class="right">Q1 Y1</th><th class="right">Q2 Y1</th><th class="right">Q3 Y1</th><th class="right">Q4 Y1</th><th class="right">Q1 Y2</th><th class="right">Q2 Y2</th><th class="right">Q3 Y2</th><th class="right">Q4 Y2</th><th class="right">Q1 Y3</th><th class="right">Q2 Y3</th><th class="right">Q3 Y3</th><th class="right">Q4 Y3</th></tr>
+    <tr><td>Revenue</td><td class="right">£4,620</td><td class="right">£12,300</td><td class="right">£23,400</td><td class="right">£54,880</td><td class="right">£68,200</td><td class="right">£98,400</td><td class="right">£128,600</td><td class="right">£142,200</td><td class="right">£185,000</td><td class="right">£248,000</td><td class="right">£302,000</td><td class="right">£315,000</td></tr>
+    <tr><td>Operating costs</td><td class="right">£84,232</td><td class="right">£84,232</td><td class="right">£84,232</td><td class="right">£84,233</td><td class="right">£165,680</td><td class="right">£165,680</td><td class="right">£165,680</td><td class="right">£165,679</td><td class="right">£253,688</td><td class="right">£253,688</td><td class="right">£253,688</td><td class="right">£253,689</td></tr>
+    <tr class="total"><td>Net cash flow</td><td class="right negative">-£79,612</td><td class="right negative">-£71,932</td><td class="right negative">-£60,832</td><td class="right negative">-£29,353</td><td class="right negative">-£97,480</td><td class="right negative">-£67,280</td><td class="right negative">-£37,080</td><td class="right negative">-£23,479</td><td class="right negative">-£68,688</td><td class="right negative">-£5,688</td><td class="right">£48,312</td><td class="right">£61,311</td></tr>
+    <tr class="total"><td>Cumulative cash</td><td class="right negative">-£79,612</td><td class="right negative">-£151,544</td><td class="right negative">-£212,376</td><td class="right negative">-£241,729</td><td class="right negative">-£339,209</td><td class="right negative">-£406,489</td><td class="right negative">-£443,569</td><td class="right negative">-£467,048</td><td class="right negative">-£535,736</td><td class="right negative">-£541,424</td><td class="right negative">-£493,112</td><td class="right negative">-£431,801</td></tr>
+  </table>
+
+  <h3>6.2 Funding Requirements</h3>
+  <table>
+    <tr><th>Metric</th><th class="right">Amount</th></tr>
+    <tr><td>Cash required to break-even (Month 30)</td><td class="right">£542,000</td></tr>
+    <tr><td>Recommended raise (with buffer)</td><td class="right">£600,000</td></tr>
+    <tr><td>Initial raise (Pulse Angels round)</td><td class="right">£200,000–£350,000</td></tr>
+    <tr><td>Bridge round needed (Month 12–15)</td><td class="right">£200,000–£300,000</td></tr>
+    <tr><td>Total funding needed</td><td class="right">£400,000–£650,000</td></tr>
+  </table>
+
+  <h3>6.3 Runway Analysis</h3>
+  <table>
+    <tr><th>Scenario</th><th class="right">Initial Raise</th><th class="right">Months to Bridge</th><th class="right">Bridge Amount</th><th class="right">Months to Break-even</th></tr>
+    <tr><td>Base case</td><td class="right">£300,000</td><td class="right">Month 12</td><td class="right">£250,000</td><td class="right">Month 30</td></tr>
+    <tr><td>Optimistic</td><td class="right">£300,000</td><td class="right">Month 15</td><td class="right">£150,000</td><td class="right">Month 24</td></tr>
+    <tr><td>Conservative</td><td class="right">£300,000</td><td class="right">Month 10</td><td class="right">£350,000</td><td class="right">Month 36</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Funding strategy:</strong> Raise £200K–£350K from Pulse Angels (SEIS-eligible). Use to reach 30+ customers and £10K+ MRR. Then raise a bridge round of £200K–£300K from existing investors + new angels at a higher valuation. Break-even at ~170 customers (Month 30).
+  </div>
+</div>
+
+<!-- ==================== 7. SENSITIVITY ANALYSIS ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 7</div>
+  <h2>Sensitivity Analysis</h2>
+  <div class="section-subtitle">What happens when assumptions change</div>
+
+  <h3>7.1 Revenue Sensitivity — Year 3 ARR by Churn Rate × New Customers/Month</h3>
+  <table class="sensitivity">
+    <tr><th></th><th class="center">5 new/month</th><th class="center">10 new/month</th><th class="center">15 new/month (base)</th><th class="center">20 new/month</th><th class="center">25 new/month</th></tr>
+    <tr><td><strong>Churn 1.0%/mo</strong></td><td class="best center">£380K</td><td class="best center">£720K</td><td class="best center">£1.06M</td><td class="best center">£1.40M</td><td class="best center">£1.74M</td></tr>
+    <tr><td><strong>Churn 1.5%/mo (base)</strong></td><td class="center">£290K</td><td class="center">£560K</td><td class="base center">£949K</td><td class="center">£1.28M</td><td class="center">£1.60M</td></tr>
+    <tr><td><strong>Churn 2.0%/mo</strong></td><td class="center">£230K</td><td class="center">£450K</td><td class="center">£760K</td><td class="center">£1.05M</td><td class="center">£1.32M</td></tr>
+    <tr><td><strong>Churn 2.5%/mo</strong></td><td class="worst center">£190K</td><td class="worst center">£370K</td><td class="worst center">£630K</td><td class="worst center">£870K</td><td class="worst center">£1.10M</td></tr>
+    <tr><td><strong>Churn 3.0%/mo</strong></td><td class="worst center">£160K</td><td class="worst center">£310K</td><td class="worst center">£530K</td><td class="worst center">£730K</td><td class="worst center">£930K</td></tr>
+  </table>
+
+  <h3>7.2 Break-even Sensitivity — Months to Break-even by ARPU × Monthly Burn</h3>
+  <table class="sensitivity">
+    <tr><th></th><th class="center">£200K annual burn</th><th class="center">£250K annual burn</th><th class="center">£340K annual burn (base)</th><th class="center">£400K annual burn</th><th class="center">£500K annual burn</th></tr>
+    <tr><td><strong>ARPU £200</strong></td><td class="best center">Month 22</td><td class="center">Month 26</td><td class="center">Month 34</td><td class="center">Month 40</td><td class="worst center">Month 52</td></tr>
+    <tr><td><strong>ARPU £310 (base)</strong></td><td class="best center">Month 18</td><td class="best center">Month 22</td><td class="base center">Month 30</td><td class="center">Month 36</td><td class="center">Month 46</td></tr>
+    <tr><td><strong>ARPU £400</strong></td><td class="best center">Month 15</td><td class="best center">Month 18</td><td class="best center">Month 24</td><td class="center">Month 28</td><td class="center">Month 36</td></tr>
+    <tr><td><strong>ARPU £500</strong></td><td class="best center">Month 12</td><td class="best center">Month 15</td><td class="best center">Month 20</td><td class="best center">Month 24</td><td class="center">Month 30</td></tr>
+  </table>
+
+  <h3>7.3 Funding Sensitivity — Cash Position at Month 18</h3>
+  <table class="sensitivity">
+    <tr><th></th><th class="center">£200K raise</th><th class="center">£300K raise</th><th class="center">£400K raise</th><th class="center">£500K raise</th><th class="center">£600K raise</th></tr>
+    <tr><td><strong>Churn 1.0%/mo</strong></td><td class="worst center">-£142K</td><td class="center">-£42K</td><td class="best center">+£58K</td><td class="best center">+£158K</td><td class="best center">+£258K</td></tr>
+    <tr><td><strong>Churn 1.5%/mo (base)</strong></td><td class="worst center">-£167K</td><td class="worst center">-£67K</td><td class="base center">+£33K</td><td class="best center">+£133K</td><td class="best center">+£233K</td></tr>
+    <tr><td><strong>Churn 2.0%/mo</strong></td><td class="worst center">-£190K</td><td class="worst center">-£90K</td><td class="center">+£10K</td><td class="best center">+£110K</td><td class="best center">+£210K</td></tr>
+    <tr><td><strong>Churn 3.0%/mo</strong></td><td class="worst center">-£230K</td><td class="worst center">-£130K</td><td class="worst center">-£30K</td><td class="center">+£70K</td><td class="best center">+£170K</td></tr>
+  </table>
+
+  <h3>7.4 Scenario Summary — Year 3 Outcomes</h3>
+  <table>
+    <tr><th>Scenario</th><th>Customers</th><th>ARR</th><th>EBITDA</th><th>Cash Position</th></tr>
+    <tr><td><span class="status green"></span><strong> Optimistic</strong></td><td class="right">350</td><td class="right">£1.5M</td><td class="right">£250K</td><td class="right">+£180K</td></tr>
+    <tr><td><span class="status yellow"></span><strong> Base case</strong></td><td class="right">255</td><td class="right">£949K</td><td class="right">£35K</td><td class="right">-£432K</td></tr>
+    <tr><td><span class="status red"></span><strong> Conservative</strong></td><td class="right">150</td><td class="right">£530K</td><td class="right">-£180K</td><td class="right">-£620K</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 8. KEY METRICS DASHBOARD ==================== -->
+<div class="section pb">
+  <div class="section-number">Section 8</div>
+  <h2>Key Metrics Dashboard</h2>
+  <div class="section-subtitle">SaaS metrics at a glance</div>
+
+  <h3>8.1 Annual SaaS Metrics</h3>
+  <table>
+    <tr><th>Metric</th><th class="right">Y1</th><th class="right">Y2</th><th class="right">Y3</th><th>Benchmark</th></tr>
+    <tr><td>ARR</td><td class="right">£108K</td><td class="right">£391K</td><td class="right">£949K</td><td>Growth stage</td></tr>
+    <tr><td>MRR growth (month-over-month)</td><td class="right">25%</td><td class="right">12%</td><td class="right">8%</td><td>>10% early stage</td></tr>
+    <tr><td>Gross margin</td><td class="right">81.6%</td><td class="right">86.7%</td><td class="right">88.2%</td><td>>70% SaaS</td></tr>
+    <tr><td>Net revenue retention</td><td class="right">95%</td><td class="right">105%</td><td class="right">115%</td><td>>100% good</td></tr>
+    <tr><td>Monthly churn</td><td class="right">3.0%</td><td class="right">2.0%</td><td class="right">1.5%</td><td><3% SaaS</td></tr>
+    <tr><td>Annual churn</td><td class="right">31%</td><td class="right">21%</td><td class="right">16%</td><td><20% good</td></tr>
+    <tr><td>LTV:CAC</td><td class="right">9.2x</td><td class="right">11.5x</td><td class="right">14.0x</td><td>>3x healthy</td></tr>
+    <tr><td>CAC payback (months)</td><td class="right">1.7</td><td class="right">1.4</td><td class="right">1.1</td><td><12 months</td></tr>
+    <tr><td>Revenue per employee</td><td class="right">£15,867</td><td class="right">£36,450</td><td class="right">£52,500</td><td>Growing</td></tr>
+    <tr><td>Rule of 40</td><td class="right negative">-212%</td><td class="right negative">-23%</td><td class="right">143%</td><td>>40% good</td></tr>
+  </table>
+
+  <h3>8.2 Cohort Analysis (First 12 Months)</h3>
+  <table>
+    <tr><th>Cohort</th><th class="right">Customers</th><th class="right">Month 1</th><th class="right">Month 3</th><th class="right">Month 6</th><th class="right">Month 9</th><th class="right">Month 12</th></tr>
+    <tr><td>Month 1 cohort</td><td class="right">1</td><td class="right">£310</td><td class="right">£282</td><td class="right">£257</td><td class="right">£236</td><td class="right">£217</td></tr>
+    <tr><td>Month 3 cohort</td><td class="right">4</td><td class="right">£1,240</td><td class="right">£1,128</td><td class="right">£1,028</td><td class="right">£942</td><td class="right">—</td></tr>
+    <tr><td>Month 6 cohort</td><td class="right">7</td><td class="right">£2,170</td><td class="right">£1,974</td><td class="right">£1,799</td><td class="right">—</td><td class="right">—</td></tr>
+    <tr><td>Month 9 cohort</td><td class="right">8</td><td class="right">£2,480</td><td class="right">£2,256</td><td class="right">—</td><td class="right">—</td><td class="right">—</td></tr>
+    <tr class="total"><td><strong>Total monthly MRR (all cohorts)</strong></td><td class="right"></td><td class="right">£6,200</td><td class="right">£5,640</td><td class="right">£5,084</td><td class="right">£1,178</td><td class="right">£217</td></tr>
+  </table>
+
+  <h3>8.3 Key Milestones</h3>
+  <div class="metrics">
+    <div class="metric"><div class="num">M6</div><div class="label">First paying customer</div></div>
+    <div class="metric"><div class="num">M12</div><div class="label">29 customers, £9K MRR</div></div>
+    <div class="metric"><div class="num">M18</div><div class="label">55 customers, £17K MRR</div></div>
+    <div class="metric"><div class="num">M24</div><div class="label">105 customers, £33K MRR</div></div>
+    <div class="metric green"><div class="num">M30</div><div class="label">Break-even (EBITDA)</div></div>
+    <div class="metric green"><div class="num">M36</div><div class="label">255 customers, £79K MRR</div></div>
+  </div>
+
+  <h3>8.4 What Investors Should Watch</h3>
+  <table>
+    <tr><th>Metric</th><th>Green Flag</th><th>Red Flag</th></tr>
+    <tr><td>Monthly churn</td><td>Stays under 2.5%</td><td>Climbs above 4%</td></tr>
+    <tr><td>Pilot conversion</td><td>50%+ convert to paying</td><td>Below 25%</td></tr>
+    <tr><td>Net revenue retention</td><td>100%+ (upgrades offset churn)</td><td>Below 90%</td></tr>
+    <tr><td>CAC payback</td><td>Under 3 months</td><td>Above 6 months</td></tr>
+    <tr><td>Support tickets</td><td>Declining per customer</td><td>Increasing per customer</td></tr>
+  </table>
+
+  <div class="footer">
+    MeticleCare Ltd — 3-Year Financial Model — August 2026<br>
+    Commercial in confidence — Projections are forward-looking estimates, not guarantees
+  </div>
+</div>
+
+</body>
+</html>

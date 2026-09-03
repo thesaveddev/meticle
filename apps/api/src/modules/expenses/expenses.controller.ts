@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import {
   createExpense, getExpenses, getExpense, updateExpense, voidExpense, getExpenseStats,
-  getPettyCashBalances, topUpPettyCash, reconcilePettyCash, getPettyCashTransactions, dailyCashCheck, getDailyCashChecks, getExpenseReport,
+  getPettyCashBalances, topUpPettyCash, requestPettyCashReconciliation, getCashReconciliationRequests, reviewPettyCashReconciliation, getPettyCashTransactions, dailyCashCheck, getDailyCashChecks, acceptDailyCashCheck, getExpenseReport,
 } from './expenses.service';
 
 export class ExpensesController {
@@ -86,7 +86,17 @@ export class ExpensesController {
   static async reconcile(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
     const userId = req.user!.userId;
-    const result = await reconcilePettyCash(orgId, userId, req.body, req.body.actualBalancePence, req.body.notes);
+    const result = await requestPettyCashReconciliation(orgId, userId, req.body, req.body.actualBalancePence, req.body.handedOverTo, req.body.notes);
+    res.status(201).json(result);
+  }
+
+  static async getReconciliations(req: Request, res: Response) {
+    res.json(await getCashReconciliationRequests(req.user!.organizationId!));
+  }
+
+  static async reviewReconciliation(req: Request, res: Response) {
+    const decision = req.body.decision as 'accepted' | 'rejected';
+    const result = await reviewPettyCashReconciliation(req.user!.organizationId!, req.params.id, req.user!.userId, decision, req.body.rejectionReason);
     res.json(result);
   }
 
@@ -101,12 +111,18 @@ export class ExpensesController {
       notes: req.body.notes,
       escalate: req.body.escalate,
       escalationReason: req.body.escalationReason,
+      handedOverTo: req.body.handedOverTo,
     });
     res.status(201).json(result);
   }
 
   static async getDailyCashChecks(req: Request, res: Response) {
     res.json(await getDailyCashChecks(req.user!.organizationId!, req.query as any));
+  }
+
+  static async acceptDailyCashCheck(req: Request, res: Response) {
+    const result = await acceptDailyCashCheck(req.user!.organizationId!, req.params.id, req.user!.userId);
+    res.json(result);
   }
 
   static async report(req: Request, res: Response) {

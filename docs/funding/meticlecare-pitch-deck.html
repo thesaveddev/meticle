@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeticleCare — Investor Pitch Deck</title>
+<style>
+  @page { size: 16in 9in; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    background: #fff;
+  }
+
+  /* Slide base */
+  .slide {
+    width: 16in;
+    height: 9in;
+    padding: 60px 72px;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .slide:last-child { page-break-after: auto; }
+
+  /* Dark slides */
+  .slide.dark {
+    background: linear-gradient(160deg, #0F4C81 0%, #0A3A63 100%);
+    color: #fff;
+  }
+  .slide.dark h2 { color: #fff; }
+  .slide.dark p { color: rgba(255,255,255,0.9); }
+  .slide.dark .muted { color: rgba(255,255,255,0.5); }
+
+  /* Light slides */
+  .slide.light {
+    background: #F7F4EE;
+    color: #1B2430;
+  }
+  .slide.white {
+    background: #fff;
+    color: #1B2430;
+  }
+
+  /* Typography */
+  .slide-number {
+    position: absolute;
+    bottom: 32px;
+    right: 48px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.4;
+  }
+  .slide.dark .slide-number { color: rgba(255,255,255,0.4); }
+  .slide.light .slide-number, .slide.white .slide-number { color: #5B6672; }
+
+  .logo {
+    position: absolute;
+    top: 32px;
+    left: 48px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #10B981;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 14px;
+    color: #fff;
+  }
+  .logo-text {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .slide.dark .logo-text { color: #fff; }
+  .slide.light .logo-text, .slide.white .logo-text { color: #0F4C81; }
+
+  h1 {
+    font-size: 72px;
+    font-weight: 900;
+    line-height: 1.0;
+    letter-spacing: -0.04em;
+    margin-bottom: 16px;
+  }
+  h2 {
+    font-size: 44px;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+    color: #0F4C81;
+  }
+  h3 {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  p {
+    font-size: 20px;
+    line-height: 1.5;
+    color: #5B6672;
+  }
+  .muted { color: #5B6672; }
+  .emerald { color: #10B981; }
+  .accent { color: #0F4C81; }
+
+  /* Tag */
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #10B981;
+    margin-bottom: 16px;
+  }
+  .slide.dark .tag { color: #34D399; }
+
+  /* Grid layouts */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    flex: 1;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    flex: 1;
+  }
+  .grid-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 20px;
+    flex: 1;
+  }
+  .grid-2-1 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 32px;
+    flex: 1;
+  }
+
+  /* Cards */
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px;
+    border: 1px solid #E7E1D6;
+  }
+  .slide.dark .card {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .card h3 { margin-bottom: 8px; }
+  .card p { font-size: 16px; }
+  .card .icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+
+  /* Metric boxes */
+  .metric-box {
+    text-align: center;
+    padding: 20px;
+  }
+  .metric-box .num {
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .slide.dark .metric-box .num { color: #34D399; }
+  .slide.light .metric-box .num, .slide.white .metric-box .num { color: #0F4C81; }
+  .metric-box .label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5B6672;
+    margin-top: 8px;
+  }
+
+  /* Comparison table */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+  .compare-table th {
+    text-align: left;
+    padding: 12px 16px;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5B6672;
+    border-bottom: 2px solid #E7E1D6;
+  }
+  .compare-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #E7E1D6;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .check { color: #10B981; font-weight: 900; }
+  .compare-table .cross { color: #DC2626; font-weight: 900; }
+  .compare-table .partial { color: #D97706; font-weight: 900; }
+  .compare-table .highlight-row td { background: #F0FDF4; font-weight: 700; }
+
+  /* Timeline */
+  .timeline {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    flex: 1;
+  }
+  .timeline-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    padding: 0 12px;
+  }
+  .timeline-step::after {
+    content: '';
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: #E7E1D6;
+  }
+  .timeline-step:last-child::after { display: none; }
+  .timeline-dot {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #0F4C81;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 16px;
+    margin: 0 auto 12px;
+    position: relative;
+    z-index: 1;
+  }
+  .timeline-step .step-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0F4C81;
+    margin-bottom: 4px;
+  }
+  .timeline-step .step-desc {
+    font-size: 12px;
+    color: #5B6672;
+    line-height: 1.4;
+  }
+
+  /* Quote */
+  .quote-block {
+    border-left: 4px solid #10B981;
+    padding: 20px 24px;
+    background: rgba(16, 185, 129, 0.05);
+    border-radius: 0 12px 12px 0;
+    margin: 16px 0;
+  }
+  .quote-block p {
+    font-size: 18px;
+    font-style: italic;
+    color: #1B2430;
+    margin: 0;
+  }
+  .quote-block .attribution {
+    font-size: 13px;
+    font-style: normal;
+    color: #5B6672;
+    margin-top: 8px;
+  }
+
+  /* List */
+  .feature-list {
+    list-style: none;
+    padding: 0;
+  }
+  .feature-list li {
+    padding: 6px 0;
+    font-size: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .feature-list li::before {
+    content: '→';
+    color: #10B981;
+    font-weight: 900;
+    flex-shrink: 0;
+  }
+  .slide.dark .feature-list li { color: rgba(255,255,255,0.9); }
+
+  /* Bar chart */
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    height: 200px;
+    padding-top: 20px;
+  }
+  .bar-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+  }
+  .bar {
+    width: 100%;
+    max-width: 80px;
+    border-radius: 8px 8px 0 0;
+    background: #0F4C81;
+    position: relative;
+  }
+  .bar-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: #fff;
+    text-align: center;
+    padding: 8px 0;
+  }
+  .bar-year {
+    font-size: 13px;
+    font-weight: 700;
+    color: #5B6672;
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  /* Pricing */
+  .pricing-row {
+    display: flex;
+    gap: 20px;
+    flex: 1;
+  }
+  .pricing-card {
+    flex: 1;
+    background: #fff;
+    border: 2px solid #E7E1D6;
+    border-radius: 16px;
+    padding: 28px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+  }
+  .pricing-card.featured {
+    border-color: #10B981;
+    background: #F0FDF4;
+  }
+  .pricing-card h3 { font-size: 20px; margin-bottom: 4px; }
+  .pricing-card .price {
+    font-size: 40px;
+    font-weight: 900;
+    color: #0F4C81;
+    margin: 12px 0;
+  }
+  .pricing-card .price span { font-size: 16px; font-weight: 400; color: #5B6672; }
+  .pricing-card.featured .price { color: #10B981; }
+  .pricing-card ul {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+    font-size: 13px;
+    flex: 1;
+  }
+  .pricing-card li {
+    padding: 4px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .pricing-card li::before {
+    content: '✓';
+    color: #10B981;
+    font-weight: 900;
+    flex-shrink: 0;
+  }
+
+  /* Cover specifics */
+  .cover-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cover-meta {
+    position: absolute;
+    bottom: 48px;
+    left: 72px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== SLIDE 1: TITLE ==================== -->
+<div class="slide dark">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="cover-content">
+    <div class="tag">AI-First Care Operating System</div>
+    <h1>One platform<br>for UK care<br>operations</h1>
+    <p style="font-size: 22px; color: rgba(255,255,255,0.7); max-width: 600px; margin-top: 20px;">
+      The connected care management platform for UK supported-living providers. Rota, medication, notes, compliance — from one system.
+    </p>
+    <div style="margin-top: 40px; display: flex; gap: 40px;">
+      <div>
+        <div style="font-size: 36px; font-weight: 900; color: #34D399;">41</div>
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.5);">Modules</div>
+      </div>
+      <div>
+        <div style="font-size: 36px; font-weight: 900; color: #34D399;">484</div>
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.5);">API Endpoints</div>
+      </div>
+      <div>
+        <div style="font-size: 36px; font-weight: 900; color: #34D399;">108</div>
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.5);">Tables</div>
+      </div>
+      <div>
+        <div style="font-size: 36px; font-weight: 900; color: #34D399;">152K+</div>
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.5);">Potential customers</div>
+      </div>
+    </div>
+  </div>
+  <div class="cover-meta">
+    Opeyemi Olorunfemi, Founder & CEO<br>
+    meticlecare.com · August 2026
+  </div>
+  <div class="slide-number">01 / 12</div>
+</div>
+
+<!-- ==================== SLIDE 2: PROBLEM ==================== -->
+<div class="slide white">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="tag">The Problem</div>
+  <h2>Care managers spend 40% of their day<br>on paperwork, not care</h2>
+  <div class="grid-2" style="margin-top: 24px;">
+    <div>
+      <p style="font-size: 18px; margin-bottom: 20px;">A typical supported-living provider manages operations with:</p>
+      <ul class="feature-list">
+        <li>Paper MAR charts for medication</li>
+        <li>Spreadsheets for rotas and scheduling</li>
+        <li>Physical folders for compliance evidence</li>
+        <li>Phone calls and WhatsApp for team communication</li>
+        <li>Paper forms for incidents and daily notes</li>
+      </ul>
+      <div class="quote-block" style="margin-top: 24px;">
+        <p>"I spend my mornings checking three spreadsheets for the rota, a paper MAR chart for medications, and a compliance folder — before I've spoken to a single service user."</p>
+        <div class="attribution">— Care manager, 24-bed supported-living provider</div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="metric-box">
+          <div class="num" style="font-size: 48px;">40%</div>
+          <div class="label">Manager time on admin</div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="metric-box">
+          <div class="num" style="font-size: 48px;">165K+</div>
+          <div class="label">Unfilled care vacancies</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="metric-box">
+          <div class="num" style="font-size: 48px;">30%+</div>
+          <div class="label">Annual staff turnover</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">02 / 12</div>
+</div>
+
+<!-- ==================== SLIDE 3: SOLUTION ==================== -->
+<div class="slide dark">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="tag">The Solution</div>
+  <h2>One connected system<br>replaces five fragmented tools</h2>
+  <div class="grid-3" style="margin-top: 24px;">
+    <div class="card">
+      <div class="icon">📋</div>
+      <h3 style="color: #fff;">Rota & Scheduling</h3>
+      <p style="font-size: 15px;">AI-powered rota planner with min safe staffing, 11-hour rest enforcement, drag-and-drop, agency integration</p>
+    </div>
+    <div class="card">
+      <div class="icon">💊</div>
+      <h3 style="color: #fff;">Medication (eMAR)</h3>
+      <p style="font-size: 15px;">Full digital MAR: chart grid, PRN tracking, stock management, daily counts, audit trail</p>
+    </div>
+    <div class="card">
+      <div class="icon">📝</div>
+      <h3 style="color: #fff;">Daily Care Notes</h3>
+      <p style="font-size: 15px;">Voice-to-text input, AI structuring, mood analysis, safeguarding flags, care plan updates</p>
+    </div>
+    <div class="card">
+      <div class="icon">✅</div>
+      <h3 style="color: #fff;">Compliance</h3>
+      <p style="font-size: 15px;">Automated evidence packs (KLOE), CQC readiness scoring from live data, gap analysis</p>
+    </div>
+    <div class="card">
+      <div class="icon">💬</div>
+      <h3 style="color: #fff;">Team Communication</h3>
+      <p style="font-size: 15px;">Real-time chat with presence, read receipts, channels, file sharing</p>
+    </div>
+    <div class="card">
+      <div class="icon">🤖</div>
+      <h3 style="color: #fff;">AI Intelligence</h3>
+      <p style="font-size: 15px;">5 domain-specific agents, event-driven cross-module insights, predictive analytics</p>
+    </div>
+  </div>
+  <div class="slide-number">03 / 12</div>
+</div>
+
+<!-- ==================== SLIDE 4: PRODUCT ==================== -->
+<div class="slide white">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="tag">Product</div>
+  <h2>Built and deployed.<br>Not a concept. Not a prototype.</h2>
+  <div class="grid-2-1" style="margin-top: 20px;">
+    <div>
+      <div class="grid-2" style="gap: 16px;">
+        <div class="card" style="padding: 20px;">
+          <div style="font-size: 32px; font-weight: 900; color: #0F4C81;">41</div>
+          <div style="font-size: 12px; font-weight: 700; color: #5B6672; text-transform: uppercase; letter-spacing: 0.06em;">Backend Modules</div>
+        </div>
+        <div class="card" style="padding: 20px;">
+          <div style="font-size: 32px; font-weight: 900; color: #0F4C81;">484</div>
+          <div style="font-size: 12px; font-weight: 700; color: #5B6672; text-transform: uppercase; letter-spacing: 0.06em;">API Endpoints</div>
+        </div>
+        <div class="card" style="padding: 20px;">
+          <div style="font-size: 32px; font-weight: 900; color: #0F4C81;">78</div>
+          <div style="font-size: 12px; font-weight: 700; color: #5B6672; text-transform: uppercase; letter-spacing: 0.06em;">Frontend Pages</div>
+        </div>
+        <div class="card" style="padding: 20px;">
+          <div style="font-size: 32px; font-weight: 900; color: #0F4C81;">441</div>
+          <div style="font-size: 12px; font-weight: 700; color: #5B6672; text-transform: uppercase; letter-spacing: 0.06em;">Tests Passing</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 16px; padding: 20px;">
+        <h3 style="font-size: 18px;">What's Live</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 14px; margin-top: 8px;">
+          <div>✓ AI-powered rota planner</div>
+          <div>✓ Full eMAR system</div>
+          <div>✓ Voice-to-text daily notes</div>
+          <div>✓ CQC evidence packs</div>
+          <div>✓ Real-time team chat</div>
+          <div>✓ Family portal</div>
+          <div>✓ Mobile PWA (offline)</div>
+          <div>✓ Stripe billing</div>
+          <div>✓ Incident management</div>
+          <div>✓ Training matrix</div>
+          <div>✓ 5 AI agents</div>
+          <div>✓ 20+ email templates</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+        <div style="font-size: 64px; margin-bottom: 16px;">🏥</div>
+        <h3 style="font-size: 20px;">Live at</h3>
+        <div style="font-size: 28px; font-weight: 900; color: #0F4C81; margin: 8px 0;">meticlecare.com</div>
+        <p style="font-size: 14px;">Available for demonstration<br>at any time</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">04 / 12</div>
+</div>
+
+<!-- ==================== SLIDE 5: MARKET ==================== -->
+<div class="slide light">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="tag">Market</div>
+  <h2>£2.4 billion market<br>growing at 27% CAGR</h2>
+  <div class="grid-2" style="margin-top: 20px;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3 style="font-size: 18px;">UK Care Management Solutions</h3>
+        <div style="display: flex; align-items: baseline; gap: 12px; margin: 12px 0;">
+          <div style="font-size: 40px; font-weight: 900; color: #0F4C81;">£891M</div>
+          <div style="font-size: 16px; color: #5B6672;">2024</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <div style="font-size: 40px; font-weight: 900; color: #10B981;">£2.4B</div>
+          <div style="font-size: 16px; color: #5B6672;">2030 projected</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-size: 18px;">Why Now</h3>
+        <ul class="feature-list" style="font-size: 15px;">
+          <li>CQC Single Assessment Framework requires continuous evidence</li>
+          <li>People at the Heart of Care mandates digital records</li>
+          <li>Integrated Care Systems demand NHS-social care data sharing</li>
+          <li>Agency costs rising — providers need internal optimisation</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3 style="font-size: 18px;">Target Customers</h3>
+        <div style="font-size: 15px;">
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #E7E1D6;">
+            <span>Small providers (1–3 locations)</span>
+            <span style="font-weight: 800;">~120,000</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #E7E1D6;">
+            <span>Medium providers (4–15 locations)</span>
+            <span style="font-weight: 800;">~25,000</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #E7E1D6;">
+            <span>Large providers (15+ locations)</span>
+            <span style="font-weight: 800;">~3,000</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+            <span>NHS trusts (discharge pathways)</span>
+            <span style="font-weight: 800;">~200</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-size: 18px;">Regulatory Tailwinds</h3>
+        <p style="font-size: 14px;">Three government mandates are creating mandatory demand for digital care platforms. Providers who don't adopt face increasing regulatory risk.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">05 / 12</div>
+</div>
+
+<!-- ==================== SLIDE 6: BUSINESS MODEL ==================== -->
+<div class="slide white">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="tag">Business Model</div>
+  <h2>Simple, predictable SaaS pricing</h2>
+  <div class="pricing-row" style="margin-top: 24px;">
+    <div class="pricing-card">
+      <h3>Starter</h3>
+      <div class="price">£99<span>/mo</span></div>
+      <p style="font-size: 13px; color: #5B6672; margin-bottom: 12px;">1–3 locations, ≤25 staff</p>
+      <ul>
+        <li>Scheduling & daily notes</li>
+        <li>Basic compliance</li>
+        <li>Leave, incidents, training</li>
+        <li>Team chat</li>
+        <li>Email support</li>
+      </ul>
+    </div>
+    <div class="pricing-card featured">
+      <div style="font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #10B981; margin-bottom: 8px;">Most Popular</div>
+      <h3>Professional</h3>
+      <div class="price">£299<span>/mo</span></div>
+      <p style="font-size: 13px; color: #5B6672; margin-bottom: 12px;">4–15 locations, unlimited staff</p>
+      <ul>
+        <li>Everything in Starter</li>
+        <li>Full eMAR system</li>
+        <li>AI daily notes</li>
+        <li>CQC evidence packs</li>
+        <li>Family portal</li>
+        <li>Priority support</li>
+      </ul>
+    </div>
+    <div class="pricing-card">
+      <h3>Enterprise</h3>
+      <div class="price">£749<span>/mo</span></div>
+      <p style="font-size: 13px; color: #5B6672; margin-bottom: 12px;">15+ locations, API access</p>
+      <ul>
+        <li>Everything in Professional</li>
+        <li>API access</li>
+        <li>Dedicated account manager</li>
+        <li>SLA guarantee</li>
+        <li>Custom AI prompts</li>
+        <li>On-site training</li>
+      </ul>
+    </div>
+  </div>
+  <div style="margin-top: 20px; display: flex; gap: 32px;">
+    <div class="card" style="flex: 1; padding: 16px 20px; display: flex; align-items: center; gap: 16px;">
+      <div style="font-size: 28px;">💰</div>
+      <div>
+        <div style="font-size: 14px; font-weight: 800;">Fixed monthly fee</div>
+        <div style="font-size: 12px; color: #5B6672;">No per-user charges. Predictable costs.</div>
+      </div>
+    </div>
+    <div class="card" style="flex: 1; padding: 16px 20px; display: flex; align-items: center; gap: 16px;">
+      <div style="font-size: 28px;">📊</div>
+      <div>
+        <div style="font-size: 14px; font-weight: 800;">93% gross margin</div>
+        <div style="font-size: 12px; color: #5B6672;">Cloud + AI + email = £21/customer/month</div>
+      </div>
+    </div>
+    <div class="card" style="flex: 1; padding: 16px 20px; display: flex; align-items: center; gap: 16px;">
+      <div style="font-size: 28px;">🔄</div>
+      <div>
+        <div style="font-size: 14px; font-weight: 800;">Month-to-month billing</div>
+        <div style="font-size: 12px; color: #5B6672;">Annual plans available at 20% discount</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">06 / 12</div>
+</div>
+
+<!-- ==================== SLIDE 7: TRACTION ==================== -->
+<div class="slide dark">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="tag">Traction</div>
+  <h2>What we've built<br>and where we are</h2>
+  <div class="grid-2" style="margin-top: 24px;">
+    <div>
+      <h3 style="color: #34D399; font-size: 16px; margin-bottom: 16px;">✓ DONE</h3>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">Full platform deployed</span>
+          <span style="color: #34D399; font-weight: 900;">LIVE</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">41 modules, 484 endpoints</span>
+          <span style="color: #34D399; font-weight: 900;">LIVE</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">Stripe billing integration</span>
+          <span style="color: #34D399; font-weight: 900;">LIVE</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">441 automated tests</span>
+          <span style="color: #34D399; font-weight: 900;">PASSING</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">5 AI agents operational</span>
+          <span style="color: #34D399; font-weight: 900;">LIVE</span>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">Pilot programme designed</span>
+          <span style="color: #34D399; font-weight: 900;">READY</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3 style="color: #FBBF24; font-size: 16px; margin-bottom: 16px;">→ NEXT (with funding)</h3>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">5 pilot deployments</span>
+          <span style="color: #FBBF24; font-weight: 900;">MONTH 1–3</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">First paying customers</span>
+          <span style="color: #FBBF24; font-weight: 900;">MONTH 3–6</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">Cyber Essentials cert</span>
+          <span style="color: #FBBF24; font-weight: 900;">MONTH 9</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">20+ paying customers</span>
+          <span style="color: #FBBF24; font-weight: 900;">MONTH 12</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">NHS integration pilot</span>
+          <span style="color: #FBBF24; font-weight: 900;">MONTH 15</span>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">EBITDA break-even</span>
+          <span style="color: #FBBF24; font-weight: 900;">MONTH 30</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">07 / 12</div>
+</div>
+
+<!-- ==================== SLIDE 8: COMPETITION ==================== -->
+<div class="slide white">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="tag">Competition</div>
+  <h2>Why MeticleCare wins</h2>
+  <div style="margin-top: 16px;">
+    <table class="compare-table">
+      <tr>
+        <th style="width: 22%;">Capability</th>
+        <th style="width: 20%; background: #10B981;">MeticleCare</th>
+        <th style="width: 20%;">Person Centred Software</th>
+        <th style="width: 20%;">Access Group</th>
+        <th style="width: 18%;">Paper/Sheets</th>
+      </tr>
+      <tr class="highlight-row">
+        <td>Full platform (41 modules)</td>
+        <td class="check">✓</td>
+        <td class="cross">✗</td>
+        <td class="partial">~</td>
+        <td class="cross">✗</td>
+      </tr>
+      <tr>
+        <td>AI intelligence</td>
+        <td class="check">✓ 5 agents</td>
+        <td class="cross">✗</td>
+        <td class="cross">✗</td>
+        <td class="cross">✗</td>
+      </tr>
+      <tr>
+        <td>Predictable pricing</td>
+        <td class="check">✓ Fixed</td>
+        <td class="cross">Per carer/day</td>
+        <td class="cross">Per module</td>
+        <td class="check">✓ £0</td>
+      </tr>
+      <tr>
+        <td>Modern mobile PWA</td>
+        <td class="check">✓ Offline</td>
+        <td class="cross">Desktop</td>
+        <td class="cross">Desktop</td>
+        <td class="cross">N/A</td>
+      </tr>
+      <tr>
+        <td>Real-time chat</td>
+        <td class="check">✓</td>
+        <td class="cross">✗</td>
+        <td class="partial">Email</td>
+        <td class="cross">WhatsApp</td>
+      </tr>
+      <tr>
+        <td>Family portal</td>
+        <td class="check">✓</td>
+        <td class="cross">✗</td>
+        <td class="cross">✗</td>
+        <td class="cross">Phone</td>
+      </tr>
+      <tr>
+        <td>CQC evidence automation</td>
+        <td class="check">✓</td>
+        <td class="cross">✗</td>
+        <td class="partial">Basic</td>
+        <td class="cross">Manual</td>
+      </tr>
+    </table>
+  </div>
+  <div style="margin-top: 20px; padding: 20px 24px; background: #F0FDF4; border-radius: 12px; border-left: 4px solid #10B981;">
+    <p style="font-size: 17px; color: #1B2430; margin: 0; font-weight: 500;">
+      <strong>Core insight:</strong> One system replaces five. Connected data across rota, medication, compliance, and notes — something no existing competitor offers.
+    </p>
+  </div>
+  <div class="slide-number">08 / 12</div>
+</div>
+
+<!-- ==================== SLIDE 9: GO-TO-MARKET ==================== -->
+<div class="slide light">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="tag">Go-to-Market</div>
+  <h2>Three-phase commercialisation</h2>
+  <div class="timeline" style="margin-top: 32px;">
+    <div class="timeline-step">
+      <div class="timeline-dot">1</div>
+      <div class="step-title">Phase 1: Direct Sales</div>
+      <div class="step-desc">Months 1–6</div>
+    </div>
+    <div class="timeline-step">
+      <div class="timeline-dot">2</div>
+      <div class="step-title">Phase 2: Channel</div>
+      <div class="step-desc">Months 6–12</div>
+    </div>
+    <div class="timeline-step">
+      <div class="timeline-dot">3</div>
+      <div class="step-title">Phase 3: NHS</div>
+      <div class="step-desc">Months 12–18</div>
+    </div>
+  </div>
+  <div class="grid-3" style="margin-top: 24px;">
+    <div class="card">
+      <h3 style="font-size: 16px;">Phase 1: Direct Sales</h3>
+      <ul class="feature-list" style="font-size: 14px;">
+        <li>Target 20–50 providers in South East England</li>
+        <li>Free 30-day trial → £99/mo Starter</li>
+        <li>Cold outreach to CQC-registered providers</li>
+        <li>LinkedIn marketing to care managers</li>
+        <li>Conference presence (Care Show, NCF)</li>
+      </ul>
+      <div style="margin-top: 12px; padding: 8px 12px; background: #F0FDF4; border-radius: 8px; font-size: 13px; font-weight: 700; color: #047857;">
+        Target: 3 new customers/month
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-size: 16px;">Phase 2: Channel Partnerships</h3>
+      <ul class="feature-list" style="font-size: 14px;">
+        <li>Care sector consultant partnerships</li>
+        <li>CQC inspector relationships</li>
+        <li>Payroll integration (ADP, Sage)</li>
+        <li>Referral programme</li>
+        <li>Local authority partnerships</li>
+      </ul>
+      <div style="margin-top: 12px; padding: 8px 12px; background: #F0FDF4; border-radius: 8px; font-size: 13px; font-weight: 700; color: #047857;">
+        Target: 8 new customers/month
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-size: 16px;">Phase 3: NHS Integration</h3>
+      <ul class="feature-list" style="font-size: 14px;">
+        <li>NHS Digital partnership</li>
+        <li>Discharge-to-assess pathways</li>
+        <li>NHS procurement framework</li>
+        <li>GP system integration</li>
+        <li>Trust-level contracts</li>
+      </ul>
+      <div style="margin-top: 12px; padding: 8px 12px; background: #F0FDF4; border-radius: 8px; font-size: 13px; font-weight: 700; color: #047857;">
+        Target: 15 new customers/month
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">09 / 12</div>
+</div>
+
+<!-- ==================== SLIDE 10: TEAM ==================== -->
+<div class="slide white">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="tag">Team</div>
+  <h2>Built by someone who<br>understands the problem</h2>
+  <div class="grid-2" style="margin-top: 24px;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3 style="font-size: 20px;">Opeyemi Olorunfemi</h3>
+        <div style="font-size: 14px; color: #10B981; font-weight: 700; margin-bottom: 12px;">Founder & CEO</div>
+        <p style="font-size: 15px;">Full-stack engineer who built the entire MeticleCare platform — 41 modules, 484 endpoints, 78 pages — from scratch. Deep understanding of care sector operations, CQC requirements, and the practical challenges of getting care workers to adopt new technology.</p>
+      </div>
+      <div class="card">
+        <h3 style="font-size: 16px;">Technical Capability</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 13px; margin-top: 8px;">
+          <div>✓ TypeScript / React / Node.js</div>
+          <div>✓ PostgreSQL (raw SQL, no ORM)</div>
+          <div>✓ AI/ML integration (OpenAI, Anthropic)</div>
+          <div>✓ Multi-tenant architecture</div>
+          <div>✓ Event-driven systems</div>
+          <div>✓ Docker / CI/CD</div>
+          <div>✓ Socket.IO real-time</div>
+          <div>✓ Stripe billing</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3 style="font-size: 16px;">Planned Hires (with funding)</h3>
+        <div style="font-size: 14px;">
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #E7E1D6;">
+            <span>Senior Backend Engineer</span>
+            <span style="color: #10B981; font-weight: 700;">Month 1</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #E7E1D6;">
+            <span>Senior Frontend Engineer</span>
+            <span style="color: #10B981; font-weight: 700;">Month 2</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #E7E1D6;">
+            <span>AI/ML Engineer</span>
+            <span style="color: #10B981; font-weight: 700;">Month 3</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #E7E1D6;">
+            <span>Sales Manager</span>
+            <span style="color: #10B981; font-weight: 700;">Month 4</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #E7E1D6;">
+            <span>Customer Success</span>
+            <span style="color: #10B981; font-weight: 700;">Month 6</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+            <span>Marketing Manager</span>
+            <span style="color: #10B981; font-weight: 700;">Month 6</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-size: 16px;">Headcount Growth</h3>
+        <div style="display: flex; gap: 16px; margin-top: 12px;">
+          <div style="text-align: center; flex: 1;">
+            <div style="font-size: 32px; font-weight: 900; color: #0F4C81;">6</div>
+            <div style="font-size: 11px; color: #5B6672; text-transform: uppercase; font-weight: 700;">Year 1</div>
+          </div>
+          <div style="text-align: center; flex: 1;">
+            <div style="font-size: 32px; font-weight: 900; color: #0F4C81;">12</div>
+            <div style="font-size: 11px; color: #5B6672; text-transform: uppercase; font-weight: 700;">Year 2</div>
+          </div>
+          <div style="text-align: center; flex: 1;">
+            <div style="font-size: 32px; font-weight: 900; color: #0F4C81;">20</div>
+            <div style="font-size: 11px; color: #5B6672; text-transform: uppercase; font-weight: 700;">Year 3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">10 / 12</div>
+</div>
+
+<!-- ==================== SLIDE 11: FINANCIALS ==================== -->
+<div class="slide dark">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="tag">Financials</div>
+  <h2>Path to £1M ARR<br>and break-even</h2>
+  <div class="grid-2" style="margin-top: 20px;">
+    <div>
+      <div class="bar-chart">
+        <div class="bar-group">
+          <div class="bar" style="height: 10%; background: rgba(255,255,255,0.2);">
+            <div class="bar-label">£95K</div>
+          </div>
+          <div class="bar-year">Year 1</div>
+        </div>
+        <div class="bar-group">
+          <div class="bar" style="height: 42%; background: rgba(255,255,255,0.4);">
+            <div class="bar-label">£437K</div>
+          </div>
+          <div class="bar-year">Year 2</div>
+        </div>
+        <div class="bar-group">
+          <div class="bar" style="height: 100%; background: #10B981;">
+            <div class="bar-label">£1.05M</div>
+          </div>
+          <div class="bar-year">Year 3</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">Year 3 ARR</span>
+          <span style="font-size: 24px; font-weight: 900; color: #34D399;">£949K</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">Customers (Year 3)</span>
+          <span style="font-size: 24px; font-weight: 900; color: #34D399;">255</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">Gross margin</span>
+          <span style="font-size: 24px; font-weight: 900; color: #34D399;">88%</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">LTV:CAC</span>
+          <span style="font-size: 24px; font-weight: 900; color: #34D399;">9.2x</span>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 15px;">Break-even</span>
+          <span style="font-size: 24px; font-weight: 900; color: #34D399;">Month 30</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">11 / 12</div>
+</div>
+
+<!-- ==================== SLIDE 12: THE ASK ==================== -->
+<div class="slide dark" style="background: linear-gradient(160deg, #0A3A63 0%, #0F4C81 50%, #047857 100%);">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MeticleCare</div>
+  </div>
+  <div class="cover-content" style="text-align: center; align-items: center;">
+    <div class="tag">The Ask</div>
+    <h1 style="font-size: 64px; text-align: center;">£200K–£350K</h1>
+    <p style="font-size: 22px; color: rgba(255,255,255,0.8); text-align: center; max-width: 700px; margin: 16px auto 32px;">
+      To convert a production-ready platform into a validated commercial product across UK supported living and domiciliary care.
+    </p>
+    <div style="display: flex; gap: 40px; justify-content: center; margin-bottom: 40px;">
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 900; color: #34D399;">30%</div>
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.5);">Customer acquisition</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 900; color: #34D399;">25%</div>
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.5);">Product development</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 900; color: #34D399;">15%</div>
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.5);">Security & compliance</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 900; color: #34D399;">15%</div>
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.5);">Implementation</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 900; color: #34D399;">10%</div>
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.5);">Evidence generation</div>
+      </div>
+    </div>
+    <div style="padding: 20px 32px; background: rgba(255,255,255,0.1); border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); display: inline-block;">
+      <p style="font-size: 18px; color: #fff; margin: 0; font-weight: 500;">
+        The platform is live. We're ready to demonstrate.<br>
+        <strong style="color: #34D399;">opeyemi@meticlecare.com</strong>
+      </p>
+    </div>
+  </div>
+  <div class="slide-number">12 / 12</div>
+</div>
+
+</body>
+</html>

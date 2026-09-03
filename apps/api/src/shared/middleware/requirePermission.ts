@@ -17,7 +17,7 @@ setInterval(() => {
   for (const [key, entry] of permissionCache) {
     if (now > entry.expiresAt) permissionCache.delete(key);
   }
-}, 60_000);
+}, 60_000).unref();
 
 // Role-level defaults mirroring PermissionsController.ROLE_DEFAULTS
 const ROLE_DEFAULTS: Record<string, Record<string, string>> = {
