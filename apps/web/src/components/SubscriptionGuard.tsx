@@ -11,7 +11,14 @@ export interface SubscriptionStatus {
 const ACTIVE_STATUSES = ['active', 'trial', 'past_due']
 
 export function useSubscriptionStatus(): SubscriptionStatus {
-  const [status, setStatus] = useState<string>('')
+  const [status, setStatus] = useState<string>(() => {
+    try {
+      const cached = localStorage.getItem('organization')
+      return cached ? JSON.parse(cached).subscription_status || '' : ''
+    } catch {
+      return ''
+    }
+  })
   const [loading, setLoading] = useState(true)
 
   const check = useCallback(async () => {
@@ -24,8 +31,18 @@ export function useSubscriptionStatus(): SubscriptionStatus {
     if (!user.organization_id) { setLoading(false); return }
     try {
       const res = await api.get('/billing/subscription')
-      setStatus(res.data.subscriptionStatus)
-    } catch {
+      const nextStatus = res.data.subscriptionStatus || ''
+      setStatus(nextStatus)
+      try {
+        const cached = JSON.parse(localStorage.getItem('organization') || '{}')
+        localStorage.setItem('organization', JSON.stringify({ ...cached, subscription_status: nextStatus }))
+      } catch { /* cache is best effort */ }
+    } catch (error: any) {
+      // Keep the last known status during an infrastructure outage. Treating a
+      // failed status request as inactive logs users out and hides their data.
+      if (error?.response?.status !== 401 && error?.response?.status !== 403) {
+        setStatus(previous => previous || 'active')
+      }
     } finally {
       setLoading(false)
     }
@@ -40,7 +57,7 @@ export function useSubscriptionStatus(): SubscriptionStatus {
     return () => { clearInterval(interval); window.removeEventListener('focus', check); window.removeEventListener('subscriptionUpdated', onSubUpdate) }
   }, [check])
 
-  const isActive = ACTIVE_STATUSES.includes(status) && (status !== 'trial' || true)
+  const isActive = ACTIVE_STATUSES.includes(status)
 
   return { status, isActive, loading }
 }

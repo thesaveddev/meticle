@@ -6,16 +6,17 @@ set -e
 
 PROJECT_NAME="meticle"
 COMPOSE_DIR="/opt/meticle"
+COMPOSE_FILE="docker-compose.prod.yml"
 
 echo "=== Meticle Deploy ==="
 
-# 1. Clean up orphan containers from previous compose projects
-echo "Cleaning orphan containers..."
-for orphan in meticle-db-1 meticle-uptime-1; do
+# 1. Clean up only containers from the retired Compose layout. Do not remove
+# current production services; Compose will recreate them safely when needed.
+echo "Cleaning retired orphan containers..."
+for orphan in meticle-postgres-1 meticle-uptime-kuma-1; do
   if docker ps -a --format '{{.Names}}' | grep -q "^${orphan}$"; then
-    echo "  Removing orphan: $orphan"
-    docker stop "$orphan" 2>/dev/null || true
-    docker rm "$orphan" 2>/dev/null || true
+    echo "  Removing retired orphan: $orphan"
+    docker rm -f "$orphan" 2>/dev/null || true
   fi
 done
 
@@ -38,33 +39,43 @@ echo "Pulling latest code..."
 cd "$COMPOSE_DIR"
 git pull origin master
 
-# 5. Ensure Redis port is correct (defensive — prevents the recurring 6379 conflict)
-if grep -q "'6379:6379'" docker-compose.yml; then
-  echo "Fixing Redis port conflict (6379 -> 6380)..."
-  sed -i "s/'6379:6379'/'6380:6379'/g" docker-compose.yml
+# 5. Use the production Compose project for every operation. The development
+# compose file uses different service names and can recreate a second network.
+cd "$COMPOSE_DIR"
+if [ ! -f "$COMPOSE_FILE" ] || [ ! -f .env ]; then
+  echo "ERROR: $COMPOSE_FILE or .env is missing"
+  exit 1
 fi
+set -a
+. ./.env
+set +a
+docker compose -f "$COMPOSE_FILE" config --quiet
 
-# 6. Fix postgres superuser login via single-user mode (recurring issue)
-echo "Ensuring postgres superuser can log in..."
-if [ -f .env ]; then
-  DB_PASS=$(grep '^POSTGRES_PASSWORD=' .env | cut -d'=' -f2)
-else
-  DB_PASS='postgres'
-fi
-docker stop meticle-api-1 2>/dev/null || true
-docker stop meticle-postgres-1 2>/dev/null || true
-docker run --rm -u postgres \
-  -v ${PROJECT_NAME}_postgres_data:/var/lib/postgresql/data \
-  postgres:15-alpine sh -c \
-  "echo \"ALTER ROLE postgres WITH LOGIN PASSWORD '${DB_PASS}';\" | postgres --single -D /var/lib/postgresql/data postgres 2>&1" \
-  && echo "  Postgres superuser login enabled" || echo "  Warning: could not fix postgres role (may already be OK)"
+# Remove only legacy containers from the retired Compose layout. Persistent
+# volumes are intentionally left untouched.
+for legacy in meticle-postgres-1 meticle-uptime-kuma-1; do
+  if docker ps -a --format '{{.Names}}' | grep -q "^${legacy}$"; then
+    echo "Removing retired legacy container: $legacy"
+    docker rm -f "$legacy" >/dev/null 2>&1 || true
+  fi
+done
 
-docker start meticle-postgres-1
-sleep 5
+# 6. Ensure infrastructure exists on the one production network.
+echo "Starting production infrastructure..."
+docker compose -f "$COMPOSE_FILE" up -d db redis uptime backup
 
-# 7. Build and start
-echo "Building and starting services..."
-docker compose up -d --build --force-recreate api web
+# Keep the least-privilege application role synchronized with .env. This is
+# safe to repeat and avoids stale pooled credentials after a secret rotation.
+echo "Synchronizing application database role..."
+docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" db \
+  psql -U meticle -d meticle -v app_password="$APP_ROLE_PASSWORD" \
+  -c "ALTER ROLE meticle_app WITH LOGIN PASSWORD :'app_password';"
+
+# 7. Run migrations and start the production services.
+echo "Running migrations..."
+docker compose -f "$COMPOSE_FILE" run --rm api sh -c "node apps/api/dist/shared/database/setup.js"
+echo "Starting production services..."
+docker compose -f "$COMPOSE_FILE" up -d --force-recreate api web
 
 # 8. Wait for health
 echo "Waiting for API to start..."
@@ -73,7 +84,7 @@ sleep 15
 # 9. Verify
 echo "=== Verification ==="
 echo "Containers:"
-docker ps --format 'table {{.Names}}\t{{.Status}}' | grep meticle
+docker compose -f "$COMPOSE_FILE" ps
 
 echo ""
 echo "Health:"
