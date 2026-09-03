@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import crypto from 'crypto'
 
 vi.mock('./index', () => ({
   migrateQuery: vi.fn(),
@@ -60,8 +61,13 @@ describe('runMigrations', () => {
   })
 
   it('skips already-applied migrations without re-running their statements', async () => {
-    // Applied map includes '010_missing' so its statements must never run.
-    mockMigrateQuery.mockResolvedValue({ rows: [{ name: '010_missing', checksum: 'whatever' }] })
+    // Use the real checksum so the runner can prove it skips the applied migration.
+    const checksum = crypto.createHash('sha256').update('SHOULD-NOT-RUN').digest('hex')
+    mockMigrateQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ name: '010_missing', checksum }] })
+      .mockResolvedValueOnce({ rows: [] })
     await runMigrations([m('010_missing', ['SHOULD-NOT-RUN'])])
 
     const calls = mockMigrateQuery.mock.calls.map((c) => c[0])
