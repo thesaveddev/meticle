@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 
 # --- Configuration ---
 COMPOSE_DIR = "/opt/meticle"
+COMPOSE_PROJECT = os.environ.get("COMPOSE_PROJECT", "meticle")
 STATE_FILE = f"{COMPOSE_DIR}/monitor/.health_state.json"
 LOG_FILE = f"{COMPOSE_DIR}/monitor/health_check.log"
 
@@ -98,30 +99,48 @@ def save_state(state):
 
 
 def check_container(service):
+    """Inspect the Compose-labelled container without parsing the Compose file.
+
+    Production Compose requires image variables, so invoking `docker compose ps`
+    from cron can fail before it returns any service rows. Docker labels are the
+    stable source of truth across image changes, recreates, and container suffixes.
+    """
     try:
-        container = subprocess.run(
-            ["docker", "compose", "-f", f"{COMPOSE_DIR}/docker-compose.prod.yml", "ps", "-q", service],
-            capture_output=True, text=True, timeout=10
+        label_args = [
+            "--filter", f"label=com.docker.compose.project={COMPOSE_PROJECT}",
+            "--filter", f"label=com.docker.compose.service={service}",
+        ]
+        running = subprocess.run(
+            ["docker", "ps", "-q", *label_args],
+            capture_output=True, text=True, timeout=10,
         )
-        container_id = container.stdout.strip().splitlines()[0] if container.returncode == 0 and container.stdout.strip() else ""
+        container_id = running.stdout.strip().splitlines()[0] if running.returncode == 0 and running.stdout.strip() else ""
         if not container_id:
-            return {"status": "missing", "health": "unknown", "restarts": 0}
+            all_containers = subprocess.run(
+                ["docker", "ps", "-aq", *label_args],
+                capture_output=True, text=True, timeout=10,
+            )
+            container_id = all_containers.stdout.strip().splitlines()[0] if all_containers.returncode == 0 and all_containers.stdout.strip() else ""
+        if not container_id:
+            return {"status": "missing", "health": "unknown", "restarts": 0, "container_id": ""}
+
         result = subprocess.run(
             ["docker", "inspect", "--format",
              "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}|{{.RestartCount}}",
              container_id],
-            capture_output=True, text=True, timeout=10
+            capture_output=True, text=True, timeout=10,
         )
         if result.returncode != 0:
-            return {"status": "missing", "health": "unknown", "restarts": 0}
+            return {"status": "missing", "health": "unknown", "restarts": 0, "container_id": container_id}
         parts = result.stdout.strip().split("|")
         return {
             "status": parts[0] if len(parts) > 0 else "unknown",
             "health": parts[1] if len(parts) > 1 else "unknown",
             "restarts": int(parts[2]) if len(parts) > 2 else 0,
+            "container_id": container_id,
         }
     except Exception:
-        return {"status": "error", "health": "unknown", "restarts": 0}
+        return {"status": "error", "health": "unknown", "restarts": 0, "container_id": ""}
 
 
 def check_probe(probe):
@@ -224,8 +243,12 @@ def run_checks():
                 send_email(
                     f"ALERT: {config['role']} is {info['status']}",
                     f"The Compose service '{name}' ({config['role']}) is {info['status']}.\n\n"
-                    f"Run: cd {COMPOSE_DIR} && docker compose -f docker-compose.prod.yml logs {name} --tail=50\n"
-                    f"Fix: cd {COMPOSE_DIR} && docker compose -f docker-compose.prod.yml restart {name}"
+                    f"The monitor could not find a running container with Compose labels "
+                    f"project={COMPOSE_PROJECT}, service={name}.\n\n"
+                    f"Run: docker ps -a --filter label=com.docker.compose.project={COMPOSE_PROJECT} "
+                    f"--filter label=com.docker.compose.service={name}\n"
+                    f"Logs: docker logs --tail=50 meticle-{name}-1\n"
+                    f"Fix: cd {COMPOSE_DIR} && docker compose --env-file .env -f docker-compose.prod.yml restart {name}"
                 )
                 mark_alerted(state, alert_key)
         elif info["health"] == "unhealthy":
@@ -234,7 +257,9 @@ def run_checks():
                 send_email(
                     f"ALERT: {config['role']} is unhealthy",
                     f"The Compose service '{name}' ({config['role']}) reports unhealthy status.\n\n"
-                    f"Run: cd {COMPOSE_DIR} && docker compose -f docker-compose.prod.yml ps {name} && docker compose -f docker-compose.prod.yml logs {name} --tail=50"
+                    f"Container: {info.get('container_id', 'unknown')}\n"
+                    f"Run: docker inspect {info.get('container_id', 'unknown')}\n"
+                    f"Logs: docker logs --tail=50 {info.get('container_id', 'unknown')}"
                 )
                 mark_alerted(state, alert_key)
         elif info["restarts"] > 5:
