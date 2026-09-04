@@ -49,6 +49,7 @@ async function sendMail(to: string, subject: string, html: string, category: Sen
     logger.info({ to, subject, category, from: SENDERS[category] }, 'Email queued');
   } catch (err: any) {
     logger.error({ err: err.message, to, subject, category }, 'Email enqueue failed');
+    throw err;
   }
 }
 
