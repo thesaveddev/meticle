@@ -183,7 +183,7 @@ notify_failure() {
     return 0
   fi
   DEPLOY_FAILURE_NOTIFIED=1
-  DEPLOY_EXIT_CODE="$exit_code" DEPLOY_STAGE="$DEPLOY_STAGE" DEPLOY_COMMIT="$RELEASE_SHA" DEPLOY_ALERT_TO="$DEPLOY_ALERT_TO" /usr/bin/python3 - <<'PY' || true
+  if ! DEPLOY_EXIT_CODE="$exit_code" DEPLOY_STAGE="$DEPLOY_STAGE" DEPLOY_COMMIT="$RELEASE_SHA" DEPLOY_ALERT_TO="$DEPLOY_ALERT_TO" /usr/bin/python3 - <<'PY'
 import os
 import smtplib
 import ssl
@@ -246,6 +246,9 @@ else:
         server.send_message(mail)
 print("Deployment failure email sent")
 PY
+  then
+    echo "Deployment failure email could not be sent; preserving the original deployment failure" >&2
+  fi
 }
 
 # Take the host lock before touching source, images, containers, or the database.
@@ -299,7 +302,7 @@ docker pull "$API_IMAGE_REF"
 docker pull "$WEB_IMAGE_REF"
 
 DEPLOY_STAGE="infrastructure cleanup"
-for orphan in meticle-postgres-1 meticle-uptime-kuma-1; do
+for orphan in meticle-postgres-1 meticle-uptime-kuma-1 meticle-uptime-1; do
   docker rm -f "$orphan" >/dev/null 2>&1 || true
 done
 
@@ -316,8 +319,9 @@ if [ -z "$APP_ROLE_PASSWORD" ]; then
   exit 1
 fi
 compose exec -T -e APP_ROLE_PASSWORD="$APP_ROLE_PASSWORD" db \
-  psql -U meticle -d meticle -v app_password="$APP_ROLE_PASSWORD" \
-  -c "ALTER ROLE meticle_app WITH LOGIN PASSWORD :'app_password';"
+  psql -U meticle -d meticle -v app_password="$APP_ROLE_PASSWORD" <<'SQL'
+SELECT format('ALTER ROLE meticle_app WITH LOGIN PASSWORD %L', :'app_password') \gexec
+SQL
 
 # Create and verify a complete backup before migrations can change production schema.
 DEPLOY_STAGE="pre-migration backup"
