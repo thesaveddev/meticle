@@ -2,7 +2,12 @@ import { migrateQuery } from '../database';
 import { EmailService } from './email.service';
 import { getStripe } from '../services/stripe.service';
 
-const SUBSCRIPTION_REMINDER_DAYS = [7, 3, 1];
+const SUBSCRIPTION_REMINDER_DAYS = [1, 3, 7];
+
+export function selectReminderMilestone(daysLeft: number, milestones = SUBSCRIPTION_REMINDER_DAYS): number | null {
+  if (daysLeft < 1) return null;
+  return [...milestones].sort((a, b) => a - b).find(day => daysLeft <= day) ?? null;
+}
 
 const EXPIRY_STATUSES = new Set(['trial', 'active', 'past_due']);
 const WINBACK_STATUSES = new Set(['trial', 'active', 'past_due', 'canceled']);
@@ -59,11 +64,8 @@ export async function checkSubscriptionExpirations() {
 
   const result = await migrateQuery(
     `SELECT o.id, o.name as org_name, o.subscription_status, o.trial_ends_at, o.current_period_end,
-            u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name,
             (SELECT COUNT(*) FROM payment_methods WHERE organization_id = o.id) as card_count
      FROM organizations o
-     JOIN users u ON u.organization_id = o.id AND u.role = 'ORG_ADMIN' AND u.status = 'active'
-     LEFT JOIN staff_profiles sp ON u.id = sp.user_id
      WHERE o.subscription_status <> 'expired'`
   );
 
@@ -71,7 +73,11 @@ export async function checkSubscriptionExpirations() {
   let expired = 0;
 
   for (const org of result.rows) {
-    if (!org.email) continue;
+    const admins = await migrateQuery(
+      "SELECT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active' AND u.email IS NOT NULL",
+      [org.id]
+    );
+    if (admins.rows.length === 0) continue;
 
     const status = org.subscription_status || 'trial';
     const isTrial = status === 'trial';
@@ -101,14 +107,17 @@ export async function checkSubscriptionExpirations() {
     // the job was down on the exact day, and each milestone is deduped so a single
     // run can never spam multiple reminders.
     if (daysLeft >= 1 && EXPIRY_STATUSES.has(status)) {
-      const milestone = SUBSCRIPTION_REMINDER_DAYS.find(d => daysLeft <= d) ?? 1;
+      const milestone = selectReminderMilestone(daysLeft);
+      if (milestone == null) continue;
       if (!(await alreadyNotified(milestone))) {
-        await markNotified(milestone);
-        if (isTrial) {
-          EmailService.sendTrialExpiringEmail(org.email, org.name, org.org_name, daysLeft, hasCard).catch(() => {});
-        } else {
-          EmailService.sendSubscriptionExpiringEmail(org.email, org.name, org.org_name, daysLeft, hasCard).catch(() => {});
+        for (const admin of admins.rows) {
+          if (isTrial) {
+            await EmailService.sendTrialExpiringEmail(admin.email, admin.name || admin.email, org.org_name, daysLeft, hasCard);
+          } else {
+            await EmailService.sendSubscriptionExpiringEmail(admin.email, admin.name || admin.email, org.org_name, daysLeft, hasCard);
+          }
         }
+        await markNotified(milestone);
         reminded++;
       }
     }
@@ -117,14 +126,16 @@ export async function checkSubscriptionExpirations() {
     if (daysLeft < 0 && WINBACK_STATUSES.has(status)) {
       if (await alreadyNotified(-1)) continue;
 
+      for (const admin of admins.rows) {
+        if (isTrial) {
+          await EmailService.sendTrialExpiredEmail(admin.email, admin.name || admin.email, org.org_name, hasCard);
+        } else {
+          await EmailService.sendSubscriptionExpiredEmail(admin.email, admin.name || admin.email, org.org_name);
+        }
+      }
       await markNotified(-1);
       if (EXPIRY_STATUSES.has(status)) {
         await migrateQuery(`UPDATE organizations SET subscription_status = 'expired' WHERE id = $1`, [org.id]);
-      }
-      if (isTrial) {
-        EmailService.sendTrialExpiredEmail(org.email, org.name, org.org_name, hasCard).catch(() => {});
-      } else {
-        EmailService.sendSubscriptionExpiredEmail(org.email, org.name, org.org_name).catch(() => {});
       }
       expired++;
     }
@@ -133,7 +144,7 @@ export async function checkSubscriptionExpirations() {
   return { reminded, expired };
 }
 
-const INVOICE_REMINDER_DAYS = [7, 3, 1];
+const INVOICE_REMINDER_DAYS = [1, 3, 7];
 
 /**
  * Send reminder emails for open invoices approaching their due date.
@@ -155,8 +166,8 @@ export async function checkInvoiceReminders() {
     if (daysUntilDue < 0) continue;
 
     // Find the closest reminder milestone (7, 3, or 1 day before due)
-    const milestone = INVOICE_REMINDER_DAYS.find(d => daysUntilDue <= d);
-    if (!milestone) continue;
+    const milestone = selectReminderMilestone(daysUntilDue, INVOICE_REMINDER_DAYS);
+    if (milestone == null) continue;
 
     // Dedupe: check if we already sent this reminder for this invoice
     const key = `inv_reminder_${inv.id}_${milestone}`;
@@ -174,12 +185,12 @@ export async function checkInvoiceReminders() {
 
     for (const admin of admins.rows) {
       if (!admin.email) continue;
-      EmailService.sendInvoiceReminderEmail(admin.email, admin.name || admin.email, inv.org_name, {
+      await EmailService.sendInvoiceReminderEmail(admin.email, admin.name || admin.email, inv.org_name, {
         amount: inv.amount,
         currency: inv.currency,
         dueDate: inv.due_date,
         daysUntilDue: milestone,
-      }).catch(() => {});
+      });
     }
 
     // Mark as reminded
