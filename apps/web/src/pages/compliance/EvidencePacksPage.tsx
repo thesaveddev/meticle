@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react'
 import { Box, Typography, Paper, Button, Chip, Stack, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControlLabel, Switch, TextField, MenuItem, TablePagination, CircularProgress } from '@mui/material'
-import { Download as DownloadIcon, Print as PrintIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material'
+import { Download as DownloadIcon, Print as PrintIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 
 type Section = 'training' | 'documents' | 'competency'
@@ -16,7 +15,6 @@ const CQC_DOMAINS = [
 ]
 
 export default function EvidencePacksPage() {
-  const navigate = useNavigate()
   const [includeSections, setIncludeSections] = useState<Record<Section, boolean>>({
     training: true, documents: true, competency: true
   })
@@ -200,9 +198,6 @@ export default function EvidencePacksPage() {
 
   return (
     <Box>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/compliance')} sx={{ mb: 2, color: '#0F4C81', fontWeight: 600 }}>
-        Back to Compliance Dashboard
-      </Button>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4">Audit-Ready Evidence Packs</Typography>
           <Stack direction="row" spacing={1}>

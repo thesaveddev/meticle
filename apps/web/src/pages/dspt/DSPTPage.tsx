@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Box, Typography, Paper, Chip, Button, Stack, LinearProgress, Alert, CircularProgress, Card, CardContent, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Link } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Security as ShieldIcon, CheckCircle, Refresh as RefreshIcon, ArrowBack as ArrowBackIcon, OpenInNew as ExternalIcon, Verified as VerifiedIcon, PlaylistAddCheck as AssessmentIcon } from '@mui/icons-material'
-import { useNavigate } from 'react-router-dom'
+import { Security as ShieldIcon, CheckCircle, Refresh as RefreshIcon, OpenInNew as ExternalIcon, Verified as VerifiedIcon, PlaylistAddCheck as AssessmentIcon } from '@mui/icons-material'
 import api from '../../services/api'
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
@@ -28,7 +27,6 @@ const DSPT_THEMES = [
 ]
 
 export default function DSPTPage() {
-  const navigate = useNavigate()
   const qc = useQueryClient()
   const [assessOpen, setAssessOpen] = useState(false)
   const [editing, setEditing] = useState<{ key: string; label: string; status: string; evidence_notes: string } | null>(null)
@@ -104,10 +102,6 @@ export default function DSPTPage() {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/compliance')} sx={{ mb: 2, color: '#0F4C81', fontWeight: 600 }}>
-        Back to Compliance Dashboard
-      </Button>
-
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <ShieldIcon sx={{ fontSize: 32, color: '#005EB8' }} />

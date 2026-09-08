@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react'
 import { Box, Typography, Paper, Grid, Chip, LinearProgress, Stack, Button, Tooltip, CircularProgress, IconButton, Collapse, Alert, Dialog, DialogTitle, DialogContent, List, ListItemButton, ListItemAvatar, Avatar, ListItemText, TextField } from '@mui/material'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Refresh as RefreshIcon, ExpandMore as ExpandIcon, CheckCircle, Warning, Error as ErrorIcon, Download as DownloadIcon, Print as PrintIcon, Lightbulb as ActionIcon, ArrowBack as ArrowBackIcon, AutoAwesome as AiIcon, SmartToy as AiIconOutlined, Send as SendIcon, Chat as ChatIcon, PriorityHigh as PriorityIcon, AccessTime as EffortIcon, Star as StarIcon, Delete as DeleteIcon } from '@mui/icons-material'
-import { useNavigate } from 'react-router-dom'
+import { Refresh as RefreshIcon, ExpandMore as ExpandIcon, CheckCircle, Warning, Error as ErrorIcon, Download as DownloadIcon, Print as PrintIcon, Lightbulb as ActionIcon, AutoAwesome as AiIcon, SmartToy as AiIconOutlined, Send as SendIcon, Chat as ChatIcon, PriorityHigh as PriorityIcon, AccessTime as EffortIcon, Star as StarIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import api from '../../services/api'
 import html2pdf from 'html2pdf.js'
 
@@ -45,7 +44,6 @@ function getFrameworkStyle(frameworkName: string) {
 }
 
 export default function CqcReadinessPage() {
-  const navigate = useNavigate()
   const printRef = useRef<HTMLDivElement>(null)
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['cqc-readiness'],
@@ -337,9 +335,6 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/compliance')} sx={{ mb: 2, color: '#0F4C81', fontWeight: 600 }}>
-        Back to Compliance Dashboard
-      </Button>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <Typography variant="h4">Readiness</Typography>

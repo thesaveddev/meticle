@@ -4,8 +4,8 @@ import {
   TableContainer, TableHead, TableRow, Alert, CircularProgress, Dialog,
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
 } from '@mui/material'
-import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowBack as BackIcon, Edit as EditIcon } from '@mui/icons-material'
+import { useParams } from 'react-router-dom'
+import { Edit as EditIcon } from '@mui/icons-material'
 import api from '../../services/api'
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
@@ -19,7 +19,6 @@ const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> 
 
 export default function AdminOrganizationDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const [org, setOrg] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -69,10 +68,6 @@ export default function AdminOrganizationDetailPage() {
 
   return (
     <Box>
-      <Button startIcon={<BackIcon />} onClick={() => navigate('/platform-admin')} sx={{ mb: 3, textTransform: 'none' }}>
-        Back to Organizations
-      </Button>
-
       {message && (
         <Alert severity={message.includes('Failed') ? 'error' : 'success'} sx={{ mb: 3, borderRadius: 2 }} onClose={() => setMessage('')}>
           {message}
