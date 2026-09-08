@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { selectReminderMilestone } from './trial-reminders';
+import { isSubscriptionExpired, selectReminderMilestone } from './trial-reminders';
 
 describe('selectReminderMilestone', () => {
   it('selects the nearest due milestone instead of the largest matching milestone', () => {
@@ -19,5 +19,11 @@ describe('selectReminderMilestone', () => {
   it('works with a separate invoice milestone list', () => {
     expect(selectReminderMilestone(3, [1, 3, 7])).toBe(3);
     expect(selectReminderMilestone(6, [1, 3, 7])).toBe(7);
+  });
+
+  it('treats the expiry date itself as expired for the scheduler backstop', () => {
+    expect(isSubscriptionExpired(0)).toBe(true);
+    expect(isSubscriptionExpired(-1)).toBe(true);
+    expect(isSubscriptionExpired(1)).toBe(false);
   });
 });

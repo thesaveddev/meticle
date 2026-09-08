@@ -170,7 +170,7 @@ async function notifyStatusChange(
     `SELECT u.id, u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name
      FROM users u
      LEFT JOIN staff_profiles sp ON u.id = sp.user_id
-     WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'`,
+     WHERE u.organization_id = $1 AND u.role IN ('ORG_ADMIN', 'MANAGER') AND u.status = 'active'`,
     [org.id]
   );
 

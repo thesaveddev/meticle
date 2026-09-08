@@ -414,9 +414,9 @@ export class EmailService {
   static async sendTrialExpiredEmail(email: string, name: string, orgName: string, hasCard: boolean) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    const subject = hasCard ? 'Your Meticle trial has ended' : 'Your Meticle trial has ended — choose whether to continue';
+    const subject = hasCard ? 'Your Meticle trial has ended — action required' : 'Your Meticle trial has ended — choose whether to continue';
     const body = hasCard
-      ? `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> has ended and your subscription is now active. The payment method on file was charged.</p><p>You can review your plan, invoices and payment method in Billing.</p>`
+      ? `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> has ended. A card is saved, but we could not confirm a paid subscription or successful charge for this organisation.</p><p>Open Billing to confirm the plan and payment method. Your data has been retained while you reactivate service.</p>`
       : `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> has ended. No payment was taken because no payment method was on file.</p><p>Your data has been retained. Add a payment method if you want to reactivate the service.</p>`;
     await sendMail(email, subject,
       buildEmailHtml('Trial ended', `Your trial for ${org} has ended`, body,
