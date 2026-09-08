@@ -153,6 +153,119 @@ export async function checkSubscriptionExpirations() {
   return { reminded, expired };
 }
 
+// ── Winback campaign — post-expiry follow-up sequence ──
+// Sends a series of emails after trial/subscription expiry to re-engage users.
+// Milestones: day 3, 7, 14, 30, and final (day 89 — day before data deletion).
+const WINBACK_MILESTONES = [
+  { daysAfterExpiry: 3, type: 'day_3', subject: 'We miss you' },
+  { daysAfterExpiry: 7, type: 'day_7', subject: 'Your data is waiting' },
+  { daysAfterExpiry: 14, type: 'day_14', subject: 'Data retention notice' },
+  { daysAfterExpiry: 30, type: 'day_30', subject: 'Final reminder' },
+  { daysAfterExpiry: 89, type: 'final', subject: 'Data deletion tomorrow' },
+];
+
+async function sendWinbackEmail(emailType: string, email: string, name: string, orgName: string) {
+  switch (emailType) {
+    case 'day_3': return EmailService.sendWinbackDay3Email(email, name, orgName);
+    case 'day_7': return EmailService.sendWinbackDay7Email(email, name, orgName);
+    case 'day_14': return EmailService.sendWinbackDay14Email(email, name, orgName);
+    case 'day_30': return EmailService.sendWinbackDay30Email(email, name, orgName);
+    case 'final': return EmailService.sendWinbackFinalEmail(email, name, orgName);
+  }
+}
+
+export async function runWinbackCampaign() {
+  // Find all expired organizations whose data hasn't been deleted yet
+  const orgs = await migrateQuery(
+    `SELECT o.id, o.name as org_name, o.subscription_status, o.trial_ends_at, o.current_period_end,
+            o.data_retention_days, o.data_deleted_at,
+            (SELECT COUNT(*) FROM payment_methods WHERE organization_id = o.id) as card_count
+     FROM organizations o
+     WHERE o.subscription_status = 'expired'
+       AND o.data_deleted_at IS NULL`
+  );
+
+  let sent = 0;
+  let deleted = 0;
+
+  for (const org of orgs.rows) {
+    // Determine when the subscription expired
+    const expiredAt = org.trial_ends_at || org.current_period_end;
+    if (!expiredAt) continue;
+
+    const daysSinceExpiry = Math.floor((Date.now() - new Date(expiredAt).getTime()) / 86400000);
+    const retentionDays = org.data_retention_days || 90;
+
+    // Check if retention period has elapsed — mark for deletion
+    if (daysSinceExpiry >= retentionDays) {
+      // Send final warning first if not already sent
+      const hasFinal = await migrateQuery(
+        'SELECT id FROM winback_emails WHERE organization_id = $1 AND email_type = $2',
+        [org.id, 'final']
+      );
+      if (hasFinal.rows.length === 0) {
+        const admins = await migrateQuery(
+          `SELECT DISTINCT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name
+           FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+           WHERE u.organization_id = $1 AND u.role IN ${BILLING_RECIPIENT_ROLES} AND u.status = 'active'`,
+          [org.id]
+        );
+        for (const admin of admins.rows) {
+          if (admin.email) {
+            await sendWinbackEmail('final', admin.email, admin.name || admin.email, org.org_name);
+            await migrateQuery(
+              'INSERT INTO winback_emails (organization_id, email_type, recipient_email, recipient_name) VALUES ($1, $2, $3, $4)',
+              [org.id, 'final', admin.email, admin.name]
+            );
+          }
+        }
+      }
+
+      // Mark data for deletion (actual cleanup handled by a separate job)
+      await migrateQuery(
+        `UPDATE organizations SET data_deleted_at = NOW() WHERE id = $1 AND data_deleted_at IS NULL`,
+        [org.id]
+      );
+      deleted++;
+      continue;
+    }
+
+    // Check which winback milestone is due
+    for (const milestone of WINBACK_MILESTONES) {
+      if (daysSinceExpiry < milestone.daysAfterExpiry) break;
+
+      // Check if already sent
+      const existing = await migrateQuery(
+        'SELECT id FROM winback_emails WHERE organization_id = $1 AND email_type = $2',
+        [org.id, milestone.type]
+      );
+      if (existing.rows.length > 0) continue;
+
+      // Get billing recipients
+      const admins = await migrateQuery(
+        `SELECT DISTINCT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name
+         FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+         WHERE u.organization_id = $1 AND u.role IN ${BILLING_RECIPIENT_ROLES} AND u.status = 'active'`,
+        [org.id]
+      );
+
+      for (const admin of admins.rows) {
+        if (admin.email) {
+          await sendWinbackEmail(milestone.type, admin.email, admin.name || admin.email, org.org_name);
+          await migrateQuery(
+            'INSERT INTO winback_emails (organization_id, email_type, recipient_email, recipient_name) VALUES ($1, $2, $3, $4)',
+            [org.id, milestone.type, admin.email, admin.name]
+          );
+          sent++;
+        }
+      }
+      break; // Only send one milestone per org per run
+    }
+  }
+
+  return { sent, deleted };
+}
+
 const INVOICE_REMINDER_DAYS = [1, 3, 7];
 
 /**
