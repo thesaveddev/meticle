@@ -84,7 +84,7 @@ export class BillingController {
             `UPDATE organizations SET
                subscription_status = COALESCE($1, subscription_status),
                current_period_end = COALESCE($2, current_period_end),
-               trial_ends_at = COALESCE($3, trial_ends_at),
+               trial_ends_at = $3,
                grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5 ELSE NULL END
              WHERE id = $4`,
             [stripeMapped, subPeriodEnd ? new Date(subPeriodEnd * 1000).toISOString() : null, subTrialEnd ? new Date(subTrialEnd * 1000).toISOString() : null, orgId, subPeriodEnd ? new Date((subPeriodEnd + 7 * 86400) * 1000).toISOString() : null]
@@ -133,6 +133,13 @@ export class BillingController {
     const orgId = req.user!.organizationId!;
     const userEmail = ((req.user as any).email as string) || orgId;
     const { plan } = req.body;
+    const orgState = await pool.query(
+      'SELECT subscription_status, trial_ends_at FROM organizations WHERE id = $1',
+      [orgId]
+    );
+    if (orgState.rows.length === 0) throw new AppError(404, 'Organization not found');
+    const currentSubscriptionStatus = orgState.rows[0].subscription_status || 'trial';
+    const currentTrialEndsAt = orgState.rows[0].trial_ends_at ? new Date(orgState.rows[0].trial_ends_at) : null;
     const validPlans = ['starter', 'professional'];
     if (!validPlans.includes(plan)) throw new AppError(400, 'Invalid plan');
 
@@ -147,13 +154,31 @@ export class BillingController {
         if (customerId) {
           const price = await getOrCreatePrice(plan);
           if (price) {
+            const defaultPaymentMethod = await pool.query(
+              'SELECT stripe_payment_method_id FROM payment_methods WHERE organization_id = $1 AND is_default = TRUE LIMIT 1',
+              [orgId]
+            );
+            const paymentMethodId = defaultPaymentMethod.rows[0]?.stripe_payment_method_id || null;
+            if (paymentMethodId) {
+              const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+              if (paymentMethod.customer && paymentMethod.customer !== customerId) {
+                throw new AppError(409, 'The default payment card belongs to another Stripe customer');
+              }
+              if (!paymentMethod.customer) {
+                await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+              }
+              await stripe.customers.update(customerId, {
+                invoice_settings: { default_payment_method: paymentMethodId },
+              });
+            }
+
             const existingSubs = await stripe.subscriptions.list({ customer: customerId, limit: 1, status: 'all' });
             let sub: Stripe.Subscription | null = null;
-            if (existingSubs.data.length > 0) {
-              const activeSubscriptions = existingSubs.data.filter((candidate) => ['active', 'trialing', 'past_due', 'unpaid', 'incomplete'].includes(candidate.status));
-              if (activeSubscriptions.length !== 1) {
-                throw new AppError(409, activeSubscriptions.length > 1 ? 'Multiple Stripe subscriptions require support review' : 'No active Stripe subscription is available to update');
-              }
+            const activeSubscriptions = existingSubs.data.filter((candidate) => ['active', 'trialing', 'past_due', 'unpaid', 'incomplete'].includes(candidate.status));
+            if (activeSubscriptions.length > 1) {
+              throw new AppError(409, 'Multiple Stripe subscriptions require support review');
+            }
+            if (activeSubscriptions.length === 1) {
               const existingSubscription = activeSubscriptions[0];
               const subscriptionItem = existingSubscription.items.data[0];
               if (!subscriptionItem?.id) throw new AppError(409, 'Stripe subscription has no billable item to update');
@@ -161,19 +186,26 @@ export class BillingController {
                 items: [{ id: subscriptionItem.id, price }],
                 proration_behavior: 'none',
                 cancel_at_period_end: false,
+                ...(paymentMethodId ? { default_payment_method: paymentMethodId } : {}),
               });
               sub = await stripe.subscriptions.retrieve(existingSubscription.id);
             } else {
-              sub = await stripe.subscriptions.create({
+              const trialStillActive = currentSubscriptionStatus === 'trial'
+                && (!currentTrialEndsAt || currentTrialEndsAt.getTime() > Date.now());
+              if (!trialStillActive && !paymentMethodId) {
+                throw new AppError(409, 'Add a default payment card before renewing your subscription');
+              }
+              const createParams: Stripe.SubscriptionCreateParams = {
                 customer: customerId,
                 items: [{ price }],
                 metadata: { organizationId: orgId, plan },
-                trial_period_days: 30,
-              });
+                ...(paymentMethodId ? { default_payment_method: paymentMethodId } : {}),
+                ...(trialStillActive ? { trial_period_days: 30 } : {}),
+              };
+              sub = await stripe.subscriptions.create(createParams);
             }
             // Persist the resulting Stripe state so an expired/inactive org is
-            // reactivated the moment a plan is chosen (the trial restarts on the
-            // newly created subscription when one didn't exist).
+            // reactivated only after Stripe has created or updated the subscription.
             if (sub) {
               const mapped =
                 sub.status === 'active' ? 'active' :
@@ -184,7 +216,7 @@ export class BillingController {
                 `            UPDATE organizations SET
                    subscription_status = COALESCE($1, subscription_status),
                    current_period_end = COALESCE($2, current_period_end),
-                   trial_ends_at = COALESCE($3, trial_ends_at),
+                   trial_ends_at = $3,
                    grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5 ELSE NULL END
                  WHERE id = $4`,
                 [mapped, (sub as any).current_period_end ? new Date((sub as any).current_period_end * 1000).toISOString() : null, (sub as any).trial_end ? new Date((sub as any).trial_end * 1000).toISOString() : null, orgId, (sub as any).current_period_end ? new Date(((sub as any).current_period_end + 7 * 86400) * 1000).toISOString() : null]
@@ -194,6 +226,7 @@ export class BillingController {
         }
       } catch (err: any) {
         logWarn('stripe plan update')(err);
+        if (err instanceof AppError) throw err;
         if (process.env.NODE_ENV === 'production') throw new AppError(503, 'Stripe could not create or update the subscription');
       }
     }
@@ -372,17 +405,43 @@ export class BillingController {
       }
       throw err;
     }
+    if (isDefault && stripe && payment_method_id) {
+      const org = await pool.query('SELECT stripe_customer_id FROM organizations WHERE id = $1', [orgId]);
+      const stripeCustomerId = org.rows[0]?.stripe_customer_id;
+      if (stripeCustomerId) {
+        await stripe.customers.update(stripeCustomerId, {
+          invoice_settings: { default_payment_method: payment_method_id },
+        });
+      }
+    }
+
     res.status(201).json(result.rows[0]);
   }
 
   static async setDefaultPaymentMethod(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
     const { id } = req.params;
-    const pm = await pool.query('SELECT organization_id FROM payment_methods WHERE id = $1', [id]);
+    const pm = await pool.query('SELECT organization_id, stripe_payment_method_id FROM payment_methods WHERE id = $1', [id]);
     if (pm.rows.length === 0) throw new AppError(404, 'Payment method not found');
     if (pm.rows[0].organization_id !== orgId) throw new AppError(403, 'Access denied');
     await pool.query('UPDATE payment_methods SET is_default = FALSE WHERE organization_id = $1', [orgId]);
     await pool.query('UPDATE payment_methods SET is_default = TRUE WHERE id = $1', [id]);
+
+    const stripe = getStripe();
+    const stripePaymentMethodId = pm.rows[0]?.stripe_payment_method_id;
+    if (stripe && stripePaymentMethodId) {
+      const org = await pool.query('SELECT stripe_customer_id FROM organizations WHERE id = $1', [orgId]);
+      const stripeCustomerId = org.rows[0]?.stripe_customer_id;
+      if (stripeCustomerId) {
+        await stripe.paymentMethods.attach(stripePaymentMethodId, { customer: stripeCustomerId }).catch((err: any) => {
+          if (err?.code !== 'resource_already_attached') throw err;
+        });
+        await stripe.customers.update(stripeCustomerId, {
+          invoice_settings: { default_payment_method: stripePaymentMethodId },
+        });
+      }
+    }
+
     const updated = await pool.query('SELECT * FROM payment_methods WHERE id = $1', [id]);
     res.json(updated.rows[0]);
   }

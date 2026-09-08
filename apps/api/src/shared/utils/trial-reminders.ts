@@ -9,8 +9,13 @@ export function selectReminderMilestone(daysLeft: number, milestones = SUBSCRIPT
   return [...milestones].sort((a, b) => a - b).find(day => daysLeft <= day) ?? null;
 }
 
+export function isSubscriptionExpired(daysLeft: number): boolean {
+  return daysLeft <= 0;
+}
+
 const EXPIRY_STATUSES = new Set(['trial', 'active', 'past_due']);
 const WINBACK_STATUSES = new Set(['trial', 'active', 'past_due', 'canceled']);
+const BILLING_RECIPIENT_ROLES = "('ORG_ADMIN', 'MANAGER')";
 
 /**
  * Reconcile live Stripe state into the DB before the reminder pass. Webhooks can
@@ -74,7 +79,9 @@ export async function checkSubscriptionExpirations() {
 
   for (const org of result.rows) {
     const admins = await migrateQuery(
-      "SELECT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active' AND u.email IS NOT NULL",
+      `SELECT DISTINCT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name
+       FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+       WHERE u.organization_id = $1 AND u.role IN ${BILLING_RECIPIENT_ROLES} AND u.status = 'active' AND u.email IS NOT NULL`,
       [org.id]
     );
     if (admins.rows.length === 0) continue;
@@ -122,8 +129,10 @@ export async function checkSubscriptionExpirations() {
       }
     }
 
-    // Period end passed — win-back email + transition to expired (backstop for webhooks)
-    if (daysLeft < 0 && WINBACK_STATUSES.has(status)) {
+    // The expiry-day case is intentionally included. A 12-hour scheduler can
+    // run on the exact end date, and it must not wait until the next day to
+    // notify the organisation. The -1 marker makes this idempotent.
+    if (isSubscriptionExpired(daysLeft) && WINBACK_STATUSES.has(status)) {
       if (await alreadyNotified(-1)) continue;
 
       for (const admin of admins.rows) {
@@ -177,9 +186,11 @@ export async function checkInvoiceReminders() {
     );
     if (existing.rows.length > 0) continue;
 
-    // Get admin emails for this org
+    // Get billing recipients for this org
     const admins = await migrateQuery(
-      "SELECT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'",
+      `SELECT DISTINCT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name
+       FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+       WHERE u.organization_id = $1 AND u.role IN ${BILLING_RECIPIENT_ROLES} AND u.status = 'active'`,
       [inv.organization_id]
     );
 

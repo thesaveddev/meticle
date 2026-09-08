@@ -24,7 +24,27 @@ export async function getOrCreateCustomer(orgId: string, email: string, name: st
   const { default: pool } = await import('../database');
   const existing = await pool.query('SELECT stripe_customer_id FROM organizations WHERE id = $1', [orgId]);
   if (existing.rows[0]?.stripe_customer_id) return existing.rows[0].stripe_customer_id;
-  const customer = await s.customers.create({ email, name, metadata: { organizationId: orgId } });
+
+  // Recover customers created before the database link was persisted. The
+  // organizationId metadata is authoritative and prevents duplicate Stripe
+  // customers when a request succeeded at Stripe but the DB write was missed.
+  let customer: Stripe.Customer | null = null;
+  try {
+    const matches = await s.customers.search({
+      query: `metadata['organizationId']:'${orgId}'`,
+      limit: 1,
+    });
+    customer = matches.data[0] || null;
+  } catch {
+    // Customer search may be unavailable on some Stripe accounts; fall back to
+    // the exact email match and still verify the organization metadata.
+    const matches = await s.customers.list({ email, limit: 20 });
+    customer = matches.data.find(candidate => candidate.metadata?.organizationId === orgId) || null;
+  }
+
+  if (!customer) {
+    customer = await s.customers.create({ email, name, metadata: { organizationId: orgId } });
+  }
   await pool.query('UPDATE organizations SET stripe_customer_id = $1 WHERE id = $2', [customer.id, orgId]);
   return customer.id;
 }
