@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MeticleCare — Product Brochure</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  :root {
+    --navy: #0F4C81;
+    --navy-deep: #0A3A63;
+    --emerald: #10B981;
+    --bone: #F7F4EE;
+    --ink: #1B2430;
+    --mist: #5B6672;
+    --hairline: #E7E1D6;
+    --white: #FFFFFF;
+    --light-bg: #F8FAFC;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; color: var(--ink); font-size: 11px; line-height: 1.5; }
+
+  /* === COVER === */
+  .cover {
+    page-break-after: always;
+    height: 100vh;
+    background: linear-gradient(160deg, #061B2E 0%, var(--navy) 40%, var(--navy-deep) 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 55px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: 30%;
+    width: 350px; height: 350px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%);
+  }
+  .cover-badge {
+    display: inline-block;
+    background: rgba(16,185,129,0.15);
+    border: 1px solid rgba(16,185,129,0.3);
+    color: var(--emerald);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover h1 {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    line-height: 1.05;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover h1 span { color: var(--emerald); }
+  .cover p {
+    font-size: 17px;
+    font-weight: 300;
+    opacity: 0.75;
+    max-width: 480px;
+    line-height: 1.6;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-footer {
+    position: absolute;
+    bottom: 40px;
+    left: 55px;
+    right: 55px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1;
+  }
+  .cover-footer-left { font-size: 11px; opacity: 0.5; }
+  .cover-footer-right { font-size: 11px; opacity: 0.5; }
+
+  /* === PAGES === */
+  .page {
+    page-break-after: always;
+    padding: 40px 55px;
+    min-height: 100vh;
+  }
+  .page:last-child { page-break-after: avoid; }
+
+  /* === SECTION HEADERS === */
+  .sh { margin-bottom: 28px; }
+  .sh-num {
+    font-size: 10px; font-weight: 700; color: var(--emerald);
+    text-transform: uppercase; letter-spacing: 2.5px; margin-bottom: 4px;
+  }
+  .sh-title { font-size: 30px; font-weight: 900; color: var(--navy); letter-spacing: -0.5px; }
+  .sh-sub { font-size: 13px; color: var(--mist); margin-top: 4px; }
+
+  /* === MOCKUP (app interface) === */
+  .mockup {
+    background: var(--light-bg);
+    border: 1px solid #D1D5DB;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  .mockup-bar {
+    background: #F3F4F6;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid #E5E7EB;
+  }
+  .mockup-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .mockup-dot.r { background: #EF4444; }
+  .mockup-dot.y { background: #F59E0B; }
+  .mockup-dot.g { background: #10B981; }
+  .mockup-url {
+    flex: 1; margin-left: 8px;
+    background: white; border: 1px solid #D1D5DB;
+    border-radius: 6px; padding: 3px 10px;
+    font-size: 9px; color: #6B7280;
+  }
+  .mockup-body { padding: 0; }
+
+  /* === APP MOCKUP COMPONENTS === */
+  .app-sidebar {
+    width: 180px;
+    background: #0F172A;
+    color: white;
+    padding: 16px 0;
+    font-size: 10px;
+    float: left;
+    height: 340px;
+  }
+  .app-sidebar-logo {
+    padding: 0 16px 12px;
+    font-size: 16px;
+    font-weight: 900;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 8px;
+  }
+  .app-sidebar-item {
+    padding: 7px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,255,255,0.5);
+  }
+  .app-sidebar-item.active {
+    background: rgba(16,185,129,0.15);
+    color: var(--emerald);
+    font-weight: 600;
+  }
+  .app-sidebar-item .icon { width: 14px; text-align: center; }
+
+  .app-main {
+    margin-left: 180px;
+    padding: 16px 20px;
+    height: 340px;
+    overflow: hidden;
+  }
+  .app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .app-header h3 { font-size: 16px; font-weight: 800; }
+  .app-header-actions { display: flex; gap: 6px; }
+  .app-btn {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 9px;
+    font-weight: 600;
+    border: 1px solid #D1D5DB;
+    background: white;
+    cursor: pointer;
+  }
+  .app-btn.primary {
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+  }
+  .app-btn.emerald {
+    background: var(--emerald);
+    color: white;
+    border-color: var(--emerald);
+  }
+
+  .app-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .app-stat {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .app-stat-label { font-size: 8px; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; }
+  .app-stat-value { font-size: 18px; font-weight: 800; color: var(--ink); margin-top: 2px; }
+  .app-stat-change { font-size: 8px; color: var(--emerald); font-weight: 600; }
+
+  .app-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9px;
+  }
+  .app-table th {
+    text-align: left;
+    padding: 6px 8px;
+    background: #F9FAFB;
+    border-bottom: 1px solid #E5E7EB;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+    font-size: 8px;
+    letter-spacing: 0.5px;
+  }
+  .app-table td {
+    padding: 7px 8px;
+    border-bottom: 1px solid #F3F4F6;
+  }
+  .app-table tr:hover td { background: #F9FAFB; }
+
+  .app-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 8px;
+    font-weight: 600;
+  }
+  .app-badge.green { background: #D1FAE5; color: #065F46; }
+  .app-badge.yellow { background: #FEF3C7; color: #92400E; }
+  .app-badge.red { background: #FEE2E2; color: #991B1B; }
+  .app-badge.blue { background: #DBEAFE; color: #1E40AF; }
+  .app-badge.gray { background: #F3F4F6; color: #374151; }
+
+  /* === GRID === */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 20px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+
+  /* === CARDS === */
+  .card {
+    background: var(--light-bg);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .card p { font-size: 11px; color: var(--mist); line-height: 1.5; }
+
+  .feature-card {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .feature-icon { font-size: 28px; margin-bottom: 8px; }
+  .feature-title { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+  .feature-desc { font-size: 10px; color: var(--mist); }
+
+  /* === PRICING === */
+  .price-card {
+    border: 2px solid #E5E7EB;
+    border-radius: 16px;
+    padding: 28px;
+    position: relative;
+  }
+  .price-card.pop { border-color: var(--navy); }
+  .price-badge {
+    position: absolute;
+    top: -11px; left: 50%; transform: translateX(-50%);
+    background: var(--navy);
+    color: white;
+    font-size: 9px; font-weight: 700;
+    padding: 3px 14px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .price-name { font-size: 18px; font-weight: 800; }
+  .price-desc { font-size: 11px; color: var(--mist); margin: 4px 0 14px; }
+  .price-amount { font-size: 38px; font-weight: 900; color: var(--navy); }
+  .price-amount span { font-size: 13px; font-weight: 500; color: var(--mist); }
+  .price-hr { height: 1px; background: #E5E7EB; margin: 14px 0; }
+
+  .check-list { list-style: none; padding: 0; }
+  .check-list li {
+    padding: 5px 0 5px 20px;
+    position: relative;
+    font-size: 11px;
+  }
+  .check-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--emerald);
+    font-weight: 700;
+  }
+
+  /* === QUOTE === */
+  .quote {
+    background: var(--bone);
+    border-left: 4px solid var(--navy);
+    padding: 18px 22px;
+    border-radius: 0 10px 10px 0;
+    margin: 16px 0;
+  }
+  .quote-text { font-size: 13px; font-style: italic; color: var(--ink); line-height: 1.6; }
+  .quote-attr { font-size: 10px; color: var(--mist); margin-top: 6px; font-weight: 600; }
+
+  /* === CTA === */
+  .cta {
+    background: linear-gradient(135deg, var(--navy), var(--navy-deep));
+    color: white;
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+    margin-top: 24px;
+  }
+  .cta h3 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+  .cta p { font-size: 12px; opacity: 0.8; margin-bottom: 16px; }
+  .cta-row { display: flex; justify-content: center; gap: 36px; }
+  .cta-item-label { font-size: 9px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
+  .cta-item-value { font-size: 13px; font-weight: 700; margin-top: 2px; }
+
+  /* === COMPLIANCE BAR === */
+  .comp-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .comp-label { width: 90px; font-size: 10px; font-weight: 600; }
+  .comp-track { flex: 1; height: 7px; background: #E5E7EB; border-radius: 4px; overflow: hidden; }
+  .comp-fill { height: 100%; background: var(--emerald); border-radius: 4px; }
+  .comp-val { font-size: 10px; font-weight: 700; color: var(--navy); width: 32px; text-align: right; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-badge">UK Care Management Platform</div>
+  <h1>Meticle<span>Care</span></h1>
+  <p>The connected platform for UK supported living providers. Care planning, medication, staffing, compliance — all in one place.</p>
+  <div class="cover-footer">
+    <div class="cover-footer-left">meticlecare.com</div>
+    <div class="cover-footer-right">September 2026</div>
+  </div>
+</div>
+
+<!-- PAGE 2: DASHBOARD MOCKUP -->
+<div class="page">
+  <div class="sh">
+    <div class="sh-num">01</div>
+    <div class="sh-title">Your Command Centre</div>
+    <div class="sh-sub">Everything you need, one login away</div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <div class="mockup-dot r"></div>
+      <div class="mockup-dot y"></div>
+      <div class="mockup-dot g"></div>
+      <div class="mockup-url">meticlecare.com/dashboard</div>
+    </div>
+    <div class="mockup-body" style="display: flex; height: 340px;">
+      <div class="app-sidebar">
+        <div class="app-sidebar-logo">Meticle</div>
+        <div class="app-sidebar-item active"><span class="icon">📊</span> Dashboard</div>
+        <div class="app-sidebar-item"><span class="icon">👥</span> People</div>
+        <div class="app-sidebar-item"><span class="icon">💊</span> Medications</div>
+        <div class="app-sidebar-item"><span class="icon">📋</span> Care Plans</div>
+        <div class="app-sidebar-item"><span class="icon">👥</span> Staff</div>
+        <div class="app-sidebar-item"><span class="icon">📅</span> Rota</div>
+        <div class="app-sidebar-item"><span class="icon">🛡️</span> Compliance</div>
+        <div class="app-sidebar-item"><span class="icon">⚠️</span> Incidents</div>
+        <div class="app-sidebar-item"><span class="icon">💬</span> Chat</div>
+        <div class="app-sidebar-item"><span class="icon">💰</span> Expenses</div>
+      </div>
+      <div class="app-main">
+        <div class="app-header">
+          <h3>Good morning, Sarah 👋</h3>
+          <div class="app-header-actions">
+            <div class="app-btn">🔍 Search</div>
+            <div class="app-btn primary">+ Add Note</div>
+          </div>
+        </div>
+        <div class="app-stats">
+          <div class="app-stat">
+            <div class="app-stat-label">People</div>
+            <div class="app-stat-value">18</div>
+            <div class="app-stat-change">↑ 2 this month</div>
+          </div>
+          <div class="app-stat">
+            <div class="app-stat-label">Staff On Duty</div>
+            <div class="app-stat-value">8</div>
+            <div class="app-stat-change">Day shift</div>
+          </div>
+          <div class="app-stat">
+            <div class="app-stat-label">Compliance</div>
+            <div class="app-stat-value">94%</div>
+            <div class="app-stat-change" style="color:#10B981">↑ 3% from last month</div>
+          </div>
+          <div class="app-stat">
+            <div class="app-stat-label">Open Tasks</div>
+            <div class="app-stat-value">5</div>
+            <div class="app-stat-change" style="color:#F59E0B">2 urgent</div>
+          </div>
+        </div>
+        <table class="app-table">
+          <thead>
+            <tr>
+              <th>Today's Medications</th>
+              <th>Person</th>
+              <th>Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Metformin 500mg</td>
+              <td>John Smith</td>
+              <td>08:00</td>
+              <td><span class="app-badge green">Given</span></td>
+            </tr>
+            <tr>
+              <td>Amlodipine 5mg</td>
+              <td>Mary Jones</td>
+              <td>08:30</td>
+              <td><span class="app-badge green">Given</span></td>
+            </tr>
+            <tr>
+              <td>Omeprazole 20mg</td>
+              <td>David Brown</td>
+              <td>09:00</td>
+              <td><span class="app-badge yellow">Due</span></td>
+            </tr>
+            <tr>
+              <td>Levothyroxine 50mcg</td>
+              <td>Sarah Wilson</td>
+              <td>09:00</td>
+              <td><span class="app-badge yellow">Due</span></td>
+            </tr>
+            <tr>
+              <td>Paracetamol 500mg</td>
+              <td>Tom Davis</td>
+              <td>10:00</td>
+              <td><span class="app-badge gray">Scheduled</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="quote">
+        <div class="quote-text">"Meticle keeps every record connected — so managers can act on the same information their teams record at the point of care."</div>
+        <div class="quote-attr">— MeticleCare Design Principle</div>
+      </div>
+    </div>
+    <div>
+      <div class="three-col" style="margin-bottom:0">
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-title">Real-time</div>
+          <div class="feature-desc">Updates sync instantly across all devices</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <div class="feature-title">Secure</div>
+          <div class="feature-desc">End-to-end encryption, UK data residency</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <div class="feature-title">Mobile</div>
+          <div class="feature-desc">Works on phone, tablet, and desktop</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3: CARE MANAGEMENT -->
+<div class="page">
+  <div class="sh">
+    <div class="sh-num">02</div>
+    <div class="sh-title">Care Management</div>
+    <div class="sh-sub">Digital care records with full audit trails</div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <div class="mockup-dot r"></div><div class="mockup-dot y"></div><div class="mockup-dot g"></div>
+      <div class="mockup-url">meticlecare.com/people/john-smith</div>
+    </div>
+    <div class="mockup-body" style="display:flex; height:300px;">
+      <div class="app-sidebar">
+        <div class="app-sidebar-logo">Meticle</div>
+        <div class="app-sidebar-item"><span class="icon">📊</span> Dashboard</div>
+        <div class="app-sidebar-item active"><span class="icon">👤</span> People</div>
+        <div class="app-sidebar-item"><span class="icon">💊</span> Medications</div>
+        <div class="app-sidebar-item"><span class="icon">📋</span> Care Plans</div>
+      </div>
+      <div class="app-main" style="padding:14px 18px;">
+        <div style="display:flex; gap:16px; align-items:center; margin-bottom:14px;">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--navy);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;">JS</div>
+          <div>
+            <div style="font-size:15px;font-weight:800;">John Smith</div>
+            <div style="font-size:10px;color:#6B7280;">Male · Age 72 · Room 12 · Maple House</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:6px;">
+            <div class="app-btn">Edit Profile</div>
+            <div class="app-btn emerald">+ Add Note</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;">
+          <div class="app-btn" style="text-align:center;font-weight:700;border-color:var(--navy);color:var(--navy);">Overview</div>
+          <div class="app-btn" style="text-align:center;">Care Plans</div>
+          <div class="app-btn" style="text-align:center;">Daily Notes</div>
+          <div class="app-btn" style="text-align:center;">Medications</div>
+          <div class="app-btn" style="text-align:center;">Risk Assess.</div>
+        </div>
+        <table class="app-table">
+          <thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Author</th></tr></thead>
+          <tbody>
+            <tr><td>8 Sep</td><td><span class="app-badge blue">Personal Care</span></td><td>Assisted with morning wash, needed prompting for teeth cleaning</td><td>Sarah M.</td></tr>
+            <tr><td>8 Sep</td><td><span class="app-badge green">Mood</span></td><td>In good spirits, participated in garden activity after lunch</td><td>James K.</td></tr>
+            <tr><td>7 Sep</td><td><span class="app-badge yellow">Nutrition</span></td><td>Good appetite at breakfast, refused lunch dessert</td><td>Sarah M.</td></tr>
+            <tr><td>7 Sep</td><td><span class="app-badge blue">Personal Care</span></td><td>Needed full assistance with evening routine</td><td>Lisa P.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="three-col">
+    <div class="card">
+      <h4>💊 eMAR</h4>
+      <p>Digital medication rounds with 31-day MAR chart, controlled drug register, and missed-dose alerts. Print-ready for inspections.</p>
+    </div>
+    <div class="card">
+      <h4>📋 Support Plans</h4>
+      <p>Person-centred plans with risk assessments, review dates, and file attachments. Full version history for CQC evidence.</p>
+    </div>
+    <div class="card">
+      <h4>🗺️ Body Maps</h4>
+      <p>Visual body maps for pressure areas and wounds. Photo evidence, clinical scores, and progress tracking over time.</p>
+    </div>
+  </div>
+
+  <div class="three-col">
+    <div class="card">
+      <h4>📝 Daily Notes</h4>
+      <p>Shift-based care notes with category tagging. Every note is timestamped and attributed for full audit trail.</p>
+    </div>
+    <div class="card">
+      <h4>🎯 Goals</h4>
+      <p>Track person-centred goals with milestones and progress. Link goals to care plans for connected outcomes.</p>
+    </div>
+    <div class="card">
+      <h4>🤖 AI Insights</h4>
+      <p>AI-powered analysis of care patterns, risk trends, and compliance gaps. Opt-in, GDPR-compliant.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 4: COMPLIANCE -->
+<div class="page">
+  <div class="sh">
+    <div class="sh-num">03</div>
+    <div class="sh-title">Compliance & CQC Readiness</div>
+    <div class="sh-sub">Inspection-ready from day one</div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <div class="mockup-dot r"></div><div class="mockup-dot y"></div><div class="mockup-dot g"></div>
+      <div class="mockup-url">meticlecare.com/compliance/readiness</div>
+    </div>
+    <div class="mockup-body" style="padding:20px; height:260px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <div style="font-size:16px;font-weight:800;">CQC Readiness</div>
+          <div style="font-size:10px;color:#6B7280;">Last assessed: 8 September 2026</div>
+        </div>
+        <div class="app-btn emerald">Generate Evidence Pack</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;margin-bottom:10px;">Key Lines of Enquiry</div>
+          <div class="comp-bar"><div class="comp-label">Safe</div><div class="comp-track"><div class="comp-fill" style="width:92%"></div></div><div class="comp-val">92%</div></div>
+          <div class="comp-bar"><div class="comp-label">Effective</div><div class="comp-track"><div class="comp-fill" style="width:87%"></div></div><div class="comp-val">87%</div></div>
+          <div class="comp-bar"><div class="comp-label">Caring</div><div class="comp-track"><div class="comp-fill" style="width:95%"></div></div><div class="comp-val">95%</div></div>
+          <div class="comp-bar"><div class="comp-label">Responsive</div><div class="comp-track"><div class="comp-fill" style="width:89%"></div></div><div class="comp-val">89%</div></div>
+          <div class="comp-bar"><div class="comp-label">Well-led</div><div class="comp-track"><div class="comp-fill" style="width:91%"></div></div><div class="comp-val">91%</div></div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;margin-bottom:10px;">Gap Analysis</div>
+          <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px;margin-bottom:8px;">
+            <div style="font-size:10px;font-weight:700;color:#991B1B;">⚠ 2 gaps require attention</div>
+            <div style="font-size:9px;color:#991B1B;margin-top:4px;">Staff training records incomplete for 3 members</div>
+          </div>
+          <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:10px;margin-bottom:8px;">
+            <div style="font-size:10px;font-weight:700;color:#92400E;">📋 1 policy pending review</div>
+            <div style="font-size:9px;color:#92400E;margin-top:4px;">Safeguarding policy expires in 14 days</div>
+          </div>
+          <div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:10px;">
+            <div style="font-size:10px;font-weight:700;color:#065F46;">✅ 47 requirements met</div>
+            <div style="font-size:9px;color:#065F46;margin-top:4px;">All identity documents verified and current</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <h4>🛡️ Identity & DBS Monitoring</h4>
+        <p>Track staff identity documents, DBS checks, and Right to Work verification. Automated expiry alerts ensure nothing expires unnoticed.</p>
+      </div>
+      <div class="card">
+        <h4>📑 Policies & Documents</h4>
+        <p>Centralised policy management with version control, review dates, and staff acknowledgement tracking.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <h4>🎓 Training Compliance</h4>
+        <p>12+ built-in training modules with auto-assignment, competency assessments, and compliance rate tracking per module.</p>
+      </div>
+      <div class="card">
+        <h4>🔒 DSPT (Data Security)</h4>
+        <p>NHS Data Security & Protection Toolkit assessment tracker with evidence pack generation for submission.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 5: STAFFING -->
+<div class="page">
+  <div class="sh">
+    <div class="sh-num">04</div>
+    <div class="sh-title">Staffing & Scheduling</div>
+    <div class="sh-sub">Smart rota planning with leave management</div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <div class="mockup-dot r"></div><div class="mockup-dot y"></div><div class="mockup-dot g"></div>
+      <div class="mockup-url">meticlecare.com/scheduling</div>
+    </div>
+    <div class="mockup-body" style="padding:16px 20px; height:260px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:800;">Rota — Week of 8 Sep 2026</div>
+        <div style="display:flex;gap:6px;">
+          <div class="app-btn">← Previous</div>
+          <div class="app-btn primary">+ Add Shift</div>
+        </div>
+      </div>
+      <table class="app-table" style="font-size:8px;">
+        <thead>
+          <tr>
+            <th style="width:90px;">Staff</th>
+            <th style="text-align:center;">Mon</th>
+            <th style="text-align:center;">Tue</th>
+            <th style="text-align:center;">Wed</th>
+            <th style="text-align:center;">Thu</th>
+            <th style="text-align:center;">Fri</th>
+            <th style="text-align:center;">Sat</th>
+            <th style="text-align:center;">Sun</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:600;">Sarah M.</td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge gray" style="font-size:7px;">Off</span></td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge blue" style="font-size:7px;">Night 3-7</span></td>
+            <td style="text-align:center;"><span class="app-badge gray" style="font-size:7px;">Off</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">James K.</td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge gray" style="font-size:7px;">Off</span></td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge gray" style="font-size:7px;">Off</span></td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">Lisa P.</td>
+            <td style="text-align:center;"><span class="app-badge blue" style="font-size:7px;">Night 3-7</span></td>
+            <td style="text-align:center;"><span class="app-badge blue" style="font-size:7px;">Night 3-7</span></td>
+            <td style="text-align:center;"><span class="app-badge blue" style="font-size:7px;">Night 3-7</span></td>
+            <td style="text-align:center;"><span class="app-badge gray" style="font-size:7px;">Off</span></td>
+            <td style="text-align:center;"><span class="app-badge blue" style="font-size:7px;">Night 3-7</span></td>
+            <td style="text-align:center;"><span class="app-badge gray" style="font-size:7px;">Off</span></td>
+            <td style="text-align:center;"><span class="app-badge blue" style="font-size:7px;">Night 3-7</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">Tom D.</td>
+            <td style="text-align:center;"><span class="app-badge gray" style="font-size:7px;">Off</span></td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge green" style="font-size:7px;">Day 7-3</span></td>
+            <td style="text-align:center;"><span class="app-badge gray" style="font-size:7px;">Off</span></td>
+            <td style="text-align:center;"><span class="app-badge gray" style="font-size:7px;">Off</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="three-col">
+    <div class="card">
+      <h4>📅 Leave Manager</h4>
+      <p>Multi-level approval with delegation, balance tracking, and location-based max-staff-on-leave limits.</p>
+    </div>
+    <div class="card">
+      <h4>🏪 Shift Marketplace</h4>
+      <p>Staff pick up open shifts, apply for overtime, and manage availability. Reduces agency costs.</p>
+    </div>
+    <div class="card">
+      <h4>🤝 Agency Management</h4>
+      <p>Track agency staff, rates, and coverage. Monitor usage against budget with analytics.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 6: EXPENSES + INCIDENTS -->
+<div class="page">
+  <div class="sh">
+    <div class="sh-num">05</div>
+    <div class="sh-title">Expenses, Incidents & Communication</div>
+    <div class="sh-sub">Financial control, safety reporting, and team collaboration</div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <h4>💰 Petty Cash & Expenses</h4>
+        <p>Two-person cash reconciliation for house funds and person funds. Daily balance checks with escalation for discrepancies.</p>
+        <div style="margin-top:10px;background:white;border:1px solid #E5E7EB;border-radius:8px;padding:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:10px;font-weight:600;">Maple House Fund</span>
+            <span style="font-size:12px;font-weight:800;color:var(--navy);">£2,450.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:10px;font-weight:600;">Oak House Fund</span>
+            <span style="font-size:12px;font-weight:800;color:var(--navy);">£1,820.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:10px;font-weight:600;">John Smith (Person)</span>
+            <span style="font-size:12px;font-weight:800;color:var(--navy);">£340.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>⚠️ Incident Management</h4>
+        <p>Complete incident workflow with AI-assisted severity triage. Confidential handling, corrective actions, and evidence packs.</p>
+        <div style="margin-top:10px;background:white;border:1px solid #E5E7EB;border-radius:8px;padding:10px;">
+          <div style="display:flex;gap:8px;margin-bottom:6px;">
+            <span class="app-badge red">3 Open</span>
+            <span class="app-badge yellow">2 Under Review</span>
+            <span class="app-badge green">12 Resolved</span>
+          </div>
+          <div style="font-size:9px;color:#6B7280;">Last incident: 7 Sep — Slip in bathroom (Low severity)</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <h4>💬 Team Chat</h4>
+        <p>Built-in team communication with channels, DMs, and file sharing. Keep conversations connected to care records.</p>
+        <div style="margin-top:10px;background:white;border:1px solid #E5E7EB;border-radius:8px;padding:10px;">
+          <div style="display:flex;gap:8px;margin-bottom:6px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--navy);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">SM</div>
+            <div>
+              <div style="font-size:10px;font-weight:600;">Sarah M. <span style="color:#6B7280;font-weight:400;">· 2 min ago</span></div>
+              <div style="font-size:9px;color:#374151;">John had a good morning, ate most of his breakfast 👍</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--emerald);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">JK</div>
+            <div>
+              <div style="font-size:10px;font-weight:600;">James K. <span style="color:#6B7280;font-weight:400;">· 5 min ago</span></div>
+              <div style="font-size:9px;color:#374151;">Great! I'll note that in his daily log. Medication due at 10am ✅</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>✅ Tasks & Appointments</h4>
+        <p>Assign tasks to staff with priorities and deadlines. Track appointments with calendar integration and reminders.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 7: PRICING -->
+<div class="page">
+  <div class="sh">
+    <div class="sh-num">06</div>
+    <div class="sh-title">Pricing</div>
+    <div class="sh-sub">Simple, transparent pricing for UK care providers</div>
+  </div>
+
+  <p style="font-size:13px;color:var(--mist);margin-bottom:20px;max-width:500px;line-height:1.7;">
+    Start with a 14-day free trial — no credit card required. Set up in minutes and see inspection-ready compliance from day one.
+  </p>
+
+  <div class="two-col">
+    <div class="price-card">
+      <div class="price-name">Starter</div>
+      <div class="price-desc">For small care teams</div>
+      <div class="price-amount">£99<span>/month</span></div>
+      <div class="price-hr"></div>
+      <ul class="check-list">
+        <li>Up to 25 staff members</li>
+        <li>Staff profiles and directory</li>
+        <li>Basic compliance tracking</li>
+        <li>Email support</li>
+        <li>Care plans and daily notes</li>
+        <li>eMAR medication management</li>
+        <li>Incident recording</li>
+        <li>Task management</li>
+      </ul>
+    </div>
+
+    <div class="price-card pop">
+      <div class="price-badge">Most Popular</div>
+      <div class="price-name">Professional</div>
+      <div class="price-desc">Complete compliance suite</div>
+      <div class="price-amount">£299<span>/month</span></div>
+      <div class="price-hr"></div>
+      <ul class="check-list">
+        <li>Up to 100 staff members</li>
+        <li>Everything in Starter</li>
+        <li>Automated rota planner</li>
+        <li>DBS monitoring</li>
+        <li>Full CQC compliance suite</li>
+        <li>Priority support</li>
+        <li>AI-powered insights</li>
+        <li>Custom report builder</li>
+        <li>Shift marketplace</li>
+        <li>Agency management</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;">
+    <div style="font-size:16px;font-weight:800;margin-bottom:14px;">Both Plans Include</div>
+    <div class="three-col" style="margin-bottom:0">
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-title">Enterprise Security</div>
+        <div class="feature-desc">SSL, role-based access, audit trails, MFA</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">☁️</div>
+        <div class="feature-title">Cloud Hosted</div>
+        <div class="feature-desc">99.9% uptime, backups, UK data residency</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <div class="feature-title">Mobile Ready</div>
+        <div class="feature-desc">Phone, tablet, desktop — responsive design</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <h3>Ready to Transform Your Care Operations?</h3>
+    <p>Start your 14-day free trial today — no credit card required.</p>
+    <div class="cta-row">
+      <div><div class="cta-item-label">Website</div><div class="cta-item-value">meticlecare.com</div></div>
+      <div><div class="cta-item-label">Email</div><div class="cta-item-value">hello@meticlecare.com</div></div>
+      <div><div class="cta-item-label">Trial</div><div class="cta-item-value">14 Days Free</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
