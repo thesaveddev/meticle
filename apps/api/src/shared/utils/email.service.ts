@@ -451,6 +451,71 @@ export class EmailService {
         { label: 'Reactivate Now', url }), 'billing');
   }
 
+  // ── Winback campaign emails (post-expiry follow-up sequence) ──
+  static async sendWinbackDay3Email(email: string, name: string, orgName: string) {
+    const org = orgName || 'your organisation';
+    const url = `${baseUrl()}/billing`;
+    await sendMail(email, `We miss you at Meticle — your data is still safe`,
+      buildEmailHtml('We miss you', `${org} is still on Meticle`,
+        `<p>Hi ${name},</p>` +
+        `<p>It's been 3 days since your ${org} trial ended. We wanted to let you know that <strong>all your data is still here</strong> — care plans, daily notes, staff records, everything.</p>` +
+        `<p>Your team can get back to work in minutes. Just add a payment method and choose a plan.</p>` +
+        `<p>Need help? Reply to this email and we'll set up a quick call.</p>`,
+        { label: 'Reactivate Your Account', url }), 'billing');
+  }
+
+  static async sendWinbackDay7Email(email: string, name: string, orgName: string) {
+    const org = orgName || 'your organisation';
+    const url = `${baseUrl()}/billing`;
+    await sendMail(email, `${org} — your data is waiting for you`,
+      buildEmailHtml('Still thinking?', `${org} data is preserved`,
+        `<p>Hi ${name},</p>` +
+        `<p>A week has passed since your Meticle trial ended. We know choosing care management software is a big decision.</p>` +
+        `<p>Here's what's still available for ${org}:<br>` +
+        `• All care plans and daily notes<br>` +
+        `• Staff records and training matrix<br>` +
+        `• Compliance documents and audit trail<br>` +
+        `• Incident reports and risk assessments</p>` +
+        `<p>We'd love to show you how Meticle can work for your service. Book a free 15-minute walkthrough with our team.</p>`,
+        { label: 'Book a Free Walkthrough', url }), 'billing');
+  }
+
+  static async sendWinbackDay14Email(email: string, name: string, orgName: string) {
+    const org = orgName || 'your organisation';
+    const url = `${baseUrl()}/billing`;
+    await sendMail(email, `Important: ${org} data retention notice`,
+      buildEmailHtml('Data Retention', `Your ${org} data will be removed in 76 days`,
+        `<p>Hi ${name},</p>` +
+        `<p>It's been two weeks since your Meticle subscription for <strong>${org}</strong> ended.</p>` +
+        `<p>Per our data retention policy, your organisation's data will be permanently deleted <strong>90 days after expiry</strong> (approximately 76 days from now).</p>` +
+        `<p>If you'd like to keep your data, reactivate before then. After deletion, data cannot be recovered.</p>`,
+        { label: 'Reactivate Before Deletion', url }), 'billing');
+  }
+
+  static async sendWinbackDay30Email(email: string, name: string, orgName: string) {
+    const org = orgName || 'your organisation';
+    const url = `${baseUrl()}/billing`;
+    await sendMail(email, `Final notice: ${org} data expires in 60 days`,
+      buildEmailHtml('Final Notice', `${org} data deletion approaching`,
+        `<p>Hi ${name},</p>` +
+        `<p>This is a final reminder that <strong>${org}</strong>'s data on Meticle will be permanently deleted in approximately <strong>60 days</strong>.</p>` +
+        `<p>After deletion, all care records, compliance documents, staff data, and audit trails will be irrecoverable.</p>` +
+        `<p>If you've decided to move forward with Meticle, now is the time to reactivate.</p>`,
+        { label: 'Reactivate Now', url }), 'billing');
+  }
+
+  static async sendWinbackFinalEmail(email: string, name: string, orgName: string) {
+    const org = orgName || 'your organisation';
+    const url = `${baseUrl()}/billing`;
+    await sendMail(email, `Last chance: ${org} data will be deleted tomorrow`,
+      buildEmailHtml('Last Chance', `${org} data deletion tomorrow`,
+        `<p>Hi ${name},</p>` +
+        `<p>This is your final notification. <strong>${org}</strong>'s data on Meticle will be <strong>permanently deleted tomorrow</strong>.</p>` +
+        `<p>After deletion, this data cannot be recovered under any circumstances.</p>` +
+        `<p>If you want to preserve your care records and compliance documents, reactivate today.</p>`,
+        { label: 'Reactivate Before Deletion', url }), 'billing');
+  }
+
   // ── Payment receipts & recovery (industry-standard dunning) ──
   static async sendPaymentReceiptEmail(email: string, name: string, orgName: string, opts: {
     amount: number

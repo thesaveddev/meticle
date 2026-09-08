@@ -468,13 +468,15 @@ databaseReadyPromise.then(() => setTimeout(() => {
 }, 20_000));
 
 // Subscription expiry reminder check (every 12 hours — sends at 7d, 3d, 1d, and expiry/win-back milestones)
-import { checkSubscriptionExpirations, checkInvoiceReminders } from './shared/utils/trial-reminders';
+import { checkSubscriptionExpirations, checkInvoiceReminders, runWinbackCampaign } from './shared/utils/trial-reminders';
 databaseReadyPromise.then(() => setTimeout(() => {
   checkSubscriptionExpirations().catch(err => logger.error(err, 'Subscription reminder check failed'));
   checkInvoiceReminders().catch(err => logger.error(err, 'Invoice reminder check failed'));
+  runWinbackCampaign().then(r => { if (r.sent > 0 || r.deleted > 0) logger.info(r, 'Winback campaign run complete'); }).catch(err => logger.error(err, 'Winback campaign failed'));
   setInterval(() => {
     checkSubscriptionExpirations().catch(err => logger.error(err, 'Subscription reminder check failed'));
     checkInvoiceReminders().catch(err => logger.error(err, 'Invoice reminder check failed'));
+    runWinbackCampaign().then(r => { if (r.sent > 0 || r.deleted > 0) logger.info(r, 'Winback campaign run complete'); }).catch(err => logger.error(err, 'Winback campaign failed'));
   }, 6 * 60 * 60 * 1000);
 }, 15_000));
 
