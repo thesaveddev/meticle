@@ -65,6 +65,7 @@ import shiftAuditRoutes from './modules/shift-audit/shift-audit.routes';
 import contactRoutes from './modules/contact/contact.routes';
 import eventRoutes from './modules/events/events.routes';
 import missionControlRoutes from './modules/mission-control/mission-control.routes';
+import demoRoutes from './modules/demo/demo.routes';
 import { BillingController } from './modules/billing/billing.controller';
 import { ComplianceController } from './modules/compliance/compliance.controller';
 import { ComplianceNotificationService } from './modules/compliance/compliance.notifications';
@@ -309,6 +310,7 @@ app.use('/mobile', mobileRoutes);
 app.use('/shift-audit', shiftAuditRoutes);
 app.use('/events', eventRoutes);
 app.use('/contact', contactRoutes); // public — website contact form
+app.use('/demo', demoRoutes); // public — demo account access
 
 // Prometheus metrics — restricted to localhost/internal IPs in production
 app.get('/metrics', asyncHandler(async (req: Request, res: Response) => {

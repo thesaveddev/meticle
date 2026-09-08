@@ -128,6 +128,30 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     }
 
     req.user = decoded;
+
+    // Demo mode: block mutations for demo organizations
+    const method = req.method.toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS' && decoded.organizationId) {
+      try {
+        const { demoOrgCache } = await import('./demoGuard');
+        let isDemo = demoOrgCache.get(decoded.organizationId);
+        if (isDemo === undefined) {
+          const orgCheck = await query(
+            `SELECT is_demo FROM organizations WHERE id = $1`,
+            [decoded.organizationId]
+          );
+          isDemo = orgCheck.rows.length > 0 && orgCheck.rows[0].is_demo === true;
+          demoOrgCache.set(decoded.organizationId, isDemo);
+        }
+        if (isDemo) {
+          return res.status(403).json({
+            statusCode: 403,
+            message: 'This is a demo account. Write operations are disabled in the demo environment. Sign up for a free trial to create your own data.',
+          });
+        }
+      } catch {}
+    }
+
     next();
   } catch (error: any) {
     // Do not turn database/Redis outages into authentication failures. A 401

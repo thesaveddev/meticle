@@ -541,6 +541,29 @@ export default function FeaturesPage() {
             <Button
               variant="outlined"
               size="large"
+              onClick={() => {
+                fetch('/api/demo/access', { method: 'POST' })
+                  .then(r => r.json())
+                  .then(data => {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('organization', JSON.stringify(data.organization));
+                    localStorage.setItem('accessToken', data.accessToken);
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    window.location.href = '/dashboard';
+                  })
+                  .catch(() => alert('Demo is temporarily unavailable. Please try again.'));
+              }}
+              sx={{
+                borderColor: HAIRLINE, color: INK, fontWeight: 700,
+                '&:hover': { borderColor: INK, bgcolor: 'rgba(15,76,129,0.04)' },
+                px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.02rem',
+              }}
+            >
+              Try the demo
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
               onClick={() => navigate('/contact')}
               sx={{
                 borderColor: HAIRLINE, color: INK, fontWeight: 700,

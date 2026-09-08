@@ -884,6 +884,29 @@ export default function PricingPage() {
             <Button
               variant="outlined"
               size="large"
+              onClick={() => {
+                fetch('/api/demo/access', { method: 'POST' })
+                  .then(r => r.json())
+                  .then(data => {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('organization', JSON.stringify(data.organization));
+                    localStorage.setItem('accessToken', data.accessToken);
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    window.location.href = '/dashboard';
+                  })
+                  .catch(() => alert('Demo is temporarily unavailable. Please try again.'));
+              }}
+              sx={{
+                borderColor: 'rgba(255,255,255,0.4)', color: '#FFFFFF',
+                '&:hover': { borderColor: '#FFFFFF', bgcolor: 'rgba(255,255,255,0.06)' },
+                fontWeight: 700, px: { xs: 5, sm: 6 }, py: 1.9, fontSize: '1.05rem',
+              }}
+            >
+              Try the demo
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
               onClick={() => navigate('/contact')}
               sx={{
                 borderColor: 'rgba(255,255,255,0.4)', color: '#FFFFFF',
