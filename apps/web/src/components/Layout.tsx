@@ -534,6 +534,47 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       >
         <RouteLoadingIndicator />
         <OfflineBanner />
+        {rawUser?.organizationId && localStorage.getItem('organization') && (() => {
+          try {
+            const org = JSON.parse(localStorage.getItem('organization') || '{}');
+            if (!org.is_demo) return null;
+          } catch { return null; }
+          return (
+            <Paper
+              elevation={0}
+              sx={{
+                bgcolor: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                borderLeft: 4,
+                borderLeftColor: '#3B82F6',
+                p: 2,
+                mb: 3,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 2,
+              }}
+            >
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E40AF' }}>
+                  Demo Mode
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#3B82F6', mt: 0.5 }}>
+                  You are exploring MeticleCare with sample data. Write operations are disabled.
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                size="small"
+                sx={{ bgcolor: '#3B82F6', '&:hover': { bgcolor: '#2563EB' }, whiteSpace: 'nowrap', flexShrink: 0 }}
+                onClick={() => window.location.href = '/register'}
+              >
+                Start Free Trial
+              </Button>
+            </Paper>
+          );
+        })()}
         {!subLoading && !isActive && rawUser.role !== UserRole.SUPER_ADMIN && (
           <Paper
             elevation={0}

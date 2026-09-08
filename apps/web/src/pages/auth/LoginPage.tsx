@@ -131,6 +131,27 @@ export default function LoginPage() {
                     Sign Up Free
                   </Link>
                 </Typography>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  size="large"
+                  onClick={() => {
+                    setLoading(true);
+                    fetch('/api/demo/access', { method: 'POST' })
+                      .then(r => r.json())
+                      .then(data => {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        localStorage.setItem('organization', JSON.stringify(data.organization));
+                        localStorage.setItem('accessToken', data.accessToken);
+                        localStorage.setItem('refreshToken', data.refreshToken);
+                        window.location.href = '/dashboard';
+                      })
+                      .catch(() => { setLoading(false); setError('Demo is temporarily unavailable.'); });
+                  }}
+                  sx={{ mt: 2, borderColor: '#10B981', color: '#10B981', fontWeight: 700, py: 1.5, borderRadius: 2, fontSize: '0.95rem', textTransform: 'none', '&:hover': { borderColor: '#059669', bgcolor: 'rgba(16,185,129,0.04)' } }}
+                >
+                  Try the demo — no signup needed
+                </Button>
               </Box>
             </Stack>
           </Box>
