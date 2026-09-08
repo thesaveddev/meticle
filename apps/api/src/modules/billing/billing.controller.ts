@@ -161,10 +161,12 @@ export class BillingController {
             const paymentMethodId = defaultPaymentMethod.rows[0]?.stripe_payment_method_id || null;
             if (paymentMethodId) {
               const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+              // Allow the same physical card across multiple organisations — detach from the
+              // old customer if needed so we can reattach to this org's Stripe customer.
               if (paymentMethod.customer && paymentMethod.customer !== customerId) {
-                throw new AppError(409, 'The default payment card belongs to another Stripe customer');
+                await stripe.paymentMethods.detach(paymentMethodId).catch(() => {});
               }
-              if (!paymentMethod.customer) {
+              if (!paymentMethod.customer || paymentMethod.customer !== customerId) {
                 await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
               }
               await stripe.customers.update(customerId, {
@@ -359,8 +361,14 @@ export class BillingController {
       if (!org.rows[0]?.stripe_customer_id) throw new AppError(409, 'Your Stripe customer is not configured');
       const stripeCustomerId = org.rows[0].stripe_customer_id;
       const pmBefore = await stripe.paymentMethods.retrieve(payment_method_id);
-      if (pmBefore.customer && pmBefore.customer !== stripeCustomerId) throw new AppError(409, 'This payment method belongs to another customer');
-      if (!pmBefore.customer) await stripe.paymentMethods.attach(payment_method_id, { customer: stripeCustomerId });
+      // If the card is attached to another Stripe customer, detach it first so we can
+      // reuse the same physical card across multiple organisations (multi-home scenario).
+      if (pmBefore.customer && pmBefore.customer !== stripeCustomerId) {
+        await stripe.paymentMethods.detach(payment_method_id).catch(() => {});
+      }
+      if (!pmBefore.customer || pmBefore.customer !== stripeCustomerId) {
+        await stripe.paymentMethods.attach(payment_method_id, { customer: stripeCustomerId });
+      }
       try {
         const pm = await stripe.paymentMethods.retrieve(payment_method_id);
         if (pm.card) {
@@ -433,6 +441,11 @@ export class BillingController {
       const org = await pool.query('SELECT stripe_customer_id FROM organizations WHERE id = $1', [orgId]);
       const stripeCustomerId = org.rows[0]?.stripe_customer_id;
       if (stripeCustomerId) {
+        // Detach from any other customer first, then attach to this org's customer.
+        const pmInfo = await stripe.paymentMethods.retrieve(stripePaymentMethodId).catch(() => null);
+        if (pmInfo?.customer && pmInfo.customer !== stripeCustomerId) {
+          await stripe.paymentMethods.detach(stripePaymentMethodId).catch(() => {});
+        }
         await stripe.paymentMethods.attach(stripePaymentMethodId, { customer: stripeCustomerId }).catch((err: any) => {
           if (err?.code !== 'resource_already_attached') throw err;
         });
