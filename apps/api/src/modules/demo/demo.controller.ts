@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import pool from '../../shared/database';
+import { migrateQuery } from '../../shared/database';
 import { v4 as uuid } from 'uuid';
 import bcrypt from 'bcryptjs';
 import { generateAccessToken, generateRefreshToken } from '../auth/jwt.service';
@@ -19,7 +19,7 @@ let demoSeeded = false;
  */
 export async function demoAccess(req: Request, res: Response) {
   // Find or create demo organization
-  let orgResult = await pool.query(
+  let orgResult = await migrateQuery(
     `SELECT id, name FROM organizations WHERE is_demo = TRUE LIMIT 1`
   );
 
@@ -30,7 +30,7 @@ export async function demoAccess(req: Request, res: Response) {
     // Create demo organization
     orgId = uuid();
     orgName = 'MeticleCare Demo Organisation';
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO organizations (id, name, status, plan, subscription_status, trial_ends_at, is_demo, onboarding_completed, minimum_compliance_percent)
        VALUES ($1, $2, 'active', 'professional', 'active', $3, TRUE, TRUE, 70)`,
       [orgId, orgName, new Date(Date.now() + 365 * 86400000).toISOString()]
@@ -38,7 +38,7 @@ export async function demoAccess(req: Request, res: Response) {
 
     // Create headquarters location
     const locId = uuid();
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO locations (id, organization_id, name, address, minimum_staff_per_day)
        VALUES ($1, $2, 'MeticleCare House', '10 Downing Street, London SW1A 2AA', 3)`,
       [locId, orgId]
@@ -46,9 +46,9 @@ export async function demoAccess(req: Request, res: Response) {
 
     // Create departments
     const deptIds = [uuid(), uuid(), uuid()];
-    await pool.query(`INSERT INTO departments (id, location_id, name) VALUES ($1, $2, 'Clinical Services')`, [deptIds[0], locId]);
-    await pool.query(`INSERT INTO departments (id, location_id, name) VALUES ($1, $2, 'Residential Care')`, [deptIds[1], locId]);
-    await pool.query(`INSERT INTO departments (id, location_id, name) VALUES ($1, $2, 'Administration')`, [deptIds[2], locId]);
+    await migrateQuery(`INSERT INTO departments (id, location_id, name) VALUES ($1, $2, 'Clinical Services')`, [deptIds[0], locId]);
+    await migrateQuery(`INSERT INTO departments (id, location_id, name) VALUES ($1, $2, 'Residential Care')`, [deptIds[1], locId]);
+    await migrateQuery(`INSERT INTO departments (id, location_id, name) VALUES ($1, $2, 'Administration')`, [deptIds[2], locId]);
 
     // Seed demo data
     await seedDemoData(orgId, locId, deptIds);
@@ -59,7 +59,7 @@ export async function demoAccess(req: Request, res: Response) {
   }
 
   // Find or create demo user
-  let userResult = await pool.query(
+  let userResult = await migrateQuery(
     `SELECT id, email, role, organization_id, status FROM users WHERE email = $1`,
     [DEMO_EMAIL]
   );
@@ -68,14 +68,14 @@ export async function demoAccess(req: Request, res: Response) {
 
   if (userResult.rows.length === 0) {
     userId = uuid();
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO users (id, organization_id, email, role, status, password_hash, email_verified)
        VALUES ($1, $2, $3, 'ORG_ADMIN', 'active', $4, TRUE)`,
       [userId, orgId, DEMO_EMAIL, DEMO_PASSWORD_HASH]
     );
 
     // Create staff profile
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO staff_profiles (id, user_id, first_name, last_name)
        VALUES ($1, $2, 'Demo', 'Administrator') ON CONFLICT (user_id) DO NOTHING`,
       [uuid(), userId]
@@ -149,13 +149,13 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
     const spId = uuid();
     const email = `${s.first.toLowerCase()}.${s.last.toLowerCase()}@meticlecare-demo.com`;
 
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO users (id, organization_id, email, role, status, password_hash, email_verified)
        VALUES ($1, $2, $3, $4, 'active', $5, TRUE)`,
       [uid, orgId, email, s.role, DEMO_PASSWORD_HASH]
     );
 
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO staff_profiles (id, user_id, first_name, last_name, location_id, employment_type, contracted_hours_weekly)
        VALUES ($1, $2, $3, $4, $5, 'full_time', 37.5)`,
       [spId, uid, s.first, s.last, locId]
@@ -184,7 +184,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
   const personIds: string[] = [];
   for (const p of peopleData) {
     const pid = uuid();
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO people (id, organization_id, first_name, last_name, date_of_birth, nhs_number, room_number,
         status, allergies, dietary_requirements, support_level, location_id, gp_name)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, $9, $10, $11, $12)`,
@@ -200,7 +200,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
   for (const pid of personIds) {
     const cats = [...planCats].sort(() => Math.random() - 0.5).slice(0, 2);
     for (const cat of cats) {
-      await pool.query(
+      await migrateQuery(
         `INSERT INTO care_plans (id, person_id, title, category, description, risk_assessment, review_date, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')`,
         [uuid(), pid, `${cat.replace(/_/g, ' ')} support plan`, cat,
@@ -230,7 +230,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
   for (let i = 0; i < 60; i++) {
     const pid = personIds[Math.floor(Math.random() * personIds.length)];
     const daysAgo = Math.floor(Math.random() * 30);
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO daily_notes (id, person_id, author_id, note_date, shift, category, content, support_level)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [uuid(), pid, userIds[Math.floor(Math.random() * userIds.length)],
@@ -247,7 +247,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
   for (const pid of personIds) {
     const n = 1 + Math.floor(Math.random() * 2);
     for (let i = 0; i < n; i++) {
-      await pool.query(
+      await migrateQuery(
         `INSERT INTO risk_assessments (id, person_id, type, risk_level, details, mitigation_actions, review_date)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [uuid(), pid, riskTypes[Math.floor(Math.random() * riskTypes.length)],
@@ -272,7 +272,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
   ];
 
   for (const inc of incidents) {
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO incidents (id, organization_id, title, severity, status, incident_date, location, reported_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [uuid(), orgId, inc.title, inc.sev, inc.status,
@@ -297,7 +297,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
   const modIds: string[] = [];
   for (const m of trainingModules) {
     const id = uuid();
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO training_modules (id, organization_id, name, category, frequency_days, is_mandatory)
        VALUES ($1, $2, $3, $4, $5, TRUE)`,
       [id, orgId, m.name, m.cat, m.freq]
@@ -312,7 +312,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
       const daysAgo = Math.floor(Math.random() * 300);
       const completedAt = new Date(Date.now() - daysAgo * 86400000);
       const expiresAt = new Date(completedAt.getTime() + 365 * 86400000);
-      await pool.query(
+      await migrateQuery(
         `INSERT INTO training_records (module_id, staff_id, completed_at, expires_at, status)
          VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`,
         [mid, sid, completedAt.toISOString(), expiresAt.toISOString(), 'completed']
@@ -323,7 +323,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
   // Compliance config
   const reqNames = ['DBS Check', 'Safeguarding Training', 'Manual Handling', 'Medication Competency', 'First Aid Certificate', 'Fire Safety'];
   for (const rn of reqNames) {
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO compliance_config (id, organization_id, name, description, days_warning, days_overdue, is_mandatory)
        VALUES ($1, $2, $3, $4, 30, 0, TRUE)`,
       [uuid(), orgId, rn, `${rn} compliance requirement for all care staff`]
@@ -341,7 +341,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
   ];
 
   for (const p of policies) {
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO policies (id, organization_id, title, category, content, version)
        VALUES ($1, $2, $3, $4, $5, '1.0')`,
       [uuid(), orgId, p.title, p.cat,
@@ -360,7 +360,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
   ];
 
   for (const td of tasks) {
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO tasks (id, organization_id, title, assigned_to, priority, status, due_date)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [uuid(), orgId, td.title, staffIds[Math.floor(Math.random() * staffIds.length)],
@@ -378,7 +378,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
   const ltIds: string[] = [];
   for (const lt of leaveTypes) {
     const ltId = uuid();
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO leave_types (id, organization_id, name, color, days_allowed, duration_type)
        VALUES ($1, $2, $3, $4, $5, 'days')`,
       [ltId, orgId, lt.name, lt.color, lt.days]
@@ -393,7 +393,7 @@ async function seedDemoData(orgId: string, locId: string, deptIds: string[]) {
     const ltId = ltIds[i % ltIds.length];
     const start = new Date(Date.now() + (i < 4 ? -30 : 10 + Math.floor(Math.random() * 20)) * 86400000);
     const end = new Date(start.getTime() + (1 + Math.floor(Math.random() * 3)) * 86400000);
-    await pool.query(
+    await migrateQuery(
       `INSERT INTO leave_requests (id, staff_id, leave_type_id, start_date, end_date, reason, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [uuid(), sid, ltId, start.toISOString().split('T')[0], end.toISOString().split('T')[0],
