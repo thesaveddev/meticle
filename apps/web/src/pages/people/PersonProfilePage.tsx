@@ -7,7 +7,7 @@ import {
   Menu, ListItemIcon, ListItemText, Tooltip, LinearProgress, Rating,
 } from '@mui/material'
 import {
-  ArrowBack, Add as AddIcon, Edit as EditIcon,
+  Add as AddIcon, Edit as EditIcon,
   Phone as PhoneIcon, Warning as WarningIcon,
   Delete as DeleteIcon, CameraAlt as CameraIcon, MoreVert as MoreVertIcon,
   Block as BlockIcon,
@@ -22,7 +22,7 @@ import {
   CalendarMonth as CalendarMonthIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
 import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
@@ -100,7 +100,6 @@ const SLUG_TO_TAB: Record<string, number> = { ...Object.fromEntries(Object.entri
 
 export default function PersonProfilePage() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { showSnackbar } = useSnackbar()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -506,12 +505,6 @@ export default function PersonProfilePage() {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Button startIcon={<ArrowBack />} onClick={() => navigate('/people')} sx={{ color: '#6B7280', textTransform: 'none', fontWeight: 600 }}>
-          Back to People
-        </Button>
-      </Stack>
-
       {/* Profile Header */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2.5, border: '1px solid #E5E7EB', background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} spacing={2}>

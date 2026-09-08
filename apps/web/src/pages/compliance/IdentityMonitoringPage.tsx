@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Stack, IconButton, Tooltip, Card, CardContent, TablePagination, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Alert, CircularProgress } from '@mui/material'
-import { Refresh as RefreshIcon, NotificationsActive as RemindIcon, Download as DownloadIcon, Upload as UploadIcon, ArrowBack as ArrowBackIcon, Autorenew as RenewIcon, CheckCircle as RenewDoneIcon } from '@mui/icons-material'
+import { Refresh as RefreshIcon, NotificationsActive as RemindIcon, Download as DownloadIcon, Upload as UploadIcon, Autorenew as RenewIcon, CheckCircle as RenewDoneIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 
 const IDENTITY_TYPES = ['DBS', 'PASSPORT', 'VISA', 'RIGHT_TO_WORK']
@@ -16,7 +15,6 @@ const typeLabels: Record<string, string> = {
 }
 
 export default function IdentityMonitoringPage() {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(0)
   const [rowsPerPage] = useState(10)
@@ -158,9 +156,6 @@ export default function IdentityMonitoringPage() {
 
   return (
     <Box>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/compliance')} sx={{ mb: 2, color: '#0F4C81', fontWeight: 600 }}>
-        Back to Compliance Dashboard
-      </Button>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4">DBS & Identity Monitoring</Typography>
         <Stack direction="row" spacing={1}>

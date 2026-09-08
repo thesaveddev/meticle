@@ -1,13 +1,10 @@
 import { useState } from 'react'
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Stack, TablePagination, CircularProgress, Alert } from '@mui/material'
-import { ArrowBack as BackIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
 
 export default function ComplianceRecordsPage() {
-  const navigate = useNavigate()
   const qc = useQueryClient()
   const { showSnackbar } = useSnackbar()
   const [page, setPage] = useState(0)
@@ -34,9 +31,6 @@ export default function ComplianceRecordsPage() {
 
   return (
     <Box>
-      <Button startIcon={<BackIcon />} onClick={() => navigate('/compliance')} sx={{ mb: 2, color: '#0F4C81', fontWeight: 600 }}>
-        Back to Compliance
-      </Button>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight={800}>Compliance Records</Typography>
         <Button variant="outlined" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}

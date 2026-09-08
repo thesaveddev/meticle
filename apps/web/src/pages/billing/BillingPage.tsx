@@ -33,7 +33,9 @@ function StripeCardForm({ cardholderName, setCardholderName, onSuccess }: {
   const [processing, setProcessing] = useState(false)
 
   const handleStripeSubmit = async () => {
-    if (!stripe || !elements) return
+    if (!stripe || !elements) { setError('Stripe is still loading — please wait a moment and try again.'); return }
+    const cardElement = elements.getElement(CardElement)
+    if (!cardElement) { setError('Please enter your card details.'); return }
     setProcessing(true); setError('')
     try {
       const { data } = await api.post('/billing/create-setup-intent')
@@ -42,7 +44,7 @@ function StripeCardForm({ cardholderName, setCardholderName, onSuccess }: {
         setProcessing(false)
         return
       }
-      const result = await stripe.confirmCardSetup(data.clientSecret, {          payment_method: { card: elements.getElement(CardElement)!, billing_details: { name: cardholderName || undefined } },
+      const result = await stripe.confirmCardSetup(data.clientSecret, {          payment_method: { card: cardElement, billing_details: { name: cardholderName || undefined } },
       })
       if (result.error) { setError(result.error.message || 'Failed'); setProcessing(false) }
       else {
@@ -227,11 +229,14 @@ function BillingPageInner() {
     if (!selectedPlan) return
     setUpdating(true); setConfirmOpen(false)
     try {
-      await api.patch('/billing/subscription', { plan: selectedPlan })
-      setMessage(`Plan updated to ${PLANS.find(p => p.id === selectedPlan)?.name}.`)
+      const { data } = await api.patch('/billing/subscription', { plan: selectedPlan })
+      setMessage(data?.message || `Plan updated to ${PLANS.find(p => p.id === selectedPlan)?.name}.`)
       loadBillingData()
-    } catch { setMessage('Failed to update plan.') }
-    finally { setUpdating(false); setSelectedPlan(null) }
+      window.dispatchEvent(new Event('subscriptionUpdated'))
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to update plan.'
+      setMessage(msg)
+    } finally { setUpdating(false); setSelectedPlan(null) }
   }
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
@@ -259,19 +264,7 @@ function BillingPageInner() {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}>Billing</Typography>
-        {isActive && (
-          <Button
-            variant="text"
-            size="small"
-            onClick={() => window.location.href = '/'}
-            sx={{ textTransform: 'none', color: '#6B7280' }}
-          >
-            ← Back to dashboard
-          </Button>
-        )}
-      </Stack>
+      <Typography variant="h4" sx={{ fontWeight: 800, mb: 4 }}>Billing</Typography>
 
       {subscription?.stripeUnavailable && (
         <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }}>
@@ -303,7 +296,7 @@ function BillingPageInner() {
               <Typography variant="body2" color="#991B1B">
                 {subStatus === 'past_due' || subscription?.hasUnpaidInvoice
                   ? 'There is an unpaid invoice. Update your payment method and retry to restore access.'
-                  : 'Add a payment card and renew your plan to restore full access to Meticle.'}
+                  : 'Add a payment card and switch your plan to restore full access to Meticle.'}
               </Typography>
               {subscription?.hasUnpaidInvoice && (
                 <Typography variant="caption" color="#B91C1C" sx={{ mt: 0.5, display: 'block' }}>
@@ -357,7 +350,7 @@ function BillingPageInner() {
                 sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A66' }, textTransform: 'none', fontWeight: 700 }}
                 onClick={() => handleUpgradeClick(subscription?.plan || 'starter')}
               >
-                {updating ? <CircularProgress size={18} color="inherit" /> : (subStatus === 'canceled' ? 'Renew Subscription' : subStatus === 'trial' ? 'Subscribe Now' : 'Renew Now')}
+                {updating ? <CircularProgress size={18} color="inherit" /> : (subStatus === 'canceled' ? 'Switch and Renew' : subStatus === 'trial' ? 'Subscribe Now' : 'Switch and Renew')}
               </Button>
             </Stack>
           </Stack>
@@ -389,11 +382,16 @@ function BillingPageInner() {
         </Grid>
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
-            <Typography variant="body2" color="#6B7280">Next Billing Date</Typography>
+            <Typography variant="body2" color="#6B7280">{!isActive ? 'Expired On' : 'Next Billing Date'}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 800 }}>
-              {(subscription?.currentPeriodEnd || subscription?.trialEndsAt)
-                ? new Date(subscription.currentPeriodEnd || subscription.trialEndsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                : '—'}
+              {!isActive
+                ? (subscription?.trialEndsAt || subscription?.currentPeriodEnd)
+                  ? new Date(subscription.trialEndsAt || subscription.currentPeriodEnd!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : '—'
+                : (subscription?.currentPeriodEnd || subscription?.trialEndsAt)
+                  ? new Date(subscription.currentPeriodEnd || subscription.trialEndsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : '—'
+              }
             </Typography>
           </Paper>
         </Grid>
@@ -453,7 +451,7 @@ function BillingPageInner() {
                 <Button fullWidth variant={subscription?.plan === plan.id && isActive ? 'outlined' : 'contained'}
                   disabled={(subscription?.plan === plan.id && isActive) || updating}
                   onClick={() => handleUpgradeClick(plan.id)} sx={{ py: 1.5, fontWeight: 800 }}>
-                  {subscription?.plan === plan.id && isActive ? 'Current Plan' : !isActive ? (updating ? 'Renewing...' : 'Renew') : updating ? 'Updating...' : 'Select Plan'}
+                  {subscription?.plan === plan.id && isActive ? 'Current Plan' : !isActive ? (updating ? 'Switching...' : 'Switch and Renew') : updating ? 'Updating...' : 'Switch Plan'}
                 </Button>
               </Box>
             </Card>
@@ -512,15 +510,23 @@ function BillingPageInner() {
 
       {/* Upgrade Confirmation */}
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Change Plan</DialogTitle>
+        <DialogTitle>{!isActive ? 'Switch and Renew' : subscription?.plan && selectedPlan !== subscription.plan ? 'Switch Plan' : 'Change Plan'}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="#6B7280">
-            Switch to <strong>{PLANS.find(p => p.id === selectedPlan)?.name}</strong> plan?
+            {!isActive
+              ? <>Switch to <strong>{PLANS.find(p => p.id === selectedPlan)?.name}</strong> plan and renew your subscription?</>
+              : <>Switch to <strong>{PLANS.find(p => p.id === selectedPlan)?.name}</strong> plan?</>
+            }
           </Typography>
+          {!isActive && paymentMethods.length === 0 && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              No payment card on file. Please add a card before renewing.
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-          <Button onClick={handleConfirmUpgrade} variant="contained" disabled={updating}>{updating ? 'Updating...' : 'Confirm'}</Button>
+          <Button onClick={handleConfirmUpgrade} variant="contained" disabled={updating || (!isActive && paymentMethods.length === 0)}>{updating ? 'Updating...' : (!isActive ? 'Switch and Renew' : 'Confirm')}</Button>
         </DialogActions>
       </Dialog>
     </Box>

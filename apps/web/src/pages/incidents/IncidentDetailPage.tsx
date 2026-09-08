@@ -7,7 +7,7 @@ import {
   Divider, Autocomplete, LinearProgress,
 } from '@mui/material'
 import {
-  ArrowBack, Add as AddIcon, CheckCircle as CheckIcon,
+  Add as AddIcon, CheckCircle as CheckIcon,
   Delete as DeleteIcon, Edit as EditIcon,
   OpenInNew as OpenInNewIcon, UploadFile as UploadFileIcon,
   SmartToy as AIIcon, Schedule as OverdueIcon, Event as TimelineIcon,
@@ -157,11 +157,6 @@ export default function IncidentDetailPage() {
   return (
     <Box>
       {/* Header */}
-      <Button startIcon={<ArrowBack />} onClick={() => navigate('/incidents')}
-        sx={{ mb: 1, color: 'text.secondary', textTransform: 'none', fontWeight: 600 }}>
-        Back to Incidents
-      </Button>
-
       <PageHeader
         title={incident.title}
         actions={

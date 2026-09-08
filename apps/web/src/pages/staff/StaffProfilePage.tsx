@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import {
   Box, Typography, Paper, Stack, Chip, CircularProgress,
   Button, LinearProgress, Table, TableBody,
@@ -10,7 +10,7 @@ import {
   Tabs, Tab, Divider, ToggleButton, ToggleButtonGroup,
 } from '@mui/material'
 import {
-  ArrowBack as ArrowBackIcon, Edit as EditIcon, Save as SaveIcon,
+  Edit as EditIcon, Save as SaveIcon,
   UploadFile as UploadFileIcon, Link as LinkIcon, Close as CloseIcon,
   Add as AddIcon, Person as PersonIcon, Verified as VerifiedIcon,
   AssignmentTurnedIn as AssignmentTurnedInIcon, Security as SecurityIcon,
@@ -74,7 +74,6 @@ const TAB_ACCESS = 'access'
 
 export default function StaffProfilePage() {
   const { userId } = useParams<{ userId: string }>()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState(TAB_OVERVIEW)
   const [editOpen, setEditOpen] = useState(false)
@@ -286,7 +285,6 @@ export default function StaffProfilePage() {
   if (!memberData && !complianceData) {
     return (
       <Box>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/staff')} sx={{ mb: 2, color: NAVY, fontWeight: 700 }}>Back to Staff Directory</Button>
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
           <Typography color="#9CA3AF">Staff member not found.</Typography>
         </Paper>
@@ -316,10 +314,6 @@ export default function StaffProfilePage() {
 
   return (
     <Box>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/staff')} sx={{ mb: 2.5, color: NAVY, fontWeight: 700 }}>
-        Back to Staff Directory
-      </Button>
-
       {saved && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSaved(false)}>Profile updated successfully.</Alert>}
 
       <Paper sx={{ borderRadius: 2, overflow: 'hidden', mb: 3 }}>

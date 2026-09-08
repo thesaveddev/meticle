@@ -8,7 +8,7 @@ import {
   Select, MenuItem, IconButton, TablePagination,
 } from '@mui/material'
 import {
-  ArrowBack as ArrowBackIcon, Business as BuildingIcon,
+  Business as BuildingIcon,
   WarningAmber as WarningAmberIcon, Add as AddIcon, Edit as EditIcon,
   Delete as DeleteIcon, Badge as BadgeIcon, Verified as VerifiedIcon,
   UploadFile as UploadFileIcon, OpenInNew as OpenInNewIcon,
@@ -286,7 +286,6 @@ export default function LocationDetailPage() {
   if (!location) {
     return (
       <Box>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/locations')} sx={{ mb: 2, color: NAVY, fontWeight: 700 }}>Back to Locations</Button>
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
           <Typography color="#9CA3AF">Location not found.</Typography>
         </Paper>
@@ -313,10 +312,6 @@ export default function LocationDetailPage() {
 
   return (
     <Box>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/locations')} sx={{ mb: 2.5, color: NAVY, fontWeight: 700 }}>
-        Back to Locations
-      </Button>
-
       <Paper sx={{ borderRadius: 2, overflow: 'hidden', mb: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ p: 3.5, alignItems: { xs: 'flex-start', sm: 'center' } }}>
           <Box sx={{ width: 72, height: 72, borderRadius: 2, bgcolor: '#0F4C8110', color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

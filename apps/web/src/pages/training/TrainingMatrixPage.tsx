@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Box, Typography, Tabs, Tab, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, TablePagination, Tooltip, IconButton, CircularProgress, Alert, Card, CardContent, Grid } from '@mui/material'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ArrowBack as ArrowBackIcon, TrendingUp as TrendingUpIcon, AutoFixHigh as AutoAssignIcon } from '@mui/icons-material'
-import { useNavigate } from 'react-router-dom'
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, TrendingUp as TrendingUpIcon, AutoFixHigh as AutoAssignIcon } from '@mui/icons-material'
 import api from '../../services/api'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import EmptyState from '../../components/EmptyState'
@@ -10,13 +9,9 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer,
 const CATEGORIES = ['Mandatory', 'Clinical', 'Safeguarding', 'Health & Safety', 'Fire Safety', 'Infection Control', 'Manual Handling', 'Food Hygiene', 'Medication', 'First Aid', 'Dementia', 'Autism', 'Mental Health', 'Other']
 
 export default function TrainingMatrixPage() {
-  const navigate = useNavigate()
   const [tab, setTab] = useState(0)
   return (
     <Box>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/compliance')} sx={{ mb: 2, color: '#0F4C81', fontWeight: 600 }}>
-        Back to Compliance Dashboard
-      </Button>
       <Typography variant="h4" sx={{ mb: 4 }}>Training Compliance Matrix</Typography>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
         <Tab label="Dashboard" icon={<TrendingUpIcon />} iconPosition="start" />

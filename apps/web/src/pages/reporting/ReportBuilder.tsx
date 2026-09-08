@@ -214,7 +214,7 @@ export default function ReportBuilder() {
   }
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
-  if (!meta) return <Box><Alert severity="error" sx={{ mb: 2 }}>{error || 'Report not found'}</Alert><Button startIcon={<BackIcon />} onClick={() => navigate('/reports')}>Back to reports</Button></Box>
+  if (!meta) return <Box><Alert severity="error" sx={{ mb: 2 }}>{error || 'Report not found'}</Alert></Box>
 
   return (
     <Box>
