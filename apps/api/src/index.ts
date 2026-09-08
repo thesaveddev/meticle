@@ -473,7 +473,7 @@ databaseReadyPromise.then(() => setTimeout(() => {
   setInterval(() => {
     checkSubscriptionExpirations().catch(err => logger.error(err, 'Subscription reminder check failed'));
     checkInvoiceReminders().catch(err => logger.error(err, 'Invoice reminder check failed'));
-  }, 12 * 60 * 60 * 1000);
+  }, 6 * 60 * 60 * 1000);
 }, 15_000));
 
 // Daily shift audit — send location managers a summary email at 7pm (19:00)
