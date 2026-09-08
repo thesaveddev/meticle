@@ -350,7 +350,7 @@ function BillingPageInner() {
                 sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A66' }, textTransform: 'none', fontWeight: 700 }}
                 onClick={() => handleUpgradeClick(subscription?.plan || 'starter')}
               >
-                {updating ? <CircularProgress size={18} color="inherit" /> : (subStatus === 'canceled' ? 'Switch and Renew' : subStatus === 'trial' ? 'Subscribe Now' : 'Switch and Renew')}
+                {updating ? <CircularProgress size={18} color="inherit" /> : (subStatus === 'canceled' ? 'Renew Subscription' : subStatus === 'trial' ? 'Subscribe Now' : 'Renew Now')}
               </Button>
             </Stack>
           </Stack>
