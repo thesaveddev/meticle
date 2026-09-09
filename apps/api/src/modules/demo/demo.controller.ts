@@ -36,26 +36,25 @@ export async function demoAccess(req: Request, res: Response) {
       [orgId, orgName, new Date(Date.now() + 365 * 86400000).toISOString()]
     );
 
-    // Create headquarters location
-    const locId = uuid();
-    await migrateQuery(
-      `INSERT INTO locations (id, organization_id, name, address, minimum_staff_per_day)
-       VALUES ($1, $2, 'MeticleCare House', '10 Downing Street, London SW1A 2AA', 3)`,
-      [locId, orgId]
-    );
-
-    // Create departments
-    const deptIds = [uuid(), uuid(), uuid()];
-    await migrateQuery(`INSERT INTO departments (id, location_id, name) VALUES ($1, $2, 'Clinical Services')`, [deptIds[0], locId]);
-    await migrateQuery(`INSERT INTO departments (id, location_id, name) VALUES ($1, $2, 'Residential Care')`, [deptIds[1], locId]);
-    await migrateQuery(`INSERT INTO departments (id, location_id, name) VALUES ($1, $2, 'Administration')`, [deptIds[2], locId]);
-
-    // Seed demo data
-    await seedDemoData(orgId, locId, deptIds);
+    // Create headquarters location and departments, then seed
+    const setupResult = await setupDemoLocation(orgId);
+    await seedDemoData(orgId, setupResult.locId, setupResult.deptIds);
     demoSeeded = true;
   } else {
     orgId = orgResult.rows[0].id;
     orgName = orgResult.rows[0].name;
+
+    // Check if demo data needs seeding (org exists but is empty)
+    const peopleCount = await migrateQuery(
+      `SELECT COUNT(*)::int AS count FROM people WHERE organization_id = $1`,
+      [orgId]
+    );
+
+    if ((peopleCount.rows[0]?.count ?? 0) === 0) {
+      const setupResult = await setupDemoLocation(orgId);
+      await seedDemoData(orgId, setupResult.locId, setupResult.deptIds);
+      demoSeeded = true;
+    }
   }
 
   // Find or create demo user
@@ -120,6 +119,46 @@ export async function demoAccess(req: Request, res: Response) {
     isDemo: true,
     message: 'Welcome to the MeticleCare demo! This is a read-only sandbox with sample data.',
   });
+}
+
+/**
+ * Create the demo location and departments if they don't exist.
+ */
+async function setupDemoLocation(orgId: string): Promise<{ locId: string; deptIds: string[] }> {
+  let locResult = await migrateQuery(
+    `SELECT id FROM locations WHERE organization_id = $1 LIMIT 1`,
+    [orgId]
+  );
+
+  let locId: string;
+  if (locResult.rows.length === 0) {
+    locId = uuid();
+    await migrateQuery(
+      `INSERT INTO locations (id, organization_id, name, address, minimum_staff_per_day)
+       VALUES ($1, $2, 'MeticleCare House', '10 Downing Street, London SW1A 2AA', 3)`,
+      [locId, orgId]
+    );
+  } else {
+    locId = locResult.rows[0].id;
+  }
+
+  let deptResult = await migrateQuery(
+    `SELECT id FROM departments WHERE location_id = $1 LIMIT 1`,
+    [locId]
+  );
+
+  const deptIds: string[] = [];
+  if (deptResult.rows.length === 0) {
+    for (const name of ['Clinical Services', 'Residential Care', 'Administration']) {
+      const did = uuid();
+      await migrateQuery(`INSERT INTO departments (id, location_id, name) VALUES ($1, $2, $3)`, [did, locId, name]);
+      deptIds.push(did);
+    }
+  } else {
+    for (const row of deptResult.rows) deptIds.push(row.id);
+  }
+
+  return { locId, deptIds };
 }
 
 /**
