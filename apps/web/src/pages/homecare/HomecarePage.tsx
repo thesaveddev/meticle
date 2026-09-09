@@ -76,7 +76,6 @@ export default function HomecarePage() {
     window.addEventListener('offline', offline)
     void syncQueue()
     return () => { window.removeEventListener('online', online); window.removeEventListener('offline', offline) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const execute = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: 'check-in' | 'check-out' }) => {
