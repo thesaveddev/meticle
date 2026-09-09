@@ -53,6 +53,9 @@ const ShiftMarketplacePage = lazy(() => import('./pages/shift-marketplace/ShiftM
 const AgenciesPage = lazy(() => import('./pages/agencies/AgenciesPage'))
 const ExpensesPage = lazy(() => import('./pages/expenses/ExpensesPage'))
 const HomecarePage = lazy(() => import('./pages/homecare/HomecarePage'))
+const MileagePage = lazy(() => import('./pages/homecare/MileagePage'))
+const CallSchedulingPage = lazy(() => import('./pages/homecare/CallSchedulingPage'))
+const PayrollExportPage = lazy(() => import('./pages/homecare/PayrollExportPage'))
 const PersonDirectoryPage = lazy(() => import('./pages/people/PersonDirectoryPage'))
 const PersonProfilePage = lazy(() => import('./pages/people/PersonProfilePage'))
 const IncidentDirectoryPage = lazy(() => import('./pages/incidents/IncidentDirectoryPage'))
@@ -157,6 +160,9 @@ function App() {
           <Route path="/agencies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="agencies"><AgenciesPage /></ModuleGuard></AuthGuard>} />
           <Route path="/expenses" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="expenses"><ExpensesPage /></ModuleGuard></AuthGuard>} />
           <Route path="/homecare" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="homecare"><HomecarePage /></ModuleGuard></AuthGuard>} />
+          <Route path="/mileage" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="mileage_travel"><MileagePage /></ModuleGuard></AuthGuard>} />
+          <Route path="/call-scheduling" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="call_scheduling"><CallSchedulingPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/payroll-export" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="payroll_export"><PayrollExportPage /></ModuleGuard></AuthGuard>} />
           <Route path="/people" element={<ModuleGuard module="people"><PersonDirectoryPage /></ModuleGuard>} />
           <Route path="/people/:id" element={<ModuleGuard module="people"><PersonProfilePage /></ModuleGuard>} />
           <Route path="/incidents" element={<ModuleGuard module="incidents"><IncidentDirectoryPage /></ModuleGuard>} />
