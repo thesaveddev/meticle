@@ -33,6 +33,7 @@ import invitationRoutes from './modules/organization/organization.routes';
 import mfaRoutes from './modules/mfa/mfa.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import notificationRoutes from './modules/notifications/notifications.routes';
+import pushRoutes from './modules/notifications/push.routes';
 import permissionRoutes from './modules/permissions/permissions.routes';
 import leaveRoutes from './modules/leave/leave.routes';
 import chatRoutes from './modules/chat/chat.routes';
@@ -66,6 +67,7 @@ import contactRoutes from './modules/contact/contact.routes';
 import eventRoutes from './modules/events/events.routes';
 import missionControlRoutes from './modules/mission-control/mission-control.routes';
 import demoRoutes from './modules/demo/demo.routes';
+import homecareRoutes from './modules/homecare/homecare.routes';
 import { BillingController } from './modules/billing/billing.controller';
 import { ComplianceController } from './modules/compliance/compliance.controller';
 import { ComplianceNotificationService } from './modules/compliance/compliance.notifications';
@@ -233,6 +235,7 @@ app.use('/people', personRoutes);
 app.use('/incidents', incidentRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/notifications', notificationRoutes);
+app.use('/notifications/push', pushRoutes);
 app.use('/permissions', permissionRoutes);
 app.use('/training', trainingRoutes);
 app.use('/competency', competencyRoutes);
@@ -311,6 +314,7 @@ app.use('/shift-audit', shiftAuditRoutes);
 app.use('/events', eventRoutes);
 app.use('/contact', contactRoutes); // public — website contact form
 app.use('/demo', demoRoutes); // public — demo account access
+app.use('/homecare', homecareRoutes); // Phase 2 domiciliary-care operations
 
 // Prometheus metrics — restricted to localhost/internal IPs in production
 app.get('/metrics', asyncHandler(async (req: Request, res: Response) => {
@@ -406,7 +410,13 @@ databaseReadyPromise.then(() => setTimeout(() => {
 
 // Run shift-start notifications every 5 minutes
 import { SchedulingNotificationService } from './modules/scheduling/scheduling.notifications';
+import { runHomecareVisitReminders } from './modules/homecare/homecare.reminders';
 const SHIFT_START_NOTIFICATION_INTERVAL = 5 * 60 * 1000; // 5 minutes
+setInterval(() => {
+  if (!databaseReady) return;
+  runHomecareVisitReminders().catch(err => logger.error(err, 'Homecare visit reminder check failed'));
+}, 5 * 60 * 1000);
+
 setInterval(() => {
   if (!databaseReady) return;
   SchedulingNotificationService.sendShiftStartNotifications()

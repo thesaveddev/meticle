@@ -240,6 +240,15 @@ export class EmailService {
         { label: 'Open Meticle', url: `${baseUrl()}/leave` }));
   }
 
+  // ── Homecare ──
+  static async sendHomecareVisitReminderEmail(email: string, carerName: string, personName: string, visitLabel: string, startTime: string) {
+    await sendMail(email, `Upcoming homecare visit — ${visitLabel}`,
+      buildEmailHtml('Upcoming Visit', `Hi ${carerName || 'there'},`,
+        `<p>Your <strong>${visitLabel}</strong> visit with <strong>${personName}</strong> starts at <strong>${fmtTime(startTime)}</strong>.</p>` +
+        `<p>Please allow enough time to travel to the client and use the app to check in when you arrive.</p>`,
+        { label: 'Open my visits', url: `${baseUrl()}/homecare` }), 'notifications');
+  }
+
   // ── Shifts ──
   static async sendShiftStartEmail(staffEmail: string, staffName: string, date: string, shifts: any[], people?: any[], incidents?: any[], appointments?: any[]) {
     const shiftRows = shifts.map((s: any) => {

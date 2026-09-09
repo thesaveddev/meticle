@@ -178,7 +178,7 @@ export async function runWinbackCampaign() {
   // Find all expired organizations whose data hasn't been deleted yet
   const orgs = await migrateQuery(
     `SELECT o.id, o.name as org_name, o.subscription_status, o.trial_ends_at, o.current_period_end,
-            o.data_retention_days, o.data_deleted_at,
+            COALESCE(o.data_retention_days, 90) as data_retention_days, o.data_deleted_at,
             (SELECT COUNT(*) FROM payment_methods WHERE organization_id = o.id) as card_count
      FROM organizations o
      WHERE o.subscription_status = 'expired'

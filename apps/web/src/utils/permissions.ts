@@ -18,6 +18,7 @@ const MODULE_LABELS: Record<string, string> = {
   tasks: 'Tasks',
   appointments: 'Appointments',
   expenses: 'Expenses',
+  homecare: 'Domiciliary Care',
   room_checks: 'Room Checks',
   settings: 'Settings',
   billing: 'Billing',

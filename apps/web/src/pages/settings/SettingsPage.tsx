@@ -29,6 +29,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
 import { useThemeMode, ZOOM_OPTIONS } from '../../context/ThemeContext'
+import { disablePushNotifications, enablePushNotifications, getPushState, type PushState } from '../../services/push'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -500,6 +501,7 @@ export default function SettingsPage() {
         </Stack>
       </Paper>
       <NotificationPreferencesSection />
+      <PushNotificationsSection />
       <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#DC2626' }}>Danger Zone</Typography>
         <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>Once you deactivate your account, you will not be able to log in again unless an administrator reactivates it.</Typography>
@@ -1955,6 +1957,44 @@ function IncidentCategoriesSettings() {
       </Dialog>
     </Box>
   )
+}
+
+function PushNotificationsSection() {
+  const [state, setState] = useState<PushState>('available')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const refresh = async () => {
+    try { setState(await getPushState()) } catch { setState('unsupported') }
+  }
+
+  useEffect(() => { void refresh() }, [])
+
+  const enable = async () => {
+    setBusy(true); setError('')
+    try { await enablePushNotifications(); await refresh() }
+    catch (err: any) { setError(err?.response?.data?.message || err?.message || 'Could not enable browser notifications.') }
+    finally { setBusy(false) }
+  }
+
+  const disable = async () => {
+    setBusy(true); setError('')
+    try { await disablePushNotifications(); await refresh() }
+    catch (err: any) { setError(err?.response?.data?.message || err?.message || 'Could not disable browser notifications.') }
+    finally { setBusy(false) }
+  }
+
+  return <Paper sx={{ p: 4 }}>
+    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}><NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Browser visit reminders</Typography>
+    <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+      Get a browser alert before an assigned domiciliary visit enters its travel window. Location permission is not required for notifications, and tracking is not continuous.
+    </Typography>
+    {state === 'subscribed' && <Alert severity="success" sx={{ mb: 2 }}>Browser reminders are enabled on this device.</Alert>}
+    {state === 'disabled' && <Alert severity="warning" sx={{ mb: 2 }}>Notifications are blocked in this browser. Allow them in the browser site settings, then try again.</Alert>}
+    {state === 'unsupported' && <Alert severity="info" sx={{ mb: 2 }}>This browser or device does not support web push notifications.</Alert>}
+    {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+    {state === 'subscribed' ? <Button variant="outlined" onClick={disable} disabled={busy}>{busy ? 'Updating…' : 'Disable on this device'}</Button> : state !== 'unsupported' && state !== 'disabled' && <Button variant="contained" onClick={enable} disabled={busy}>{busy ? 'Enabling…' : 'Enable browser reminders'}</Button>}
+  </Paper>
 }
 
 function NotificationPreferencesSection() {

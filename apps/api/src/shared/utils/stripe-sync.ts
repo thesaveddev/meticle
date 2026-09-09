@@ -106,9 +106,9 @@ export async function syncStripeSubscriptionStatus(): Promise<{ synced: number; 
         await migrateQuery(
           `UPDATE organizations SET
              subscription_status = COALESCE($1, subscription_status),
-             current_period_end = COALESCE($2, current_period_end),
-             trial_ends_at = COALESCE($3, trial_ends_at),
-             grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5 ELSE NULL END
+             current_period_end = COALESCE($2::timestamptz, current_period_end),
+             trial_ends_at = COALESCE($3::timestamptz, trial_ends_at),
+             grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5::timestamptz ELSE NULL END
            WHERE id = $4`,
           [
             statusChanged ? newStatus : null,
