@@ -56,9 +56,21 @@ One honest, connected platform for UK care operations, grounded in the records t
 - Real backend data models across all 37 modules (no fabricated metrics; KPIs computed from live data).
 - CI: GitHub Actions lint + typecheck + test + build.
 
-## Domiciliary care package — Phase 2
+## Multi-service care platform — Phase 2
 
-MeticleCare is extending from supported living into community-based care delivered in a person's own home. The first sellable slice is intentionally operational rather than promotional: package definition, scheduled calls, assigned carers, point-of-care visit execution, travel/mileage capture, and manager-approved payroll inputs.
+MeticleCare is evolving from a supported-living-only platform into a multi-service care management system. At sign-up, organisations select their care type(s) — supported living, domiciliary care, care home, or live-in care — and the platform adapts its modules, navigation, onboarding, and pricing accordingly. Each location within an organisation can have its own service type, allowing mixed-service providers to manage everything from one platform.
+
+### Organisation type-aware provisioning
+
+- **Sign-up**: New organisations select their care type(s) from a multi-select wizard.
+- **Onboarding**: Type-specific setup wizard (domiciliary gets package/call-pattern setup, residential gets room/bed setup, supported living gets staffing-ratio setup).
+- **Navigation**: Sidebar adapts to show only relevant modules (domiciliary orgs see homecare front-and-centre, residential orgs see eMedication and room checks).
+- **Dashboard**: Type-specific widgets (domiciliary: today's visits + exceptions; residential: bed occupancy + medication; supported living: staff overview + compliance).
+- **Pricing**: Per carer + per client/staff/bed, configurable by care type.
+
+### Domiciliary care package
+
+The first sellable domiciliary slice is intentionally operational rather than promotional: package definition, scheduled calls, assigned carers, point-of-care visit execution, travel/mileage capture, and manager-approved payroll inputs.
 
 ### Who this serves
 

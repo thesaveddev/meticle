@@ -243,4 +243,47 @@ export class DashboardRepository {
     `, [orgId]);
     return result.rows;
   }
+
+  static async getDomiciliarySummary(orgId: string) {
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+    const [visitsResult, exceptionsResult, packagesResult] = await Promise.all([
+      query(`
+        SELECT v.id, v.status, v.scheduled_start, v.scheduled_end, v.label,
+               pe.first_name || ' ' || pe.last_name AS person_name,
+               sp.first_name || ' ' || sp.last_name AS carer_name
+        FROM homecare_visits v
+        JOIN people pe ON pe.id = v.person_id
+        LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
+        WHERE v.organization_id = $1
+          AND v.scheduled_start >= $2
+          AND v.scheduled_start < $3
+        ORDER BY v.scheduled_start
+      `, [orgId, today, tomorrow]),
+      query(`
+        SELECT COUNT(*) AS exception_count
+        FROM homecare_visits
+        WHERE organization_id = $1
+          AND status IN ('late', 'missed', 'cancelled')
+          AND scheduled_start >= $2
+      `, [orgId, today]),
+      query(`
+        SELECT COUNT(*) AS package_count,
+               COUNT(*) FILTER (WHERE status = 'active') AS active_count
+        FROM homecare_packages
+        WHERE organization_id = $1
+      `, [orgId]),
+    ]);
+
+    return {
+      today_visits: visitsResult.rows,
+      today_exceptions: Number(exceptionsResult.rows[0]?.exception_count ?? 0),
+      today_total: visitsResult.rows.length,
+      today_completed: visitsResult.rows.filter((v: any) => v.status === 'completed').length,
+      today_in_progress: visitsResult.rows.filter((v: any) => v.status === 'checked_in' || v.status === 'en_route').length,
+      total_packages: Number(packagesResult.rows[0]?.package_count ?? 0),
+      active_packages: Number(packagesResult.rows[0]?.active_count ?? 0),
+    };
+  }
 }

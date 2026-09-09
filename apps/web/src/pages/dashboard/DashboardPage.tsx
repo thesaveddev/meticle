@@ -13,7 +13,6 @@ import {
   BadgeOutlined as BadgeIcon,
   SchoolOutlined as SchoolIcon,
   EventBusy as LeaveIcon,
-
   WarningAmber as WarningIcon,
   CreditCard as CreditCardIcon,
   LocationOn as LocationIcon,
@@ -22,6 +21,7 @@ import {
   Star as SatisfactionIcon,
   ReportProblem as IncidentIcon,
   TrendingDown as ComplianceDownIcon,
+
 } from '@mui/icons-material'
 import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
@@ -98,7 +98,9 @@ export default function DashboardPage() {
   const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening'
 
   const [org, setOrg] = useState<any>(null)
+  const [domiciliaryData, setDomiciliaryData] = useState<any>(null)
   const orgId = rawUser.organization_id || rawUser.organizationId
+  const serviceTypes: string[] = org?.service_types || ['supported_living']
   const [hideOnboarding, setHideOnboarding] = useState(() => {
     try { return orgId ? localStorage.getItem(ONBOARDING_STEPS_BY_KEY + orgId) === 'true' : false } catch { return false }
   })
@@ -138,6 +140,11 @@ export default function DashboardPage() {
           setTodayRota(rotaRes.data)
           setWidgets(widgetsRes.data)
           setTodayAppointments(aptRes.data)
+          // Fetch domiciliary-specific data if the org provides domiciliary care
+          const types = orgRes.data?.service_types || []
+          if (types.includes('domiciliary') || types.includes('live_in')) {
+            api.get('/dashboard/domiciliary').then(res => setDomiciliaryData(res.data)).catch(() => {})
+          }
         }
       } catch {
         setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
@@ -252,6 +259,50 @@ export default function DashboardPage() {
           </Grid>
         ))}
       </Grid>
+
+      {/* Domiciliary Care Summary */}
+      {domiciliaryData && serviceTypes.includes('domiciliary') && (
+        <Paper elevation={0} sx={{ p: 3, mb: 4, border: '1px solid #E5E7EB', borderRadius: 2.5, borderLeft: '4px solid #10b981' }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#10b981' }}>Today's Domiciliary Care</Typography>
+            <Button size="small" endIcon={<ArrowIcon fontSize="small" />} onClick={() => navigate('/homecare')} sx={{ color: '#10b981', fontWeight: 700, textTransform: 'none' }}>
+              View Homecare
+            </Button>
+          </Stack>
+          <Grid container spacing={2}>
+            <Grid item xs={6} sm={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: '#10b981' }}>{domiciliaryData.today_total}</Typography>
+                <Typography variant="caption" color="#6B7280">Visits Today</Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: '#10b981' }}>{domiciliaryData.today_completed}</Typography>
+                <Typography variant="caption" color="#6B7280">Completed</Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: '#f59e0b' }}>{domiciliaryData.today_in_progress}</Typography>
+                <Typography variant="caption" color="#6B7280">In Progress</Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: domiciliaryData.today_exceptions > 0 ? '#DC2626' : '#10b981' }}>{domiciliaryData.today_exceptions}</Typography>
+                <Typography variant="caption" color="#6B7280">Exceptions</Typography>
+              </Box>
+            </Grid>
+          </Grid>
+          {domiciliaryData.today_total > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <LinearProgress variant="determinate" value={(domiciliaryData.today_completed / domiciliaryData.today_total) * 100} sx={{ height: 6, borderRadius: 3, bgcolor: '#E5E7EB', '& .MuiLinearProgress-bar': { bgcolor: '#10b981' } }} />
+              <Typography variant="caption" sx={{ color: '#6B7280', mt: 0.5, display: 'block' }}>{domiciliaryData.today_completed} of {domiciliaryData.today_total} visits completed</Typography>
+            </Box>
+          )}
+        </Paper>
+      )}
 
       {/* Widgets Row */}
       {!isStaff && widgets && (

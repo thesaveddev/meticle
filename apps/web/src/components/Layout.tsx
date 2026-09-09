@@ -78,8 +78,20 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const profilePic = rawUser?.profile_picture_url || ''
   const userInitial = rawUser?.first_name?.[0] || rawUser?.email?.[0] || '?'
 
-  interface NavItem { text: string; icon: JSX.Element; path: string; module: string; roles: UserRole[] }
+  interface NavItem { text: string; icon: JSX.Element; path: string; module: string; roles: UserRole[]; serviceTypes?: string[] }
   interface NavGroup { label: string; items: NavItem[] }
+
+  const [orgServiceTypes, setOrgServiceTypes] = useState<string[]>(['supported_living'])
+
+  useEffect(() => {
+    if (!rawUser.id) return
+    api.get('/settings/org').then(res => {
+      const types = res.data?.service_types
+      if (Array.isArray(types) && types.length > 0) {
+        setOrgServiceTypes(types)
+      }
+    }).catch(() => {}) // silently fail — default is supported_living
+  }, [rawUser.id])
 
   const menuGroups: NavGroup[] = [
     {
@@ -93,16 +105,16 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Care',
       items: [
         { text: 'People', icon: <PeopleIcon />, path: '/people', module: 'people', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Meal Plans', icon: <MealIcon />, path: '/meal-plans', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
+        { text: 'Meal Plans', icon: <MealIcon />, path: '/meal-plans', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
       ],
     },
     {
       label: 'Staffing',
       items: [
         { text: 'Staff Directory', icon: <PeopleIcon />, path: '/staff', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
-        { text: 'Rota Planner', icon: <ScheduleIcon />, path: '/scheduling', module: 'scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Rota Planner', icon: <ScheduleIcon />, path: '/scheduling', module: 'scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['supported_living', 'residential'] },
+        { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['supported_living', 'residential'] },
         { text: 'Agencies', icon: <BusinessIcon />, path: '/agencies', module: 'agencies', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
         { text: 'Leave Manager', icon: <LeaveIcon />, path: '/leave', module: 'leave', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Locations', icon: <LocationOnIcon />, path: '/locations', module: 'settings', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
@@ -129,7 +141,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'tasks', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'appointments', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'expenses', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Domiciliary care', icon: <HomecareIcon />, path: '/homecare', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Domiciliary care', icon: <HomecareIcon />, path: '/homecare', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
       ],
     },
   ]
@@ -145,7 +157,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     ...group,
     items: group.items.filter(item =>
       item.roles.includes(userRole) &&
-      (modulePermissions[item.module] || 'view') !== 'none'
+      (modulePermissions[item.module] || 'view') !== 'none' &&
+      (!item.serviceTypes || item.serviceTypes.some(t => orgServiceTypes.includes(t)))
     ),
   })).filter(group => group.items.length > 0)
   const filteredBottomItems = bottomItems.filter(item =>

@@ -39,4 +39,11 @@ export class DashboardController {
     const items = await DashboardRepository.getReviewScheduler(orgId);
     res.json(items);
   }
+
+  static async getDomiciliarySummary(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    if (!orgId) throw new AppError(403, 'Organization required');
+    const data = await DashboardRepository.getDomiciliarySummary(orgId);
+    res.json(data);
+  }
 }
