@@ -31,6 +31,7 @@ import {
   Radar as RadarIcon,
   Restaurant as MealIcon,
   HomeWork as HomecareIcon,
+  DirectionsCar as DirectionsCarIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
@@ -141,7 +142,15 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'tasks', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'appointments', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'expenses', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Domiciliary care', icon: <HomecareIcon />, path: '/homecare', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
+      ],
+    },
+    {
+      label: 'Homecare',
+      items: [
+        { text: 'Visits & Packages', icon: <HomecareIcon />, path: '/homecare', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
+        { text: 'Call Schedule', icon: <ScheduleIcon />, path: '/call-scheduling', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
+        { text: 'Mileage & Travel', icon: <DirectionsCarIcon />, path: '/mileage', module: 'mileage_travel', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
+        { text: 'Payroll Export', icon: <ReceiptIcon />, path: '/payroll-export', module: 'payroll_export', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
       ],
     },
   ]
