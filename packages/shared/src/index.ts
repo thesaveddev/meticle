@@ -28,6 +28,9 @@ export interface User {
   createdAt: Date;
 }
 
+export type HomecareVisitStatus = 'scheduled' | 'en_route' | 'checked_in' | 'completed' | 'missed' | 'cancelled';
+export type HomecarePackageStatus = 'draft' | 'active' | 'paused' | 'ended';
+
 export interface Organization {
   id: string;
   name: string;

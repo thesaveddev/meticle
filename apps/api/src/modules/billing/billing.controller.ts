@@ -83,9 +83,9 @@ export class BillingController {
           await pool.query(
             `UPDATE organizations SET
                subscription_status = COALESCE($1, subscription_status),
-               current_period_end = COALESCE($2, current_period_end),
-               trial_ends_at = $3,
-               grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5 ELSE NULL END
+               current_period_end = COALESCE($2::timestamptz, current_period_end),
+               trial_ends_at = $3::timestamptz,
+               grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5::timestamptz ELSE NULL END
              WHERE id = $4`,
             [stripeMapped, subPeriodEnd ? new Date(subPeriodEnd * 1000).toISOString() : null, subTrialEnd ? new Date(subTrialEnd * 1000).toISOString() : null, orgId, subPeriodEnd ? new Date((subPeriodEnd + 7 * 86400) * 1000).toISOString() : null]
           );
@@ -217,9 +217,9 @@ export class BillingController {
               await pool.query(
                 `            UPDATE organizations SET
                    subscription_status = COALESCE($1, subscription_status),
-                   current_period_end = COALESCE($2, current_period_end),
-                   trial_ends_at = $3,
-                   grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5 ELSE NULL END
+                   current_period_end = COALESCE($2::timestamptz, current_period_end),
+                   trial_ends_at = $3::timestamptz,
+                   grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5::timestamptz ELSE NULL END
                  WHERE id = $4`,
                 [mapped, (sub as any).current_period_end ? new Date((sub as any).current_period_end * 1000).toISOString() : null, (sub as any).trial_end ? new Date((sub as any).trial_end * 1000).toISOString() : null, orgId, (sub as any).current_period_end ? new Date(((sub as any).current_period_end + 7 * 86400) * 1000).toISOString() : null]
               );

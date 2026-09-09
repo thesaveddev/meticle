@@ -1,0 +1,421 @@
+import { query, transaction } from '../../shared/database';
+import { AppError } from '../../shared/middleware/error.middleware';
+import { HomecarePackageInput, HomecareVisitInput, HomecareVisitPlanInput, HomecareVisitUpdateInput, VisitExecutionInput, HomecareTimesheetUpdateInput, HomecareExceptionInput, PayrollExportFilters } from './homecare.types';
+
+const PACKAGE_SELECT = `
+  SELECT p.*, pe.first_name || ' ' || pe.last_name AS person_name
+  FROM homecare_packages p
+  JOIN people pe ON pe.id = p.person_id
+`;
+
+const VISIT_SELECT = `
+  SELECT v.*, pe.first_name || ' ' || pe.last_name AS person_name,
+    sp.first_name || ' ' || sp.last_name AS assigned_staff_name,
+    l.address AS person_address
+  FROM homecare_visits v
+  JOIN people pe ON pe.id = v.person_id
+  LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
+  LEFT JOIN locations l ON l.id = pe.location_id
+`;
+
+async function assertPackage(packageId: string, orgId: string) {
+  const result = await query('SELECT * FROM homecare_packages WHERE id = $1 AND organization_id = $2', [packageId, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Care package not found');
+  return result.rows[0];
+}
+
+async function assertPerson(personId: string, orgId: string) {
+  const result = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [personId, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Person not found');
+}
+
+async function assertStaff(staffId: string | null | undefined, orgId: string) {
+  if (!staffId) return;
+  const result = await query(`SELECT sp.id FROM staff_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.id = $1 AND u.organization_id = $2 AND u.status = 'active'`, [staffId, orgId]);
+  if (!result.rows[0]) throw new AppError(400, 'Assigned carer is not an active member of this organisation');
+}
+
+export async function listPackages(orgId: string) {
+  const result = await query(`${PACKAGE_SELECT} WHERE p.organization_id = $1 ORDER BY p.status, p.start_date DESC, p.created_at DESC`, [orgId]);
+  return result.rows;
+}
+
+export async function createPackage(orgId: string, userId: string, input: HomecarePackageInput) {
+  await assertPerson(input.person_id, orgId);
+  const result = await query(`INSERT INTO homecare_packages (organization_id, person_id, name, status, funding_type, start_date, end_date, weekly_hours, hourly_rate_pence, travel_time_paid, mileage_rate_pence, notes, created_by)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`, [orgId, input.person_id, input.name, input.status || 'draft', input.funding_type || 'private', input.start_date, input.end_date || null, input.weekly_hours ?? null, input.hourly_rate_pence ?? null, input.travel_time_paid ?? true, input.mileage_rate_pence ?? null, input.notes || null, userId]);
+  return result.rows[0];
+}
+
+export async function updatePackage(orgId: string, packageId: string, input: Partial<HomecarePackageInput>) {
+  await assertPackage(packageId, orgId);
+  const allowed = ['name','status','funding_type','start_date','end_date','weekly_hours','hourly_rate_pence','travel_time_paid','mileage_rate_pence','notes'];
+  const entries = Object.entries(input).filter(([key]) => allowed.includes(key));
+  if (!entries.length) return (await query(`${PACKAGE_SELECT} WHERE p.id = $1 AND p.organization_id = $2`, [packageId, orgId])).rows[0];
+  const values = entries.map(([, value]) => value);
+  const set = entries.map(([key], index) => `${key} = $${index + 1}`).join(', ');
+  const result = await query(`UPDATE homecare_packages SET ${set}, updated_at = NOW() WHERE id = $${values.length + 1} AND organization_id = $${values.length + 2} RETURNING *`, [...values, packageId, orgId]);
+  return result.rows[0];
+}
+
+export async function listStaff(orgId: string) {
+  return (await query(`SELECT sp.id, sp.first_name, sp.last_name, sp.user_id
+    FROM staff_profiles sp JOIN users u ON u.id = sp.user_id
+    WHERE u.organization_id = $1 AND u.status = 'active' AND u.role = 'CARE_WORKER'
+    ORDER BY sp.first_name, sp.last_name`, [orgId])).rows;
+}
+
+export async function listVisitPlans(orgId: string, packageId: string) {
+  await assertPackage(packageId, orgId);
+  return (await query('SELECT * FROM homecare_visit_plans WHERE organization_id = $1 AND package_id = $2 ORDER BY start_time, label', [orgId, packageId])).rows;
+}
+
+export async function createVisitPlan(orgId: string, input: HomecareVisitPlanInput) {
+  await assertPackage(input.package_id, orgId);
+  await assertStaff(input.default_staff_id, orgId);
+  const result = await query(`INSERT INTO homecare_visit_plans (organization_id, package_id, visit_type, label, days_of_week, start_time, duration_minutes, travel_buffer_minutes, required_skills, default_staff_id)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`, [orgId, input.package_id, input.visit_type, input.label, input.days_of_week, input.start_time, input.duration_minutes, input.travel_buffer_minutes ?? 15, input.required_skills || [], input.default_staff_id || null]);
+  return result.rows[0];
+}
+
+export async function listVisits(orgId: string, filters: { from?: string; to?: string; staffId?: string; status?: string }) {
+  const conditions = ['v.organization_id = $1'];
+  const params: any[] = [orgId];
+  let i = 2;
+  if (filters.from) { conditions.push(`v.scheduled_start >= $${i++}`); params.push(filters.from); }
+  if (filters.to) { conditions.push(`v.scheduled_start < $${i++}`); params.push(filters.to); }
+  if (filters.staffId) { conditions.push(`v.assigned_staff_id = $${i++}`); params.push(filters.staffId); }
+  if (filters.status) { conditions.push(`v.status = $${i++}`); params.push(filters.status); }
+  return (await query(`${VISIT_SELECT} WHERE ${conditions.join(' AND ')} ORDER BY v.scheduled_start`, params)).rows;
+}
+
+export async function createVisit(orgId: string, userId: string, input: HomecareVisitInput) {
+  const pkg = await assertPackage(input.package_id, orgId);
+  await assertPerson(input.person_id, orgId);
+  if (pkg.person_id !== input.person_id) throw new AppError(400, 'The visit person must belong to the selected care package');
+  await assertStaff(input.assigned_staff_id, orgId);
+  if (input.assigned_staff_id && await hasVisitConflict(orgId, input.assigned_staff_id, input.scheduled_start, input.scheduled_end)) {
+    throw new AppError(409, 'Assigned carer already has an overlapping homecare visit');
+  }
+  const result = await query(`INSERT INTO homecare_visits (organization_id, package_id, visit_plan_id, person_id, assigned_staff_id, visit_type, label, scheduled_start, scheduled_end, created_by)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`, [orgId, input.package_id, input.visit_plan_id || null, input.person_id, input.assigned_staff_id || null, input.visit_type, input.label, input.scheduled_start, input.scheduled_end, userId]);
+  return result.rows[0];
+}
+
+async function hasVisitConflict(orgId: string, staffId: string, start: string, end: string, excludeVisitId?: string) {
+  const params: any[] = [orgId, staffId, start, end];
+  let sql = `SELECT 1 FROM homecare_visits
+    WHERE organization_id = $1 AND assigned_staff_id = $2 AND status NOT IN ('cancelled', 'missed')
+      AND scheduled_start < $4::timestamptz AND scheduled_end > $3::timestamptz`;
+  if (excludeVisitId) { sql += ' AND id <> $5'; params.push(excludeVisitId); }
+  sql += ' LIMIT 1';
+  return (await query(sql, params)).rows.length > 0;
+}
+
+async function assertVisit(visitId: string, orgId: string) {
+  const result = await query('SELECT * FROM homecare_visits WHERE id = $1 AND organization_id = $2', [visitId, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Visit not found');
+  return result.rows[0];
+}
+
+export async function updateVisit(orgId: string, visitId: string, input: HomecareVisitUpdateInput) {
+  await assertStaff(input.assigned_staff_id, orgId);
+  const existingVisit = await assertVisit(visitId, orgId);
+  if (input.assigned_staff_id && input.assigned_staff_id !== existingVisit.assigned_staff_id && await hasVisitConflict(orgId, input.assigned_staff_id, existingVisit.scheduled_start, existingVisit.scheduled_end, visitId)) {
+    throw new AppError(409, 'Assigned carer already has an overlapping homecare visit');
+  }
+  const allowed = ['assigned_staff_id','status','actual_travel_minutes','actual_mileage_miles','mileage_status','late_reason','visit_notes'];
+  const entries = Object.entries(input).filter(([key]) => allowed.includes(key));
+  if (!entries.length) return (await query(`${VISIT_SELECT} WHERE v.id = $1 AND v.organization_id = $2`, [visitId, orgId])).rows[0];
+  const values = entries.map(([, value]) => value);
+  const set = entries.map(([key], index) => `${key} = $${index + 1}`).join(', ');
+  const exceptionType = input.status === 'missed' ? 'missed' : input.status === 'cancelled' ? 'cancelled' : input.late_reason ? 'late' : null;
+  const exceptionParams = values.length + 1;
+  const exceptionSql = exceptionType ? `, exception_type = $${exceptionParams}, exception_resolved_at = NULL, exception_resolved_by = NULL, exception_resolution_note = NULL` : '';
+  await query(`UPDATE homecare_visits SET ${set}${exceptionSql}, updated_at = NOW() WHERE id = $${values.length + (exceptionType ? 2 : 1)} AND organization_id = $${values.length + (exceptionType ? 3 : 2)}`, exceptionType ? [...values, exceptionType, visitId, orgId] : [...values, visitId, orgId]);
+  return (await query(`${VISIT_SELECT} WHERE v.id = $1 AND v.organization_id = $2`, [visitId, orgId])).rows[0];
+}
+
+export async function checkIn(orgId: string, staffUserId: string, visitId: string, input: VisitExecutionInput) {
+  const visit = await assertVisit(visitId, orgId);
+  const staff = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [staffUserId]);
+  if (!staff.rows[0] || visit.assigned_staff_id !== staff.rows[0].id) throw new AppError(403, 'This visit is not assigned to you');
+  if (['completed','cancelled','missed'].includes(visit.status)) throw new AppError(409, 'This visit is no longer open for check-in');
+  const result = await query(`UPDATE homecare_visits SET status = 'checked_in', check_in_at = COALESCE(check_in_at, NOW()), check_in_latitude = $1, check_in_longitude = $2, check_in_accuracy_meters = $3, actual_travel_minutes = COALESCE($4, actual_travel_minutes), actual_mileage_miles = COALESCE($5, actual_mileage_miles), updated_at = NOW()
+    WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.latitude, input.longitude, input.accuracy_meters ?? null, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId]);
+  return result.rows[0];
+}
+
+export async function checkOut(orgId: string, staffUserId: string, visitId: string, input: VisitExecutionInput) {
+  const visit = await assertVisit(visitId, orgId);
+  const staff = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [staffUserId]);
+  if (!staff.rows[0] || visit.assigned_staff_id !== staff.rows[0].id) throw new AppError(403, 'This visit is not assigned to you');
+  if (!visit.check_in_at) throw new AppError(409, 'Check in before checking out');
+  if (visit.status === 'completed') throw new AppError(409, 'This visit is already complete');
+  return transaction(async (client) => {
+    const updated = await client.query(`UPDATE homecare_visits SET status = 'completed', check_out_at = NOW(), check_out_latitude = $1, check_out_longitude = $2, visit_notes = COALESCE($3, visit_notes), actual_travel_minutes = COALESCE($4, actual_travel_minutes), actual_mileage_miles = COALESCE($5, actual_mileage_miles), mileage_status = CASE WHEN COALESCE($5, actual_mileage_miles) > 0 THEN 'submitted' ELSE mileage_status END, updated_at = NOW() WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.latitude, input.longitude, input.note || null, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId]);
+    if (!updated.rows[0]) throw new AppError(404, 'Visit not found');
+    const v = updated.rows[0];
+    const workMinutes = Math.max(0, Math.round((new Date(v.check_out_at).getTime() - new Date(v.check_in_at).getTime()) / 60000));
+    const pkg = await client.query('SELECT hourly_rate_pence, travel_time_paid, mileage_rate_pence FROM homecare_packages WHERE id = $1 AND organization_id = $2', [v.package_id, orgId]);
+    const policy = pkg.rows[0];
+    const travelMinutes = Number(v.actual_travel_minutes || 0);
+    const paidTravelMinutes = policy?.travel_time_paid ? travelMinutes : 0;
+    const workRate = policy?.hourly_rate_pence == null ? null : Number(policy.hourly_rate_pence);
+    const mileageRate = policy?.mileage_rate_pence == null ? null : Number(policy.mileage_rate_pence);
+    const gross = workRate == null ? null : Math.round(((workMinutes + paidTravelMinutes) / 60) * workRate + Number(v.actual_mileage_miles || 0) * Number(mileageRate || 0));
+    await client.query(`INSERT INTO homecare_timesheets (organization_id, visit_id, staff_id, work_minutes, travel_minutes, paid_travel_minutes, mileage_miles, mileage_rate_pence, hourly_rate_pence, gross_pay_pence, status)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'submitted') ON CONFLICT (visit_id) DO UPDATE SET work_minutes = EXCLUDED.work_minutes, travel_minutes = EXCLUDED.travel_minutes, paid_travel_minutes = EXCLUDED.paid_travel_minutes, mileage_miles = EXCLUDED.mileage_miles, mileage_rate_pence = EXCLUDED.mileage_rate_pence, hourly_rate_pence = EXCLUDED.hourly_rate_pence, gross_pay_pence = EXCLUDED.gross_pay_pence, updated_at = NOW()`, [orgId, visitId, v.assigned_staff_id, workMinutes, travelMinutes, paidTravelMinutes, Number(v.actual_mileage_miles || 0), mileageRate, workRate, gross]);
+    return v;
+  });
+}
+
+export async function generateVisitsFromPlan(orgId: string, userId: string, planId: string, from: string, to: string) {
+  const startDate = new Date(`${from}T00:00:00.000Z`);
+  const endDate = new Date(`${to}T00:00:00.000Z`);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) {
+    throw new AppError(400, 'Generation date range is invalid');
+  }
+  const days = Math.floor((endDate.getTime() - startDate.getTime()) / 86400000) + 1;
+  if (days > 31) throw new AppError(400, 'Generate no more than 31 days at a time');
+
+  return transaction(async (client) => {
+    const planResult = await client.query(`SELECT vp.*, p.person_id, p.organization_id, p.status AS package_status, p.start_date, p.end_date,
+        p.travel_time_paid, p.mileage_rate_pence
+      FROM homecare_visit_plans vp JOIN homecare_packages p ON p.id = vp.package_id
+      WHERE vp.id = $1 AND vp.organization_id = $2 AND p.organization_id = $2 AND vp.active = TRUE`, [planId, orgId]);
+    const plan = planResult.rows[0];
+    if (!plan) throw new AppError(404, 'Active visit plan not found');
+    if (!['active', 'draft'].includes(plan.package_status)) throw new AppError(409, 'Visits cannot be generated for this package');
+
+    const staffId = plan.default_staff_id || null;
+    if (staffId) {
+      const staffResult = await client.query(`SELECT sp.id FROM staff_profiles sp JOIN users u ON u.id = sp.user_id
+        WHERE sp.id = $1 AND u.organization_id = $2 AND u.status = 'active'`, [staffId, orgId]);
+      if (!staffResult.rows[0]) throw new AppError(409, 'The visit plan default carer is no longer active');
+    }
+
+    const generated: string[] = [];
+    let skipped = 0;
+    for (let offset = 0; offset < days; offset += 1) {
+      const date = new Date(startDate.getTime() + offset * 86400000);
+      const dateText = date.toISOString().slice(0, 10);
+      const packageStart = plan.start_date instanceof Date ? plan.start_date.toISOString().slice(0, 10) : String(plan.start_date).slice(0, 10);
+      const packageEnd = plan.end_date ? (plan.end_date instanceof Date ? plan.end_date.toISOString().slice(0, 10) : String(plan.end_date).slice(0, 10)) : null;
+      if (dateText < packageStart || (packageEnd && dateText > packageEnd)) continue;
+      if (!plan.days_of_week.map(Number).includes(date.getUTCDay())) continue;
+
+      const time = String(plan.start_time).slice(0, 8);
+      const scheduledStart = `${dateText}T${time}Z`;
+      const scheduledEnd = new Date(new Date(scheduledStart).getTime() + Number(plan.duration_minutes) * 60000).toISOString();
+      const existing = await client.query('SELECT id FROM homecare_visits WHERE visit_plan_id = $1 AND scheduled_start = $2', [plan.id, scheduledStart]);
+      if (existing.rows[0]) { skipped += 1; continue; }
+      if (staffId) {
+        const availability = await client.query(`SELECT 1 FROM staff_availability
+          WHERE staff_id = $1 AND day_of_week = $2 AND is_available = TRUE
+            AND ((start_time <= $3::time AND end_time >= $4::time)
+              OR (end_time < start_time AND (start_time <= $3::time OR end_time >= $4::time))) LIMIT 1`,
+          [staffId, date.getUTCDay(), time, scheduledEnd.slice(11, 19)]);
+        if (!availability.rows[0]) throw new AppError(409, `Carer is not available for ${dateText} ${time}`);
+        if (await hasVisitConflict(orgId, staffId, scheduledStart, scheduledEnd)) {
+          throw new AppError(409, `Carer has an overlapping visit on ${dateText} ${time}`);
+        }
+      }
+      const result = await client.query(`INSERT INTO homecare_visits (organization_id, package_id, visit_plan_id, person_id, assigned_staff_id, visit_type, label, scheduled_start, scheduled_end, created_by)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT DO NOTHING RETURNING id`, 
+        [orgId, plan.package_id, plan.id, plan.person_id, staffId, plan.visit_type, plan.label, scheduledStart, scheduledEnd, userId]);
+      if (result.rows[0]) generated.push(result.rows[0].id); else skipped += 1;
+    }
+    return { generated, generated_count: generated.length, skipped_existing: skipped };
+  });
+}
+
+export async function resolveVisitException(orgId: string, visitId: string, userId: string, input: HomecareExceptionInput) {
+  const result = await query(`UPDATE homecare_visits SET exception_type = $1, exception_resolved_at = NOW(), exception_resolved_by = $2,
+      exception_resolution_note = $3, updated_at = NOW()
+    WHERE id = $4 AND organization_id = $5 AND (status IN ('missed', 'cancelled') OR exception_type IS NOT NULL)
+    RETURNING *`, [input.exception_type, userId, input.resolution_note || null, visitId, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Open visit exception not found');
+  return result.rows[0];
+}
+
+export async function listOpenExceptions(orgId: string) {
+  return (await query(`${VISIT_SELECT} WHERE v.organization_id = $1 AND (v.status IN ('missed', 'cancelled') OR v.exception_type IS NOT NULL) AND v.exception_resolved_at IS NULL ORDER BY v.scheduled_start`, [orgId])).rows;
+}
+
+export async function getApprovedPayrollRows(orgId: string, filters: PayrollExportFilters) {
+  const result = await query(`SELECT t.id AS timesheet_id, t.staff_id, sp.first_name || ' ' || sp.last_name AS staff_name,
+      pe.first_name || ' ' || pe.last_name AS client_name, v.label AS visit_label, v.scheduled_start, v.scheduled_end,
+      t.work_minutes, t.travel_minutes, t.paid_travel_minutes, t.mileage_miles,
+      t.mileage_rate_pence, t.hourly_rate_pence, t.gross_pay_pence
+    FROM homecare_timesheets t JOIN staff_profiles sp ON sp.id = t.staff_id
+    JOIN homecare_visits v ON v.id = t.visit_id JOIN people pe ON pe.id = v.person_id
+    WHERE t.organization_id = $1 AND t.status = 'approved' AND v.scheduled_start >= $2::date
+      AND v.scheduled_start < ($3::date + INTERVAL '1 day') ORDER BY v.scheduled_start, staff_name`,
+    [orgId, filters.from, filters.to]);
+  return result.rows;
+}
+
+export async function listTimesheets(orgId: string, status?: string) {
+  const conditions = ['t.organization_id = $1'];
+  const params: any[] = [orgId];
+  if (status) { conditions.push('t.status = $2'); params.push(status); }
+  return (await query(`SELECT t.*, sp.first_name || ' ' || sp.last_name AS staff_name, v.label, v.scheduled_start, pe.first_name || ' ' || pe.last_name AS person_name FROM homecare_timesheets t JOIN staff_profiles sp ON sp.id = t.staff_id JOIN homecare_visits v ON v.id = t.visit_id JOIN people pe ON pe.id = v.person_id WHERE ${conditions.join(' AND ')} ORDER BY t.created_at DESC`, params)).rows;
+}
+
+export async function listAvailability(orgId: string, staffId?: string) {
+  const params: any[] = [orgId];
+  const filter = staffId ? ' AND sa.staff_id = $2' : '';
+  if (staffId) params.push(staffId);
+  return (await query(`SELECT sa.*, sp.first_name || ' ' || sp.last_name AS staff_name
+    FROM staff_availability sa JOIN staff_profiles sp ON sp.id = sa.staff_id JOIN users u ON u.id = sp.user_id
+    WHERE u.organization_id = $1${filter} ORDER BY sa.staff_id, sa.day_of_week, sa.start_time`, params)).rows;
+}
+
+export async function upsertAvailability(orgId: string, input: import('./homecare.types').HomecareAvailabilityInput) {
+  await assertStaff(input.staff_id, orgId);
+  if (input.day_of_week < 0 || input.day_of_week > 6 || input.start_time >= input.end_time) throw new AppError(400, 'Availability day or time range is invalid');
+  const result = await query(`INSERT INTO staff_availability (staff_id, day_of_week, start_time, end_time, is_available)
+    VALUES ($1,$2,$3,$4,$5) RETURNING *`, [input.staff_id, input.day_of_week, input.start_time, input.end_time, input.is_available ?? true]);
+  return result.rows[0];
+}
+
+export async function deleteAvailability(orgId: string, availabilityId: string) {
+  const result = await query(`DELETE FROM staff_availability sa USING staff_profiles sp, users u
+    WHERE sa.id = $1 AND sp.id = sa.staff_id AND u.id = sp.user_id AND u.organization_id = $2 RETURNING sa.id`, [availabilityId, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Availability record not found');
+  return result.rows[0];
+}
+
+export async function createDisruption(orgId: string, userId: string, visitId: string, input: import('./homecare.types').HomecareDisruptionInput) {
+  await assertVisit(visitId, orgId);
+  const result = await query(`INSERT INTO homecare_visit_disruptions
+    (organization_id, visit_id, reported_by, disruption_type, severity, delay_minutes, description, expected_arrival)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`, [orgId, visitId, userId, input.disruption_type, input.severity || 'medium', input.delay_minutes || 0, input.description, input.expected_arrival || null]);
+  await query(`UPDATE homecare_visits SET status = CASE WHEN status = 'scheduled' THEN 'en_route' ELSE status END,
+    late_reason = COALESCE(late_reason, $1), updated_at = NOW() WHERE id = $2 AND organization_id = $3`, [input.description, visitId, orgId]);
+  return result.rows[0];
+}
+
+export async function listDisruptions(orgId: string, openOnly = false) {
+  return (await query(`SELECT d.*, v.label, v.scheduled_start, pe.first_name || ' ' || pe.last_name AS person_name,
+      sp.first_name || ' ' || sp.last_name AS reported_by_name
+    FROM homecare_visit_disruptions d JOIN homecare_visits v ON v.id = d.visit_id JOIN people pe ON pe.id = v.person_id
+    JOIN users u ON u.id = d.reported_by LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+    WHERE d.organization_id = $1${openOnly ? " AND d.status = 'open'" : ''} ORDER BY d.created_at DESC`, [orgId])).rows;
+}
+
+export async function resolveDisruption(orgId: string, userId: string, disruptionId: string) {
+  const result = await query(`UPDATE homecare_visit_disruptions SET status = 'resolved', resolved_by = $1, resolved_at = NOW(), updated_at = NOW()
+    WHERE id = $2 AND organization_id = $3 AND status = 'open' RETURNING *`, [userId, disruptionId, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Open disruption not found');
+  return result.rows[0];
+}
+
+export async function listMileagePolicies(orgId: string) {
+  return (await query('SELECT * FROM homecare_mileage_policies WHERE organization_id = $1 ORDER BY tax_year DESC, vehicle_type, fuel_category', [orgId])).rows;
+}
+
+export async function createMileagePolicy(orgId: string, userId: string, input: import('./homecare.types').HomecareMileagePolicyInput) {
+  const result = await query(`INSERT INTO homecare_mileage_policies
+    (organization_id, tax_year, vehicle_type, fuel_category, rate_pence, effective_from, effective_to, source_label, is_active, created_by)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+    ON CONFLICT (organization_id, tax_year, vehicle_type, fuel_category) DO UPDATE SET rate_pence = EXCLUDED.rate_pence,
+      effective_from = EXCLUDED.effective_from, effective_to = EXCLUDED.effective_to, source_label = EXCLUDED.source_label,
+      is_active = EXCLUDED.is_active, updated_at = NOW() RETURNING *`,
+    [orgId, input.tax_year, input.vehicle_type, input.fuel_category, input.rate_pence, input.effective_from || null, input.effective_to || null, input.source_label || null, input.is_active ?? true, userId]);
+  return result.rows[0];
+}
+
+export async function createFollowup(orgId: string, userId: string, visitId: string, input: import('./homecare.types').HomecareFollowupInput) {
+  await assertVisit(visitId, orgId);
+  if (input.incident_id) {
+    const incident = await query('SELECT id FROM incidents WHERE id = $1 AND organization_id = $2', [input.incident_id, orgId]);
+    if (!incident.rows[0]) throw new AppError(400, 'Incident is not in this organisation');
+  }
+  const result = await query(`INSERT INTO homecare_visit_followups
+    (organization_id, visit_id, created_by, followup_type, channel, recipient, outcome, notes, incident_id)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`, [orgId, visitId, userId, input.followup_type, input.channel || null, input.recipient || null, input.outcome || 'recorded', input.notes, input.incident_id || null]);
+  return result.rows[0];
+}
+
+export async function listFollowups(orgId: string, visitId?: string) {
+  const params: any[] = [orgId];
+  const filter = visitId ? ' AND f.visit_id = $2' : '';
+  if (visitId) params.push(visitId);
+  return (await query(`SELECT f.*, v.label, sp.first_name || ' ' || sp.last_name AS created_by_name
+    FROM homecare_visit_followups f JOIN homecare_visits v ON v.id = f.visit_id
+    LEFT JOIN staff_profiles sp ON sp.user_id = f.created_by WHERE f.organization_id = $1${filter} ORDER BY f.created_at DESC`, params)).rows;
+}
+
+export async function recordOfflineAction(orgId: string, userId: string, visitId: string, input: VisitExecutionInput, actionType: 'check-in' | 'check-out') {
+  const actionKey = input.action_key;
+  if (!actionKey) throw new AppError(400, 'Offline action key is required');
+  const existing = await query('SELECT status, error_message FROM homecare_offline_actions WHERE organization_id = $1 AND action_key = $2', [orgId, actionKey]);
+  if (existing.rows[0]) {
+    if (existing.rows[0].status === 'failed') throw new AppError(409, existing.rows[0].error_message || 'Offline action previously failed');
+    return { replayed: true, status: existing.rows[0].status };
+  }
+  await assertVisit(visitId, orgId);
+  try {
+    const result = actionType === 'check-in'
+      ? await checkIn(orgId, userId, visitId, input)
+      : await checkOut(orgId, userId, visitId, input);
+    await query(`INSERT INTO homecare_offline_actions (organization_id, visit_id, user_id, action_key, action_type, payload, status, processed_at)
+      VALUES ($1,$2,$3,$4,$5,$6,'processed',NOW())`, [orgId, visitId, userId, actionKey, actionType, JSON.stringify(input)]);
+    return { replayed: false, status: 'processed', visit: result };
+  } catch (error: any) {
+    await query(`INSERT INTO homecare_offline_actions (organization_id, visit_id, user_id, action_key, action_type, payload, status, error_message)
+      VALUES ($1,$2,$3,$4,$5,$6,'failed',$7) ON CONFLICT (organization_id, action_key) DO NOTHING`, [orgId, visitId, userId, actionKey, actionType, JSON.stringify(input), String(error?.message || 'Offline action failed').slice(0, 1000)]);
+    throw error;
+  }
+}
+
+export async function createPayrollExport(orgId: string, userId: string, filters: PayrollExportFilters, rows: any[], fileChecksum?: string) {
+  const result = await query(`INSERT INTO homecare_payroll_exports (organization_id, provider, period_from, period_to, row_count, file_checksum, created_by)
+    VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`, [orgId, filters.provider || 'generic_csv', filters.from, filters.to, rows.length, fileChecksum || null, userId]);
+  for (const row of rows) await query(`INSERT INTO homecare_payroll_reconciliations (organization_id, export_id, timesheet_id, exported_gross_pay_pence)
+    VALUES ($1,$2,$3,$4) ON CONFLICT (export_id, timesheet_id) DO NOTHING`, [orgId, result.rows[0].id, row.timesheet_id, row.gross_pay_pence]);
+  return result.rows[0];
+}
+
+export async function listPayrollReconciliations(orgId: string, exportId?: string) {
+  const params: any[] = [orgId];
+  const filter = exportId ? ' AND r.export_id = $2' : '';
+  if (exportId) params.push(exportId);
+  return (await query(`SELECT r.*, e.provider, e.period_from, e.period_to, sp.first_name || ' ' || sp.last_name AS staff_name
+    FROM homecare_payroll_reconciliations r JOIN homecare_payroll_exports e ON e.id = r.export_id
+    JOIN homecare_timesheets t ON t.id = r.timesheet_id JOIN staff_profiles sp ON sp.id = t.staff_id
+    WHERE r.organization_id = $1${filter} ORDER BY r.created_at DESC`, params)).rows;
+}
+
+export async function reconcilePayroll(orgId: string, userId: string, reconciliationId: string, input: import('./homecare.types').HomecareReconciliationInput) {
+  const result = await query(`UPDATE homecare_payroll_reconciliations SET status = $1, external_reference = $2,
+    reconciled_gross_pay_pence = $3, note = $4, reconciled_by = $5, reconciled_at = NOW()
+    WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.status, input.external_reference || null, input.reconciled_gross_pay_pence ?? null, input.note || null, userId, reconciliationId, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Payroll reconciliation row not found');
+  await query(`UPDATE homecare_payroll_exports SET status = CASE WHEN NOT EXISTS (SELECT 1 FROM homecare_payroll_reconciliations WHERE export_id = $1 AND status IN ('pending','exception')) THEN 'reconciled' ELSE status END WHERE id = (SELECT export_id FROM homecare_payroll_reconciliations WHERE id = $2)`, [result.rows[0].export_id, reconciliationId]);
+  return result.rows[0];
+}
+
+export async function updateTimesheet(orgId: string, timesheetId: string, userId: string, input: HomecareTimesheetUpdateInput) {
+  const current = await query('SELECT * FROM homecare_timesheets WHERE id = $1 AND organization_id = $2', [timesheetId, orgId]);
+  if (!current.rows[0]) throw new AppError(404, 'Timesheet not found');
+  if (input.status === 'approved') {
+    if (current.rows[0].status !== 'submitted') throw new AppError(409, 'Only submitted timesheets can be approved');
+    return transaction(async (client) => {
+      const result = await client.query(`UPDATE homecare_timesheets SET status = 'approved', approved_by = $1, approved_at = NOW(), updated_at = NOW() WHERE id = $2 AND organization_id = $3 RETURNING *`, [userId, timesheetId, orgId]);
+      return result.rows[0];
+    });
+  }
+  const allowed = ['work_minutes','travel_minutes','paid_travel_minutes','mileage_miles','mileage_rate_pence','hourly_rate_pence','gross_pay_pence','status','rejection_reason'];
+  const entries = Object.entries(input).filter(([key]) => allowed.includes(key));
+  if (!entries.length) return current.rows[0];
+  const values = entries.map(([, value]) => value);
+  const set = entries.map(([key], index) => `${key} = $${index + 1}`).join(', ');
+  const statusParam = values.length + 1;
+  const idParam = values.length + 2;
+  const orgParam = values.length + 3;
+  const result = await query(`UPDATE homecare_timesheets SET ${set}, submitted_at = CASE WHEN $${statusParam} = 'submitted' THEN COALESCE(submitted_at, NOW()) ELSE submitted_at END, updated_at = NOW() WHERE id = $${idParam} AND organization_id = $${orgParam} RETURNING *`, [...values, input.status || current.rows[0].status, timesheetId, orgId]);
+  return result.rows[0];
+}

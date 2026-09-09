@@ -30,6 +30,7 @@ import {
   ExpandLess as ExpandLessIcon,
   Radar as RadarIcon,
   Restaurant as MealIcon,
+  HomeWork as HomecareIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
@@ -128,6 +129,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'tasks', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'appointments', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'expenses', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Domiciliary care', icon: <HomecareIcon />, path: '/homecare', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
       ],
     },
   ]

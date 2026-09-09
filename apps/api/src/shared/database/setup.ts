@@ -265,6 +265,42 @@ const MIGRATION_062: Migration = {
   })(),
 };
 
+const MIGRATION_066: Migration = {
+  name: '066_homecare_reminders',
+  strict: true,
+  statements: (() => {
+    const p = path.join(__dirname, 'migrations', '066_homecare_reminders.sql');
+    return [fs.readFileSync(p, 'utf8')];
+  })(),
+};
+
+const MIGRATION_065: Migration = {
+  name: '065_homecare_foundation',
+  strict: true,
+  statements: (() => {
+    const p = path.join(__dirname, 'migrations', '065_homecare_foundation.sql');
+    return [fs.readFileSync(p, 'utf8')];
+  })(),
+};
+
+const MIGRATION_067: Migration = {
+  name: '067_homecare_scheduling_controls',
+  strict: true,
+  statements: (() => {
+    const p = path.join(__dirname, 'migrations', '067_homecare_scheduling_controls.sql');
+    return [fs.readFileSync(p, 'utf8')];
+  })(),
+};
+
+const MIGRATION_068: Migration = {
+  name: '068_web_push_notifications',
+  strict: true,
+  statements: (() => {
+    const p = path.join(__dirname, 'migrations', '068_web_push_notifications.sql');
+    return [fs.readFileSync(p, 'utf8')];
+  })(),
+};
+
 const MIGRATION_058: Migration = {
   name: '058_cash_check_escalation',
   strict: false,
@@ -2464,6 +2500,18 @@ const INITIAL_MIGRATION: Migration = {
   ],
 };
 
+const MIGRATION_069: Migration = {
+  name: '069_reconcile_demo_winback_schema',
+  strict: false,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '069_reconcile_demo_winback_schema.sql'), 'utf8')],
+};
+
+const MIGRATION_070: Migration = {
+  name: '070_homecare_operations',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '070_homecare_operations.sql'), 'utf8')],
+};
+
 async function isFreshDatabase(): Promise<boolean> {
   try {
     const result = await query(`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '_migrations') AS exists`);
@@ -2493,7 +2541,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043, MIGRATION_044, MIGRATION_045, MIGRATION_046, MIGRATION_047, MIGRATION_048, MIGRATION_049, MIGRATION_050, MIGRATION_051, MIGRATION_052, MIGRATION_053, MIGRATION_054, MIGRATION_055, MIGRATION_056, MIGRATION_057, MIGRATION_058, MIGRATION_059, MIGRATION_060, MIGRATION_061, MIGRATION_062]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043, MIGRATION_044, MIGRATION_045, MIGRATION_046, MIGRATION_047, MIGRATION_048, MIGRATION_049, MIGRATION_050, MIGRATION_051, MIGRATION_052, MIGRATION_053, MIGRATION_054, MIGRATION_055, MIGRATION_056, MIGRATION_057, MIGRATION_058, MIGRATION_059, MIGRATION_060, MIGRATION_061, MIGRATION_062, MIGRATION_065, MIGRATION_066, MIGRATION_067, MIGRATION_068, MIGRATION_069, MIGRATION_070]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)

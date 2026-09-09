@@ -22,6 +22,7 @@ import schedulingRoutes from '../modules/scheduling/scheduling.routes'
 import personRoutes from '../modules/people/people.routes'
 import leaveRoutes from '../modules/leave/leave.routes'
 import notificationRoutes from '../modules/notifications/notifications.routes'
+import pushRoutes from '../modules/notifications/push.routes'
 import incidentRoutes from '../modules/incidents/incidents.routes'
 import trainingRoutes from '../modules/training/training.routes'
 import competencyRoutes from '../modules/competency/competency.routes'
@@ -60,6 +61,7 @@ import eventRoutes from '../modules/events/events.routes'
 import platformAdminRoutes from '../modules/platform-admin/platform-admin.routes'
 import shiftAuditRoutes from '../modules/shift-audit/shift-audit.routes'
 import missionControlRoutes from '../modules/mission-control/mission-control.routes'
+import homecareRoutes from '../modules/homecare/homecare.routes'
 
 export function createTestApp(): Express {
   const app = express()
@@ -86,6 +88,7 @@ export function createTestApp(): Express {
   app.use('/incidents', incidentRoutes)
   app.use('/dashboard', dashboardRoutes)
   app.use('/notifications', notificationRoutes)
+  app.use('/notifications/push', pushRoutes)
   app.use('/permissions', permissionRoutes)
   app.use('/training', trainingRoutes)
   app.use('/competency', competencyRoutes)
@@ -118,6 +121,7 @@ export function createTestApp(): Express {
   app.use('/platform-admin', platformAdminRoutes)
   app.use('/shift-audit', shiftAuditRoutes)
   app.use('/mission-control', missionControlRoutes)
+  app.use('/homecare', homecareRoutes)
 
   app.get('/health/live', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 

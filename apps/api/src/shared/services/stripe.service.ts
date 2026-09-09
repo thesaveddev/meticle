@@ -3,8 +3,36 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+export type BillingPlan = 'starter' | 'professional';
+
+/**
+ * The application-facing catalogue is deliberately kept separate from Stripe
+ * price IDs. Stripe IDs are environment-specific; these are the invariants the
+ * configured Stripe prices must satisfy before a subscription can be changed.
+ */
+export const PLAN_PRICE_CONFIG: Record<BillingPlan, {
+  amount: number;
+  currency: 'gbp';
+  interval: 'month';
+}> = {
+  starter: { amount: 9900, currency: 'gbp', interval: 'month' },
+  professional: { amount: 29900, currency: 'gbp', interval: 'month' },
+};
+
+export function isExpectedStripePrice(
+  plan: string,
+  price: Pick<Stripe.Price, 'active' | 'currency' | 'unit_amount' | 'recurring'>,
+): price is Pick<Stripe.Price, 'active' | 'currency' | 'unit_amount' | 'recurring'> & { active: true } {
+  if (!(plan in PLAN_PRICE_CONFIG) || !price.active) return false;
+  const expected = PLAN_PRICE_CONFIG[plan as BillingPlan];
+  return price.currency === expected.currency
+    && price.unit_amount === expected.amount
+    && price.recurring?.interval === expected.interval
+    && (price.recurring?.interval_count ?? 1) === 1;
+}
+
 let stripeInstance: Stripe | null = null;
-let cachedPrices: { starter: string; professional: string } | null = null;
+let cachedPrices: Partial<Record<BillingPlan, string>> | null = null;
 
 export function getStripe(): Stripe {
   if (!stripeInstance) {
@@ -52,40 +80,51 @@ export async function getOrCreateCustomer(orgId: string, email: string, name: st
 export async function getOrCreatePrice(plan: string): Promise<string | null> {
   const s = getStripe();
   if (!s) return null;
+  if (!(plan in PLAN_PRICE_CONFIG)) throw new Error(`Unsupported billing plan: ${plan}`);
 
-  const envKey = plan === 'starter' ? 'STRIPE_PRICE_STARTER' : 'STRIPE_PRICE_PROFESSIONAL';
+  const billingPlan = plan as BillingPlan;
+  const envKey = billingPlan === 'starter' ? 'STRIPE_PRICE_STARTER' : 'STRIPE_PRICE_PROFESSIONAL';
   const envVal = process.env[envKey];
-  if (envVal) return envVal;
+
+  if (envVal) {
+    // Never trust an environment ID blindly. A stale/test/annual price here can
+    // otherwise silently charge a different amount than the UI promises.
+    const configuredPrice = await s.prices.retrieve(envVal);
+    if (!isExpectedStripePrice(billingPlan, configuredPrice)) {
+      const expected = PLAN_PRICE_CONFIG[billingPlan];
+      throw new Error(`${envKey} does not match ${billingPlan}: expected ${expected.currency.toUpperCase()} ${expected.amount / 100} per ${expected.interval}`);
+    }
+    return configuredPrice.id;
+  }
   if (process.env.NODE_ENV === 'production') throw new Error(`${envKey} must be configured in production`);
 
-  if (cachedPrices?.[plan as keyof typeof cachedPrices]) return cachedPrices[plan as keyof typeof cachedPrices];
+  if (cachedPrices?.[billingPlan]) return cachedPrices[billingPlan]!;
 
-  const name = plan === 'starter' ? 'Starter' : 'Professional';
-  const amount = plan === 'starter' ? 9900 : 29900; // £99.00 / £299.00 in pence
-
+  const name = billingPlan === 'starter' ? 'Starter' : 'Professional';
+  const expected = PLAN_PRICE_CONFIG[billingPlan];
   const products = await s.products.list({ active: true, limit: 100 });
   let product = products.data.find(p => p.name === `Meticle ${name}`);
   if (!product) {
     product = await s.products.create({ name: `Meticle ${name}`, description: `${name} plan monthly subscription` });
   }
 
-  const prices = await s.prices.list({ product: product.id, active: true, limit: 1, type: 'recurring' });
-  if (prices.data.length > 0) {
-    const pid = prices.data[0].id;
-    process.env[envKey] = pid;
-    if (!cachedPrices) cachedPrices = { starter: '', professional: '' };
-    (cachedPrices as any)[plan] = pid;
-    return pid;
+  const prices = await s.prices.list({ product: product.id, active: true, limit: 100, type: 'recurring' });
+  const matchingPrice = prices.data.find(price => isExpectedStripePrice(billingPlan, price));
+  if (matchingPrice) {
+    process.env[envKey] = matchingPrice.id;
+    if (!cachedPrices) cachedPrices = {};
+    cachedPrices[billingPlan] = matchingPrice.id;
+    return matchingPrice.id;
   }
 
   const price = await s.prices.create({
     product: product.id,
-    unit_amount: amount, // £X.XX in pence
-    currency: 'gbp',
-    recurring: { interval: 'month' },
+    unit_amount: expected.amount,
+    currency: expected.currency,
+    recurring: { interval: expected.interval },
   });
   process.env[envKey] = price.id;
-  if (!cachedPrices) cachedPrices = { starter: '', professional: '' };
-  (cachedPrices as any)[plan] = price.id;
+  if (!cachedPrices) cachedPrices = {};
+  cachedPrices[billingPlan] = price.id;
   return price.id;
 }

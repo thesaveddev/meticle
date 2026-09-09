@@ -1709,6 +1709,73 @@ Every AI output should offer:
 
 # 26. Phased Roadmap
 
+## 26.0 Phase 2 — Domiciliary Care Package (Commercial and Operational Expansion)
+
+MeticleCare will extend the supported-living foundation into a domiciliary-care operating workflow. Phase 2 is deliberately staged: the first release creates an auditable operating record for packages, visits, travel and payroll preparation; it does not claim to replace a payroll bureau, route-optimisation platform, or statutory care-record system until those integrations and policies are validated.
+
+### Release 2A — Homecare foundation (implemented in this increment)
+
+| Capability | Scope | Safety boundary |
+|---|---|---|
+| Care packages | Person-linked package, funding source, dates, weekly hours, client rate, travel-time and mileage policy | Managers own rates and effective dates; changes are audited |
+| Call patterns | Morning, breakfast, lunch, tea, evening, night, routine, medication-support and custom visit plans | A plan is not a completed care record; each actual visit is recorded separately |
+| Visit schedule | Individual visits with carer assignment, scheduled start/end and status | Cross-tenant person and carer references are rejected |
+| Field execution | Carer-only check-in/out with coordinates, accuracy, actual travel and mileage | Location is collected only during an assigned visit; no continuous off-duty tracking |
+| Exceptions | En-route, late/missed/cancelled state and reason fields | A manager reviews exceptions; the system does not silently mark a visit complete |
+| Payroll preparation | Work, travel, paid travel, mileage, configured rates and gross input per completed visit | Statutory PAYE, NI, pension, holiday pay and deductions remain with payroll integration/review |
+| Approval | Manager review of submitted timesheet inputs | No self-approval; approved records retain who/when evidence |
+
+### Release 2B — Scheduling and mobile depth
+
+- **Implemented in this tranche:** recurring visit generation from call patterns for a bounded date range, idempotent generation, default-carer availability checks, overlap protection and manager-visible scheduling errors.
+- **Implemented in this tranche:** manager exception queue for missed/cancelled/late calls, required resolution notes and retained resolver/time audit fields.
+- **Implemented in this tranche:** approved-timesheet CSV export with explicit date range and approved-only filtering; this is a payroll input, not a payslip or statutory payroll calculation.
+- Carer mobile PWA with a day route, next-call reminders, offline queue and explicit sync status.
+- Travel-aware reminders based on configured buffer and route estimates; show the calculation and allow a carer to report disruption.
+- Missed/late call workflow with client/family communication and incident linkage.
+- Mileage claims with evidence, configurable HMRC-rate tables by tax year and manager approval.
+- Visit notes linked to person care plans and medication workflows, without inferring medication administration from free text.
+
+### Release 2C — Workforce and finance integration
+
+- Payroll-provider export/import and reconciliation (CSV first; API integrations only after provider-specific testing).
+- Monthly carer totals: paid care minutes, paid travel minutes, mileage, approved gross inputs, exceptions and outstanding approvals.
+- Client billing: package utilisation, delivered visits, cancellations, funder/private rates and invoice-ready output.
+- Manager oversight: live active-visit map, only for on-duty staff and only where notice, lawful basis, retention and access controls are configured.
+- Notifications by push/email/SMS with preference, quiet-hours and escalation policy.
+
+### UK operating and compliance decisions before go-live
+
+- Travel between client assignments must be treated as working time for National Minimum Wage purposes where applicable; ordinary home-to-work commuting is distinct. Every organisation must configure and review its paid-travel policy with an employment/payroll adviser.
+- Mileage rates must be versioned by tax year and organisation policy; do not hardcode a single rate into payroll. HMRC advisory rates are a reference, not a universal employer entitlement.
+- Domiciliary personal care may be a CQC regulated activity. The provider must confirm registration, nominated individual/registered manager responsibilities, care-plan/visit-record requirements and local safeguarding arrangements.
+- GPS/location monitoring requires a documented purpose, necessity/proportionality assessment, staff transparency, working-hours boundaries, access controls, retention and a DPIA where required. It is not a covert surveillance feature.
+- Package funding, client consent, capacity/best-interest decisions, lone-worker risk, medication support, travel disruption and emergency escalation require organisation-approved policy and training.
+
+### Confirmed policy decisions (owner sign-off, September 2026)
+
+| Decision | Owner's confirmation | Implementation status |
+|---|---|---|
+| Travel between clients paid | Configurable per organisation, not globally mandated | ✅ Implemented: `travel_time_paid` is set per care package at creation and drives paid-travel minutes on timesheets; HMRC/NMW treatment remains the employer's adviser-reviewed policy |
+| First payroll export targets | Owner delegated research; provide five launch options | ✅ Implemented: export adapters for Sage, Xero, QuickBooks, BrightPay and Staffology, plus a generic CSV; reconciliation ledger records exported vs. reported gross per timesheet |
+| Mileage rate configurability | Configurable across all available options | ✅ Implemented: `homecare_mileage_policies` keyed by tax year × vehicle type (car, motorcycle, bicycle, public transport, other) × fuel category (petrol, diesel, hybrid, electric, LPG, n/a, other), with effective dates and active flag; HMRC AMAP rates are reference values, never hardcoded entitlements |
+| Per-client/per-carer pricing (internal quote) | Owner undecided; no product action yet | Quote remains hidden and internal; no billing configuration built |
+| VAT treatment of future pricing | Must be configurable (inclusive vs. exclusive) | 📋 Committed for the pricing-enablement step: VAT-inclusive/exclusive toggle and VAT registration number stored per billing account before any price is displayed or invoiced |
+| Mobile GPS and payroll exports as paid add-ons | Included for launch; may become paid add-ons later | Pricing model note only; no gating code until the commercial decision lands |
+| Visit GPS retention | Follow industry standard | Decision: check-in/out coordinates are point-in-time evidence forming part of the immutable visit audit record, retained with the visit record per the organisation's care-records retention policy (recommended baseline: Records Management Code of Practice 2023 — adult social care records commonly 8 years after last entry); there is no continuous or off-duty tracking, so no separate short-life GPS stream exists |
+| Reminder channels | All three: email, browser push, SMS — prioritise email and push | ✅ Email + web push implemented with independent retry ledgers and per-device opt-in; SMS deliberately deferred until a provider, sender identity, consent policy and cost model are approved |
+| Missed/severely delayed visit procedure | Follow industry standard (CQC-aligned) | 📋 Implemented in-product as: carer reports disruption from the visit (severity "high — contact the office now") → real-time exception to the duty manager → manager attempts client/family contact and records the attempt → escalation ladder per the organisation's on-call/safeguarding policy → outcome recorded in the visit follow-up ledger (communication or incident-linked, with who/when audit); final telephone-tree and out-of-hours arrangements must be configured by each provider |
+| First pilot provider | CQC-registered for domiciliary personal care | Pilot gates below apply in full, including regulated-activity record requirements |
+
+### Commercial assumption to validate
+
+A private domiciliary-care quote has been recorded separately for internal commercial planning. It must not appear in the product UI, public website, demo data, customer-facing documents or billing configuration until the offer is approved. Before publication or billing: implement the VAT-inclusive/exclusive configuration above, and confirm minimum commitment, active-seat definition, whether the quote supplements the existing plan, and whether mobile/GPS/payroll exports become add-ons.
+
+### Definition of done for the vertical slice
+
+A pilot is not ready until a provider can create a package, define calls, assign a carer, execute a visit on a phone, record actual travel/mileage, review a late/missed call, approve a timesheet, export payroll inputs, retrieve the audit trail and demonstrate tenant/role boundaries in tests.
+
+
 ## Phase 0: Production Hardening (Before AI Expansion)
 
 | Item | Priority | Effort | Status |
@@ -1725,7 +1792,28 @@ Every AI output should offer:
 | Security review (OWASP, penetration testing) | Critical | L | 🔵 Planned |
 | AI data-flow review (GDPR compliance) | High | M | 🔵 Planned |
 
-## Phase 1: AI Foundation
+## Phase 2: Domiciliary Care Delivery
+
+| Item | Priority | Effort | Status |
+|---|---|---|---|
+| Homecare package, visit, travel and timesheet foundation | Critical | M | ✅ Implemented |
+| Manager/carer role boundaries and tenant-scoped API | Critical | M | ✅ Implemented |
+| Mobile day route and assigned visit check-in/out | Critical | L | ✅ Implemented — manager board and carer route with online/offline check-in/out |
+| Recurring call generation and rota conflict detection | High | L | ✅ Implemented — idempotent generation, availability and overlap checks |
+| Manager late/missed/cancelled exception queue | High | M | ✅ Implemented — resolution note and resolver audit fields |
+| Travel-aware reminders and disruption handling | High | M | ✅ Implemented — email + web-push travel-buffer reminders with retry ledgers, carer disruption reporting, manager disruption queue |
+| Mileage policy by tax year and approval workflow | High | M | ✅ Implemented — tax-year/vehicle/fuel policy tables; approval follows manager timesheet sign-off |
+| Payroll CSV export and provider integration | High | L | ✅ Implemented — approved-only CSV adapters for Sage, Xero, QuickBooks, BrightPay, Staffology and generic, plus reconciliation ledger; live provider round-trip still to validate with the pilot |
+| Carer availability management | High | S | ✅ Implemented — manager UI records weekly availability used by generation and overlap checks |
+| Offline visit execution with explicit sync status | Critical | M | ✅ Implemented — offline queue, sync banner, retry-safe server idempotency ledger |
+| Missed-visit client/family communication and incident linkage | High | M | ✅ Implemented — visit follow-up ledger with channel, outcome and optional incident link, resolver audit |
+| VAT-configurable pricing | Medium | S | 🔵 Planned — required before domiciliary pricing is published |
+| Client billing and package utilisation | Medium | L | 🔵 Planned |
+| Active-visit oversight with GPS governance controls | High | M | 🔵 Planned — point-in-time coordinates implemented; live map requires DPIA and lawful-basis review |
+| SMS reminder channel | Medium | S | 🔵 Planned — deferred until provider, sender identity and consent policy are approved |
+| E2E pilot across manager/carer roles and 320–768px mobile widths | Critical | L | 🔵 Planned — CQC-registered pilot provider confirmed |
+
+## Phase 3: Documentation Intelligence
 
 | Item | Priority | Effort | Dependencies |
 |---|---|---|---|
@@ -1743,7 +1831,7 @@ Every AI output should offer:
 | AI-generated-content labelling | High | S | None |
 | Fix unused prompts (visit_note_care_plan_gap, competency_assessment_assistant) | Low | S | None |
 
-## Phase 2: Documentation Intelligence
+## Phase 4: Documentation Intelligence
 
 | Item | Priority | Effort | Dependencies |
 |---|---|---|---|
