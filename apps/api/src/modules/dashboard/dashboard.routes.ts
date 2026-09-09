@@ -12,5 +12,6 @@ router.get('/compliance', asyncHandler(DashboardController.getComplianceSnapshot
 router.get('/today-rota', asyncHandler(DashboardController.getTodayRota));
 router.get('/widgets', asyncHandler(DashboardController.getWidgets));
 router.get('/review-scheduler', asyncHandler(DashboardController.getReviewScheduler));
+router.get('/domiciliary', asyncHandler(DashboardController.getDomiciliarySummary));
 
 export default router;

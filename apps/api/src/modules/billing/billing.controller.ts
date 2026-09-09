@@ -932,4 +932,76 @@ export class BillingController {
     await pool.query('UPDATE organizations SET addons = $1 WHERE id = $2', [JSON.stringify(addons), orgId]);
     res.json({ addons });
   }
+
+  static async getPricingConfig(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    const result = await pool.query(
+      'SELECT billing_config FROM organizations WHERE id = $1',
+      [orgId]
+    );
+    if (result.rows.length === 0) throw new AppError(404, 'Organization not found');
+    res.json(result.rows[0].billing_config || {});
+  }
+
+  static async updatePricingConfig(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    const { billing_config } = req.body;
+    if (!billing_config || typeof billing_config !== 'object') {
+      throw new AppError(400, 'billing_config must be an object');
+    }
+    await pool.query(
+      'UPDATE organizations SET billing_config = $1 WHERE id = $2',
+      [JSON.stringify(billing_config), orgId]
+    );
+
+    AuditRepository.log({
+      user_id: req.user!.userId,
+      action: 'UPDATE_BILLING_CONFIG',
+      entity_type: 'organization',
+      entity_id: orgId,
+      new_data: { billing_config_keys: Object.keys(billing_config) },
+      ip_address: req.ip,
+    }).catch(logWarn('audit billing config'));
+
+    res.json({ billing_config });
+  }
+
+  static async getMileageRates(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    const result = await pool.query(
+      'SELECT billing_config FROM organizations WHERE id = $1',
+      [orgId]
+    );
+    if (result.rows.length === 0) throw new AppError(404, 'Organization not found');
+    const config = result.rows[0].billing_config || {};
+    res.json(config.mileage_rates || []);
+  }
+
+  static async updateMileageRates(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    const { mileage_rates } = req.body;
+    if (!Array.isArray(mileage_rates)) throw new AppError(400, 'mileage_rates must be an array');
+
+    const result = await pool.query(
+      'SELECT billing_config FROM organizations WHERE id = $1',
+      [orgId]
+    );
+    const config = result.rows[0]?.billing_config || {};
+    config.mileage_rates = mileage_rates;
+    await pool.query(
+      'UPDATE organizations SET billing_config = $1 WHERE id = $2',
+      [JSON.stringify(config), orgId]
+    );
+
+    AuditRepository.log({
+      user_id: req.user!.userId,
+      action: 'UPDATE_MILEAGE_RATES',
+      entity_type: 'organization',
+      entity_id: orgId,
+      new_data: { rate_count: mileage_rates.length },
+      ip_address: req.ip,
+    }).catch(logWarn('audit mileage rates'));
+
+    res.json({ mileage_rates });
+  }
 }

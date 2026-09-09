@@ -57,3 +57,69 @@ describe('Organization — invitations', () => {
     expect(res.status).toBe(401)
   })
 })
+
+describe('Organization — service types', () => {
+  it('should update org service_types via PATCH /organizations/:id', async () => {
+    const org = await createOrg()
+    const admin = await createUser({ email: `st-${Date.now()}@test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const token = generateToken(admin)
+
+    const res = await request(app)
+      .patch(`/organizations/${org.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ service_types: ['domiciliary', 'supported_living'], primary_service_type: 'domiciliary' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.service_types).toEqual(['domiciliary', 'supported_living'])
+    expect(res.body.primary_service_type).toBe('domiciliary')
+  })
+
+  it('should return service_types from GET /settings/org', async () => {
+    const org = await createOrg()
+    const admin = await createUser({ email: `st2-${Date.now()}@test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const token = generateToken(admin)
+
+    // First set the types
+    await request(app)
+      .patch(`/organizations/${org.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ service_types: ['residential', 'domiciliary'], primary_service_type: 'residential' })
+
+    // Then read them back via settings
+    const res = await request(app)
+      .get('/settings/org')
+      .set('Authorization', `Bearer ${token}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.service_types).toEqual(['residential', 'domiciliary'])
+    expect(res.body.primary_service_type).toBe('residential')
+  })
+
+  it('should reject non-admin users from updating org', async () => {
+    const org = await createOrg()
+    const worker = await createUser({ email: `st3-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const token = generateToken(worker)
+
+    const res = await request(app)
+      .patch(`/organizations/${org.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ service_types: ['domiciliary'] })
+
+    expect(res.status).toBe(403)
+  })
+
+  it('should accept service_types via PATCH /settings/org', async () => {
+    const org = await createOrg()
+    const admin = await createUser({ email: `st4-${Date.now()}@test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const token = generateToken(admin)
+
+    const res = await request(app)
+      .patch('/settings/org')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ service_types: ['live_in'], primary_service_type: 'live_in' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.service_types).toEqual(['live_in'])
+    expect(res.body.primary_service_type).toBe('live_in')
+  })
+})

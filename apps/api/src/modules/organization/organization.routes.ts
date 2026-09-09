@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { InvitationController } from './invitation.controller';
+import { OrganizationController } from './organization.controller';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
@@ -20,5 +21,8 @@ router.get('/invitation/invitations', requireRole(UserRole.ORG_ADMIN, UserRole.M
 router.post('/invitation/resend/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(InvitationController.resend));
 router.delete('/invitation/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(InvitationController.cancel));
 router.post('/invitation/accept', validate(acceptInvitationSchema), asyncHandler(InvitationController.accept));
+
+// Organization update (service types, onboarding)
+router.patch('/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(OrganizationController.updateOrganization));
 
 export default router;

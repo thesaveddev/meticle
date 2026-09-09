@@ -18,7 +18,8 @@ export class SettingsController {
                 auto_evidence_pack_enabled, auto_evidence_pack_frequency,
                 daily_shift_audit_enabled, daily_shift_audit_time,
                 reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes,
-                emedication_count_convention
+                emedication_count_convention,
+                service_types, primary_service_type
        FROM organizations WHERE id = $1`,
       [orgId]
     );
@@ -52,7 +53,7 @@ export class SettingsController {
       req.body = filtered;
     }
 
-    const { leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention } = req.body;
+    const { leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention, service_types, primary_service_type } = req.body;
     const result = await pool.query(
       `UPDATE organizations SET
         leave_start_month = COALESCE($1, leave_start_month),
@@ -73,9 +74,11 @@ export class SettingsController {
         reorder_alert_enabled = COALESCE($16, reorder_alert_enabled),
         late_med_alert_enabled = COALESCE($17, late_med_alert_enabled),
         late_med_alert_delay_minutes = COALESCE($18, late_med_alert_delay_minutes),
-        emedication_count_convention = COALESCE($19, emedication_count_convention)
+        emedication_count_convention = COALESCE($19, emedication_count_convention),
+        service_types = COALESCE($21, service_types),
+        primary_service_type = COALESCE($22, primary_service_type)
        WHERE id = $20 RETURNING *`,
-      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time || null, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention || null, orgId]
+      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time || null, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention || null, orgId, service_types || null, primary_service_type || null]
     );
 
     AuditRepository.log({

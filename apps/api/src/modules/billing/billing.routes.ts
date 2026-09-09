@@ -29,4 +29,10 @@ router.post('/retry-payment', requireRole(UserRole.ORG_ADMIN), asyncHandler(Bill
 router.get('/addons', asyncHandler(BillingController.getAddons));
 router.patch('/addons', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.updateAddons));
 
+// Billing configuration (pricing, mileage, payroll)
+router.get('/pricing-config', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.getPricingConfig));
+router.patch('/pricing-config', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.updatePricingConfig));
+router.get('/mileage-rates', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.getMileageRates));
+router.patch('/mileage-rates', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.updateMileageRates));
+
 export default router;

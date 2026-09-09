@@ -19,6 +19,57 @@ export const PLAN_PRICE_CONFIG: Record<BillingPlan, {
   professional: { amount: 29900, currency: 'gbp', interval: 'month' },
 };
 
+/**
+ * Per-type pricing for domiciliary care organisations.
+ * These are configurable per organisation via the billing settings.
+ * Amounts are in pence (e.g., 600 = £6.00).
+ */
+export interface DomiciliaryPricing {
+  per_client_monthly: number;   // pence per client per month
+  per_carer_monthly: number;    // pence per carer per month
+  per_visit: number;            // pence per visit (optional, 0 = disabled)
+  travel_pay_included: boolean; // whether travel time is paid
+  vat_inclusive: boolean;       // whether prices include VAT
+  vat_rate: number;             // VAT rate as percentage (e.g., 20 for 20%)
+}
+
+export const DEFAULT_DOMICILIARY_PRICING: DomiciliaryPricing = {
+  per_client_monthly: 600,    // £6.00
+  per_carer_monthly: 200,     // £2.00
+  per_visit: 0,               // disabled by default
+  travel_pay_included: false,
+  vat_inclusive: false,
+  vat_rate: 20,
+};
+
+/**
+ * Mileage rates configurable by tax year, vehicle type, and fuel category.
+ * Based on HMRC Approved Mileage Allowance Payments (AMAP).
+ */
+export interface MileageRate {
+  id: string;
+  tax_year: string;           // e.g., '2024-25'
+  vehicle_type: 'car' | 'motorcycle' | 'bicycle';
+  fuel_category: 'petrol' | 'diesel' | 'electric' | 'hybrid';
+  rate_per_mile: number;      // pence per mile
+  effective_from: string;     // ISO date
+  effective_to: string | null; // ISO date or null for current
+}
+
+/**
+ * Payroll provider types supported for export.
+ */
+export type PayrollProvider = 'sage' | 'xero' | 'quickbooks' | 'brightpay' | 'staffology' | 'generic_csv';
+
+export const PAYROLL_PROVIDERS: Record<PayrollProvider, { name: string; format: string }> = {
+  sage: { name: 'Sage Payroll', format: 'sage_csv' },
+  xero: { name: 'Xero Payroll', format: 'xero_csv' },
+  quickbooks: { name: 'QuickBooks Payroll', format: 'quickbooks_csv' },
+  brightpay: { name: 'BrightPay', format: 'brightpay_csv' },
+  staffology: { name: 'Staffology', format: 'staffology_csv' },
+  generic_csv: { name: 'Generic CSV', format: 'csv' },
+};
+
 export function isExpectedStripePrice(
   plan: string,
   price: Pick<Stripe.Price, 'active' | 'currency' | 'unit_amount' | 'recurring'>,

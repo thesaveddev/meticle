@@ -208,6 +208,8 @@ export const updateOrganizationSchema = z.object({
   onboarding_completed: z.boolean().optional(),
   onboarding_dismissed_at: z.string().nullable().optional(),
   auto_approve_documents: z.boolean().optional(),
+  service_types: z.array(z.string()).optional(),
+  primary_service_type: z.string().optional(),
 });
 
 const operationalLocationFields = {
@@ -702,6 +704,8 @@ export const updateOrgSettingsSchema = z.object({
   late_med_alert_enabled: z.boolean().optional(),
   late_med_alert_delay_minutes: z.number().int().min(1).max(1440).optional(),
   emedication_count_convention: z.enum(['end_of_day', 'am_pm', 'after_each']).optional(),
+  service_types: z.array(z.string()).optional(),
+  primary_service_type: z.string().optional(),
 });
 
 export const createComplianceConfigSchema = z.object({

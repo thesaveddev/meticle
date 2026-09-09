@@ -1709,9 +1709,23 @@ Every AI output should offer:
 
 # 26. Phased Roadmap
 
-## 26.0 Phase 2 — Domiciliary Care Package (Commercial and Operational Expansion)
+## 26.0 Phase 2 — Multi-Service Care Platform (Commercial and Operational Expansion)
 
-MeticleCare will extend the supported-living foundation into a domiciliary-care operating workflow. Phase 2 is deliberately staged: the first release creates an auditable operating record for packages, visits, travel and payroll preparation; it does not claim to replace a payroll bureau, route-optimisation platform, or statutory care-record system until those integrations and policies are validated.
+MeticleCare is evolving from a supported-living-only platform into a multi-service care management system. At sign-up, organisations select their care type(s) — supported living, domiciliary care, care home, or live-in care — and the platform adapts its modules, navigation, onboarding, and pricing accordingly. Each location within an organisation can have its own service type, allowing mixed-service providers to manage everything from one platform.
+
+### Organisation type-aware provisioning (implemented)
+
+| Component | Implementation |
+|---|---|
+| Database | `organizations.service_types TEXT[]` and `primary_service_type TEXT` columns; GIN index for efficient type queries |
+| Sign-up | Multi-select wizard: Domiciliary Care, Supported Living, Care Home, Live-in Care |
+| Onboarding | 3-step wizard: (1) type selection → (2) org details → (3) type-specific setup (package for domiciliary, room for residential, staffing ratios for supported living) |
+| Navigation | Sidebar adapts: domiciliary orgs see homecare, residential see eMedication, supported living see rota planner |
+| Dashboard | Type-specific widgets: domiciliary shows today's visits + exceptions + completion progress |
+| Pricing | Per carer + per client/staff/bed, configurable by care type |
+| Validation | Zod schemas include `service_types` and `primary_service_type`; `OrgRepository.updateOrg` whitelist includes both fields |
+
+### Release 2A — Homecare foundation (implemented in this increment)
 
 ### Release 2A — Homecare foundation (implemented in this increment)
 
