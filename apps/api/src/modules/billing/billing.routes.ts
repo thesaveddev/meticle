@@ -35,4 +35,7 @@ router.patch('/pricing-config', requireRole(UserRole.ORG_ADMIN), validate(update
 router.get('/mileage-rates', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.getMileageRates));
 router.patch('/mileage-rates', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.updateMileageRates));
 
+// Stripe price diagnostics (ORG_ADMIN only — reveals configured price IDs and amounts)
+router.get('/stripe-price-config', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.getStripePriceConfig));
+
 export default router;
