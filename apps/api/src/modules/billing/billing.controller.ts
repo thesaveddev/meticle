@@ -154,6 +154,12 @@ export class BillingController {
         if (customerId) {
           const price = await getOrCreatePrice(plan);
           if (price) {
+            // Defensive: verify the price amount one more time before any charge
+            const verifyPrice = await stripe.prices.retrieve(price);
+            const expectedAmount = plan === 'starter' ? 9900 : 29900;
+            if (verifyPrice.unit_amount !== expectedAmount) {
+              throw new AppError(500, `Stripe price ${price} charges £${((verifyPrice.unit_amount || 0) / 100).toFixed(2)} but the app expects £${(expectedAmount / 100).toFixed(2)}. Contact support to correct the Stripe price configuration.`);
+            }
             const defaultPaymentMethod = await pool.query(
               'SELECT stripe_payment_method_id FROM payment_methods WHERE organization_id = $1 AND is_default = TRUE LIMIT 1',
               [orgId]
@@ -917,6 +923,46 @@ export class BillingController {
     }
 
     res.json({ message: 'Payment successful', status: paid.status });
+  }
+
+  static async getStripePriceConfig(req: Request, res: Response) {
+    const stripe = getStripe();
+    if (!stripe) throw new AppError(503, 'Stripe is not configured');
+
+    const plans = ['starter', 'professional'] as const;
+    const result: Record<string, any> = {};
+
+    for (const plan of plans) {
+      const envKey = plan === 'starter' ? 'STRIPE_PRICE_STARTER' : 'STRIPE_PRICE_PROFESSIONAL';
+      const envVal = process.env[envKey];
+      if (!envVal) {
+        result[plan] = { configured: false, envKey, message: `${envKey} is not set` };
+        continue;
+      }
+      try {
+        const price = await stripe.prices.retrieve(envVal);
+        const expected = plan === 'starter' ? { amount: 9900, currency: 'gbp', interval: 'month' } : { amount: 29900, currency: 'gbp', interval: 'month' };
+        result[plan] = {
+          configured: true,
+          envKey,
+          priceId: price.id,
+          active: price.active,
+          amount: price.unit_amount,
+          amountDisplay: `£${((price.unit_amount || 0) / 100).toFixed(2)}`,
+          currency: price.currency,
+          interval: price.recurring?.interval,
+          intervalCount: price.recurring?.interval_count,
+          matchesExpected: price.active && price.currency === expected.currency && price.unit_amount === expected.amount && price.recurring?.interval === expected.interval,
+          expectedAmount: `£${(expected.amount / 100).toFixed(2)}`,
+          expectedCurrency: expected.currency,
+          expectedInterval: expected.interval,
+        };
+      } catch (err: any) {
+        result[plan] = { configured: true, envKey, priceId: envVal, error: err.message };
+      }
+    }
+
+    res.json(result);
   }
 
   static async getAddons(req: Request, res: Response) {
