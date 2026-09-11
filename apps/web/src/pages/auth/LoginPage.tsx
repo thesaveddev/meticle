@@ -45,7 +45,13 @@ export default function LoginPage() {
       localStorage.setItem('refreshToken', response.data.refreshToken)
       localStorage.setItem('user', JSON.stringify(response.data.user))
       const role = response.data.user?.role
-      navigate(role === 'SUPER_ADMIN' ? '/platform-admin' : '/dashboard')
+      if (role === 'SUPER_ADMIN') {
+        navigate('/platform-admin')
+      } else if (response.data.organization && response.data.organization.onboarding_completed === false) {
+        navigate('/onboarding')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err: any) {
       const msg = err.response?.data?.message
       if (msg) {

@@ -769,7 +769,7 @@ export class AuthController {
 
     let organization = null;
     if (user.organization_id) {
-      organization = (await migrateQuery('SELECT id, name, plan, subscription_status, logo_url, primary_color, secondary_color, accent_color FROM organizations WHERE id = $1', [user.organization_id])).rows[0] || null;
+      organization = (await migrateQuery('SELECT id, name, plan, subscription_status, logo_url, primary_color, secondary_color, accent_color, onboarding_completed, service_types, primary_service_type FROM organizations WHERE id = $1', [user.organization_id])).rows[0] || null;
     }
 
     res.json({
