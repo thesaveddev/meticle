@@ -67,6 +67,7 @@ export interface VisitExecutionInput {
   actual_travel_minutes?: number;
   actual_mileage_miles?: number;
   note?: string;
+  care_plan_id?: string;
   action_key?: string;
 }
 

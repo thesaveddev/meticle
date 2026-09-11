@@ -107,6 +107,12 @@ export class HomecareController {
     res.json(result);
   }
 
+  static async listCarePlans(req: Request, res: Response) {
+    const personId = req.query.personId as string;
+    if (!personId) throw new AppError(400, 'personId query parameter is required');
+    res.json(await repo.listCarePlans(orgId(req), personId));
+  }
+
   static async listTimesheets(req: Request, res: Response) {
     res.json(await repo.listTimesheets(orgId(req), req.query.status as string | undefined));
   }

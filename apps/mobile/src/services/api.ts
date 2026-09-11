@@ -66,3 +66,15 @@ export async function executeVisitAction(token: string, visitId: string, action:
 export async function createDisruption(token: string, visitId: string, body: Record<string, unknown>) {
   return request(`/homecare/visits/${visitId}/disruptions`, { method: 'POST', body: JSON.stringify(body) }, token)
 }
+
+export interface CarePlan {
+  id: string
+  title: string
+  category: string
+  status: string
+  review_date: string | null
+}
+
+export async function getCarePlans(token: string, personId: string): Promise<CarePlan[]> {
+  return request<CarePlan[]>(`/homecare/care-plans?personId=${encodeURIComponent(personId)}`, {}, token)
+}
