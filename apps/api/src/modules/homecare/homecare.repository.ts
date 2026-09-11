@@ -1,7 +1,7 @@
 import { query, transaction } from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { HomecarePackageInput, HomecareVisitInput, HomecareVisitPlanInput, HomecareVisitUpdateInput, VisitExecutionInput, HomecareTimesheetUpdateInput, HomecareExceptionInput, PayrollExportFilters } from './homecare.types';
-import { calculateClientBillingLine, type ClientBillingUtilisationRow } from './client-billing';
+import { applyVat, buildFundingBreakdown, calculateClientBillingLine, fundingLabel, cancellationPolicyLabel, type ClientBillingUtilisationRow } from './client-billing';
 
 const PACKAGE_SELECT = `
   SELECT p.*, pe.first_name || ' ' || pe.last_name AS person_name
@@ -47,7 +47,17 @@ export async function listClientBillingRuns(orgId: string) {
     WHERE r.organization_id = $1 ORDER BY r.period_from DESC, r.created_at DESC`, [orgId])).rows;
 }
 
+async function resolveBillingVat(orgId: string) {
+  const billing = await query('SELECT billing_config FROM organizations WHERE id = $1', [orgId]);
+  const config = (billing.rows[0]?.billing_config || {}) as any;
+  const vatRate = config?.domiciliary?.vat_rate == null ? null : Number(config.domiciliary.vat_rate);
+  const vatInclusive = Boolean(config?.domiciliary?.vat_inclusive);
+  const validatedRate = vatRate == null || Number.isNaN(vatRate) ? null : Math.max(0, Math.min(100, Math.round(vatRate)));
+  return { vatRate: validatedRate, vatInclusive };
+}
+
 export async function buildClientBillingUtilisation(orgId: string, from: string, to: string): Promise<ClientBillingUtilisationRow[]> {
+  const vat = await resolveBillingVat(orgId);
   const result = await query(`SELECT v.id AS visit_id, v.package_id, v.person_id,
       pe.first_name || ' ' || pe.last_name AS person_name, p.name AS package_name,
       p.funding_type, v.status AS visit_status, v.scheduled_start,
@@ -67,6 +77,9 @@ export async function buildClientBillingUtilisation(orgId: string, from: string,
       scheduledMinutes: Number(row.scheduled_minutes),
       deliveredMinutes: Number(row.delivered_minutes),
       clientRatePence: row.client_rate_pence == null ? null : Number(row.client_rate_pence),
+      fundingType: row.funding_type,
+      vatRate: vat.vatRate,
+      vatInclusive: vat.vatInclusive,
     });
     return {
       ...row,
@@ -75,6 +88,13 @@ export async function buildClientBillingUtilisation(orgId: string, from: string,
       delivered_minutes: line.deliveredMinutes,
       client_rate_pence: line.clientRatePence,
       amount_pence: line.amountPence,
+      net_amount_pence: line.netAmountPence,
+      vat_rate: line.vatRate,
+      vat_inclusive: line.vatInclusive,
+      vat_amount_pence: line.vatAmountPence,
+      gross_amount_pence: line.grossAmountPence,
+      funding_applied: fundingLabel(row.funding_type),
+      cancellation_policy_applied: cancellationPolicyLabel(row.visit_status),
       billing_status: line.billingStatus,
       exclusion_reason: line.exclusionReason,
     };
@@ -82,18 +102,35 @@ export async function buildClientBillingUtilisation(orgId: string, from: string,
 }
 
 export async function createClientBillingRun(orgId: string, userId: string, from: string, to: string) {
+  const vat = await resolveBillingVat(orgId);
   const lines = await buildClientBillingUtilisation(orgId, from, to);
+  const fundedRows = lines.map((row) => ({
+    funding_type: row.funding_type,
+    gross_amount_pence: row.gross_amount_pence,
+    net_amount_pence: row.net_amount_pence,
+    vat_amount_pence: row.vat_amount_pence,
+    billing_status: row.billing_status,
+  }));
+  const fundingBreakdown = buildFundingBreakdown(fundedRows);
+  const totals = lines.reduce(
+    (acc, row) => ({
+      net: acc.net + row.net_amount_pence,
+      vat: acc.vat + row.vat_amount_pence,
+      gross: acc.gross + row.gross_amount_pence,
+    }),
+    { net: 0, vat: 0, gross: 0 },
+  );
   return transaction(async (client) => {
     const runResult = await client.query(`INSERT INTO homecare_client_billing_runs
-      (organization_id, period_from, period_to, row_count, total_amount_pence, created_by)
-      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`, [orgId, from, to, lines.length, lines.reduce((sum, row) => sum + row.amount_pence, 0), userId]);
+      (organization_id, period_from, period_to, row_count, total_amount_pence, subtotal_pence, vat_rate, vat_inclusive, vat_amount_pence, gross_amount_pence, funding_breakdown, created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`, [orgId, from, to, lines.length, totals.gross, totals.net, vat.vatRate, vat.vatInclusive, totals.vat, totals.gross, JSON.stringify(fundingBreakdown), userId]);
     for (const line of lines) {
       await client.query(`INSERT INTO homecare_client_billing_lines
         (organization_id, run_id, visit_id, package_id, person_id, funding_type, visit_status,
-         scheduled_minutes, delivered_minutes, client_rate_pence, amount_pence, billing_status, exclusion_reason)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+         scheduled_minutes, delivered_minutes, client_rate_pence, amount_pence, net_amount_pence, vat_rate, vat_inclusive, vat_amount_pence, gross_amount_pence, funding_applied, cancellation_policy_applied, billing_status, exclusion_reason)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
         [orgId, runResult.rows[0].id, line.visit_id, line.package_id, line.person_id, line.funding_type, line.visit_status,
-          line.scheduled_minutes, line.delivered_minutes, line.client_rate_pence, line.amount_pence, line.billing_status, line.exclusion_reason]);
+          line.scheduled_minutes, line.delivered_minutes, line.client_rate_pence, line.amount_pence, line.net_amount_pence, line.vat_rate, line.vat_inclusive, line.vat_amount_pence, line.gross_amount_pence, line.funding_applied, line.cancellation_policy_applied, line.billing_status, line.exclusion_reason]);
     }
     return { run: runResult.rows[0], lines };
   });
@@ -108,9 +145,25 @@ export async function listClientBillingLines(orgId: string, runId: string) {
 }
 
 export async function approveClientBillingRun(orgId: string, userId: string, runId: string) {
-  const result = await query(`UPDATE homecare_client_billing_runs SET status = 'approved', approved_by = $1, approved_at = NOW(), updated_at = NOW()
+  const existing = await query('SELECT id, status, voided_at FROM homecare_client_billing_runs WHERE id = $1 AND organization_id = $2', [runId, orgId]);
+  if (!existing.rows[0]) throw new AppError(404, 'Billing run not found');
+  if (existing.rows[0].voided_at) throw new AppError(409, 'A voided billing run cannot be approved');
+  const result = await query(`UPDATE homecare_client_billing_runs
+    SET status = 'approved', approved_by = $1, approved_at = NOW(), updated_at = NOW(),
+        invoice_number = COALESCE(invoice_number, 'HC-' || to_char(NOW(), 'YYYYMM') || '-' || substring(id::text from 1 for 8))
     WHERE id = $2 AND organization_id = $3 AND status = 'draft' RETURNING *`, [userId, runId, orgId]);
   if (!result.rows[0]) throw new AppError(409, 'Only a draft billing run can be approved');
+  return result.rows[0];
+}
+
+export async function voidClientBillingRun(orgId: string, userId: string, runId: string, reason?: string | null) {
+  const current = await query('SELECT id, status, voided_at FROM homecare_client_billing_runs WHERE id = $1 AND organization_id = $2', [runId, orgId]);
+  if (!current.rows[0]) throw new AppError(404, 'Billing run not found');
+  if (current.rows[0].voided_at) throw new AppError(409, 'Billing run is already voided');
+  if (current.rows[0].status !== 'approved') throw new AppError(409, 'Only an approved billing run can be voided');
+  const result = await query(`UPDATE homecare_client_billing_runs
+    SET status = 'void', voided_at = NOW(), voided_by = $1, void_reason = $2, updated_at = NOW()
+    WHERE id = $3 AND organization_id = $4 RETURNING *`, [userId, reason || 'Voided by manager', runId, orgId]);
   return result.rows[0];
 }
 
