@@ -131,5 +131,7 @@ router.get('/client-billing/runs/:runId', requireRole(...managerRoles), validate
 router.get('/client-billing/runs/:runId/lines', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.listClientBillingLines));
 router.post('/client-billing/runs/:runId/approve', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.approveClientBillingRun));
 router.post('/client-billing/runs/:runId/void', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.voidClientBillingRun));
+router.get('/client-billing/runs/:runId/invoice.pdf', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.downloadClientInvoicePdf));
+router.get('/client-billing/runs/:runId/mtd-export', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.getMtdExport));
 
 export default router;

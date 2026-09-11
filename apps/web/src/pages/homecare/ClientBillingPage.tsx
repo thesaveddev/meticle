@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Alert, Box, Button, Chip, CircularProgress, Container, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
-import { CheckCircle as CheckCircleIcon, ReceiptLong as ReceiptLongIcon, Block as BlockIcon } from '@mui/icons-material'
+import { CheckCircle as CheckCircleIcon, ReceiptLong as ReceiptLongIcon, Block as BlockIcon, PictureAsPdf as PdfIcon, Download as DownloadIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 
@@ -138,7 +138,7 @@ export default function ClientBillingPage() {
               <Chip size="small" label={run.status} color={run.status === 'approved' ? 'success' : run.status === 'void' ? 'error' : 'default'} />
               <Button size="small" onClick={() => setSelectedRun(run.id)} sx={{ textTransform: 'none' }}>View lines</Button>
               {run.status === 'draft' && <Button size="small" variant="contained" startIcon={<CheckCircleIcon />} onClick={() => approveRun.mutate(run.id)} disabled={approveRun.isPending} sx={{ textTransform: 'none' }}>Approve</Button>}
-              {run.status === 'approved' && <Button size="small" color="error" variant="outlined" startIcon={<BlockIcon />} onClick={() => setVoidDialog(run.id)} sx={{ textTransform: 'none' }}>Void</Button>}
+              {run.status === 'approved' && <><Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => window.open(`/api/homecare/client-billing/runs/${run.id}/invoice.pdf`, '_blank')} sx={{ textTransform: 'none' }}>Invoice PDF</Button><Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={() => window.open(`/api/homecare/client-billing/runs/${run.id}/mtd-export`, '_blank')} sx={{ textTransform: 'none' }}>MTD Export</Button><Button size="small" color="error" variant="outlined" startIcon={<BlockIcon />} onClick={() => setVoidDialog(run.id)} sx={{ textTransform: 'none' }}>Void</Button></>}
             </Stack>
           </Paper>
         ))}

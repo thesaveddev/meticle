@@ -236,4 +236,74 @@ export class HomecareController {
     if (!run) throw new AppError(404, 'Billing run not found');
     res.json(run);
   }
+
+  static async downloadClientInvoicePdf(req: Request, res: Response) {
+    const run = await repo.getClientBillingRun(orgId(req), req.params.runId);
+    if (!run) throw new AppError(404, 'Billing run not found');
+    if (run.status !== 'approved') throw new AppError(409, 'Only approved billing runs have statutory invoices');
+
+    const lines = await repo.listClientBillingLines(orgId(req), req.params.runId);
+    const { buildClientInvoicePdf } = require('./client-invoice.pdf');
+
+    const supplier = await repo.getSupplierInfo(orgId(req));
+    const customer = await repo.getCustomerInfo(orgId(req), run);
+
+    const pdf = await buildClientInvoicePdf({
+      invoice_number: run.invoice_number || `HC-${run.id.slice(0, 8)}`,
+      invoice_date: run.approved_at || run.created_at,
+      tax_point: run.period_to,
+      period_from: run.period_from,
+      period_to: run.period_to,
+      status: run.status,
+      subtotal_pence: run.subtotal_pence,
+      vat_rate: run.vat_rate,
+      vat_inclusive: run.vat_inclusive,
+      vat_amount_pence: run.vat_amount_pence,
+      gross_amount_pence: run.gross_amount_pence,
+      funding_breakdown: run.funding_breakdown || {},
+      voided_at: run.voided_at,
+      void_reason: run.void_reason,
+      lines,
+    }, supplier, customer);
+
+    const filename = `invoice-${(run.invoice_number || run.id).replace(/[^A-Za-z0-9-_]/g, '')}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(pdf);
+  }
+
+  static async getMtdExport(req: Request, res: Response) {
+    const run = await repo.getClientBillingRun(orgId(req), req.params.runId);
+    if (!run) throw new AppError(404, 'Billing run not found');
+    if (run.status !== 'approved') throw new AppError(409, 'Only approved billing runs have MTD exports');
+
+    const lines = await repo.listClientBillingLines(orgId(req), req.params.runId);
+    const { buildMtdDigitalLink } = require('./client-invoice.pdf');
+
+    const supplier = await repo.getSupplierInfo(orgId(req));
+    const customer = await repo.getCustomerInfo(orgId(req), run);
+
+    const mtd = buildMtdDigitalLink({
+      invoice_number: run.invoice_number || `HC-${run.id.slice(0, 8)}`,
+      invoice_date: run.approved_at || run.created_at,
+      tax_point: run.period_to,
+      period_from: run.period_from,
+      period_to: run.period_to,
+      status: run.status,
+      subtotal_pence: run.subtotal_pence,
+      vat_rate: run.vat_rate,
+      vat_inclusive: run.vat_inclusive,
+      vat_amount_pence: run.vat_amount_pence,
+      gross_amount_pence: run.gross_amount_pence,
+      funding_breakdown: run.funding_breakdown || {},
+      voided_at: run.voided_at,
+      void_reason: run.void_reason,
+      lines,
+    }, supplier, customer);
+
+    audit(req, 'mtd_export', 'homecare_client_billing_run', req.params.runId, { invoice_number: run.invoice_number });
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="mtd-${(run.invoice_number || run.id).replace(/[^A-Za-z0-9-_]/g, '')}.json"`);
+    res.json(mtd);
+  }
 }
