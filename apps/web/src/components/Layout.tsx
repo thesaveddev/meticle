@@ -80,9 +80,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const userInitial = rawUser?.first_name?.[0] || rawUser?.email?.[0] || '?'
 
   interface NavItem { text: string; icon: JSX.Element; path: string; module: string; roles: UserRole[]; serviceTypes?: string[] }
-  interface NavGroup { label: string; items: NavItem[] }
-
-  const [orgServiceTypes, setOrgServiceTypes] = useState<string[]>(['supported_living'])
+  interface NavGroup { label: string; items: NavItem[] }  const [orgServiceTypes, setOrgServiceTypes] = useState<string[]>(['supported_living'])
 
   useEffect(() => {
     if (!rawUser.id) return
@@ -93,6 +91,17 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       }
     }).catch(() => {}) // silently fail — default is supported_living
   }, [rawUser.id])
+
+  // Rename nav labels based on org service type for familiar terminology
+  const isDom = orgServiceTypes.some(t => ['domiciliary', 'live_in'].includes(t))
+  const labelOverride: Record<string, string> = isDom ? {
+    'People': 'Clients',
+    'Visits & Packages': 'Care Packages',
+    'Staff Directory': 'Carers',
+    'Locations': 'Areas',
+  } : {}
+
+
 
   const menuGroups: NavGroup[] = [
     {
@@ -116,7 +125,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         { text: 'Staff Directory', icon: <PeopleIcon />, path: '/staff', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
         { text: 'Rota Planner', icon: <ScheduleIcon />, path: '/scheduling', module: 'scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['supported_living', 'residential'] },
         { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['supported_living', 'residential'] },
-        { text: 'Agencies', icon: <BusinessIcon />, path: '/agencies', module: 'agencies', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+        { text: 'Agencies', icon: <BusinessIcon />, path: '/agencies', module: 'agencies', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['residential', 'supported_living'] },
         { text: 'Leave Manager', icon: <LeaveIcon />, path: '/leave', module: 'leave', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Locations', icon: <LocationOnIcon />, path: '/locations', module: 'settings', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
       ],
@@ -139,9 +148,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Communication',
       items: [
         { text: 'Communication', icon: <ChatIcon />, path: '/chat', module: 'chat', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-        { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'tasks', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'appointments', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-        { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'expenses', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'tasks', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
+        { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'appointments', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER], serviceTypes: ['residential', 'supported_living'] },
+        { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'expenses', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
       ],
     },
     {
@@ -436,7 +445,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                   <ListItemIcon sx={{ minWidth: 40, color: theme.palette.text.secondary }}>
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
+                  <ListItemText primary={labelOverride[item.text] || item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
                   {item.text === 'Communication' && chatUnreadCount > 0 && (
                     <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#EF4444', mr: 1, flexShrink: 0 }} />
                   )}
@@ -466,7 +475,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             <ListItemButton disabled={disabled} sx={{ borderRadius: 2, '&.Mui-disabled': { opacity: 0.45 } }}
               onClick={disabled ? undefined : () => handleNavigate(item.path)} selected={!disabled && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))}>
               <ListItemIcon sx={{ minWidth: 40, color: !disabled && location.pathname === item.path ? branding.primary_color : theme.palette.text.secondary }}>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
+              <ListItemText primary={labelOverride[item.text] || item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
             </ListItemButton>
           </ListItem>
           )

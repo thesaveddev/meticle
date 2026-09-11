@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Grid, Paper, Typography, Box, Stack, LinearProgress, Divider, Button, List, ListItem, CircularProgress, Chip } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
+import DomiciliaryDashboard from './DomiciliaryDashboard'
 import {
   TrendingUp as TrendingUpIcon,
   Group as PeopleIcon,
@@ -166,6 +167,11 @@ export default function DashboardPage() {
         <CircularProgress />
       </Box>
     )
+  }
+
+  // If this is a domiciliary care organisation, show the dedicated dom care dashboard
+  if (serviceTypes.includes('domiciliary') && !isStaff) {
+    return <DomiciliaryDashboard />
   }
 
   const statCards = isStaff
