@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "MeticleCare",
+    "slug": "meticlecare",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "meticlecare",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.meticlecare.mobile",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "MeticleCare uses your location only when you check in or out of an assigned visit.",
+        "NSUserNotificationsUsageDescription": "MeticleCare sends reminders for your assigned care visits and urgent operational updates."
+      }
+    },
+    "android": {
+      "package": "com.meticlecare.mobile",
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"]
+    },
+    "plugins": [
+      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "MeticleCare uses your location only while you check in or out of an assigned visit." }],
+      ["expo-notifications", { "color": "#0F4C81" }]
+    ],
+    "extra": {
+      "apiBaseUrl": "https://meticlecare.com/api"
+    }
+  }
+}
