@@ -89,9 +89,13 @@ export function getStripe(): Stripe {
   if (!stripeInstance) {
     const key = process.env.STRIPE_SECRET_KEY;
     if (!key) return null as any;
-    if (process.env.NODE_ENV === 'production' && key && !key.startsWith('sk_live')) {
+    const isLive = key.startsWith('sk_live');
+    const isTest = key.startsWith('sk_test');
+    if (process.env.NODE_ENV === 'production' && key && !isLive) {
+      console.error(`[stripe] BLOCKED: Production env but key is ${isTest ? 'test-mode' : 'unknown prefix'}. Stripe disabled.`);
       return null as any;
     }
+    console.log(`[stripe] Initialized: mode=${isLive ? 'live' : isTest ? 'test' : 'unknown'}, price_starter=${process.env.STRIPE_PRICE_STARTER || '(not set)'}, price_professional=${process.env.STRIPE_PRICE_PROFESSIONAL || '(not set)'}`);
     stripeInstance = new Stripe(key);
   }
   return stripeInstance;
@@ -141,9 +145,11 @@ export async function getOrCreatePrice(plan: string): Promise<string | null> {
     // Never trust an environment ID blindly. A stale/test/annual price here can
     // otherwise silently charge a different amount than the UI promises.
     const configuredPrice = await s.prices.retrieve(envVal);
+    console.log(`[stripe] Price lookup: ${envKey}=${envVal}, actual_amount=${configuredPrice.unit_amount}, actual_currency=${configuredPrice.currency}, actual_interval=${configuredPrice.recurring?.interval}, active=${configuredPrice.active}`);
     if (!isExpectedStripePrice(billingPlan, configuredPrice)) {
       const expected = PLAN_PRICE_CONFIG[billingPlan];
-      throw new Error(`${envKey} does not match ${billingPlan}: expected ${expected.currency.toUpperCase()} ${expected.amount / 100} per ${expected.interval}`);
+      console.error(`[stripe] REJECTED: ${envKey}=${envVal} has amount=${configuredPrice.unit_amount} but expected ${expected.amount} (${expected.currency} ${expected.amount / 100} per ${expected.interval})`);
+      throw new Error(`${envKey} does not match ${billingPlan}: expected ${expected.currency.toUpperCase()} ${expected.amount / 100} per ${expected.interval}, but Stripe price ${envVal} is ${configuredPrice.currency} ${(configuredPrice.unit_amount || 0) / 100} per ${configuredPrice.recurring?.interval || 'unknown'}`);
     }
     return configuredPrice.id;
   }
