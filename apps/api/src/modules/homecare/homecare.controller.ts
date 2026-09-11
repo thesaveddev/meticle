@@ -111,6 +111,13 @@ export class HomecareController {
     res.json(await repo.listTimesheets(orgId(req), req.query.status as string | undefined));
   }
 
+  static async getMonthlyCarerTotals(req: Request, res: Response) {
+    const from = req.query.from as string;
+    const to = req.query.to as string;
+    if (!from || !to) throw new AppError(400, 'from and to date parameters are required');
+    res.json(await repo.getMonthlyCarerTotals(orgId(req), from, to));
+  }
+
   static async updateTimesheet(req: Request, res: Response) {
     const result = await repo.updateTimesheet(orgId(req), req.params.id, userId(req), req.body);
     audit(req, req.body.status === 'approved' ? 'approve' : 'update', 'homecare_timesheet', req.params.id, req.body);
@@ -243,7 +250,7 @@ export class HomecareController {
     if (run.status !== 'approved') throw new AppError(409, 'Only approved billing runs have statutory invoices');
 
     const lines = await repo.listClientBillingLines(orgId(req), req.params.runId);
-    const { buildClientInvoicePdf } = require('./client-invoice.pdf');
+    const { buildClientInvoicePdf } = await import('./client-invoice.pdf' as string);
 
     const supplier = await repo.getSupplierInfo(orgId(req));
     const customer = await repo.getCustomerInfo(orgId(req), run);
@@ -278,7 +285,7 @@ export class HomecareController {
     if (run.status !== 'approved') throw new AppError(409, 'Only approved billing runs have MTD exports');
 
     const lines = await repo.listClientBillingLines(orgId(req), req.params.runId);
-    const { buildMtdDigitalLink } = require('./client-invoice.pdf');
+    const { buildMtdDigitalLink } = await import('./client-invoice.pdf' as string);
 
     const supplier = await repo.getSupplierInfo(orgId(req));
     const customer = await repo.getCustomerInfo(orgId(req), run);

@@ -122,6 +122,7 @@ router.post('/visits/:id/followups', requireRole(...managerRoles), validate(foll
 router.post('/visits/:id/offline/:action(check-in|check-out)', requireRole(...fieldRoles), validate(executionSchema), asyncHandler(HomecareController.offlineAction));
 router.patch('/disruptions/:id/resolve', requireRole(...managerRoles), asyncHandler(HomecareController.resolveDisruption));
 router.get('/timesheets', requireRole(...managerRoles), asyncHandler(HomecareController.listTimesheets));
+router.get('/timesheets/monthly-totals', requireRole(...managerRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getMonthlyCarerTotals));
 router.patch('/timesheets/:id', requireRole(...managerRoles), validate(timesheetSchema), asyncHandler(HomecareController.updateTimesheet));
 router.get('/payroll/export.csv', requireRole(...managerRoles), validate(exportSchema, 'query'), asyncHandler(HomecareController.exportPayroll));
 router.get('/client-billing/runs', requireRole(...managerRoles), asyncHandler(HomecareController.listClientBillingRuns));

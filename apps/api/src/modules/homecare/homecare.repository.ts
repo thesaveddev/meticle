@@ -58,12 +58,12 @@ export async function getClientBillingRun(orgId: string, runId: string) {
 
 export async function getSupplierInfo(orgId: string) {
   const result = await query(
-    `SELECT name, address, primary_color, billing_config FROM organizations WHERE id = $1`, [orgId]);
+    `SELECT name, primary_color, billing_config FROM organizations WHERE id = $1`, [orgId]);
   const org = result.rows[0] || {};
   const config = (org.billing_config || {}) as any;
   return {
     name: org.name || 'Meticle Provider',
-    address: org.address || 'United Kingdom',
+    address: config?.registered_address || 'United Kingdom',
     vat_number: config?.vat_number || null,
     company_number: config?.company_number || null,
     email: config?.invoice_email || 'billing@meticlecare.com',
@@ -447,6 +447,31 @@ export async function listTimesheets(orgId: string, status?: string) {
   const params: any[] = [orgId];
   if (status) { conditions.push('t.status = $2'); params.push(status); }
   return (await query(`SELECT t.*, sp.first_name || ' ' || sp.last_name AS staff_name, v.label, v.scheduled_start, pe.first_name || ' ' || pe.last_name AS person_name FROM homecare_timesheets t JOIN staff_profiles sp ON sp.id = t.staff_id JOIN homecare_visits v ON v.id = t.visit_id JOIN people pe ON pe.id = v.person_id WHERE ${conditions.join(' AND ')} ORDER BY t.created_at DESC`, params)).rows;
+}
+
+export async function getMonthlyCarerTotals(orgId: string, from: string, to: string) {
+  const result = await query(`
+    SELECT sp.id AS staff_id, sp.first_name || ' ' || sp.last_name AS staff_name,
+      COUNT(t.id) AS visit_count,
+      SUM(t.work_minutes) AS total_work_minutes,
+      SUM(t.travel_minutes) AS total_travel_minutes,
+      SUM(t.paid_travel_minutes) AS total_paid_travel_minutes,
+      SUM(t.mileage_miles) AS total_mileage_miles,
+      SUM(t.gross_pay_pence) AS total_gross_pay_pence,
+      SUM(CASE WHEN t.status = 'approved' THEN t.gross_pay_pence ELSE 0 END) AS approved_gross_pence,
+      SUM(CASE WHEN t.status = 'submitted' THEN 1 ELSE 0 END) AS pending_count,
+      SUM(CASE WHEN t.status = 'approved' THEN 1 ELSE 0 END) AS approved_count,
+      SUM(CASE WHEN t.status = 'rejected' THEN 1 ELSE 0 END) AS rejected_count,
+      SUM(CASE WHEN v.status = 'missed' OR v.status = 'cancelled' THEN 1 ELSE 0 END) AS exception_count
+    FROM homecare_timesheets t
+    JOIN staff_profiles sp ON sp.id = t.staff_id
+    JOIN users u ON u.id = sp.user_id
+    JOIN homecare_visits v ON v.id = t.visit_id
+    WHERE t.organization_id = $1 AND v.scheduled_start >= $2::date
+      AND v.scheduled_start < ($3::date + INTERVAL '1 month')
+    GROUP BY sp.id, sp.first_name, sp.last_name
+    ORDER BY sp.first_name, sp.last_name`, [orgId, from, to]);
+  return result.rows;
 }
 
 export async function listAvailability(orgId: string, staffId?: string) {
