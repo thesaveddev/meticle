@@ -5,7 +5,7 @@ import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { BillingController } from './billing.controller';
 import { UserRole } from '@meticle/shared';
-import { updatePlanSchema, addPaymentMethodSchema, createSetupIntentSchema } from '../../shared/validation/schemas';
+import { updatePlanSchema, addPaymentMethodSchema, createSetupIntentSchema, updateBillingConfigSchema } from '../../shared/validation/schemas';
 
 const router = Router();
 
@@ -31,7 +31,7 @@ router.patch('/addons', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingCon
 
 // Billing configuration (pricing, mileage, payroll)
 router.get('/pricing-config', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.getPricingConfig));
-router.patch('/pricing-config', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.updatePricingConfig));
+router.patch('/pricing-config', requireRole(UserRole.ORG_ADMIN), validate(updateBillingConfigSchema), asyncHandler(BillingController.updatePricingConfig));
 router.get('/mileage-rates', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.getMileageRates));
 router.patch('/mileage-rates', requireRole(UserRole.ORG_ADMIN), asyncHandler(BillingController.updateMileageRates));
 

@@ -103,7 +103,7 @@ export default function HomecarePage() {
   })
   const exportPayroll = async () => {
     try {
-      const response = await api.get('/homecare/payroll/export.csv', { params: { from: payrollFrom, to: payrollTo, provider: 'generic' }, responseType: 'blob' })
+      const response = await api.get('/homecare/payroll/export.csv', { params: { from: payrollFrom, to: payrollTo, provider: 'generic_csv' }, responseType: 'blob' })
       const url = URL.createObjectURL(response.data)
       const anchor = document.createElement('a')
       anchor.href = url

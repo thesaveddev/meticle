@@ -22,6 +22,7 @@ const packageSchema = z.object({
   end_date: date.nullish(),
   weekly_hours: z.number().min(0).max(1000).nullish(),
   hourly_rate_pence: z.number().int().min(0).nullish(),
+  client_rate_pence: z.number().int().min(0).nullish(),
   travel_time_paid: z.boolean().optional(),
   mileage_rate_pence: z.number().int().min(0).nullish(),
   notes: z.string().max(5000).nullish(),
@@ -48,6 +49,8 @@ const exceptionSchema = z.object({
   resolution_note: z.string().max(2000).nullish(),
 });
 const exportSchema = z.object({ from: date, to: date, provider: z.enum(['sage','xero','quickbooks','brightpay','staffology','generic_csv']).optional() });
+const billingPeriodSchema = z.object({ from: date, to: date });
+const runIdSchema = z.object({ runId: uuid });
 const visitSchema = z.object({
   package_id: uuid,
   visit_plan_id: uuid.nullish(),
@@ -121,5 +124,10 @@ router.patch('/disruptions/:id/resolve', requireRole(...managerRoles), asyncHand
 router.get('/timesheets', requireRole(...managerRoles), asyncHandler(HomecareController.listTimesheets));
 router.patch('/timesheets/:id', requireRole(...managerRoles), validate(timesheetSchema), asyncHandler(HomecareController.updateTimesheet));
 router.get('/payroll/export.csv', requireRole(...managerRoles), validate(exportSchema, 'query'), asyncHandler(HomecareController.exportPayroll));
+router.get('/client-billing/runs', requireRole(...managerRoles), asyncHandler(HomecareController.listClientBillingRuns));
+router.get('/client-billing/utilisation', requireRole(...managerRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getClientBillingUtilisation));
+router.post('/client-billing/runs', requireRole(...managerRoles), validate(billingPeriodSchema), asyncHandler(HomecareController.createClientBillingRun));
+router.get('/client-billing/runs/:runId/lines', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.listClientBillingLines));
+router.post('/client-billing/runs/:runId/approve', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.approveClientBillingRun));
 
 export default router;

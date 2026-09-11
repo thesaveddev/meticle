@@ -56,6 +56,7 @@ const HomecarePage = lazy(() => import('./pages/homecare/HomecarePage'))
 const MileagePage = lazy(() => import('./pages/homecare/MileagePage'))
 const CallSchedulingPage = lazy(() => import('./pages/homecare/CallSchedulingPage'))
 const PayrollExportPage = lazy(() => import('./pages/homecare/PayrollExportPage'))
+const ClientBillingPage = lazy(() => import('./pages/homecare/ClientBillingPage'))
 const PersonDirectoryPage = lazy(() => import('./pages/people/PersonDirectoryPage'))
 const PersonProfilePage = lazy(() => import('./pages/people/PersonProfilePage'))
 const IncidentDirectoryPage = lazy(() => import('./pages/incidents/IncidentDirectoryPage'))
@@ -163,6 +164,7 @@ function App() {
           <Route path="/mileage" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="mileage_travel"><MileagePage /></ModuleGuard></AuthGuard>} />
           <Route path="/call-scheduling" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="call_scheduling"><CallSchedulingPage /></ModuleGuard></AuthGuard>} />
           <Route path="/payroll-export" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="payroll_export"><PayrollExportPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/client-billing" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="client_billing"><ClientBillingPage /></ModuleGuard></AuthGuard>} />
           <Route path="/people" element={<ModuleGuard module="people"><PersonDirectoryPage /></ModuleGuard>} />
           <Route path="/people/:id" element={<ModuleGuard module="people"><PersonProfilePage /></ModuleGuard>} />
           <Route path="/incidents" element={<ModuleGuard module="incidents"><IncidentDirectoryPage /></ModuleGuard>} />

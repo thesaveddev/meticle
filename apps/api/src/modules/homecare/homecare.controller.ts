@@ -200,4 +200,28 @@ export class HomecareController {
     res.setHeader('Content-Disposition', `attachment; filename="homecare-payroll-${req.query.from}-${req.query.to}.csv"`);
     res.send(csv);
   }
+
+  static async listClientBillingRuns(req: Request, res: Response) {
+    res.json(await repo.listClientBillingRuns(orgId(req)));
+  }
+
+  static async getClientBillingUtilisation(req: Request, res: Response) {
+    res.json(await repo.buildClientBillingUtilisation(orgId(req), req.query.from as string, req.query.to as string));
+  }
+
+  static async createClientBillingRun(req: Request, res: Response) {
+    const result = await repo.createClientBillingRun(orgId(req), userId(req), req.body.from, req.body.to);
+    audit(req, 'create', 'homecare_client_billing_run', result.run.id, { from: req.body.from, to: req.body.to, row_count: result.lines.length });
+    res.status(201).json(result);
+  }
+
+  static async listClientBillingLines(req: Request, res: Response) {
+    res.json(await repo.listClientBillingLines(orgId(req), req.params.runId));
+  }
+
+  static async approveClientBillingRun(req: Request, res: Response) {
+    const result = await repo.approveClientBillingRun(orgId(req), userId(req), req.params.runId);
+    audit(req, 'approve', 'homecare_client_billing_run', req.params.runId);
+    res.json(result);
+  }
 }

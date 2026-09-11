@@ -946,12 +946,35 @@ export class BillingController {
   static async updatePricingConfig(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
     const { billing_config } = req.body;
-    if (!billing_config || typeof billing_config !== 'object') {
+    if (!billing_config || typeof billing_config !== 'object' || Array.isArray(billing_config)) {
       throw new AppError(400, 'billing_config must be an object');
     }
+
+    // Treat this endpoint as a partial settings update. Replacing the whole JSON
+    // document would silently erase mileage, payroll, or escalation settings when
+    // the billing form only edits VAT and domiciliary rates.
+    const current = await pool.query(
+      'SELECT billing_config FROM organizations WHERE id = $1',
+      [orgId]
+    );
+    if (current.rows.length === 0) throw new AppError(404, 'Organization not found');
+    const existingConfig = current.rows[0].billing_config || {};
+    const mergedConfig = {
+      ...existingConfig,
+      ...billing_config,
+      ...(billing_config.domiciliary || existingConfig.domiciliary
+        ? {
+            domiciliary: {
+              ...(existingConfig.domiciliary || {}),
+              ...(billing_config.domiciliary || {}),
+            },
+          }
+        : {}),
+    };
+
     await pool.query(
       'UPDATE organizations SET billing_config = $1 WHERE id = $2',
-      [JSON.stringify(billing_config), orgId]
+      [JSON.stringify(mergedConfig), orgId]
     );
 
     AuditRepository.log({
@@ -963,7 +986,7 @@ export class BillingController {
       ip_address: req.ip,
     }).catch(logWarn('audit billing config'));
 
-    res.json({ billing_config });
+    res.json({ billing_config: mergedConfig });
   }
 
   static async getMileageRates(req: Request, res: Response) {

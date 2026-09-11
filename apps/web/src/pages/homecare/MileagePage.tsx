@@ -19,9 +19,28 @@ export default function MileagePage() {
     queryFn: () => api.get(isManager ? '/homecare/visits' : '/homecare/my-visits', { params: { from, to } }).then(r => Array.isArray(r.data) ? r.data : []),
   })
 
-  const mileageVisits = visits.filter((v: any) => v.miles != null && Number(v.miles) > 0)
-  const totalMiles = mileageVisits.reduce((sum: number, v: any) => sum + (Number(v.miles) || 0), 0)
-  const totalMileagePay = mileageVisits.reduce((sum: number, v: any) => sum + (Number(v.mileage_pay_pence) || 0), 0)
+  const mileageVisits = visits.filter((v: any) => v.actual_mileage_miles != null && Number(v.actual_mileage_miles) > 0)
+  const totalMiles = mileageVisits.reduce((sum: number, v: any) => sum + (Number(v.actual_mileage_miles) || 0), 0)
+  const totalMileagePay = mileageVisits.reduce((sum: number, v: any) => sum + ((Number(v.actual_mileage_miles) || 0) * (Number(v.mileage_rate_pence) || 0)), 0)
+
+  const exportCsv = () => {
+    const headers = ['visit_id', 'carer', 'client', 'scheduled_start', 'miles', 'rate_pence', 'mileage_pay_pence']
+    const escape = (value: unknown) => {
+      const text = value == null ? '' : String(value)
+      return /[",\\n\\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+    }
+    const csv = [headers.join(','), ...mileageVisits.map((visit: any) => [
+      visit.id, visit.assigned_staff_name, visit.person_name, visit.scheduled_start,
+      visit.actual_mileage_miles, visit.mileage_rate_pence || 0,
+      (Number(visit.actual_mileage_miles) || 0) * (Number(visit.mileage_rate_pence) || 0),
+    ].map(escape).join(','))].join('\\n') + '\\n'
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `homecare-mileage-${month}.csv`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -30,7 +49,7 @@ export default function MileagePage() {
           <Typography variant="h4" sx={{ fontWeight: 800 }}>Mileage & Travel</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Track carer travel between client visits</Typography>
         </Box>
-        <Button variant="outlined" startIcon={<DownloadIcon />} sx={{ textTransform: 'none' }}>Export CSV</Button>
+        <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv} disabled={!mileageVisits.length} sx={{ textTransform: 'none' }}>Export CSV</Button>
       </Stack>
 
       <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
@@ -78,11 +97,11 @@ export default function MileagePage() {
                 <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>No mileage records for this period</TableCell></TableRow>
               ) : mileageVisits.map((v: any) => (
                 <TableRow key={v.id}>
-                  <TableCell>{v.carer_name || '—'}</TableCell>
+                  <TableCell>{v.assigned_staff_name || '—'}</TableCell>
                   <TableCell>{v.person_name || '—'}</TableCell>
-                  <TableCell>{new Date(v.visit_date || v.scheduled_date).toLocaleDateString('en-GB')}</TableCell>
-                  <TableCell align="right">{Number(v.miles).toFixed(1)}</TableCell>
-                  <TableCell align="right">{money(v.mileage_pay_pence)}</TableCell>
+                  <TableCell>{new Date(v.scheduled_start).toLocaleDateString('en-GB')}</TableCell>
+                  <TableCell align="right">{Number(v.actual_mileage_miles).toFixed(1)}</TableCell>
+                  <TableCell align="right">{money((Number(v.actual_mileage_miles) || 0) * (Number(v.mileage_rate_pence) || 0))}</TableCell>
                   <TableCell><Chip label={v.vehicle_type || 'car'} size="small" variant="outlined" /></TableCell>
                 </TableRow>
               ))}

@@ -22,11 +22,12 @@ export default function CallSchedulingPage() {
   const today = new Date()
   today.setDate(today.getDate() + offset)
   const dayStr = today.toISOString().slice(0, 10)
+  const nextDayStr = new Date(today.getTime() + 86400000).toISOString().slice(0, 10)
 
   const { data: visits = [], isLoading } = useQuery({
     queryKey: ['homecare-visits-schedule', dayStr, isManager],
     queryFn: () => api.get(isManager ? '/homecare/visits' : '/homecare/my-visits', {
-      params: { from: dayStr, to: dayStr }
+      params: { from: dayStr, to: nextDayStr }
     }).then(r => Array.isArray(r.data) ? r.data : []),
   })
 

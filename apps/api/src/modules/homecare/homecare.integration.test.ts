@@ -108,6 +108,44 @@ describe('Homecare Phase 2 foundation', () => {
     expect(resolved.body.exception_resolved_at).toBeTruthy()
   })
 
+  it('creates invoice-ready client utilisation without billing incomplete visits', async () => {
+    const org = await createOrg()
+    const person = await createPerson({ organizationId: org.id })
+    const manager = await createUser({ email: `hc-billing-manager-${Date.now()}@test.com`, role: 'MANAGER', organization_id: org.id })
+    const carer = await createUser({ email: `hc-billing-carer-${Date.now()}@test.com`, role: 'CARE_WORKER', organization_id: org.id })
+    const carerProfile = await createStaffProfile({ userId: carer.id })
+    const managerToken = generateToken(manager)
+    const carerToken = generateToken(carer)
+
+    const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({
+      person_id: person.id, name: 'Invoice-ready package', start_date: '2030-02-01', client_rate_pence: 1200,
+    })
+    const visit = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({
+      package_id: pkg.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Invoice visit', scheduled_start: '2030-02-03T08:00:00.000Z', scheduled_end: '2030-02-03T09:00:00.000Z',
+    })
+
+    const utilisation = await request(app).get('/homecare/client-billing/utilisation?from=2030-02-01&to=2030-02-28').set('Authorization', `Bearer ${managerToken}`)
+    expect(utilisation.status).toBe(200)
+    expect(utilisation.body).toHaveLength(1)
+    expect(utilisation.body[0]).toMatchObject({ billing_status: 'review', amount_pence: 0, exclusion_reason: 'Visit is not completed' })
+
+    const run = await request(app).post('/homecare/client-billing/runs').set('Authorization', `Bearer ${managerToken}`).send({ from: '2030-02-01', to: '2030-02-28' })
+    expect(run.status).toBe(201)
+    expect(run.body.run.total_amount_pence).toBe(0)
+    expect(run.body.lines[0].billing_status).toBe('review')
+
+    const approved = await request(app).post(`/homecare/client-billing/runs/${run.body.run.id}/approve`).set('Authorization', `Bearer ${managerToken}`)
+    expect(approved.status).toBe(200)
+    expect(approved.body.status).toBe('approved')
+
+    const forbidden = await request(app).get('/homecare/client-billing/runs').set('Authorization', `Bearer ${carerToken}`)
+    expect(forbidden.status).toBe(403)
+
+    const lines = await request(app).get(`/homecare/client-billing/runs/${run.body.run.id}/lines`).set('Authorization', `Bearer ${managerToken}`)
+    expect(lines.status).toBe(200)
+    expect(lines.body[0].visit_id).toBe(visit.body.id)
+  })
+
   it('rejects unauthenticated access', async () => {
     const res = await request(app).get('/homecare/packages')
     expect(res.status).toBe(401)

@@ -14,6 +14,7 @@ const MODULE_SERVICE_TYPES: Record<string, string[]> = {
   mileage_travel: ['domiciliary', 'live_in'],
   call_scheduling: ['domiciliary', 'live_in'],
   payroll_export: ['domiciliary', 'live_in'],
+  client_billing: ['domiciliary', 'live_in'],
 }
 
 export default function ModuleGuard({ module, children }: { module: string; children: React.ReactNode }) {
