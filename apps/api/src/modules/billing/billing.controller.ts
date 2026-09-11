@@ -157,6 +157,7 @@ export class BillingController {
             // Defensive: verify the price amount one more time before any charge
             const verifyPrice = await stripe.prices.retrieve(price);
             const expectedAmount = plan === 'starter' ? 9900 : 29900;
+            console.log(`[billing] updatePlan: org=${orgId}, plan=${plan}, price=${price}, verified_amount=${verifyPrice.unit_amount}, expected=${expectedAmount}`);
             if (verifyPrice.unit_amount !== expectedAmount) {
               throw new AppError(500, `Stripe price ${price} charges £${((verifyPrice.unit_amount || 0) / 100).toFixed(2)} but the app expects £${(expectedAmount / 100).toFixed(2)}. Contact support to correct the Stripe price configuration.`);
             }
@@ -190,6 +191,7 @@ export class BillingController {
               const existingSubscription = activeSubscriptions[0];
               const subscriptionItem = existingSubscription.items.data[0];
               if (!subscriptionItem?.id) throw new AppError(409, 'Stripe subscription has no billable item to update');
+              console.log(`[billing] Updating existing sub ${existingSubscription.id}: item=${subscriptionItem.id}, new_price=${price}, proration=none`);
               await stripe.subscriptions.update(existingSubscription.id, {
                 items: [{ id: subscriptionItem.id, price }],
                 proration_behavior: 'none',
@@ -197,6 +199,7 @@ export class BillingController {
                 ...(paymentMethodId ? { default_payment_method: paymentMethodId } : {}),
               });
               sub = await stripe.subscriptions.retrieve(existingSubscription.id);
+              console.log(`[billing] Updated sub result: status=${sub.status}, items=${sub.items.data.map(i => `${i.price?.unit_amount}x${i.quantity}`).join(',')}`);
             } else {
               const trialStillActive = currentSubscriptionStatus === 'trial'
                 && (!currentTrialEndsAt || currentTrialEndsAt.getTime() > Date.now());
@@ -210,7 +213,9 @@ export class BillingController {
                 ...(paymentMethodId ? { default_payment_method: paymentMethodId } : {}),
                 ...(trialStillActive ? { trial_period_days: 30 } : {}),
               };
+              console.log(`[billing] Creating new sub: customer=${customerId}, price=${price}, trial=${trialStillActive}, payment_method=${paymentMethodId || 'none'}`);
               sub = await stripe.subscriptions.create(createParams);
+              console.log(`[billing] Created sub result: status=${sub.status}, id=${sub.id}, items=${sub.items.data.map(i => `${i.price?.unit_amount}x${i.quantity}`).join(',')}`);
             }
             // Persist the resulting Stripe state so an expired/inactive org is
             // reactivated only after Stripe has created or updated the subscription.
