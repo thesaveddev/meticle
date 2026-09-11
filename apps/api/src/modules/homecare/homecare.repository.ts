@@ -47,6 +47,15 @@ export async function listClientBillingRuns(orgId: string) {
     WHERE r.organization_id = $1 ORDER BY r.period_from DESC, r.created_at DESC`, [orgId])).rows;
 }
 
+export async function getClientBillingRun(orgId: string, runId: string) {
+  const result = await query(`SELECT r.*, u.email AS created_by_email, au.email AS approved_by_email
+    FROM homecare_client_billing_runs r
+    LEFT JOIN users u ON u.id = r.created_by
+    LEFT JOIN users au ON au.id = r.approved_by
+    WHERE r.organization_id = $1 AND r.id = $2`, [orgId, runId]);
+  return result.rows[0] || null;
+}
+
 async function resolveBillingVat(orgId: string) {
   const billing = await query('SELECT billing_config FROM organizations WHERE id = $1', [orgId]);
   const config = (billing.rows[0]?.billing_config || {}) as any;
@@ -102,6 +111,14 @@ export async function buildClientBillingUtilisation(orgId: string, from: string,
 }
 
 export async function createClientBillingRun(orgId: string, userId: string, from: string, to: string) {
+  // Prevent duplicate billing runs for the same period
+  const existing = await query(
+    `SELECT id, status FROM homecare_client_billing_runs
+     WHERE organization_id = $1 AND period_from = $2 AND period_to = $3 AND status != 'void'
+     LIMIT 1`, [orgId, from, to]);
+  if (existing.rows[0]) {
+    throw new AppError(409, `A billing run already exists for ${from} to ${to} (status: ${existing.rows[0].status})`);
+  }
   const vat = await resolveBillingVat(orgId);
   const lines = await buildClientBillingUtilisation(orgId, from, to);
   const fundedRows = lines.map((row) => ({
@@ -294,7 +311,15 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
     const travelMinutes = Number(v.actual_travel_minutes || 0);
     const paidTravelMinutes = policy?.travel_time_paid ? travelMinutes : 0;
     const workRate = policy?.hourly_rate_pence == null ? null : Number(policy.hourly_rate_pence);
-    const mileageRate = policy?.mileage_rate_pence == null ? null : Number(policy.mileage_rate_pence);
+    // Auto-select mileage rate from organisation policy if package has none
+    let mileageRate = policy?.mileage_rate_pence == null ? null : Number(policy.mileage_rate_pence);
+    if (mileageRate == null) {
+      const rateRow = await client.query(
+        `SELECT rate_pence FROM homecare_mileage_policies
+         WHERE organization_id = $1 AND is_active = TRUE
+         ORDER BY effective_from DESC NULLS LAST, created_at DESC LIMIT 1`, [orgId]);
+      mileageRate = rateRow.rows[0] ? Number(rateRow.rows[0].rate_pence) : 45; // HMRC default
+    }
     const gross = workRate == null ? null : Math.round(((workMinutes + paidTravelMinutes) / 60) * workRate + Number(v.actual_mileage_miles || 0) * Number(mileageRate || 0));
     await client.query(`INSERT INTO homecare_timesheets (organization_id, visit_id, staff_id, work_minutes, travel_minutes, paid_travel_minutes, mileage_miles, mileage_rate_pence, hourly_rate_pence, gross_pay_pence, status)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'submitted') ON CONFLICT (visit_id) DO UPDATE SET work_minutes = EXCLUDED.work_minutes, travel_minutes = EXCLUDED.travel_minutes, paid_travel_minutes = EXCLUDED.paid_travel_minutes, mileage_miles = EXCLUDED.mileage_miles, mileage_rate_pence = EXCLUDED.mileage_rate_pence, hourly_rate_pence = EXCLUDED.hourly_rate_pence, gross_pay_pence = EXCLUDED.gross_pay_pence, updated_at = NOW()`, [orgId, visitId, v.assigned_staff_id, workMinutes, travelMinutes, paidTravelMinutes, Number(v.actual_mileage_miles || 0), mileageRate, workRate, gross]);
@@ -504,6 +529,14 @@ export async function recordOfflineAction(orgId: string, userId: string, visitId
 }
 
 export async function createPayrollExport(orgId: string, userId: string, filters: PayrollExportFilters, rows: any[], fileChecksum?: string) {
+  // Prevent duplicate exports for the same period and provider
+  const dupCheck = await query(
+    `SELECT id FROM homecare_payroll_exports
+     WHERE organization_id = $1 AND provider = $2 AND period_from = $3 AND period_to = $4
+     LIMIT 1`, [orgId, filters.provider || 'generic_csv', filters.from, filters.to]);
+  if (dupCheck.rows[0]) {
+    throw new AppError(409, 'A payroll export already exists for this period and provider');
+  }
   const result = await query(`INSERT INTO homecare_payroll_exports (organization_id, provider, period_from, period_to, row_count, file_checksum, created_by)
     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`, [orgId, filters.provider || 'generic_csv', filters.from, filters.to, rows.length, fileChecksum || null, userId]);
   for (const row of rows) await query(`INSERT INTO homecare_payroll_reconciliations (organization_id, export_id, timesheet_id, exported_gross_pay_pence)
