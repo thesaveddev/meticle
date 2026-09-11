@@ -3,7 +3,7 @@ import {
   Box, Button, Typography, Stack, Paper, Card, CardContent, Alert, CircularProgress,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip,
   Dialog, DialogTitle, DialogContent, DialogActions, Grid, TextField,
-  IconButton,
+  IconButton, Switch, FormControlLabel,
 } from '@mui/material'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
@@ -21,6 +21,18 @@ const PLANS = [
   { id: Plan.STARTER, name: 'Starter', price: '99', description: 'For small care teams', features: ['Up to 25 staff', 'Staff profiles', 'Basic compliance', 'Email support'] },
   { id: Plan.PROFESSIONAL, name: 'Professional', price: '299', description: 'Complete compliance suite', popular: true, features: ['Up to 100 staff', 'All Starter features', 'Automated rota', 'DBS monitoring', 'Full compliance', 'Priority support'] },
 ]
+
+type BillingConfig = {
+  domiciliary?: {
+    per_client_monthly?: number
+    per_carer_monthly?: number
+    per_visit?: number
+    travel_pay_included?: boolean
+    vat_inclusive?: boolean
+    vat_rate?: number
+  }
+  [key: string]: any
+}
 
 function StripeCardForm({ cardholderName, setCardholderName, onSuccess }: {
   cardholderName: string
@@ -161,10 +173,13 @@ function BillingPageInner() {
   const [removeCardDialog, setRemoveCardDialog] = useState('')
   const [retrying, setRetrying] = useState(false)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [billingConfig, setBillingConfig] = useState<BillingConfig | null>(null)
+  const [savingBillingConfig, setSavingBillingConfig] = useState(false)
 
   const userStr = localStorage.getItem('user')
   let user: any = null
   try { user = userStr ? JSON.parse(userStr) : null } catch { user = null }
+  const isOrgAdmin = user?.role === 'ORG_ADMIN'
 
   const loadBillingData = async () => {
     try {
@@ -179,12 +194,41 @@ function BillingPageInner() {
       const pmRes = await api.get('/billing/payment-methods')
       setPaymentMethods(pmRes.data)
     } catch { /* non-critical */ }
+    if (isOrgAdmin) {
+      try {
+        const configRes = await api.get('/billing/pricing-config')
+        setBillingConfig(configRes.data)
+      } catch { /* non-critical: non-admins do not have access */ }
+    }
+  }
+
+  const updateDomiciliaryConfig = (field: string, value: number | boolean) => {
+    setBillingConfig((current) => ({
+      ...(current || {}),
+      domiciliary: {
+        ...(current?.domiciliary || {}),
+        [field]: value,
+      },
+    }))
+  }
+
+  const saveBillingConfig = async () => {
+    if (!billingConfig) return
+    setSavingBillingConfig(true)
+    try {
+      await api.patch('/billing/pricing-config', { billing_config: billingConfig })
+      setMessage('Internal billing configuration saved. It does not change the Stripe plan price.')
+    } catch (err: any) {
+      setMessage(err.response?.data?.message || 'Failed to save billing configuration.')
+    } finally {
+      setSavingBillingConfig(false)
+    }
   }
 
   useEffect(() => {
-    if (!user?.organization_id) { setLoading(false); return }
+    if (!(user?.organization_id || user?.organizationId)) { setLoading(false); return }
     loadBillingData().finally(() => setLoading(false))
-  }, [user?.organization_id])
+  }, [user?.organization_id, user?.organizationId, isOrgAdmin])
 
   const handleCardAdded = async () => {
     setAddCardOpen(false)
@@ -396,6 +440,54 @@ function BillingPageInner() {
           </Paper>
         </Grid>
       </Grid>
+
+      {isOrgAdmin && billingConfig?.domiciliary && (
+        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '1px solid #E5E7EB' }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2} sx={{ mb: 1 }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>Internal care pricing & VAT</Typography>
+              <Typography variant="body2" color="#6B7280" sx={{ mt: 0.5 }}>
+                Organisation-only settings for domiciliary cost modelling. These figures are not shown on the public pricing page and do not change the Starter or Professional Stripe charge.
+              </Typography>
+            </Box>
+            <Button variant="contained" onClick={saveBillingConfig} disabled={savingBillingConfig} sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' }, bgcolor: '#0F4C81', textTransform: 'none' }}>
+              {savingBillingConfig ? <CircularProgress size={18} color="inherit" /> : 'Save settings'}
+            </Button>
+          </Stack>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={4}>
+              <TextField fullWidth size="small" type="number" label="Client rate / month (£)" inputProps={{ min: 0, step: 0.01 }}
+                value={((billingConfig.domiciliary.per_client_monthly || 0) / 100).toFixed(2)}
+                onChange={(e) => updateDomiciliaryConfig('per_client_monthly', Math.max(0, Math.round(Number(e.target.value || 0) * 100)))} />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField fullWidth size="small" type="number" label="Carer rate / month (£)" inputProps={{ min: 0, step: 0.01 }}
+                value={((billingConfig.domiciliary.per_carer_monthly || 0) / 100).toFixed(2)}
+                onChange={(e) => updateDomiciliaryConfig('per_carer_monthly', Math.max(0, Math.round(Number(e.target.value || 0) * 100)))} />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField fullWidth size="small" type="number" label="Per visit (£, optional)" inputProps={{ min: 0, step: 0.01 }}
+                value={((billingConfig.domiciliary.per_visit || 0) / 100).toFixed(2)}
+                onChange={(e) => updateDomiciliaryConfig('per_visit', Math.max(0, Math.round(Number(e.target.value || 0) * 100)))} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth size="small" type="number" label="VAT rate (%)" inputProps={{ min: 0, max: 100, step: 0.1 }}
+                value={billingConfig.domiciliary.vat_rate ?? 20}
+                onChange={(e) => updateDomiciliaryConfig('vat_rate', Math.min(100, Math.max(0, Number(e.target.value || 0))))} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControlLabel sx={{ ml: 0, mt: 0.5 }}
+                control={<Switch checked={!!billingConfig.domiciliary.vat_inclusive} onChange={(e) => updateDomiciliaryConfig('vat_inclusive', e.target.checked)} />}
+                label={billingConfig.domiciliary.vat_inclusive ? 'Rates include VAT' : 'Rates exclude VAT'} />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel sx={{ ml: 0 }}
+                control={<Switch checked={!!billingConfig.domiciliary.travel_pay_included} onChange={(e) => updateDomiciliaryConfig('travel_pay_included', e.target.checked)} />}
+                label="Include travel time in the organisation's paid travel policy" />
+            </Grid>
+          </Grid>
+        </Paper>
+      )}
 
       {/* Payment Methods */}
       <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>

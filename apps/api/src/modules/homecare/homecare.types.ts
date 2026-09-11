@@ -21,6 +21,7 @@ export interface HomecarePackageInput {
   end_date?: string | null;
   weekly_hours?: number | null;
   hourly_rate_pence?: number | null;
+  client_rate_pence?: number | null;
   travel_time_paid?: boolean;
   mileage_rate_pence?: number | null;
   notes?: string | null;

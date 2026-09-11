@@ -39,6 +39,52 @@ describe('Billing — GET /billing/subscription', () => {
   })
 })
 
+describe('Billing — pricing configuration', () => {
+  it('allows an organisation admin to update VAT and domiciliary rates without erasing other settings', async () => {
+    const org = await createOrg()
+    const user = await createUser({ email: `billing-config-${Date.now()}@test.com`, role: 'ORG_ADMIN', organization_id: org.id })
+    const token = generateToken(user)
+    await (await import('../../shared/database')).default.query(
+      `UPDATE organizations SET billing_config = $1 WHERE id = $2`,
+      [JSON.stringify({ mileage_rates: [{ id: 'keep-me' }], payroll_provider: 'sage', domiciliary: { per_client_monthly: 600, vat_rate: 20 } }), org.id]
+    )
+
+    const update = await request(app)
+      .patch('/billing/pricing-config')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ billing_config: { domiciliary: { per_client_monthly: 750, vat_inclusive: true, vat_rate: 20 } } })
+
+    expect(update.status).toBe(200)
+    expect(update.body.billing_config.domiciliary).toMatchObject({ per_client_monthly: 750, vat_inclusive: true, vat_rate: 20 })
+    expect(update.body.billing_config.mileage_rates).toEqual([{ id: 'keep-me' }])
+    expect(update.body.billing_config.payroll_provider).toBe('sage')
+
+    const read = await request(app)
+      .get('/billing/pricing-config')
+      .set('Authorization', `Bearer ${token}`)
+    expect(read.status).toBe(200)
+    expect(read.body.domiciliary.per_client_monthly).toBe(750)
+  }, 30_000)
+
+  it('rejects malformed pricing configuration and non-admin writes', async () => {
+    const org = await createOrg()
+    const admin = await createUser({ email: `billing-config-admin-${Date.now()}@test.com`, role: 'ORG_ADMIN', organization_id: org.id })
+    const worker = await createUser({ email: `billing-config-worker-${Date.now()}@test.com`, role: 'CARE_WORKER', organization_id: org.id })
+
+    const invalid = await request(app)
+      .patch('/billing/pricing-config')
+      .set('Authorization', `Bearer ${generateToken(admin)}`)
+      .send({ billing_config: { domiciliary: { vat_rate: 101 } } })
+    expect(invalid.status).toBe(400)
+
+    const forbidden = await request(app)
+      .patch('/billing/pricing-config')
+      .set('Authorization', `Bearer ${generateToken(worker)}`)
+      .send({ billing_config: { domiciliary: { vat_rate: 20 } } })
+    expect(forbidden.status).toBe(403)
+  }, 30_000)
+})
+
 describe('Billing — POST /billing/retry-payment', () => {
   it('returns 400 when Stripe is not configured', async () => {
     const org = await createOrg()

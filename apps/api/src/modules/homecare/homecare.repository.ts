@@ -1,6 +1,7 @@
 import { query, transaction } from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { HomecarePackageInput, HomecareVisitInput, HomecareVisitPlanInput, HomecareVisitUpdateInput, VisitExecutionInput, HomecareTimesheetUpdateInput, HomecareExceptionInput, PayrollExportFilters } from './homecare.types';
+import { calculateClientBillingLine, type ClientBillingUtilisationRow } from './client-billing';
 
 const PACKAGE_SELECT = `
   SELECT p.*, pe.first_name || ' ' || pe.last_name AS person_name
@@ -11,9 +12,12 @@ const PACKAGE_SELECT = `
 const VISIT_SELECT = `
   SELECT v.*, pe.first_name || ' ' || pe.last_name AS person_name,
     sp.first_name || ' ' || sp.last_name AS assigned_staff_name,
-    l.address AS person_address
+    l.address AS person_address,
+    p.name AS package_name,
+    p.mileage_rate_pence
   FROM homecare_visits v
   JOIN people pe ON pe.id = v.person_id
+  JOIN homecare_packages p ON p.id = v.package_id AND p.organization_id = v.organization_id
   LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
   LEFT JOIN locations l ON l.id = pe.location_id
 `;
@@ -35,6 +39,81 @@ async function assertStaff(staffId: string | null | undefined, orgId: string) {
   if (!result.rows[0]) throw new AppError(400, 'Assigned carer is not an active member of this organisation');
 }
 
+export async function listClientBillingRuns(orgId: string) {
+  return (await query(`SELECT r.*, u.email AS created_by_email, au.email AS approved_by_email
+    FROM homecare_client_billing_runs r
+    LEFT JOIN users u ON u.id = r.created_by
+    LEFT JOIN users au ON au.id = r.approved_by
+    WHERE r.organization_id = $1 ORDER BY r.period_from DESC, r.created_at DESC`, [orgId])).rows;
+}
+
+export async function buildClientBillingUtilisation(orgId: string, from: string, to: string): Promise<ClientBillingUtilisationRow[]> {
+  const result = await query(`SELECT v.id AS visit_id, v.package_id, v.person_id,
+      pe.first_name || ' ' || pe.last_name AS person_name, p.name AS package_name,
+      p.funding_type, v.status AS visit_status, v.scheduled_start,
+      EXTRACT(EPOCH FROM (v.scheduled_end - v.scheduled_start)) / 60 AS scheduled_minutes,
+      CASE WHEN v.status = 'completed' AND v.check_in_at IS NOT NULL AND v.check_out_at IS NOT NULL
+        THEN EXTRACT(EPOCH FROM (v.check_out_at - v.check_in_at)) / 60 ELSE 0 END AS delivered_minutes,
+      p.client_rate_pence
+    FROM homecare_visits v
+    JOIN homecare_packages p ON p.id = v.package_id AND p.organization_id = v.organization_id
+    JOIN people pe ON pe.id = v.person_id
+    WHERE v.organization_id = $1 AND v.scheduled_start >= $2::date
+      AND v.scheduled_start < ($3::date + INTERVAL '1 day')
+    ORDER BY v.scheduled_start, person_name`, [orgId, from, to]);
+  return result.rows.map((row: any) => {
+    const line = calculateClientBillingLine({
+      visitStatus: row.visit_status,
+      scheduledMinutes: Number(row.scheduled_minutes),
+      deliveredMinutes: Number(row.delivered_minutes),
+      clientRatePence: row.client_rate_pence == null ? null : Number(row.client_rate_pence),
+    });
+    return {
+      ...row,
+      scheduled_start: new Date(row.scheduled_start).toISOString(),
+      scheduled_minutes: line.scheduledMinutes,
+      delivered_minutes: line.deliveredMinutes,
+      client_rate_pence: line.clientRatePence,
+      amount_pence: line.amountPence,
+      billing_status: line.billingStatus,
+      exclusion_reason: line.exclusionReason,
+    };
+  });
+}
+
+export async function createClientBillingRun(orgId: string, userId: string, from: string, to: string) {
+  const lines = await buildClientBillingUtilisation(orgId, from, to);
+  return transaction(async (client) => {
+    const runResult = await client.query(`INSERT INTO homecare_client_billing_runs
+      (organization_id, period_from, period_to, row_count, total_amount_pence, created_by)
+      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`, [orgId, from, to, lines.length, lines.reduce((sum, row) => sum + row.amount_pence, 0), userId]);
+    for (const line of lines) {
+      await client.query(`INSERT INTO homecare_client_billing_lines
+        (organization_id, run_id, visit_id, package_id, person_id, funding_type, visit_status,
+         scheduled_minutes, delivered_minutes, client_rate_pence, amount_pence, billing_status, exclusion_reason)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+        [orgId, runResult.rows[0].id, line.visit_id, line.package_id, line.person_id, line.funding_type, line.visit_status,
+          line.scheduled_minutes, line.delivered_minutes, line.client_rate_pence, line.amount_pence, line.billing_status, line.exclusion_reason]);
+    }
+    return { run: runResult.rows[0], lines };
+  });
+}
+
+export async function listClientBillingLines(orgId: string, runId: string) {
+  return (await query(`SELECT l.*, pe.first_name || ' ' || pe.last_name AS person_name, p.name AS package_name
+    FROM homecare_client_billing_lines l
+    JOIN people pe ON pe.id = l.person_id
+    JOIN homecare_packages p ON p.id = l.package_id
+    WHERE l.organization_id = $1 AND l.run_id = $2 ORDER BY l.created_at`, [orgId, runId])).rows;
+}
+
+export async function approveClientBillingRun(orgId: string, userId: string, runId: string) {
+  const result = await query(`UPDATE homecare_client_billing_runs SET status = 'approved', approved_by = $1, approved_at = NOW(), updated_at = NOW()
+    WHERE id = $2 AND organization_id = $3 AND status = 'draft' RETURNING *`, [userId, runId, orgId]);
+  if (!result.rows[0]) throw new AppError(409, 'Only a draft billing run can be approved');
+  return result.rows[0];
+}
+
 export async function listPackages(orgId: string) {
   const result = await query(`${PACKAGE_SELECT} WHERE p.organization_id = $1 ORDER BY p.status, p.start_date DESC, p.created_at DESC`, [orgId]);
   return result.rows;
@@ -42,14 +121,14 @@ export async function listPackages(orgId: string) {
 
 export async function createPackage(orgId: string, userId: string, input: HomecarePackageInput) {
   await assertPerson(input.person_id, orgId);
-  const result = await query(`INSERT INTO homecare_packages (organization_id, person_id, name, status, funding_type, start_date, end_date, weekly_hours, hourly_rate_pence, travel_time_paid, mileage_rate_pence, notes, created_by)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`, [orgId, input.person_id, input.name, input.status || 'draft', input.funding_type || 'private', input.start_date, input.end_date || null, input.weekly_hours ?? null, input.hourly_rate_pence ?? null, input.travel_time_paid ?? true, input.mileage_rate_pence ?? null, input.notes || null, userId]);
+  const result = await query(`INSERT INTO homecare_packages (organization_id, person_id, name, status, funding_type, start_date, end_date, weekly_hours, hourly_rate_pence, travel_time_paid, mileage_rate_pence, client_rate_pence, notes, created_by)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`, [orgId, input.person_id, input.name, input.status || 'draft', input.funding_type || 'private', input.start_date, input.end_date || null, input.weekly_hours ?? null, input.hourly_rate_pence ?? null, input.travel_time_paid ?? true, input.mileage_rate_pence ?? null, (input as any).client_rate_pence ?? null, input.notes || null, userId]);
   return result.rows[0];
 }
 
 export async function updatePackage(orgId: string, packageId: string, input: Partial<HomecarePackageInput>) {
   await assertPackage(packageId, orgId);
-  const allowed = ['name','status','funding_type','start_date','end_date','weekly_hours','hourly_rate_pence','travel_time_paid','mileage_rate_pence','notes'];
+  const allowed = ['name','status','funding_type','start_date','end_date','weekly_hours','hourly_rate_pence','travel_time_paid','mileage_rate_pence','client_rate_pence','notes'];
   const entries = Object.entries(input).filter(([key]) => allowed.includes(key));
   if (!entries.length) return (await query(`${PACKAGE_SELECT} WHERE p.id = $1 AND p.organization_id = $2`, [packageId, orgId])).rows[0];
   const values = entries.map(([, value]) => value);

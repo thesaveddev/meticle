@@ -794,6 +794,26 @@ export const addPaymentMethodSchema = z.object({
 
 export const createSetupIntentSchema = z.object({}).passthrough();
 
+const domiciliaryBillingConfigSchema = z.object({
+  per_client_monthly: z.number().int().min(0).max(1_000_000).optional(),
+  per_carer_monthly: z.number().int().min(0).max(1_000_000).optional(),
+  per_visit: z.number().int().min(0).max(1_000_000).optional(),
+  travel_pay_included: z.boolean().optional(),
+  vat_inclusive: z.boolean().optional(),
+  vat_rate: z.number().min(0).max(100).optional(),
+}).passthrough();
+
+/**
+ * Billing configuration is an internal organisation setting, not the public
+ * Stripe plan catalogue. Keep unknown top-level sections so adding mileage,
+ * payroll, or escalation settings cannot be lost when pricing is saved.
+ */
+export const updateBillingConfigSchema = z.object({
+  billing_config: z.object({
+    domiciliary: domiciliaryBillingConfigSchema.optional(),
+  }).passthrough(),
+});
+
 // === Notifications ===
 export const markNotificationReadSchema = z.object({
   id: z.string().uuid(),
