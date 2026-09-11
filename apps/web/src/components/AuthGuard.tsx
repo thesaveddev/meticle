@@ -33,8 +33,9 @@ export default function AuthGuard({ allowedRoles, children }: AuthGuardProps) {
         if (!mounted) return
         setUser(currentUser)
         localStorage.setItem('user', JSON.stringify(currentUser))
-        // Redirect to onboarding if org hasn't completed it yet
-        if (data.organization && data.organization.onboarding_completed === false && currentUser.role !== 'SUPER_ADMIN') {
+        // Redirect to onboarding if org hasn't completed it yet (skip if already on /onboarding)
+        const currentPath = window.location.pathname
+        if (data.organization && data.organization.onboarding_completed === false && currentUser.role !== 'SUPER_ADMIN' && currentPath !== '/onboarding') {
           window.location.href = '/onboarding'
         }
       })
