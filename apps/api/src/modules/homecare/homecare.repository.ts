@@ -56,6 +56,35 @@ export async function getClientBillingRun(orgId: string, runId: string) {
   return result.rows[0] || null;
 }
 
+export async function getSupplierInfo(orgId: string) {
+  const result = await query(
+    `SELECT name, address, primary_color, billing_config FROM organizations WHERE id = $1`, [orgId]);
+  const org = result.rows[0] || {};
+  const config = (org.billing_config || {}) as any;
+  return {
+    name: org.name || 'Meticle Provider',
+    address: org.address || 'United Kingdom',
+    vat_number: config?.vat_number || null,
+    company_number: config?.company_number || null,
+    email: config?.invoice_email || 'billing@meticlecare.com',
+    phone: config?.phone || null,
+    color: org.primary_color || '#0F4C81',
+  };
+}
+
+export async function getCustomerInfo(orgId: string, run: any) {
+  // For client billing, the "customer" is the funder or the client
+  const billingBreakdown = run.funding_breakdown || {};
+  const funderTypes = Object.keys(billingBreakdown);
+  // Use the org name as the customer (the provider is billing on behalf of funders)
+  const result = await query(`SELECT name FROM organizations WHERE id = $1`, [orgId]);
+  return {
+    name: result.rows[0]?.name || 'Meticle Client',
+    address: null,
+    contact_email: null,
+  };
+}
+
 async function resolveBillingVat(orgId: string) {
   const billing = await query('SELECT billing_config FROM organizations WHERE id = $1', [orgId]);
   const config = (billing.rows[0]?.billing_config || {}) as any;
