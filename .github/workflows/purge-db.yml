@@ -1,0 +1,84 @@
+name: Purge Production Database
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type PURGE to confirm — this deletes ALL data'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  purge:
+    name: Purge database
+    runs-on: ubuntu-latest
+    environment: production
+    if: github.event.inputs.confirm == 'PURGE'
+    steps:
+      - name: Purge production database
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -Eeuo pipefail
+            cd /opt/meticle
+
+            echo "=== Pre-purge backup ==="
+            docker exec $(docker compose -f docker-compose.prod.yml ps -q db | head -1) \
+              pg_dump -U meticle meticle > /tmp/meticle_purge_backup_$(date +%Y%m%d_%H%M%S).sql 2>&1
+            echo "Backup saved to /tmp/meticle_purge_backup_*.sql"
+
+            echo "=== Dropping all data tables ==="
+            docker exec $(docker compose -f docker-compose.prod.yml ps -q db | head -1) \
+              psql -U meticle -d meticle <<'SQL'
+            -- Disable triggers to avoid FK constraint errors during truncate
+            SET session_replication_role = 'replica';
+
+            -- Truncate all application tables
+            DO $$
+            DECLARE
+              r RECORD;
+            BEGIN
+              FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '\_%' AND tablename != 'spatial_ref_sys'
+              LOOP
+                EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' CASCADE';
+              END LOOP;
+            END $$;
+
+            -- Reset sequences
+            DO $$
+            DECLARE
+              r RECORD;
+            BEGIN
+              FOR r IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public'
+              LOOP
+                EXECUTE 'ALTER SEQUENCE ' || quote_ident(r.sequencename) || ' RESTART WITH 1';
+              END LOOP;
+            END $$;
+
+            SET session_replication_role = 'origin';
+            SQL
+
+            echo "=== Clearing migration state ==="
+            docker exec $(docker compose -f docker-compose.prod.yml ps -q db | head -1) \
+              psql -U meticle -d meticle -c "TRUNCATE TABLE _migrations CASCADE; TRUNCATE TABLE _migration_baselines CASCADE;" 2>&1 || true
+
+            echo "=== Restarting API to re-run migrations ==="
+            docker compose -f docker-compose.prod.yml restart api
+            sleep 10
+
+            echo "=== Verifying API health ==="
+            for i in $(seq 1 15); do
+              if curl -fsS --max-time 5 http://localhost:3000/api/health 2>/dev/null | grep -q '"status"'; then
+                echo "API is healthy"
+                break
+              fi
+              echo "Waiting for API... ($i/15)"
+              sleep 3
+            done
+
+            echo "=== Database purge complete ==="
