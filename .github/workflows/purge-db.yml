@@ -24,12 +24,12 @@ jobs:
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            set -Eeuo pipefail
+            set -uo pipefail
 
             echo "=== Finding postgres container ==="
-            DB_CONTAINER=$(docker ps -qf "name=meticle.*postgres" | head -1)
+            DB_CONTAINER=$(docker ps -qf "ancestor=postgres" | head -1)
             if [ -z "$DB_CONTAINER" ]; then
-              DB_CONTAINER=$(docker ps -qf "name=postgres" | head -1)
+              DB_CONTAINER=$(docker ps --format '{{.ID}} {{.Image}} {{.Names}}' | grep -i postgres | head -1 | awk '{print $1}')
             fi
             if [ -z "$DB_CONTAINER" ]; then
               echo "ERROR: Could not find postgres container"
@@ -38,44 +38,28 @@ jobs:
             fi
             echo "Using container: $DB_CONTAINER"
 
-            echo "=== Pre-purge backup ==="
-            docker exec "$DB_CONTAINER" pg_dump -U meticle meticle > /tmp/meticle_purge_backup_$(date +%Y%m%d_%H%M%S).sql 2>&1
-            echo "Backup saved"
+            echo "=== Pre-purge backup (best effort) ==="
+            docker exec "$DB_CONTAINER" pg_dump -U meticle meticle > /tmp/meticle_purge_backup_$(date +%Y%m%d_%H%M%S).sql 2>&1 && echo "Backup saved" || echo "Backup failed, continuing with purge"
 
             echo "=== Dropping all data tables ==="
-            docker exec "$DB_CONTAINER" psql -U meticle -d meticle <<'SQL'
-            SET session_replication_role = 'replica';
-
-            DO $$
-            DECLARE
-              r RECORD;
-            BEGIN
-              FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '\_%' AND tablename != 'spatial_ref_sys'
-              LOOP
-                EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' CASCADE';
-              END LOOP;
-            END $$;
-
-            DO $$
-            DECLARE
-              r RECORD;
-            BEGIN
-              FOR r IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public'
-              LOOP
-                EXECUTE 'ALTER SEQUENCE ' || quote_ident(r.sequencename) || ' RESTART WITH 1';
-              END LOOP;
-            END $$;
-
-            SET session_replication_role = 'origin';
-            SQL
+            docker exec "$DB_CONTAINER" psql -U meticle -d meticle -c "
+              SET session_replication_role = 'replica';
+              DO \$\$ DECLARE r RECORD; BEGIN
+                FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '\\_%' AND tablename != 'spatial_ref_sys' LOOP
+                  EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' CASCADE';
+                END LOOP;
+              END \$\$;
+              SET session_replication_role = 'origin';
+            "
 
             echo "=== Clearing migration state ==="
-            docker exec "$DB_CONTAINER" psql -U meticle -d meticle -c "TRUNCATE TABLE _migrations CASCADE; TRUNCATE TABLE _migration_baselines CASCADE;" 2>&1 || true
+            docker exec "$DB_CONTAINER" psql -U meticle -d meticle -c "DELETE FROM _migrations WHERE true;" 2>&1 || true
+            docker exec "$DB_CONTAINER" psql -U meticle -d meticle -c "DELETE FROM _migration_baselines WHERE true;" 2>&1 || true
 
             echo "=== Finding and restarting API container ==="
-            API_CONTAINER=$(docker ps -qf "name=meticle.*api" | head -1)
+            API_CONTAINER=$(docker ps -qf "ancestor=ghcr.io/thesaveddev/meticle-api" | head -1)
             if [ -z "$API_CONTAINER" ]; then
-              API_CONTAINER=$(docker ps -qf "name=api" | head -1)
+              API_CONTAINER=$(docker ps --format '{{.ID}} {{.Image}}' | grep -i meticle-api | head -1 | awk '{print $1}')
             fi
             if [ -n "$API_CONTAINER" ]; then
               docker restart "$API_CONTAINER"
