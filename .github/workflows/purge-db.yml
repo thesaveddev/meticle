@@ -25,20 +25,27 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -Eeuo pipefail
-            cd /opt/meticle
+
+            echo "=== Finding postgres container ==="
+            DB_CONTAINER=$(docker ps -qf "name=meticle.*postgres" | head -1)
+            if [ -z "$DB_CONTAINER" ]; then
+              DB_CONTAINER=$(docker ps -qf "name=postgres" | head -1)
+            fi
+            if [ -z "$DB_CONTAINER" ]; then
+              echo "ERROR: Could not find postgres container"
+              docker ps --format "{{.Names}} {{.Image}}"
+              exit 1
+            fi
+            echo "Using container: $DB_CONTAINER"
 
             echo "=== Pre-purge backup ==="
-            docker exec $(docker compose -f docker-compose.prod.yml ps -q db | head -1) \
-              pg_dump -U meticle meticle > /tmp/meticle_purge_backup_$(date +%Y%m%d_%H%M%S).sql 2>&1
-            echo "Backup saved to /tmp/meticle_purge_backup_*.sql"
+            docker exec "$DB_CONTAINER" pg_dump -U meticle meticle > /tmp/meticle_purge_backup_$(date +%Y%m%d_%H%M%S).sql 2>&1
+            echo "Backup saved"
 
             echo "=== Dropping all data tables ==="
-            docker exec $(docker compose -f docker-compose.prod.yml ps -q db | head -1) \
-              psql -U meticle -d meticle <<'SQL'
-            -- Disable triggers to avoid FK constraint errors during truncate
+            docker exec "$DB_CONTAINER" psql -U meticle -d meticle <<'SQL'
             SET session_replication_role = 'replica';
 
-            -- Truncate all application tables
             DO $$
             DECLARE
               r RECORD;
@@ -49,7 +56,6 @@ jobs:
               END LOOP;
             END $$;
 
-            -- Reset sequences
             DO $$
             DECLARE
               r RECORD;
@@ -64,20 +70,28 @@ jobs:
             SQL
 
             echo "=== Clearing migration state ==="
-            docker exec $(docker compose -f docker-compose.prod.yml ps -q db | head -1) \
-              psql -U meticle -d meticle -c "TRUNCATE TABLE _migrations CASCADE; TRUNCATE TABLE _migration_baselines CASCADE;" 2>&1 || true
+            docker exec "$DB_CONTAINER" psql -U meticle -d meticle -c "TRUNCATE TABLE _migrations CASCADE; TRUNCATE TABLE _migration_baselines CASCADE;" 2>&1 || true
 
-            echo "=== Restarting API to re-run migrations ==="
-            docker compose -f docker-compose.prod.yml restart api
-            sleep 10
+            echo "=== Finding and restarting API container ==="
+            API_CONTAINER=$(docker ps -qf "name=meticle.*api" | head -1)
+            if [ -z "$API_CONTAINER" ]; then
+              API_CONTAINER=$(docker ps -qf "name=api" | head -1)
+            fi
+            if [ -n "$API_CONTAINER" ]; then
+              docker restart "$API_CONTAINER"
+              echo "API container restarted"
+            else
+              echo "WARNING: Could not find API container, skipping restart"
+            fi
 
-            echo "=== Verifying API health ==="
-            for i in $(seq 1 15); do
+            echo "=== Waiting for API to be healthy ==="
+            sleep 15
+            for i in $(seq 1 20); do
               if curl -fsS --max-time 5 http://localhost:3000/api/health 2>/dev/null | grep -q '"status"'; then
                 echo "API is healthy"
                 break
               fi
-              echo "Waiting for API... ($i/15)"
+              echo "Waiting for API... ($i/20)"
               sleep 3
             done
 
