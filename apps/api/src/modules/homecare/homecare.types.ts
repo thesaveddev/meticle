@@ -13,11 +13,11 @@ export type HomecareFollowupType = 'communication' | 'incident';
 export type HomecareFollowupOutcome = 'recorded' | 'attempted' | 'completed' | 'no_answer' | 'escalated';
 
 export interface HomecarePackageInput {
-  person_id: string;
+  person_id?: string | null;
   name: string;
   status?: HomecarePackageStatus;
   funding_type?: HomecareFundingType;
-  start_date: string;
+  start_date?: string | null;
   end_date?: string | null;
   weekly_hours?: number | null;
   hourly_rate_pence?: number | null;

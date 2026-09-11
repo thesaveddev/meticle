@@ -14,11 +14,11 @@ const managerRoles = [UserRole.ORG_ADMIN, UserRole.MANAGER];
 const fieldRoles = [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER];
 
 const packageSchema = z.object({
-  person_id: uuid,
+  person_id: uuid.nullish(),
   name: z.string().trim().min(1).max(255),
   status: z.enum(['draft','active','paused','ended']).optional(),
   funding_type: z.enum(['private','local_authority','nhs','other']).optional(),
-  start_date: date,
+  start_date: date.nullish(),
   end_date: date.nullish(),
   weekly_hours: z.number().min(0).max(1000).nullish(),
   hourly_rate_pence: z.number().int().min(0).nullish(),
