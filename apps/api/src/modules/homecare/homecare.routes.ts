@@ -127,7 +127,9 @@ router.get('/payroll/export.csv', requireRole(...managerRoles), validate(exportS
 router.get('/client-billing/runs', requireRole(...managerRoles), asyncHandler(HomecareController.listClientBillingRuns));
 router.get('/client-billing/utilisation', requireRole(...managerRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getClientBillingUtilisation));
 router.post('/client-billing/runs', requireRole(...managerRoles), validate(billingPeriodSchema), asyncHandler(HomecareController.createClientBillingRun));
+router.get('/client-billing/runs/:runId', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.getClientBillingRun));
 router.get('/client-billing/runs/:runId/lines', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.listClientBillingLines));
 router.post('/client-billing/runs/:runId/approve', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.approveClientBillingRun));
+router.post('/client-billing/runs/:runId/void', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.voidClientBillingRun));
 
 export default router;

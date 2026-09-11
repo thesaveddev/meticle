@@ -221,7 +221,20 @@ export class HomecareController {
 
   static async approveClientBillingRun(req: Request, res: Response) {
     const result = await repo.approveClientBillingRun(orgId(req), userId(req), req.params.runId);
-    audit(req, 'approve', 'homecare_client_billing_run', req.params.runId);
+    audit(req, 'approve', 'homecare_client_billing_run', req.params.runId, { invoice_number: result.invoice_number });
     res.json(result);
+  }
+
+  static async voidClientBillingRun(req: Request, res: Response) {
+    const result = await repo.voidClientBillingRun(orgId(req), userId(req), req.params.runId, req.body?.void_reason || req.body?.reason || null);
+    audit(req, 'void', 'homecare_client_billing_run', req.params.runId, { void_reason: result.void_reason, invoice_number: result.invoice_number });
+    res.json(result);
+  }
+
+  static async getClientBillingRun(req: Request, res: Response) {
+    const runs = await repo.listClientBillingRuns(orgId(req));
+    const run = runs.find((item: any) => item.id === req.params.runId);
+    if (!run) throw new AppError(404, 'Billing run not found');
+    res.json(run);
   }
 }

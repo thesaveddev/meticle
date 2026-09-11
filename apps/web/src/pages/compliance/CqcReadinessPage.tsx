@@ -3,7 +3,14 @@ import { Box, Typography, Paper, Grid, Chip, LinearProgress, Stack, Button, Tool
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Refresh as RefreshIcon, ExpandMore as ExpandIcon, CheckCircle, Warning, Error as ErrorIcon, Download as DownloadIcon, Print as PrintIcon, Lightbulb as ActionIcon, AutoAwesome as AiIcon, SmartToy as AiIconOutlined, Send as SendIcon, Chat as ChatIcon, PriorityHigh as PriorityIcon, AccessTime as EffortIcon, Star as StarIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import api from '../../services/api'
-import html2pdf from 'html2pdf.js'
+
+type Html2Pdf = typeof import('html2pdf.js').default
+let html2pdfLoader: Promise<Html2Pdf> | undefined
+
+async function loadHtml2Pdf(): Promise<Html2Pdf> {
+  html2pdfLoader ??= import('html2pdf.js').then(module => module.default)
+  return html2pdfLoader
+}
 
 function getRating(score: number, ratings?: any[]) {
   if (ratings && ratings.length > 0) {
@@ -144,7 +151,8 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
     doc.open()
     doc.write(buildAiPrintHTML())
     doc.close()
-    setTimeout(() => {
+    setTimeout(async () => {
+      const html2pdf = await loadHtml2Pdf()
       html2pdf().from(iframe.contentWindow!.document.body).set({
         margin: [10, 10],
         filename: `ai-gap-analysis-${new Date().toISOString().split('T')[0]}.pdf`,
@@ -200,6 +208,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
       doc.write(buildAiPrintHTML())
       doc.close()
       await new Promise(r => setTimeout(r, 500))
+      const html2pdf = await loadHtml2Pdf()
       const pdfBlob = await html2pdf().from(iframe.contentWindow!.document.body).set({
         margin: [10, 10],
         filename: `ai-gap-analysis-${new Date().toISOString().split('T')[0]}.pdf`,
