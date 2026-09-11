@@ -331,7 +331,7 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
   if (!visit.check_in_at) throw new AppError(409, 'Check in before checking out');
   if (visit.status === 'completed') throw new AppError(409, 'This visit is already complete');
   return transaction(async (client) => {
-    const updated = await client.query(`UPDATE homecare_visits SET status = 'completed', check_out_at = NOW(), check_out_latitude = $1, check_out_longitude = $2, visit_notes = COALESCE($3, visit_notes), actual_travel_minutes = COALESCE($4, actual_travel_minutes), actual_mileage_miles = COALESCE($5, actual_mileage_miles), mileage_status = CASE WHEN COALESCE($5, actual_mileage_miles) > 0 THEN 'submitted' ELSE mileage_status END, updated_at = NOW() WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.latitude, input.longitude, input.note || null, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId]);
+    const updated = await client.query(`UPDATE homecare_visits SET status = 'completed', check_out_at = NOW(), check_out_latitude = $1, check_out_longitude = $2, visit_notes = COALESCE($3, visit_notes), actual_travel_minutes = COALESCE($4, actual_travel_minutes), actual_mileage_miles = COALESCE($5, actual_mileage_miles), care_plan_id = COALESCE($8, care_plan_id), mileage_status = CASE WHEN COALESCE($5, actual_mileage_miles) > 0 THEN 'submitted' ELSE mileage_status END, updated_at = NOW() WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.latitude, input.longitude, input.note || null, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId, input.care_plan_id || null]);
     if (!updated.rows[0]) throw new AppError(404, 'Visit not found');
     const v = updated.rows[0];
     const workMinutes = Math.max(0, Math.round((new Date(v.check_out_at).getTime() - new Date(v.check_in_at).getTime()) / 60000));
@@ -447,6 +447,18 @@ export async function listTimesheets(orgId: string, status?: string) {
   const params: any[] = [orgId];
   if (status) { conditions.push('t.status = $2'); params.push(status); }
   return (await query(`SELECT t.*, sp.first_name || ' ' || sp.last_name AS staff_name, v.label, v.scheduled_start, pe.first_name || ' ' || pe.last_name AS person_name FROM homecare_timesheets t JOIN staff_profiles sp ON sp.id = t.staff_id JOIN homecare_visits v ON v.id = t.visit_id JOIN people pe ON pe.id = v.person_id WHERE ${conditions.join(' AND ')} ORDER BY t.created_at DESC`, params)).rows;
+}
+
+export async function listCarePlans(orgId: string, personId: string) {
+  const result = await query(
+    `SELECT cp.id, cp.title, cp.category, cp.status, cp.review_date
+     FROM care_plans cp
+     JOIN people p ON p.id = cp.person_id
+     WHERE cp.person_id = $1 AND p.organization_id = $2 AND cp.status = 'active'
+     ORDER BY cp.title`,
+    [personId, orgId]
+  );
+  return result.rows;
 }
 
 export async function getMonthlyCarerTotals(orgId: string, from: string, to: string) {
