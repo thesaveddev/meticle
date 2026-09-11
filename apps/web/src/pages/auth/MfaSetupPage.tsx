@@ -75,7 +75,18 @@ export default function MfaSetupPage() {
               const raw = localStorage.getItem('user')
               let u: any = null
               try { u = raw ? JSON.parse(raw) : null } catch { u = null }
-              navigate(u?.role === 'SUPER_ADMIN' ? '/platform-admin' : '/dashboard')
+              if (u?.role === 'SUPER_ADMIN') {
+                navigate('/platform-admin')
+              } else {
+                // Check if org onboarding is incomplete
+                api.get('/auth/me').then(({ data }) => {
+                  if (data.organization && data.organization.onboarding_completed === false) {
+                    navigate('/onboarding')
+                  } else {
+                    navigate('/dashboard')
+                  }
+                }).catch(() => navigate('/dashboard'))
+              }
             }}
               sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' }, py: 1.5, fontWeight: 700 }}>
               {(() => {
