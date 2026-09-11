@@ -219,9 +219,9 @@ export async function listPackages(orgId: string) {
 }
 
 export async function createPackage(orgId: string, userId: string, input: HomecarePackageInput) {
-  await assertPerson(input.person_id, orgId);
+  if (input.person_id) await assertPerson(input.person_id, orgId);
   const result = await query(`INSERT INTO homecare_packages (organization_id, person_id, name, status, funding_type, start_date, end_date, weekly_hours, hourly_rate_pence, travel_time_paid, mileage_rate_pence, client_rate_pence, notes, created_by)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`, [orgId, input.person_id, input.name, input.status || 'draft', input.funding_type || 'private', input.start_date, input.end_date || null, input.weekly_hours ?? null, input.hourly_rate_pence ?? null, input.travel_time_paid ?? true, input.mileage_rate_pence ?? null, (input as any).client_rate_pence ?? null, input.notes || null, userId]);
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`, [orgId, input.person_id || null, input.name, input.status || 'draft', input.funding_type || 'private', input.start_date || new Date().toISOString().slice(0, 10), input.end_date || null, input.weekly_hours ?? null, input.hourly_rate_pence ?? null, input.travel_time_paid ?? true, input.mileage_rate_pence ?? null, (input as any).client_rate_pence ?? null, input.notes || null, userId]);
   return result.rows[0];
 }
 

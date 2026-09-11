@@ -112,6 +112,7 @@ export default function OnboardingFlow() {
           await api.post('/homecare/packages', {
             name: packageName,
             hourly_rate_pence: packageHourlyRate ? Number(packageHourlyRate) * 100 : undefined,
+            status: 'draft',
           }).catch(() => {}) // Non-critical
         }
         if (selectedTypes.includes('residential') && roomName) {
