@@ -232,8 +232,7 @@ export class HomecareController {
   }
 
   static async getClientBillingRun(req: Request, res: Response) {
-    const runs = await repo.listClientBillingRuns(orgId(req));
-    const run = runs.find((item: any) => item.id === req.params.runId);
+    const run = await repo.getClientBillingRun(orgId(req), req.params.runId);
     if (!run) throw new AppError(404, 'Billing run not found');
     res.json(run);
   }
