@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
+import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import { SkeletonCalendar } from '../components/Skeleton'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
@@ -37,17 +38,18 @@ function getFirstDayOfMonth(year: number, month: number) {
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
-function StatusDot({ status, overdue, c }: { status: string; overdue?: boolean; c: any }) {
+function StatusDot({ status, overdue, c, s }: { status: string; overdue?: boolean; c: any; s: any }) {
   if (overdue) return <IconAlert size={12} color={c.danger} />
   const color = status === 'completed' ? c.success
     : status === 'checked_in' ? c.primary
     : status === 'missed' ? c.danger
     : c.subtle
-  return <View style={[styles.statusDot, { backgroundColor: color }]} />
+  return <View style={[s.statusDot, { backgroundColor: color }]} />
 }
 
 export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
   const c = useAppColors()
+  const s = useDynamicStyles(styles)
   const [visits, setVisits] = useState<HomecareVisit[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -104,40 +106,40 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.screen, dyn(c).screen]}>
+      <SafeAreaView style={[s.screen, dyn(c).screen]}>
         <SkeletonCalendar c={c} />
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={[styles.screen, dyn(c).screen]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
+    <SafeAreaView style={[s.screen, dyn(c).screen]}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { hapticMedium(); loadMonth(true) }} tintColor="transparent" colors={['transparent']} />}
       >
         {/* Month header */}
-        <View style={styles.monthHeader}>
-          <Pressable onPress={prevMonth} style={[styles.monthNav, { backgroundColor: c.surface }]}>  
-            <Text style={[styles.monthNavText, { color: c.primary }]}>←</Text>
+        <View style={s.monthHeader}>
+          <Pressable onPress={prevMonth} style={[s.monthNav, { backgroundColor: c.surface }]}>  
+            <Text style={[s.monthNavText, { color: c.primary }]}>←</Text>
           </Pressable>
-          <Text style={[styles.monthTitle, { color: c.ink }]}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
-          <Pressable onPress={nextMonth} style={[styles.monthNav, { backgroundColor: c.surface }]}>  
-            <Text style={[styles.monthNavText, { color: c.primary }]}>→</Text>
+          <Text style={[s.monthTitle, { color: c.ink }]}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
+          <Pressable onPress={nextMonth} style={[s.monthNav, { backgroundColor: c.surface }]}>  
+            <Text style={[s.monthNavText, { color: c.primary }]}>→</Text>
           </Pressable>
         </View>
 
         {/* Summary */}
-        <Text style={[styles.summary, { color: c.muted }]}>{total} calls · {completed} completed</Text>
+        <Text style={[s.summary, { color: c.muted }]}>{total} calls · {completed} completed</Text>
 
         {/* Calendar grid */}
-        <View style={styles.calendar}>
+        <View style={s.calendar}>
           {/* Day labels */}
           {DAY_LABELS.map((d, i) => (
-            <Text key={i} style={[styles.dayLabel, { color: c.subtle }]}>{d}</Text>
+            <Text key={i} style={[s.dayLabel, { color: c.subtle }]}>{d}</Text>
           ))}
           {/* Day cells */}
           {calendarDays.map((day, i) => {
-            if (day === null) return <View key={`empty-${i}`} style={styles.dayCell} />
+            if (day === null) return <View key={`empty-${i}`} style={s.dayCell} />
             const cellDate = new Date(viewYear, viewMonth, day)
             const isToday = isSameDay(cellDate, now)
             const isSelected = isSameDay(cellDate, selectedDay)
@@ -146,23 +148,23 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
 
             return (
               <Pressable key={day} onPress={() => { hapticLight(); setSelectedDay(cellDate) }}
-                style={({ pressed }) => [styles.dayCell, pressed && { opacity: 0.7 }]}>
+                style={({ pressed }) => [s.dayCell, pressed && { opacity: 0.7 }]}>
                 <View style={[
-                  styles.dayNum,
+                  s.dayNum,
                   isToday && { backgroundColor: c.primarySurface },
                   isSelected && { backgroundColor: c.primary },
                 ]}>
                   <Text style={[
-                    styles.dayNumText,
+                    s.dayNumText,
                     { color: c.ink },
-                    isToday && [styles.dayNumTextToday, { color: c.primary }],
-                    isSelected && [styles.dayNumTextSelected, { color: c.inverse }],
+                    isToday && [s.dayNumTextToday, { color: c.primary }],
+                    isSelected && [s.dayNumTextSelected, { color: c.inverse }],
                   ]}>{day}</Text>
                 </View>
                 {dayVisitCount > 0 && (
-                  <View style={styles.dayDots}>
-                    {dayCompleted > 0 && <View style={[styles.dayDot, { backgroundColor: c.success }]} />}
-                    {dayCompleted < dayVisitCount && <View style={[styles.dayDot, { backgroundColor: c.primary }]} />}
+                  <View style={s.dayDots}>
+                    {dayCompleted > 0 && <View style={[s.dayDot, { backgroundColor: c.success }]} />}
+                    {dayCompleted < dayVisitCount && <View style={[s.dayDot, { backgroundColor: c.primary }]} />}
                   </View>
                 )}
               </Pressable>
@@ -171,27 +173,27 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
         </View>
 
         {/* Swap button */}
-        <Pressable onPress={() => { hapticLight(); onSwap() }} style={({ pressed }) => [[styles.swapCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.8 }]}>
-          <View style={styles.swapIconWrap}>
+        <Pressable onPress={() => { hapticLight(); onSwap() }} style={({ pressed }) => [[s.swapCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.8 }]}>
+          <View style={s.swapIconWrap}>
             <IconForward size={16} color={c.primary} />
           </View>
-          <View style={styles.swapInfo}>
-            <Text style={[styles.swapTitle, { color: c.primary }]}>Swap or transfer a call</Text>
-            <Text style={[styles.swapDesc, { color: c.muted }]}>Request to swap with a colleague</Text>
+          <View style={s.swapInfo}>
+            <Text style={[s.swapTitle, { color: c.primary }]}>Swap or transfer a call</Text>
+            <Text style={[s.swapDesc, { color: c.muted }]}>Request to swap with a colleague</Text>
           </View>
-          <Text style={[styles.swapArrow, { color: c.primary }]}>→</Text>
+          <Text style={[s.swapArrow, { color: c.primary }]}>→</Text>
         </Pressable>
 
         {/* Day visits */}
-        <View style={styles.daySection}>
-          <Text style={[styles.daySectionLabel, { color: c.subtle }]}>
+        <View style={s.daySection}>
+          <Text style={[s.daySectionLabel, { color: c.subtle }]}>
             {selectedDay.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
           </Text>
 
           {dayVisits.length === 0 ? (
-            <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-              <Text style={[styles.emptyTitle, { color: c.ink }]}>No calls on this day</Text>
-              <Text style={[styles.emptyCopy, { color: c.muted }]}>Select another day or swap a call with a colleague.</Text>
+            <View style={[s.emptyCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+              <Text style={[s.emptyTitle, { color: c.ink }]}>No calls on this day</Text>
+              <Text style={[s.emptyCopy, { color: c.muted }]}>Select another day or swap a call with a colleague.</Text>
             </View>
           ) : (
             dayVisits.map(visit => {
@@ -199,22 +201,22 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
               return (
                 <Pressable key={visit.id} onPress={() => { hapticLight(); onVisit(visit) }}
                   style={({ pressed }) => [
-                    styles.visitCard,
+                    s.visitCard,
                     ov
                       ? { backgroundColor: c.dangerSurface }
                       : { backgroundColor: c.surface },
                     pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
                   ]}>
-                  <View style={styles.visitTimeCol}>                   <Text style={[styles.visitTime, { color: ov ? c.danger : c.primary }]}>{time(visit.scheduled_start)}</Text>
-                    <View style={[styles.visitTimeDash, { backgroundColor: ov ? c.danger : c.border }]} />
-                    <Text style={[styles.visitTimeEnd, { color: ov ? c.danger : c.muted }]}>{time(visit.scheduled_end)}</Text>
+                  <View style={s.visitTimeCol}>                   <Text style={[s.visitTime, { color: ov ? c.danger : c.primary }]}>{time(visit.scheduled_start)}</Text>
+                    <View style={[s.visitTimeDash, { backgroundColor: ov ? c.danger : c.border }]} />
+                    <Text style={[s.visitTimeEnd, { color: ov ? c.danger : c.muted }]}>{time(visit.scheduled_end)}</Text>
                   </View>
-                  <View style={styles.visitInfo}>                   <Text style={[styles.visitLabel, { color: ov ? c.danger : c.ink }]} numberOfLines={1}>{visit.label}</Text>
-                    {visit.person_name && <Text style={[styles.visitPerson, { color: ov ? c.danger : c.muted }]} numberOfLines={1}>{visit.person_name}</Text>}
+                  <View style={s.visitInfo}>                   <Text style={[s.visitLabel, { color: ov ? c.danger : c.ink }]} numberOfLines={1}>{visit.label}</Text>
+                    {visit.person_name && <Text style={[s.visitPerson, { color: ov ? c.danger : c.muted }]} numberOfLines={1}>{visit.person_name}</Text>}
                     {ov && <Text style={{ fontFamily: FONT, fontSize: 11, fontWeight: '700', color: c.danger, marginTop: 2 }}>{overdueLabel(visit)}</Text>}
                     {visit.person_address && (
-                      <View style={styles.addrRow}>                         <Text style={[styles.visitAddr, { color: ov ? c.danger : c.subtle }]} numberOfLines={1}>{visit.person_address}</Text>
-                        <Pressable onPress={() => { hapticLight(); setNavDest({ destination: visit.person_address!, label: visit.person_name || visit.label }); setMapPickerOpen(true) }}                           style={({ pressed }) => [[styles.navPill, { backgroundColor: ov ? c.dangerSurface : c.primarySurface }], pressed && { opacity: 0.7 }]}>
+                      <View style={s.addrRow}>                         <Text style={[s.visitAddr, { color: ov ? c.danger : c.subtle }]} numberOfLines={1}>{visit.person_address}</Text>
+                        <Pressable onPress={() => { hapticLight(); setNavDest({ destination: visit.person_address!, label: visit.person_name || visit.label }); setMapPickerOpen(true) }}                           style={({ pressed }) => [[s.navPill, { backgroundColor: ov ? c.dangerSurface : c.primarySurface }], pressed && { opacity: 0.7 }]}>
                           <IconNavigate size={12} color={ov ? c.danger : c.primary} />
                         </Pressable>
                       </View>
@@ -226,7 +228,7 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
                       <Text style={{ fontFamily: FONT, fontSize: 10, fontWeight: '700', color: c.warning }}>2-person</Text>
                     </View>
                   )}
-                  <StatusDot status={visit.status} overdue={ov} c={c} />
+                  <StatusDot status={visit.status} overdue={ov} c={c} s={s} />
                 </Pressable>
               )
             })

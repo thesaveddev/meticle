@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -20,6 +21,7 @@ interface Props {
 
 export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
   const c = useAppColors()
+  const s = useDynamicStyles(styles)
   const [firstName, setFirstName] = useState(user.first_name || '')
   const [lastName, setLastName] = useState(user.last_name || '')
   const [phone, setPhone] = useState('')
@@ -160,83 +162,83 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
   const displayPhoto = localPhotoUri || profilePhoto
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadProfile() }} tintColor={c.primary} />}>
-        <Pressable onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.backText}>Settings</Text>
+    <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadProfile() }} tintColor={c.primary} />}>
+        <Pressable onPress={onBack} style={s.backBtn}>
+          <Text style={s.backArrow}>←</Text>
+          <Text style={s.backText}>Settings</Text>
         </Pressable>
-        <Text style={styles.title}>My Profile</Text>
+        <Text style={s.title}>My Profile</Text>
 
         {/* Avatar with photo upload */}
-        <View style={styles.avatarSection}>
-          <Pressable onPress={pickImage} style={styles.avatarWrap}>
+        <View style={s.avatarSection}>
+          <Pressable onPress={pickImage} style={s.avatarWrap}>
             {displayPhoto ? (
-              <Image source={{ uri: displayPhoto } as any} style={styles.avatarImage} />
+              <Image source={{ uri: displayPhoto } as any} style={s.avatarImage} />
             ) : (
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initials}</Text>
+              <View style={s.avatar}>
+                <Text style={s.avatarText}>{initials}</Text>
               </View>
             )}
-            <View style={styles.cameraBadge}>
-              <Text style={styles.cameraIcon}>📷</Text>
+            <View style={s.cameraBadge}>
+              <Text style={s.cameraIcon}>📷</Text>
             </View>
-            {uploadingPhoto && <View style={styles.uploadOverlay}><Text style={styles.uploadText}>Uploading...</Text></View>}
+            {uploadingPhoto && <View style={s.uploadOverlay}><Text style={s.uploadText}>Uploading...</Text></View>}
           </Pressable>
-          <View style={styles.photoActions}>
-            <Pressable onPress={pickImage} style={styles.photoBtn}>
-              <Text style={styles.photoBtnText}>📸 Gallery</Text>
+          <View style={s.photoActions}>
+            <Pressable onPress={pickImage} style={s.photoBtn}>
+              <Text style={s.photoBtnText}>📸 Gallery</Text>
             </Pressable>
-            <Pressable onPress={takePhoto} style={styles.photoBtn}>
-              <Text style={styles.photoBtnText}>📷 Camera</Text>
+            <Pressable onPress={takePhoto} style={s.photoBtn}>
+              <Text style={s.photoBtnText}>📷 Camera</Text>
             </Pressable>
           </View>
         </View>
 
         {/* Form */}
-        <View style={styles.formCard}>
-          <View style={styles.fieldRow}>
-            <View style={styles.fieldHalf}>
-              <Text style={styles.fieldLabel}>First name *</Text>
-              <TextInput value={firstName} onChangeText={setFirstName} placeholder="First name" placeholderTextColor={colors.subtle} style={styles.input} />
+        <View style={s.formCard}>
+          <View style={s.fieldRow}>
+            <View style={s.fieldHalf}>
+              <Text style={s.fieldLabel}>First name *</Text>
+              <TextInput value={firstName} onChangeText={setFirstName} placeholder="First name" placeholderTextColor={colors.subtle} style={s.input} />
             </View>
-            <View style={styles.fieldHalf}>
-              <Text style={styles.fieldLabel}>Last name</Text>
-              <TextInput value={lastName} onChangeText={setLastName} placeholder="Last name" placeholderTextColor={colors.subtle} style={styles.input} />
+            <View style={s.fieldHalf}>
+              <Text style={s.fieldLabel}>Last name</Text>
+              <TextInput value={lastName} onChangeText={setLastName} placeholder="Last name" placeholderTextColor={colors.subtle} style={s.input} />
             </View>
           </View>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Email</Text>
-            <TextInput value={user.email} editable={false} style={[styles.input, styles.inputDisabled]} />
+          <View style={s.fieldGroup}>
+            <Text style={s.fieldLabel}>Email</Text>
+            <TextInput value={user.email} editable={false} style={[s.input, s.inputDisabled]} />
           </View>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Phone</Text>
-            <TextInput value={phone} onChangeText={setPhone} placeholder="Your phone number" placeholderTextColor={colors.subtle} keyboardType="phone-pad" style={styles.input} />
+          <View style={s.fieldGroup}>
+            <Text style={s.fieldLabel}>Phone</Text>
+            <TextInput value={phone} onChangeText={setPhone} placeholder="Your phone number" placeholderTextColor={colors.subtle} keyboardType="phone-pad" style={s.input} />
           </View>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Address</Text>
-            <TextInput value={address} onChangeText={setAddress} placeholder="Street address" placeholderTextColor={colors.subtle} style={styles.input} />
+          <View style={s.fieldGroup}>
+            <Text style={s.fieldLabel}>Address</Text>
+            <TextInput value={address} onChangeText={setAddress} placeholder="Street address" placeholderTextColor={colors.subtle} style={s.input} />
           </View>
 
-          <View style={styles.fieldRow}>
-            <View style={styles.fieldHalf}>
-              <Text style={styles.fieldLabel}>City</Text>
-              <TextInput value={city} onChangeText={setCity} placeholder="City" placeholderTextColor={colors.subtle} style={styles.input} />
+          <View style={s.fieldRow}>
+            <View style={s.fieldHalf}>
+              <Text style={s.fieldLabel}>City</Text>
+              <TextInput value={city} onChangeText={setCity} placeholder="City" placeholderTextColor={colors.subtle} style={s.input} />
             </View>
-            <View style={styles.fieldHalf}>
-              <Text style={styles.fieldLabel}>Postcode</Text>
-              <TextInput value={postalCode} onChangeText={setPostalCode} placeholder="Postcode" placeholderTextColor={colors.subtle} style={styles.input} />
+            <View style={s.fieldHalf}>
+              <Text style={s.fieldLabel}>Postcode</Text>
+              <TextInput value={postalCode} onChangeText={setPostalCode} placeholder="Postcode" placeholderTextColor={colors.subtle} style={s.input} />
             </View>
           </View>
         </View>
 
         {message ? (
-          <View style={styles.successBanner}>
-            <Text style={styles.successIcon}>✓</Text>
-            <Text style={styles.successText}>{message}</Text>
+          <View style={s.successBanner}>
+            <Text style={s.successIcon}>✓</Text>
+            <Text style={s.successText}>{message}</Text>
           </View>
         ) : null}
 

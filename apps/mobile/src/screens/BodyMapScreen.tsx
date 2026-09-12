@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, BodyMapEntry, BodyMapStats } from '../types'
 import { getBodyMapEntries, getBodyMapStats, createBodyMapEntry, updateBodyMapEntry } from '../services/api'
@@ -83,6 +84,7 @@ interface Props {
 
 export function BodyMapScreen({ personId, personName, session, onBack }: Props) {
   const c = useAppColors()
+  const s = useDynamicStyles(styles)
   const [entries, setEntries] = useState<BodyMapEntry[]>([])
   const [stats, setStats] = useState<BodyMapStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -182,68 +184,68 @@ export function BodyMapScreen({ personId, personName, session, onBack }: Props) 
   const healingEntries = entries.filter(e => e.status === 'healing')
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <Pressable onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.backText}>Back</Text>
+        <Pressable onPress={onBack} style={s.backBtn}>
+          <Text style={s.backArrow}>←</Text>
+          <Text style={s.backText}>Back</Text>
         </Pressable>
-        <Text style={styles.title}>Body Map</Text>
-        <Text style={styles.subtitle}>{personName}</Text>
+        <Text style={s.title}>Body Map</Text>
+        <Text style={s.subtitle}>{personName}</Text>
 
         {/* Stats */}
         {stats && (
-          <View style={styles.statsRow}>
-            <View style={[styles.statCard, { borderLeftColor: colors.danger }]}>
-              <Text style={[styles.statValue, { color: colors.danger }]}>{stats.active_count}</Text>
-              <Text style={styles.statLabel}>Active</Text>
+          <View style={s.statsRow}>
+            <View style={[s.statCard, { borderLeftColor: colors.danger }]}>
+              <Text style={[s.statValue, { color: colors.danger }]}>{stats.active_count}</Text>
+              <Text style={s.statLabel}>Active</Text>
             </View>
-            <View style={[styles.statCard, { borderLeftColor: colors.warning }]}>
-              <Text style={[styles.statValue, { color: colors.warning }]}>{stats.healing_count}</Text>
-              <Text style={styles.statLabel}>Healing</Text>
+            <View style={[s.statCard, { borderLeftColor: colors.warning }]}>
+              <Text style={[s.statValue, { color: colors.warning }]}>{stats.healing_count}</Text>
+              <Text style={s.statLabel}>Healing</Text>
             </View>
-            <View style={[styles.statCard, { borderLeftColor: colors.success }]}>
-              <Text style={[styles.statValue, { color: colors.success }]}>{stats.resolved_count}</Text>
-              <Text style={styles.statLabel}>Resolved</Text>
+            <View style={[s.statCard, { borderLeftColor: colors.success }]}>
+              <Text style={[s.statValue, { color: colors.success }]}>{stats.resolved_count}</Text>
+              <Text style={s.statLabel}>Resolved</Text>
             </View>
           </View>
         )}
 
         {/* View toggle */}
-        <View style={styles.toggleRow}>
-          <Pressable onPress={() => setView('front')} style={[styles.toggleBtn, view === 'front' && styles.toggleActive]}>
-            <Text style={[styles.toggleText, view === 'front' && styles.toggleTextActive]}>Front</Text>
+        <View style={s.toggleRow}>
+          <Pressable onPress={() => setView('front')} style={[s.toggleBtn, view === 'front' && s.toggleActive]}>
+            <Text style={[s.toggleText, view === 'front' && s.toggleTextActive]}>Front</Text>
           </Pressable>
-          <Pressable onPress={() => setView('back')} style={[styles.toggleBtn, view === 'back' && styles.toggleActive]}>
-            <Text style={[styles.toggleText, view === 'back' && styles.toggleTextActive]}>Back</Text>
+          <Pressable onPress={() => setView('back')} style={[s.toggleBtn, view === 'back' && s.toggleActive]}>
+            <Text style={[s.toggleText, view === 'back' && s.toggleTextActive]}>Back</Text>
           </Pressable>
         </View>
 
         {/* Body diagram */}
-        <View style={styles.diagramCard}>
-          <View style={styles.bodyOutline}>
+        <View style={s.diagramCard}>
+          <View style={s.bodyOutline}>
             {/* Simple body silhouette */}
-            <View style={styles.bodySilhouette}>
-              {/* Head */}                <View style={[styles.bodyPart, { top: '2%' as any, left: '40%' as any, width: '20%' as any, height: '8%' as any, borderRadius: 10 }]} />
+            <View style={s.bodySilhouette}>
+              {/* Head */}                <View style={[s.bodyPart, { top: '2%' as any, left: '40%' as any, width: '20%' as any, height: '8%' as any, borderRadius: 10 }]} />
               {/* Neck */}
-              <View style={[styles.bodyPart, { top: '10%' as any, left: '45%' as any, width: '10%' as any, height: '4%' as any }]} />
+              <View style={[s.bodyPart, { top: '10%' as any, left: '45%' as any, width: '10%' as any, height: '4%' as any }]} />
               {/* Torso */}
-              <View style={[styles.bodyPart, { top: '14%' as any, left: '30%' as any, width: '40%' as any, height: '22%' as any, borderRadius: 8 }]} />
+              <View style={[s.bodyPart, { top: '14%' as any, left: '30%' as any, width: '40%' as any, height: '22%' as any, borderRadius: 8 }]} />
               {/* Left arm */}
-              <View style={[styles.bodyPart, { top: '14%' as any, left: '16%' as any, width: '12%' as any, height: '28%' as any, borderRadius: 6 }]} />
+              <View style={[s.bodyPart, { top: '14%' as any, left: '16%' as any, width: '12%' as any, height: '28%' as any, borderRadius: 6 }]} />
               {/* Right arm */}
-              <View style={[styles.bodyPart, { top: '14%' as any, right: '16%' as any, width: '12%' as any, height: '28%' as any, borderRadius: 6 }]} />
+              <View style={[s.bodyPart, { top: '14%' as any, right: '16%' as any, width: '12%' as any, height: '28%' as any, borderRadius: 6 }]} />
               {/* Hips */}
-              <View style={[styles.bodyPart, { top: '36%' as any, left: '33%' as any, width: '34%' as any, height: '10%' as any, borderRadius: 6 }]} />
+              <View style={[s.bodyPart, { top: '36%' as any, left: '33%' as any, width: '34%' as any, height: '10%' as any, borderRadius: 6 }]} />
               {/* Left leg */}
-              <View style={[styles.bodyPart, { top: '46%' as any, left: '33%' as any, width: '14%' as any, height: '36%' as any, borderRadius: 6 }]} />
+              <View style={[s.bodyPart, { top: '46%' as any, left: '33%' as any, width: '14%' as any, height: '36%' as any, borderRadius: 6 }]} />
               {/* Right leg */}
-              <View style={[styles.bodyPart, { top: '46%' as any, right: '33%' as any, width: '14%' as any, height: '36%' as any, borderRadius: 6 }]} />
+              <View style={[s.bodyPart, { top: '46%' as any, right: '33%' as any, width: '14%' as any, height: '36%' as any, borderRadius: 6 }]} />
               {/* Left foot */}
-              <View style={[styles.bodyPart, { bottom: '2%' as any, left: '30%' as any, width: '16%' as any, height: '6%' as any, borderRadius: 8 }]} />
+              <View style={[s.bodyPart, { bottom: '2%' as any, left: '30%' as any, width: '16%' as any, height: '6%' as any, borderRadius: 8 }]} />
               {/* Right foot */}
-              <View style={[styles.bodyPart, { bottom: '2%' as any, right: '30%' as any, width: '16%' as any, height: '6%' as any, borderRadius: 8 }]} />
+              <View style={[s.bodyPart, { bottom: '2%' as any, right: '30%' as any, width: '16%' as any, height: '6%' as any, borderRadius: 8 }]} />
             </View>
 
             {/* Tap zones overlay */}
@@ -255,36 +257,36 @@ export function BodyMapScreen({ personId, personName, session, onBack }: Props) 
                   key={zone.key}
                   onPress={() => handleZonePress(zone.key)}
                   style={[
-                    styles.zoneOverlay,
+                    s.zoneOverlay,
                     { top: zone.y * 100 + '%', left: (zone.x - zone.w / 2) * 100 + '%', width: zone.w * 100 + '%', height: zone.h * 100 + '%' } as any,
                   ]}
                 >
                   {hasEntries && (
-                    <View style={[styles.zoneDot, { backgroundColor: conditionColor(zoneEntries![0].condition_type) }]}>
-                      <Text style={styles.zoneDotText}>{zoneEntries!.length}</Text>
+                    <View style={[s.zoneDot, { backgroundColor: conditionColor(zoneEntries![0].condition_type) }]}>
+                      <Text style={s.zoneDotText}>{zoneEntries!.length}</Text>
                     </View>
                   )}
                 </Pressable>
               )
             })}
           </View>
-          <Text style={styles.diagramHint}>Tap a zone to add or view conditions</Text>
+          <Text style={s.diagramHint}>Tap a zone to add or view conditions</Text>
         </View>
 
         {/* Active conditions list */}
         {activeEntries.length > 0 && (
           <View>
-            <Text style={styles.sectionHead}>ACTIVE CONDITIONS ({activeEntries.length})</Text>
+            <Text style={s.sectionHead}>ACTIVE CONDITIONS ({activeEntries.length})</Text>
             {activeEntries.map(entry => (
-              <Pressable key={entry.id} onPress={() => setDetailEntry(entry)} style={styles.entryCard}>
-                <View style={[styles.entryDot, { backgroundColor: conditionColor(entry.condition_type) }]} />
-                <View style={styles.entryInfo}>
-                  <Text style={styles.entryZone}>{entry.body_zone.replace(/_/g, ' ')}</Text>
-                  <Text style={styles.entryType}>{entry.condition_type.replace(/_/g, ' ')} · {entry.severity}</Text>
-                  {entry.description && <Text style={styles.entryDesc} numberOfLines={1}>{entry.description}</Text>}
+              <Pressable key={entry.id} onPress={() => setDetailEntry(entry)} style={s.entryCard}>
+                <View style={[s.entryDot, { backgroundColor: conditionColor(entry.condition_type) }]} />
+                <View style={s.entryInfo}>
+                  <Text style={s.entryZone}>{entry.body_zone.replace(/_/g, ' ')}</Text>
+                  <Text style={s.entryType}>{entry.condition_type.replace(/_/g, ' ')} · {entry.severity}</Text>
+                  {entry.description && <Text style={s.entryDesc} numberOfLines={1}>{entry.description}</Text>}
                 </View>
-                <View style={[styles.severityBadge, { backgroundColor: severityBadge(entry.severity).color + '18' }]}>
-                  <Text style={[styles.severityText, { color: severityBadge(entry.severity).color }]}>{entry.severity}</Text>
+                <View style={[s.severityBadge, { backgroundColor: severityBadge(entry.severity).color + '18' }]}>
+                  <Text style={[s.severityText, { color: severityBadge(entry.severity).color }]}>{entry.severity}</Text>
                 </View>
               </Pressable>
             ))}
@@ -294,13 +296,13 @@ export function BodyMapScreen({ personId, personName, session, onBack }: Props) 
         {/* Healing */}
         {healingEntries.length > 0 && (
           <View>
-            <Text style={styles.sectionHead}>HEALING ({healingEntries.length})</Text>
+            <Text style={s.sectionHead}>HEALING ({healingEntries.length})</Text>
             {healingEntries.map(entry => (
-              <Pressable key={entry.id} onPress={() => setDetailEntry(entry)} style={styles.entryCard}>
-                <View style={[styles.entryDot, { backgroundColor: conditionColor(entry.condition_type) + '60' }]} />
-                <View style={styles.entryInfo}>
-                  <Text style={styles.entryZone}>{entry.body_zone.replace(/_/g, ' ')}</Text>
-                  <Text style={styles.entryType}>{entry.condition_type.replace(/_/g, ' ')} · {entry.severity}</Text>
+              <Pressable key={entry.id} onPress={() => setDetailEntry(entry)} style={s.entryCard}>
+                <View style={[s.entryDot, { backgroundColor: conditionColor(entry.condition_type) + '60' }]} />
+                <View style={s.entryInfo}>
+                  <Text style={s.entryZone}>{entry.body_zone.replace(/_/g, ' ')}</Text>
+                  <Text style={s.entryType}>{entry.condition_type.replace(/_/g, ' ')} · {entry.severity}</Text>
                 </View>
               </Pressable>
             ))}
@@ -308,64 +310,64 @@ export function BodyMapScreen({ personId, personName, session, onBack }: Props) 
         )}
 
         {entries.length === 0 && !loading && (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>🩺</Text>
-            <Text style={styles.emptyTitle}>No conditions recorded</Text>
-            <Text style={styles.emptyCopy}>Tap a zone on the body diagram to add a condition.</Text>
+          <View style={s.emptyCard}>
+            <Text style={s.emptyIcon}>🩺</Text>
+            <Text style={s.emptyTitle}>No conditions recorded</Text>
+            <Text style={s.emptyCopy}>Tap a zone on the body diagram to add a condition.</Text>
           </View>
         )}
       </ScrollView>
 
       {/* Add entry modal */}
       <Modal visible={addOpen} transparent animationType="fade" onRequestClose={() => setAddOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modal}>
+        <View style={s.modalBackdrop}>
+          <View style={s.modal}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalTitle}>Add condition</Text>
-              <Text style={styles.modalZone}>Zone: {selectedZone?.replace(/_/g, ' ')}</Text>
+              <Text style={s.modalTitle}>Add condition</Text>
+              <Text style={s.modalZone}>Zone: {selectedZone?.replace(/_/g, ' ')}</Text>
 
-              <Text style={styles.fieldLabel}>Condition type</Text>
-              <View style={styles.chipRow}>
+              <Text style={s.fieldLabel}>Condition type</Text>
+              <View style={s.chipRow}>
                 {CONDITION_TYPES.map(ct => (
                   <Pressable
                     key={ct.key}
                     onPress={() => setConditionType(ct.key)}
-                    style={[styles.chip, conditionType === ct.key && { backgroundColor: ct.color, borderColor: ct.color }]}
+                    style={[s.chip, conditionType === ct.key && { backgroundColor: ct.color, borderColor: ct.color }]}
                   >
-                    <Text style={[styles.chipText, conditionType === ct.key && { color: colors.inverse }]}>
+                    <Text style={[s.chipText, conditionType === ct.key && { color: colors.inverse }]}>
                       {ct.icon} {ct.label}
                     </Text>
                   </Pressable>
                 ))}
               </View>
 
-              <Text style={styles.fieldLabel}>Severity</Text>
-              <View style={styles.chipRow}>
-                {SEVERITIES.map(s => (
+              <Text style={s.fieldLabel}>Severity</Text>
+              <View style={s.chipRow}>
+                {SEVERITIES.map(sev => (
                   <Pressable
-                    key={s.key}
-                    onPress={() => setSeverity(s.key)}
-                    style={[styles.chip, severity === s.key && { backgroundColor: s.color, borderColor: s.color }]}
+                    key={sev.key}
+                    onPress={() => setSeverity(sev.key)}
+                    style={[s.chip, severity === sev.key && { backgroundColor: sev.color, borderColor: sev.color }]}
                   >
-                    <Text style={[styles.chipText, severity === s.key && { color: colors.inverse }]}>{s.label}</Text>
+                    <Text style={[s.chipText, severity === sev.key && { color: c.inverse }]}>{sev.label}</Text>
                   </Pressable>
                 ))}
               </View>
 
-              <Text style={styles.fieldLabel}>Description (optional)</Text>
+              <Text style={s.fieldLabel}>Description (optional)</Text>
               <TextInput
                 multiline
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Describe the condition..."
                 placeholderTextColor={colors.subtle}
-                style={[styles.input, styles.textArea]}
+                style={[s.input, s.textArea]}
               />
 
-              <View style={styles.modalActions}>
+              <View style={s.modalActions}>
                 <PrimaryButton label="Save" onPress={handleSave} loading={saving} disabled={saving} />
-                <Pressable onPress={() => setAddOpen(false)} style={styles.cancelBtn}>
-                  <Text style={styles.cancelText}>Cancel</Text>
+                <Pressable onPress={() => setAddOpen(false)} style={s.cancelBtn}>
+                  <Text style={s.cancelText}>Cancel</Text>
                 </Pressable>
               </View>
             </ScrollView>
@@ -375,46 +377,46 @@ export function BodyMapScreen({ personId, personName, session, onBack }: Props) 
 
       {/* Detail modal */}
       <Modal visible={!!detailEntry} transparent animationType="fade" onRequestClose={() => setDetailEntry(null)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modal}>
+        <View style={s.modalBackdrop}>
+          <View style={s.modal}>
             {detailEntry && (
               <>
-                <Text style={styles.modalTitle}>{detailEntry.condition_type.replace(/_/g, ' ')}</Text>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Zone</Text>
-                  <Text style={styles.detailValue}>{detailEntry.body_zone.replace(/_/g, ' ')}</Text>
+                <Text style={s.modalTitle}>{detailEntry.condition_type.replace(/_/g, ' ')}</Text>
+                <View style={s.detailRow}>
+                  <Text style={s.detailLabel}>Zone</Text>
+                  <Text style={s.detailValue}>{detailEntry.body_zone.replace(/_/g, ' ')}</Text>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Severity</Text>
-                  <View style={[styles.severityBadge, { backgroundColor: severityBadge(detailEntry.severity).color + '18' }]}>
-                    <Text style={[styles.severityText, { color: severityBadge(detailEntry.severity).color }]}>{detailEntry.severity}</Text>
+                <View style={s.detailRow}>
+                  <Text style={s.detailLabel}>Severity</Text>
+                  <View style={[s.severityBadge, { backgroundColor: severityBadge(detailEntry.severity).color + '18' }]}>
+                    <Text style={[s.severityText, { color: severityBadge(detailEntry.severity).color }]}>{detailEntry.severity}</Text>
                   </View>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Status</Text>
-                  <Text style={styles.detailValue}>{detailEntry.status}</Text>
+                <View style={s.detailRow}>
+                  <Text style={s.detailLabel}>Status</Text>
+                  <Text style={s.detailValue}>{detailEntry.status}</Text>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Recorded</Text>
-                  <Text style={styles.detailValue}>{new Date(detailEntry.recorded_date).toLocaleDateString('en-GB')}</Text>
+                <View style={s.detailRow}>
+                  <Text style={s.detailLabel}>Recorded</Text>
+                  <Text style={s.detailValue}>{new Date(detailEntry.recorded_date).toLocaleDateString('en-GB')}</Text>
                 </View>
                 {detailEntry.description && (
-                  <View style={styles.detailBlock}>
-                    <Text style={styles.detailLabel}>Description</Text>
-                    <Text style={styles.detailBody}>{detailEntry.description}</Text>
+                  <View style={s.detailBlock}>
+                    <Text style={s.detailLabel}>Description</Text>
+                    <Text style={s.detailBody}>{detailEntry.description}</Text>
                   </View>
                 )}
                 {detailEntry.recorded_by_name && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Recorded by</Text>
-                    <Text style={styles.detailValue}>{detailEntry.recorded_by_name}</Text>
+                  <View style={s.detailRow}>
+                    <Text style={s.detailLabel}>Recorded by</Text>
+                    <Text style={s.detailValue}>{detailEntry.recorded_by_name}</Text>
                   </View>
                 )}
                 {detailEntry.status !== 'resolved' && (
                   <PrimaryButton label="Mark as resolved" onPress={() => handleResolve(detailEntry)} tone="success" />
                 )}
-                <Pressable onPress={() => setDetailEntry(null)} style={styles.cancelBtn}>
-                  <Text style={styles.cancelText}>Close</Text>
+                <Pressable onPress={() => setDetailEntry(null)} style={s.cancelBtn}>
+                  <Text style={s.cancelText}>Close</Text>
                 </Pressable>
               </>
             )}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -40,6 +41,7 @@ interface Props {
 
 export function ReportIncidentScreen({ session, visitId, personId, personName, onBack, onSubmitted }: Props) {
   const c = useAppColors()
+  const s = useDynamicStyles(styles)
   const [category, setCategory] = useState('')
   const [severity, setSeverity] = useState('medium')
   const [title, setTitle] = useState('')
@@ -91,80 +93,80 @@ export function ReportIncidentScreen({ session, visitId, personId, personName, o
 
   if (success) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
-        <View style={styles.successView}>
-          <Text style={styles.successIcon}>✓</Text>
-          <Text style={styles.successTitle}>Incident reported</Text>
-          <Text style={styles.successDesc}>Your report has been submitted to the office.</Text>
+      <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]}>
+        <View style={s.successView}>
+          <Text style={s.successIcon}>✓</Text>
+          <Text style={s.successTitle}>Incident reported</Text>
+          <Text style={s.successDesc}>Your report has been submitted to the office.</Text>
         </View>
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Pressable onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.backText}>Back</Text>
+    <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <Pressable onPress={onBack} style={s.backBtn}>
+          <Text style={s.backArrow}>←</Text>
+          <Text style={s.backText}>Back</Text>
         </Pressable>
-        <Text style={styles.title}>Report an incident</Text>
-        {personName && <Text style={styles.subtitle}>Client: {personName}</Text>}
+        <Text style={s.title}>Report an incident</Text>
+        {personName && <Text style={s.subtitle}>Client: {personName}</Text>}
 
         {/* Near miss toggle */}
-        <Pressable onPress={() => { hapticLight(); setIsNearMiss(!isNearMiss) }} style={styles.nearMissRow}>
-          <View style={[styles.checkbox, isNearMiss && styles.checkboxChecked]}>
-            {isNearMiss && <Text style={styles.checkmark}>✓</Text>}
+        <Pressable onPress={() => { hapticLight(); setIsNearMiss(!isNearMiss) }} style={s.nearMissRow}>
+          <View style={[s.checkbox, isNearMiss && s.checkboxChecked]}>
+            {isNearMiss && <Text style={s.checkmark}>✓</Text>}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.checkboxLabel}>This is a near miss</Text>
-            <Text style={styles.checkboxDesc}>No harm occurred but it could have</Text>
+            <Text style={s.checkboxLabel}>This is a near miss</Text>
+            <Text style={s.checkboxDesc}>No harm occurred but it could have</Text>
           </View>
         </Pressable>
 
         {/* Category */}
-        <Text style={styles.fieldLabel}>Category</Text>
-        <View style={styles.chipGrid}>
+        <Text style={s.fieldLabel}>Category</Text>
+        <View style={s.chipGrid}>
           {INCIDENT_CATEGORIES.map(c => (
-            <Pressable key={c.key} onPress={() => { hapticLight(); setCategory(c.key) }} style={[styles.chip, category === c.key && styles.chipActive]}>
-              <Text style={styles.chipIcon}>{c.icon}</Text>
-              <Text style={[styles.chipText, category === c.key && styles.chipTextActive]}>{c.label}</Text>
+            <Pressable key={c.key} onPress={() => { hapticLight(); setCategory(c.key) }} style={[s.chip, category === c.key && s.chipActive]}>
+              <Text style={s.chipIcon}>{c.icon}</Text>
+              <Text style={[s.chipText, category === c.key && s.chipTextActive]}>{c.label}</Text>
             </Pressable>
           ))}
         </View>
 
         {/* Severity */}
-        <Text style={styles.fieldLabel}>Severity</Text>
-        <View style={styles.severityRow}>
-          {SEVERITY_LEVELS.map(s => (
-            <Pressable key={s.key} onPress={() => { hapticLight(); setSeverity(s.key) }} style={[styles.severityBtn, severity === s.key && { backgroundColor: s.color, borderColor: s.color }]}>
-              <Text style={[styles.severityLabel, severity === s.key && { color: colors.inverse }]}>{s.label}</Text>
+        <Text style={s.fieldLabel}>Severity</Text>
+        <View style={s.severityRow}>
+          {SEVERITY_LEVELS.map(sev => (
+            <Pressable key={sev.key} onPress={() => { hapticLight(); setSeverity(sev.key) }} style={[s.severityBtn, severity === sev.key && { backgroundColor: sev.color, borderColor: sev.color }]}>
+              <Text style={[s.severityLabel, severity === sev.key && { color: c.inverse }]}>{sev.label}</Text>
             </Pressable>
           ))}
         </View>
 
         {/* Title */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>Title *</Text>
-          <TextInput value={title} onChangeText={setTitle} placeholder="Brief title of the incident" placeholderTextColor={colors.subtle} style={styles.input} />
+        <View style={s.fieldGroup}>
+          <Text style={s.fieldLabel}>Title *</Text>
+          <TextInput value={title} onChangeText={setTitle} placeholder="Brief title of the incident" placeholderTextColor={colors.subtle} style={s.input} />
         </View>
 
         {/* Description */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>What happened?</Text>
-          <TextInput multiline value={description} onChangeText={setDescription} placeholder="Describe what happened factually..." placeholderTextColor={colors.subtle} style={[styles.input, styles.textArea]} />
+        <View style={s.fieldGroup}>
+          <Text style={s.fieldLabel}>What happened?</Text>
+          <TextInput multiline value={description} onChangeText={setDescription} placeholder="Describe what happened factually..." placeholderTextColor={colors.subtle} style={[s.input, s.textArea]} />
         </View>
 
         {/* Location */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>Location within the property</Text>
-          <TextInput value={location} onChangeText={setLocation} placeholder="e.g. Bedroom, bathroom" placeholderTextColor={colors.subtle} style={styles.input} />
+        <View style={s.fieldGroup}>
+          <Text style={s.fieldLabel}>Location within the property</Text>
+          <TextInput value={location} onChangeText={setLocation} placeholder="e.g. Bedroom, bathroom" placeholderTextColor={colors.subtle} style={s.input} />
         </View>
 
         {/* Witnesses */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>Witnesses</Text>
-          <TextInput value={witnesses} onChangeText={setWitnesses} placeholder="Names of any witnesses" placeholderTextColor={colors.subtle} style={styles.input} />
+        <View style={s.fieldGroup}>
+          <Text style={s.fieldLabel}>Witnesses</Text>
+          <TextInput value={witnesses} onChangeText={setWitnesses} placeholder="Names of any witnesses" placeholderTextColor={colors.subtle} style={s.input} />
         </View>
 
         <PrimaryButton label="Submit incident report" onPress={handleSave} loading={saving} disabled={saving} tone="danger" />

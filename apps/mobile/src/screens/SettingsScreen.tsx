@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useTheme } from '../theme'
+import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -19,6 +20,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
   onChat?: () => void
 }) {
   const { mode, scheme, setMode, colors: c } = useTheme()
+  const s = useDynamicStyles(styles)
   const [reminders, setReminders] = useState<'unknown' | 'enabled' | 'disabled'>('unknown')
   const [message, setMessage] = useState('')
   const [hapticOn, setHapticOn] = useState(true)
@@ -44,40 +46,40 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
   const roleLabel = user.role ? user.role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''
 
   return (
-    <SafeAreaView style={[styles.screen, dyn(c).screen]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={[s.screen, dyn(c).screen]}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <Text style={[styles.pageTitle, { color: c.ink }]}>Settings</Text>
+        <Text style={[s.pageTitle, { color: c.ink }]}>Settings</Text>
 
         {/* Profile card */}
-        <Pressable onPress={() => { hapticLight(); onProfile?.() }} style={({ pressed }) => [styles.profileCard, { backgroundColor: c.surface, borderColor: c.borderLight }, pressed && { opacity: 0.85 }]}>
-          <View style={styles.avatarWrap}>
+        <Pressable onPress={() => { hapticLight(); onProfile?.() }} style={({ pressed }) => [s.profileCard, { backgroundColor: c.surface, borderColor: c.borderLight }, pressed && { opacity: 0.85 }]}>
+          <View style={s.avatarWrap}>
             {(user as any).profile_picture_url ? (
-              <Image source={{ uri: (user as any).profile_picture_url }} style={styles.avatarImage} />
+              <Image source={{ uri: (user as any).profile_picture_url }} style={s.avatarImage} />
             ) : (
-              <View style={[styles.avatar, { backgroundColor: c.primarySurface, borderColor: c.primary + '25' }]}>
-                <Text style={[styles.avatarText, { color: c.primary }]}>{initials}</Text>
+              <View style={[s.avatar, { backgroundColor: c.primarySurface, borderColor: c.primary + '25' }]}>
+                <Text style={[s.avatarText, { color: c.primary }]}>{initials}</Text>
               </View>
             )}
           </View>
-          <View style={styles.profileInfo}>
-            <Text style={[styles.profileName, { color: c.ink }]}>{displayName}</Text>
-            <Text style={[styles.profileEmail, { color: c.muted }]}>{user.email}</Text>
+          <View style={s.profileInfo}>
+            <Text style={[s.profileName, { color: c.ink }]}>{displayName}</Text>
+            <Text style={[s.profileEmail, { color: c.muted }]}>{user.email}</Text>
             {roleLabel ? (
-              <View style={[styles.roleBadge, { backgroundColor: c.primarySurface }]}>
-                <Text style={[styles.roleBadgeText, { color: c.primary }]}>{roleLabel}</Text>
+              <View style={[s.roleBadge, { backgroundColor: c.primarySurface }]}>
+                <Text style={[s.roleBadgeText, { color: c.primary }]}>{roleLabel}</Text>
               </View>
             ) : null}
           </View>
-          <View style={[styles.chevronWrap, { backgroundColor: c.bg }]}>
-            <Text style={[styles.chevron, { color: c.subtle }]}>→</Text>
+          <View style={[s.chevronWrap, { backgroundColor: c.bg }]}>
+            <Text style={[s.chevron, { color: c.subtle }]}>→</Text>
           </View>
         </Pressable>
 
         {/* Settings groups */}
-        <View style={styles.group}>
-          <Text style={[styles.groupLabel, { color: c.subtle }]}>NOTIFICATIONS</Text>
-          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+        <View style={s.group}>
+          <Text style={[s.groupLabel, { color: c.subtle }]}>NOTIFICATIONS</Text>
+          <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
             {/* Visit reminders */}
             <Pressable
               onPress={async () => {
@@ -91,54 +93,54 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
                   setMessage(enabled ? 'Visit reminders enabled.' : 'Permission not granted.')
                 }
               }}
-              style={styles.menuRow}
+              style={s.menuRow}
             >
-              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
+              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
                 <IconWarning size={18} color={c.warning} />
               </View>
-              <View style={styles.menuContent}>
-                <Text style={[styles.menuTitle, { color: c.ink }]}>Visit reminders</Text>
-                <Text style={[styles.menuDesc, { color: c.muted }]}>Alerts before your assigned calls</Text>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Visit reminders</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>Alerts before your assigned calls</Text>
               </View>
-              <View style={[styles.toggle, { backgroundColor: c.border }, reminders === 'enabled' && { backgroundColor: c.primary }]}>
-                <View style={[styles.toggleDot, { backgroundColor: c.inverse }, reminders === 'enabled' && styles.toggleDotOn]} />
+              <View style={[s.toggle, { backgroundColor: c.border }, reminders === 'enabled' && { backgroundColor: c.primary }]}>
+                <View style={[s.toggleDot, { backgroundColor: c.inverse }, reminders === 'enabled' && s.toggleDotOn]} />
               </View>
             </Pressable>
           </View>
         </View>
 
-        <View style={styles.group}>
-          <Text style={[styles.groupLabel, { color: c.subtle }]}>APPEARANCE</Text>
-          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+        <View style={s.group}>
+          <Text style={[s.groupLabel, { color: c.subtle }]}>APPEARANCE</Text>
+          <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
             {/* Dark mode */}
-            <View style={styles.menuRow}>
-              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
+            <View style={s.menuRow}>
+              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
                 <Text style={{ fontSize: 16 }}>{scheme === 'dark' ? '🌙' : '☀️'}</Text>
               </View>
-              <View style={styles.menuContent}>
-                <Text style={[styles.menuTitle, { color: c.ink }]}>Dark mode</Text>
-                <Text style={[styles.menuDesc, { color: c.muted }]}>{mode === 'system' ? 'Following system setting' : mode === 'dark' ? 'Always dark' : 'Always light'}</Text>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Dark mode</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>{mode === 'system' ? 'Following system setting' : mode === 'dark' ? 'Always dark' : 'Always light'}</Text>
               </View>
             </View>
             {/* Mode selector pills */}
-            <View style={styles.modePills}>
+            <View style={s.modePills}>
               {([['light', 'Light'], ['system', 'Auto'], ['dark', 'Dark']] as const).map(([m, label]) => (
                 <Pressable key={m} onPress={() => { hapticLight(); setMode(m) }}
                   style={({ pressed }) => [
-                    styles.modePill,
+                    s.modePill,
                     { backgroundColor: c.bg, borderColor: c.border },
                     mode === m && { backgroundColor: c.primarySurface, borderColor: c.primary + '40' },
                     pressed && { opacity: 0.7 },
                   ]}
                 >
-                  <Text style={[styles.modePillText, { color: c.muted }, mode === m && { color: c.primary }]}>{label}</Text>
+                  <Text style={[s.modePillText, { color: c.muted }, mode === m && { color: c.primary }]}>{label}</Text>
                 </Pressable>
               ))}
             </View>
           </View>
 
           {/* Haptic feedback */}
-          <View style={[styles.groupCard, { marginTop: spacing.sm, backgroundColor: c.surface, borderColor: c.borderLight }]}>  
+          <View style={[s.groupCard, { marginTop: spacing.sm, backgroundColor: c.surface, borderColor: c.borderLight }]}>  
             <Pressable
               onPress={async () => {
                 hapticLight()
@@ -146,68 +148,68 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
                 await setHapticEnabled(next)
                 setHapticOn(next)
               }}
-              style={styles.menuRow}
+              style={s.menuRow}
             >
-              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
+              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
                 <IconSettings size={18} color={c.primary} />
               </View>
-              <View style={styles.menuContent}>
-                <Text style={[styles.menuTitle, { color: c.ink }]}>Haptic feedback</Text>
-                <Text style={[styles.menuDesc, { color: c.muted }]}>Vibration on button presses</Text>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Haptic feedback</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>Vibration on button presses</Text>
               </View>
-              <View style={[styles.toggle, { backgroundColor: c.border }, hapticOn && { backgroundColor: c.primary }]}>
-                <View style={[styles.toggleDot, { backgroundColor: c.inverse }, hapticOn && styles.toggleDotOn]} />
+              <View style={[s.toggle, { backgroundColor: c.border }, hapticOn && { backgroundColor: c.primary }]}>
+                <View style={[s.toggleDot, { backgroundColor: c.inverse }, hapticOn && s.toggleDotOn]} />
               </View>
             </Pressable>
           </View>
         </View>
 
-        <View style={styles.group}>
-          <Text style={[styles.groupLabel, { color: c.subtle }]}>AVAILABILITY</Text>
-          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-            <Pressable onPress={() => { hapticLight(); onAvailability?.() }} style={styles.menuRow}>
-              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
+        <View style={s.group}>
+          <Text style={[s.groupLabel, { color: c.subtle }]}>AVAILABILITY</Text>
+          <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Pressable onPress={() => { hapticLight(); onAvailability?.() }} style={s.menuRow}>
+              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
                 <IconSchedule size={18} color={c.primary} />
               </View>
-              <View style={styles.menuContent}>
-                <Text style={[styles.menuTitle, { color: c.ink }]}>Submit availability</Text>
-                <Text style={[styles.menuDesc, { color: c.muted }]}>Set your available hours for upcoming weeks</Text>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Submit availability</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>Set your available hours for upcoming weeks</Text>
               </View>
-              <Text style={[styles.menuArrow, { color: c.subtle }]}>→</Text>
+              <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
             </Pressable>
           </View>
         </View>
 
-        <View style={styles.group}>
-          <Text style={[styles.groupLabel, { color: c.subtle }]}>COMMUNICATION</Text>
-          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-            <Pressable onPress={() => { hapticLight(); onChat?.() }} style={styles.menuRow}>
-              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
+        <View style={s.group}>
+          <Text style={[s.groupLabel, { color: c.subtle }]}>COMMUNICATION</Text>
+          <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Pressable onPress={() => { hapticLight(); onChat?.() }} style={s.menuRow}>
+              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
                 <IconSchedule size={18} color={c.primary} />
               </View>
-              <View style={styles.menuContent}>
-                <Text style={[styles.menuTitle, { color: c.ink }]}>Team chat</Text>
-                <Text style={[styles.menuDesc, { color: c.muted }]}>Message your team across the organisation</Text>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Team chat</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>Message your team across the organisation</Text>
               </View>
-              <Text style={[styles.menuArrow, { color: c.subtle }]}>→</Text>
+              <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
             </Pressable>
           </View>
         </View>
 
-        <View style={styles.group}>
-          <Text style={[styles.groupLabel, { color: c.subtle }]}>DATA</Text>
-          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+        <View style={s.group}>
+          <Text style={[s.groupLabel, { color: c.subtle }]}>DATA</Text>
+          <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
             {/* Offline sync */}
-            <View style={styles.menuRow}>
-              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
+            <View style={s.menuRow}>
+              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
                 <IconSyncSmall size={18} color={c.success} />
               </View>
-              <View style={styles.menuContent}>
-                <Text style={[styles.menuTitle, { color: c.ink }]}>Offline sync</Text>
-                <Text style={[styles.menuDesc, { color: c.muted }]}>Actions stored until reconnected</Text>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Offline sync</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>Actions stored until reconnected</Text>
               </View>
-              <Pressable onPress={() => { hapticLight(); onSync() }} style={[styles.syncBtn, { backgroundColor: c.successSurface, borderColor: c.success + '25' }]}>
-                <Text style={[styles.syncBtnText, { color: c.success }]}>Sync</Text>
+              <Pressable onPress={() => { hapticLight(); onSync() }} style={[s.syncBtn, { backgroundColor: c.successSurface, borderColor: c.success + '25' }]}>
+                <Text style={[s.syncBtnText, { color: c.success }]}>Sync</Text>
               </Pressable>
             </View>
           </View>
@@ -215,17 +217,17 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
 
         {/* Message */}
         {message ? (
-          <View style={[styles.msgBanner, { backgroundColor: c.successSurface, borderColor: c.success + '20' }]}>
-            <Text style={[styles.msgText, { color: c.successDeep }]}>{message}</Text>
+          <View style={[s.msgBanner, { backgroundColor: c.successSurface, borderColor: c.success + '20' }]}>
+            <Text style={[s.msgText, { color: c.successDeep }]}>{message}</Text>
           </View>
         ) : null}
 
         {/* Sign out */}
-        <Pressable onPress={() => { hapticLight(); onSignOut() }} style={({ pressed }) => [styles.signOutBtn, { borderColor: c.danger + '30', backgroundColor: c.dangerSurface }, pressed && { opacity: 0.7 }]}>
-          <Text style={[styles.signOutText, { color: c.danger }]}>Sign out</Text>
+        <Pressable onPress={() => { hapticLight(); onSignOut() }} style={({ pressed }) => [s.signOutBtn, { borderColor: c.danger + '30', backgroundColor: c.dangerSurface }, pressed && { opacity: 0.7 }]}>
+          <Text style={[s.signOutText, { color: c.danger }]}>Sign out</Text>
         </Pressable>
 
-        <Text style={[styles.version, { color: c.subtle }]}>MeticleCare v1.0</Text>
+        <Text style={[s.version, { color: c.subtle }]}>MeticleCare v1.0</Text>
 
         <View style={{ height: spacing.xxxl }} />
       </ScrollView>

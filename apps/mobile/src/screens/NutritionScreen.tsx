@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, DietaryProfile, MealRecord } from '../types'
 import { getDietaryProfile, getMealRecords, getDailySummary, createMealRecord } from '../services/api'
@@ -35,6 +36,7 @@ interface Props {
 
 export function NutritionScreen({ personId, personName, session, onBack }: Props) {
   const c = useAppColors()
+  const s = useDynamicStyles(styles)
   const [profile, setProfile] = useState<DietaryProfile | null>(null)
   const [meals, setMeals] = useState<MealRecord[]>([])
   const [summary, setSummary] = useState<any>(null)
@@ -118,79 +120,79 @@ export function NutritionScreen({ personId, personName, session, onBack }: Props
   ].filter(Boolean) : []
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Pressable onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.backText}>Back</Text>
+    <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <Pressable onPress={onBack} style={s.backBtn}>
+          <Text style={s.backArrow}>←</Text>
+          <Text style={s.backText}>Back</Text>
         </Pressable>
-        <Text style={styles.title}>Nutrition</Text>
-        <Text style={styles.subtitle}>{personName}</Text>
+        <Text style={s.title}>Nutrition</Text>
+        <Text style={s.subtitle}>{personName}</Text>
 
         {/* Fluid tracker */}
-        <View style={styles.fluidCard}>
-          <View style={styles.fluidHeader}>
-            <Text style={styles.fluidTitle}>💧 Fluid intake today</Text>
-            <Text style={styles.fluidValue}>{fluidSoFar}ml / {fluidTarget}ml</Text>
+        <View style={s.fluidCard}>
+          <View style={s.fluidHeader}>
+            <Text style={s.fluidTitle}>💧 Fluid intake today</Text>
+            <Text style={s.fluidValue}>{fluidSoFar}ml / {fluidTarget}ml</Text>
           </View>
-          <View style={styles.fluidBar}>
-            <View style={[styles.fluidFill, { width: `${fluidPercent}%`, backgroundColor: fluidPercent >= 80 ? colors.success : colors.warning }]} />
+          <View style={s.fluidBar}>
+            <View style={[s.fluidFill, { width: `${fluidPercent}%`, backgroundColor: fluidPercent >= 80 ? colors.success : colors.warning }]} />
           </View>
-          <Text style={styles.fluidPercent}>{fluidPercent}% of target</Text>
+          <Text style={s.fluidPercent}>{fluidPercent}% of target</Text>
         </View>
 
         {/* Dietary flags */}
         {allergyFlags.length > 0 && (
-          <View style={styles.flagsCard}>
-            <Text style={styles.flagsTitle}>Dietary requirements</Text>
-            <View style={styles.flagsRow}>
+          <View style={s.flagsCard}>
+            <Text style={s.flagsTitle}>Dietary requirements</Text>
+            <View style={s.flagsRow}>
               {allergyFlags.map((flag, i) => (
-                <View key={i} style={styles.flagChip}>
-                  <Text style={styles.flagText}>{flag}</Text>
+                <View key={i} style={s.flagChip}>
+                  <Text style={s.flagText}>{flag}</Text>
                 </View>
               ))}
             </View>
             {profile?.texture_modified && (
-              <Text style={styles.flagNote}>Texture: {profile.texture_modified}</Text>
+              <Text style={s.flagNote}>Texture: {profile.texture_modified}</Text>
             )}
             {profile?.other_allergies && (
-              <Text style={styles.flagNote}>Other: {profile.other_allergies}</Text>
+              <Text style={s.flagNote}>Other: {profile.other_allergies}</Text>
             )}
           </View>
         )}
 
         {/* Today's meals */}
-        <Text style={styles.sectionHead}>TODAY'S MEALS ({meals.length})</Text>
+        <Text style={s.sectionHead}>TODAY'S MEALS ({meals.length})</Text>
         {meals.length > 0 ? (
           meals.map(meal => {
             const mt = MEAL_TYPES.find(m => m.key === meal.meal_type)
             return (
-              <View key={meal.id} style={styles.mealCard}>
-                <View style={styles.mealHeader}>
-                  <Text style={styles.mealIcon}>{mt?.icon || '🍽️'}</Text>
-                  <View style={styles.mealInfo}>
-                    <Text style={styles.mealType}>{mt?.label || meal.meal_type}</Text>
-                    <Text style={styles.mealTime}>{meal.meal_time || '—'} · {meal.consumed_percent != null ? `${meal.consumed_percent}% consumed` : meal.refused ? 'Refused' : '—'}</Text>
+              <View key={meal.id} style={s.mealCard}>
+                <View style={s.mealHeader}>
+                  <Text style={s.mealIcon}>{mt?.icon || '🍽️'}</Text>
+                  <View style={s.mealInfo}>
+                    <Text style={s.mealType}>{mt?.label || meal.meal_type}</Text>
+                    <Text style={s.mealTime}>{meal.meal_time || '—'} · {meal.consumed_percent != null ? `${meal.consumed_percent}% consumed` : meal.refused ? 'Refused' : '—'}</Text>
                   </View>
                   {meal.appetite_level && (
-                    <View style={[styles.appetiteBadge, { backgroundColor: APPETITE_LEVELS.find(a => a.key === meal.appetite_level)?.color + '18' }]}>
-                      <Text style={[styles.appetiteText, { color: APPETITE_LEVELS.find(a => a.key === meal.appetite_level)?.color }]}>
+                    <View style={[s.appetiteBadge, { backgroundColor: APPETITE_LEVELS.find(a => a.key === meal.appetite_level)?.color + '18' }]}>
+                      <Text style={[s.appetiteText, { color: APPETITE_LEVELS.find(a => a.key === meal.appetite_level)?.color }]}>
                         {meal.appetite_level}
                       </Text>
                     </View>
                   )}
                 </View>
-                {meal.amount_consumed && <Text style={styles.mealDetail}>Consumed: {meal.amount_consumed}</Text>}
-                {meal.fluid_ml != null && meal.fluid_ml > 0 && <Text style={styles.mealDetail}>Fluid: {meal.fluid_ml}ml</Text>}
-                {meal.refused && <Text style={styles.mealRefused}>⚠ Refused{meal.refusal_reason ? `: ${meal.refusal_reason}` : ''}</Text>}
-                {meal.notes && <Text style={styles.mealNotes}>{meal.notes}</Text>}
+                {meal.amount_consumed && <Text style={s.mealDetail}>Consumed: {meal.amount_consumed}</Text>}
+                {meal.fluid_ml != null && meal.fluid_ml > 0 && <Text style={s.mealDetail}>Fluid: {meal.fluid_ml}ml</Text>}
+                {meal.refused && <Text style={s.mealRefused}>⚠ Refused{meal.refusal_reason ? `: ${meal.refusal_reason}` : ''}</Text>}
+                {meal.notes && <Text style={s.mealNotes}>{meal.notes}</Text>}
               </View>
             )
           })
         ) : (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No meals recorded today</Text>
-            <Text style={styles.emptyCopy}>Tap the button below to log a meal.</Text>
+          <View style={s.emptyCard}>
+            <Text style={s.emptyTitle}>No meals recorded today</Text>
+            <Text style={s.emptyCopy}>Tap the button below to log a meal.</Text>
           </View>
         )}
 
@@ -198,77 +200,77 @@ export function NutritionScreen({ personId, personName, session, onBack }: Props
 
         {/* Profile info */}
         {profile && (
-          <View style={styles.profileCard}>
-            <Text style={styles.profileTitle}>Dietary profile</Text>
-            {profile.dietary_type && <Text style={styles.profileRow}>Type: {profile.dietary_type}</Text>}
-            {profile.appetite_level && <Text style={styles.profileRow}>Appetite: {profile.appetite_level}</Text>}
-            {profile.eating_abilities && <Text style={styles.profileRow}>Abilities: {profile.eating_abilities}</Text>}
-            {profile.food_preferences && <Text style={styles.profileRow}>Preferences: {profile.food_preferences}</Text>}
-            {profile.food_dislikes && <Text style={styles.profileRow}>Dislikes: {profile.food_dislikes}</Text>}
-            {profile.additional_notes && <Text style={styles.profileRow}>Notes: {profile.additional_notes}</Text>}
+          <View style={s.profileCard}>
+            <Text style={s.profileTitle}>Dietary profile</Text>
+            {profile.dietary_type && <Text style={s.profileRow}>Type: {profile.dietary_type}</Text>}
+            {profile.appetite_level && <Text style={s.profileRow}>Appetite: {profile.appetite_level}</Text>}
+            {profile.eating_abilities && <Text style={s.profileRow}>Abilities: {profile.eating_abilities}</Text>}
+            {profile.food_preferences && <Text style={s.profileRow}>Preferences: {profile.food_preferences}</Text>}
+            {profile.food_dislikes && <Text style={s.profileRow}>Dislikes: {profile.food_dislikes}</Text>}
+            {profile.additional_notes && <Text style={s.profileRow}>Notes: {profile.additional_notes}</Text>}
           </View>
         )}
       </ScrollView>
 
       {/* Add meal modal */}
       <Modal visible={addOpen} transparent animationType="fade" onRequestClose={() => setAddOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modal}>
+        <View style={s.modalBackdrop}>
+          <View style={s.modal}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalTitle}>Log a meal</Text>
+              <Text style={s.modalTitle}>Log a meal</Text>
 
-              <Text style={styles.fieldLabel}>Meal type</Text>
-              <View style={styles.chipRow}>
+              <Text style={s.fieldLabel}>Meal type</Text>
+              <View style={s.chipRow}>
                 {MEAL_TYPES.map(mt => (
-                  <Pressable key={mt.key} onPress={() => setMealType(mt.key)} style={[styles.chip, mealType === mt.key && styles.chipActive]}>
-                    <Text style={[styles.chipText, mealType === mt.key && styles.chipTextActive]}>{mt.icon} {mt.label}</Text>
+                  <Pressable key={mt.key} onPress={() => setMealType(mt.key)} style={[s.chip, mealType === mt.key && s.chipActive]}>
+                    <Text style={[s.chipText, mealType === mt.key && s.chipTextActive]}>{mt.icon} {mt.label}</Text>
                   </Pressable>
                 ))}
               </View>
 
-              <Text style={styles.fieldLabel}>Appetite</Text>
-              <View style={styles.chipRow}>
+              <Text style={s.fieldLabel}>Appetite</Text>
+              <View style={s.chipRow}>
                 {APPETITE_LEVELS.map(a => (
-                  <Pressable key={a.key} onPress={() => setAppetite(a.key)} style={[styles.chip, appetite === a.key && { backgroundColor: a.color, borderColor: a.color }]}>
-                    <Text style={[styles.chipText, appetite === a.key && { color: colors.inverse }]}>{a.label}</Text>
+                  <Pressable key={a.key} onPress={() => setAppetite(a.key)} style={[s.chip, appetite === a.key && { backgroundColor: a.color, borderColor: a.color }]}>
+                    <Text style={[s.chipText, appetite === a.key && { color: colors.inverse }]}>{a.label}</Text>
                   </Pressable>
                 ))}
               </View>
 
-              <View style={styles.fieldRow}>
-                <View style={styles.fieldHalf}>
-                  <Text style={styles.fieldLabel}>Consumed %</Text>
-                  <TextInput value={consumedPercent} onChangeText={setConsumedPercent} keyboardType="number-pad" placeholder="80" placeholderTextColor={colors.subtle} style={styles.input} />
+              <View style={s.fieldRow}>
+                <View style={s.fieldHalf}>
+                  <Text style={s.fieldLabel}>Consumed %</Text>
+                  <TextInput value={consumedPercent} onChangeText={setConsumedPercent} keyboardType="number-pad" placeholder="80" placeholderTextColor={colors.subtle} style={s.input} />
                 </View>
-                <View style={styles.fieldHalf}>
-                  <Text style={styles.fieldLabel}>Fluid (ml)</Text>
-                  <TextInput value={fluidMl} onChangeText={setFluidMl} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.subtle} style={styles.input} />
+                <View style={s.fieldHalf}>
+                  <Text style={s.fieldLabel}>Fluid (ml)</Text>
+                  <TextInput value={fluidMl} onChangeText={setFluidMl} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.subtle} style={s.input} />
                 </View>
               </View>
 
-              <Text style={styles.fieldLabel}>Amount consumed (description)</Text>
-              <TextInput value={amountConsumed} onChangeText={setAmountConsumed} placeholder="e.g. Half a plate" placeholderTextColor={colors.subtle} style={styles.input} />
+              <Text style={s.fieldLabel}>Amount consumed (description)</Text>
+              <TextInput value={amountConsumed} onChangeText={setAmountConsumed} placeholder="e.g. Half a plate" placeholderTextColor={colors.subtle} style={s.input} />
 
-              <Text style={styles.fieldLabel}>Notes</Text>
-              <TextInput multiline value={notes} onChangeText={setNotes} placeholder="Any observations..." placeholderTextColor={colors.subtle} style={[styles.input, styles.textArea]} />
+              <Text style={s.fieldLabel}>Notes</Text>
+              <TextInput multiline value={notes} onChangeText={setNotes} placeholder="Any observations..." placeholderTextColor={colors.subtle} style={[s.input, s.textArea]} />
 
-              <Pressable onPress={() => setRefused(!refused)} style={styles.checkboxRow}>
-                <View style={[styles.checkbox, refused && styles.checkboxChecked]}>
-                  {refused && <Text style={styles.checkmark}>✓</Text>}
+              <Pressable onPress={() => setRefused(!refused)} style={s.checkboxRow}>
+                <View style={[s.checkbox, refused && s.checkboxChecked]}>
+                  {refused && <Text style={s.checkmark}>✓</Text>}
                 </View>
-                <Text style={styles.checkboxLabel}>Meal refused</Text>
+                <Text style={s.checkboxLabel}>Meal refused</Text>
               </Pressable>
 
               {refused && (
                 <>
-                  <Text style={styles.fieldLabel}>Reason for refusal</Text>
-                  <TextInput value={refusalReason} onChangeText={setRefusalReason} placeholder="Why refused?" placeholderTextColor={colors.subtle} style={styles.input} />
+                  <Text style={s.fieldLabel}>Reason for refusal</Text>
+                  <TextInput value={refusalReason} onChangeText={setRefusalReason} placeholder="Why refused?" placeholderTextColor={colors.subtle} style={s.input} />
                 </>
               )}
 
               <PrimaryButton label="Save meal" onPress={handleSave} loading={saving} disabled={saving} />
-              <Pressable onPress={() => setAddOpen(false)} style={styles.cancelBtn}>
-                <Text style={styles.cancelText}>Cancel</Text>
+              <Pressable onPress={() => setAddOpen(false)} style={s.cancelBtn}>
+                <Text style={s.cancelText}>Cancel</Text>
               </Pressable>
             </ScrollView>
           </View>

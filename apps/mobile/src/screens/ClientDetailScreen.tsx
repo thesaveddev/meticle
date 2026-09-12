@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import { SkeletonScreen } from '../components/Skeleton'
 import { MapPickerModal } from '../components/MapPickerModal'
@@ -28,6 +29,7 @@ interface Props {
 
 export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNutrition }: Props) {
   const c = useAppColors()
+  const s = useDynamicStyles(styles)
   const [person, setPerson] = useState<any>(null)
   const [medications, setMedications] = useState<any[]>([])
   const [bodyMapStats, setBodyMapStats] = useState<any>(null)

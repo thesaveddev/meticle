@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, Vie
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
 import type { AuthSession, AvailabilityRecord } from '../types'
@@ -14,6 +15,7 @@ const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 
 export function AvailabilityScreen({ session, onBack }: { session: AuthSession; onBack?: () => void }) {
   const c = useAppColors()
+  const s = useDynamicStyles(styles)
   const [records, setRecords] = useState<AvailabilityRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -58,51 +60,51 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
   }
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
+    <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: c.surface, borderBottomColor: c.borderLight }]}>
-        <Pressable onPress={() => { hapticLight(); onBack?.() }} style={styles.backBtn}>
+      <View style={[s.header, { backgroundColor: c.surface, borderBottomColor: c.borderLight }]}>
+        <Pressable onPress={() => { hapticLight(); onBack?.() }} style={s.backBtn}>
           <Ionicons name="arrow-back" size={24} color={c.ink} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: c.ink }]}>Availability</Text>
+        <Text style={[s.headerTitle, { color: c.ink }]}>Availability</Text>
         <View style={{ width: 40 }} />
       </View>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load() }} tintColor={c.primary} />}>
-        <Text style={[styles.pageTitle, { color: c.ink }]}>My Availability</Text>
-        <Text style={styles.subtitle}>Set the days and times you're available for calls.</Text>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load() }} tintColor={c.primary} />}>
+        <Text style={[s.pageTitle, { color: c.ink }]}>My Availability</Text>
+        <Text style={s.subtitle}>Set the days and times you're available for calls.</Text>
 
         {error ? (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorIcon}>!</Text>
-            <Text style={styles.errorMsg}>{error}</Text>
+          <View style={s.errorBanner}>
+            <Text style={s.errorIcon}>!</Text>
+            <Text style={s.errorMsg}>{error}</Text>
           </View>
         ) : null}
         {success ? (
-          <View style={styles.successBanner}>
-            <Text style={styles.successIcon}>✓</Text>
-            <Text style={styles.successMsg}>{success}</Text>
+          <View style={s.successBanner}>
+            <Text style={s.successIcon}>✓</Text>
+            <Text style={s.successMsg}>{success}</Text>
           </View>
         ) : null}
 
         {/* Weekly grid */}
-        <View style={styles.weekCard}>
+        <View style={s.weekCard}>
           {FULL_DAYS.map((dayName, dayIndex) => (
-            <View key={dayIndex} style={[styles.dayRow, dayIndex < 6 && styles.dayRowBorder]}>
-              <Text style={[styles.dayLabel, byDay[dayIndex]?.length > 0 && styles.dayLabelActive]}>
+            <View key={dayIndex} style={[s.dayRow, dayIndex < 6 && s.dayRowBorder]}>
+              <Text style={[s.dayLabel, byDay[dayIndex]?.length > 0 && s.dayLabelActive]}>
                 {dayName.slice(0, 3)}
               </Text>
-              <View style={styles.daySlots}>
+              <View style={s.daySlots}>
                 {(!byDay[dayIndex] || byDay[dayIndex].length === 0) ? (
-                  <Text style={styles.noSlots}>—</Text>
+                  <Text style={s.noSlots}>—</Text>
                 ) : (
                   byDay[dayIndex].map(rec => (
                     <Pressable
                       key={rec.id}
                       onLongPress={() => handleDelete(rec.id)}
-                      style={styles.slotChip}
+                      style={s.slotChip}
                     >
-                      <Text style={styles.slotText}>{rec.start_time} – {rec.end_time}</Text>
-                      <Text style={styles.slotHint}>hold to remove</Text>
+                      <Text style={s.slotText}>{rec.start_time} – {rec.end_time}</Text>
+                      <Text style={s.slotHint}>hold to remove</Text>
                     </Pressable>
                   ))
                 )}
@@ -112,40 +114,40 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
         </View>
 
         {/* Add form */}
-        <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Add availability</Text>
+        <View style={s.formCard}>
+          <Text style={s.formTitle}>Add availability</Text>
 
-          <View style={styles.dayPicker}>
+          <View style={s.dayPicker}>
             {DAYS.map((d, i) => (
               <Pressable
                 key={i}
                 onPress={() => setSelectedDay(i)}
-                style={[styles.dayBtn, selectedDay === i && styles.dayBtnActive]}
+                style={[s.dayBtn, selectedDay === i && s.dayBtnActive]}
               >
-                <Text style={[styles.dayBtnText, selectedDay === i && styles.dayBtnTextActive]}>{d}</Text>
+                <Text style={[s.dayBtnText, selectedDay === i && s.dayBtnTextActive]}>{d}</Text>
               </Pressable>
             ))}
           </View>
 
-          <View style={styles.timeRow}>
-            <View style={styles.timeField}>
-              <Text style={styles.fieldLabel}>From</Text>
+          <View style={s.timeRow}>
+            <View style={s.timeField}>
+              <Text style={s.fieldLabel}>From</Text>
               <TextInput
                 value={start}
                 onChangeText={setStart}
                 placeholder="09:00"
                 placeholderTextColor={colors.subtle}
-                style={styles.input}
+                style={s.input}
               />
             </View>
-            <View style={styles.timeField}>
-              <Text style={styles.fieldLabel}>To</Text>
+            <View style={s.timeField}>
+              <Text style={s.fieldLabel}>To</Text>
               <TextInput
                 value={end}
                 onChangeText={setEnd}
                 placeholder="17:00"
                 placeholderTextColor={colors.subtle}
-                style={styles.input}
+                style={s.input}
               />
             </View>
           </View>
