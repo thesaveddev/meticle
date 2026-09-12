@@ -68,9 +68,9 @@ const df = (n) => {
       const uid = u(), sid = u();
       sids.push(sid);
       await c.query(
-        `INSERT INTO users(id,organization_id,email,password_hash,first_name,last_name,role,email_verified)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [uid, oid, s.e, hp, s.f, s.l, s.r, true]
+        `INSERT INTO users(id,organization_id,email,password_hash,role,email_verified)
+         VALUES($1,$2,$3,$4,$5,$6)`,
+        [uid, oid, s.e, hp, s.r, true]
       );
       // staff_profiles: id, user_id, first_name, last_name (no org_id, no status)
       await c.query(
