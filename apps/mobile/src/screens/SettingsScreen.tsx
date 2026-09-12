@@ -10,12 +10,13 @@ import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
 import { IconProfile, IconSyncSmall, IconWarning, IconSettings, IconSchedule } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
-export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailability }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailability, onChat }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
   onProfile?: () => void
   onAvailability?: () => void
+  onChat?: () => void
 }) {
   const { mode, scheme, setMode, colors: c } = useTheme()
   const [reminders, setReminders] = useState<'unknown' | 'enabled' | 'disabled'>('unknown')
@@ -171,6 +172,22 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
               <View style={styles.menuContent}>
                 <Text style={[styles.menuTitle, { color: c.ink }]}>Submit availability</Text>
                 <Text style={[styles.menuDesc, { color: c.muted }]}>Set your available hours for upcoming weeks</Text>
+              </View>
+              <Text style={[styles.menuArrow, { color: c.subtle }]}>→</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.group}>
+          <Text style={[styles.groupLabel, { color: c.subtle }]}>COMMUNICATION</Text>
+          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Pressable onPress={() => { hapticLight(); onChat?.() }} style={styles.menuRow}>
+              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
+                <IconSchedule size={18} color={c.primary} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={[styles.menuTitle, { color: c.ink }]}>Team chat</Text>
+                <Text style={[styles.menuDesc, { color: c.muted }]}>Message your team across the organisation</Text>
               </View>
               <Text style={[styles.menuArrow, { color: c.subtle }]}>→</Text>
             </Pressable>
