@@ -3,7 +3,7 @@ import { ActivityIndicator, BackHandler, Platform, Pressable, StatusBar, StyleSh
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter'
 import { ThemeProvider, useTheme, elevation, radii, spacing, FONT } from './src/theme'
-import { IconToday, IconWeek, IconMileage, IconSchedule, IconSettings } from './src/components/Icons'
+import { TabIcon } from './src/components/TabIcons'
 import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitAction } from './src/types'
 import { readSession } from './src/services/storage'
 import { getCurrentUser, getMyVisits, login, logout, createDisruption } from './src/services/api'
@@ -149,16 +149,9 @@ function AppInner() {
   const barStyle = scheme === 'dark' ? 'light-content' as const : 'dark-content' as const
   const goBack = popScreen
 
-  /* ─── Tab icon component ─────────────────────────────────── */
-  function TabIcon({ tabKey, active }: { tabKey: TabKey; active: boolean }) {
-    const color = active ? c.primary : c.subtle
-    switch (tabKey) {
-      case 'today': return <IconToday size={22} color={color} />
-      case 'week': return <IconWeek size={22} color={color} />
-      case 'mileage': return <IconMileage size={22} color={color} />
-      case 'availability': return <IconSchedule size={22} color={color} />
-      case 'settings': return <IconSettings size={22} color={color} />
-    }
+  /* ─── Tab icon mapping ──────────────────────────────────── */
+  const tabIconName: Record<TabKey, 'today' | 'week' | 'mileage' | 'calendar' | 'settings'> = {
+    today: 'today', week: 'week', mileage: 'mileage', availability: 'calendar', settings: 'settings',
   }
 
   /* ─── Loading screens ────────────────────────────────────── */
@@ -225,11 +218,11 @@ function AppInner() {
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>
           {tabs.map(t => (
-            <Pressable key={t.key} accessibilityRole="tab" accessibilityState={{ selected: tab === t.key }}
+            <Pressable key={t.key} accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: tab === t.key }}
               onPress={() => { setTab(t.key); setScreenStack([{ kind: 'tabs' }]) }}
               style={({ pressed }) => [s.tab, pressed && { opacity: 0.5 }]}
             >
-              <TabIcon tabKey={t.key} active={tab === t.key} />
+              <TabIcon name={tabIconName[t.key]} size={24} color={tab === t.key ? c.primary : c.subtle} />
               <Text style={[s.tabLabel, { color: tab === t.key ? c.primary : c.subtle }]}>{t.label}</Text>
               {tab === t.key && <View style={[s.tabIndicator, { backgroundColor: c.primary }]} />}
             </Pressable>
@@ -246,11 +239,11 @@ const s = StyleSheet.create({
   tabBar: {
     flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.md,
-    paddingTop: spacing.sm, ...elevation.sm,
+    paddingTop: spacing.xs,
   },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xs, gap: 4 },
-  tabLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '600', letterSpacing: 0.3 },
-  tabIndicator: { width: 24, height: 3, borderRadius: 2, marginTop: 2 },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6, gap: 2, minHeight: 48 },
+  tabLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '500', letterSpacing: 0.2 },
+  tabIndicator: { width: 20, height: 2, borderRadius: 1, marginTop: 3 },
   boot: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   bootCard: { alignItems: 'center', gap: spacing.sm },
   bootLogo: { width: 64, height: 64, borderRadius: radii.xl, alignItems: 'center', justifyContent: 'center', ...elevation.md },
