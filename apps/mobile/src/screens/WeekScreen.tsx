@@ -5,6 +5,7 @@ import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { getMyVisits } from '../services/api'
 import { IconCheck, IconClock, IconAlert, IconForward, IconNavigate } from '../components/Icons'
+import { isOverdue, overdueLabel } from '../utils/visitStatus'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { MapPickerModal } from '../components/MapPickerModal'
 
@@ -34,7 +35,8 @@ function getFirstDayOfMonth(year: number, month: number) {
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
-function StatusDot({ status, c }: { status: string; c: any }) {
+function StatusDot({ status, overdue, c }: { status: string; overdue?: boolean; c: any }) {
+  if (overdue) return <IconAlert size={12} color={c.danger} />
   const color = status === 'completed' ? c.success
     : status === 'checked_in' ? c.primary
     : status === 'missed' ? c.danger
@@ -192,26 +194,36 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
               <Text style={[styles.emptyCopy, { color: c.muted }]}>Select another day or swap a call with a colleague.</Text>
             </View>
           ) : (
-            dayVisits.map(visit => (
-              <Pressable key={visit.id} onPress={() => { hapticLight(); onVisit(visit) }}
-                style={({ pressed }) => [[styles.visitCard, { backgroundColor: c.surface, borderColor: c.borderLight }], pressed && { opacity: 0.85 }]}>
-                <View style={styles.visitTimeCol}>                   <Text style={[styles.visitTime, { color: c.primary }]}>{time(visit.scheduled_start)}</Text>
-                  <View style={styles.visitTimeDash} />
-                  <Text style={styles.visitTimeEnd}>{time(visit.scheduled_end)}</Text>
-                </View>
-                <View style={styles.visitInfo}>                   <Text style={[styles.visitLabel, { color: c.ink }]} numberOfLines={1}>{visit.label}</Text>
-                  {visit.person_name && <Text style={[styles.visitPerson, { color: c.muted }]} numberOfLines={1}>{visit.person_name}</Text>}
-                  {visit.person_address && (
-                    <View style={styles.addrRow}>                       <Text style={[styles.visitAddr, { color: c.subtle }]} numberOfLines={1}>{visit.person_address}</Text>
-                      <Pressable onPress={() => { hapticLight(); setNavDest({ destination: visit.person_address!, label: visit.person_name || visit.label }); setMapPickerOpen(true) }}                         style={({ pressed }) => [[styles.navPill, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.7 }]}>
-                        <IconNavigate size={12} color={c.primary} />
-                      </Pressable>
-                    </View>
-                  )}
-                </View>
-                <StatusDot status={visit.status} c={c} />
-              </Pressable>
-            ))
+            dayVisits.map(visit => {
+              const ov = isOverdue(visit)
+              return (
+                <Pressable key={visit.id} onPress={() => { hapticLight(); onVisit(visit) }}
+                  style={({ pressed }) => [
+                    styles.visitCard,
+                    ov
+                      ? { backgroundColor: c.dangerSurface, borderColor: c.danger + '40' }
+                      : { backgroundColor: c.surface, borderColor: c.borderLight },
+                    pressed && { opacity: 0.85 },
+                  ]}>
+                  <View style={styles.visitTimeCol}>                   <Text style={[styles.visitTime, { color: ov ? c.danger : c.primary }]}>{time(visit.scheduled_start)}</Text>
+                    <View style={[styles.visitTimeDash, { backgroundColor: ov ? c.danger : c.border }]} />
+                    <Text style={[styles.visitTimeEnd, { color: ov ? c.danger : c.muted }]}>{time(visit.scheduled_end)}</Text>
+                  </View>
+                  <View style={styles.visitInfo}>                   <Text style={[styles.visitLabel, { color: ov ? c.danger : c.ink }]} numberOfLines={1}>{visit.label}</Text>
+                    {visit.person_name && <Text style={[styles.visitPerson, { color: ov ? c.danger : c.muted }]} numberOfLines={1}>{visit.person_name}</Text>}
+                    {ov && <Text style={{ fontFamily: FONT, fontSize: 11, fontWeight: '700', color: c.danger, marginTop: 2 }}>{overdueLabel(visit)}</Text>}
+                    {visit.person_address && (
+                      <View style={styles.addrRow}>                         <Text style={[styles.visitAddr, { color: ov ? c.danger : c.subtle }]} numberOfLines={1}>{visit.person_address}</Text>
+                        <Pressable onPress={() => { hapticLight(); setNavDest({ destination: visit.person_address!, label: visit.person_name || visit.label }); setMapPickerOpen(true) }}                           style={({ pressed }) => [[styles.navPill, { backgroundColor: ov ? c.dangerSurface : c.primarySurface, borderColor: ov ? c.danger + '20' : c.primary + '20' }], pressed && { opacity: 0.7 }]}>
+                          <IconNavigate size={12} color={ov ? c.danger : c.primary} />
+                        </Pressable>
+                      </View>
+                    )}
+                  </View>
+                  <StatusDot status={visit.status} overdue={ov} c={c} />
+                </Pressable>
+              )
+            })
           )}
         </View>
 
