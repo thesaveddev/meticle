@@ -69,12 +69,23 @@ export class HomecareController {
   static async createVisit(req: Request, res: Response) {
     const result = await repo.createVisit(orgId(req), userId(req), req.body);
     audit(req, 'create', 'homecare_visit', result.id, req.body);
+
+    // Notify assigned carer
+    if (result.assigned_staff_id) {
+      HomecareController.notifyCarerAssigned(orgId(req), result, result.assigned_staff_id).catch(() => {});
+    }
+
     res.status(201).json(result);
   }
 
   static async updateVisit(req: Request, res: Response) {
     const result = await repo.updateVisit(orgId(req), req.params.id, req.body);
     audit(req, 'update', 'homecare_visit', req.params.id, req.body);
+
+    // Notify carer when reassigned
+    if (req.body.assigned_staff_id) {
+      HomecareController.notifyCarerAssigned(orgId(req), result, req.body.assigned_staff_id).catch(() => {});
+    }
 
     // Send notifications for missed calls
     if (req.body.status === 'missed') {
@@ -378,6 +389,23 @@ export class HomecareController {
     } catch (e: any) { /* notification failure should not block */ }
   }
 
+  private static async notifyCarerAssigned(orgId: string, visit: any, staffId: string) {
+    try {
+      const staffResult = await query('SELECT user_id FROM staff_profiles WHERE id = $1', [staffId]);
+      if (!staffResult.rows.length) return;
+      const userId = staffResult.rows[0].user_id;
+      const personResult = await query('SELECT first_name, last_name FROM people WHERE id = $1', [visit.person_id]);
+      const personName = personResult.rows[0] ? `${personResult.rows[0].first_name} ${personResult.rows[0].last_name}` : 'Unknown';
+      const msg = `You have been assigned the ${visit.label || visit.visit_type} call for ${personName}`;
+      sendPushToUser(userId, { type: 'call_assigned', title: 'New call assigned', body: msg, url: '/homecare' }, 'homecare').catch(() => {});
+      await query(
+        `INSERT INTO call_assignment_notifications (organization_id, visit_id, staff_id, notification_type, message)
+         VALUES ($1, $2, $3, 'assigned', $4)`,
+        [orgId, visit.id, staffId, msg]
+      );
+    } catch (e: any) { /* non-critical */ }
+  }
+
   private static async notifyCallCompleted(orgId: string, visit: any) {
     try {
       const managers = await query(
@@ -392,5 +420,189 @@ export class HomecareController {
         EmailService.sendCallCompletedEmail(m.email, m.name, personName, visit.label || visit.visit_type).catch(() => {});
       }
     } catch (e: any) { /* notification failure should not block */ }
+  }
+
+  /* ─── Swap / Transfer ─────────────────────────────────────── */
+
+  static async createSwapRequest(req: Request, res: Response) {
+    const oid = orgId(req); const uid = userId(req);
+    const { visit_id, target_staff_id, request_type, message } = req.body;
+    if (!visit_id || !request_type) throw new AppError(400, 'visit_id and request_type required');
+
+    // Verify visit exists and belongs to this org
+    const visitResult = await query('SELECT * FROM homecare_visits WHERE id = $1 AND organization_id = $2', [visit_id, oid]);
+    if (!visitResult.rows.length) throw new AppError(404, 'Visit not found');
+    const visit = visitResult.rows[0];
+
+    // Get staff profile for current user
+    const staffResult = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [uid]);
+    if (!staffResult.rows.length) throw new AppError(404, 'Staff profile not found');
+    const staffId = staffResult.rows[0].id;
+
+    // For swap: target must be different staff. For transfer: target is required
+    if (request_type === 'swap' && target_staff_id && target_staff_id === staffId) throw new AppError(400, 'Cannot swap with yourself');
+    if (request_type === 'transfer' && !target_staff_id) throw new AppError(400, 'Transfer requires a target carer');
+
+    const result = await query(
+      `INSERT INTO visit_swap_requests (organization_id, visit_id, requested_by, target_staff_id, request_type, message)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [oid, visit_id, uid, target_staff_id || null, request_type, message || null]
+    );
+
+    // Notify target carer
+    if (target_staff_id) {
+      const targetUser = await query('SELECT user_id FROM staff_profiles WHERE id = $1', [target_staff_id]);
+      if (targetUser.rows.length) {
+        const reqName = await query('SELECT COALESCE(sp.first_name, u.email) as name FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id WHERE u.id = $1', [uid]);
+        const msg = `${reqName.rows[0]?.name || 'A carer'} wants to ${request_type} the ${visit.label || visit.visit_type} call`;
+        sendPushToUser(targetUser.rows[0].user_id, { type: 'swap_request', title: `${request_type === 'swap' ? 'Swap' : 'Transfer'} request`, body: msg, url: '/homecare' }, 'homecare').catch(() => {});
+        await query(
+          `INSERT INTO call_assignment_notifications (organization_id, visit_id, staff_id, notification_type, message)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [oid, visit_id, target_staff_id, request_type === 'swap' ? 'swap_offered' : 'reassigned', msg]
+        );
+      }
+    }
+
+    // Notify managers
+    try {
+      const managers = await query(
+        `SELECT u.id FROM users u WHERE u.organization_id = $1 AND u.role IN ('ORG_ADMIN', 'MANAGER')`, [oid]
+      );
+      for (const m of managers.rows) {
+        sendPushToUser(m.id, { type: 'swap_request', title: `Call ${request_type} request`, body: `A ${request_type} request has been submitted for ${visit.label}`, url: '/homecare' }, 'homecare').catch(() => {});
+      }
+    } catch { /* non-critical */ }
+
+    audit(req, 'SWAP_REQUEST_CREATED', 'visit_swap_request', result.rows[0].id, result.rows[0]);
+    res.status(201).json(result.rows[0]);
+  }
+
+  static async respondSwapRequest(req: Request, res: Response) {
+    const oid = orgId(req); const uid = userId(req);
+    const { id } = req.params;
+    const { status, response_message } = req.body;
+    if (!['accepted', 'rejected'].includes(status)) throw new AppError(400, 'Status must be accepted or rejected');
+
+    const swapResult = await query(
+      'SELECT * FROM visit_swap_requests WHERE id = $1 AND organization_id = $2', [id, oid]
+    );
+    if (!swapResult.rows.length) throw new AppError(404, 'Request not found');
+    const swap = swapResult.rows[0];
+    if (swap.status !== 'pending') throw new AppError(400, 'Request is no longer pending');
+
+    await query(
+      `UPDATE visit_swap_requests SET status = $1, responded_by = $2, responded_at = NOW(), response_message = $3, updated_at = NOW() WHERE id = $4`,
+      [status, uid, response_message || null, id]
+    );
+
+    if (status === 'accepted' && swap.request_type === 'swap' && swap.target_staff_id) {
+      // Swap the assigned staff
+      const visit = (await query('SELECT assigned_staff_id FROM homecare_visits WHERE id = $1', [swap.visit_id])).rows[0];
+      if (visit) {
+        const staffResult = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [uid]);
+        if (staffResult.rows.length) {
+          await query('UPDATE homecare_visits SET assigned_staff_id = $1 WHERE id = $2', [staffResult.rows[0].id, swap.visit_id]);
+        }
+      }
+    } else if (status === 'accepted' && swap.request_type === 'transfer' && swap.target_staff_id) {
+      await query('UPDATE homecare_visits SET assigned_staff_id = $1 WHERE id = $2', [swap.target_staff_id, swap.visit_id]);
+    }
+
+    // Notify requester
+    const reqUser = swap.requested_by;
+    const staffName = await query('SELECT COALESCE(sp.first_name, u.email) as name FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id WHERE u.id = $1', [uid]);
+    const msg = `${staffName.rows[0]?.name || 'Someone'} ${status}d your ${swap.request_type} request`;
+    sendPushToUser(reqUser, { type: 'swap_response', title: `Request ${status}`, body: msg, url: '/homecare' }, 'homecare').catch(() => {});
+    await query(
+      `INSERT INTO call_assignment_notifications (organization_id, visit_id, staff_id, notification_type, message)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [oid, swap.visit_id, reqUser, status === 'accepted' ? 'swap_accepted' : 'swap_rejected', msg]
+    );
+
+    audit(req, 'SWAP_REQUEST_RESPONDED', 'visit_swap_request', id, { status });
+    res.json({ message: `Request ${status}` });
+  }
+
+  static async listSwapRequests(req: Request, res: Response) {
+    const oid = orgId(req); const uid = userId(req);
+    const staffResult = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [uid]);
+    const staffId = staffResult.rows[0]?.id;
+
+    const result = await query(
+      `SELECT sr.*, hv.label as visit_label, hv.visit_type, hv.scheduled_start, hv.scheduled_end,
+              p.first_name || ' ' || p.last_name as client_name,
+              COALESCE(sp_req.first_name, u_req.email) as requested_by_name,
+              COALESCE(sp_tgt.first_name, u_tgt.email) as target_name
+       FROM visit_swap_requests sr
+       JOIN homecare_visits hv ON hv.id = sr.visit_id
+       LEFT JOIN people p ON p.id = hv.person_id
+       LEFT JOIN users u_req ON u_req.id = sr.requested_by
+       LEFT JOIN staff_profiles sp_req ON sp_req.user_id = u_req.id
+       LEFT JOIN staff_profiles sp_tgt ON sp_tgt.id = sr.target_staff_id
+       LEFT JOIN users u_tgt ON u_tgt.id = sp_tgt.user_id
+       WHERE sr.organization_id = $1
+         AND (sr.requested_by = $2 OR sr.target_staff_id = $3)
+       ORDER BY sr.created_at DESC LIMIT 50`,
+      [oid, uid, staffId]
+    );
+    res.json(result.rows);
+  }
+
+  static async getCarerNotifications(req: Request, res: Response) {
+    const oid = orgId(req); const uid = userId(req);
+    const staffResult = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [uid]);
+    if (!staffResult.rows.length) return res.json([]);
+    const staffId = staffResult.rows[0].id;
+
+    const result = await query(
+      `SELECT * FROM call_assignment_notifications
+       WHERE organization_id = $1 AND staff_id = $2
+       ORDER BY created_at DESC LIMIT 50`,
+      [oid, staffId]
+    );
+    res.json(result.rows);
+  }
+
+  static async markNotificationsRead(req: Request, res: Response) {
+    const oid = orgId(req); const uid = userId(req);
+    const staffResult = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [uid]);
+    if (!staffResult.rows.length) return res.json({ updated: 0 });
+    const staffId = staffResult.rows[0].id;
+
+    const result = await query(
+      `UPDATE call_assignment_notifications SET read = TRUE
+       WHERE organization_id = $1 AND staff_id = $2 AND read = FALSE`,
+      [oid, staffId]
+    );
+    res.json({ updated: result.rowCount });
+  }
+
+  static async getWeekVisits(req: Request, res: Response) {
+    const oid = orgId(req); const uid = userId(req);
+    const staffResult = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [uid]);
+    if (!staffResult.rows.length) return res.json([]);
+    const staffId = staffResult.rows[0].id;
+
+    const from = req.query.from as string;
+    const to = req.query.to as string;
+    if (!from || !to) throw new AppError(400, 'from and to query params required');
+
+    const result = await query(
+      `SELECT hv.*, p.first_name || ' ' || p.last_name as person_name,
+              p.address as person_address, hp.name as package_name,
+              sp.first_name || ' ' || sp.last_name as assigned_staff_name
+       FROM homecare_visits hv
+       LEFT JOIN people p ON p.id = hv.person_id
+       LEFT JOIN homecare_packages hp ON hp.id = hv.package_id
+       LEFT JOIN staff_profiles sp ON sp.id = hv.assigned_staff_id
+       WHERE hv.organization_id = $1
+         AND hv.assigned_staff_id = $2
+         AND hv.scheduled_start >= $3 AND hv.scheduled_start <= $4
+         AND hv.status NOT IN ('cancelled')
+       ORDER BY hv.scheduled_start`,
+      [oid, staffId, from, to]
+    );
+    res.json(result.rows);
   }
 }

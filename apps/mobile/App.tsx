@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ActivityIndicator, BackHandler, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type } from './src/theme'
 import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitAction } from './src/types'
@@ -16,11 +16,15 @@ import { ClientDetailScreen } from './src/screens/ClientDetailScreen'
 import { MileageScreen } from './src/screens/MileageScreen'
 import { BodyMapScreen } from './src/screens/BodyMapScreen'
 import { NutritionScreen } from './src/screens/NutritionScreen'
+import { ProfileScreen } from './src/screens/ProfileScreen'
+import { WeekScreen } from './src/screens/WeekScreen'
+import { SwapTransferScreen } from './src/screens/SwapTransferScreen'
 
-type TabKey = 'today' | 'mileage' | 'availability' | 'settings'
+type TabKey = 'today' | 'week' | 'mileage' | 'availability' | 'settings'
 
 const tabs: { key: TabKey; icon: string; label: string }[] = [
   { key: 'today', icon: '📋', label: 'Today' },
+  { key: 'week', icon: '📆', label: 'Week' },
   { key: 'mileage', icon: '🚗', label: 'Mileage' },
   { key: 'availability', icon: '📅', label: 'Availability' },
   { key: 'settings', icon: '⚙️', label: 'Settings' },
@@ -41,6 +45,16 @@ function AppTab({ icon, label, active, onPress }: { icon: string; label: string;
   )
 }
 
+/* ─── Screen stack for Android back button ──────────────────── */
+type Screen =
+  | { kind: 'tabs' }
+  | { kind: 'visit'; visit: HomecareVisit }
+  | { kind: 'clientDetail'; personId: string }
+  | { kind: 'bodyMap'; personId: string; personName: string }
+  | { kind: 'nutrition'; personId: string; personName: string }
+  | { kind: 'profile' }
+  | { kind: 'swap' }
+
 export default function App() {
   const [session, setSession] = useState<AuthSession | null>(null)
   const [booting, setBooting] = useState(true)
@@ -48,12 +62,34 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false)
   const [visits, setVisits] = useState<HomecareVisit[]>([])
   const [queue, setQueue] = useState<OfflineVisitAction[]>([])
-  const [selectedVisit, setSelectedVisit] = useState<HomecareVisit | null>(null)
   const [tab, setTab] = useState<TabKey>('today')
-  const [clientDetail, setClientDetail] = useState<string | null>(null)
-  const [bodyMapTarget, setBodyMapTarget] = useState<{ personId: string; personName: string } | null>(null)
-  const [nutritionTarget, setNutritionTarget] = useState<{ personId: string; personName: string } | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [screenStack, setScreenStack] = useState<Screen[]>([{ kind: 'tabs' }])
+
+  const currentScreen = screenStack[screenStack.length - 1]
+
+  const pushScreen = useCallback((screen: Screen) => {
+    setScreenStack(prev => [...prev, screen])
+  }, [])
+
+  const popScreen = useCallback(() => {
+    setScreenStack(prev => {
+      if (prev.length <= 1) return prev
+      return prev.slice(0, -1)
+    })
+  }, [])
+
+  // Android hardware back button
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (screenStack.length > 1) {
+        popScreen()
+        return true // handled — don't close app
+      }
+      return false // let default behavior (minimize app)
+    })
+    return () => handler.remove()
+  }, [screenStack.length, popScreen])
 
   const loadQueue = useCallback(async () => setQueue(await getQueue()), [])
 
@@ -102,8 +138,8 @@ export default function App() {
   }
 
   async function handleAction(action: VisitAction, payload: OfflineVisitAction['payload']) {
-    if (!session || !selectedVisit) throw new Error('Your session is no longer available.')
-    const item = await enqueueVisitAction(selectedVisit.id, action, payload)
+    if (!session || currentScreen.kind !== 'visit') throw new Error('Your session is no longer available.')
+    const item = await enqueueVisitAction(currentScreen.visit.id, action, payload)
     await loadQueue()
     try {
       await flushQueue(session.accessToken)
@@ -116,22 +152,24 @@ export default function App() {
   }
 
   async function handleDisruption(body: Record<string, unknown>) {
-    if (!session || !selectedVisit) throw new Error('Your session is no longer available.')
-    await createDisruption(session.accessToken, selectedVisit.id, body)
+    if (!session || currentScreen.kind !== 'visit') throw new Error('Your session is no longer available.')
+    await createDisruption(session.accessToken, currentScreen.visit.id, body)
     await loadVisits(session)
   }
 
   async function handleSignOut() {
     await logout()
-    setSession(null); setVisits([]); setQueue([]); setSelectedVisit(null)
+    setSession(null); setVisits([]); setQueue([]); setScreenStack([{ kind: 'tabs' }])
   }
 
   const user: MobileUser | null = session?.user || null
   const activeQueue = useMemo(() => queue.filter(item => item.state !== 'synced'), [queue])
 
+  /* ─── Boot ─────────────────────────────────────────────────── */
   if (booting) {
     return (
-      <SafeAreaView style={styles.boot}>
+      <SafeAreaView style={styles.boot} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
         <View style={styles.bootCard}>
           <View style={styles.bootLogo}>
             <Text style={styles.bootLogoText}>M</Text>
@@ -143,75 +181,137 @@ export default function App() {
     )
   }
 
+  /* ─── Login ─────────────────────────────────────────────────── */
   if (!session || !user) {
-    return <LoginScreen onLogin={handleLogin} error={loginError} loading={loginLoading} />
-  }
-
-  if (bodyMapTarget && session) {
-    return <BodyMapScreen personId={bodyMapTarget.personId} personName={bodyMapTarget.personName} session={session} onBack={() => setBodyMapTarget(null)} />
-  }
-
-  if (nutritionTarget && session) {
-    return <NutritionScreen personId={nutritionTarget.personId} personName={nutritionTarget.personName} session={session} onBack={() => setNutritionTarget(null)} />
-  }
-
-  if (clientDetail && session) {
     return (
-      <ClientDetailScreen
-        personId={clientDetail}
-        session={session}
-        onBack={() => setClientDetail(null)}
-        onBodyMap={(id, name) => { setClientDetail(null); setBodyMapTarget({ personId: id, personName: name }) }}
-        onNutrition={(id, name) => { setClientDetail(null); setNutritionTarget({ personId: id, personName: name }) }}
-      />
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+        <LoginScreen onLogin={handleLogin} error={loginError} loading={loginLoading} />
+      </>
     )
   }
 
-  if (selectedVisit) {
+  /* ─── Render current screen ──────────────────────────────────── */
+  const goBack = popScreen
+
+  if (currentScreen.kind === 'bodyMap' && session) {
     return (
-      <VisitScreen
-        visit={selectedVisit}
-        queue={activeQueue}
-        onBack={() => setSelectedVisit(null)}
-        onAction={handleAction}
-        onDisruption={handleDisruption}
-        onClientDetail={(personId) => setClientDetail(personId)}
-      />
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+        <BodyMapScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} />
+      </>
     )
   }
 
+  if (currentScreen.kind === 'nutrition' && session) {
+    return (
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+        <NutritionScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} />
+      </>
+    )
+  }
+
+  if (currentScreen.kind === 'clientDetail' && session) {
+    return (
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+        <ClientDetailScreen
+          personId={currentScreen.personId}
+          session={session}
+          onBack={goBack}
+          onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })}
+          onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })}
+        />
+      </>
+    )
+  }
+
+  if (currentScreen.kind === 'visit' && session) {
+    return (
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+        <VisitScreen
+          visit={currentScreen.visit}
+          queue={activeQueue}
+          onBack={goBack}
+          onAction={handleAction}
+          onDisruption={handleDisruption}
+          onClientDetail={(personId) => pushScreen({ kind: 'clientDetail', personId })}
+        />
+      </>
+    )
+  }
+
+  if (currentScreen.kind === 'profile' && session) {
+    return (
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+        <ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} />
+      </>
+    )
+  }
+
+  if (currentScreen.kind === 'swap' && session) {
+    return (
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+        <SwapTransferScreen session={session} user={user} visits={visits} onBack={goBack} onRefresh={() => loadVisits(session)} />
+      </>
+    )
+  }
+
+  /* ─── Main tab view ──────────────────────────────────────────── */
   return (
-    <SafeAreaView style={styles.app}>
-      <View style={styles.body}>
-        {tab === 'today' && (
-          <TodayScreen
-            user={user}
-            visits={visits}
-            queue={activeQueue}
-            onVisit={setSelectedVisit}
-            onRefresh={() => loadVisits(session, true)}
-            refreshing={refreshing}
-            onSync={() => sync()}
-          />
-        )}
-        {tab === 'mileage' && <MileageScreen session={session} />}
-        {tab === 'availability' && <AvailabilityScreen session={session} />}
-        {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} />}
-      </View>
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+      <SafeAreaView style={styles.app} edges={['top', 'left', 'right']}>
+        <View style={styles.body}>
+          {tab === 'today' && (
+            <TodayScreen
+              user={user}
+              visits={visits}
+              queue={activeQueue}
+              onVisit={(v) => pushScreen({ kind: 'visit', visit: v })}
+              onRefresh={() => loadVisits(session, true)}
+              refreshing={refreshing}
+              onSync={() => sync()}
+            />
+          )}
+          {tab === 'week' && (
+            <WeekScreen
+              session={session}
+              user={user}
+              onVisit={(v) => pushScreen({ kind: 'visit', visit: v })}
+              onSwap={() => pushScreen({ kind: 'swap' })}
+            />
+          )}
+          {tab === 'mileage' && <MileageScreen session={session} />}
+          {tab === 'availability' && <AvailabilityScreen session={session} />}
+          {tab === 'settings' && (
+            <SettingsScreen
+              user={user}
+              onSignOut={handleSignOut}
+              onSync={() => sync()}
+              onProfile={() => pushScreen({ kind: 'profile' })}
+            />
+          )}
+        </View>
 
-      {/* Tab bar */}
-      <View style={styles.tabBar}>
-        {tabs.map(t => (
-          <AppTab
-            key={t.key}
-            icon={t.icon}
-            label={t.label}
-            active={tab === t.key}
-            onPress={() => setTab(t.key)}
-          />
-        ))}
-      </View>
-    </SafeAreaView>
+        {/* Tab bar */}
+        <View style={styles.tabBar}>
+          {tabs.map(t => (
+            <AppTab
+              key={t.key}
+              icon={t.icon}
+              label={t.label}
+              active={tab === t.key}
+              onPress={() => { setTab(t.key); setScreenStack([{ kind: 'tabs' }]) }}
+            />
+          ))}
+        </View>
+      </SafeAreaView>
+    </>
   )
 }
 
