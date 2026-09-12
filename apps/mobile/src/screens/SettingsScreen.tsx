@@ -243,9 +243,8 @@ screen: { flex: 1 },
   profileCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.surface, borderRadius: radii.xl,
-    borderWidth: 1, borderColor: colors.borderLight,
     padding: spacing.base, gap: spacing.base,
-    marginBottom: spacing.xl, ...elevation.md,
+    marginBottom: spacing.xl, ...elevation.sm,
   },
   avatarWrap: {},
   avatar: {
@@ -280,7 +279,6 @@ screen: { flex: 1 },
   },
   groupCard: {
     backgroundColor: colors.surface, borderRadius: radii.lg,
-    borderWidth: 1, borderColor: colors.borderLight,
     overflow: 'hidden', ...elevation.sm,
   },
 
@@ -326,7 +324,6 @@ screen: { flex: 1 },
   modePill: {
     flex: 1, alignItems: 'center', paddingVertical: spacing.sm,
     borderRadius: radii.md, backgroundColor: colors.bg,
-    borderWidth: 1.5, borderColor: colors.border,
   },
   modePillActive: { backgroundColor: colors.primarySurface, borderColor: colors.primary + '40' },
   modePillText: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.muted },
