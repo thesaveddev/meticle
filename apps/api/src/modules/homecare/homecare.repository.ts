@@ -13,6 +13,8 @@ const VISIT_SELECT = `
   SELECT v.*, pe.first_name || ' ' || pe.last_name AS person_name,
     sp.first_name || ' ' || sp.last_name AS assigned_staff_name,
     l.address AS person_address,
+    l.latitude AS person_latitude,
+    l.longitude AS person_longitude,
     p.name AS package_name,
     p.mileage_rate_pence
   FROM homecare_visits v

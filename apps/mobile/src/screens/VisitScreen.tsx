@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
-import { getVisitLocation } from '../services/location'
+import { getVisitLocation, haversineDistance } from '../services/location'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate } from '../components/Icons'
 import { openNavigation } from '../services/navigation'
 import { hapticLight, hapticWarning } from '../services/haptics'
@@ -163,9 +163,37 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const removePhoto = (index: number) => { hapticLight(); setPhotos(prev => prev.filter((_, i) => i !== index)) }
 
   async function execute(action: VisitAction) {
-    hapticLight(); setBusy(true); setError(''); setSuccess('')
+    hapticLight(); setError(''); setSuccess('')
+
+    // Block check-out without care notes
+    if (action === 'check-out' && !note.trim()) {
+      hapticWarning()
+      setError('Please record your care notes before checking out.')
+      return
+    }
+
+    setBusy(true)
     try {
       const location = await getVisitLocation()
+
+      // Verify location on check-in
+      if (action === 'check-in' && visit.person_latitude && visit.person_longitude && location.latitude && location.longitude) {
+        const distance = haversineDistance(
+          location.latitude, location.longitude,
+          visit.person_latitude, visit.person_longitude
+        )
+        if (distance > 500) {
+          setBusy(false)
+          hapticWarning()
+          setError(
+            `You are ${Math.round(distance)}m away from ${visit.person_name || 'the client'}. ` +
+            `Please confirm you are at the correct location before checking in.`
+          )
+          // Allow override after showing warning
+          return
+        }
+      }
+
       const result = await onAction(action, {
         ...location,
         actual_travel_minutes: travelMinutes ? Number(travelMinutes) : undefined,
@@ -330,6 +358,14 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             </View>
           )}
 
+          {/* Care notes hint */}
+          {checkedIn && !note.trim() && (
+            <View style={[styles.card, { backgroundColor: c.warningSurface, borderColor: c.warning + '20' }]}>
+              <Text style={[styles.cardTitle, { color: c.warning }]}>Care notes required</Text>
+              <Text style={{ fontFamily: FONT, fontSize: 13, color: c.muted }}>Record what happened during this call before you can check out.</Text>
+            </View>
+          )}
+
           {/* Primary action */}
           {isOpen && (
             <View style={{ marginTop: spacing.base }}>
@@ -337,7 +373,13 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                 <PrimaryButton label="Check in" onPress={() => execute('check-in')} loading={busy} disabled={busy} tone="primary" />
               )}
               {checkedIn && (
-                <PrimaryButton label="Check out and complete" onPress={() => execute('check-out')} loading={busy} disabled={busy} tone="success" />
+                <PrimaryButton
+                  label={note.trim() ? 'Check out and complete' : 'Enter care notes to check out'}
+                  onPress={() => execute('check-out')}
+                  loading={busy}
+                  disabled={busy || !note.trim()}
+                  tone="success"
+                />
               )}
             </View>
           )}
