@@ -103,7 +103,7 @@ function ReadOnlyField({ label, value, c }: { label: string; value: string; c: a
   )
 }
 
-export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident, nextVisit, onVisitNext }: {
+export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident, onSwap, nextVisit, onVisitNext }: {
   visit: HomecareVisit
   session?: AuthSession
   onBack: () => void
@@ -112,6 +112,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   queue: OfflineVisitAction[]
   onClientDetail?: (personId: string) => void
   onReportIncident?: () => void
+  onSwap?: () => void
   nextVisit?: HomecareVisit | null
   onVisitNext?: (visit: HomecareVisit) => void
 }) {
@@ -144,8 +145,9 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const isMissed = visit.status === 'missed'
   const isCancelled = visit.status === 'cancelled'
   const isReadonly = isCompleted || isMissed || isCancelled
-  const checkedIn = visit.status === 'checked_in'
   const isOpen = !isReadonly
+  const canSwap = isOpen && !!onSwap
+  const checkedIn = visit.status === 'checked_in'
 
   const pickVisitPhoto = async () => {
     hapticLight()
@@ -549,6 +551,12 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                 <Pressable onPress={() => { hapticLight(); onReportIncident() }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface, borderColor: c.borderLight }], pressed && { opacity: 0.7 }]}>
                   <IconIncident size={14} color={c.danger} />
                   <Text style={[styles.secondaryText, { color: c.danger }]}>Incident</Text>
+                </Pressable>
+              )}
+              {canSwap && (
+                <Pressable onPress={() => { hapticLight(); onSwap!() }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface, borderColor: c.borderLight }], pressed && { opacity: 0.7 }]}>
+                  <Text style={{ fontSize: 14 }}>🔄</Text>
+                  <Text style={[styles.secondaryText, { color: c.primary }]}>Swap</Text>
                 </Pressable>
               )}
             </View>
