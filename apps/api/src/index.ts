@@ -410,11 +410,12 @@ databaseReadyPromise.then(() => setTimeout(() => {
 
 // Run shift-start notifications every 5 minutes
 import { SchedulingNotificationService } from './modules/scheduling/scheduling.notifications';
-import { runHomecareVisitReminders } from './modules/homecare/homecare.reminders';
+import { runHomecareVisitReminders, runHomecareOverdueAlerts } from './modules/homecare/homecare.reminders';
 const SHIFT_START_NOTIFICATION_INTERVAL = 5 * 60 * 1000; // 5 minutes
 setInterval(() => {
   if (!databaseReady) return;
   runHomecareVisitReminders().catch(err => logger.error(err, 'Homecare visit reminder check failed'));
+  runHomecareOverdueAlerts().catch(err => logger.error(err, 'Homecare overdue alert check failed'));
 }, 5 * 60 * 1000);
 
 setInterval(() => {

@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import { AppError } from '../../shared/middleware/error.middleware';
-import pool from '../../shared/database';
+import pool, { query } from '../../shared/database';
 import { AuditRepository } from '../audit/audit.repository';
+import { EmailService } from '../../shared/utils/email.service';
+import { sendPushToUser } from '../notifications/push.service';
 import * as repo from './homecare.repository';
 
 function orgId(req: Request): string {
@@ -73,6 +75,16 @@ export class HomecareController {
   static async updateVisit(req: Request, res: Response) {
     const result = await repo.updateVisit(orgId(req), req.params.id, req.body);
     audit(req, 'update', 'homecare_visit', req.params.id, req.body);
+
+    // Send notifications for missed calls
+    if (req.body.status === 'missed') {
+      HomecareController.notifyMissedCall(orgId(req), result).catch(() => {});
+    }
+    // Send notification for completed calls
+    if (req.body.status === 'completed') {
+      HomecareController.notifyCallCompleted(orgId(req), result).catch(() => {});
+    }
+
     res.json(result);
   }
 
@@ -345,5 +357,40 @@ export class HomecareController {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="mtd-${(run.invoice_number || run.id).replace(/[^A-Za-z0-9-_]/g, '')}.json"`);
     res.json(mtd);
+  }
+
+  // ── Notification helpers ──
+  private static async notifyMissedCall(orgId: string, visit: any) {
+    try {
+      // Get manager emails for this org
+      const managers = await query(
+        `SELECT u.id, u.email, COALESCE(sp.first_name, u.email) as name
+         FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+         WHERE u.organization_id = $1 AND u.role IN ('ORG_ADMIN', 'MANAGER')`,
+        [orgId]
+      );
+      const personResult = await query('SELECT first_name, last_name FROM people WHERE id = $1', [visit.person_id]);
+      const personName = personResult.rows[0] ? `${personResult.rows[0].first_name} ${personResult.rows[0].last_name}` : 'Unknown';
+      for (const m of managers.rows) {
+        EmailService.sendMissedCallEmail(m.email, m.name, personName, visit.label || visit.visit_type, visit.scheduled_start, visit.late_reason).catch(() => {});
+        sendPushToUser(m.id, { type: 'missed_call', title: `Missed call — ${personName}`, body: `${visit.label || visit.visit_type} was marked missed`, url: '/homecare' }, 'homecare').catch(() => {});
+      }
+    } catch (e: any) { /* notification failure should not block */ }
+  }
+
+  private static async notifyCallCompleted(orgId: string, visit: any) {
+    try {
+      const managers = await query(
+        `SELECT u.id, u.email, COALESCE(sp.first_name, u.email) as name
+         FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+         WHERE u.organization_id = $1 AND u.role IN ('ORG_ADMIN', 'MANAGER')`,
+        [orgId]
+      );
+      const personResult = await query('SELECT first_name, last_name FROM people WHERE id = $1', [visit.person_id]);
+      const personName = personResult.rows[0] ? `${personResult.rows[0].first_name} ${personResult.rows[0].last_name}` : 'Unknown';
+      for (const m of managers.rows) {
+        EmailService.sendCallCompletedEmail(m.email, m.name, personName, visit.label || visit.visit_type).catch(() => {});
+      }
+    } catch (e: any) { /* notification failure should not block */ }
   }
 }
