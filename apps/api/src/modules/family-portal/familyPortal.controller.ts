@@ -126,4 +126,41 @@ export class FamilyPortalController {
     const observations = await Repo.getRecentObservations(member.person_id);
     res.json(observations);
   }
+
+  static async portalGetUpcomingVisits(req: Request, res: Response) {
+    const member = await Repo.validateToken(req.params.token);
+    if (!member) throw new AppError(404, 'Invalid or expired portal link');
+    const visits = await Repo.getUpcomingVisits(member.person_id);
+    res.json(visits);
+  }
+
+  static async portalGetMedications(req: Request, res: Response) {
+    const member = await Repo.validateToken(req.params.token);
+    if (!member) throw new AppError(404, 'Invalid or expired portal link');
+    const meds = await Repo.getMedications(member.person_id);
+    res.json(meds);
+  }
+
+  static async portalGetAllergies(req: Request, res: Response) {
+    const member = await Repo.validateToken(req.params.token);
+    if (!member) throw new AppError(404, 'Invalid or expired portal link');
+    const allergies = await Repo.getAllergies(member.person_id);
+    res.json(allergies);
+  }
+
+  static async portalSendCareTeamMessage(req: Request, res: Response) {
+    const member = await Repo.validateToken(req.params.token);
+    if (!member) throw new AppError(404, 'Invalid or expired portal link');
+    const { subject, message } = req.body;
+    if (!subject || !message) throw new AppError(400, 'Subject and message are required');
+    const msg = await Repo.sendCareTeamMessage({
+      person_id: member.person_id,
+      family_member_name: member.name,
+      email: member.email,
+      subject,
+      message,
+      organization_id: member.organization_id,
+    });
+    res.status(201).json({ id: msg.id, status: 'sent', message: 'Your message has been sent to the care team' });
+  }
 }
