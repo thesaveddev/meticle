@@ -298,3 +298,18 @@ export function IconOffline({ size = 14, color = '#F59E0B' }: IconProps) {
     </View>
   )
 }
+
+/** Two-person icon — two overlapping circles representing two carers */
+export function IconTwoPerson({ size = 16, color = '#B45309' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      {/* Left person circle */}
+      <View style={{ width: 8 * s, height: 8 * s, borderRadius: 4 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', left: 1 * s, top: 0 }} />
+      <View style={{ width: 10 * s, height: 5 * s, borderRadius: 5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', left: 0, bottom: 0 }} />
+      {/* Right person circle (overlapping) */}
+      <View style={{ width: 8 * s, height: 8 * s, borderRadius: 4 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', right: 1 * s, top: 0 }} />
+      <View style={{ width: 10 * s, height: 5 * s, borderRadius: 5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', right: 0, bottom: 0 }} />
+    </View>
+  )
+}

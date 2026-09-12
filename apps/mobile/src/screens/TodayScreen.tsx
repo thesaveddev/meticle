@@ -3,7 +3,7 @@ import { Animated, Easing, Pressable, RefreshControl, ScrollView, StyleSheet, Te
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../types'
-import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconSync, IconNavigate } from '../components/Icons'
+import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconSync, IconNavigate, IconTwoPerson } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
 
@@ -266,6 +266,12 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
                       </Text>
                     )}
                     {ov && <Text style={[styles.overdueTag, { color: c.danger }]}>{overdueLabel(tv.visit)}</Text>}
+                    {tv.visit.requires_two_staff && (
+                      <View style={[styles.twoPersonBadge, { backgroundColor: c.warningSurface, borderColor: c.warning + '30' }]}>  
+                        <IconTwoPerson size={12} color={c.warning} />
+                        <Text style={[styles.twoPersonText, { color: c.warning }]}>2-person</Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* Status indicator */}
@@ -409,6 +415,8 @@ const styles = StyleSheet.create({
   timelinePerson: { fontFamily: FONT, fontSize: 13, fontWeight: '400', marginTop: 2 },
   timelineAddr: { fontFamily: FONT, fontSize: 11, fontWeight: '400', marginTop: 2 },
   overdueTag: { fontFamily: FONT, fontSize: 11, fontWeight: '700', marginTop: 3 },
+  twoPersonBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, marginTop: 4, alignSelf: 'flex-start' },
+  twoPersonText: { fontFamily: FONT, fontSize: 10, fontWeight: '700' },
 
   timelineStatus: { width: 24, alignItems: 'center', justifyContent: 'center' },
   futureDot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },

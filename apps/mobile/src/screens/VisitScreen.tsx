@@ -8,7 +8,7 @@ import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance } from '../services/location'
-import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate } from '../components/Icons'
+import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate, IconTwoPerson } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
 import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
@@ -164,6 +164,9 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const isOpen = !isReadonly
   const canSwap = isOpen && !!onSwap
   const checkedIn = visit.status === 'checked_in'
+  const requiresTwo = !!visit.requires_two_staff
+  const [secondCarerCheckedIn, setSecondCarerCheckedIn] = useState(false)
+  const canCheckIn = !requiresTwo || secondCarerCheckedIn
 
   const pickVisitPhoto = async () => {
     hapticLight()
@@ -353,7 +356,15 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
           {/* Client info card */}
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-            <Text style={[styles.clientName, { color: c.ink }]}>{visit.label}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <Text style={[styles.clientName, { color: c.ink, flex: 1 }]}>{visit.label}</Text>
+              {requiresTwo && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: c.warningSurface, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: c.warning + '30' }}>
+                  <IconTwoPerson size={14} color={c.warning} />
+                  <Text style={{ fontFamily: FONT, fontSize: 11, fontWeight: '700', color: c.warning }}>2-person</Text>
+                </View>
+              )}
+            </View>
 
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
@@ -453,6 +464,27 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                 )}
               </View>
               <Text style={[styles.checkInHint, { color: c.muted }]}>Record what happened, then check out when you leave.</Text>
+            </View>
+          )}
+
+          {/* Second carer check-in for two-person calls */}
+          {requiresTwo && !checkedIn && (
+            <View style={[styles.card, { backgroundColor: c.warningSurface, borderColor: c.warning + '20' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+                <IconTwoPerson size={18} color={c.warning} />
+                <Text style={{ fontFamily: FONT, fontSize: 14, fontWeight: '700', color: c.warning }}>Two-person call</Text>
+              </View>
+              <Text style={{ fontFamily: FONT, fontSize: 13, color: c.muted, marginBottom: spacing.md }}>This call requires two carers. Both must be present before you can check in.</Text>
+              <Pressable onPress={() => { hapticLight(); setSecondCarerCheckedIn(!secondCarerCheckedIn) }}
+                style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radii.md, backgroundColor: secondCarerCheckedIn ? c.successSurface : c.surface, borderWidth: 1.5, borderColor: secondCarerCheckedIn ? c.success : c.border }, pressed && { opacity: 0.8 }]}>  
+                <View style={[styles.checkbox, { borderColor: secondCarerCheckedIn ? c.success : c.border, backgroundColor: secondCarerCheckedIn ? c.success : 'transparent' }]}>
+                  {secondCarerCheckedIn && <IconCheck size={12} color={c.inverse} />}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: FONT, fontSize: 14, fontWeight: '600', color: secondCarerCheckedIn ? c.success : c.ink }}>Second carer present</Text>
+                  <Text style={{ fontFamily: FONT, fontSize: 12, color: c.muted }}>{secondCarerCheckedIn ? 'Confirmed — you can check in' : 'Tap to confirm the second carer has arrived'}</Text>
+                </View>
+              </Pressable>
             </View>
           )}
 
@@ -599,7 +631,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
           {isOpen && (
             <View style={{ marginTop: spacing.base }}>
               {!checkedIn && (
-                <PrimaryButton label="Check in" onPress={() => execute('check-in')} loading={busy} disabled={busy} tone="primary" />
+                <PrimaryButton label={requiresTwo && !secondCarerCheckedIn ? 'Second carer required' : 'Check in'} onPress={() => execute('check-in')} loading={busy} disabled={busy || (requiresTwo && !secondCarerCheckedIn)} tone="primary" />
               )}
               {checkedIn && (
                 <PrimaryButton
