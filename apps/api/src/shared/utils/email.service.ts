@@ -249,6 +249,39 @@ export class EmailService {
         { label: 'Open my visits', url: `${baseUrl()}/homecare` }), 'notifications');
   }
 
+  // ── Homecare exception notifications ──
+  static async sendMissedCallEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string, scheduledTime: string, lateReason?: string) {
+    await sendMail(managerEmail, `Missed call — ${personName}`,
+      buildEmailHtml('Missed Call', `Hi ${managerName || 'Manager'},`,
+        `<p>A scheduled <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> was marked as <strong style="color:#DC2626">missed</strong>.</p>` +
+        (lateReason ? `<p><strong>Reason:</strong> ${lateReason}</p>` : '') +
+        `<p>Please review this exception and take appropriate action (welfare check, reschedule, etc.).</p>`,
+        { label: 'Review exception', url: `${baseUrl()}/homecare` }), 'notifications');
+  }
+
+  static async sendUnassignedCallAlertEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string, scheduledTime: string) {
+    await sendMail(managerEmail, `Unassigned call — ${personName}`,
+      buildEmailHtml('Unassigned Call', `Hi ${managerName || 'Manager'},`,
+        `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> has <strong style="color:#D97706">no carer assigned</strong>.</p>` +
+        `<p>This call will be missed unless a carer is assigned soon. Please assign a carer or cancel the call.</p>`,
+        { label: 'Assign carer', url: `${baseUrl()}/call-assignment` }), 'notifications');
+  }
+
+  static async sendOverdueCallEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string, scheduledTime: string, overdueMinutes: number) {
+    await sendMail(managerEmail, `Overdue call — ${personName}`,
+      buildEmailHtml('Overdue Call', `Hi ${managerName || 'Manager'},`,
+        `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> at <strong>${fmtTime(scheduledTime)}</strong> is now <strong style="color:#DC2626">${overdueMinutes} minutes overdue</strong>.</p>` +
+        `<p>The carer has not checked in or completed this call. Please follow up to ensure the client is safe.</p>`,
+        { label: 'View calls', url: `${baseUrl()}/homecare` }), 'notifications');
+  }
+
+  static async sendCallCompletedEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string) {
+    await sendMail(managerEmail, `Call completed — ${personName}`,
+      buildEmailHtml('Call Completed', `Hi ${managerName || 'Manager'},`,
+        `<p>A <strong>${visitLabel}</strong> call with <strong>${personName}</strong> has been <strong style="color:#16A34A">completed</strong>.</p>`,
+        { label: 'View dashboard', url: `${baseUrl()}/dashboard` }), 'notifications');
+  }
+
   // ── Shifts ──
   static async sendShiftStartEmail(staffEmail: string, staffName: string, date: string, shifts: any[], people?: any[], incidents?: any[], appointments?: any[]) {
     const shiftRows = shifts.map((s: any) => {
