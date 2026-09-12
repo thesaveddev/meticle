@@ -25,6 +25,9 @@ export function PrimaryButton({ label, onPress, tone = 'primary', size = 'normal
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       onPress={() => { hapticLight(); onPress() }}
       disabled={disabled || loading}
       style={({ pressed }) => [
@@ -55,7 +58,7 @@ const styles = StyleSheet.create({
     ...elevation.sm,
   },
   btnSmall: {
-    minHeight: 40,
+    minHeight: 44,
     paddingHorizontal: spacing.base,
   },
   label: {
