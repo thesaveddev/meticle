@@ -410,20 +410,24 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
       {/* Disruption modal */}
       <Modal visible={disruptionOpen} transparent animationType="slide" onRequestClose={() => setDisruptionOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modal}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Report a disruption</Text>
-            <Text style={styles.modalHelper}>Tell the office what is affecting this call.</Text>
-            <TextInput multiline autoFocus value={disruption} onChangeText={setDisruption}
-              placeholder="What is happening?" placeholderTextColor={colors.subtle}
-              style={[styles.input, styles.textArea]} />
-            <PrimaryButton label="Send to office" onPress={reportDisruption} loading={busy} disabled={busy || !disruption.trim()} tone="danger" />
-            <Pressable onPress={() => setDisruptionOpen(false)} style={styles.cancelBtn}>
-              <Text style={styles.cancelText}>Cancel</Text>
+        <KeyboardAvoidingView style={styles.modalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <Pressable onPress={() => setDisruptionOpen(false)} style={styles.modalBackdropTouch}>
+            <Pressable>
+              <View style={styles.modal}>
+                <View style={styles.modalHandle} />
+                <Text style={styles.modalTitle}>Report a disruption</Text>
+                <Text style={styles.modalHelper}>Tell the office what is affecting this call.</Text>
+                <TextInput multiline autoFocus value={disruption} onChangeText={setDisruption}
+                  placeholder="What is happening?" placeholderTextColor={colors.subtle}
+                  style={[styles.input, styles.textArea]} />
+                <PrimaryButton label="Send to office" onPress={reportDisruption} loading={busy} disabled={busy || !disruption.trim()} tone="danger" />
+                <Pressable onPress={() => setDisruptionOpen(false)} style={styles.cancelBtn}>
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </Pressable>
+              </View>
             </Pressable>
-          </View>
-        </View>
+          </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   )
@@ -547,7 +551,8 @@ const styles = StyleSheet.create({
   queueText: { fontFamily: FONT, fontSize: 11, fontWeight: '500', color: colors.subtle, textAlign: 'center', marginTop: spacing.base },
 
   /* Modal */
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'flex-end' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)' },
+  modalBackdropTouch: { flex: 1, justifyContent: 'flex-end' },
   modal: {
     backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
     padding: spacing.xl, gap: spacing.base, ...elevation.lg,
