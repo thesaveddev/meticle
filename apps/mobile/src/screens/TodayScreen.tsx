@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, Easing, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { colors, elevation, radii, spacing, type, FONT } from '../theme'
+import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../types'
 import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconSync } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
@@ -53,27 +53,27 @@ function classifyVisits(visits: HomecareVisit[]): TimelineVisit[] {
   })
 }
 
-function StatusDot({ status }: { status: VisitStatus }) {
-  const color = status === 'completed' ? colors.success
-    : status === 'checked_in' ? colors.primary
-    : status === 'missed' ? colors.danger
-    : status === 'en_route' ? colors.warning
-    : colors.subtle
+function StatusDot({ status, c }: { status: VisitStatus; c: any }) {
+  const color = status === 'completed' ? c.success
+    : status === 'checked_in' ? c.primary
+    : status === 'missed' ? c.danger
+    : status === 'en_route' ? c.warning
+    : c.subtle
 
   return <View style={[styles.statusDot, { backgroundColor: color }]} />
 }
 
-function StatusIcon({ status }: { status: VisitStatus }) {
+function StatusIcon({ status, c }: { status: VisitStatus; c: any }) {
   switch (status) {
-    case 'completed': return <IconCheck size={14} color={colors.success} />
-    case 'checked_in': return <IconClock size={14} color={colors.primary} />
-    case 'missed': return <IconAlert size={14} color={colors.danger} />
-    default: return <View style={styles.futureDot} />
+    case 'completed': return <IconCheck size={14} color={c.success} />
+    case 'checked_in': return <IconClock size={14} color={c.primary} />
+    case 'missed': return <IconAlert size={14} color={c.danger} />
+    default: return <View style={[styles.futureDot, { borderColor: c.subtle }]} />
   }
 }
 
 /* ─── Custom refresh indicator ──────────────────────────────── */
-function CustomRefreshIndicator({ refreshing }: { refreshing: boolean }) {
+function CustomRefreshIndicator({ refreshing, c }: { refreshing: boolean; c: any }) {
   const spin = useRef(new Animated.Value(0)).current
   const pulse = useRef(new Animated.Value(1)).current
 
@@ -101,9 +101,9 @@ function CustomRefreshIndicator({ refreshing }: { refreshing: boolean }) {
   return (
     <View style={styles.refreshWrap}>
       <Animated.View style={{ transform: [{ rotate: rotation }, { scale: pulse }] }}>
-        <IconSync size={20} color={colors.primary} />
+        <IconSync size={20} color={c.primary} />
       </Animated.View>
-      <Text style={styles.refreshText}>{refreshing ? 'Refreshing...' : 'Pull to refresh'}</Text>
+      <Text style={[styles.refreshText, { color: c.subtle }]}>{refreshing ? 'Refreshing...' : 'Pull to refresh'}</Text>
     </View>
   )
 }
@@ -117,6 +117,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
   refreshing: boolean
   onSync: () => void
 }) {
+  const c = useAppColors()
   const timeline = useMemo(() => classifyVisits(visits), [visits])
   const total = visits.length
   const completed = visits.filter(v => v.status === 'completed').length
@@ -129,7 +130,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
 
   return (
     <ScrollView
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: c.bg }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -142,49 +143,52 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         />
       }
     >
+      {/* Refresh indicator at top */}
+      <CustomRefreshIndicator refreshing={refreshing} c={c} />
+
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>{greeting()},</Text>
-          <Text style={styles.userName}>{user.first_name || user.email.split('@')[0]}</Text>
+          <Text style={[styles.greeting, { color: c.muted }]}>{greeting()},</Text>
+          <Text style={[styles.userName, { color: c.ink }]}>{user.first_name || user.email.split('@')[0]}</Text>
         </View>
         {/* Sync + Queue indicator */}
         <View style={styles.headerActions}>
           {queue.length > 0 ? (
-            <Pressable onPress={() => { hapticLight(); onSync() }} style={styles.syncBadge}>
-              <IconOffline size={14} color={colors.warning} />
-              <Text style={styles.syncBadgeText}>{queue.length}</Text>
+            <Pressable onPress={() => { hapticLight(); onSync() }} style={[styles.syncBadge, { backgroundColor: c.warningSurface, borderColor: c.warning + '30' }]}>
+              <IconOffline size={14} color={c.warning} />
+              <Text style={[styles.syncBadgeText, { color: c.warning }]}>{queue.length}</Text>
             </Pressable>
           ) : (
-            <View style={styles.syncBadgeOk}>
-              <IconSyncSmall size={14} color={colors.success} />
+            <View style={[styles.syncBadgeOk, { backgroundColor: c.successSurface, borderColor: c.success + '30' }]}>
+              <IconSyncSmall size={14} color={c.success} />
             </View>
           )}
         </View>
       </View>
 
       {/* Single stats card */}
-      <View style={styles.statsCard}>
+      <View style={[styles.statsCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{visits.length}</Text>
           <Text style={styles.statLabel}>Calls</Text>
         </View>
-        <View style={styles.statDivider} />
+        <View style={[styles.statDivider, { backgroundColor: c.border }]} />
         <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: colors.success }]}>{completed}</Text>
-          <Text style={styles.statLabel}>Done</Text>
+          <Text style={[styles.statNumber, { color: c.success }]}>{completed}</Text>
+          <Text style={[styles.statLabel, { color: c.muted }]}>Done</Text>
         </View>
-        <View style={styles.statDivider} />
+        <View style={[styles.statDivider, { backgroundColor: c.border }]} />
         <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: remaining > 0 ? colors.ink : colors.subtle }]}>{remaining}</Text>
-          <Text style={styles.statLabel}>Left</Text>
+          <Text style={[styles.statNumber, { color: remaining > 0 ? c.ink : c.subtle }]}>{remaining}</Text>
+          <Text style={[styles.statLabel, { color: c.muted }]}>Left</Text>
         </View>
         {total > 0 && (
           <>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: c.border }]} />
             <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: colors.primary }]}>{Math.round((completed / total) * 100)}%</Text>
-              <Text style={styles.statLabel}>Done</Text>
+          <Text style={[styles.statNumber, { color: c.primary }]}>{Math.round((completed / total) * 100)}%</Text>
+          <Text style={[styles.statLabel, { color: c.muted }]}>Done</Text>
             </View>
           </>
         )}
@@ -194,8 +198,8 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
       {currentVisit && (
         <View style={styles.currentCard}>
           <View style={styles.currentHeader}>
-            <View style={styles.currentDot} />
-            <Text style={styles.currentLabel}>NOW</Text>
+            <View style={[styles.currentDot, { backgroundColor: c.primary }]} />
+            <Text style={[styles.currentLabel, { color: c.primary }]}>NOW</Text>
           </View>
           <Pressable
             onPress={() => { hapticLight(); onVisit(currentVisit.visit) }}
@@ -211,7 +215,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
                 <Text style={styles.visitPerson} numberOfLines={1}>{currentVisit.visit.person_name}</Text>
               )}
             </View>
-            <StatusIcon status={currentVisit.visit.status} />
+            <StatusIcon status={currentVisit.visit.status} c={c} />
           </Pressable>
         </View>
       )}
@@ -223,19 +227,18 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
           <Pressable
             onPress={() => { hapticLight(); onVisit(nextVisit.visit) }}
             style={({ pressed }) => [styles.visitCard, pressed && { opacity: 0.85 }]}
-          >
-            <View style={styles.visitTime}>
-              <Text style={styles.visitTimeText}>{time(nextVisit.visit.scheduled_start)}</Text>
-              <Text style={styles.visitTimeEnd}>{time(nextVisit.visit.scheduled_end)}</Text>
-            </View>
-            <View style={styles.visitContent}>
-              <Text style={styles.visitName} numberOfLines={1}>{nextVisit.visit.label}</Text>
-              {nextVisit.visit.person_name && (
-                <Text style={styles.visitPerson} numberOfLines={1}>{nextVisit.visit.person_name}</Text>
+          >              <View style={styles.visitTime}>
+                <Text style={[styles.visitTimeText, { color: c.ink }]}>{time(nextVisit.visit.scheduled_start)}</Text>
+                <Text style={[styles.visitTimeEnd, { color: c.muted }]}>{time(nextVisit.visit.scheduled_end)}</Text>
+              </View>
+              <View style={styles.visitContent}>
+                <Text style={[styles.visitName, { color: c.ink }]} numberOfLines={1}>{nextVisit.visit.label}</Text>
+                {nextVisit.visit.person_name && (
+                  <Text style={[styles.visitPerson, { color: c.muted }]} numberOfLines={1}>{nextVisit.visit.person_name}</Text>
               )}
             </View>
-            <View style={styles.nextArrow}>
-              <Text style={styles.nextArrowText}>→</Text>
+            <View style={[styles.nextArrow, { backgroundColor: c.primarySurface }]}>
+              <Text style={[styles.nextArrowText, { color: c.primary }]}>→</Text>
             </View>
           </Pressable>
         </View>
@@ -244,7 +247,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
       {/* Completed calls */}
       {pastVisits.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>COMPLETED</Text>
+          <Text style={[styles.sectionLabel, { color: c.subtle }]}>COMPLETED</Text>
           {pastVisits.map(tv => (
             <Pressable
               key={tv.visit.id}
@@ -252,16 +255,16 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
               style={({ pressed }) => [styles.visitCard, styles.visitCardPast, pressed && { opacity: 0.85 }]}
             >
               <View style={styles.visitTime}>
-                <Text style={[styles.visitTimeText, styles.visitTimePast]}>{time(tv.visit.scheduled_start)}</Text>
-                <Text style={[styles.visitTimeEnd, styles.visitTimePast]}>{time(tv.visit.scheduled_end)}</Text>
+                <Text style={[styles.visitTimeText, { color: c.subtle }]}>{time(tv.visit.scheduled_start)}</Text>
+                <Text style={[styles.visitTimeEnd, { color: c.subtle }]}>{time(tv.visit.scheduled_end)}</Text>
               </View>
               <View style={styles.visitContent}>
-                <Text style={[styles.visitName, styles.visitNamePast]} numberOfLines={1}>{tv.visit.label}</Text>
+                <Text style={[styles.visitName, { color: c.muted }]} numberOfLines={1}>{tv.visit.label}</Text>
                 {tv.visit.person_name && (
-                  <Text style={[styles.visitPerson, styles.visitPersonPast]} numberOfLines={1}>{tv.visit.person_name}</Text>
+                  <Text style={[styles.visitPerson, { color: c.subtle }]} numberOfLines={1}>{tv.visit.person_name}</Text>
                 )}
               </View>
-              <StatusIcon status={tv.visit.status} />
+              <StatusIcon status={tv.visit.status} c={c} />
             </Pressable>
           ))}
         </View>
@@ -270,7 +273,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
       {/* Future calls */}
       {futureVisits.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>UPCOMING</Text>
+          <Text style={[styles.sectionLabel, { color: c.subtle }]}>UPCOMING</Text>
           {futureVisits.map(tv => (
             <Pressable
               key={tv.visit.id}
@@ -278,32 +281,28 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
               style={({ pressed }) => [styles.visitCard, pressed && { opacity: 0.85 }]}
             >
               <View style={styles.visitTime}>
-                <Text style={styles.visitTimeText}>{time(tv.visit.scheduled_start)}</Text>
-                <Text style={styles.visitTimeEnd}>{time(tv.visit.scheduled_end)}</Text>
+                <Text style={[styles.visitTimeText, { color: c.ink }]}>{time(tv.visit.scheduled_start)}</Text>
+                <Text style={[styles.visitTimeEnd, { color: c.muted }]}>{time(tv.visit.scheduled_end)}</Text>
               </View>
               <View style={styles.visitContent}>
-                <Text style={styles.visitName} numberOfLines={1}>{tv.visit.label}</Text>
+                <Text style={[styles.visitName, { color: c.ink }]} numberOfLines={1}>{tv.visit.label}</Text>
                 {tv.visit.person_name && (
-                  <Text style={styles.visitPerson} numberOfLines={1}>{tv.visit.person_name}</Text>
+                  <Text style={[styles.visitPerson, { color: c.muted }]} numberOfLines={1}>{tv.visit.person_name}</Text>
                 )}
               </View>
-              <StatusDot status={tv.visit.status} />
+              <StatusDot status={tv.visit.status} c={c} />
             </Pressable>
           ))}
         </View>
       )}
 
-      {/* Refresh indicator */}
-      <CustomRefreshIndicator refreshing={refreshing} />
-
       {/* Empty state */}
       {visits.length === 0 && !refreshing && (
         <View style={styles.empty}>
-          <View style={styles.emptyIconWrap}>
-            <IconClock size={32} color={colors.subtle} />
-          </View>
-          <Text style={styles.emptyTitle}>No calls today</Text>
-          <Text style={styles.emptyText}>Pull down to refresh your schedule.</Text>
+          <View style={[styles.emptyIconWrap, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <IconClock size={32} color={c.subtle} />
+          </View>            <Text style={[styles.emptyTitle, { color: c.ink }]}>No calls today</Text>
+            <Text style={[styles.emptyText, { color: c.muted }]}>Pull down to refresh your schedule.</Text>
         </View>
       )}
 

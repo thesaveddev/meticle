@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type } from '../theme'
+import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import type { AuthSession } from '../types'
 import { getMyVisits } from '../services/api'
 
@@ -21,6 +21,7 @@ function monthRange() {
 }
 
 export function MileageScreen({ session }: Props) {
+  const c = useAppColors()
   const [visits, setVisits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -45,62 +46,61 @@ export function MileageScreen({ session }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
         <View style={styles.loading}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={styles.loadingText}>Loading mileage...</Text>
+          <ActivityIndicator color={c.primary} />
+          <Text style={[styles.loadingText, { color: c.muted }]}>Loading mileage...</Text>
         </View>
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.pageTitle}>Mileage</Text>
-        <Text style={styles.subtitle}>{monthLabel}</Text>
+        <Text style={[styles.pageTitle, { color: c.ink }]}>Mileage</Text>
+        <Text style={[styles.subtitle, { color: c.muted }]}>{monthLabel}</Text>
 
         {/* Summary cards */}
         <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { borderLeftColor: colors.primary }]}>
-            <Text style={[styles.summaryValue, { color: colors.primary }]}>{totalMiles.toFixed(1)}</Text>
-            <Text style={styles.summaryLabel}>Total miles</Text>
+          <View style={[styles.summaryCard, { backgroundColor: c.surface, borderColor: c.borderLight, borderLeftColor: c.primary }]}>
+            <Text style={[styles.summaryValue, { color: c.primary }]}>{totalMiles.toFixed(1)}</Text>
+            <Text style={[styles.summaryLabel, { color: c.muted }]}>Total miles</Text>
           </View>
-          <View style={[styles.summaryCard, { borderLeftColor: colors.success }]}>
-            <Text style={[styles.summaryValue, { color: colors.success }]}>{money(totalPay)}</Text>
-            <Text style={styles.summaryLabel}>Mileage pay</Text>
+          <View style={[styles.summaryCard, { backgroundColor: c.surface, borderColor: c.borderLight, borderLeftColor: c.success }]}>
+            <Text style={[styles.summaryValue, { color: c.success }]}>{money(totalPay)}</Text>
+            <Text style={[styles.summaryLabel, { color: c.muted }]}>Mileage pay</Text>
           </View>
-          <View style={[styles.summaryCard, { borderLeftColor: colors.accent }]}>
-            <Text style={[styles.summaryValue, { color: colors.accent }]}>{visits.length}</Text>
-            <Text style={styles.summaryLabel}>Trips</Text>
+          <View style={[styles.summaryCard, { backgroundColor: c.surface, borderColor: c.borderLight, borderLeftColor: c.accent }]}>
+            <Text style={[styles.summaryValue, { color: c.accent }]}>{visits.length}</Text>
+            <Text style={[styles.summaryLabel, { color: c.muted }]}>Trips</Text>
           </View>
         </View>
 
         {totalTravelMinutes > 0 && (
-          <View style={styles.travelCard}>
-            <Text style={styles.travelLabel}>Total travel time</Text>
-            <Text style={styles.travelValue}>{Math.floor(totalTravelMinutes / 60)}h {totalTravelMinutes % 60}m</Text>
+          <View style={[styles.travelCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '15' }]}>
+            <Text style={[styles.travelLabel, { color: c.primary }]}>Total travel time</Text>
+            <Text style={[styles.travelValue, { color: c.primary }]}>{Math.floor(totalTravelMinutes / 60)}h {totalTravelMinutes % 60}m</Text>
           </View>
         )}
 
         {/* Visit list */}
         {visits.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>🚗</Text>
-            <Text style={styles.emptyTitle}>No mileage recorded</Text>
-            <Text style={styles.emptyCopy}>Mileage appears here after you check in and out of visits with mileage recorded.</Text>
+          <View style={styles.emptyCard}>              <Text style={[styles.emptyIcon, { color: c.subtle }]}>🚗</Text>
+            <Text style={[styles.emptyTitle, { color: c.ink }]}>No mileage recorded</Text>
+            <Text style={[styles.emptyCopy, { color: c.muted }]}>Mileage appears here after you check in and out of visits with mileage recorded.</Text>
           </View>
         ) : (
           <View>
-            <Text style={styles.sectionHead}>VISIT RECORDS</Text>
+            <Text style={[styles.sectionHead, { color: c.subtle }]}>VISIT RECORDS</Text>
             {visits
               .sort((a: any, b: any) => new Date(b.scheduled_start).getTime() - new Date(a.scheduled_start).getTime())
               .map((v: any) => (
-                <View key={v.id} style={styles.visitCard}>
+                <View key={v.id} style={[styles.visitCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
                   <View style={styles.visitHeader}>
                     <View style={styles.visitInfo}>
                       <Text style={styles.visitName}>{v.person_name || 'Client'}</Text>

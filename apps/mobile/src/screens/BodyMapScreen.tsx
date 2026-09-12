@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type } from '../theme'
+import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import type { AuthSession, BodyMapEntry, BodyMapStats } from '../types'
 import { getBodyMapEntries, getBodyMapStats, createBodyMapEntry, updateBodyMapEntry } from '../services/api'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -81,6 +81,7 @@ interface Props {
 }
 
 export function BodyMapScreen({ personId, personName, session, onBack }: Props) {
+  const c = useAppColors()
   const [entries, setEntries] = useState<BodyMapEntry[]>([])
   const [stats, setStats] = useState<BodyMapStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -180,7 +181,7 @@ export function BodyMapScreen({ personId, personName, session, onBack }: Props) 
   const healingEntries = entries.filter(e => e.status === 'healing')
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <Pressable onPress={onBack} style={styles.backBtn}>

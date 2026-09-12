@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type } from '../theme'
+import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 
@@ -47,6 +47,7 @@ interface Props {
 }
 
 export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }: Props) {
+  const c = useAppColors()
   const [requests, setRequests] = useState<SwapRequest[]>([])
   const [team, setTeam] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
@@ -126,7 +127,7 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
   const pendingRequests = requests.filter(r => r.status === 'pending')
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Pressable onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>

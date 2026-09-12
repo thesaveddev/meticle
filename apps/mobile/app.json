@@ -6,7 +6,9 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "meticlecare",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.meticlecare.mobile",
@@ -17,11 +19,28 @@
     },
     "android": {
       "package": "com.meticlecare.mobile",
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"]
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "plugins": [
-      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "MeticleCare uses your location only while you check in or out of an assigned visit." }],
-      ["expo-notifications", { "color": "#0F4C81", "icon": null, "sounds": [] }]
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "MeticleCare uses your location only while you check in or out of an assigned visit."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0F4C81",
+          "icon": null,
+          "sounds": []
+        }
+      ],
+      "expo-font"
     ],
     "extra": {
       "apiBaseUrl": "https://meticlecare.com/api"

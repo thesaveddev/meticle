@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { colors, elevation, radii, spacing, type } from '../theme'
+import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import type { AuthSession } from '../types'
 import { getPersonDetail, getMedicationsForPerson, getBodyMapStats, getDailySummary } from '../services/api'
 
@@ -24,6 +24,7 @@ interface Props {
 }
 
 export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNutrition }: Props) {
+  const c = useAppColors()
   const [person, setPerson] = useState<any>(null)
   const [medications, setMedications] = useState<any[]>([])
   const [bodyMapStats, setBodyMapStats] = useState<any>(null)
