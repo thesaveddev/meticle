@@ -115,7 +115,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Care',
       items: [
         { text: 'People', icon: <PeopleIcon />, path: '/people', module: 'people', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
+        { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living', 'domiciliary', 'live_in'] },
         { text: 'Meal Plans', icon: <MealIcon />, path: '/meal-plans', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
       ],
     },
@@ -157,6 +157,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Homecare',
       items: [
         { text: 'Live Map', icon: <LocationOnIcon />, path: '/live-map', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
+        { text: 'Call Assignment', icon: <ScheduleIcon />, path: '/call-assignment', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
+        { text: 'Weekly Planner', icon: <ScheduleIcon />, path: '/weekly-planner', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Availability', icon: <ScheduleIcon />, path: '/availability', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Visits & Packages', icon: <HomecareIcon />, path: '/homecare', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Call Schedule', icon: <ScheduleIcon />, path: '/call-scheduling', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
