@@ -187,6 +187,18 @@ export class HomecareController {
     res.status(201).json(result);
   }
 
+  static async updateMileagePolicy(req: Request, res: Response) {
+    const result = await repo.updateMileagePolicy(orgId(req), req.params.id, req.body);
+    audit(req, 'update', 'homecare_mileage_policy', req.params.id, req.body);
+    res.json(result);
+  }
+
+  static async deleteMileagePolicy(req: Request, res: Response) {
+    await repo.deleteMileagePolicy(orgId(req), req.params.id);
+    audit(req, 'delete', 'homecare_mileage_policy', req.params.id);
+    res.json({ deleted: true });
+  }
+
   static async createFollowup(req: Request, res: Response) {
     const result = await repo.createFollowup(orgId(req), userId(req), req.params.id, req.body);
     audit(req, 'create', 'homecare_visit_followup', result.id, req.body);

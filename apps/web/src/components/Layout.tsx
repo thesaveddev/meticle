@@ -163,6 +163,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         { text: 'Visits & Packages', icon: <HomecareIcon />, path: '/homecare', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Call Schedule', icon: <ScheduleIcon />, path: '/call-scheduling', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Mileage & Travel', icon: <DirectionsCarIcon />, path: '/mileage', module: 'mileage_travel', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
+        { text: 'Mileage Policies', icon: <DirectionsCarIcon />, path: '/mileage-policies', module: 'mileage_travel', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Payroll Export', icon: <ReceiptIcon />, path: '/payroll-export', module: 'payroll_export', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Carer Totals', icon: <ReportsIcon />, path: '/carer-totals', module: 'payroll_export', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Client Billing', icon: <ReceiptIcon />, path: '/client-billing', module: 'client_billing', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },

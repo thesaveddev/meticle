@@ -62,6 +62,7 @@ const AvailabilityPage = lazy(() => import('./pages/homecare/AvailabilityPage'))
 const LiveMapPage = lazy(() => import('./pages/homecare/LiveMapPage'))
 const CallAssignmentBoard = lazy(() => import('./pages/homecare/CallAssignmentBoard'))
 const WeeklyCallPlanner = lazy(() => import('./pages/homecare/WeeklyCallPlanner'))
+const MileagePolicyPage = lazy(() => import('./pages/homecare/MileagePolicyPage'))
 const PersonDirectoryPage = lazy(() => import('./pages/people/PersonDirectoryPage'))
 const PersonProfilePage = lazy(() => import('./pages/people/PersonProfilePage'))
 const IncidentDirectoryPage = lazy(() => import('./pages/incidents/IncidentDirectoryPage'))
@@ -173,6 +174,7 @@ function App() {
           <Route path="/live-map" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="homecare"><LiveMapPage /></ModuleGuard></AuthGuard>} />
           <Route path="/call-assignment" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="call_scheduling"><CallAssignmentBoard /></ModuleGuard></AuthGuard>} />
           <Route path="/weekly-planner" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="call_scheduling"><WeeklyCallPlanner /></ModuleGuard></AuthGuard>} />
+          <Route path="/mileage-policies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="mileage_travel"><MileagePolicyPage /></ModuleGuard></AuthGuard>} />
           <Route path="/carer-totals" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="payroll_export"><CarerTotalsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/client-billing" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="client_billing"><ClientBillingPage /></ModuleGuard></AuthGuard>} />
           <Route path="/people" element={<ModuleGuard module="people"><PersonDirectoryPage /></ModuleGuard>} />
