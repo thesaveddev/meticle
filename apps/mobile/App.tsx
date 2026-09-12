@@ -41,6 +41,7 @@ type Screen =
   | { kind: 'bodyMap'; personId: string; personName: string }
   | { kind: 'nutrition'; personId: string; personName: string }
   | { kind: 'profile' }
+  | { kind: 'availability' }
   | { kind: 'swap' }
 
 export default function App() {
@@ -196,6 +197,9 @@ function AppInner() {
     const nextV = currentIdx >= 0 && currentIdx < sortedVisits.length - 1 ? sortedVisits[currentIdx + 1] : null
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap' })} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></>
   }
+  if (currentScreen.kind === 'availability' && session) {
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><AvailabilityScreen session={session} /></>
+  }
   if (currentScreen.kind === 'profile' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></>
   }
@@ -215,7 +219,7 @@ function AppInner() {
           {tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} />}
           {tab === 'schedule' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap' })} />}
           {tab === 'mileage' && <MileageScreen session={session} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={() => pushScreen({ kind: 'tabs' })} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={() => pushScreen({ kind: 'availability' })} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>
