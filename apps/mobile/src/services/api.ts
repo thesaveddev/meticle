@@ -78,3 +78,27 @@ export interface CarePlan {
 export async function getCarePlans(token: string, personId: string): Promise<CarePlan[]> {
   return request<CarePlan[]>(`/homecare/care-plans?personId=${encodeURIComponent(personId)}`, {}, token)
 }
+
+export interface AvailabilityRecord {
+  id: string
+  staff_id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  is_available: boolean
+}
+
+export async function getMyAvailability(token: string): Promise<AvailabilityRecord[]> {
+  return request<AvailabilityRecord[]>('/homecare/my-availability', {}, token)
+}
+
+export async function addAvailability(token: string, dayOfWeek: number, startTime: string, endTime: string): Promise<AvailabilityRecord> {
+  return request<AvailabilityRecord>('/homecare/availability', {
+    method: 'POST',
+    body: JSON.stringify({ day_of_week: dayOfWeek, start_time: startTime, end_time: endTime }),
+  }, token)
+}
+
+export async function deleteAvailability(token: string, id: string): Promise<void> {
+  await request(`/homecare/availability/${id}`, { method: 'DELETE' }, token)
+}

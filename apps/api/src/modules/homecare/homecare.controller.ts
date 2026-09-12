@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { AppError } from '../../shared/middleware/error.middleware';
+import pool from '../../shared/database';
 import { AuditRepository } from '../audit/audit.repository';
 import * as repo from './homecare.repository';
 
@@ -130,11 +131,25 @@ export class HomecareController {
     res.json(result);
   }
 
+  static async getMyAvailability(req: Request, res: Response) {
+    const userId = req.user!.userId;
+    const staff = await pool.query('SELECT id FROM staff_profiles WHERE user_id = $1', [userId]);
+    if (!staff.rows[0]) throw new AppError(404, 'Staff profile not found');
+    res.json(await repo.listAvailability(orgId(req), staff.rows[0].id));
+  }
+
   static async listAvailability(req: Request, res: Response) {
     res.json(await repo.listAvailability(orgId(req), req.query.staffId as string | undefined));
   }
 
   static async createAvailability(req: Request, res: Response) {
+    // Carers can only set their own availability
+    const userRole = req.user!.role;
+    if (userRole === 'CARE_WORKER') {
+      const staff = await pool.query('SELECT id FROM staff_profiles WHERE user_id = $1', [req.user!.userId]);
+      if (!staff.rows[0]) throw new AppError(404, 'Staff profile not found');
+      req.body.staff_id = staff.rows[0].id;
+    }
     const result = await repo.upsertAvailability(orgId(req), req.body);
     audit(req, 'create', 'homecare_availability', result.id, req.body);
     res.status(201).json(result);
