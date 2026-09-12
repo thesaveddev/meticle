@@ -13,5 +13,6 @@ router.get('/today-rota', asyncHandler(DashboardController.getTodayRota));
 router.get('/widgets', asyncHandler(DashboardController.getWidgets));
 router.get('/review-scheduler', asyncHandler(DashboardController.getReviewScheduler));
 router.get('/domiciliary', asyncHandler(DashboardController.getDomiciliarySummary));
+router.get('/live-map', asyncHandler(DashboardController.getLiveMap));
 
 export default router;

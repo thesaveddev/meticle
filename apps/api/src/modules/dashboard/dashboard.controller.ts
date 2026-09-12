@@ -47,4 +47,12 @@ export class DashboardController {
     const data = await getDomiciliaryDashboard(orgId);
     res.json(data);
   }
+
+  static async getLiveMap(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    if (!orgId) throw new AppError(403, 'Organization required');
+    const { getLiveMapData } = await import('./dashboard.live-map');
+    const data = await getLiveMapData(orgId);
+    res.json(data);
+  }
 }
