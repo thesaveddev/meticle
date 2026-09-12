@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Alert, Box, Button, Chip, CircularProgress, Container, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
 import { CheckCircle as CheckCircleIcon, ReceiptLong as ReceiptLongIcon, Block as BlockIcon, PictureAsPdf as PdfIcon, Download as DownloadIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -71,14 +71,14 @@ export default function ClientBillingPage() {
   const currentRun = (runs.data || []).find((run: any) => run.id === selectedRun)
   const fundingBreakdown = currentRun?.funding_breakdown || null
 
-  if (!isManager) return <Container maxWidth="lg" sx={{ py: 4 }}><Alert severity="info">Client billing is available to managers and organisation administrators.</Alert></Container>
+  if (!isManager) return <Box sx={{ maxWidth: 1180, mx: 'auto' }}><Alert severity="info">Client billing is available to managers and organisation administrators.</Alert></Box>
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Box sx={{ maxWidth: 1180, mx: 'auto' }}>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Client billing</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Review delivered domiciliary visits and prepare an approved client invoice artefact. VAT and funder type are snapshot from your organisation billing settings.</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>Client billing</Typography>
+          <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.5 }}>Review delivered domiciliary visits and prepare an approved client invoice artefact. VAT and funder type are snapshot from your organisation billing settings.</Typography>
         </Box>
         <Button variant="contained" startIcon={<ReceiptLongIcon />} onClick={() => createRun.mutate()} disabled={createRun.isPending || !from || !to || from > to} sx={{ textTransform: 'none' }}>
           {createRun.isPending ? <CircularProgress size={18} color="inherit" /> : 'Create draft run'}
@@ -87,7 +87,7 @@ export default function ClientBillingPage() {
 
       {message && <Alert severity={message.startsWith('Could not') ? 'error' : 'success'} onClose={() => setMessage('')} sx={{ mb: 3 }}>{message}</Alert>}
 
-      <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+      <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid #E5E7EB', borderRadius: 2 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
           <TextField type="date" label="From" size="small" value={from} onChange={e => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
           <TextField type="date" label="To" size="small" value={to} onChange={e => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />
@@ -96,16 +96,16 @@ export default function ClientBillingPage() {
       </Paper>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-        <Paper variant="outlined" sx={{ p: 2.5, flex: 1 }}><Typography variant="h4" fontWeight={800}>{rows.length}</Typography><Typography variant="body2" color="text.secondary">Visits in period</Typography></Paper>
-        <Paper variant="outlined" sx={{ p: 2.5, flex: 1 }}><Typography variant="h4" fontWeight={800} color="success.main">{billable.length}</Typography><Typography variant="body2" color="text.secondary">Billable visits</Typography></Paper>
-        <Paper variant="outlined" sx={{ p: 2.5, flex: 1 }}><Typography variant="h4" fontWeight={800}>{money(netTotal)}</Typography><Typography variant="body2" color="text.secondary">Net total</Typography></Paper>
-        <Paper variant="outlined" sx={{ p: 2.5, flex: 1 }}><Typography variant="h4" fontWeight={800}>{money(vatTotal)}</Typography><Typography variant="body2" color="text.secondary">VAT</Typography></Paper>
-        <Paper variant="outlined" sx={{ p: 2.5, flex: 1 }}><Typography variant="h4" fontWeight={800}>{money(grossTotal)}</Typography><Typography variant="body2" color="text.secondary">Gross invoice-ready</Typography></Paper>
-        <Paper variant="outlined" sx={{ p: 2.5, flex: 1 }}><Typography variant="h4" fontWeight={800} color={review.length ? 'warning.main' : 'text.primary'}>{review.length}</Typography><Typography variant="body2" color="text.secondary">Needs review</Typography></Paper>
+        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{rows.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Visits in period</Typography></Paper>
+        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800, color: '#10b981' }}>{billable.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Billable visits</Typography></Paper>
+        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(netTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Net total</Typography></Paper>
+        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(vatTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>VAT</Typography></Paper>
+        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(grossTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Gross invoice-ready</Typography></Paper>
+        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800, color: review.length ? '#D97706' : '#111827' }}>{review.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Needs review</Typography></Paper>
       </Stack>
 
       {utilisation.isLoading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box> : (
-        <TableContainer component={Paper} variant="outlined" sx={{ mb: 4 }}>
+        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2, mb: 4 }}>
           <Table>
             <TableHead><TableRow><TableCell>Visit</TableCell><TableCell>Client / package</TableCell><TableCell>Funding</TableCell><TableCell>Status</TableCell><TableCell align="right">Delivered</TableCell><TableCell align="right">Net / VAT / gross</TableCell><TableCell>Decision</TableCell></TableRow></TableHead>
             <TableBody>
@@ -125,10 +125,10 @@ export default function ClientBillingPage() {
         </TableContainer>
       )}
 
-      <Typography variant="h6" fontWeight={800} sx={{ mb: 1.5 }}>Previous runs</Typography>
+      <Typography variant="h6" sx={{ fontWeight: 800, mb: 1.5 }}>Previous runs</Typography>
       <Stack spacing={1.5} sx={{ mb: 4 }}>
         {(runs.data || []).length === 0 ? <Typography variant="body2" color="text.secondary">No billing runs created yet.</Typography> : (runs.data || []).map((run: any) => (
-          <Paper key={run.id} variant="outlined" sx={{ p: 2, display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+          <Paper key={run.id} elevation={0} sx={{ p: 2, display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, border: '1px solid #E5E7EB', borderRadius: 2 }}>
             <Box>
               <Typography fontWeight={700}>{run.invoice_number || 'Draft run'} · {dateLabel(run.period_from)} – {dateLabel(run.period_to)}</Typography>
               <Typography variant="body2" color="text.secondary">{run.row_count} lines · gross {money(run.gross_amount_pence ?? run.total_amount_pence)} {run.vat_amount_pence ? `· VAT ${money(run.vat_amount_pence)}` : ''} · {run.funding_breakdown ? `${Object.keys(run.funding_breakdown).length} funder group${Object.keys(run.funding_breakdown).length === 1 ? '' : 's'}` : ''} · created {dateLabel(run.created_at)}</Typography>
@@ -145,7 +145,7 @@ export default function ClientBillingPage() {
       </Stack>
 
       {selectedRun && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 4 }}>
+        <Paper elevation={0} sx={{ p: 2, mb: 4, border: '1px solid #E5E7EB', borderRadius: 2 }}>
           <Typography variant="h6" fontWeight={800} sx={{ mb: 1.5 }}>Run detail</Typography>
           {lines.isLoading ? <CircularProgress size={22} /> : (
             <Stack spacing={1.5}>
@@ -159,13 +159,13 @@ export default function ClientBillingPage() {
           )}
         </Paper>
       )}
-      {currentRun && <Alert severity={currentRun.status === 'void' ? 'warning' : 'info'}>This run is <strong>{currentRun.status}</strong>{currentRun.invoice_number ? ` · ${currentRun.invoice_number}` : ''}. Approved runs are immutable; only a void with a recorded reason can reverse them.</Alert>}
+      {currentRun && <Alert severity={currentRun.status === 'void' ? 'warning' : 'info'} sx={{ mt: 2 }}>This run is <strong>{currentRun.status}</strong>{currentRun.invoice_number ? ` · ${currentRun.invoice_number}` : ''}. Approved runs are immutable; only a void with a recorded reason can reverse them.</Alert>}
 
       <Dialog open={Boolean(voidDialog)} onClose={() => setVoidDialog(null)} maxWidth="sm" fullWidth>
         <DialogTitle>Void approved run</DialogTitle>
         <DialogContent><Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>This does not delete evidence. The original approved run is retained and marked as void with your reason in the audit trail.</Typography><TextField fullWidth multiline minRows={3} label="Reason for voiding" value={voidReason} onChange={e => setVoidReason(e.target.value)} placeholder="e.g. Funding code was incorrect — reissued as ..." /></DialogContent>
         <DialogActions><Button onClick={() => setVoidDialog(null)} sx={{ textTransform: 'none' }}>Cancel</Button><Button variant="contained" color="error" onClick={() => voidDialog && voidRun.mutate({ runId: voidDialog, reason: voidReason || 'Voided by manager' })} disabled={voidRun.isPending || !voidReason.trim()} sx={{ textTransform: 'none' }}>{voidRun.isPending ? <CircularProgress size={18} color="inherit" /> : 'Confirm void'}</Button></DialogActions>
       </Dialog>
-    </Container>
+    </Box>
   )
 }

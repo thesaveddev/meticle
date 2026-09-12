@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, Container, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, CircularProgress, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
 import { Download as DownloadIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -39,11 +39,11 @@ export default function PayrollExportPage() {
   const totalMileage = timesheets.reduce((sum: number, t: any) => sum + ((Number(t.mileage_miles) || 0) * (Number(t.mileage_rate_pence) || 0)), 0)
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+    <Box sx={{ maxWidth: 1180, mx: 'auto' }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Payroll Export</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Export carer timesheets to your payroll provider</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>Payroll Export</Typography>
+          <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.5 }}>Export carer timesheets to your payroll provider</Typography>
         </Box>
         <Button variant="contained" startIcon={<DownloadIcon />} onClick={async () => {
           try {
@@ -55,54 +55,31 @@ export default function PayrollExportPage() {
             anchor.click()
             URL.revokeObjectURL(url)
           } catch { /* the API response is surfaced by the page-level error boundary */ }
-        }} disabled={!isManager || !from || !to || from > to} sx={{ textTransform: 'none' }}>
+        }} disabled={!isManager || !from || !to || from > to} sx={{ textTransform: 'none', bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0D3D6B' } }}>
           Export for {PAYROLL_PROVIDERS.find(p => p.value === provider)?.label}
         </Button>
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-        <TextField
-          type="date"
-          label="From"
-          size="small"
-          value={from}
-          onChange={e => setFrom(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 160 }}
-        />
-        <TextField
-          type="date"
-          label="To"
-          size="small"
-          value={to}
-          onChange={e => setTo(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 160 }}
-        />
-        <TextField
-          select
-          label="Payroll Provider"
-          size="small"
-          value={provider}
-          onChange={e => setProvider(e.target.value)}
-          sx={{ minWidth: 200 }}
-        >
+        <TextField type="date" label="From" size="small" value={from} onChange={e => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+        <TextField type="date" label="To" size="small" value={to} onChange={e => setTo(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+        <TextField select label="Payroll Provider" size="small" value={provider} onChange={e => setProvider(e.target.value)} sx={{ minWidth: 200 }}>
           {PAYROLL_PROVIDERS.map(p => <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>)}
         </TextField>
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-        <Paper variant="outlined" sx={{ p: 3, flex: 1, textAlign: 'center' }}>
-          <Typography variant="h3" sx={{ fontWeight: 800, color: 'primary.main' }}>{totalHours.toFixed(1)}</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total hours</Typography>
+        <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 2 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F4C81' }}>{totalHours.toFixed(1)}</Typography>
+          <Typography variant="body2" sx={{ color: '#6B7280' }}>Total hours</Typography>
         </Paper>
-        <Paper variant="outlined" sx={{ p: 3, flex: 1, textAlign: 'center' }}>
-          <Typography variant="h3" sx={{ fontWeight: 800, color: 'success.main' }}>{money(totalPay)}</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total pay</Typography>
+        <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 2 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#10b981' }}>{money(totalPay)}</Typography>
+          <Typography variant="body2" sx={{ color: '#6B7280' }}>Total pay</Typography>
         </Paper>
-        <Paper variant="outlined" sx={{ p: 3, flex: 1, textAlign: 'center' }}>
-          <Typography variant="h3" sx={{ fontWeight: 800 }}>{money(totalMileage)}</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total mileage</Typography>
+        <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 2 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>{money(totalMileage)}</Typography>
+          <Typography variant="body2" sx={{ color: '#6B7280' }}>Total mileage</Typography>
         </Paper>
       </Stack>
 
@@ -113,23 +90,23 @@ export default function PayrollExportPage() {
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
+        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2 }}>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Carer</TableCell>
-                <TableCell align="right">Visits</TableCell>
-                <TableCell align="right">Hours</TableCell>
-                <TableCell align="right">Pay</TableCell>
-                <TableCell align="right">Mileage Pay</TableCell>
-                <TableCell align="right">Total</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Carer</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>Visits</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>Hours</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>Pay</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>Mileage Pay</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>Total</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {timesheets.length === 0 ? (
-                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>No timesheets for this period</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: '#6B7280' }}>No timesheets for this period</TableCell></TableRow>
               ) : timesheets.map((t: any) => (
-                <TableRow key={t.carer_id || t.id}>
+                <TableRow key={t.carer_id || t.id} hover>
                   <TableCell>{t.staff_name || '—'}</TableCell>
                   <TableCell align="right">1</TableCell>
                   <TableCell align="right">{((Number(t.work_minutes || 0) + Number(t.paid_travel_minutes || 0)) / 60).toFixed(1)}</TableCell>
@@ -142,6 +119,6 @@ export default function PayrollExportPage() {
           </Table>
         </TableContainer>
       )}
-    </Container>
+    </Box>
   )
 }

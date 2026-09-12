@@ -3,11 +3,11 @@
  */
 
 .homecare-page {
-  --homecare-ink: #1B2430;
-  --homecare-muted: #5D6875;
-  --homecare-paper: #F7F4EE;
+  --homecare-ink: #111827;
+  --homecare-muted: #6B7280;
+  --homecare-paper: #F8FAFC;
   --homecare-surface: #FFFFFF;
-  --homecare-rule: #E7E1D6;
+  --homecare-rule: #E5E7EB;
   --homecare-navy: #0F4C81;
   --homecare-green: #10B981;
   min-width: 0;
@@ -27,7 +27,7 @@
 
 .homecare-title {
   font-size: clamp(1.9rem, 3vw, 2.7rem) !important;
-  font-weight: 850 !important;
+  font-weight: 800 !important;
   letter-spacing: -0.045em !important;
   overflow-wrap: anywhere;
 }
@@ -54,7 +54,7 @@
 .homecare-tabs .MuiTab-root {
   min-height: 50px;
   color: var(--homecare-muted);
-  font-weight: 750;
+  font-weight: 700;
   text-transform: none;
 }
 
@@ -66,7 +66,7 @@
 .homecare-timesheet,
 .homecare-empty {
   border: 1px solid var(--homecare-rule) !important;
-  border-radius: 12px !important;
+  border-radius: 8px !important;
   background: var(--homecare-surface) !important;
   box-shadow: none !important;
 }
@@ -82,20 +82,23 @@
 
 .homecare-visit--checked_in { border-left-color: var(--homecare-green) !important; }
 .homecare-visit--completed { opacity: 0.7; }
-.homecare-visit__date { color: var(--homecare-navy); font-size: 0.87rem !important; font-weight: 800 !important; }
+.homecare-visit__date { color: var(--homecare-navy); font-size: 0.87rem !important; font-weight: 700 !important; }
 .homecare-visit__time .MuiChip-root { margin-top: 7px; text-transform: capitalize; }
 .homecare-visit__name,
-.homecare-package__name { font-weight: 850 !important; letter-spacing: -0.02em; }
-.homecare-visit__person { margin-top: 4px !important; font-weight: 650 !important; }
+.homecare-package__name { font-weight: 700 !important; letter-spacing: -0.02em; }
+.homecare-visit__person { margin-top: 4px !important; font-weight: 600 !important; }
 .homecare-visit__address { margin-top: 4px !important; color: var(--homecare-muted); font-size: 0.82rem !important; }
 .homecare-visit__meta { color: var(--homecare-muted); font-size: 0.78rem; line-height: 1.8; }
 .homecare-visit__meta strong { color: var(--homecare-ink); }
 .homecare-visit__meta svg { vertical-align: -3px; margin-right: 4px; color: var(--homecare-navy); }
-.homecare-action { min-width: 90px; background: var(--homecare-navy) !important; text-transform: none !important; font-weight: 750 !important; white-space: nowrap; }
+.homecare-action { min-width: 90px; background: var(--homecare-navy) !important; text-transform: none !important; font-weight: 700 !important; white-space: nowrap; }
 .homecare-package,
 .homecare-timesheet,
 .homecare-exception,
 .homecare-export { display: grid; gap: 16px; padding: 20px; }
+.homecare-empty { padding: 48px 24px; text-align: center; }
+.homecare-empty h6 { font-weight: 700; }
+.homecare-empty p { margin-top: 8px; }
 .homecare-exception { grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-left: 4px solid #B45309 !important; }
 .homecare-exception__detail { margin-top: 6px !important; color: #B45309; font-size: 0.84rem !important; text-transform: capitalize; }
 .homecare-export { margin-top: 20px; border: 1px solid var(--homecare-rule) !important; border-radius: 12px !important; box-shadow: none !important; background: var(--homecare-surface) !important; }
@@ -103,9 +106,7 @@
 .homecare-timesheet__grid { display: flex; flex-wrap: wrap; gap: 24px; color: var(--homecare-muted); font-size: 0.86rem; }
 .homecare-package__numbers strong,
 .homecare-timesheet__grid strong { display: block; margin-top: 3px; color: var(--homecare-ink); font-size: 1rem; }
-.homecare-empty { padding: 48px 24px; text-align: center; }
-.homecare-empty h6 { font-weight: 850; }
-.homecare-empty p { margin-top: 8px; }
+
 .homecare-loading { display: grid; justify-items: center; gap: 12px; padding: 60px; color: var(--homecare-muted); }
 
 .homecare-page button:focus-visible,
