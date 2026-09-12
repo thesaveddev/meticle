@@ -13,6 +13,8 @@ import { SettingsScreen } from './src/screens/SettingsScreen'
 import { AvailabilityScreen } from './src/screens/AvailabilityScreen'
 import { ClientDetailScreen } from './src/screens/ClientDetailScreen'
 import { MileageScreen } from './src/screens/MileageScreen'
+import { BodyMapScreen } from './src/screens/BodyMapScreen'
+import { NutritionScreen } from './src/screens/NutritionScreen'
 
 type TabKey = 'today' | 'mileage' | 'availability' | 'settings'
 
@@ -48,6 +50,8 @@ export default function App() {
   const [selectedVisit, setSelectedVisit] = useState<HomecareVisit | null>(null)
   const [tab, setTab] = useState<TabKey>('today')
   const [clientDetail, setClientDetail] = useState<string | null>(null)
+  const [bodyMapTarget, setBodyMapTarget] = useState<{ personId: string; personName: string } | null>(null)
+  const [nutritionTarget, setNutritionTarget] = useState<{ personId: string; personName: string } | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
   const loadQueue = useCallback(async () => setQueue(await getQueue()), [])
@@ -142,8 +146,24 @@ export default function App() {
     return <LoginScreen onLogin={handleLogin} error={loginError} loading={loginLoading} />
   }
 
+  if (bodyMapTarget && session) {
+    return <BodyMapScreen personId={bodyMapTarget.personId} personName={bodyMapTarget.personName} session={session} onBack={() => setBodyMapTarget(null)} />
+  }
+
+  if (nutritionTarget && session) {
+    return <NutritionScreen personId={nutritionTarget.personId} personName={nutritionTarget.personName} session={session} onBack={() => setNutritionTarget(null)} />
+  }
+
   if (clientDetail && session) {
-    return <ClientDetailScreen personId={clientDetail} session={session} onBack={() => setClientDetail(null)} />
+    return (
+      <ClientDetailScreen
+        personId={clientDetail}
+        session={session}
+        onBack={() => setClientDetail(null)}
+        onBodyMap={(id, name) => { setClientDetail(null); setBodyMapTarget({ personId: id, personName: name }) }}
+        onNutrition={(id, name) => { setClientDetail(null); setNutritionTarget({ personId: id, personName: name }) }}
+      />
+    )
   }
 
   if (selectedVisit) {
