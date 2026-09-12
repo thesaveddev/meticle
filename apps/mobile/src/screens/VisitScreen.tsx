@@ -20,13 +20,14 @@ function statusColor(status: string) {
   }
 }
 
-export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onClientDetail }: {
+export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident }: {
   visit: HomecareVisit
   onBack: () => void
   onAction: (action: VisitAction, payload: OfflineVisitAction['payload']) => Promise<{ synced: boolean }>
   onDisruption: (body: Record<string, unknown>) => Promise<void>
   queue: OfflineVisitAction[]
   onClientDetail?: (personId: string) => void
+  onReportIncident?: () => void
 }) {
   const [note, setNote] = useState('')
   const [travelMinutes, setTravelMinutes] = useState('')
@@ -210,6 +211,12 @@ export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onCl
         {isOpen && (
           <Pressable onPress={() => setDisruptionOpen(true)} style={styles.disruptionBtn}>
             <Text style={styles.disruptionText}>⚠ Report a delay or safety issue</Text>
+          </Pressable>
+        )}
+
+        {onReportIncident && (
+          <Pressable onPress={onReportIncident} style={styles.disruptionBtn}>
+            <Text style={[styles.disruptionText, { color: colors.danger }]}>🚨 Report an incident</Text>
           </Pressable>
         )}
 

@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { colors, radii, spacing, type } from '../theme'
 import type { SyncState } from '../types'
+import { hapticLight } from '../services/haptics'
 
 interface SyncRailProps {
   state: SyncState
@@ -46,7 +47,7 @@ export function SyncRail({ state, count, onPress }: SyncRailProps) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${item.title}. ${detailText}`}
-      onPress={onPress}
+      onPress={() => { hapticLight(); onPress?.() }}
       style={({ pressed }) => [
         styles.rail,
         { backgroundColor: item.bg },

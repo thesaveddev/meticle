@@ -19,6 +19,7 @@ import { NutritionScreen } from './src/screens/NutritionScreen'
 import { ProfileScreen } from './src/screens/ProfileScreen'
 import { WeekScreen } from './src/screens/WeekScreen'
 import { SwapTransferScreen } from './src/screens/SwapTransferScreen'
+import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen'
 
 type TabKey = 'today' | 'week' | 'mileage' | 'availability' | 'settings'
 
@@ -47,6 +48,7 @@ function AppTab({ icon, label, active, onPress }: { icon: string; label: string;
 
 /* ─── Screen stack for Android back button ──────────────────── */
 type Screen =
+  | { kind: 'incident'; visitId?: string; personId?: string; personName?: string }
   | { kind: 'tabs' }
   | { kind: 'visit'; visit: HomecareVisit }
   | { kind: 'clientDetail'; personId: string }
@@ -248,6 +250,7 @@ export default function App() {
           onAction={handleAction}
           onDisruption={handleDisruption}
           onClientDetail={(personId) => pushScreen({ kind: 'clientDetail', personId })}
+          onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })}
         />
       </>
     )
@@ -267,6 +270,15 @@ export default function App() {
       <>
         <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
         <SwapTransferScreen session={session} user={user} visits={visits} onBack={goBack} onRefresh={() => loadVisits(session)} />
+      </>
+    )
+  }
+
+  if (currentScreen.kind === 'incident' && session) {
+    return (
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+        <ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} />
       </>
     )
   }
