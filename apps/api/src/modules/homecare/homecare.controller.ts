@@ -449,6 +449,22 @@ export class HomecareController {
     } catch (e: any) { /* notification failure should not block */ }
   }
 
+  /* ─── Location threshold settings ──────────────────────────── */
+
+  static async updateLocationThreshold(req: Request, res: Response) {
+    const oid = orgId(req);
+    const { location_threshold_meters } = req.body;
+    await query('UPDATE organizations SET location_threshold_meters = $1, updated_at = NOW() WHERE id = $2', [location_threshold_meters, oid]);
+    audit(req, 'update', 'organization_settings', oid, { location_threshold_meters });
+    res.json({ location_threshold_meters });
+  }
+
+  static async getLocationThreshold(req: Request, res: Response) {
+    const oid = orgId(req);
+    const result = await query('SELECT location_threshold_meters FROM organizations WHERE id = $1', [oid]);
+    res.json({ location_threshold_meters: result.rows[0]?.location_threshold_meters || 500 });
+  }
+
   /* ─── Swap / Transfer ─────────────────────────────────────── */
 
   static async createSwapRequest(req: Request, res: Response) {

@@ -150,4 +150,9 @@ router.post('/client-billing/runs/:runId/void', requireRole(...managerRoles), va
 router.get('/client-billing/runs/:runId/invoice.pdf', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.downloadClientInvoicePdf));
 router.get('/client-billing/runs/:runId/mtd-export', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.getMtdExport));
 
+// Organization location threshold
+const thresholdSchema = z.object({ location_threshold_meters: z.number().min(50).max(5000) });
+router.patch('/settings/location-threshold', requireRole(...managerRoles), validate(thresholdSchema), asyncHandler(HomecareController.updateLocationThreshold));
+router.get('/settings/location-threshold', requireRole(...fieldRoles), asyncHandler(HomecareController.getLocationThreshold));
+
 export default router;

@@ -8,6 +8,7 @@ import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance } from '../services/location'
+import { getLocationThreshold } from '../services/api'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate, IconTwoPerson } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
 import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
@@ -135,6 +136,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const [notesSaved, setNotesSaved] = useState(false)
   const [nextCallModal, setNextCallModal] = useState(false)
   const [mapPickerOpen, setMapPickerOpen] = useState(false)
+  const [locationThreshold, setLocationThreshold] = useState(500)
   const [navDestination, setNavDestination] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
 
   // Task list for this call
@@ -150,6 +152,13 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
     setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
   }
   const allTasksDone = tasks.every(t => t.done)
+
+  // Fetch location threshold from org settings
+  useEffect(() => {
+    if (session?.accessToken) {
+      getLocationThreshold(session.accessToken).then(setLocationThreshold).catch(() => {})
+    }
+  }, [session?.accessToken])
 
   const openNavPicker = (dest: { destination?: string; latitude?: number; longitude?: number; label?: string }) => {
     hapticLight()
@@ -282,13 +291,13 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
           location.latitude, location.longitude,
           visit.person_latitude, visit.person_longitude
         )
-        if (distance > 500) {
+        if (distance > locationThreshold) {
           setBusy(false)
           hapticWarning()
           const actionLabel = action === 'check-in' ? 'checking in' : 'checking out'
           setError(
             `You are ${Math.round(distance)}m away from ${visit.person_name || 'the client'}. ` +
-            `Please confirm you are at the correct location before ${actionLabel}.`
+            `Please confirm you are within ${locationThreshold}m of the correct location before ${actionLabel}.`
           )
           return
         }
