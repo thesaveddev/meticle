@@ -249,6 +249,7 @@ export default function App() {
         <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
         <VisitScreen
           visit={currentScreen.visit}
+          session={session}
           queue={activeQueue}
           onBack={goBack}
           onAction={handleAction}

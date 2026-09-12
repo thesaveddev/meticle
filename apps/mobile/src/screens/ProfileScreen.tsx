@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
+import * as FileSystem from 'expo-file-system'
 import { colors, elevation, radii, spacing, type } from '../theme'
 import type { AuthSession, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -88,21 +89,33 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
   const uploadPhoto = async (uri: string) => {
     setUploadingPhoto(true)
     try {
-      const formData = new FormData()
+      // Read file as base64 for React Native compatibility
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 })
       const filename = uri.split('/').pop() || 'photo.jpg'
       const ext = filename.split('.').pop()?.toLowerCase() || 'jpg'
-      formData.append('file', {
-        uri,
-        name: filename,
-        type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-      } as any)
+      const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`
+
+      // Convert base64 to blob for FormData
+      const byteCharacters = atob(base64)
+      const byteNumbers = new Array(byteCharacters.length)
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      }
+      const byteArray = new Uint8Array(byteNumbers)
+      const blob = new Blob([byteArray], { type: mimeType })
+
+      const formData = new FormData()
+      formData.append('file', blob, filename)
 
       const res = await fetch(`${API_BASE}/settings/upload`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.accessToken}` },
         body: formData,
       })
-      if (!res.ok) throw new Error('Upload failed')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message || 'Upload failed')
+      }
       const data = await res.json()
       setProfilePhoto(data.url)
       setMessage('Photo updated')

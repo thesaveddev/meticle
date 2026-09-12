@@ -1,10 +1,14 @@
 import { useState } from 'react'
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import * as ImagePicker from 'expo-image-picker'
+import * as FileSystem from 'expo-file-system'
+import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, type } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation } from '../services/location'
+import type { AuthSession } from '../types'
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -27,8 +31,9 @@ function statusColor(status: string) {
   }
 }
 
-export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident }: {
+export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident }: {
   visit: HomecareVisit
+  session?: AuthSession
   onBack: () => void
   onAction: (action: VisitAction, payload: OfflineVisitAction['payload']) => Promise<{ synced: boolean }>
   onDisruption: (body: Record<string, unknown>) => Promise<void>
@@ -46,10 +51,75 @@ export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onCl
   const [disruption, setDisruption] = useState('')
   const [checkedInAt, setCheckedInAt] = useState<string | null>(null)
   const [checkedInLocation, setCheckedInLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [photos, setPhotos] = useState<string[]>([]) // uploaded photo URLs
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   const isOpen = !['completed', 'cancelled', 'missed'].includes(visit.status)
   const checkedIn = visit.status === 'checked_in'
   const sColor = statusColor(visit.status)
+
+  const pickVisitPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please grant photo library access.')
+      return
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      allowsMultipleSelection: true,
+    })
+    if (!result.canceled) {
+      for (const asset of result.assets) {
+        await uploadVisitPhoto(asset.uri)
+      }
+    }
+  }
+
+  const takeVisitPhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync()
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please grant camera access.')
+      return
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 })
+    if (!result.canceled && result.assets[0]) {
+      await uploadVisitPhoto(result.assets[0].uri)
+    }
+  }
+
+  const uploadVisitPhoto = async (uri: string) => {
+    setUploadingPhoto(true)
+    try {
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 })
+      const filename = uri.split('/').pop() || 'photo.jpg'
+      const ext = filename.split('.').pop()?.toLowerCase() || 'jpg'
+      const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`
+      const byteCharacters = atob(base64)
+      const byteArray = new Uint8Array(byteCharacters.length)
+      for (let i = 0; i < byteCharacters.length; i++) byteArray[i] = byteCharacters.charCodeAt(i)
+      const blob = new Blob([byteArray], { type: mimeType })
+      const formData = new FormData()
+      formData.append('file', blob, filename)
+      const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://meticlecare.com/api'
+      const res = await fetch(`${API_BASE}/settings/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.accessToken || ''}` },
+        body: formData,
+      })
+      if (!res.ok) throw new Error('Upload failed')
+      const data = await res.json()
+      setPhotos(prev => [...prev, data.url])
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not upload photo')
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
+  const removePhoto = (index: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index))
+  }
 
   async function execute(action: VisitAction) {
     setBusy(true); setError(''); setSuccess('')
@@ -60,6 +130,7 @@ export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onCl
         actual_travel_minutes: travelMinutes ? Number(travelMinutes) : undefined,
         actual_mileage_miles: mileage ? Number(mileage) : undefined,
         note: note.trim() || undefined,
+        photos: photos.length > 0 ? photos : undefined,
       })
 
       if (action === 'check-in') {
@@ -232,6 +303,39 @@ export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onCl
           </View>
 
           {/* Actions */}
+          {/* Photo attachments */}
+          {checkedIn && (
+            <View style={styles.photoSection}>
+              <Text style={styles.fieldLabel}>Photos</Text>
+              <View style={styles.photoRow}>
+                <Pressable onPress={pickVisitPhoto} style={styles.photoAction}>
+                  <Ionicons name="images" size={20} color={colors.primary} />
+                  <Text style={styles.photoActionText}>Gallery</Text>
+                </Pressable>
+                <Pressable onPress={takeVisitPhoto} style={styles.photoAction}>
+                  <Ionicons name="camera" size={20} color={colors.primary} />
+                  <Text style={styles.photoActionText}>Camera</Text>
+                </Pressable>
+                {uploadingPhoto && (
+                  <Text style={styles.uploadingText}>Uploading...</Text>
+                )}
+              </View>
+              {photos.length > 0 && (
+                <View style={styles.photoGrid}>
+                  {photos.map((url, i) => (
+                    <View key={i} style={styles.photoThumb}>
+                      <Image source={{ uri: `https://meticlecare.com${url}` }} style={styles.photoImage} />
+                      <Pressable onPress={() => removePhoto(i)} style={styles.photoRemove}>
+                        <Ionicons name="close-circle" size={20} color={colors.danger} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Actions */}
           {isOpen && (
             <View style={styles.actions}>
               {!checkedIn && visit.status !== 'completed' && (
@@ -396,6 +500,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   textArea: { minHeight: 90, textAlignVertical: 'top', paddingTop: spacing.md },
+
+  /* Photo attachments */
+  photoSection: { marginTop: spacing.base },
+  photoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  photoAction: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    borderRadius: radii.md, backgroundColor: colors.primarySurface,
+    borderWidth: 1, borderColor: colors.primary + '30',
+  },
+  photoActionText: { fontFamily: 'System', fontSize: 13, fontWeight: '600', color: colors.primary },
+  uploadingText: { ...type.small, color: colors.muted },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  photoThumb: { position: 'relative', width: 72, height: 72 },
+  photoImage: { width: 72, height: 72, borderRadius: radii.md },
+  photoRemove: { position: 'absolute', top: -6, right: -6 },
 
   /* Actions */
   actions: { marginTop: spacing.base, gap: spacing.sm },
