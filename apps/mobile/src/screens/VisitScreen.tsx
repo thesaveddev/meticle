@@ -8,7 +8,7 @@ import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance } from '../services/location'
-import { getLocationThreshold } from '../services/api'
+import { getLocationThreshold, getRequirePhoto } from '../services/api'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate, IconTwoPerson } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
 import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
@@ -137,6 +137,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const [nextCallModal, setNextCallModal] = useState(false)
   const [mapPickerOpen, setMapPickerOpen] = useState(false)
   const [locationThreshold, setLocationThreshold] = useState(500)
+  const [requirePhoto, setRequirePhoto] = useState(false)
   const [navDestination, setNavDestination] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
 
   // Task list for this call
@@ -157,6 +158,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   useEffect(() => {
     if (session?.accessToken) {
       getLocationThreshold(session.accessToken).then(setLocationThreshold).catch(() => {})
+      getRequirePhoto(session.accessToken).then(setRequirePhoto).catch(() => {})
     }
   }, [session?.accessToken])
 
@@ -278,6 +280,13 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
       hapticWarning()
       const incomplete = tasks.filter(t => !t.done).map(t => t.label).join(', ')
       setError(`Complete all tasks before checking out. Incomplete: ${incomplete}`)
+      return
+    }
+
+    // Block check-out without photo if required by org
+    if (action === 'check-out' && requirePhoto && photos.length === 0) {
+      hapticWarning()
+      setError('Your organisation requires at least one photo before checking out. Please take or upload a photo.')
       return
     }
 
@@ -636,6 +645,14 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             </View>
           )}
 
+          {/* ── Photo requirement hint ── */}
+          {checkedIn && requirePhoto && photos.length === 0 && (
+            <View style={[styles.card, { backgroundColor: c.warningSurface, borderColor: c.warning + '20' }]}>
+              <Text style={[styles.cardTitle, { color: c.warning }]}>Photo evidence required</Text>
+              <Text style={{ fontFamily: FONT, fontSize: 13, color: c.muted }}>Your organisation requires at least one photo before you can check out.</Text>
+            </View>
+          )}
+
           {/* ── Primary action buttons ── */}
           {isOpen && (
             <View style={{ marginTop: spacing.base }}>
@@ -644,10 +661,10 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
               )}
               {checkedIn && (
                 <PrimaryButton
-                  label={!allTasksDone ? 'Complete all tasks to check out' : !note.trim() ? 'Add care notes to check out' : 'Check out and complete'}
+                  label={!allTasksDone ? 'Complete all tasks to check out' : !note.trim() ? 'Add care notes to check out' : requirePhoto && photos.length === 0 ? 'Add a photo to check out' : 'Check out and complete'}
                   onPress={() => execute('check-out')}
                   loading={busy}
-                  disabled={busy || !note.trim() || !allTasksDone}
+                  disabled={busy || !note.trim() || !allTasksDone || (requirePhoto && photos.length === 0)}
                   tone="success"
                 />
               )}

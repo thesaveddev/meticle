@@ -465,6 +465,20 @@ export class HomecareController {
     res.json({ location_threshold_meters: result.rows[0]?.location_threshold_meters || 500 });
   }
 
+  static async updateRequirePhoto(req: Request, res: Response) {
+    const oid = orgId(req);
+    const { require_photo_on_checkout } = req.body;
+    await query('UPDATE organizations SET require_photo_on_checkout = $1, updated_at = NOW() WHERE id = $2', [require_photo_on_checkout, oid]);
+    audit(req, 'update', 'organization_settings', oid, { require_photo_on_checkout });
+    res.json({ require_photo_on_checkout });
+  }
+
+  static async getRequirePhoto(req: Request, res: Response) {
+    const oid = orgId(req);
+    const result = await query('SELECT require_photo_on_checkout FROM organizations WHERE id = $1', [oid]);
+    res.json({ require_photo_on_checkout: result.rows[0]?.require_photo_on_checkout || false });
+  }
+
   /* ─── Swap / Transfer ─────────────────────────────────────── */
 
   static async createSwapRequest(req: Request, res: Response) {

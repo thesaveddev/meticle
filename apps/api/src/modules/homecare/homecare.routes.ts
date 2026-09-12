@@ -155,4 +155,9 @@ const thresholdSchema = z.object({ location_threshold_meters: z.number().min(50)
 router.patch('/settings/location-threshold', requireRole(...managerRoles), validate(thresholdSchema), asyncHandler(HomecareController.updateLocationThreshold));
 router.get('/settings/location-threshold', requireRole(...fieldRoles), asyncHandler(HomecareController.getLocationThreshold));
 
+// Photo requirement on check-out
+const photoReqSchema = z.object({ require_photo_on_checkout: z.boolean() });
+router.patch('/settings/require-photo', requireRole(...managerRoles), validate(photoReqSchema), asyncHandler(HomecareController.updateRequirePhoto));
+router.get('/settings/require-photo', requireRole(...fieldRoles), asyncHandler(HomecareController.getRequirePhoto));
+
 export default router;
