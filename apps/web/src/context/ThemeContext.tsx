@@ -32,8 +32,9 @@ export function useThemeMode() {
   return ctx
 }
 
-export const METICLE_PRIMARY = '#0F4C81'
+export const METICLE_PRIMARY = '#1A2332'
 export const METICLE_SECONDARY = '#6B7280'
+export const METICLE_ACCENT = '#10B981'
 
 export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingColors = { primary_color: METICLE_PRIMARY, secondary_color: METICLE_SECONDARY, accent_color: '#F8FAFC' }) {
   const primary = colors.primary_color || METICLE_PRIMARY
@@ -59,16 +60,18 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
               primary: '#F1F5F9',
               secondary: '#94A3B8',
             },
+            divider: '#334155',
           }
         : {
             background: {
-              default: '#F8FAFC',
+              default: '#F7F9F7',
               paper: '#FFFFFF',
             },
             text: {
-              primary: '#111827',
+              primary: '#1A2332',
               secondary: '#6B7280',
             },
+            divider: '#F3F4F6',
           }),
     },
     typography: {
@@ -79,15 +82,20 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
       button: { textTransform: 'none', fontWeight: 600 },
     },
     shape: {
-      borderRadius: 8,
+      borderRadius: 14,
     },
     components: {
       MuiButton: {
         styleOverrides: {
           root: {
             padding: '10px 24px',
+            borderRadius: 14,
             boxShadow: 'none',
-            '&:hover': { boxShadow: 'none' },
+            '&:hover': { boxShadow: '0 4px 12px rgba(26, 35, 50, 0.06)' },
+          },
+          contained: {
+            backgroundColor: '#1A2332',
+            '&:hover': { backgroundColor: '#0F172A' },
           },
         },
       },
@@ -95,7 +103,33 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
         defaultProps: { elevation: 0 },
         styleOverrides: {
           root: {
-            border: `1px solid ${mode === 'dark' ? '#334155' : '#E5E7EB'}`,
+            borderRadius: 18,
+            boxShadow: mode === 'dark' ? '0 1px 3px rgba(0, 0, 0, 0.2)' : '0 1px 3px rgba(26, 35, 50, 0.04)',
+          },
+        },
+      },
+      MuiCard: {
+        styleOverrides: {
+          root: {
+            borderRadius: 18,
+            boxShadow: mode === 'dark' ? '0 1px 3px rgba(0, 0, 0, 0.2)' : '0 1px 3px rgba(26, 35, 50, 0.04)',
+            border: 'none',
+          },
+        },
+      },
+      MuiTextField: {
+        styleOverrides: {
+          root: {
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 14,
+            },
+          },
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          root: {
+            borderRadius: 10,
           },
         },
       },

@@ -33,6 +33,7 @@ import {
   Restaurant as MealIcon,
   HomeWork as HomecareIcon,
   DirectionsCar as DirectionsCarIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
@@ -427,7 +428,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               onClick={toggleGroup}
               sx={{
                 borderRadius: 1.5, py: 0.5, px: 1.5, mb: 0.25, minHeight: 32,
-                '&:hover': { bgcolor: '#F1F5F9' },
+                '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#F7F9F7' },
               }}
             >
               <ListItemText
@@ -507,7 +508,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
           bgcolor: theme.palette.background.paper,
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          borderBottom: 'none',
+          boxShadow: theme.palette.mode === 'dark' ? '0 1px 3px rgba(0,0,0,0.2)' : '0 1px 3px rgba(26,35,50,0.04)',
           color: theme.palette.text.primary
         }}
       >
