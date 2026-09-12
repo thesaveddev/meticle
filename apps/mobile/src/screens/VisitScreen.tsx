@@ -410,7 +410,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
           )}
 
           {/* Client info card */}
-          <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+          <View style={[styles.card, { backgroundColor: c.surface }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
               <Text style={[styles.clientName, { color: c.ink, flex: 1 }]}>{visit.label}</Text>
               {requiresTwo && (
@@ -465,7 +465,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
               </View>
 
               {/* Read-only care notes */}
-              <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+              <View style={[styles.card, { backgroundColor: c.surface }]}>
                 <Text style={[styles.cardTitle, { color: c.ink }]}>Care notes</Text>
                 {visit.visit_notes ? (
                   <Text style={[styles.roNotesText, { color: c.ink }]}>{visit.visit_notes}</Text>
@@ -475,7 +475,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
               </View>
 
               {/* Read-only visit details */}
-              <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+              <View style={[styles.card, { backgroundColor: c.surface }]}>
                 <Text style={[styles.cardTitle, { color: c.ink }]}>Visit details</Text>
                 <ReadOnlyField label="Check-in time" value={visit.check_in_at ? dateStamp.call(null) : '—'} c={c} />
                 <ReadOnlyField label="Check-out time" value={visit.check_out_at ? dateStamp.call(null) : '—'} c={c} />
@@ -487,7 +487,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
               {/* Read-only photos */}
               {visit.photos && visit.photos.length > 0 && (
-                <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+                <View style={[styles.card, { backgroundColor: c.surface }]}>
                   <Text style={[styles.cardTitle, { color: c.ink }]}>Photos</Text>
                   <View style={styles.photoGrid}>
                     {visit.photos.map((url: string, i: number) => (
@@ -584,7 +584,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
           {/* ── Pre-visit form (only before check-in, not on completed) ── */}
           {!checkedIn && isOpen && (
-            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
               <Text style={[styles.cardTitle, { color: c.ink }]}>Pre-visit details</Text>
 
               <View style={styles.fieldRow}>
@@ -592,14 +592,14 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                   <Text style={[styles.fieldLabel, { color: c.inkLight }]}>Travel (min)</Text>
                   <TextInput keyboardType="number-pad" value={travelMinutes} onChangeText={setTravelMinutes}
                     placeholder="0" placeholderTextColor={c.subtle}
-                    style={[styles.input, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]}
+                    style={[styles.input, { backgroundColor: c.surfaceAlt, color: c.ink }]}
                     editable={!previsitSaved} />
                 </View>
                 <View style={styles.fieldHalf}>
                   <Text style={[styles.fieldLabel, { color: c.inkLight }]}>Mileage (mi)</Text>
                   <TextInput keyboardType="decimal-pad" value={mileage} onChangeText={setMileage}
                     placeholder="0.0" placeholderTextColor={c.subtle}
-                    style={[styles.input, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]}
+                    style={[styles.input, { backgroundColor: c.surfaceAlt, color: c.ink }]}
                     editable={!previsitSaved} />
                 </View>
               </View>
@@ -608,7 +608,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                 <Text style={[styles.fieldLabel, { color: c.inkLight }]}>Notes (optional)</Text>
                 <TextInput multiline value={note} onChangeText={setNote}
                   placeholder="Any notes before you arrive" placeholderTextColor={c.subtle}
-                  style={[styles.input, styles.textArea, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]}
+                  style={[styles.input, styles.textArea, { backgroundColor: c.surfaceAlt, color: c.ink }]}
                   editable={!previsitSaved} />
               </View>
 
@@ -625,14 +625,14 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
           {/* ── Care notes form (only after check-in) ── */}
           {checkedIn && (
-            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
               <Text style={[styles.cardTitle, { color: c.ink }]}>Care notes</Text>
 
               <View style={styles.fieldGroup}>
                 <Text style={[styles.fieldLabel, { color: c.inkLight }]}>What happened during this call?</Text>
                 <TextInput multiline value={note} onChangeText={setNote}
                   placeholder="Care provided, observations, client mood, medication given..." placeholderTextColor={c.subtle}
-                  style={[styles.input, styles.textArea, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]}
+                  style={[styles.input, styles.textArea, { backgroundColor: c.surfaceAlt, color: c.ink }]}
                   editable={!notesSaved} />
               </View>
 
@@ -673,7 +673,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
           {/* ── Task list ── */}
           {checkedIn && (
-            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
               <Text style={[styles.cardTitle, { color: c.ink }]}>Call tasks</Text>
               <Text style={{ fontFamily: FONT, fontSize: 12, color: c.muted, marginBottom: spacing.sm }}>Complete all tasks before checking out</Text>
               {tasks.map(task => (
@@ -736,18 +736,18 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
           {/* ── Secondary actions ── */}
           {isOpen && (
             <View style={styles.secondaryRow}>
-              <Pressable onPress={() => { hapticLight(); setDisruptionOpen(true) }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface, borderColor: c.borderLight }], pressed && { opacity: 0.7 }]}>
+              <Pressable onPress={() => { hapticLight(); setDisruptionOpen(true) }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface }], pressed && { opacity: 0.7 }]}>
                 <IconWarning size={14} color={c.warning} />
                 <Text style={[styles.secondaryText, { color: c.warning }]}>Delay</Text>
               </Pressable>
               {onReportIncident && (
-                <Pressable onPress={() => { hapticLight(); onReportIncident() }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface, borderColor: c.borderLight }], pressed && { opacity: 0.7 }]}>
+                <Pressable onPress={() => { hapticLight(); onReportIncident() }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface }], pressed && { opacity: 0.7 }]}>
                   <IconIncident size={14} color={c.danger} />
                   <Text style={[styles.secondaryText, { color: c.danger }]}>Incident</Text>
                 </Pressable>
               )}
               {canSwap && (
-                <Pressable onPress={() => { hapticLight(); onSwap!() }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface, borderColor: c.borderLight }], pressed && { opacity: 0.7 }]}>
+                <Pressable onPress={() => { hapticLight(); onSwap!() }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface }], pressed && { opacity: 0.7 }]}>
                   <Text style={{ fontSize: 14 }}>🔄</Text>
                   <Text style={[styles.secondaryText, { color: c.primary }]}>Swap</Text>
                 </Pressable>
@@ -774,7 +774,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                 <Text style={[styles.modalHelper, { color: c.muted }]}>Tell the office what is affecting this call.</Text>
                 <TextInput multiline autoFocus value={disruption} onChangeText={setDisruption}
                   placeholder="What is happening?" placeholderTextColor={c.subtle}
-                  style={[styles.input, styles.textArea, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]} />
+                  style={[styles.input, styles.textArea, { backgroundColor: c.surfaceAlt, color: c.ink }]} />
                 <PrimaryButton label="Send to office" onPress={reportDisruption} loading={busy} disabled={busy || !disruption.trim()} tone="danger" />
                 <Pressable onPress={() => setDisruptionOpen(false)} style={styles.cancelBtn}>
                   <Text style={[styles.cancelText, { color: c.muted }]}>Cancel</Text>
@@ -893,7 +893,6 @@ const styles = StyleSheet.create({
   /* Card */
   card: {
     backgroundColor: colors.surface, borderRadius: radii.lg,
-    borderWidth: 1, borderColor: colors.borderLight,
     padding: spacing.base, marginBottom: spacing.base, gap: spacing.sm,
     ...elevation.sm,
   },

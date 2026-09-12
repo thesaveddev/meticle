@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   biometricBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: spacing.md, backgroundColor: colors.surface, borderRadius: radii.lg,
-    borderWidth: 1.5, borderColor: colors.primary + '30', paddingVertical: spacing.base,
+    paddingVertical: spacing.base,
     marginBottom: spacing.base, ...elevation.sm,
   },
   biometricIconCircle: {
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   fieldGroup: { gap: spacing.xs },
   fieldLabel: { fontFamily: 'System', fontSize: 13, fontWeight: '600', color: colors.inkLight },
   input: {
-    minHeight: 52, borderWidth: 1.5, borderColor: colors.border, borderRadius: radii.md,
+    minHeight: 52, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md,
     backgroundColor: colors.surface, paddingHorizontal: spacing.base, paddingVertical: spacing.md,
     color: colors.ink, fontFamily: 'System', fontSize: 16,
   },
