@@ -59,8 +59,6 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
     }
   }, [session.accessToken, personId])
   useEffect(() => { loadData() }, [loadData])
-    })()
-  }, [personId])
 
   if (loading) {
     return (

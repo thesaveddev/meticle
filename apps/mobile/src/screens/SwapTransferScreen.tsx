@@ -6,7 +6,7 @@ import { dyn } from '../utils/dynamicStyles'
 import { SkeletonInline } from '../components/Skeleton'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
-import { getStaffVisits } from '../services/api'
+import { getMyVisits, getStaffVisits } from '../services/api'
 import { hapticLight, hapticWarning } from '../services/haptics'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://meticlecare.com/api'
@@ -68,15 +68,21 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
   const [loadingTargetVisits, setLoadingTargetVisits] = useState(false)
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
+  const [myUpcomingVisits, setMyUpcomingVisits] = useState<HomecareVisit[]>([])
 
   const load = async () => {
     try {
-      const [reqRes, teamRes] = await Promise.all([
+      const now = new Date()
+      const from = now.toISOString()
+      const to = new Date(now.getTime() + 30 * 86400000).toISOString() // 30 days ahead
+      const [reqRes, teamRes, myVisitsRes] = await Promise.all([
         fetch(`${API_BASE}/homecare/swap-requests`, { headers: { Authorization: `Bearer ${session.accessToken}` } }).then(r => r.json()),
         fetch(`${API_BASE}/homecare/staff`, { headers: { Authorization: `Bearer ${session.accessToken}` } }).then(r => r.json()).catch(() => []),
+        getMyVisits(session.accessToken, from, to).catch(() => []),
       ])
       setRequests(Array.isArray(reqRes) ? reqRes : [])
       setTeam(Array.isArray(teamRes) ? teamRes : [])
+      setMyUpcomingVisits((Array.isArray(myVisitsRes) ? myVisitsRes : []).filter((v: HomecareVisit) => ['scheduled', 'en_route'].includes(v.status)))
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }
@@ -99,14 +105,14 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
     hapticLight()
     setTargetStaff(member)
     if (requestType === 'swap') {
-      // Fetch their scheduled visits
+      // Fetch their scheduled visits (30 days ahead)
       setLoadingTargetVisits(true)
       try {
         const now = new Date()
-        const from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-        const to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14).toISOString()
+        const from = now.toISOString()
+        const to = new Date(now.getTime() + 30 * 86400000).toISOString()
         const theirVisits = await getStaffVisits(session.accessToken, member.id, from, to)
-        setTargetVisits(theirVisits.filter((v: HomecareVisit) => v.status === 'scheduled'))
+        setTargetVisits(theirVisits.filter((v: HomecareVisit) => ['scheduled', 'en_route'].includes(v.status)))
       } catch { setTargetVisits([]) }
       finally { setLoadingTargetVisits(false) }
     }
@@ -162,7 +168,7 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
   })
 
   const pendingCount = requests.filter(r => r.status === 'pending').length
-  const myVisits = visits.filter(v => v.status === 'scheduled')
+  const myVisits = myUpcomingVisits.length > 0 ? myUpcomingVisits : visits.filter(v => ['scheduled', 'en_route'].includes(v.status))
   const totalSteps = requestType === 'swap' ? 3 : 2
 
   const stepLabels = requestType === 'swap'
@@ -270,16 +276,31 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
                     {requestType === 'swap' ? 'Pick the call you want to swap.' : 'Pick the call you want to transfer.'}
                   </Text>
                   <View style={styles.visitList}>
-                    {myVisits.map(v => (
-                      <Pressable key={v.id} onPress={() => { hapticLight(); setSelectedVisit(v); setStep(2) }}
-                        style={({ pressed }) => [[styles.visitOption, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }, pressed && { opacity: 0.8 }]]}>
-                        <View style={styles.visitOptionHeader}>
-                          <Text style={[styles.visitOptionLabel, { color: c.ink }]}>{v.label}</Text>
-                          <Text style={[styles.visitOptionTime, { color: c.primary }]}>{time(v.scheduled_start)}</Text>
+                    {(() => {
+                      // Group visits by date
+                      const grouped: Record<string, HomecareVisit[]> = {}
+                      for (const v of myVisits) {
+                        const dayKey = new Date(v.scheduled_start).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                        if (!grouped[dayKey]) grouped[dayKey] = []
+                        grouped[dayKey].push(v)
+                      }
+                      const dayEntries = Object.entries(grouped)
+                      return dayEntries.map(([day, dayVisits]) => (
+                        <View key={day} style={{ marginBottom: 12 }}>
+                          <Text style={[styles.dayHeader, { color: c.subtle }]}>{day}</Text>
+                          {dayVisits.map(v => (
+                            <Pressable key={v.id} onPress={() => { hapticLight(); setSelectedVisit(v); setStep(2) }}
+                              style={({ pressed }) => [[styles.visitOption, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }, pressed && { opacity: 0.8 }]]}>
+                              <View style={styles.visitOptionHeader}>
+                                <Text style={[styles.visitOptionLabel, { color: c.ink }]}>{v.label}</Text>
+                                <Text style={[styles.visitOptionTime, { color: c.primary }]}>{time(v.scheduled_start)}</Text>
+                              </View>
+                              <Text style={[styles.visitOptionMeta, { color: c.muted }]}>{v.person_name}</Text>
+                            </Pressable>
+                          ))}
                         </View>
-                        <Text style={[styles.visitOptionMeta, { color: c.muted }]}>{v.person_name} · {dateLabel(v.scheduled_start)}</Text>
-                      </Pressable>
-                    ))}
+                      ))
+                    })()}
                     {myVisits.length === 0 && (
                       <Text style={[styles.noVisits, { color: c.subtle }]}>No scheduled calls available to swap.</Text>
                     )}
@@ -327,16 +348,29 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
                     <SkeletonInline c={c} />
                   ) : (
                     <View style={styles.visitList}>
-                      {targetVisits.map(v => (
-                        <Pressable key={v.id} onPress={() => { hapticLight(); setSelectedTargetVisit(v); setStep(4) }}
-                          style={({ pressed }) => [[styles.visitOption, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }, pressed && { opacity: 0.8 }]]}>
-                          <View style={styles.visitOptionHeader}>
-                            <Text style={[styles.visitOptionLabel, { color: c.ink }]}>{v.label}</Text>
-                            <Text style={[styles.visitOptionTime, { color: c.primary }]}>{time(v.scheduled_start)}</Text>
+                      {(() => {
+                        const grouped: Record<string, HomecareVisit[]> = {}
+                        for (const v of targetVisits) {
+                          const dayKey = new Date(v.scheduled_start).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                          if (!grouped[dayKey]) grouped[dayKey] = []
+                          grouped[dayKey].push(v)
+                        }
+                        return Object.entries(grouped).map(([day, dayVisits]) => (
+                          <View key={day} style={{ marginBottom: 12 }}>
+                            <Text style={[styles.dayHeader, { color: c.subtle }]}>{day}</Text>
+                            {dayVisits.map(v => (
+                              <Pressable key={v.id} onPress={() => { hapticLight(); setSelectedTargetVisit(v); setStep(4) }}
+                                style={({ pressed }) => [[styles.visitOption, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }, pressed && { opacity: 0.8 }]]}>
+                                <View style={styles.visitOptionHeader}>
+                                  <Text style={[styles.visitOptionLabel, { color: c.ink }]}>{v.label}</Text>
+                                  <Text style={[styles.visitOptionTime, { color: c.primary }]}>{time(v.scheduled_start)}</Text>
+                                </View>
+                                <Text style={[styles.visitOptionMeta, { color: c.muted }]}>{v.person_name}</Text>
+                              </Pressable>
+                            ))}
                           </View>
-                          <Text style={[styles.visitOptionMeta, { color: c.muted }]}>{v.person_name} · {dateLabel(v.scheduled_start)}</Text>
-                        </Pressable>
-                      ))}
+                        ))
+                      })()}
                       {targetVisits.length === 0 && (
                         <Text style={[styles.noVisits, { color: c.subtle }]}>They have no scheduled calls to swap.</Text>
                       )}
@@ -475,6 +509,7 @@ const styles = StyleSheet.create({
   visitOptionLabel: { fontFamily: FONT, fontSize: 14, fontWeight: '600', color: colors.ink, flex: 1 },
   visitOptionTime: { fontFamily: FONT, fontSize: 13, fontWeight: '700', color: colors.primary },
   visitOptionMeta: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.muted, marginTop: 2 },
+  dayHeader: { fontFamily: FONT, fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginLeft: 4 },
   noVisits: { fontFamily: FONT, fontSize: 13, fontWeight: '500', color: colors.subtle, textAlign: 'center', paddingVertical: spacing.base },
 
   /* Team list */
