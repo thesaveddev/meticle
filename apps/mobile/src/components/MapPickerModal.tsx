@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
-import { colors, elevation, radii, spacing, FONT } from '../theme'
+import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { detectMapApps, openMapApp, type MapApp } from '../services/navigation'
 import { hapticLight } from '../services/haptics'
 
@@ -14,6 +14,7 @@ interface Props {
 }
 
 export function MapPickerModal({ visible, onClose, destination, latitude, longitude, label }: Props) {
+  const c = useAppColors()
   const [apps, setApps] = useState<MapApp[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -54,17 +55,16 @@ export function MapPickerModal({ visible, onClose, destination, latitude, longit
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <Pressable onPress={handleClose} style={styles.backdrop}>
-        <Pressable>
-          <View style={styles.sheet}>
-            <View style={styles.handle} />
-            <Text style={styles.title}>Open navigation</Text>
-            <Text style={styles.subtitle}>
+        <Pressable>              <View style={[styles.sheet, { backgroundColor: c.surface }]}>
+            <View style={[styles.handle, { backgroundColor: c.border }]} />
+            <Text style={[styles.title, { color: c.ink }]}>Open navigation</Text>
+            <Text style={[styles.subtitle, { color: c.muted }]}>
               {label ? `Navigate to ${label}` : 'Choose a maps app'}
             </Text>
 
             {loading ? (
               <View style={styles.loadingRow}>
-                <Text style={styles.loadingText}>Detecting installed apps...</Text>
+                <Text style={[styles.loadingText, { color: c.muted }]}>Detecting installed apps...</Text>
               </View>
             ) : (
               <View style={styles.appList}>
@@ -72,18 +72,18 @@ export function MapPickerModal({ visible, onClose, destination, latitude, longit
                   <Pressable
                     key={app.id}
                     onPress={() => handleSelect(app)}
-                    style={({ pressed }) => [styles.appRow, pressed && { opacity: 0.7, backgroundColor: colors.surfaceAlt }]}
+                    style={({ pressed }) => [[styles.appRow, { backgroundColor: c.surfaceAlt }], pressed && { opacity: 0.7 }]}
                   >
                     <Text style={styles.appIcon}>{app.icon}</Text>
-                    <Text style={styles.appName}>{app.name}</Text>
-                    <Text style={styles.appArrow}>→</Text>
+                    <Text style={[styles.appName, { color: c.ink }]}>{app.name}</Text>
+                    <Text style={[styles.appArrow, { color: c.subtle }]}>→</Text>
                   </Pressable>
                 ))}
               </View>
             )}
 
             <Pressable onPress={handleClose} style={styles.cancelBtn}>
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={[styles.cancelText, { color: c.muted }]}>Cancel</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -109,8 +109,7 @@ const styles = StyleSheet.create({
   appRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     paddingVertical: spacing.md, paddingHorizontal: spacing.base,
-    borderRadius: radii.md, backgroundColor: colors.surfaceAlt,
-    borderWidth: 1, borderColor: colors.borderLight,
+    borderRadius: radii.md,
   },
   appIcon: { fontSize: 22, width: 32, textAlign: 'center' },
   appName: { flex: 1, fontFamily: FONT, fontSize: 15, fontWeight: '600', color: colors.ink },
