@@ -373,18 +373,27 @@ export class HomecareController {
   // ── Notification helpers ──
   private static async notifyMissedCall(orgId: string, visit: any) {
     try {
-      // Get manager emails for this org
+      const personResult = await query('SELECT first_name, last_name FROM people WHERE id = $1', [visit.person_id]);
+      const personName = personResult.rows[0] ? `${personResult.rows[0].first_name} ${personResult.rows[0].last_name}` : 'Unknown';
+
+      // Notify managers
       const managers = await query(
         `SELECT u.id, u.email, COALESCE(sp.first_name, u.email) as name
          FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id
          WHERE u.organization_id = $1 AND u.role IN ('ORG_ADMIN', 'MANAGER')`,
         [orgId]
       );
-      const personResult = await query('SELECT first_name, last_name FROM people WHERE id = $1', [visit.person_id]);
-      const personName = personResult.rows[0] ? `${personResult.rows[0].first_name} ${personResult.rows[0].last_name}` : 'Unknown';
       for (const m of managers.rows) {
         EmailService.sendMissedCallEmail(m.email, m.name, personName, visit.label || visit.visit_type, visit.scheduled_start, visit.late_reason).catch(() => {});
         sendPushToUser(m.id, { type: 'missed_call', title: `Missed call — ${personName}`, body: `${visit.label || visit.visit_type} was marked missed`, url: '/homecare' }, 'homecare').catch(() => {});
+      }
+
+      // Also push to the assigned carer
+      if (visit.assigned_staff_id) {
+        const staffUser = await query('SELECT user_id FROM staff_profiles WHERE id = $1', [visit.assigned_staff_id]);
+        if (staffUser.rows.length) {
+          sendPushToUser(staffUser.rows[0].user_id, { type: 'missed_call', title: 'Call marked missed', body: `Your ${visit.label || visit.visit_type} call for ${personName} was marked as missed.`, url: '/homecare' }, 'homecare').catch(() => {});
+        }
       }
     } catch (e: any) { /* notification failure should not block */ }
   }

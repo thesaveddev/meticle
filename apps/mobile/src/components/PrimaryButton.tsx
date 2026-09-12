@@ -1,5 +1,6 @@
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, type } from '../theme'
+import { hapticLight } from '../services/haptics'
 
 interface PrimaryButtonProps {
   label: string
@@ -35,7 +36,7 @@ export function PrimaryButton({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: inactive, busy: loading }}
-      onPress={onPress}
+      onPress={() => { hapticLight(); onPress() }}
       disabled={inactive}
       style={({ pressed }) => [
         styles.button,

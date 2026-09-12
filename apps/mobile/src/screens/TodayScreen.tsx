@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useMemo } from 'react'
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type } from '../theme'
 import type { HomecareVisit, MobileUser, OfflineVisitAction, SyncState } from '../types'
 import { SyncRail } from '../components/SyncRail'
 import { VisitRow } from '../components/VisitRow'
+import { hapticMedium, hapticLight } from '../services/haptics'
 
 function dayRange() {
   const now = new Date()
@@ -23,6 +24,16 @@ function greeting() {
   if (h < 12) return 'Good morning'
   if (h < 17) return 'Good afternoon'
   return 'Good evening'
+}
+
+function queueStateLabel(state: string) {
+  switch (state) {
+    case 'synced': return { label: 'Synced', color: colors.success, bg: colors.successSurface, icon: '✓' }
+    case 'pending': return { label: 'Pending', color: colors.warning, bg: colors.warningSurface, icon: '⏳' }
+    case 'syncing': return { label: 'Syncing', color: colors.primary, bg: colors.primarySurface, icon: '↻' }
+    case 'failed': return { label: 'Failed', color: colors.danger, bg: colors.dangerSurface, icon: '!' }
+    default: return { label: state, color: colors.muted, bg: colors.surfaceAlt, icon: '—' }
+  }
 }
 
 export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshing, onSync }: {
@@ -50,11 +61,24 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
     [],
   )
 
+  const handleRefresh = useCallback(() => {
+    hapticMedium()
+    onRefresh()
+  }, [onRefresh])
+
+  const pendingQueue = queue.filter(item => item.state !== 'synced')
+
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
+        }
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
@@ -84,11 +108,42 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         {/* Sync status */}
         <SyncRail state={syncState} count={queue.length} onPress={onSync} />
 
+        {/* Offline queue panel */}
+        {pendingQueue.length > 0 && (
+          <View style={styles.queueCard}>
+            <View style={styles.queueHeader}>
+              <Text style={styles.queueTitle}>📋 Offline queue</Text>
+              <Pressable onPress={() => { hapticLight(); onSync() }} style={styles.retryBtn}>
+                <Text style={styles.retryText}>↻ Sync now</Text>
+              </Pressable>
+            </View>
+            {pendingQueue.slice(0, 5).map(item => {
+              const sc = queueStateLabel(item.state)
+              const visitLabel = visits.find(v => v.id === item.visitId)?.label || 'Visit'
+              return (
+                <View key={item.id} style={styles.queueItem}>
+                  <View style={[styles.queueDot, { backgroundColor: sc.color }]} />
+                  <View style={styles.queueInfo}>
+                    <Text style={styles.queueItemLabel}>{item.action === 'check-in' ? 'Check-in' : 'Check-out'} · {visitLabel}</Text>
+                    <Text style={styles.queueItemTime}>{new Date(item.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</Text>
+                  </View>
+                  <View style={[styles.queueStatusBadge, { backgroundColor: sc.bg }]}>
+                    <Text style={[styles.queueStatusText, { color: sc.color }]}>{sc.icon} {sc.label}</Text>
+                  </View>
+                </View>
+              )
+            })}
+            {pendingQueue.length > 5 && (
+              <Text style={styles.queueMore}>+{pendingQueue.length - 5} more</Text>
+            )}
+          </View>
+        )}
+
         {/* Active visit */}
         {activeVisit && (
           <View style={styles.activeBlock}>
             <Text style={styles.sectionHead}>NOW</Text>
-            <VisitRow visit={activeVisit} onPress={() => onVisit(activeVisit)} active />
+            <VisitRow visit={activeVisit} onPress={() => { hapticLight(); onVisit(activeVisit) }} active />
           </View>
         )}
 
@@ -100,7 +155,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
               <VisitRow
                 key={visit.id}
                 visit={visit}
-                onPress={() => onVisit(visit)}
+                onPress={() => { hapticLight(); onVisit(visit) }}
                 active={visit.id === activeVisit?.id}
               />
             ))}
@@ -169,6 +224,84 @@ const styles = StyleSheet.create({
   statLabel: {
     ...type.small,
     marginTop: 2,
+  },
+
+  /* Queue panel */
+  queueCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    overflow: 'hidden',
+    ...elevation.sm,
+  },
+  queueHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.base,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  queueTitle: {
+    fontFamily: 'System',
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  retryBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+  },
+  retryText: {
+    fontFamily: 'System',
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.inverse,
+  },
+  queueItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    gap: spacing.md,
+  },
+  queueDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  queueInfo: {
+    flex: 1,
+  },
+  queueItemLabel: {
+    fontFamily: 'System',
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.ink,
+  },
+  queueItemTime: {
+    ...type.small,
+    marginTop: 1,
+  },
+  queueStatusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radii.full,
+  },
+  queueStatusText: {
+    fontFamily: 'System',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  queueMore: {
+    ...type.small,
+    textAlign: 'center',
+    paddingVertical: spacing.sm,
   },
 
   /* Sections */
