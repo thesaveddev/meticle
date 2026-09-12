@@ -38,6 +38,7 @@ export default function PersonDirectoryPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [addOpen, setAddOpen] = useState(false)
+  const [inlineForm, setInlineForm] = useState(false)
   const [form, setForm] = useState({ first_name: '', last_name: '', date_of_birth: '', nhs_number: '', room_number: '', status: 'active', allergies: '', support_level: '', location_id: '', min_staff_required: '' })
   const [formError, setFormError] = useState('')
   const [page, setPage] = useState(0)
@@ -124,12 +125,54 @@ export default function PersonDirectoryPage() {
               </Button>
             </>
           )}
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
-            sx={{ bgcolor: '#0F4C81', textTransform: 'none', fontWeight: 700 }}>
-            Add Person
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { setInlineForm(!inlineForm); setAddOpen(false) }}
+            sx={{ textTransform: 'none', borderColor: inlineForm ? '#0F4C81' : '#E5E7EB', color: inlineForm ? '#0F4C81' : '#374151', fontWeight: 600 }}>
+            {inlineForm ? 'Close form' : 'Add client'}
           </Button>
         </Stack>
       </Stack>
+
+      {/* Inline add client form */}
+      {inlineForm && (
+        <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid #E5E7EB', borderRadius: 2, borderLeft: '4px solid #0F4C81' }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0F4C81' }}>Add a new client</Typography>
+            <Button size="small" onClick={() => setInlineForm(false)} sx={{ textTransform: 'none', color: '#6B7280' }}>Close</Button>
+          </Stack>
+          {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
+          <Stack spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField label="First name" size="small" required value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} sx={{ flex: 1 }} />
+              <TextField label="Last name" size="small" required value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} sx={{ flex: 1 }} />
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField type="date" label="Date of birth" size="small" InputLabelProps={{ shrink: true }} value={form.date_of_birth} onChange={e => setForm(f => ({ ...f, date_of_birth: e.target.value }))} sx={{ flex: 1 }} />
+              <TextField label="NHS number" size="small" value={form.nhs_number} onChange={e => setForm(f => ({ ...f, nhs_number: e.target.value }))} sx={{ flex: 1 }} />
+              <TextField label="Room / address" size="small" value={form.room_number} onChange={e => setForm(f => ({ ...f, room_number: e.target.value }))} sx={{ flex: 1 }} />
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField select label="Location" size="small" required value={form.location_id} onChange={e => setForm(f => ({ ...f, location_id: e.target.value }))} sx={{ flex: 1 }}>
+                <MenuItem value="">Select location</MenuItem>
+                {locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
+              </TextField>
+              <TextField select label="Support level" size="small" value={form.support_level} onChange={e => setForm(f => ({ ...f, support_level: e.target.value }))} sx={{ flex: 1 }}>
+                {SUPPORT_LEVELS.map(sl => <MenuItem key={sl.value} value={sl.value}>{sl.label}</MenuItem>)}
+              </TextField>
+              <TextField select label="Status" size="small" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} sx={{ flex: 1 }}>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="discharged">Discharged</MenuItem>
+              </TextField>
+            </Stack>
+            <TextField label="Allergies (comma-separated)" size="small" placeholder="e.g. Penicillin, Latex" value={form.allergies} onChange={e => setForm(f => ({ ...f, allergies: e.target.value }))} />
+            <Stack direction="row" justifyContent="flex-end" spacing={1}>
+              <Button size="small" onClick={() => setInlineForm(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+              <Button size="small" variant="contained" disabled={createMutation.isPending || !form.first_name.trim() || !form.last_name.trim() || !form.location_id} onClick={(e) => { e.preventDefault(); handleCreate(e as any) }} sx={{ textTransform: 'none', bgcolor: '#0F4C81' }}>
+                {createMutation.isPending ? <CircularProgress size={16} color="inherit" /> : 'Add client'}
+              </Button>
+            </Stack>
+          </Stack>
+        </Paper>
+      )}
 
       <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
         <Stack direction="row" spacing={2} alignItems="center">
