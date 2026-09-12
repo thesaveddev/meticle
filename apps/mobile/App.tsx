@@ -22,6 +22,7 @@ import { ProfileScreen } from './src/screens/ProfileScreen'
 import { WeekScreen } from './src/screens/WeekScreen'
 import { SwapTransferScreen } from './src/screens/SwapTransferScreen'
 import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen'
+import { ChatScreen } from './src/screens/ChatScreen'
 
 type TabKey = 'today' | 'schedule' | 'mileage' | 'settings'
 
@@ -43,6 +44,7 @@ type Screen =
   | { kind: 'profile' }
   | { kind: 'availability' }
   | { kind: 'swap' }
+  | { kind: 'chat' }
 
 export default function App() {
   return (
@@ -210,6 +212,9 @@ function AppInner() {
   if (currentScreen.kind === 'incident' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} /></>
   }
+  if (currentScreen.kind === 'chat' && session) {
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ChatScreen session={session} onBack={goBack} /></>
+  }
 
   /* ─── Main tab view ──────────────────────────────────────── */
   return (
@@ -220,7 +225,7 @@ function AppInner() {
           {tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} />}
           {tab === 'schedule' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap' })} />}
           {tab === 'mileage' && <MileageScreen session={session} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={() => pushScreen({ kind: 'availability' })} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={() => pushScreen({ kind: 'availability' })} onChat={() => pushScreen({ kind: 'chat' })} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>

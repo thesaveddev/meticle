@@ -259,3 +259,43 @@ export async function reportIncident(token: string, data: {
 }): Promise<any> {
   return request('/incidents', { method: 'POST', body: JSON.stringify(data) }, token)
 }
+
+// ── Chat ──
+export async function getChatChannels(token: string): Promise<string[]> {
+  return request('/chat/channels', {}, token)
+}
+
+export async function getChatMessages(token: string, channel: string, limit = 50, before?: string): Promise<any[]> {
+  const params = new URLSearchParams({ limit: String(limit) })
+  if (before) params.set('before', before)
+  return request(`/chat/channels/${encodeURIComponent(channel)}/messages?${params}`, {}, token)
+}
+
+export async function sendChatMessage(token: string, channel: string, message: string, replyToId?: string): Promise<any> {
+  return request(`/chat/channels/${encodeURIComponent(channel)}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ message, reply_to_id: replyToId }),
+  }, token)
+}
+
+export async function editChatMessage(token: string, messageId: string, message: string): Promise<any> {
+  return request(`/chat/messages/${messageId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ message }),
+  }, token)
+}
+
+export async function deleteChatMessage(token: string, messageId: string): Promise<any> {
+  return request(`/chat/messages/${messageId}`, { method: 'DELETE' }, token)
+}
+
+export async function markChatRead(token: string, channel: string): Promise<any> {
+  return request('/chat/read-receipts', {
+    method: 'POST',
+    body: JSON.stringify({ channel }),
+  }, token)
+}
+
+export async function getChatUnread(token: string): Promise<Record<string, number>> {
+  return request('/chat/unread', {}, token)
+}
