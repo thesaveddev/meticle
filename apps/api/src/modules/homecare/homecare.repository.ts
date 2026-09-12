@@ -321,6 +321,23 @@ export async function checkIn(orgId: string, staffUserId: string, visitId: strin
   const staff = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [staffUserId]);
   if (!staff.rows[0] || visit.assigned_staff_id !== staff.rows[0].id) throw new AppError(403, 'This visit is not assigned to you');
   if (['completed','cancelled','missed'].includes(visit.status)) throw new AppError(409, 'This visit is no longer open for check-in');
+
+  // Date/time validation: only allow check-in within a window around scheduled_start
+  // Window: 30 minutes before scheduled_start to scheduled_end
+  if (visit.scheduled_start && visit.scheduled_end) {
+    const now = new Date();
+    const scheduledStart = new Date(visit.scheduled_start);
+    const scheduledEnd = new Date(visit.scheduled_end);
+    const earliestCheckIn = new Date(scheduledStart.getTime() - 30 * 60 * 1000); // 30 min before
+    if (now < earliestCheckIn) {
+      const minutesUntil = Math.ceil((scheduledStart.getTime() - now.getTime()) / 60000);
+      throw new AppError(400, `This call is scheduled for ${scheduledStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}. You can check in up to 30 minutes before. ${minutesUntil} minutes remaining.`);
+    }
+    if (now > scheduledEnd) {
+      const minutesOver = Math.ceil((now.getTime() - scheduledEnd.getTime()) / 60000);
+      throw new AppError(400, `This call ended at ${scheduledEnd.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}. It is ${minutesOver} minutes past the scheduled end time. Please contact your manager.`);
+    }
+  }
   const result = await query(`UPDATE homecare_visits SET status = 'checked_in', check_in_at = COALESCE(check_in_at, NOW()), check_in_latitude = $1, check_in_longitude = $2, check_in_accuracy_meters = $3, actual_travel_minutes = COALESCE($4, actual_travel_minutes), actual_mileage_miles = COALESCE($5, actual_mileage_miles), updated_at = NOW()
     WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.latitude, input.longitude, input.accuracy_meters ?? null, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId]);
   return result.rows[0];
