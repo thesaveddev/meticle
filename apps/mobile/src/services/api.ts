@@ -222,3 +222,18 @@ export async function getCarerNotifications(token: string): Promise<any[]> {
 export async function markNotificationsRead(token: string): Promise<void> {
   await request('/homecare/notifications/read', { method: 'POST' }, token)
 }
+
+/* ─── Incidents ───────────────────────────────────────────── */
+export async function reportIncident(token: string, data: {
+  title: string
+  description?: string
+  category_id?: string
+  severity: string
+  location?: string
+  is_near_miss?: boolean
+  incident_date: string
+  incident_time?: string
+  person_ids?: string[]
+}): Promise<any> {
+  return request('/incidents', { method: 'POST', body: JSON.stringify(data) }, token)
+}

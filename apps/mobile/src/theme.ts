@@ -1,44 +1,74 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet, useColorScheme } from 'react-native'
 
-/* ─── Color system ─────────────────────────────────────────── */
-export const colors = {
-  /* Primary — deep indigo, professional and calm */
+/* ─── Light colors ──────────────────────────────────────────── */
+const lightColors = {
   primary: '#2D3A8C',
   primaryLight: '#4A5AC7',
   primarySurface: '#EEF0FA',
-
-  /* Success — warm emerald */
   success: '#16A34A',
   successDeep: '#15803D',
   successSurface: '#DCFCE7',
-
-  /* Warning — warm amber */
   warning: '#D97706',
   warningSurface: '#FEF3C7',
-
-  /* Danger — warm red */
   danger: '#DC2626',
   dangerDeep: '#B91C1C',
   dangerSurface: '#FEE2E2',
-
-  /* Accent — teal for secondary actions */
   accent: '#0D9488',
   accentSurface: '#CCFBF1',
-
-  /* Neutrals — warm paper tones */
   bg: '#F5F2ED',
   surface: '#FFFFFF',
   surfaceAlt: '#FAF8F5',
   border: '#E5E0D8',
   borderLight: '#F0ECE6',
-
-  /* Text */
   ink: '#1C1917',
   inkLight: '#44403C',
   muted: '#78716C',
   subtle: '#A8A29E',
   inverse: '#FFFFFF',
-} as const
+}
+
+/* ─── Dark colors ───────────────────────────────────────────── */
+const darkColors = {
+  primary: '#7C8AF0',
+  primaryLight: '#9AA5F5',
+  primarySurface: '#1E2340',
+  success: '#4ADE80',
+  successDeep: '#22C55E',
+  successSurface: '#14352A',
+  warning: '#FBBF24',
+  warningSurface: '#3D2E0A',
+  danger: '#F87171',
+  dangerDeep: '#EF4444',
+  dangerSurface: '#3D1515',
+  accent: '#2DD4BF',
+  accentSurface: '#0F2E2B',
+  bg: '#0F0F14',
+  surface: '#1A1A22',
+  surfaceAlt: '#222230',
+  border: '#2A2A36',
+  borderLight: '#1F1F2A',
+  ink: '#F5F5F4',
+  inkLight: '#D6D3D1',
+  muted: '#A8A29E',
+  subtle: '#78716C',
+  inverse: '#0F0F14',
+}
+
+export type AppColors = typeof lightColors
+
+/* ─── Get colors by scheme ──────────────────────────────────── */
+export function getColors(scheme: 'light' | 'dark' = 'light'): AppColors {
+  return scheme === 'dark' ? darkColors : lightColors
+}
+
+/* ─── Default to light for backward compat ──────────────────── */
+export const colors = lightColors
+
+/* ─── Hook: provides colors based on current scheme ─────────── */
+export function useColors(): AppColors {
+  const scheme = useColorScheme()
+  return scheme === 'dark' ? darkColors : lightColors
+}
 
 /* ─── Spacing (8pt base) ───────────────────────────────────── */
 export const spacing = {
@@ -61,79 +91,71 @@ export const radii = {
   full: 999,
 } as const
 
-/* ─── Elevation (Android shadows + iOS shadows) ─────────────── */
+/* ─── Elevation ─────────────────────────────────────────────── */
 export const elevation = {
-  none: {
-    shadowOpacity: 0,
-  },
+  none: { shadowOpacity: 0 },
   sm: {
-    shadowColor: '#1C1917',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   md: {
-    shadowColor: '#1C1917',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.12,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   lg: {
-    shadowColor: '#1C1917',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.16,
     shadowRadius: 16,
-    elevation: 6,
+    elevation: 8,
   },
 } as const
 
 /* ─── Typography ────────────────────────────────────────────── */
 export const type = {
-  /** Hero greeting, login headline */
   hero: {
     fontFamily: 'System',
     fontSize: 28,
     fontWeight: '800' as const,
     lineHeight: 34,
     letterSpacing: -0.6,
-    color: colors.ink,
+    color: lightColors.ink,
   },
-  /** Section titles */
   title: {
     fontFamily: 'System',
     fontSize: 20,
     fontWeight: '700' as const,
     lineHeight: 26,
     letterSpacing: -0.3,
-    color: colors.ink,
+    color: lightColors.ink,
   },
-  /** Card titles, strong body */
   bodyBold: {
     fontFamily: 'System',
     fontSize: 16,
     fontWeight: '600' as const,
     lineHeight: 22,
-    color: colors.ink,
+    color: lightColors.ink,
   },
-  /** Standard body text */
   body: {
     fontFamily: 'System',
     fontSize: 15,
     fontWeight: '400' as const,
     lineHeight: 22,
-    color: colors.inkLight,
+    color: lightColors.inkLight,
   },
-  /** Small body, secondary text */
   small: {
     fontFamily: 'System',
     fontSize: 13,
     fontWeight: '400' as const,
     lineHeight: 18,
-    color: colors.muted,
+    color: lightColors.muted,
   },
-  /** Labels, chips, badges */
   label: {
     fontFamily: 'System',
     fontSize: 12,
@@ -141,17 +163,15 @@ export const type = {
     lineHeight: 16,
     letterSpacing: 0.3,
     textTransform: 'uppercase' as const,
-    color: colors.muted,
+    color: lightColors.muted,
   },
-  /** Tiny text, captions */
   caption: {
     fontFamily: 'System',
     fontSize: 12,
     fontWeight: '400' as const,
     lineHeight: 16,
-    color: colors.subtle,
+    color: lightColors.subtle,
   },
-  /** Tab bar labels */
   tab: {
     fontFamily: 'System',
     fontSize: 10,
@@ -159,7 +179,6 @@ export const type = {
     lineHeight: 14,
     letterSpacing: 0.2,
   },
-  /** Big numbers in summary cards */
   stat: {
     fontFamily: 'System',
     fontSize: 24,
@@ -167,7 +186,6 @@ export const type = {
     lineHeight: 28,
     letterSpacing: -0.5,
   },
-  /** Small stat numbers */
   statSmall: {
     fontFamily: 'System',
     fontSize: 18,
@@ -177,39 +195,33 @@ export const type = {
   },
 } as const
 
-/* ─── Shared component styles ───────────────────────────────── */
+/* ─── Shared styles (light defaults) ────────────────────────── */
 export const commonStyles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
+  screen: { flex: 1, backgroundColor: lightColors.bg },
   content: {
     paddingHorizontal: spacing.base,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xxxl,
   },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: lightColors.surface,
     borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: lightColors.borderLight,
     ...elevation.sm,
   },
   field: {
     minHeight: 48,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: lightColors.border,
     borderRadius: radii.md,
-    backgroundColor: colors.surface,
+    backgroundColor: lightColors.surface,
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.md,
-    color: colors.ink,
+    color: lightColors.ink,
     fontFamily: 'System',
     fontSize: 15,
     fontWeight: '400' as const,
-  },
-  fieldFocused: {
-    borderColor: colors.primary,
   },
   button: {
     minHeight: 52,
@@ -222,33 +234,10 @@ export const commonStyles = StyleSheet.create({
     fontFamily: 'System',
     fontSize: 16,
     fontWeight: '600' as const,
-    color: colors.inverse,
-  },
-  outlineButton: {
-    minHeight: 52,
-    borderWidth: 1.5,
-    borderRadius: radii.md,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    paddingHorizontal: spacing.lg,
-    backgroundColor: colors.surface,
-  },
-  outlineLabel: {
-    fontFamily: 'System',
-    fontSize: 16,
-    fontWeight: '600' as const,
+    color: lightColors.inverse,
   },
   divider: {
     height: 1,
-    backgroundColor: colors.border,
-  },
-  sectionHeader: {
-    fontFamily: 'System',
-    fontSize: 11,
-    fontWeight: '700' as const,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase' as const,
-    color: colors.subtle,
-    marginBottom: spacing.sm,
+    backgroundColor: lightColors.border,
   },
 })

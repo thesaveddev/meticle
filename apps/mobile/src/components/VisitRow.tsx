@@ -1,6 +1,7 @@
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, type } from '../theme'
 import type { HomecareVisit } from '../types'
+import { hapticLight } from '../services/haptics'
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -31,7 +32,7 @@ export function VisitRow({ visit, onPress, active = false }: { visit: HomecareVi
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${time(visit.scheduled_start)} ${visit.label}${visit.person_name ? `, ${visit.person_name}` : ''}, ${sc.label}`}
-      onPress={onPress}
+      onPress={() => { hapticLight(); onPress() }}
       style={({ pressed }) => [
         styles.row,
         active && styles.rowActive,
