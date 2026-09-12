@@ -33,8 +33,8 @@ jobs:
             if [ "$EXISTS" = "YES" ]; then echo "Already seeded"; exit 0; fi
             SHA="${{ steps.sha.outputs.SHA }}"
             curl -fsSL "https://raw.githubusercontent.com/thesaveddev/meticle/${SHA}/scripts/seed-dreakcare.js" -o /tmp/seed.js
-            docker cp /tmp/seed.js "$CONTAINER:/tmp/seed.js"
-            docker exec "$CONTAINER" node /tmp/seed.js
-            docker exec "$CONTAINER" rm -f /tmp/seed.js
+            docker cp /tmp/seed.js "$CONTAINER:/app/scripts/seed.js"
+            docker exec -w /app "$CONTAINER" node scripts/seed.js
+            docker exec "$CONTAINER" rm -f /app/scripts/seed.js
             rm -f /tmp/seed.js
             echo "Seed complete"
