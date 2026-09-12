@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
+import { SkeletonCalendar } from '../components/Skeleton'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { getMyVisits } from '../services/api'
 import { IconCheck, IconClock, IconAlert, IconForward, IconNavigate } from '../components/Icons'
@@ -104,10 +105,7 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
   if (loading) {
     return (
       <SafeAreaView style={[styles.screen, dyn(c).screen]}>
-        <View style={styles.loading}>
-          <ActivityIndicator color={c.primary} />
-          <Text style={[styles.loadingText, { color: c.muted }]}>Loading schedule...</Text>
-        </View>
+        <SkeletonCalendar c={c} />
       </SafeAreaView>
     )
   }

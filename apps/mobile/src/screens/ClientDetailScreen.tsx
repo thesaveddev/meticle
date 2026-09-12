@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
+import { SkeletonScreen } from '../components/Skeleton'
 import { MapPickerModal } from '../components/MapPickerModal'
 import type { AuthSession } from '../types'
 import { getPersonDetail, getMedicationsForPerson, getBodyMapStats, getDailySummary } from '../services/api'
@@ -62,7 +63,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
     return (
       <View style={[styles.screen, { backgroundColor: c.bg }]}>
         <Header onBack={onBack} title="Client" c={c} />
-        <View style={styles.loading}><ActivityIndicator color={c.primary} /><Text style={[styles.loadingText, { color: c.muted }]}>Loading...</Text></View>
+        <SkeletonScreen c={c} />
       </View>
     )
   }

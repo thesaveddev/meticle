@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
+import { SkeletonInline } from '../components/Skeleton'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getStaffVisits } from '../services/api'
@@ -323,10 +324,7 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
                     Pick the call from {targetStaff?.first_name || 'them'} that you'd like to take.
                   </Text>
                   {loadingTargetVisits ? (
-                    <View style={styles.loadingRow}>
-                      <ActivityIndicator color={c.primary} />
-                      <Text style={[styles.loadingText, { color: c.muted }]}>Loading their calls...</Text>
-                    </View>
+                    <SkeletonInline c={c} />
                   ) : (
                     <View style={styles.visitList}>
                       {targetVisits.map(v => (
