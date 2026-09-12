@@ -58,6 +58,8 @@ const CallSchedulingPage = lazy(() => import('./pages/homecare/CallSchedulingPag
 const PayrollExportPage = lazy(() => import('./pages/homecare/PayrollExportPage'))
 const ClientBillingPage = lazy(() => import('./pages/homecare/ClientBillingPage'))
 const CarerTotalsPage = lazy(() => import('./pages/homecare/CarerTotalsPage'))
+const AvailabilityPage = lazy(() => import('./pages/homecare/AvailabilityPage'))
+const LiveMapPage = lazy(() => import('./pages/homecare/LiveMapPage'))
 const PersonDirectoryPage = lazy(() => import('./pages/people/PersonDirectoryPage'))
 const PersonProfilePage = lazy(() => import('./pages/people/PersonProfilePage'))
 const IncidentDirectoryPage = lazy(() => import('./pages/incidents/IncidentDirectoryPage'))
@@ -165,6 +167,8 @@ function App() {
           <Route path="/mileage" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="mileage_travel"><MileagePage /></ModuleGuard></AuthGuard>} />
           <Route path="/call-scheduling" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="call_scheduling"><CallSchedulingPage /></ModuleGuard></AuthGuard>} />
           <Route path="/payroll-export" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="payroll_export"><PayrollExportPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/availability" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="homecare"><AvailabilityPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/live-map" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="homecare"><LiveMapPage /></ModuleGuard></AuthGuard>} />
           <Route path="/carer-totals" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="payroll_export"><CarerTotalsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/client-billing" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="client_billing"><ClientBillingPage /></ModuleGuard></AuthGuard>} />
           <Route path="/people" element={<ModuleGuard module="people"><PersonDirectoryPage /></ModuleGuard>} />

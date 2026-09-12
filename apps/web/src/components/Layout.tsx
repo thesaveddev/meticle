@@ -156,6 +156,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     {
       label: 'Homecare',
       items: [
+        { text: 'Live Map', icon: <LocationOnIcon />, path: '/live-map', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
+        { text: 'Availability', icon: <ScheduleIcon />, path: '/availability', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Visits & Packages', icon: <HomecareIcon />, path: '/homecare', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Call Schedule', icon: <ScheduleIcon />, path: '/call-scheduling', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Mileage & Travel', icon: <DirectionsCarIcon />, path: '/mileage', module: 'mileage_travel', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
