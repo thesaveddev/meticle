@@ -12,28 +12,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Upload seed script to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: root
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "scripts/seed-dreakcare.js"
-          target: "/root/seed-dreakcare.js"
-          strip_components: 1
+      - name: Encode seed script
+        id: encode
+        run: echo "B64=$(base64 -w0 scripts/seed-dreakcare.js)" >> "$GITHUB_OUTPUT"
 
-      - name: Run seed in API container
+      - name: Run seed on production VPS
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            set -x
-            # Find the API container
+            set -ex
+            echo "${{ steps.encode.outputs.B64 }}" | base64 -d > /tmp/seed.js
             CONTAINER=$(docker ps -q -f name=api | head -1)
             if [ -z "$CONTAINER" ]; then
-              echo "Listing all containers..."
               docker ps -a
               CONTAINER=$(docker ps -q | head -1)
             fi
@@ -41,22 +34,9 @@ jobs:
               echo "ERROR: No containers running"
               exit 1
             fi
-            echo "Using container: $CONTAINER"
-
-            # Verify the file exists on VPS host
-            ls -la /root/seed-dreakcare.js
-
-            # Copy into container
-            docker cp /root/seed-dreakcare.js "$CONTAINER:/tmp/seed.js"
-
-            # Verify file exists inside container
-            docker exec "$CONTAINER" ls -la /tmp/seed.js
-
-            # Run the seed
+            echo "Container: $CONTAINER"
+            docker cp /tmp/seed.js "$CONTAINER:/tmp/seed.js"
             docker exec "$CONTAINER" node /tmp/seed.js
-
-            # Cleanup
             docker exec "$CONTAINER" rm -f /tmp/seed.js
-            rm -f /root/seed-dreakcare.js
-
+            rm -f /tmp/seed.js
             echo "Seed complete"
