@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { dyn } from '../utils/dynamicStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
 import type { AuthSession, AvailabilityRecord } from '../types'
 import { getMyAvailability, addAvailability, deleteAvailability } from '../services/api'
@@ -151,7 +152,7 @@ export function AvailabilityScreen({ session }: { session: AuthSession }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1 },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
   pageTitle: { ...type.title, marginBottom: spacing.xs },
   subtitle: { ...type.body, color: colors.muted, marginBottom: spacing.base },

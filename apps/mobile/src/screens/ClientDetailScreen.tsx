@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { dyn } from '../utils/dynamicStyles'
 import { MapPickerModal } from '../components/MapPickerModal'
 import type { AuthSession } from '../types'
 import { getPersonDetail, getMedicationsForPerson, getBodyMapStats, getDailySummary } from '../services/api'
@@ -332,7 +333,7 @@ function Card({ title, children, c }: { title: string; children: React.ReactNode
 /* ─── Styles ────────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1 },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
