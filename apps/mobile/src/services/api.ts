@@ -63,6 +63,15 @@ export async function getStaffVisits(token: string, staffId: string, from: strin
   return request<HomecareVisit[]>(`/homecare/staff-visits/${staffId}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {}, token)
 }
 
+export async function getLocationThreshold(token: string): Promise<number> {
+  const res = await request<{ location_threshold_meters: number }>('/homecare/settings/location-threshold', {}, token)
+  return res.location_threshold_meters || 500
+}
+
+export async function setLocationThreshold(token: string, meters: number): Promise<void> {
+  await request('/homecare/settings/location-threshold', { method: 'PATCH', body: JSON.stringify({ location_threshold_meters: meters }) }, token)
+}
+
 export async function executeVisitAction(token: string, visitId: string, action: 'check-in' | 'check-out', payload: Record<string, unknown>, actionKey: string) {
   return request(`/homecare/visits/${visitId}/offline/${action}`, { method: 'POST', body: JSON.stringify({ ...payload, action_key: actionKey }) }, token)
 }
