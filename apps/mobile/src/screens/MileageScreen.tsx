@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { SkeletonScreen } from '../components/Skeleton'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import { getMyVisits } from '../services/api'
@@ -48,10 +49,7 @@ export function MileageScreen({ session }: Props) {
   if (loading) {
     return (
       <SafeAreaView style={[styles.screen, dyn(c).screen]}>
-        <View style={styles.loading}>
-          <ActivityIndicator color={c.primary} />
-          <Text style={[styles.loadingText, { color: c.muted }]}>Loading mileage...</Text>
-        </View>
+        <SkeletonScreen c={c} />
       </SafeAreaView>
     )
   }

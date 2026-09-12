@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Animated, Easing, StyleSheet, View } from 'react-native'
-import { colors, radii, spacing } from '../theme'
+import { colors, radii, spacing, useAppColors } from '../theme'
 
 interface SkeletonProps {
   width?: number | string
@@ -9,121 +9,123 @@ interface SkeletonProps {
   style?: any
 }
 
-export function Skeleton({ width = '100%', height = 16, borderRadius = radii.sm, style }: SkeletonProps) {
-  const shimmer = useRef(new Animated.Value(0)).current
+/** A single skeleton bone — animated pulse rectangle */
+export function Skeleton({ width, height = 14, borderRadius = radii.sm, style }: SkeletonProps) {
+  const c = useAppColors()
+  const pulse = useRef(new Animated.Value(0.3)).current
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(shimmer, { toValue: 1, duration: 1000, easing: Easing.ease, useNativeDriver: false }),
-        Animated.timing(shimmer, { toValue: 0, duration: 1000, easing: Easing.ease, useNativeDriver: false }),
+        Animated.timing(pulse, { toValue: 0.7, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ])
     )
     loop.start()
     return () => loop.stop()
   }, [])
 
-  const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] })
-
   return (
     <Animated.View
       style={[
-        styles.skeleton,
-        { width: width as any, height, borderRadius, opacity },
+        { width, height, borderRadius, backgroundColor: c.border, opacity: pulse },
         style,
       ]}
     />
   )
 }
 
-/* ─── Composite skeletons for common patterns ────────────────── */
-
-export function SkeletonCard({ lines = 3 }: { lines?: number }) {
+/** Skeleton for a visit card */
+export function SkeletonVisitCard({ c }: { c: any }) {
   return (
-    <View style={styles.card}>
-      <Skeleton width="60%" height={16} />
-      <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
-        {Array.from({ length: lines }).map((_, i) => (
-          <Skeleton key={i} height={12} width={i === lines - 1 ? '70%' : '100%'} />
+    <View style={[skStyles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+      <View style={skStyles.cardRow}>
+        <View style={skStyles.timeCol}>
+          <Skeleton width={40} height={14} borderRadius={4} />
+          <Skeleton width={30} height={10} borderRadius={4} style={{ marginTop: 4 }} />
+        </View>
+        <View style={skStyles.cardContent}>
+          <Skeleton width="70%" height={16} borderRadius={4} />
+          <Skeleton width="50%" height={12} borderRadius={4} style={{ marginTop: 6 }} />
+          <Skeleton width="90%" height={10} borderRadius={4} style={{ marginTop: 6 }} />
+        </View>
+        <Skeleton width={20} height={20} borderRadius={10} />
+      </View>
+    </View>
+  )
+}
+
+/** Full-page skeleton for screens */
+export function SkeletonScreen({ c }: { c: any }) {
+  return (
+    <View style={[skStyles.page, { backgroundColor: c.bg }]}>
+      {/* Header skeleton */}
+      <View style={skStyles.headerRow}>
+        <Skeleton width={120} height={14} borderRadius={4} />
+      </View>
+      <Skeleton width={200} height={26} borderRadius={4} style={{ marginBottom: spacing.base }} />
+
+      {/* Card skeleton */}
+      <View style={[skStyles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+        <Skeleton width="60%" height={16} borderRadius={4} />
+        <Skeleton width="40%" height={12} borderRadius={4} style={{ marginTop: 8 }} />
+        <Skeleton width="80%" height={12} borderRadius={4} style={{ marginTop: 8 }} />
+      </View>
+
+      {/* List skeleton */}
+      {[1, 2, 3].map(i => (
+        <SkeletonVisitCard key={i} c={c} />
+      ))}
+    </View>
+  )
+}
+
+/** Skeleton for a calendar grid */
+export function SkeletonCalendar({ c }: { c: any }) {
+  return (
+    <View style={[skStyles.page, { backgroundColor: c.bg }]}>
+      <View style={skStyles.calHeader}>
+        <Skeleton width={36} height={36} borderRadius={18} />
+        <Skeleton width={160} height={20} borderRadius={4} />
+        <Skeleton width={36} height={36} borderRadius={18} />
+      </View>
+      <View style={skStyles.calGrid}>
+        {[...Array(35)].map((_, i) => (
+          <Skeleton key={i} width={36} height={36} borderRadius={18} style={{ margin: 2 }} />
         ))}
       </View>
+      {[1, 2].map(i => (
+        <SkeletonVisitCard key={i} c={c} />
+      ))}
     </View>
   )
 }
 
-export function SkeletonVisitRow() {
+/** Inline loading skeleton for modals */
+export function SkeletonInline({ c }: { c: any }) {
   return (
-    <View style={styles.visitRow}>
-      <View style={styles.visitTime}>
-        <Skeleton width={44} height={14} />
-        <Skeleton width={30} height={10} />
-      </View>
-      <View style={styles.visitContent}>
-        <Skeleton width="70%" height={14} />
-        <Skeleton width="50%" height={12} />
-        <Skeleton width="80%" height={10} />
-      </View>
-    </View>
-  )
-}
-
-export function SkeletonStatRow() {
-  return (
-    <View style={styles.statRow}>
+    <View style={skStyles.inline}>
       {[1, 2, 3].map(i => (
-        <View key={i} style={styles.statCard}>
-          <Skeleton width={40} height={24} />
-          <Skeleton width={50} height={10} />
+        <View key={i} style={[skStyles.card, { backgroundColor: c.surface, borderColor: c.borderLight, marginBottom: spacing.sm }]}>
+          <Skeleton width="80%" height={14} borderRadius={4} />
+          <Skeleton width="50%" height={10} borderRadius={4} style={{ marginTop: 6 }} />
         </View>
       ))}
     </View>
   )
 }
 
-export function SkeletonClientCard() {
-  return (
-    <View style={styles.card}>
-      <Skeleton width="50%" height={20} />
-      <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
-        <Skeleton width={60} height={20} borderRadius={radii.full} />
-        <Skeleton width={80} height={20} borderRadius={radii.full} />
-      </View>
-      <Skeleton width="40%" height={12} style={{ marginTop: spacing.sm }} />
-    </View>
-  )
-}
-
-const styles = StyleSheet.create({
-  skeleton: {
-    backgroundColor: colors.border,
-  },
+const skStyles = StyleSheet.create({
+  page: { flex: 1, padding: spacing.base },
+  headerRow: { marginBottom: spacing.sm },
+  calHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.base },
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.base },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    padding: spacing.base,
+    borderRadius: radii.lg, borderWidth: 1, padding: spacing.base,
     marginBottom: spacing.sm,
   },
-  visitRow: {
-    flexDirection: 'row',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    gap: spacing.md,
-  },
-  visitTime: { width: 52, gap: 4 },
-  visitContent: { flex: 1, gap: 6 },
-  statRow: { flexDirection: 'row', gap: spacing.sm },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    padding: spacing.md,
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  timeCol: { alignItems: 'center', minWidth: 48 },
+  cardContent: { flex: 1 },
+  inline: { paddingVertical: spacing.sm },
 })
