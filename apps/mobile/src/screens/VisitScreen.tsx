@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, Animated, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
-import * as FileSystem from 'expo-file-system'
+
 import { colors, elevation, radii, spacing, type, FONT } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -136,14 +136,14 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const uploadVisitPhoto = async (uri: string) => {
     setUploadingPhoto(true)
     try {
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 })
       const filename = uri.split('/').pop() || 'photo.jpg'
       const ext = filename.split('.').pop()?.toLowerCase() || 'jpg'
       const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`
-      const byteCharacters = atob(base64)
-      const byteArray = new Uint8Array(byteCharacters.length)
-      for (let i = 0; i < byteCharacters.length; i++) byteArray[i] = byteCharacters.charCodeAt(i)
-      const blob = new Blob([byteArray], { type: mimeType })
+
+      // Use fetch to read file as blob — no deprecated expo-file-system API
+      const response = await fetch(uri)
+      const blob = await response.blob()
+
       const formData = new FormData()
       formData.append('file', blob, filename)
       const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://meticlecare.com/api'
