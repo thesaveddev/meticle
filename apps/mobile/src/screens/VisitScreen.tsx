@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Alert, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'

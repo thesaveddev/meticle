@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type } from '../theme'
 import type { HomecareVisit, MobileUser, OfflineVisitAction, SyncState } from '../types'
 import { SyncRail } from '../components/SyncRail'
