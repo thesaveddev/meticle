@@ -1,10 +1,13 @@
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { StyleSheet, useColorScheme } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 /* ─── Font family constant ─────────────────────────────────── */
 export const FONT = 'Inter'
+const THEME_KEY = 'app_theme_mode'
 
 /* ─── Light colors ──────────────────────────────────────────── */
-const lightColors = {
+export const lightColors = {
   primary: '#1E3A5F',
   primaryLight: '#2E5A8F',
   primarySurface: '#EBF2FA',
@@ -31,7 +34,7 @@ const lightColors = {
 }
 
 /* ─── Dark colors ───────────────────────────────────────────── */
-const darkColors = {
+export const darkColors = {
   primary: '#7C9AC7',
   primaryLight: '#93B0D8',
   primarySurface: '#1A2744',
@@ -59,19 +62,61 @@ const darkColors = {
 
 export type AppColors = typeof lightColors
 
-/* ─── Get colors by scheme ──────────────────────────────────── */
-export function getColors(scheme: 'light' | 'dark' = 'light'): AppColors {
-  return scheme === 'dark' ? darkColors : lightColors
+/* ─── Theme context ─────────────────────────────────────────── */
+type ThemeMode = 'light' | 'dark' | 'system'
+
+interface ThemeContextValue {
+  mode: ThemeMode
+  scheme: 'light' | 'dark'
+  colors: AppColors
+  setMode: (mode: ThemeMode) => void
 }
 
-/* ─── Default to light for backward compat ──────────────────── */
+const ThemeContext = createContext<ThemeContextValue>({
+  mode: 'system',
+  scheme: 'light',
+  colors: lightColors,
+  setMode: () => {},
+})
+
+export function useTheme() {
+  return useContext(ThemeContext)
+}
+
+/* Convenience hook — returns current colors */
+export function useAppColors(): AppColors {
+  return useTheme().colors
+}
+
+/* ─── Provider ──────────────────────────────────────────────── */
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const systemScheme = useColorScheme()
+  const [mode, setModeState] = useState<ThemeMode>('system')
+
+  // Load persisted preference
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_KEY).then(v => {
+      if (v === 'light' || v === 'dark' || v === 'system') setModeState(v)
+    })
+  }, [])
+
+  const setMode = useCallback((m: ThemeMode) => {
+    setModeState(m)
+    AsyncStorage.setItem(THEME_KEY, m)
+  }, [])
+
+  const scheme = mode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : mode
+  const colors = scheme === 'dark' ? darkColors : lightColors
+
+  return (
+    <ThemeContext.Provider value={{ mode, scheme, colors, setMode }}>
+      {children}
+    </ThemeContext.Provider>
+  )
+}
+
+/* ─── Static default (light) for backward compat ────────────── */
 export const colors = lightColors
-
-/* ─── Hook: provides colors based on current scheme ─────────── */
-export function useColors(): AppColors {
-  const scheme = useColorScheme()
-  return scheme === 'dark' ? darkColors : lightColors
-}
 
 /* ─── Spacing (8pt base) ───────────────────────────────────── */
 export const spacing = {
@@ -120,7 +165,7 @@ export const elevation = {
   },
 } as const
 
-/* ─── Typography ────────────────────────────────────────────── */
+/* ─── Typography (static — uses light colors by default) ────── */
 export const type = {
   hero: {
     fontFamily: FONT,

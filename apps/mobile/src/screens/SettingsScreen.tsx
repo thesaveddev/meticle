@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type, FONT } from '../theme'
+import { colors, elevation, radii, spacing, type, FONT, useTheme } from '../theme'
 import type { MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { requestReminderPermission } from '../services/notifications'
@@ -15,6 +15,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
   onSync: () => void
   onProfile?: () => void
 }) {
+  const { mode, scheme, setMode, colors: c } = useTheme()
   const [reminders, setReminders] = useState<'unknown' | 'enabled' | 'disabled'>('unknown')
   const [message, setMessage] = useState('')
   const [hapticOn, setHapticOn] = useState(true)
@@ -97,9 +98,36 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
         </View>
 
         <View style={styles.group}>
-          <Text style={styles.groupLabel}>PREFERENCES</Text>
+          <Text style={styles.groupLabel}>APPEARANCE</Text>
           <View style={styles.groupCard}>
-            {/* Haptic feedback */}
+            {/* Dark mode */}
+            <View style={styles.menuRow}>
+              <View style={styles.menuIconWrap}>
+                <Text style={{ fontSize: 16 }}>{scheme === 'dark' ? '🌙' : '☀️'}</Text>
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>Dark mode</Text>
+                <Text style={styles.menuDesc}>{mode === 'system' ? 'Following system setting' : mode === 'dark' ? 'Always dark' : 'Always light'}</Text>
+              </View>
+            </View>
+            {/* Mode selector pills */}
+            <View style={styles.modePills}>
+              {([['light', 'Light'], ['system', 'Auto'], ['dark', 'Dark']] as const).map(([m, label]) => (
+                <Pressable key={m} onPress={() => { hapticLight(); setMode(m) }}
+                  style={({ pressed }) => [
+                    styles.modePill,
+                    mode === m && styles.modePillActive,
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={[styles.modePillText, mode === m && styles.modePillTextActive]}>{label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Haptic feedback */}
+          <View style={[styles.groupCard, { marginTop: spacing.sm }]}>  
             <Pressable
               onPress={async () => {
                 hapticLight()
@@ -246,6 +274,20 @@ const styles = StyleSheet.create({
     paddingVertical: 6, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.success + '25',
   },
   syncBtnText: { fontFamily: FONT, fontSize: 12, fontWeight: '600', color: colors.success },
+
+  /* Mode pills */
+  modePills: {
+    flexDirection: 'row', gap: spacing.sm,
+    paddingHorizontal: spacing.base, paddingBottom: spacing.base,
+  },
+  modePill: {
+    flex: 1, alignItems: 'center', paddingVertical: spacing.sm,
+    borderRadius: radii.md, backgroundColor: colors.bg,
+    borderWidth: 1.5, borderColor: colors.border,
+  },
+  modePillActive: { backgroundColor: colors.primarySurface, borderColor: colors.primary + '40' },
+  modePillText: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.muted },
+  modePillTextActive: { color: colors.primary },
 
   /* Toggle */
   toggle: {
