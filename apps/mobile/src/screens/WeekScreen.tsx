@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT } from '../theme'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { getMyVisits } from '../services/api'
 import { IconCheck, IconClock, IconAlert, IconForward } from '../components/Icons'
-import { hapticLight } from '../services/haptics'
+import { hapticLight, hapticMedium } from '../services/haptics'
 
 interface Props {
   session: AuthSession
@@ -63,21 +63,22 @@ function StatusChip({ status }: { status: string }) {
 export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
   const [visits, setVisits] = useState<HomecareVisit[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [selectedDay, setSelectedDay] = useState<Date>(new Date())
 
-  useEffect(() => {
-    const now = new Date()
-    const from = new Date(now)
-    from.setHours(0, 0, 0, 0)
-    const to = new Date(now)
-    to.setDate(to.getDate() + 7)
-    to.setHours(23, 59, 59)
+  const loadWeek = useCallback(async (refresh = false) => {
+    if (refresh) setRefreshing(true)
+    try {
+      const now = new Date()
+      const from = new Date(now); from.setHours(0, 0, 0, 0)
+      const to = new Date(now); to.setDate(to.getDate() + 7); to.setHours(23, 59, 59)
+      const data = await getMyVisits(session.accessToken, from.toISOString(), to.toISOString())
+      setVisits(data.sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime()))
+    } catch {}
+    finally { setLoading(false); setRefreshing(false) }
+  }, [session.accessToken])
 
-    getMyVisits(session.accessToken, from.toISOString(), to.toISOString())
-      .then(data => setVisits(data.sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+  useEffect(() => { loadWeek() }, [loadWeek])
 
   // Generate 7 days starting from today
   const weekDays = useMemo(() => {
@@ -116,7 +117,9 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { hapticMedium(); loadWeek(true) }} tintColor="transparent" colors={['transparent']} />}
+      >
         {/* Header */}
         <Text style={styles.title}>This week</Text>
         <Text style={styles.subtitle}>{total} calls · {completed} completed</Text>
