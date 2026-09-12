@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, BackHandler, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter'
-import { colors, elevation, radii, spacing, type, FONT } from './src/theme'
+import { ThemeProvider, useTheme, elevation, radii, spacing, FONT } from './src/theme'
 import { IconToday, IconWeek, IconMileage, IconSchedule, IconSettings } from './src/components/Icons'
 import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitAction } from './src/types'
 import { readSession } from './src/services/storage'
@@ -33,33 +33,6 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'settings', label: 'Settings' },
 ]
 
-function TabIcon({ tab, active }: { tab: TabKey; active: boolean }) {
-  const color = active ? colors.primary : colors.subtle
-  const size = 22
-  switch (tab) {
-    case 'today': return <IconToday size={size} color={color} />
-    case 'week': return <IconWeek size={size} color={color} />
-    case 'mileage': return <IconMileage size={size} color={color} />
-    case 'availability': return <IconSchedule size={size} color={color} />
-    case 'settings': return <IconSettings size={size} color={color} />
-  }
-}
-
-function AppTab({ tabKey, label, active, onPress }: { tabKey: TabKey; label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="tab"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
-    >
-      <TabIcon tab={tabKey} active={active} />
-      <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
-      {active && <View style={styles.tabIndicator} />}
-    </Pressable>
-  )
-}
-
 /* ─── Screen stack for Android back button ──────────────────── */
 type Screen =
   | { kind: 'incident'; visitId?: string; personId?: string; personName?: string }
@@ -72,10 +45,18 @@ type Screen =
   | { kind: 'swap' }
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  )
+}
+
+function AppInner() {
+  const { colors: c, scheme } = useTheme()
   const [fontsLoaded] = useFonts({
     Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold,
   })
-
   const [session, setSession] = useState<AuthSession | null>(null)
   const [booting, setBooting] = useState(true)
   const [loginError, setLoginError] = useState('')
@@ -87,25 +68,12 @@ export default function App() {
   const [screenStack, setScreenStack] = useState<Screen[]>([{ kind: 'tabs' }])
 
   const currentScreen = screenStack[screenStack.length - 1]
+  const pushScreen = useCallback((screen: Screen) => setScreenStack(prev => [...prev, screen]), [])
+  const popScreen = useCallback(() => setScreenStack(prev => prev.length <= 1 ? prev : prev.slice(0, -1)), [])
 
-  const pushScreen = useCallback((screen: Screen) => {
-    setScreenStack(prev => [...prev, screen])
-  }, [])
-
-  const popScreen = useCallback(() => {
-    setScreenStack(prev => {
-      if (prev.length <= 1) return prev
-      return prev.slice(0, -1)
-    })
-  }, [])
-
-  // Android hardware back button
   useEffect(() => {
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (screenStack.length > 1) {
-        popScreen()
-        return true
-      }
+      if (screenStack.length > 1) { popScreen(); return true }
       return false
     })
     return () => handler.remove()
@@ -122,9 +90,7 @@ export default function App() {
       for (const visit of nextVisits) await scheduleVisitReminder(visit, visit.travel_buffer_minutes || 30)
     } catch (error: any) {
       if (error.status === 401) setSession(null)
-    } finally {
-      if (refresh) setRefreshing(false)
-    }
+    } finally { if (refresh) setRefreshing(false) }
   }, [])
 
   const sync = useCallback(async (activeSession = session) => {
@@ -144,12 +110,7 @@ export default function App() {
       } catch { setSession(null) }
       finally { setBooting(false) }
     })
-
-    addNotificationListeners(
-      (_type, _data) => {},
-      (_type, _data) => {},
-    )
-
+    addNotificationListeners(() => {}, () => {})
     return () => { removeNotificationListeners() }
   }, [loadQueue, loadVisits])
 
@@ -157,34 +118,23 @@ export default function App() {
     setLoginLoading(true); setLoginError('')
     try {
       const active = await login(email, password)
-      setSession(active)
-      setTab('today')
-      setScreenStack([{ kind: 'tabs' }])
+      setSession(active); setTab('today'); setScreenStack([{ kind: 'tabs' }])
       await loadQueue(); await loadVisits(active)
       registerForPushNotifications(active.accessToken).catch(() => {})
-    } catch (error: any) {
-      setLoginError(error.message || 'Could not sign in.')
-    } finally {
-      setLoginLoading(false)
-    }
+    } catch (error: any) { setLoginError(error.message || 'Could not sign in.') }
+    finally { setLoginLoading(false) }
   }
 
   async function handleAction(action: VisitAction, payload: OfflineVisitAction['payload']) {
-    if (!session || currentScreen.kind !== 'visit') throw new Error('Your session is no longer available.')
-    const item = await enqueueVisitAction(currentScreen.visit.id, action, payload)
+    if (!session || currentScreen.kind !== 'visit') throw new Error('Session unavailable.')
+    await enqueueVisitAction(currentScreen.visit.id, action, payload)
     await loadQueue()
-    try {
-      await flushQueue(session.accessToken)
-      await loadQueue()
-      await loadVisits(session)
-      return { synced: true }
-    } catch {
-      return { synced: false }
-    }
+    try { await flushQueue(session.accessToken); await loadQueue(); await loadVisits(session); return { synced: true } }
+    catch { return { synced: false } }
   }
 
   async function handleDisruption(body: Record<string, unknown>) {
-    if (!session || currentScreen.kind !== 'visit') throw new Error('Your session is no longer available.')
+    if (!session || currentScreen.kind !== 'visit') throw new Error('Session unavailable.')
     await createDisruption(session.accessToken, currentScreen.visit.id, body)
     await loadVisits(session)
   }
@@ -196,176 +146,93 @@ export default function App() {
 
   const user: MobileUser | null = session?.user || null
   const activeQueue = useMemo(() => queue.filter(item => item.state !== 'synced'), [queue])
+  const barStyle = scheme === 'dark' ? 'light-content' as const : 'dark-content' as const
+  const goBack = popScreen
 
-  /* ─── Wait for fonts ──────────────────────────────────────── */
-  if (!fontsLoaded) {
+  /* ─── Tab icon component ─────────────────────────────────── */
+  function TabIcon({ tabKey, active }: { tabKey: TabKey; active: boolean }) {
+    const color = active ? c.primary : c.subtle
+    switch (tabKey) {
+      case 'today': return <IconToday size={22} color={color} />
+      case 'week': return <IconWeek size={22} color={color} />
+      case 'mileage': return <IconMileage size={22} color={color} />
+      case 'availability': return <IconSchedule size={22} color={color} />
+      case 'settings': return <IconSettings size={22} color={color} />
+    }
+  }
+
+  /* ─── Loading screens ────────────────────────────────────── */
+  if (!fontsLoaded || booting) {
     return (
-      <SafeAreaView style={styles.boot} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-        <View style={styles.bootCard}>
-          <View style={styles.bootLogo}>
-            <Text style={styles.bootLogoText}>M</Text>
+      <SafeAreaView style={[s.boot, { backgroundColor: c.bg }]} edges={['top']}>
+        <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
+        <View style={s.bootCard}>
+          <View style={[s.bootLogo, { backgroundColor: c.primary }]}>
+            <Text style={[s.bootLogoText, { color: c.inverse }]}>M</Text>
           </View>
-          <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.base }} />
+          <ActivityIndicator color={c.primary} style={{ marginTop: spacing.base }} />
+          {booting && <Text style={[s.bootText, { color: c.muted }]}>MeticleCare</Text>}
         </View>
       </SafeAreaView>
     )
   }
 
-  /* ─── Boot ─────────────────────────────────────────────────── */
-  if (booting) {
-    return (
-      <SafeAreaView style={styles.boot} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-        <View style={styles.bootCard}>
-          <View style={styles.bootLogo}>
-            <Text style={styles.bootLogoText}>M</Text>
-          </View>
-          <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.base }} />
-          <Text style={styles.bootText}>MeticleCare</Text>
-        </View>
-      </SafeAreaView>
-    )
-  }
-
-  /* ─── Login ─────────────────────────────────────────────────── */
+  /* ─── Login ──────────────────────────────────────────────── */
   if (!session || !user) {
     return (
       <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+        <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
         <LoginScreen onLogin={handleLogin} error={loginError} loading={loginLoading} />
       </>
     )
   }
 
-  /* ─── Render current screen ──────────────────────────────────── */
-  const goBack = popScreen
-
+  /* ─── Sub-screens ────────────────────────────────────────── */
   if (currentScreen.kind === 'bodyMap' && session) {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-        <BodyMapScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} />
-      </>
-    )
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><BodyMapScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></>
   }
-
   if (currentScreen.kind === 'nutrition' && session) {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-        <NutritionScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} />
-      </>
-    )
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><NutritionScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></>
   }
-
   if (currentScreen.kind === 'clientDetail' && session) {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-        <ClientDetailScreen
-          personId={currentScreen.personId}
-          session={session}
-          onBack={goBack}
-          onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })}
-          onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })}
-        />
-      </>
-    )
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} /></>
   }
-
   if (currentScreen.kind === 'visit' && session) {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-        <VisitScreen
-          visit={currentScreen.visit}
-          session={session}
-          queue={activeQueue}
-          onBack={goBack}
-          onAction={handleAction}
-          onDisruption={handleDisruption}
-          onClientDetail={(personId) => pushScreen({ kind: 'clientDetail', personId })}
-          onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })}
-        />
-      </>
-    )
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} /></>
   }
-
   if (currentScreen.kind === 'profile' && session) {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-        <ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} />
-      </>
-    )
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></>
   }
-
   if (currentScreen.kind === 'swap' && session) {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-        <SwapTransferScreen session={session} user={user} visits={visits} onBack={goBack} onRefresh={() => loadVisits(session)} />
-      </>
-    )
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwapTransferScreen session={session} user={user} visits={visits} onBack={goBack} onRefresh={() => loadVisits(session)} /></>
   }
-
   if (currentScreen.kind === 'incident' && session) {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-        <ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} />
-      </>
-    )
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} /></>
   }
 
-  /* ─── Main tab view ──────────────────────────────────────────── */
+  /* ─── Main tab view ──────────────────────────────────────── */
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-      <SafeAreaView style={styles.app} edges={['top', 'left', 'right']}>
-        <View style={styles.body}>
-          {tab === 'today' && (
-            <TodayScreen
-              user={user}
-              visits={visits}
-              queue={activeQueue}
-              onVisit={(v) => pushScreen({ kind: 'visit', visit: v })}
-              onRefresh={() => loadVisits(session, true)}
-              refreshing={refreshing}
-              onSync={() => sync()}
-            />
-          )}
-          {tab === 'week' && (
-            <WeekScreen
-              session={session}
-              user={user}
-              onVisit={(v) => pushScreen({ kind: 'visit', visit: v })}
-              onSwap={() => pushScreen({ kind: 'swap' })}
-            />
-          )}
+      <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
+      <SafeAreaView style={[s.app, { backgroundColor: c.bg }]} edges={['top', 'left', 'right']}>
+        <View style={[s.body, { backgroundColor: c.bg }]}>
+          {tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} />}
+          {tab === 'week' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap' })} />}
           {tab === 'mileage' && <MileageScreen session={session} />}
           {tab === 'availability' && <AvailabilityScreen session={session} />}
-          {tab === 'settings' && (
-            <SettingsScreen
-              user={user}
-              onSignOut={handleSignOut}
-              onSync={() => sync()}
-              onProfile={() => pushScreen({ kind: 'profile' })}
-            />
-          )}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} />}
         </View>
 
-        {/* Tab bar */}
-        <View style={styles.tabBar}>
+        <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>
           {tabs.map(t => (
-            <AppTab
-              key={t.key}
-              tabKey={t.key}
-              label={t.label}
-              active={tab === t.key}
+            <Pressable key={t.key} accessibilityRole="tab" accessibilityState={{ selected: tab === t.key }}
               onPress={() => { setTab(t.key); setScreenStack([{ kind: 'tabs' }]) }}
-            />
+              style={({ pressed }) => [s.tab, pressed && { opacity: 0.5 }]}
+            >
+              <TabIcon tabKey={t.key} active={tab === t.key} />
+              <Text style={[s.tabLabel, { color: tab === t.key ? c.primary : c.subtle }]}>{t.label}</Text>
+              {tab === t.key && <View style={[s.tabIndicator, { backgroundColor: c.primary }]} />}
+            </Pressable>
           ))}
         </View>
       </SafeAreaView>
@@ -373,50 +240,20 @@ export default function App() {
   )
 }
 
-const styles = StyleSheet.create({
-  app: { flex: 1, backgroundColor: colors.bg },
+const s = StyleSheet.create({
+  app: { flex: 1 },
   body: { flex: 1 },
-
-  /* Tab bar */
   tabBar: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.md,
-    paddingTop: spacing.sm,
-    ...elevation.sm,
+    paddingTop: spacing.sm, ...elevation.sm,
   },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xs,
-    gap: 4,
-  },
-  tabPressed: { opacity: 0.5 },
-  tabLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '600', color: colors.subtle, letterSpacing: 0.3 },
-  tabLabelActive: { color: colors.primary },
-  tabIndicator: {
-    width: 24,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-    marginTop: 2,
-  },
-
-  /* Boot */
-  boot: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xs, gap: 4 },
+  tabLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '600', letterSpacing: 0.3 },
+  tabIndicator: { width: 24, height: 3, borderRadius: 2, marginTop: 2 },
+  boot: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   bootCard: { alignItems: 'center', gap: spacing.sm },
-  bootLogo: {
-    width: 64,
-    height: 64,
-    borderRadius: radii.xl,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...elevation.md,
-  },
-  bootLogoText: { color: colors.inverse, fontSize: 32, fontWeight: '800', fontFamily: FONT },
-  bootText: { fontFamily: FONT, fontSize: 16, fontWeight: '600', color: colors.muted, marginTop: spacing.sm },
+  bootLogo: { width: 64, height: 64, borderRadius: radii.xl, alignItems: 'center', justifyContent: 'center', ...elevation.md },
+  bootLogoText: { fontSize: 32, fontWeight: '800', fontFamily: FONT },
+  bootText: { fontFamily: FONT, fontSize: 16, fontWeight: '600', marginTop: spacing.sm },
 })
