@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, Easing, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../types'
-import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconSync } from '../components/Icons'
+import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconSync, IconNavigate } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
 
@@ -17,7 +17,9 @@ function greeting(): string {
   return 'Good evening'
 }
 
-type VisitStatus = 'completed' | 'checked_in' | 'missed' | 'en_route' | 'scheduled' | 'cancelled'
+function dateLabel() {
+  return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+}
 
 interface TimelineVisit {
   visit: HomecareVisit
@@ -54,23 +56,30 @@ function classifyVisits(visits: HomecareVisit[]): TimelineVisit[] {
   })
 }
 
-function StatusDot({ status, c }: { status: VisitStatus; c: any }) {
-  const color = status === 'completed' ? c.success
-    : status === 'checked_in' ? c.primary
-    : status === 'missed' ? c.danger
-    : status === 'en_route' ? c.warning
-    : c.subtle
-
-  return <View style={[styles.statusDot, { backgroundColor: color }]} />
-}
-
-function StatusIcon({ status, overdue, c }: { status: VisitStatus; overdue?: boolean; c: any }) {
-  if (overdue) return <IconAlert size={14} color={c.danger} />
-  switch (status) {
-    case 'completed': return <IconCheck size={14} color={c.success} />
-    case 'checked_in': return <IconClock size={14} color={c.primary} />
-    case 'missed': return <IconAlert size={14} color={c.danger} />
-    default: return <View style={[styles.futureDot, { borderColor: c.subtle }]} />
+/* ─── Timeline dot ──────────────────────────────────────────── */
+function TimelineDot({ kind, overdue, c }: { kind: string; overdue?: boolean; c: any }) {
+  if (overdue) {
+    return (
+      <View style={[styles.dot, { backgroundColor: c.danger }]}>
+        <IconAlert size={10} color={c.inverse} />
+      </View>
+    )
+  }
+  switch (kind) {
+    case 'past':
+      return (
+        <View style={[styles.dot, { backgroundColor: c.success }]}>
+          <IconCheck size={10} color={c.inverse} />
+        </View>
+      )
+    case 'current':
+      return (
+        <View style={[styles.dot, styles.dotCurrent, { borderColor: c.primary }]}>
+          <View style={[styles.dotInner, { backgroundColor: c.primary }]} />
+        </View>
+      )
+    default:
+      return <View style={[styles.dot, { backgroundColor: c.surface, borderColor: c.border }]} />
   }
 }
 
@@ -91,10 +100,8 @@ function CustomRefreshIndicator({ refreshing, c }: { refreshing: boolean; c: any
         ])
       ).start()
     } else {
-      spin.stopAnimation()
-      spin.setValue(0)
-      pulse.stopAnimation()
-      pulse.setValue(1)
+      spin.stopAnimation(); spin.setValue(0)
+      pulse.stopAnimation(); pulse.setValue(1)
     }
   }, [refreshing])
 
@@ -123,12 +130,23 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
   const timeline = useMemo(() => classifyVisits(visits), [visits])
   const total = visits.length
   const completed = visits.filter(v => v.status === 'completed').length
-  const remaining = visits.filter(v => !['completed', 'missed', 'cancelled'].includes(v.status)).length
+  const progress = total > 0 ? completed / total : 0
 
   const currentVisit = timeline.find(t => t.kind === 'current')
   const nextVisit = timeline.find(t => t.kind === 'next')
   const pastVisits = timeline.filter(t => t.kind === 'past')
   const futureVisits = timeline.filter(t => t.kind === 'future')
+  const overdueVisits = futureVisits.filter(tv => isOverdue(tv.visit))
+  const onTimeVisits = futureVisits.filter(tv => !isOverdue(tv.visit))
+
+  // All visits in timeline order for the connected timeline
+  const allTimeline: TimelineVisit[] = [
+    ...pastVisits,
+    ...(currentVisit ? [currentVisit] : []),
+    ...(nextVisit ? [nextVisit] : []),
+    ...overdueVisits,
+    ...onTimeVisits,
+  ]
 
   return (
     <ScrollView
@@ -145,16 +163,14 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         />
       }
     >
-      {/* Refresh indicator at top */}
       <CustomRefreshIndicator refreshing={refreshing} c={c} />
 
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={[styles.greeting, { color: c.muted }]}>{greeting()},</Text>
-          <Text style={[styles.userName, { color: c.ink }]}>{user.first_name || user.email.split('@')[0]}</Text>
+          <Text style={[styles.dateText, { color: c.subtle }]}>{dateLabel()}</Text>
+          <Text style={[styles.userName, { color: c.ink }]}>{greeting()}, {user.first_name || user.email.split('@')[0]}</Text>
         </View>
-        {/* Sync + Queue indicator */}
         <View style={styles.headerActions}>
           {queue.length > 0 ? (
             <Pressable onPress={() => { hapticLight(); onSync() }} style={[styles.syncBadge, { backgroundColor: c.warningSurface, borderColor: c.warning + '30' }]}>
@@ -169,178 +185,98 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         </View>
       </View>
 
-      {/* Single stats card */}
-      <View style={[styles.statsCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{visits.length}</Text>
-          <Text style={styles.statLabel}>Calls</Text>
+      {/* Progress card */}
+      <View style={[styles.progressCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+        <View style={styles.progressHeader}>
+          <Text style={[styles.progressTitle, { color: c.ink }]}>Today's progress</Text>
+          <Text style={[styles.progressPct, { color: c.primary }]}>{total > 0 ? Math.round(progress * 100) : 0}%</Text>
         </View>
-        <View style={[styles.statDivider, { backgroundColor: c.border }]} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: c.success }]}>{completed}</Text>
-          <Text style={[styles.statLabel, { color: c.muted }]}>Done</Text>
+        {/* Progress bar */}
+        <View style={[styles.progressTrack, { backgroundColor: c.border }]}>
+          <View style={[styles.progressFill, { backgroundColor: c.primary, width: `${Math.max(progress * 100, 2)}%` }]} />
         </View>
-        <View style={[styles.statDivider, { backgroundColor: c.border }]} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: remaining > 0 ? c.ink : c.subtle }]}>{remaining}</Text>
-          <Text style={[styles.statLabel, { color: c.muted }]}>Left</Text>
-        </View>
-        {total > 0 && (
-          <>
-            <View style={[styles.statDivider, { backgroundColor: c.border }]} />
-            <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: c.primary }]}>{Math.round((completed / total) * 100)}%</Text>
-          <Text style={[styles.statLabel, { color: c.muted }]}>Done</Text>
+        <View style={styles.progressMeta}>
+          <Text style={[styles.progressMetaText, { color: c.muted }]}>{completed} of {total} calls completed</Text>
+          {currentVisit && (
+            <View style={[styles.liveIndicator, { backgroundColor: c.primarySurface }]}>
+              <View style={[styles.liveDot, { backgroundColor: c.primary }]} />
+              <Text style={[styles.liveText, { color: c.primary }]}>In progress</Text>
             </View>
-          </>
-        )}
+          )}
+        </View>
       </View>
 
-      {/* Current call highlight */}
-      {currentVisit && (() => {
-        const overdue = isOverdue(currentVisit.visit)
-        const oLabel = overdueLabel(currentVisit.visit)
-        return (
-          <View style={styles.currentCard}>
-            <View style={styles.currentHeader}>
-              <View style={[styles.currentDot, { backgroundColor: overdue ? c.danger : c.primary }]} />
-              <Text style={[styles.currentLabel, { color: overdue ? c.danger : c.primary }]}>{overdue ? 'OVERDUE' : 'NOW'}</Text>
-              {overdue && <IconAlert size={14} color={c.danger} />}
-            </View>
-            <Pressable
-              onPress={() => { hapticLight(); onVisit(currentVisit.visit) }}
-              style={({ pressed }) => [
-                styles.visitCard,
-                overdue
-                  ? { backgroundColor: c.dangerSurface, borderColor: c.danger + '40' }
-                  : styles.visitCardActive,
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <View style={styles.visitTime}>
-                <Text style={[styles.visitTimeText, { color: overdue ? c.danger : colors.ink }]}>{time(currentVisit.visit.scheduled_start)}</Text>
-                <Text style={[styles.visitTimeEnd, { color: overdue ? c.danger : colors.muted }]}>{time(currentVisit.visit.scheduled_end)}</Text>
-              </View>
-              <View style={styles.visitContent}>
-                <Text style={[styles.visitName, { color: overdue ? c.danger : colors.ink }]} numberOfLines={1}>{currentVisit.visit.label}</Text>
-                {currentVisit.visit.person_name && (
-                  <Text style={[styles.visitPerson, { color: overdue ? c.danger : colors.muted }]} numberOfLines={1}>{currentVisit.visit.person_name}</Text>
-                )}
-                {overdue && <Text style={[styles.overdueLabel, { color: c.danger }]}>{oLabel}</Text>}
-              </View>
-              <StatusIcon status={currentVisit.visit.status} overdue={overdue} c={c} />
-            </Pressable>
-          </View>
-        )
-      })()}
+      {/* Timeline */}
+      {allTimeline.length > 0 && (
+        <View style={styles.timeline}>
+          {allTimeline.map((tv, i) => {
+            const ov = isOverdue(tv.visit)
+            const isLast = i === allTimeline.length - 1
+            const isCurrent = tv.kind === 'current'
+            const isPast = tv.kind === 'past'
+            const lineColor = isPast ? c.success : isCurrent ? c.primary : ov ? c.danger : c.border
 
-      {/* Next call */}
-      {nextVisit && (
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>NEXT CALL</Text>
-          <Pressable
-            onPress={() => { hapticLight(); onVisit(nextVisit.visit) }}
-            style={({ pressed }) => [styles.visitCard, pressed && { opacity: 0.85 }]}
-          >              <View style={styles.visitTime}>
-                <Text style={[styles.visitTimeText, { color: c.ink }]}>{time(nextVisit.visit.scheduled_start)}</Text>
-                <Text style={[styles.visitTimeEnd, { color: c.muted }]}>{time(nextVisit.visit.scheduled_end)}</Text>
-              </View>
-              <View style={styles.visitContent}>
-                <Text style={[styles.visitName, { color: c.ink }]} numberOfLines={1}>{nextVisit.visit.label}</Text>
-                {nextVisit.visit.person_name && (
-                  <Text style={[styles.visitPerson, { color: c.muted }]} numberOfLines={1}>{nextVisit.visit.person_name}</Text>
-              )}
-            </View>
-            <View style={[styles.nextArrow, { backgroundColor: c.primarySurface }]}>
-              <Text style={[styles.nextArrowText, { color: c.primary }]}>→</Text>
-            </View>
-          </Pressable>
-        </View>
-      )}
+            return (
+              <View key={tv.visit.id} style={styles.timelineRow}>
+                {/* Left: dot + line */}
+                <View style={styles.timelineLeft}>
+                  <TimelineDot kind={tv.kind} overdue={ov} c={c} />
+                  {!isLast && <View style={[styles.timelineLine, { backgroundColor: lineColor }]} />}
+                </View>
 
-      {/* Completed calls */}
-      {pastVisits.length > 0 && (
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: c.subtle }]}>COMPLETED</Text>
-          {pastVisits.map(tv => (
-            <Pressable
-              key={tv.visit.id}
-              onPress={() => { hapticLight(); onVisit(tv.visit) }}
-              style={({ pressed }) => [styles.visitCard, styles.visitCardPast, pressed && { opacity: 0.85 }]}
-            >
-              <View style={styles.visitTime}>
-                <Text style={[styles.visitTimeText, { color: c.subtle }]}>{time(tv.visit.scheduled_start)}</Text>
-                <Text style={[styles.visitTimeEnd, { color: c.subtle }]}>{time(tv.visit.scheduled_end)}</Text>
-              </View>
-              <View style={styles.visitContent}>
-                <Text style={[styles.visitName, { color: c.muted }]} numberOfLines={1}>{tv.visit.label}</Text>
-                {tv.visit.person_name && (
-                  <Text style={[styles.visitPerson, { color: c.subtle }]} numberOfLines={1}>{tv.visit.person_name}</Text>
-                )}
-              </View>
-              <StatusIcon status={tv.visit.status} c={c} />
-            </Pressable>
-          ))}
-        </View>
-      )}
+                {/* Right: card */}
+                <Pressable
+                  onPress={() => { hapticLight(); onVisit(tv.visit) }}
+                  style={({ pressed }) => [
+                    styles.timelineCard,
+                    { backgroundColor: c.surface, borderColor: c.borderLight },
+                    isCurrent && !ov && { backgroundColor: c.primarySurface, borderColor: c.primary + '40' },
+                    isPast && { opacity: 0.6 },
+                    ov && { backgroundColor: c.dangerSurface, borderColor: c.danger + '40' },
+                    pressed && { opacity: 0.85 },
+                  ]}
+                >
+                  {/* Time badge */}
+                  <View style={[styles.timeBadge, { backgroundColor: isPast ? c.surfaceAlt : isCurrent ? c.primarySurface : ov ? c.dangerSurface : c.surfaceAlt }]}>
+                    <Text style={[styles.timeBadgeText, { color: isPast ? c.muted : isCurrent ? c.primary : ov ? c.danger : c.muted }]}>
+                      {time(tv.visit.scheduled_start)}
+                    </Text>
+                    <View style={[styles.timeDash, { backgroundColor: isPast ? c.border : isCurrent ? c.primary + '40' : ov ? c.danger + '40' : c.border }]} />
+                    <Text style={[styles.timeBadgeText, { color: isPast ? c.subtle : isCurrent ? c.primary : ov ? c.danger : c.subtle }]}>
+                      {time(tv.visit.scheduled_end)}
+                    </Text>
+                  </View>
 
-      {/* Overdue calls */}
-      {futureVisits.filter(tv => isOverdue(tv.visit)).length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <IconAlert size={14} color={c.danger} />
-            <Text style={[styles.sectionLabel, { color: c.danger }]}>OVERDUE</Text>
-          </View>
-          {futureVisits.filter(tv => isOverdue(tv.visit)).map(tv => (
-            <Pressable
-              key={tv.visit.id}
-              onPress={() => { hapticLight(); onVisit(tv.visit) }}
-              style={({ pressed }) => [
-                styles.visitCard,
-                { backgroundColor: c.dangerSurface, borderColor: c.danger + '40' },
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <View style={styles.visitTime}>
-                <Text style={[styles.visitTimeText, { color: c.danger }]}>{time(tv.visit.scheduled_start)}</Text>
-                <Text style={[styles.visitTimeEnd, { color: c.danger }]}>{time(tv.visit.scheduled_end)}</Text>
-              </View>
-              <View style={styles.visitContent}>
-                <Text style={[styles.visitName, { color: c.danger }]} numberOfLines={1}>{tv.visit.label}</Text>
-                {tv.visit.person_name && (
-                  <Text style={[styles.visitPerson, { color: c.danger }]} numberOfLines={1}>{tv.visit.person_name}</Text>
-                )}
-                <Text style={[styles.overdueLabel, { color: c.danger }]}>{overdueLabel(tv.visit)}</Text>
-              </View>
-              <StatusIcon status={tv.visit.status} overdue c={c} />
-            </Pressable>
-          ))}
-        </View>
-      )}
+                  {/* Content */}
+                  <View style={styles.timelineContent}>
+                    <Text style={[styles.timelineName, { color: isPast ? c.muted : ov ? c.danger : c.ink }]} numberOfLines={1}>
+                      {tv.visit.label}
+                    </Text>
+                    {tv.visit.person_name && (
+                      <Text style={[styles.timelinePerson, { color: isPast ? c.subtle : c.muted }]} numberOfLines={1}>
+                        {tv.visit.person_name}
+                      </Text>
+                    )}
+                    {tv.visit.person_address && (
+                      <Text style={[styles.timelineAddr, { color: c.subtle }]} numberOfLines={1}>
+                        {tv.visit.person_address}
+                      </Text>
+                    )}
+                    {ov && <Text style={[styles.overdueTag, { color: c.danger }]}>{overdueLabel(tv.visit)}</Text>}
+                  </View>
 
-      {/* Future calls (on time) */}
-      {futureVisits.filter(tv => !isOverdue(tv.visit)).length > 0 && (
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: c.subtle }]}>UPCOMING</Text>
-          {futureVisits.filter(tv => !isOverdue(tv.visit)).map(tv => (
-            <Pressable
-              key={tv.visit.id}
-              onPress={() => { hapticLight(); onVisit(tv.visit) }}
-              style={({ pressed }) => [styles.visitCard, pressed && { opacity: 0.85 }]}
-            >
-              <View style={styles.visitTime}>
-                <Text style={[styles.visitTimeText, { color: c.ink }]}>{time(tv.visit.scheduled_start)}</Text>
-                <Text style={[styles.visitTimeEnd, { color: c.muted }]}>{time(tv.visit.scheduled_end)}</Text>
+                  {/* Status indicator */}
+                  <View style={styles.timelineStatus}>
+                    {isPast && tv.visit.status === 'completed' && <IconCheck size={16} color={c.success} />}
+                    {isPast && tv.visit.status === 'missed' && <IconAlert size={16} color={c.danger} />}
+                    {isCurrent && !ov && <IconClock size={16} color={c.primary} />}
+                    {ov && <IconAlert size={16} color={c.danger} />}
+                    {!isPast && !isCurrent && !ov && <View style={[styles.futureDot, { borderColor: c.border }]} />}
+                  </View>
+                </Pressable>
               </View>
-              <View style={styles.visitContent}>
-                <Text style={[styles.visitName, { color: c.ink }]} numberOfLines={1}>{tv.visit.label}</Text>
-                {tv.visit.person_name && (
-                  <Text style={[styles.visitPerson, { color: c.muted }]} numberOfLines={1}>{tv.visit.person_name}</Text>
-                )}
-              </View>
-              <StatusDot status={tv.visit.status} c={c} />
-            </Pressable>
-          ))}
+            )
+          })}
         </View>
       )}
 
@@ -349,8 +285,9 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         <View style={styles.empty}>
           <View style={[styles.emptyIconWrap, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
             <IconClock size={32} color={c.subtle} />
-          </View>            <Text style={[styles.emptyTitle, { color: c.ink }]}>No calls today</Text>
-            <Text style={[styles.emptyText, { color: c.muted }]}>Pull down to refresh your schedule.</Text>
+          </View>
+          <Text style={[styles.emptyTitle, { color: c.ink }]}>No calls today</Text>
+          <Text style={[styles.emptyText, { color: c.muted }]}>Pull down to refresh your schedule.</Text>
         </View>
       )}
 
@@ -372,101 +309,97 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg },
 
   /* Header */
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.lg,
-  },
-  greeting: { fontFamily: FONT, fontSize: 15, fontWeight: '400', color: colors.muted },
-  userName: { fontFamily: FONT, fontSize: 26, fontWeight: '800', color: colors.ink, letterSpacing: -0.6, marginTop: 2 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.lg },
+  dateText: { fontFamily: FONT, fontSize: 13, fontWeight: '500', color: colors.subtle },
+  userName: { fontFamily: FONT, fontSize: 24, fontWeight: '800', color: colors.ink, letterSpacing: -0.5, marginTop: 2 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   syncBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: colors.warningSurface, paddingHorizontal: spacing.sm, paddingVertical: 4,
-    borderRadius: radii.full, borderWidth: 1, borderColor: colors.warning + '30',
+    paddingHorizontal: spacing.sm, paddingVertical: 4,
+    borderRadius: radii.full, borderWidth: 1,
   },
-  syncBadgeText: { fontFamily: FONT, fontSize: 11, fontWeight: '700', color: colors.warning },
+  syncBadgeText: { fontFamily: FONT, fontSize: 11, fontWeight: '700' },
   syncBadgeOk: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: colors.successSurface, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.success + '30',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
   },
 
-  /* Stats */
-  statsCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.surface, borderRadius: radii.lg,
-    borderWidth: 1, borderColor: colors.borderLight,
+  /* Progress card */
+  progressCard: {
+    borderRadius: radii.xl, borderWidth: 1,
     padding: spacing.base, marginBottom: spacing.xl,
     ...elevation.sm,
   },
-  statItem: { flex: 1, alignItems: 'center' },
-  statDivider: { width: 1, height: 28, backgroundColor: colors.border, marginHorizontal: spacing.sm },
-  statNumber: { fontFamily: FONT, fontSize: 22, fontWeight: '800', color: colors.ink, letterSpacing: -0.4 },
-  statLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '600', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
+  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  progressTitle: { fontFamily: FONT, fontSize: 15, fontWeight: '700' },
+  progressPct: { fontFamily: FONT, fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+  progressTrack: { height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: spacing.sm },
+  progressFill: { height: 6, borderRadius: 3 },
+  progressMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  progressMetaText: { fontFamily: FONT, fontSize: 12, fontWeight: '500' },
+  liveIndicator: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radii.full },
+  liveDot: { width: 6, height: 6, borderRadius: 3 },
+  liveText: { fontFamily: FONT, fontSize: 11, fontWeight: '600' },
 
-  /* Current call highlight */
-  currentCard: { marginBottom: spacing.xl },
-  currentHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
-  currentDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
-  currentLabel: { fontFamily: FONT, fontSize: 11, fontWeight: '700', color: colors.primary, letterSpacing: 1 },
+  /* Timeline */
+  timeline: { paddingTop: spacing.xs },
 
-  /* Visit card */
-  visitCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.surface, borderRadius: radii.lg,
-    borderWidth: 1, borderColor: colors.borderLight,
-    padding: spacing.base, gap: spacing.md,
+  timelineRow: { flexDirection: 'row', marginBottom: 0 },
+
+  timelineLeft: {
+    width: 28, alignItems: 'center',
+  },
+  dot: {
+    width: 20, height: 20, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 1,
+  },
+  dotCurrent: {
+    backgroundColor: colors.surface, borderWidth: 3,
+  },
+  dotInner: { width: 8, height: 8, borderRadius: 4 },
+  timelineLine: {
+    width: 2, flex: 1, minHeight: 16,
+  },
+
+  timelineCard: {
+    flex: 1, borderRadius: radii.lg,
+    borderWidth: 1, padding: spacing.base,
+    marginBottom: spacing.sm, marginLeft: spacing.sm,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    minHeight: 80,
     ...elevation.sm,
   },
-  visitCardActive: {
-    borderColor: colors.primary + '40',
-    backgroundColor: colors.primarySurface,
-  },
-  visitCardPast: { opacity: 0.7 },
-  visitTime: { alignItems: 'center', minWidth: 48 },
-  visitTimeText: { fontFamily: FONT, fontSize: 15, fontWeight: '700', color: colors.ink },
-  visitTimeEnd: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.muted, marginTop: 1 },
-  visitTimePast: { color: colors.subtle },
-  visitContent: { flex: 1 },
-  visitName: { fontFamily: FONT, fontSize: 15, fontWeight: '600', color: colors.ink },
-  visitNamePast: { color: colors.muted },
-  visitPerson: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted, marginTop: 2 },
-  visitPersonPast: { color: colors.subtle },
-  nextArrow: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primarySurface, alignItems: 'center', justifyContent: 'center' },
-  nextArrowText: { fontFamily: FONT, fontSize: 14, fontWeight: '600', color: colors.primary },
 
-  /* Status */
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  futureDot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: colors.subtle },
+  timeBadge: {
+    alignItems: 'center', paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs, borderRadius: radii.md,
+    minWidth: 52,
+  },
+  timeBadgeText: { fontFamily: FONT, fontSize: 12, fontWeight: '700' },
+  timeDash: { width: 16, height: 1.5, borderRadius: 1, marginVertical: 3 },
 
-  /* Sections */
-  section: { marginBottom: spacing.xl },
-  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
-  sectionLabel: {
-    fontFamily: FONT, fontSize: 11, fontWeight: '700', letterSpacing: 1,
-    color: colors.subtle, textTransform: 'uppercase', marginBottom: spacing.sm,
-  },
-  overdueLabel: {
-    fontFamily: FONT, fontSize: 11, fontWeight: '700', marginTop: 3,
-  },
+  timelineContent: { flex: 1 },
+  timelineName: { fontFamily: FONT, fontSize: 15, fontWeight: '700', letterSpacing: -0.2 },
+  timelinePerson: { fontFamily: FONT, fontSize: 13, fontWeight: '400', marginTop: 2 },
+  timelineAddr: { fontFamily: FONT, fontSize: 11, fontWeight: '400', marginTop: 2 },
+  overdueTag: { fontFamily: FONT, fontSize: 11, fontWeight: '700', marginTop: 3 },
+
+  timelineStatus: { width: 24, alignItems: 'center', justifyContent: 'center' },
+  futureDot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
 
   /* Refresh indicator */
-  refreshWrap: {
-    alignItems: 'center', justifyContent: 'center',
-    paddingVertical: spacing.md, marginBottom: spacing.sm,
-  },
-  refreshText: { fontFamily: FONT, fontSize: 12, fontWeight: '500', color: colors.subtle, marginTop: spacing.xs },
+  refreshWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.md, marginBottom: spacing.sm },
+  refreshText: { fontFamily: FONT, fontSize: 12, fontWeight: '500', marginTop: spacing.xs },
 
   /* Empty */
   empty: { alignItems: 'center', paddingVertical: spacing.xxxl },
   emptyIconWrap: {
     width: 64, height: 64, borderRadius: 32,
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight,
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.base,
-    ...elevation.sm,
+    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.base, ...elevation.sm,
   },
-  emptyTitle: { fontFamily: FONT, fontSize: 18, fontWeight: '700', color: colors.ink, marginBottom: spacing.xs },
-  emptyText: { fontFamily: FONT, fontSize: 14, fontWeight: '400', color: colors.muted },
+  emptyTitle: { fontFamily: FONT, fontSize: 18, fontWeight: '700', marginBottom: spacing.xs },
+  emptyText: { fontFamily: FONT, fontSize: 14, fontWeight: '400' },
 })
