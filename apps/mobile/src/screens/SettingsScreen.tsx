@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type } from '../theme'
+import { colors, elevation, radii, spacing, type, FONT } from '../theme'
 import type { MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { requestReminderPermission } from '../services/notifications'
 import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
+import { IconProfile, IconSyncSmall, IconWarning, IconSettings } from '../components/Icons'
+import { hapticLight } from '../services/haptics'
 
 export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
   user: MobileUser
@@ -25,94 +27,122 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
   }, [])
 
   async function enableReminders() {
+    hapticLight()
     const enabled = await requestReminderPermission()
     setReminders(enabled ? 'enabled' : 'disabled')
     setMessage(enabled ? 'Visit reminders enabled.' : 'Permission not granted.')
   }
 
   const initials = (user.first_name?.[0] || user.email[0]).toUpperCase()
+  const displayName = user.first_name
+    ? `${user.first_name}${user.last_name ? ' ' + user.last_name : ''}`
+    : user.email.split('@')[0]
+  const roleLabel = user.role ? user.role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''
 
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Header */}
         <Text style={styles.pageTitle}>Settings</Text>
 
-        {/* Profile card — tappable */}
-        <Pressable onPress={onProfile} style={({ pressed }) => [styles.profileCard, pressed && { opacity: 0.8 }]}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{user.first_name || user.email.split('@')[0]}</Text>
-            <Text style={styles.profileEmail}>{user.email}</Text>
-            {user.role && <Text style={styles.profileRole}>{user.role.replace(/_/g, ' ')}</Text>}
-          </View>
-          <Text style={styles.chevron}>→</Text>
-        </Pressable>
-
-        {/* Notifications section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHead}>NOTIFICATIONS</Text>
-          <View style={styles.card}>
-            <View style={styles.cardRow}>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>Visit reminders</Text>
-                <Text style={styles.cardDesc}>
-                  Reminders before your assigned calls. Change in phone settings.
-                </Text>
-              </View>
-              <View style={[styles.statusDot, { backgroundColor: reminders === 'enabled' ? colors.success : colors.subtle }]} />
-            </View>
-            <Text style={styles.statusText}>
-              {reminders === 'enabled' ? 'Enabled' : reminders === 'disabled' ? 'Not enabled' : 'Checking...'}
-            </Text>
-            {reminders !== 'enabled' && (
-              <View style={{ marginTop: spacing.md }}>
-                <PrimaryButton label="Enable reminders" onPress={enableReminders} tone="primary" size="small" />
+        {/* Profile card */}
+        <Pressable onPress={() => { hapticLight(); onProfile?.() }} style={({ pressed }) => [styles.profileCard, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}>
+          <View style={styles.avatarWrap}>
+            {(user as any).profile_picture_url ? (
+              <Image source={{ uri: (user as any).profile_picture_url }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials}</Text>
               </View>
             )}
           </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{displayName}</Text>
+            <Text style={styles.profileEmail}>{user.email}</Text>
+            {roleLabel ? (
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleBadgeText}>{roleLabel}</Text>
+              </View>
+            ) : null}
+          </View>
+          <View style={styles.chevronWrap}>
+            <Text style={styles.chevron}>→</Text>
+          </View>
+        </Pressable>
+
+        {/* Settings groups */}
+        <View style={styles.group}>
+          <Text style={styles.groupLabel}>NOTIFICATIONS</Text>
+          <View style={styles.groupCard}>
+            {/* Visit reminders */}
+            <View style={styles.menuRow}>
+              <View style={styles.menuIconWrap}>
+                <IconWarning size={18} color={colors.warning} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>Visit reminders</Text>
+                <Text style={styles.menuDesc}>Alerts before your assigned calls</Text>
+              </View>
+              {reminders === 'enabled' ? (
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusBadgeText}>On</Text>
+                </View>
+              ) : (
+                <Pressable onPress={enableReminders} style={styles.enableBtn}>
+                  <Text style={styles.enableBtnText}>Enable</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
         </View>
 
-        {/* Haptic feedback */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHead}>PREFERENCES</Text>
-          <Pressable
-            onPress={async () => {
-              const next = !hapticOn
-              await setHapticEnabled(next)
-              setHapticOn(next)
-            }}
-            style={({ pressed }) => [styles.card, pressed && { opacity: 0.8 }]}
-          >
-            <View style={styles.cardRow}>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>Haptic feedback</Text>
-                <Text style={styles.cardDesc}>
-                  Vibration on button presses and pull-to-refresh.
-                </Text>
+        <View style={styles.group}>
+          <Text style={styles.groupLabel}>PREFERENCES</Text>
+          <View style={styles.groupCard}>
+            {/* Haptic feedback */}
+            <Pressable
+              onPress={async () => {
+                hapticLight()
+                const next = !hapticOn
+                await setHapticEnabled(next)
+                setHapticOn(next)
+              }}
+              style={styles.menuRow}
+            >
+              <View style={styles.menuIconWrap}>
+                <IconSettings size={18} color={colors.primary} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>Haptic feedback</Text>
+                <Text style={styles.menuDesc}>Vibration on button presses</Text>
               </View>
               <View style={[styles.toggle, hapticOn && styles.toggleOn]}>
                 <View style={[styles.toggleDot, hapticOn && styles.toggleDotOn]} />
               </View>
-            </View>
-          </Pressable>
+            </Pressable>
+          </View>
         </View>
 
-        {/* Offline section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHead}>OFFLINE</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Offline sync</Text>
-            <Text style={styles.cardDesc}>
-              Visit actions are stored on this device until they reach the server.
-            </Text>
-            <View style={{ marginTop: spacing.md }}>
-              <PrimaryButton label="Retry sync" onPress={onSync} tone="primary" size="small" />
+        <View style={styles.group}>
+          <Text style={styles.groupLabel}>DATA</Text>
+          <View style={styles.groupCard}>
+            {/* Offline sync */}
+            <View style={styles.menuRow}>
+              <View style={styles.menuIconWrap}>
+                <IconSyncSmall size={18} color={colors.success} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>Offline sync</Text>
+                <Text style={styles.menuDesc}>Actions stored until reconnected</Text>
+              </View>
+              <Pressable onPress={() => { hapticLight(); onSync() }} style={styles.syncBtn}>
+                <Text style={styles.syncBtnText}>Sync</Text>
+              </Pressable>
             </View>
           </View>
         </View>
 
+        {/* Message */}
         {message ? (
           <View style={styles.msgBanner}>
             <Text style={styles.msgText}>{message}</Text>
@@ -120,9 +150,13 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
         ) : null}
 
         {/* Sign out */}
-        <View style={{ marginTop: spacing.lg }}>
-          <PrimaryButton label="Sign out" onPress={onSignOut} tone="outline" />
-        </View>
+        <Pressable onPress={() => { hapticLight(); onSignOut() }} style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}>
+          <Text style={styles.signOutText}>Sign out</Text>
+        </Pressable>
+
+        <Text style={styles.version}>MeticleCare v1.0</Text>
+
+        <View style={{ height: spacing.xxxl }} />
       </ScrollView>
     </SafeAreaView>
   )
@@ -130,85 +164,115 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
-  pageTitle: { ...type.title, marginBottom: spacing.base },
+  content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg },
 
-  /* Profile */
+  pageTitle: { fontFamily: FONT, fontSize: 22, fontWeight: '700', color: colors.ink, letterSpacing: -0.4, marginBottom: spacing.lg },
+
+  /* Profile card */
   profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    padding: spacing.base,
-    gap: spacing.base,
-    marginBottom: spacing.xl,
-    ...elevation.sm,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.surface, borderRadius: radii.xl,
+    borderWidth: 1, borderColor: colors.borderLight,
+    padding: spacing.base, gap: spacing.base,
+    marginBottom: spacing.xl, ...elevation.md,
   },
+  avatarWrap: {},
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56, height: 56, borderRadius: 28,
     backgroundColor: colors.primarySurface,
-    borderWidth: 2,
-    borderColor: colors.primary + '30',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 2, borderColor: colors.primary + '25',
+    alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { fontFamily: 'System', fontSize: 20, fontWeight: '700', color: colors.primary },
+  avatarImage: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: colors.primary + '25' },
+  avatarText: { fontFamily: FONT, fontSize: 22, fontWeight: '700', color: colors.primary },
   profileInfo: { flex: 1 },
-  profileName: { ...type.bodyBold, fontSize: 17 },
-  profileEmail: { ...type.small, marginTop: 1 },
-  profileRole: {
-    fontFamily: 'System',
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: spacing.xs,
+  profileName: { fontFamily: FONT, fontSize: 17, fontWeight: '700', color: colors.ink },
+  profileEmail: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted, marginTop: 2 },
+  roleBadge: {
+    alignSelf: 'flex-start', marginTop: spacing.xs,
+    backgroundColor: colors.primarySurface, paddingHorizontal: spacing.sm,
+    paddingVertical: 3, borderRadius: radii.sm,
   },
-  chevron: { fontFamily: 'System', fontSize: 18, color: colors.subtle, fontWeight: '600' },
+  roleBadgeText: { fontFamily: FONT, fontSize: 10, fontWeight: '700', color: colors.primary, textTransform: 'uppercase', letterSpacing: 0.5 },
+  chevronWrap: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center',
+  },
+  chevron: { fontFamily: FONT, fontSize: 16, fontWeight: '600', color: colors.subtle },
 
-  /* Sections */
-  section: { marginBottom: spacing.lg },
-  sectionHead: {
-    fontFamily: 'System',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: colors.subtle,
-    marginBottom: spacing.sm,
+  /* Groups */
+  group: { marginBottom: spacing.lg },
+  groupLabel: {
+    fontFamily: FONT, fontSize: 11, fontWeight: '700',
+    letterSpacing: 1, textTransform: 'uppercase', color: colors.subtle,
+    marginBottom: spacing.sm, paddingLeft: 4,
   },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    padding: spacing.base,
-    ...elevation.sm,
+  groupCard: {
+    backgroundColor: colors.surface, borderRadius: radii.lg,
+    borderWidth: 1, borderColor: colors.borderLight,
+    overflow: 'hidden', ...elevation.sm,
   },
-  cardRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  cardContent: { flex: 1 },
-  cardTitle: { ...type.bodyBold, marginBottom: spacing.xs },
-  cardDesc: { ...type.small, lineHeight: 18 },
-  statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
-  statusText: { ...type.small, color: colors.muted, textTransform: 'capitalize', marginTop: spacing.xs },
+
+  /* Menu rows */
+  menuRow: {
+    flexDirection: 'row', alignItems: 'center',
+    padding: spacing.base, gap: spacing.md,
+  },
+  menuIconWrap: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center',
+  },
+  menuContent: { flex: 1 },
+  menuTitle: { fontFamily: FONT, fontSize: 15, fontWeight: '600', color: colors.ink },
+  menuDesc: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.muted, marginTop: 2 },
+
+  /* Status badge */
+  statusBadge: {
+    backgroundColor: colors.successSurface, paddingHorizontal: spacing.sm,
+    paddingVertical: 4, borderRadius: radii.sm,
+  },
+  statusBadgeText: { fontFamily: FONT, fontSize: 11, fontWeight: '700', color: colors.success },
+
+  /* Enable button */
+  enableBtn: {
+    backgroundColor: colors.primarySurface, paddingHorizontal: spacing.md,
+    paddingVertical: 6, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.primary + '25',
+  },
+  enableBtnText: { fontFamily: FONT, fontSize: 12, fontWeight: '600', color: colors.primary },
+
+  /* Sync button */
+  syncBtn: {
+    backgroundColor: colors.successSurface, paddingHorizontal: spacing.md,
+    paddingVertical: 6, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.success + '25',
+  },
+  syncBtnText: { fontFamily: FONT, fontSize: 12, fontWeight: '600', color: colors.success },
+
+  /* Toggle */
+  toggle: {
+    width: 44, height: 24, borderRadius: 12,
+    backgroundColor: colors.border, justifyContent: 'center', paddingHorizontal: 2,
+  },
+  toggleOn: { backgroundColor: colors.primary },
+  toggleDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.inverse },
+  toggleDotOn: { alignSelf: 'flex-end' },
 
   /* Message */
   msgBanner: {
-    backgroundColor: colors.successSurface,
-    padding: spacing.md,
-    borderRadius: radii.md,
-    marginTop: spacing.base,
+    backgroundColor: colors.successSurface, padding: spacing.md,
+    borderRadius: radii.md, marginTop: spacing.base,
+    borderWidth: 1, borderColor: colors.success + '20',
   },
-  msgText: { ...type.small, color: colors.successDeep },
+  msgText: { fontFamily: FONT, fontSize: 13, fontWeight: '500', color: colors.successDeep },
 
-  /* Toggle */
-  toggle: { width: 40, height: 22, borderRadius: 11, backgroundColor: colors.border, justifyContent: 'center', paddingHorizontal: 2 },
-  toggleOn: { backgroundColor: colors.primary },
-  toggleDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.inverse },
-  toggleDotOn: { alignSelf: 'flex-end' },
+  /* Sign out */
+  signOutBtn: {
+    alignItems: 'center', paddingVertical: spacing.base,
+    marginTop: spacing.lg, borderRadius: radii.md,
+    borderWidth: 1.5, borderColor: colors.danger + '30',
+    backgroundColor: colors.dangerSurface,
+  },
+  signOutText: { fontFamily: FONT, fontSize: 15, fontWeight: '600', color: colors.danger },
+
+  /* Version */
+  version: { fontFamily: FONT, fontSize: 11, fontWeight: '400', color: colors.subtle, textAlign: 'center', marginTop: spacing.xl },
 })
