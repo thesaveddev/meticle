@@ -3,12 +3,12 @@ import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollV
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import * as FileSystem from 'expo-file-system'
-import { Ionicons } from '@expo/vector-icons'
-import { colors, elevation, radii, spacing, type } from '../theme'
-import type { HomecareVisit, OfflineVisitAction, VisitAction } from '../types'
+import { colors, elevation, radii, spacing, type, FONT } from '../theme'
+import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation } from '../services/location'
-import type { AuthSession } from '../types'
+import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident } from '../components/Icons'
+import { hapticLight } from '../services/haptics'
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -25,10 +25,21 @@ function statusColor(status: string) {
   switch (status) {
     case 'completed': return colors.success
     case 'checked_in': return colors.primary
-    case 'en_route': return colors.accent
+    case 'en_route': return colors.warning
     case 'missed': return colors.danger
     default: return colors.subtle
   }
+}
+
+function StatusPill({ status }: { status: string }) {
+  const color = statusColor(status)
+  const label = status.replace('_', ' ')
+  return (
+    <View style={[styles.statusPill, { backgroundColor: color + '15' }]}>
+      <View style={[styles.statusDot, { backgroundColor: color }]} />
+      <Text style={[styles.statusPillText, { color }]}>{label}</Text>
+    </View>
+  )
 }
 
 export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident }: {
@@ -51,14 +62,14 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const [disruption, setDisruption] = useState('')
   const [checkedInAt, setCheckedInAt] = useState<string | null>(null)
   const [checkedInLocation, setCheckedInLocation] = useState<{ latitude: number; longitude: number } | null>(null)
-  const [photos, setPhotos] = useState<string[]>([]) // uploaded photo URLs
+  const [photos, setPhotos] = useState<string[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   const isOpen = !['completed', 'cancelled', 'missed'].includes(visit.status)
   const checkedIn = visit.status === 'checked_in'
-  const sColor = statusColor(visit.status)
 
   const pickVisitPhoto = async () => {
+    hapticLight()
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (status !== 'granted') {
       Alert.alert('Permission needed', 'Please grant photo library access.')
@@ -77,6 +88,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   }
 
   const takeVisitPhoto = async () => {
+    hapticLight()
     const { status } = await ImagePicker.requestCameraPermissionsAsync()
     if (status !== 'granted') {
       Alert.alert('Permission needed', 'Please grant camera access.')
@@ -118,10 +130,12 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   }
 
   const removePhoto = (index: number) => {
+    hapticLight()
     setPhotos(prev => prev.filter((_, i) => i !== index))
   }
 
   async function execute(action: VisitAction) {
+    hapticLight()
     setBusy(true); setError(''); setSuccess('')
     try {
       const location = await getVisitLocation()
@@ -157,6 +171,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
   async function reportDisruption() {
     if (!disruption.trim()) return
+    hapticLight()
     setBusy(true); setError('')
     try {
       await onDisruption({
@@ -183,94 +198,91 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
       >
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* Back */}
-          <Pressable onPress={onBack} style={styles.backBtn}>
-            <Text style={styles.backArrow}>←</Text>
+          <Pressable onPress={() => { hapticLight(); onBack() }} style={styles.backBtn}>
+            <IconBack size={18} color={colors.primary} />
             <Text style={styles.backText}>Today</Text>
           </Pressable>
 
           {/* Client card */}
           <View style={styles.clientCard}>
-            <View style={styles.clientHeader}>
-              <View style={styles.clientInfo}>
-                <Text style={styles.clientName}>{visit.label}</Text>
-                <View style={styles.timeRow}>
-                  <Text style={styles.timeText}>{time(visit.scheduled_start)} – {time(visit.scheduled_end)}</Text>
-                </View>
-              </View>
-              <View style={[styles.statusBadge, { backgroundColor: sColor + '18' }]}>
-                <Text style={[styles.statusText, { color: sColor }]}>
-                  {visit.status.replace('_', ' ')}
-                </Text>
-              </View>
+            <View style={styles.clientTop}>
+              <Text style={styles.clientName}>{visit.label}</Text>
+              <StatusPill status={visit.status} />
+            </View>
+
+            <View style={styles.timeRow}>
+              <IconClock size={14} color={colors.primary} />
+              <Text style={styles.timeText}>{time(visit.scheduled_start)} – {time(visit.scheduled_end)}</Text>
             </View>
 
             {visit.person_name && (
               <View style={styles.personSection}>
                 <Text style={styles.personName}>{visit.person_name}</Text>
                 {visit.person_address && (
-                  <Text style={styles.personAddr}>📍 {visit.person_address}</Text>
+                  <Text style={styles.personAddr}>{visit.person_address}</Text>
                 )}
                 {onClientDetail && visit.person_id && (
-                  <Pressable onPress={() => onClientDetail(visit.person_id!)}>
-                    <Text style={styles.viewClient}>View client details →</Text>
+                  <Pressable onPress={() => { hapticLight(); onClientDetail(visit.person_id!) }} style={styles.viewClientBtn}>
+                    <Text style={styles.viewClientText}>View client file</Text>
+                    <Text style={styles.viewClientArrow}>→</Text>
                   </Pressable>
                 )}
               </View>
             )}
           </View>
 
-          {/* Check-in status card — shown after checking in */}
+          {/* Check-in status */}
           {checkedIn && (
             <View style={styles.checkInCard}>
-              <View style={styles.checkInHeader}>
-                <View style={styles.checkInDot} />
-                <Text style={styles.checkInTitle}>Checked in</Text>
+              <View style={styles.checkInRow}>
+                <View style={styles.checkInPulse} />
+                <View>
+                  <Text style={styles.checkInTitle}>Checked in</Text>
+                  {checkedInAt && <Text style={styles.checkInTime}>{checkedInAt}</Text>}
+                </View>
               </View>
-              {checkedInAt && (
-                <Text style={styles.checkInDetail}>🕐 {checkedInAt}</Text>
-              )}
               {checkedInLocation && (
-                <Text style={styles.checkInDetail}>📍 Location captured</Text>
+                <View style={styles.checkInMeta}>
+                  <Text style={styles.checkInMetaText}>Location captured</Text>
+                </View>
               )}
-              <Text style={styles.checkInHelper}>
-                Fill in your visit notes below, then check out when you leave.
+              <Text style={styles.checkInHint}>
+                Record what happened during the call, then check out when you leave.
               </Text>
             </View>
           )}
 
           {/* Messages */}
           {success ? (
-            <View style={styles.successBanner}>
-              <Text style={styles.successIcon}>✓</Text>
-              <Text style={styles.successText}>{success}</Text>
+            <View style={styles.banner}>
+              <View style={[styles.bannerIcon, { backgroundColor: colors.success }]}>
+                <IconCheck size={12} color={colors.inverse} />
+              </View>
+              <Text style={[styles.bannerText, { color: colors.successDeep }]}>{success}</Text>
             </View>
           ) : null}
           {error ? (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorIcon}>!</Text>
-              <Text accessibilityRole="alert" style={styles.errorMsg}>{error}</Text>
+            <View style={[styles.banner, { backgroundColor: colors.dangerSurface }]}>
+              <View style={[styles.bannerIcon, { backgroundColor: colors.danger }]}>
+                <Text style={styles.bannerIconText}>!</Text>
+              </View>
+              <Text accessibilityRole="alert" style={[styles.bannerText, { color: colors.dangerDeep }]}>{error}</Text>
             </View>
           ) : null}
 
-          {/* Visit record form */}
+          {/* Form card */}
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>{checkedIn ? 'Visit notes' : 'Pre-visit details'}</Text>
 
             {!checkedIn && (
-              <Text style={styles.formHelper}>
-                Enter travel time and mileage from your previous call. Location is captured at check-in.
-              </Text>
-            )}
-
-            {!checkedIn && (
               <View style={styles.fieldRow}>
                 <View style={styles.fieldHalf}>
-                  <Text style={styles.fieldLabel}>Travel (min)</Text>
+                  <Text style={styles.fieldLabel}>Travel time (min)</Text>
                   <TextInput
                     keyboardType="number-pad"
                     value={travelMinutes}
                     onChangeText={setTravelMinutes}
-                    placeholder="—"
+                    placeholder="0"
                     placeholderTextColor={colors.subtle}
                     style={styles.input}
                   />
@@ -281,7 +293,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                     keyboardType="decimal-pad"
                     value={mileage}
                     onChangeText={setMileage}
-                    placeholder="—"
+                    placeholder="0.0"
                     placeholderTextColor={colors.subtle}
                     style={styles.input}
                   />
@@ -302,31 +314,28 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             </View>
           </View>
 
-          {/* Actions */}
           {/* Photo attachments */}
           {checkedIn && (
-            <View style={styles.photoSection}>
-              <Text style={styles.fieldLabel}>Photos</Text>
+            <View style={styles.photoCard}>
+              <Text style={styles.formTitle}>Photos</Text>
               <View style={styles.photoRow}>
-                <Pressable onPress={pickVisitPhoto} style={styles.photoAction}>
-                  <Ionicons name="images" size={20} color={colors.primary} />
-                  <Text style={styles.photoActionText}>Gallery</Text>
+                <Pressable onPress={pickVisitPhoto} style={({ pressed }) => [styles.photoBtn, pressed && { opacity: 0.7 }]}>
+                  <IconGallery size={18} color={colors.primary} />
+                  <Text style={styles.photoBtnText}>Gallery</Text>
                 </Pressable>
-                <Pressable onPress={takeVisitPhoto} style={styles.photoAction}>
-                  <Ionicons name="camera" size={20} color={colors.primary} />
-                  <Text style={styles.photoActionText}>Camera</Text>
+                <Pressable onPress={takeVisitPhoto} style={({ pressed }) => [styles.photoBtn, pressed && { opacity: 0.7 }]}>
+                  <IconCamera size={18} color={colors.primary} />
+                  <Text style={styles.photoBtnText}>Camera</Text>
                 </Pressable>
-                {uploadingPhoto && (
-                  <Text style={styles.uploadingText}>Uploading...</Text>
-                )}
+                {uploadingPhoto && <Text style={styles.uploadingText}>Uploading...</Text>}
               </View>
               {photos.length > 0 && (
                 <View style={styles.photoGrid}>
                   {photos.map((url, i) => (
                     <View key={i} style={styles.photoThumb}>
                       <Image source={{ uri: `https://meticlecare.com${url}` }} style={styles.photoImage} />
-                      <Pressable onPress={() => removePhoto(i)} style={styles.photoRemove}>
-                        <Ionicons name="close-circle" size={20} color={colors.danger} />
+                      <Pressable onPress={() => removePhoto(i)} style={styles.photoRemoveBtn}>
+                        <Text style={styles.photoRemoveText}>×</Text>
                       </Pressable>
                     </View>
                   ))}
@@ -359,21 +368,30 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             </View>
           )}
 
+          {/* Secondary actions */}
           {isOpen && (
-            <Pressable onPress={() => setDisruptionOpen(true)} style={styles.disruptionBtn}>
-              <Text style={styles.disruptionText}>⚠ Report a delay or safety issue</Text>
-            </Pressable>
-          )}
+            <View style={styles.secondaryActions}>
+              <Pressable onPress={() => { hapticLight(); setDisruptionOpen(true) }} style={({ pressed }) => [styles.secondaryBtn, pressed && { opacity: 0.7 }]}>
+                <IconWarning size={16} color={colors.warning} />
+                <Text style={styles.secondaryBtnText}>Report a delay</Text>
+              </Pressable>
 
-          {onReportIncident && (
-            <Pressable onPress={onReportIncident} style={styles.disruptionBtn}>
-              <Text style={[styles.disruptionText, { color: colors.danger }]}>🚨 Report an incident</Text>
-            </Pressable>
+              {onReportIncident && (
+                <Pressable onPress={() => { hapticLight(); onReportIncident() }} style={({ pressed }) => [styles.secondaryBtn, pressed && { opacity: 0.7 }]}>
+                  <IconIncident size={16} color={colors.danger} />
+                  <Text style={[styles.secondaryBtnText, { color: colors.danger }]}>Report incident</Text>
+                </Pressable>
+              )}
+            </View>
           )}
 
           {queue.length > 0 && (
-            <Text style={styles.queueNote}>{queue.length} action{queue.length === 1 ? '' : 's'} waiting to sync.</Text>
+            <View style={styles.queueBadge}>
+              <Text style={styles.queueText}>{queue.length} action{queue.length === 1 ? '' : 's'} waiting to sync</Text>
+            </View>
           )}
+
+          <View style={{ height: spacing.xxl }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -383,7 +401,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
           <View style={styles.modal}>
             <Text style={styles.modalTitle}>Report a disruption</Text>
             <Text style={styles.modalHelper}>
-              Tell the office what is affecting this call. They will follow the escalation procedure.
+              Tell the office what is affecting this call.
             </Text>
             <TextInput
               multiline
@@ -417,9 +435,8 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.md, paddingBottom: spacing.xxxl },
 
   /* Back */
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.base },
-  backArrow: { fontFamily: 'System', fontSize: 18, color: colors.primary, fontWeight: '600' },
-  backText: { fontFamily: 'System', fontSize: 15, fontWeight: '500', color: colors.primary },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.base },
+  backText: { fontFamily: FONT, fontSize: 15, fontWeight: '600', color: colors.primary },
 
   /* Client card */
   clientCard: {
@@ -428,50 +445,70 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderLight,
     padding: spacing.base,
+    gap: spacing.md,
     ...elevation.sm,
   },
-  clientHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  clientInfo: { flex: 1 },
-  clientName: { fontFamily: 'System', fontSize: 20, fontWeight: '700', color: colors.ink, letterSpacing: -0.3 },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs },
-  timeText: { fontFamily: 'System', fontSize: 14, fontWeight: '500', color: colors.primary },
-  statusBadge: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radii.full },
-  statusText: { fontFamily: 'System', fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
-  personSection: { borderTopWidth: 1, borderTopColor: colors.borderLight, marginTop: spacing.md, paddingTop: spacing.md },
-  personName: { ...type.bodyBold, fontSize: 16 },
-  personAddr: { ...type.small, marginTop: spacing.xs },
-  viewClient: { fontFamily: 'System', fontSize: 13, fontWeight: '600', color: colors.primary, marginTop: spacing.sm },
+  clientTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  clientName: { fontFamily: FONT, fontSize: 20, fontWeight: '700', color: colors.ink, letterSpacing: -0.4, flex: 1, marginRight: spacing.sm },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  timeText: { fontFamily: FONT, fontSize: 14, fontWeight: '600', color: colors.primary },
+  personSection: { borderTopWidth: 1, borderTopColor: colors.borderLight, paddingTop: spacing.md },
+  personName: { fontFamily: FONT, fontSize: 16, fontWeight: '600', color: colors.ink },
+  personAddr: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted, marginTop: 4 },
+  viewClientBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    marginTop: spacing.sm, backgroundColor: colors.primarySurface,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.md,
+  },
+  viewClientText: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.primary },
+  viewClientArrow: { fontFamily: FONT, fontSize: 14, fontWeight: '600', color: colors.primary },
 
-  /* Check-in status card */
+  /* Status pill */
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radii.full,
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusPillText: { fontFamily: FONT, fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
+
+  /* Check-in card */
   checkInCard: {
     backgroundColor: colors.primarySurface,
     borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: colors.primary + '30',
+    borderColor: colors.primary + '25',
     padding: spacing.base,
     marginTop: spacing.base,
+    gap: spacing.sm,
   },
-  checkInHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  checkInDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
-  checkInTitle: { fontFamily: 'System', fontSize: 15, fontWeight: '700', color: colors.primary },
-  checkInDetail: { fontFamily: 'System', fontSize: 13, color: colors.inkLight, marginTop: spacing.xs },
-  checkInHelper: { ...type.small, marginTop: spacing.sm, color: colors.muted },
+  checkInRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  checkInPulse: {
+    width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary,
+  },
+  checkInTitle: { fontFamily: FONT, fontSize: 15, fontWeight: '700', color: colors.primary },
+  checkInTime: { fontFamily: FONT, fontSize: 12, fontWeight: '500', color: colors.primaryLight, marginTop: 1 },
+  checkInMeta: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: colors.primarySurface, paddingHorizontal: spacing.sm,
+    paddingVertical: 3, borderRadius: radii.sm, alignSelf: 'flex-start',
+  },
+  checkInMetaText: { fontFamily: FONT, fontSize: 11, fontWeight: '600', color: colors.primary },
+  checkInHint: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.muted, lineHeight: 16 },
 
-  /* Messages */
-  successBanner: {
+  /* Banners */
+  banner: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.successSurface, padding: spacing.md, borderRadius: radii.md, marginTop: spacing.base,
+    backgroundColor: colors.successSurface, padding: spacing.md,
+    borderRadius: radii.md, marginTop: spacing.base,
   },
-  successIcon: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.success, color: colors.inverse, textAlign: 'center', lineHeight: 22, fontSize: 13, fontWeight: '700' },
-  successText: { ...type.small, color: colors.successDeep, flex: 1 },
-  errorBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.dangerSurface, padding: spacing.md, borderRadius: radii.md, marginTop: spacing.base,
+  bannerIcon: {
+    width: 20, height: 20, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
   },
-  errorIcon: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.danger, color: colors.inverse, textAlign: 'center', lineHeight: 22, fontSize: 13, fontWeight: '700' },
-  errorMsg: { ...type.small, color: colors.dangerDeep, flex: 1 },
+  bannerIconText: { fontFamily: FONT, fontSize: 12, fontWeight: '800', color: colors.inverse },
+  bannerText: { fontFamily: FONT, fontSize: 13, fontWeight: '500', flex: 1 },
 
-  /* Form */
+  /* Form card */
   formCard: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
@@ -482,12 +519,11 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     ...elevation.sm,
   },
-  formTitle: { ...type.bodyBold, fontSize: 16 },
-  formHelper: { ...type.small, marginTop: -spacing.xs },
+  formTitle: { fontFamily: FONT, fontSize: 16, fontWeight: '700', color: colors.ink },
   fieldRow: { flexDirection: 'row', gap: spacing.md },
   fieldHalf: { flex: 1 },
   fieldGroup: { gap: spacing.xs },
-  fieldLabel: { fontFamily: 'System', fontSize: 12, fontWeight: '600', color: colors.inkLight, marginBottom: spacing.xs },
+  fieldLabel: { fontFamily: FONT, fontSize: 12, fontWeight: '600', color: colors.inkLight, marginBottom: spacing.xs },
   input: {
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -496,37 +532,65 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     color: colors.ink,
-    fontFamily: 'System',
+    fontFamily: FONT,
     fontSize: 15,
   },
-  textArea: { minHeight: 90, textAlignVertical: 'top', paddingTop: spacing.md },
+  textArea: { minHeight: 100, textAlignVertical: 'top', paddingTop: spacing.md },
 
-  /* Photo attachments */
-  photoSection: { marginTop: spacing.base },
+  /* Photo card */
+  photoCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: spacing.base,
+    marginTop: spacing.base,
+    gap: spacing.md,
+    ...elevation.sm,
+  },
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  photoAction: {
+  photoBtn: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
     borderRadius: radii.md, backgroundColor: colors.primarySurface,
-    borderWidth: 1, borderColor: colors.primary + '30',
+    borderWidth: 1, borderColor: colors.primary + '25',
   },
-  photoActionText: { fontFamily: 'System', fontSize: 13, fontWeight: '600', color: colors.primary },
-  uploadingText: { ...type.small, color: colors.muted },
-  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  photoThumb: { position: 'relative', width: 72, height: 72 },
-  photoImage: { width: 72, height: 72, borderRadius: radii.md },
-  photoRemove: { position: 'absolute', top: -6, right: -6 },
+  photoBtnText: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.primary },
+  uploadingText: { fontFamily: FONT, fontSize: 12, fontWeight: '500', color: colors.muted },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  photoThumb: { position: 'relative', width: 72, height: 72, borderRadius: radii.md, overflow: 'hidden' },
+  photoImage: { width: 72, height: 72 },
+  photoRemoveBtn: {
+    position: 'absolute', top: 4, right: 4,
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center',
+  },
+  photoRemoveText: { fontFamily: FONT, fontSize: 14, fontWeight: '700', color: colors.inverse, marginTop: -1 },
 
   /* Actions */
-  actions: { marginTop: spacing.base, gap: spacing.sm },
+  actions: { marginTop: spacing.base },
 
-  /* Disruption */
-  disruptionBtn: { alignItems: 'center', paddingVertical: spacing.base, marginTop: spacing.xs },
-  disruptionText: { fontFamily: 'System', fontSize: 14, fontWeight: '500', color: colors.danger },
-  queueNote: { ...type.caption, textAlign: 'center', marginTop: spacing.base },
+  /* Secondary actions */
+  secondaryActions: {
+    flexDirection: 'row', gap: spacing.sm, marginTop: spacing.base,
+  },
+  secondaryBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: spacing.xs, paddingVertical: spacing.md,
+    borderRadius: radii.md, backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.borderLight,
+  },
+  secondaryBtnText: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.warning },
+
+  /* Queue */
+  queueBadge: {
+    alignItems: 'center', paddingVertical: spacing.sm,
+    marginTop: spacing.base,
+  },
+  queueText: { fontFamily: FONT, fontSize: 12, fontWeight: '500', color: colors.subtle },
 
   /* Modal */
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(28, 25, 23, 0.5)', justifyContent: 'flex-end' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'flex-end' },
   modal: {
     backgroundColor: colors.bg,
     borderTopLeftRadius: radii.xl,
@@ -535,8 +599,8 @@ const styles = StyleSheet.create({
     gap: spacing.base,
     ...elevation.lg,
   },
-  modalTitle: { ...type.title },
-  modalHelper: { ...type.small, marginTop: -spacing.sm },
+  modalTitle: { fontFamily: FONT, fontSize: 20, fontWeight: '700', color: colors.ink },
+  modalHelper: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted, marginTop: -spacing.sm },
   cancelBtn: { alignItems: 'center', paddingVertical: spacing.sm },
-  cancelText: { fontFamily: 'System', fontSize: 15, fontWeight: '600', color: colors.primary },
+  cancelText: { fontFamily: FONT, fontSize: 15, fontWeight: '600', color: colors.primary },
 })
