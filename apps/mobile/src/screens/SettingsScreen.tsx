@@ -43,40 +43,40 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
   const roleLabel = user.role ? user.role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={[styles.screen, dyn(c).screen]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <Text style={styles.pageTitle}>Settings</Text>
+        <Text style={[styles.pageTitle, { color: c.ink }]}>Settings</Text>
 
         {/* Profile card */}
-        <Pressable onPress={() => { hapticLight(); onProfile?.() }} style={({ pressed }) => [styles.profileCard, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}>
+        <Pressable onPress={() => { hapticLight(); onProfile?.() }} style={({ pressed }) => [styles.profileCard, { backgroundColor: c.surface, borderColor: c.borderLight }, pressed && { opacity: 0.85 }]}>
           <View style={styles.avatarWrap}>
             {(user as any).profile_picture_url ? (
               <Image source={{ uri: (user as any).profile_picture_url }} style={styles.avatarImage} />
             ) : (
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initials}</Text>
+              <View style={[styles.avatar, { backgroundColor: c.primarySurface, borderColor: c.primary + '25' }]}>
+                <Text style={[styles.avatarText, { color: c.primary }]}>{initials}</Text>
               </View>
             )}
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{displayName}</Text>
-            <Text style={styles.profileEmail}>{user.email}</Text>
+            <Text style={[styles.profileName, { color: c.ink }]}>{displayName}</Text>
+            <Text style={[styles.profileEmail, { color: c.muted }]}>{user.email}</Text>
             {roleLabel ? (
-              <View style={styles.roleBadge}>
-                <Text style={styles.roleBadgeText}>{roleLabel}</Text>
+              <View style={[styles.roleBadge, { backgroundColor: c.primarySurface }]}>
+                <Text style={[styles.roleBadgeText, { color: c.primary }]}>{roleLabel}</Text>
               </View>
             ) : null}
           </View>
-          <View style={styles.chevronWrap}>
-            <Text style={styles.chevron}>→</Text>
+          <View style={[styles.chevronWrap, { backgroundColor: c.bg }]}>
+            <Text style={[styles.chevron, { color: c.subtle }]}>→</Text>
           </View>
         </Pressable>
 
         {/* Settings groups */}
         <View style={styles.group}>
-          <Text style={styles.groupLabel}>NOTIFICATIONS</Text>
-          <View style={styles.groupCard}>
+          <Text style={[styles.groupLabel, { color: c.subtle }]}>NOTIFICATIONS</Text>
+          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
             {/* Visit reminders */}
             <Pressable
               onPress={async () => {
@@ -92,31 +92,31 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
               }}
               style={styles.menuRow}
             >
-              <View style={styles.menuIconWrap}>
-                <IconWarning size={18} color={colors.warning} />
+              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
+                <IconWarning size={18} color={c.warning} />
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuTitle}>Visit reminders</Text>
-                <Text style={styles.menuDesc}>Alerts before your assigned calls</Text>
+                <Text style={[styles.menuTitle, { color: c.ink }]}>Visit reminders</Text>
+                <Text style={[styles.menuDesc, { color: c.muted }]}>Alerts before your assigned calls</Text>
               </View>
-              <View style={[styles.toggle, reminders === 'enabled' && styles.toggleOn]}>
-                <View style={[styles.toggleDot, reminders === 'enabled' && styles.toggleDotOn]} />
+              <View style={[styles.toggle, { backgroundColor: c.border }, reminders === 'enabled' && { backgroundColor: c.primary }]}>
+                <View style={[styles.toggleDot, { backgroundColor: c.inverse }, reminders === 'enabled' && styles.toggleDotOn]} />
               </View>
             </Pressable>
           </View>
         </View>
 
         <View style={styles.group}>
-          <Text style={styles.groupLabel}>APPEARANCE</Text>
-          <View style={styles.groupCard}>
+          <Text style={[styles.groupLabel, { color: c.subtle }]}>APPEARANCE</Text>
+          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
             {/* Dark mode */}
             <View style={styles.menuRow}>
-              <View style={styles.menuIconWrap}>
+              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
                 <Text style={{ fontSize: 16 }}>{scheme === 'dark' ? '🌙' : '☀️'}</Text>
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuTitle}>Dark mode</Text>
-                <Text style={styles.menuDesc}>{mode === 'system' ? 'Following system setting' : mode === 'dark' ? 'Always dark' : 'Always light'}</Text>
+                <Text style={[styles.menuTitle, { color: c.ink }]}>Dark mode</Text>
+                <Text style={[styles.menuDesc, { color: c.muted }]}>{mode === 'system' ? 'Following system setting' : mode === 'dark' ? 'Always dark' : 'Always light'}</Text>
               </View>
             </View>
             {/* Mode selector pills */}
@@ -125,18 +125,19 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
                 <Pressable key={m} onPress={() => { hapticLight(); setMode(m) }}
                   style={({ pressed }) => [
                     styles.modePill,
-                    mode === m && styles.modePillActive,
+                    { backgroundColor: c.bg, borderColor: c.border },
+                    mode === m && { backgroundColor: c.primarySurface, borderColor: c.primary + '40' },
                     pressed && { opacity: 0.7 },
                   ]}
                 >
-                  <Text style={[styles.modePillText, mode === m && styles.modePillTextActive]}>{label}</Text>
+                  <Text style={[styles.modePillText, { color: c.muted }, mode === m && { color: c.primary }]}>{label}</Text>
                 </Pressable>
               ))}
             </View>
           </View>
 
           {/* Haptic feedback */}
-          <View style={[styles.groupCard, { marginTop: spacing.sm }]}>  
+          <View style={[styles.groupCard, { marginTop: spacing.sm, backgroundColor: c.surface, borderColor: c.borderLight }]}>  
             <Pressable
               onPress={async () => {
                 hapticLight()
@@ -146,50 +147,50 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
               }}
               style={styles.menuRow}
             >
-              <View style={styles.menuIconWrap}>
-                <IconSettings size={18} color={colors.primary} />
+              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
+                <IconSettings size={18} color={c.primary} />
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuTitle}>Haptic feedback</Text>
-                <Text style={styles.menuDesc}>Vibration on button presses</Text>
+                <Text style={[styles.menuTitle, { color: c.ink }]}>Haptic feedback</Text>
+                <Text style={[styles.menuDesc, { color: c.muted }]}>Vibration on button presses</Text>
               </View>
-              <View style={[styles.toggle, hapticOn && styles.toggleOn]}>
-                <View style={[styles.toggleDot, hapticOn && styles.toggleDotOn]} />
+              <View style={[styles.toggle, { backgroundColor: c.border }, hapticOn && { backgroundColor: c.primary }]}>
+                <View style={[styles.toggleDot, { backgroundColor: c.inverse }, hapticOn && styles.toggleDotOn]} />
               </View>
             </Pressable>
           </View>
         </View>
 
         <View style={styles.group}>
-          <Text style={styles.groupLabel}>AVAILABILITY</Text>
-          <View style={styles.groupCard}>
+          <Text style={[styles.groupLabel, { color: c.subtle }]}>AVAILABILITY</Text>
+          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
             <Pressable onPress={() => { hapticLight(); onAvailability?.() }} style={styles.menuRow}>
-              <View style={styles.menuIconWrap}>
-                <IconSchedule size={18} color={colors.primary} />
+              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
+                <IconSchedule size={18} color={c.primary} />
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuTitle}>Submit availability</Text>
-                <Text style={styles.menuDesc}>Set your available hours for upcoming weeks</Text>
+                <Text style={[styles.menuTitle, { color: c.ink }]}>Submit availability</Text>
+                <Text style={[styles.menuDesc, { color: c.muted }]}>Set your available hours for upcoming weeks</Text>
               </View>
-              <Text style={styles.menuArrow}>→</Text>
+              <Text style={[styles.menuArrow, { color: c.subtle }]}>→</Text>
             </Pressable>
           </View>
         </View>
 
         <View style={styles.group}>
-          <Text style={styles.groupLabel}>DATA</Text>
-          <View style={styles.groupCard}>
+          <Text style={[styles.groupLabel, { color: c.subtle }]}>DATA</Text>
+          <View style={[styles.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
             {/* Offline sync */}
             <View style={styles.menuRow}>
-              <View style={styles.menuIconWrap}>
-                <IconSyncSmall size={18} color={colors.success} />
+              <View style={[styles.menuIconWrap, { backgroundColor: c.bg }]}>
+                <IconSyncSmall size={18} color={c.success} />
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuTitle}>Offline sync</Text>
-                <Text style={styles.menuDesc}>Actions stored until reconnected</Text>
+                <Text style={[styles.menuTitle, { color: c.ink }]}>Offline sync</Text>
+                <Text style={[styles.menuDesc, { color: c.muted }]}>Actions stored until reconnected</Text>
               </View>
-              <Pressable onPress={() => { hapticLight(); onSync() }} style={styles.syncBtn}>
-                <Text style={styles.syncBtnText}>Sync</Text>
+              <Pressable onPress={() => { hapticLight(); onSync() }} style={[styles.syncBtn, { backgroundColor: c.successSurface, borderColor: c.success + '25' }]}>
+                <Text style={[styles.syncBtnText, { color: c.success }]}>Sync</Text>
               </Pressable>
             </View>
           </View>
@@ -197,17 +198,17 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
 
         {/* Message */}
         {message ? (
-          <View style={styles.msgBanner}>
-            <Text style={styles.msgText}>{message}</Text>
+          <View style={[styles.msgBanner, { backgroundColor: c.successSurface, borderColor: c.success + '20' }]}>
+            <Text style={[styles.msgText, { color: c.successDeep }]}>{message}</Text>
           </View>
         ) : null}
 
         {/* Sign out */}
-        <Pressable onPress={() => { hapticLight(); onSignOut() }} style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}>
-          <Text style={styles.signOutText}>Sign out</Text>
+        <Pressable onPress={() => { hapticLight(); onSignOut() }} style={({ pressed }) => [styles.signOutBtn, { borderColor: c.danger + '30', backgroundColor: c.dangerSurface }, pressed && { opacity: 0.7 }]}>
+          <Text style={[styles.signOutText, { color: c.danger }]}>Sign out</Text>
         </Pressable>
 
-        <Text style={styles.version}>MeticleCare v1.0</Text>
+        <Text style={[styles.version, { color: c.subtle }]}>MeticleCare v1.0</Text>
 
         <View style={{ height: spacing.xxxl }} />
       </ScrollView>
@@ -216,7 +217,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+screen: { flex: 1 },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg },
 
   pageTitle: { fontFamily: FONT, fontSize: 22, fontWeight: '700', color: colors.ink, letterSpacing: -0.4, marginBottom: spacing.lg },
