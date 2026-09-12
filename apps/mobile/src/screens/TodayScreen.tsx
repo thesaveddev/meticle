@@ -3,21 +3,20 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type } from '../theme'
 import type { HomecareVisit, MobileUser, OfflineVisitAction, SyncState } from '../types'
-import { SyncRail } from '../components/SyncRail'
-import { VisitRow } from '../components/VisitRow'
 import { hapticMedium, hapticLight } from '../services/haptics'
 
 function dayRange() {
   const now = new Date()
-  const from = new Date(now)
-  from.setHours(0, 0, 0, 0)
-  const to = new Date(now)
-  to.setDate(to.getDate() + 1)
-  to.setHours(0, 0, 0, 0)
+  const from = new Date(now); from.setHours(0, 0, 0, 0)
+  const to = new Date(now); to.setDate(to.getDate() + 1); to.setHours(0, 0, 0, 0)
   return { from: from.toISOString(), to: to.toISOString() }
 }
 
 export { dayRange }
+
+function time(value: string) {
+  return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
 
 function greeting() {
   const h = new Date().getHours()
@@ -26,14 +25,64 @@ function greeting() {
   return 'Good evening'
 }
 
-function queueStateLabel(state: string) {
-  switch (state) {
-    case 'synced': return { label: 'Synced', color: colors.success, bg: colors.successSurface, icon: '✓' }
-    case 'pending': return { label: 'Pending', color: colors.warning, bg: colors.warningSurface, icon: '⏳' }
-    case 'syncing': return { label: 'Syncing', color: colors.primary, bg: colors.primarySurface, icon: '↻' }
-    case 'failed': return { label: 'Failed', color: colors.danger, bg: colors.dangerSurface, icon: '!' }
-    default: return { label: state, color: colors.muted, bg: colors.surfaceAlt, icon: '—' }
-  }
+function SyncDot({ state }: { state: SyncState }) {
+  const bg = state === 'synced' ? colors.success : state === 'failed' ? colors.danger : colors.warning
+  return (
+    <View style={[syncStyles.dot, { backgroundColor: bg }]}>
+      {state === 'syncing' && <View style={syncStyles.spinnerRing} />}
+    </View>
+  )
+}
+
+const syncStyles = StyleSheet.create({
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  spinnerRing: { width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: colors.primary, borderTopColor: 'transparent', position: 'absolute', top: -3, left: -3 },
+})
+
+/* ─── Timeline node ─────────────────────────────────────────── */
+function TimelineNode({ visit, position, isNext, onPress }: {
+  visit: HomecareVisit
+  position: 'past' | 'next' | 'future'
+  isNext: boolean
+  onPress: () => void
+}) {
+  const isCompleted = visit.status === 'completed'
+  const isActive = visit.status === 'checked_in' || visit.status === 'en_route'
+  const isMissed = visit.status === 'missed'
+
+  const nodeColor = isCompleted ? colors.success : isActive ? colors.primary : isMissed ? colors.danger : colors.border
+  const textColor = position === 'past' ? colors.muted : colors.ink
+  const timeColor = position === 'past' ? colors.subtle : isNext ? colors.primary : colors.muted
+
+  return (
+    <Pressable onPress={() => { hapticLight(); onPress() }} style={({ pressed }) => [nodeStyles.row, pressed && { opacity: 0.7 }]}>
+      {/* Time column */}
+      <View style={nodeStyles.timeCol}>
+        <Text style={[nodeStyles.time, { color: timeColor }]}>{time(visit.scheduled_start)}</Text>
+        <Text style={[nodeStyles.timeEnd, { color: colors.subtle }]}>{time(visit.scheduled_end)}</Text>
+      </View>
+
+      {/* Timeline line + dot */}
+      <View style={nodeStyles.lineCol}>
+        <View style={[nodeStyles.dot, { backgroundColor: nodeColor, borderColor: nodeColor, ...(isNext ? { width: 14, height: 14, borderRadius: 7 } : {}) }]}>
+          {isCompleted && <Text style={nodeStyles.dotCheck}>✓</Text>}
+          {isActive && <View style={nodeStyles.dotActiveInner} />}
+          {isMissed && <Text style={nodeStyles.dotMiss}>✕</Text>}
+        </View>
+        <View style={[nodeStyles.line, { backgroundColor: position === 'past' ? colors.borderLight : colors.border }]} />
+      </View>
+
+      {/* Content */}
+      <View style={[nodeStyles.content, isNext && nodeStyles.contentNext]}>
+        <View style={nodeStyles.contentHeader}>
+          <Text style={[nodeStyles.label, { color: textColor }]} numberOfLines={1}>{visit.label}</Text>
+          {isNext && <View style={nodeStyles.nextBadge}><Text style={nextBadgeStyles.text}>Next</Text></View>}
+        </View>
+        {visit.person_name && <Text style={[nodeStyles.person, { color: position === 'past' ? colors.subtle : colors.muted }]} numberOfLines={1}>{visit.person_name}</Text>}
+        {visit.person_address && position !== 'past' && <Text style={nodeStyles.addr} numberOfLines={1}>{visit.person_address}</Text>}
+      </View>
+    </Pressable>
+  )
 }
 
 export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshing, onSync }: {
@@ -47,124 +96,82 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
 }) {
   const firstName = user.first_name || user.email.split('@')[0]
   const completed = visits.filter(v => v.status === 'completed').length
-  const activeVisit = visits.find(v => ['en_route', 'checked_in'].includes(v.status)) || visits.find(v => v.status === 'scheduled')
-  const syncState: SyncState = queue.some(item => item.state === 'failed')
-    ? 'failed'
-    : queue.some(item => item.state === 'syncing')
-      ? 'syncing'
-      : queue.length
-        ? 'pending'
-        : 'synced'
+  const syncState: SyncState = queue.some(i => i.state === 'failed') ? 'failed' : queue.some(i => i.state === 'syncing') ? 'syncing' : queue.length ? 'pending' : 'synced'
+
+  // Find the next scheduled visit (first non-completed, non-missed)
+  const nextVisit = visits.find(v => !['completed', 'missed', 'cancelled'].includes(v.status))
+  const pastVisits = visits.filter(v => v.status === 'completed' || v.status === 'missed')
+  const futureVisits = visits.filter(v => v !== nextVisit && !['completed', 'missed', 'cancelled'].includes(v.status))
 
   const dateLabel = useMemo(
     () => new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()),
     [],
   )
 
-  const handleRefresh = useCallback(() => {
-    hapticMedium()
-    onRefresh()
-  }, [onRefresh])
-
-  const pendingQueue = queue.filter(item => item.state !== 'synced')
+  const handleRefresh = useCallback(() => { hapticMedium(); onRefresh() }, [onRefresh])
 
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.date}>{dateLabel}</Text>
-          <Text style={styles.greeting}>{greeting()}, {firstName}</Text>
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.date}>{dateLabel}</Text>
+              <Text style={styles.greeting}>{greeting()}, {firstName}</Text>
+            </View>
+            <Pressable onPress={onSync} style={styles.syncBtn}>
+              <SyncDot state={syncState} />
+              {syncState !== 'synced' && <Text style={styles.syncCount}>{queue.filter(i => i.state !== 'synced').length}</Text>}
+            </Pressable>
+          </View>
         </View>
 
-        {/* Stats row */}
+        {/* Stats — single line, no cards */}
         {visits.length > 0 && (
-          <View style={styles.statsRow}>
-            <View style={[styles.statCard, { borderLeftColor: colors.primary }]}>
-              <Text style={[styles.statValue, { color: colors.primary }]}>{visits.length}</Text>
-              <Text style={styles.statLabel}>Calls</Text>
-            </View>
-            <View style={[styles.statCard, { borderLeftColor: colors.success }]}>
-              <Text style={[styles.statValue, { color: colors.success }]}>{completed}</Text>
-              <Text style={styles.statLabel}>Done</Text>
-            </View>
-            <View style={[styles.statCard, { borderLeftColor: colors.warning }]}>
-              <Text style={[styles.statValue, { color: colors.warning }]}>{visits.length - completed}</Text>
-              <Text style={styles.statLabel}>Remaining</Text>
-            </View>
+          <View style={styles.statLine}>
+            <Text style={styles.statText}>{completed} of {visits.length} calls done</Text>
+            {visits.length - completed > 0 && <Text style={styles.statRemain}>{visits.length - completed} remaining</Text>}
           </View>
         )}
 
-        {/* Sync status */}
-        <SyncRail state={syncState} count={queue.length} onPress={onSync} />
-
-        {/* Offline queue panel */}
-        {pendingQueue.length > 0 && (
-          <View style={styles.queueCard}>
-            <View style={styles.queueHeader}>
-              <Text style={styles.queueTitle}>📋 Offline queue</Text>
-              <Pressable onPress={() => { hapticLight(); onSync() }} style={styles.retryBtn}>
-                <Text style={styles.retryText}>↻ Sync now</Text>
-              </Pressable>
-            </View>
-            {pendingQueue.slice(0, 5).map(item => {
-              const sc = queueStateLabel(item.state)
-              const visitLabel = visits.find(v => v.id === item.visitId)?.label || 'Visit'
-              return (
-                <View key={item.id} style={styles.queueItem}>
-                  <View style={[styles.queueDot, { backgroundColor: sc.color }]} />
-                  <View style={styles.queueInfo}>
-                    <Text style={styles.queueItemLabel}>{item.action === 'check-in' ? 'Check-in' : 'Check-out'} · {visitLabel}</Text>
-                    <Text style={styles.queueItemTime}>{new Date(item.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</Text>
-                  </View>
-                  <View style={[styles.queueStatusBadge, { backgroundColor: sc.bg }]}>
-                    <Text style={[styles.queueStatusText, { color: sc.color }]}>{sc.icon} {sc.label}</Text>
-                  </View>
-                </View>
-              )
-            })}
-            {pendingQueue.length > 5 && (
-              <Text style={styles.queueMore}>+{pendingQueue.length - 5} more</Text>
-            )}
-          </View>
-        )}
-
-        {/* Active visit */}
-        {activeVisit && (
-          <View style={styles.activeBlock}>
-            <Text style={styles.sectionHead}>NOW</Text>
-            <VisitRow visit={activeVisit} onPress={() => { hapticLight(); onVisit(activeVisit) }} active />
-          </View>
-        )}
-
-        {/* Route */}
+        {/* Timeline */}
         {visits.length > 0 ? (
-          <View style={styles.routeBlock}>
-            <Text style={styles.sectionHead}>TODAY'S CALLS</Text>
-            {visits.map(visit => (
-              <VisitRow
-                key={visit.id}
-                visit={visit}
-                onPress={() => { hapticLight(); onVisit(visit) }}
-                active={visit.id === activeVisit?.id}
-              />
+          <View style={styles.timeline}>
+            {/* Past calls */}
+            {pastVisits.map(v => (
+              <TimelineNode key={v.id} visit={v} position="past" isNext={false} onPress={() => onVisit(v)} />
+            ))}
+
+            {/* Now marker */}
+            {nextVisit && pastVisits.length > 0 && (
+              <View style={styles.nowMarker}>
+                <View style={styles.nowLine} />
+                <View style={styles.nowDot}>
+                  <View style={styles.nowDotInner} />
+                </View>
+                <View style={styles.nowLine} />
+              </View>
+            )}
+
+            {/* Next call — the focal point */}
+            {nextVisit && (
+              <TimelineNode visit={nextVisit} position="next" isNext={true} onPress={() => onVisit(nextVisit)} />
+            )}
+
+            {/* Remaining future calls */}
+            {futureVisits.map(v => (
+              <TimelineNode key={v.id} visit={v} position="future" isNext={false} onPress={() => onVisit(v)} />
             ))}
           </View>
         ) : (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyTitle}>No calls assigned today</Text>
-            <Text style={styles.emptyCopy}>Your coordinator will add calls here when your route is ready.</Text>
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>No calls today</Text>
+            <Text style={styles.emptyCopy}>Your coordinator will add calls when your route is ready.</Text>
           </View>
         )}
       </ScrollView>
@@ -172,177 +179,63 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
   )
 }
 
+/* ─── Styles ────────────────────────────────────────────────── */
+
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  content: {
-    paddingHorizontal: spacing.base,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xxxl,
-    gap: spacing.base,
-  },
-  header: {
-    paddingTop: spacing.sm,
-  },
-  date: {
-    ...type.small,
-    marginBottom: spacing.xs,
-  },
-  greeting: {
-    fontFamily: 'System',
-    fontSize: 26,
-    fontWeight: '800',
-    lineHeight: 32,
-    letterSpacing: -0.5,
-    color: colors.ink,
-  },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
 
-  /* Stats */
-  statsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    borderLeftWidth: 3,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    ...elevation.sm,
-  },
-  statValue: {
-    fontFamily: 'System',
-    fontSize: 24,
-    fontWeight: '800',
-    lineHeight: 28,
-    letterSpacing: -0.5,
-  },
-  statLabel: {
-    ...type.small,
-    marginTop: 2,
-  },
+  header: { paddingTop: spacing.sm, marginBottom: spacing.sm },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  date: { ...type.small, marginBottom: spacing.xs, color: colors.muted },
+  greeting: { fontFamily: 'System', fontSize: 24, fontWeight: '700', lineHeight: 30, letterSpacing: -0.3, color: colors.ink },
 
-  /* Queue panel */
-  queueCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    overflow: 'hidden',
-    ...elevation.sm,
-  },
-  queueHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.base,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  queueTitle: {
-    fontFamily: 'System',
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.ink,
-  },
-  retryBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-  },
-  retryText: {
-    fontFamily: 'System',
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.inverse,
-  },
-  queueItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    gap: spacing.md,
-  },
-  queueDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  queueInfo: {
-    flex: 1,
-  },
-  queueItemLabel: {
-    fontFamily: 'System',
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.ink,
-  },
-  queueItemTime: {
-    ...type.small,
-    marginTop: 1,
-  },
-  queueStatusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radii.full,
-  },
-  queueStatusText: {
-    fontFamily: 'System',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  queueMore: {
-    ...type.small,
-    textAlign: 'center',
-    paddingVertical: spacing.sm,
-  },
+  /* Sync button */
+  syncBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, padding: spacing.sm },
+  syncCount: { fontFamily: 'System', fontSize: 10, fontWeight: '700', color: colors.muted },
 
-  /* Sections */
-  activeBlock: {
-    marginTop: spacing.sm,
-  },
-  routeBlock: {
-    marginTop: spacing.sm,
-  },
-  sectionHead: {
-    fontFamily: 'System',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.subtle,
-    marginBottom: spacing.sm,
-  },
+  /* Stats — single line */
+  statLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.base },
+  statText: { fontFamily: 'System', fontSize: 13, fontWeight: '500', color: colors.muted },
+  statRemain: { fontFamily: 'System', fontSize: 13, fontWeight: '500', color: colors.subtle },
+
+  /* Timeline */
+  timeline: { paddingTop: spacing.sm },
+
+  /* Now marker */
+  nowMarker: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs },
+  nowLine: { flex: 1, height: 1, backgroundColor: colors.primary + '30' },
+  nowDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.primarySurface, alignItems: 'center', justifyContent: 'center', marginHorizontal: spacing.sm },
+  nowDotInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
 
   /* Empty */
-  emptyCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.xxl,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    marginTop: spacing.xxl,
-  },
-  emptyIcon: {
-    fontSize: 32,
-    marginBottom: spacing.md,
-  },
-  emptyTitle: {
-    ...type.bodyBold,
-    color: colors.ink,
-    marginBottom: spacing.xs,
-  },
-  emptyCopy: {
-    ...type.small,
-    textAlign: 'center',
-    paddingHorizontal: spacing.lg,
-  },
+  empty: { alignItems: 'center', paddingVertical: spacing.xxxl, marginTop: spacing.xxl },
+  emptyTitle: { ...type.bodyBold, color: colors.ink, marginBottom: spacing.xs },
+  emptyCopy: { ...type.small, textAlign: 'center', paddingHorizontal: spacing.xl },
+})
+
+/* ─── Node styles ───────────────────────────────────────────── */
+
+const nodeStyles = StyleSheet.create({
+  row: { flexDirection: 'row', paddingVertical: spacing.md },
+  timeCol: { width: 52, alignItems: 'flex-end', paddingTop: 2 },
+  time: { fontFamily: 'System', fontSize: 13, fontWeight: '600' },
+  timeEnd: { fontFamily: 'System', fontSize: 11, marginTop: 1 },
+  lineCol: { width: 20, alignItems: 'center' },
+  dot: { width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: colors.border, backgroundColor: colors.surface, zIndex: 1 },
+  dotActiveInner: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.inverse },
+  dotCheck: { fontSize: 7, fontWeight: '800', color: colors.inverse, lineHeight: 9, textAlign: 'center' },
+  dotMiss: { fontSize: 7, fontWeight: '800', color: colors.inverse, lineHeight: 9, textAlign: 'center' },
+  line: { flex: 1, width: 1.5, minHeight: 20, marginTop: 4 },
+  content: { flex: 1, paddingLeft: spacing.sm, minWidth: 0 },
+  contentNext: { backgroundColor: colors.primarySurface, borderRadius: radii.md, padding: spacing.md, marginVertical: spacing.xs, borderWidth: 1, borderColor: colors.primary + '15' },
+  contentHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  label: { fontFamily: 'System', fontSize: 15, fontWeight: '600', flex: 1 },
+  nextBadge: { backgroundColor: colors.primary, borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: 1 },
+  person: { fontFamily: 'System', fontSize: 13, marginTop: 2 },
+  addr: { fontFamily: 'System', fontSize: 12, color: colors.subtle, marginTop: 2 },
+})
+
+const nextBadgeStyles = StyleSheet.create({
+  text: { fontFamily: 'System', fontSize: 10, fontWeight: '700', color: colors.inverse, letterSpacing: 0.3 },
 })
