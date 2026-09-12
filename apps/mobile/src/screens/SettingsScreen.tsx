@@ -77,7 +77,20 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
           <Text style={styles.groupLabel}>NOTIFICATIONS</Text>
           <View style={styles.groupCard}>
             {/* Visit reminders */}
-            <View style={styles.menuRow}>
+            <Pressable
+              onPress={async () => {
+                hapticLight()
+                if (reminders === 'enabled') {
+                  setReminders('disabled')
+                  setMessage('Visit reminders disabled.')
+                } else {
+                  const enabled = await requestReminderPermission()
+                  setReminders(enabled ? 'enabled' : 'disabled')
+                  setMessage(enabled ? 'Visit reminders enabled.' : 'Permission not granted.')
+                }
+              }}
+              style={styles.menuRow}
+            >
               <View style={styles.menuIconWrap}>
                 <IconWarning size={18} color={colors.warning} />
               </View>
@@ -85,16 +98,10 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
                 <Text style={styles.menuTitle}>Visit reminders</Text>
                 <Text style={styles.menuDesc}>Alerts before your assigned calls</Text>
               </View>
-              {reminders === 'enabled' ? (
-                <View style={styles.statusBadge}>
-                  <Text style={styles.statusBadgeText}>On</Text>
-                </View>
-              ) : (
-                <Pressable onPress={enableReminders} style={styles.enableBtn}>
-                  <Text style={styles.enableBtnText}>Enable</Text>
-                </Pressable>
-              )}
-            </View>
+              <View style={[styles.toggle, reminders === 'enabled' && styles.toggleOn]}>
+                <View style={[styles.toggleDot, reminders === 'enabled' && styles.toggleDotOn]} />
+              </View>
+            </Pressable>
           </View>
         </View>
 
