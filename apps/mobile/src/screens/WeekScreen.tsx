@@ -6,7 +6,7 @@ import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { getMyVisits } from '../services/api'
 import { IconCheck, IconClock, IconAlert, IconForward, IconNavigate } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
-import { openNavigation } from '../services/navigation'
+import { MapPickerModal } from '../components/MapPickerModal'
 
 interface Props {
   session: AuthSession
@@ -48,6 +48,8 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedDay, setSelectedDay] = useState<Date>(new Date())
+  const [mapPickerOpen, setMapPickerOpen] = useState(false)
+  const [navDest, setNavDest] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
 
   const now = new Date()
   const [viewMonth, setViewMonth] = useState(now.getMonth())
@@ -201,7 +203,7 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
                   {visit.person_name && <Text style={[styles.visitPerson, { color: c.muted }]} numberOfLines={1}>{visit.person_name}</Text>}
                   {visit.person_address && (
                     <View style={styles.addrRow}>                       <Text style={[styles.visitAddr, { color: c.subtle }]} numberOfLines={1}>{visit.person_address}</Text>
-                      <Pressable onPress={() => { hapticLight(); openNavigation({ destination: visit.person_address!, label: visit.person_name || visit.label }) }}                         style={({ pressed }) => [[styles.navPill, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.7 }]}>
+                      <Pressable onPress={() => { hapticLight(); setNavDest({ destination: visit.person_address!, label: visit.person_name || visit.label }); setMapPickerOpen(true) }}                         style={({ pressed }) => [[styles.navPill, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.7 }]}>
                         <IconNavigate size={12} color={c.primary} />
                       </Pressable>
                     </View>
@@ -215,6 +217,15 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
 
         <View style={{ height: spacing.xxxl }} />
       </ScrollView>
+
+      <MapPickerModal
+        visible={mapPickerOpen}
+        onClose={() => setMapPickerOpen(false)}
+        destination={navDest.destination}
+        latitude={navDest.latitude}
+        longitude={navDest.longitude}
+        label={navDest.label}
+      />
     </SafeAreaView>
   )
 }

@@ -8,7 +8,7 @@ import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance } from '../services/location'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate } from '../components/Icons'
-import { openNavigation } from '../services/navigation'
+import { MapPickerModal } from '../components/MapPickerModal'
 import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
 
 function time(value: string) {
@@ -130,6 +130,14 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const [previsitSaved, setPrevisitSaved] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
   const [nextCallModal, setNextCallModal] = useState(false)
+  const [mapPickerOpen, setMapPickerOpen] = useState(false)
+  const [navDestination, setNavDestination] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
+
+  const openNavPicker = (dest: { destination?: string; latitude?: number; longitude?: number; label?: string }) => {
+    hapticLight()
+    setNavDestination(dest)
+    setMapPickerOpen(true)
+  }
 
   const isCompleted = visit.status === 'completed'
   const isMissed = visit.status === 'missed'
@@ -307,7 +315,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                     </Pressable>
                   )}
                   {visit.person_address && (
-                    <Pressable onPress={() => { hapticLight(); openNavigation({ destination: visit.person_address!, label: visit.person_name || visit.label }) }} style={({ pressed }) => [[styles.actionBtn, styles.navigateBtn, { backgroundColor: c.primarySurface, borderColor: c.primary + '25' }], pressed && { opacity: 0.7 }]}>
+                    <Pressable onPress={() => openNavPicker({ destination: visit.person_address!, label: visit.person_name || visit.label })} style={({ pressed }) => [[styles.actionBtn, styles.navigateBtn, { backgroundColor: c.primarySurface, borderColor: c.primary + '25' }], pressed && { opacity: 0.7 }]}>
                       <IconNavigate size={14} color={c.primary} />
                       <Text style={[styles.navigateBtnText, { color: c.primary }]}>Navigate</Text>
                     </Pressable>
@@ -598,7 +606,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                   <View style={styles.nextCallActions}>
                     {nextVisit.person_address && (
                       <Pressable
-                        onPress={() => { hapticLight(); setNextCallModal(false); openNavigation({ destination: nextVisit.person_address!, label: nextVisit.person_name || nextVisit.label }) }}
+                        onPress={() => { hapticLight(); setNextCallModal(false); setTimeout(() => openNavPicker({ destination: nextVisit.person_address!, label: nextVisit.person_name || nextVisit.label }), 300) }}
                         style={({ pressed }) => [[styles.nextCallBtn, { backgroundColor: c.primary, borderColor: c.primary }], pressed && { opacity: 0.8 }]}
                       >
                         <IconNavigate size={16} color={c.inverse} />
@@ -631,6 +639,16 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
           </View>
         </View>
       </Modal>
+
+      {/* Map app picker */}
+      <MapPickerModal
+        visible={mapPickerOpen}
+        onClose={() => setMapPickerOpen(false)}
+        destination={navDestination.destination}
+        latitude={navDestination.latitude}
+        longitude={navDestination.longitude}
+        label={navDestination.label}
+      />
     </SafeAreaView>
   )
 }
