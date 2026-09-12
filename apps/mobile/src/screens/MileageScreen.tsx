@@ -66,15 +66,15 @@ export function MileageScreen({ session }: Props) {
 
         {/* Summary cards */}
         <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { backgroundColor: c.surface, borderColor: c.borderLight, borderLeftColor: c.primary }]}>
+          <View style={[styles.summaryCard, { backgroundColor: c.surface }]}>
             <Text style={[styles.summaryValue, { color: c.primary }]}>{totalMiles.toFixed(1)}</Text>
             <Text style={[styles.summaryLabel, { color: c.muted }]}>Total miles</Text>
           </View>
-          <View style={[styles.summaryCard, { backgroundColor: c.surface, borderColor: c.borderLight, borderLeftColor: c.success }]}>
+          <View style={[styles.summaryCard, { backgroundColor: c.surface }]}>
             <Text style={[styles.summaryValue, { color: c.success }]}>{money(totalPay)}</Text>
             <Text style={[styles.summaryLabel, { color: c.muted }]}>Mileage pay</Text>
           </View>
-          <View style={[styles.summaryCard, { backgroundColor: c.surface, borderColor: c.borderLight, borderLeftColor: c.accent }]}>
+          <View style={[styles.summaryCard, { backgroundColor: c.surface }]}>
             <Text style={[styles.summaryValue, { color: c.accent }]}>{visits.length}</Text>
             <Text style={[styles.summaryLabel, { color: c.muted }]}>Trips</Text>
           </View>
@@ -99,7 +99,7 @@ export function MileageScreen({ session }: Props) {
             {visits
               .sort((a: any, b: any) => new Date(b.scheduled_start).getTime() - new Date(a.scheduled_start).getTime())
               .map((v: any) => (
-                <View key={v.id} style={[styles.visitCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+                <View key={v.id} style={[styles.visitCard, { backgroundColor: c.surface }]}>
                   <View style={styles.visitHeader}>
                     <View style={styles.visitInfo}>
                       <Text style={styles.visitName}>{v.person_name || 'Client'}</Text>
@@ -151,8 +151,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radii.md,
     borderLeftWidth: 3,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
+    borderColor: 'transparent',
     padding: spacing.md,
     ...elevation.sm,
   },
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: colors.primary + '15',
   },
   travelLabel: { ...type.body, color: colors.primary, flex: 1 },
@@ -180,8 +180,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.xxl,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
+    borderColor: 'transparent',
     marginTop: spacing.xxl,
   },
   emptyIcon: { fontSize: 32, marginBottom: spacing.md },
@@ -201,8 +201,8 @@ const styles = StyleSheet.create({
   visitCard: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
+    borderColor: 'transparent',
     padding: spacing.base,
     marginBottom: spacing.sm,
     ...elevation.sm,
@@ -220,8 +220,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   detailText: { fontFamily: 'System', fontSize: 12, fontWeight: '500', color: colors.muted },
   detailChipAccent: { backgroundColor: colors.successSurface, borderColor: colors.success + '20' },

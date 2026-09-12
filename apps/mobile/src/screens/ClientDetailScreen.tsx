@@ -90,7 +90,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
       <Header onBack={onBack} title="Client" c={c} />
 
       {/* Client card */}
-      <View style={[styles.clientCard, { backgroundColor: c.surface, borderBottomColor: c.borderLight }]}>
+      <View style={[styles.clientCard, { backgroundColor: c.surface }]}>
         <View style={styles.clientInfo}>
           <Text style={[styles.clientName, { color: c.ink }]}>{personName}</Text>
           <View style={styles.tagRow}>
@@ -132,7 +132,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
       )}
 
       {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tabBar, { backgroundColor: c.surface, borderBottomColor: c.borderLight }]}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tabBar, { backgroundColor: c.surface }]}>
         {TABS.map(t => (
           <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, tab === t.key && [styles.tabActive, { backgroundColor: c.primarySurface, borderColor: c.primary + '30' }], { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }]}>
             <Text style={[styles.tabIcon]}>{t.icon}</Text>
@@ -203,7 +203,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
 
 function Header({ onBack, title, c }: { onBack: () => void; title: string; c: any }) {
   return (
-    <View style={[styles.header, { backgroundColor: c.surface, borderBottomColor: c.borderLight }]}>
+    <View style={[styles.header, { backgroundColor: c.surface }]}>
       <Pressable onPress={onBack} style={styles.backBtn}>
         <Text style={[styles.backArrow, { color: c.primary }]}>←</Text>
         <Text style={[styles.backText, { color: c.primary }]}>Back</Text>
@@ -325,7 +325,7 @@ function ContactsTab({ emergencyContacts, otherContacts, person }: { emergencyCo
 function Card({ title, children, c }: { title: string; children: React.ReactNode; c?: any }) {
   const cardColors = c || colors
   return (
-    <View style={[styles.card, { backgroundColor: cardColors.surface, borderColor: cardColors.borderLight }]}>
+    <View style={[styles.card, { backgroundColor: cardColors.surface }]}>
       <Text style={[styles.cardTitle, { color: cardColors.ink }]}>{title}</Text>
       {children}
     </View>
