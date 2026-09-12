@@ -33,14 +33,21 @@ jobs:
             set -Eeuo pipefail
             cd /opt/meticle
 
+            # Get the API container
+            API_CONTAINER=$(docker ps -q -f name=api | head -1)
+            if [ -z "$API_CONTAINER" ]; then
+              echo "ERROR: API container not found" >&2
+              exit 1
+            fi
+
             # Check if DreakCare already exists
-            EXISTS=$(docker exec $(docker ps -q -f name=api) node -e "
+            EXISTS=$(docker exec "$API_CONTAINER" node -e "
               const { Pool } = require('pg');
               const pool = new Pool();
-              pool.query('SELECT id FROM organizations WHERE slug = \$1', ['dreakcare']).then(r => {
+              pool.query(\"SELECT id FROM organizations WHERE slug = 'dreakcare'\").then(r => {
                 console.log(r.rows.length > 0 ? 'YES' : 'NO');
                 pool.end();
-              }).catch(() => { console.log('NO'); pool.end(); });
+              }).catch(e => { console.log('NO'); pool.end(); });
             " 2>/dev/null || echo "NO")
 
             if [ "$EXISTS" = "YES" ]; then
@@ -48,147 +55,95 @@ jobs:
               exit 0
             fi
 
-            echo "Seeding DreakCare..."
+            echo "Seeding DreakCare on VPS..."
 
-            # Copy seed script to container and run it
-            docker cp /dev/stdin $(docker ps -q -f name=api):/tmp/seed.js <<'SEEDSCRIPT'
-const { Pool } = require('pg');
-const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
+            # Copy seed script into container
+            docker cp scripts/seed-dreakcare.ts "$API_CONTAINER":/tmp/seed.ts 2>/dev/null || true
 
+            # If the TS file wasn't copied, create a JS version inline
+            docker exec "$API_CONTAINER" sh -c 'cat > /tmp/seed.js << '"'"'INNERSCRIPT'"'"'
+const { Pool } = require("pg");
+const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const pool = new Pool();
-const ORG = 'DreakCare';
-const SLUG = 'dreakcare';
-const PASS = 'Password123$';
-
-const STAFF = [
-  { email: 'opeyemiolorunfemy@gmail.com', first_name: 'Opeyemi', last_name: 'Olorunfemi', role: 'ORG_ADMIN' },
-  { email: 'opeyemi@meticlecare.com', first_name: 'Opeyemi', last_name: 'Admin', role: 'MANAGER' },
-  { email: 'linkhopey@gmail.com', first_name: 'Hope', last_name: 'Link', role: 'MANAGER' },
-  { email: 'sarah.johnson@dreakcare.co.uk', first_name: 'Sarah', last_name: 'Johnson', role: 'CARE_WORKER' },
-  { email: 'james.williams@dreakcare.co.uk', first_name: 'James', last_name: 'Williams', role: 'CARE_WORKER' },
-  { email: 'emma.brown@dreakcare.co.uk', first_name: 'Emma', last_name: 'Brown', role: 'CARE_WORKER' },
-  { email: 'david.smith@dreakcare.co.uk', first_name: 'David', last_name: 'Smith', role: 'CARE_WORKER' },
-  { email: 'lisa.taylor@dreakcare.co.uk', first_name: 'Lisa', last_name: 'Taylor', role: 'CARE_WORKER' },
-  { email: 'michael.davis@dreakcare.co.uk', first_name: 'Michael', last_name: 'Davis', role: 'CARE_WORKER' },
-  { email: 'rachel.wilson@dreakcare.co.uk', first_name: 'Rachel', last_name: 'Wilson', role: 'COMPLIANCE_OFFICER' },
-];
-
-const CLIENTS = [
-  { first_name: 'Margaret', last_name: 'Thompson', dob: '1942-03-15', address: '12 Oak Lane, Birmingham B15 2TT', allergies: ['Penicillin', 'Latex'], support_level: 'minimal' },
-  { first_name: 'Arthur', last_name: 'Bennett', dob: '1938-11-22', address: '45 Maple Road, Birmingham B16 0AA', allergies: ['Shellfish'], support_level: 'one_to_one' },
-  { first_name: 'Dorothy', last_name: 'Hughes', dob: '1945-07-08', address: '78 Elm Street, Solihull B91 3BZ', allergies: [], support_level: 'minimal' },
-  { first_name: 'Walter', last_name: 'Green', dob: '1940-01-30', address: '23 Cedar Avenue, Sutton Coldfield B73 6AP', allergies: ['Aspirin', 'Codeine'], support_level: 'one_to_one' },
-  { first_name: 'Betty', last_name: 'Adams', dob: '1943-09-12', address: '56 Birch Close, Wolverhampton WV1 2QR', allergies: [], support_level: 'minimal' },
-  { first_name: 'George', last_name: 'Clark', dob: '1936-05-19', address: '91 Pine Drive, Walsall WS1 1AB', allergies: ['Peanuts', 'Dust mites'], support_level: 'two_to_one' },
-  { first_name: 'Edna', last_name: 'Robinson', dob: '1944-12-03', address: '14 Willow Way, West Bromwich B70 8DE', allergies: [], support_level: 'minimal' },
-  { first_name: 'Frank', last_name: 'Hall', dob: '1939-08-25', address: '67 Ash Grove, Dudley DY1 3FG', allergies: ['Ibuprofen'], support_level: 'one_to_one' },
-];
-
-const FUNDING = ['private', 'local_authority', 'nhs'];
-const CATS = ['medication', 'nutrition', 'mobility', 'personal_care', 'social'];
 const uuid = () => crypto.randomUUID();
 const daysFromNow = n => { const d = new Date(); d.setDate(d.getDate() + n); return d; };
 
 async function seed() {
   const c = await pool.connect();
   try {
-    await c.query('BEGIN');
+    await c.query("BEGIN");
+    const exists = await c.query("SELECT id FROM organizations WHERE slug = $1", ["dreakcare"]);
+    if (exists.rows.length > 0) { console.log("DreakCare exists"); await c.query("ROLLBACK"); return; }
+
     const orgId = uuid();
-    const hp = await bcrypt.hash(PASS, 12);
+    const hp = await bcrypt.hash("Password123$", 12);
+    await c.query("INSERT INTO organizations (id,name,slug,subscription_status,service_types,onboarding_completed,billing_settings) VALUES ($1,$2,$3,$4,$5,$6,$7)", [orgId,"DreakCare","dreakcare","active",'["domiciliary"]',true,'{"vat_rate":20}']);
+    console.log("Org created");
 
-    await c.query(`INSERT INTO organizations (id,name,slug,subscription_status,service_types,onboarding_completed,billing_settings) VALUES ($1,$2,$3,'active','["domiciliary"]',true,'{"vat_rate":20}')`, [orgId, ORG, SLUG]);
-    console.log('Org: ' + ORG);
+    const loc1=uuid(),loc2=uuid();
+    await c.query("INSERT INTO locations (id,organization_id,name,address,status) VALUES ($1,$2,$3,$4,$5)", [loc1,orgId,"DreakCare Office","100 Corporation Street, Birmingham B4 6AY","active"]);
+    await c.query("INSERT INTO locations (id,organization_id,name,address,status) VALUES ($1,$2,$3,$4,$5)", [loc2,orgId,"South Birmingham Hub","25 Bristol Road, Birmingham B5 7AA","active"]);
 
-    const loc1 = uuid(), loc2 = uuid();
-    await c.query(`INSERT INTO locations (id,organization_id,name,address,status) VALUES ($1,$2,'DreakCare Office','100 Corporation Street, Birmingham B4 6AY','active')`, [loc1, orgId]);
-    await c.query(`INSERT INTO locations (id,organization_id,name,address,status) VALUES ($1,$2,'South Birmingham Hub','25 Bristol Road, Birmingham B5 7AA','active')`, [loc2, orgId]);
-
-    const sids = [];
-    for (const s of STAFF) {
-      const uid = uuid(), sid = uuid(); sids.push(sid);
-      await c.query(`INSERT INTO users (id,organization_id,email,password_hash,first_name,last_name,role,email_verified) VALUES ($1,$2,$3,$4,$5,$6,$7,true)`, [uid, orgId, s.email, hp, s.first_name, s.last_name, s.role]);
-      await c.query(`INSERT INTO staff_profiles (id,user_id,organization_id,first_name,last_name,status) VALUES ($1,$2,$3,$4,$5,'active')`, [sid, uid, orgId, s.first_name, s.last_name]);
-    }
-    console.log('Staff: ' + STAFF.length);
-
-    const pids = [];
-    for (const p of CLIENTS) {
-      const pid = uuid(); pids.push(pid);
-      await c.query(`INSERT INTO people (id,organization_id,first_name,last_name,date_of_birth,address,allergies,support_level,status,location_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',$9)`, [pid, orgId, p.first_name, p.last_name, p.dob, p.address, JSON.stringify(p.allergies), p.support_level, loc1]);
-    }
-    console.log('Clients: ' + CLIENTS.length);
-
-    const mpols = [
-      { ty: '2024/25', vt: 'car', fc: 'petrol', r: 45 }, { ty: '2024/25', vt: 'car', fc: 'diesel', r: 45 },
-      { ty: '2024/25', vt: 'car', fc: 'hybrid', r: 45 }, { ty: '2024/25', vt: 'car', fc: 'electric', r: 9 },
-      { ty: '2024/25', vt: 'motorcycle', fc: 'petrol', r: 24 }, { ty: '2024/25', vt: 'bicycle', fc: 'not_applicable', r: 20 },
+    const STAFF=[
+      {e:"opeyemiolorunfemy@gmail.com",f:"Opeyemi",l:"Olorunfemi",r:"ORG_ADMIN"},
+      {e:"opeyemi@meticlecare.com",f:"Opeyemi",l:"Admin",r:"MANAGER"},
+      {e:"linkhopey@gmail.com",f:"Hope",l:"Link",r:"MANAGER"},
+      {e:"sarah.johnson@dreakcare.co.uk",f:"Sarah",l:"Johnson",r:"CARE_WORKER"},
+      {e:"james.williams@dreakcare.co.uk",f:"James",l:"Williams",r:"CARE_WORKER"},
+      {e:"emma.brown@dreakcare.co.uk",f:"Emma",l:"Brown",r:"CARE_WORKER"},
+      {e:"david.smith@dreakcare.co.uk",f:"David",l:"Smith",r:"CARE_WORKER"},
+      {e:"lisa.taylor@dreakcare.co.uk",f:"Lisa",l:"Taylor",r:"CARE_WORKER"},
+      {e:"michael.davis@dreakcare.co.uk",f:"Michael",l:"Davis",r:"CARE_WORKER"},
+      {e:"rachel.wilson@dreakcare.co.uk",f:"Rachel",l:"Wilson",r:"COMPLIANCE_OFFICER"},
     ];
-    for (const m of mpols) {
-      await c.query(`INSERT INTO homecare_mileage_policies (id,organization_id,tax_year,vehicle_type,fuel_category,rate_pence,is_active,created_by) VALUES ($1,$2,$3,$4,$5,$6,true,$7)`, [uuid(), orgId, m.ty, m.vt, m.fc, m.r, sids[0]]);
-    }
+    const sids=[];
+    for(const s of STAFF){const uid=uuid(),sid=uuid();sids.push(sid);await c.query("INSERT INTO users (id,organization_id,email,password_hash,first_name,last_name,role,email_verified) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",[uid,orgId,s.e,hp,s.f,s.l,s.r,true]);await c.query("INSERT INTO staff_profiles (id,user_id,organization_id,first_name,last_name,status) VALUES ($1,$2,$3,$4,$5,$6)",[sid,uid,orgId,s.f,s.l,"active"]);}
+    console.log("Staff: "+STAFF.length);
 
-    const pkgs = [];
-    for (let i = 0; i < pids.length; i++) {
-      const pid = uuid(); pkgs.push(pid);
-      await c.query(`INSERT INTO homecare_packages (id,organization_id,person_id,name,status,funding_type,hourly_rate_pence,travel_time_paid,mileage_rate_pence,start_date) VALUES ($1,$2,$3,$4,'active',$5,$6,true,45,CURRENT_DATE)`, [pid, orgId, pids[i], CLIENTS[i].first_name + "'s care package", FUNDING[i % 3], 1800 + i * 100]);
-    }
+    const CLIENTS=[
+      {f:"Margaret",l:"Thompson",dob:"1942-03-15",a:"12 Oak Lane, Birmingham B15 2TT",al:["Penicillin","Latex"],sl:"minimal"},
+      {f:"Arthur",l:"Bennett",dob:"1938-11-22",a:"45 Maple Road, Birmingham B16 0AA",al:["Shellfish"],sl:"one_to_one"},
+      {f:"Dorothy",l:"Hughes",dob:"1945-07-08",a:"78 Elm Street, Solihull B91 3BZ",al:[],sl:"minimal"},
+      {f:"Walter",l:"Green",dob:"1940-01-30",a:"23 Cedar Avenue, Sutton Coldfield B73 6AP",al:["Aspirin","Codeine"],sl:"one_to_one"},
+      {f:"Betty",l:"Adams",dob:"1943-09-12",a:"56 Birch Close, Wolverhampton WV1 2QR",al:[],sl:"minimal"},
+      {f:"George",l:"Clark",dob:"1936-05-19",a:"91 Pine Drive, Walsall WS1 1AB",al:["Peanuts","Dust mites"],sl:"two_to_one"},
+      {f:"Edna",l:"Robinson",dob:"1944-12-03",a:"14 Willow Way, West Bromwich B70 8DE",al:[],sl:"minimal"},
+      {f:"Frank",l:"Hall",dob:"1939-08-25",a:"67 Ash Grove, Dudley DY1 3FG",al:["Ibuprofen"],sl:"one_to_one"},
+    ];
+    const pids=[];
+    for(const p of CLIENTS){const pid=uuid();pids.push(pid);await c.query("INSERT INTO people (id,organization_id,first_name,last_name,date_of_birth,address,allergies,support_level,status,location_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",[pid,orgId,p.f,p.l,p.dob,p.a,JSON.stringify(p.al),p.sl,"active",loc1]);}
+    console.log("Clients: "+CLIENTS.length);
 
-    for (let i = 0; i < pids.length; i++) {
-      for (let j = 0; j < 2; j++) {
-        await c.query(`INSERT INTO care_plans (id,person_id,title,category,description,status,review_date) VALUES ($1,$2,$3,$4,$5,'active',$6)`, [uuid(), pids[i], CATS[(i+j)%5] + ' plan for ' + CLIENTS[i].first_name, CATS[(i+j)%5], 'Support plan for ' + CLIENTS[i].first_name, daysFromNow(30 + j * 30)]);
-      }
-    }
+    const mpols=[{ty:"2024/25",vt:"car",fc:"petrol",r:45},{ty:"2024/25",vt:"car",fc:"diesel",r:45},{ty:"2024/25",vt:"car",fc:"hybrid",r:45},{ty:"2024/25",vt:"car",fc:"electric",r:9},{ty:"2024/25",vt:"motorcycle",fc:"petrol",r:24},{ty:"2024/25",vt:"bicycle",fc:"not_applicable",r:20}];
+    for(const m of mpols){await c.query("INSERT INTO homecare_mileage_policies (id,organization_id,tax_year,vehicle_type,fuel_category,rate_pence,is_active,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",[uuid(),orgId,m.ty,m.vt,m.fc,m.r,true,sids[0]]);}
 
-    const cw = sids.slice(3);
-    let vc = 0;
-    for (let d = 0; d < 7; d++) {
-      const dt = daysFromNow(d);
-      for (let i = 0; i < pids.length; i++) {
-        const n = i % 3 === 0 ? 3 : 2;
-        const times = [{h:8,m:0,dur:30,t:'morning'},{h:12,m:30,dur:45,t:'lunch'},{h:17,m:0,dur:30,t:'evening'}].slice(0,n);
-        for (const v of times) {
-          const s = new Date(dt); s.setHours(v.h,v.m,0,0);
-          const e = new Date(s.getTime()+v.dur*60000);
-          const un = d===6&&i>4;
-          await c.query(`INSERT INTO homecare_visits (id,organization_id,package_id,person_id,assigned_staff_id,visit_type,label,scheduled_start,scheduled_end,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'scheduled')`, [uuid(),orgId,pkgs[i],pids[i],un?null:cw[(i+d)%cw.length],v.t,v.t+' call',s.toISOString(),e.toISOString()]);
-          vc++;
-        }
-      }
-    }
-    console.log('Visits: ' + vc);
+    const FUNDING=["private","local_authority","nhs"];
+    const pkgs=[];
+    for(let i=0;i<pids.length;i++){const pid=uuid();pkgs.push(pid);await c.query("INSERT INTO homecare_packages (id,organization_id,person_id,name,status,funding_type,hourly_rate_pence,travel_time_paid,mileage_rate_pence,start_date) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",[pid,orgId,pids[i],CLIENTS[i].f+"'s care package","active",FUNDING[i%3],1800+i*100,true,45,"CURRENT_DATE"]);}
 
-    let cc = 0;
-    for (let d = -3; d < 0; d++) {
-      const dt = daysFromNow(d);
-      for (let i = 0; i < Math.min(pids.length,5); i++) {
-        const s = new Date(dt); s.setHours(9+i,0,0,0);
-        const e = new Date(s.getTime()+30*60000);
-        const ci = new Date(s.getTime()+5*60000);
-        const co = new Date(e.getTime()-2*60000);
-        await c.query(`INSERT INTO homecare_visits (id,organization_id,package_id,person_id,assigned_staff_id,visit_type,label,scheduled_start,scheduled_end,status,check_in_at,check_out_at,check_in_latitude,check_in_longitude,actual_travel_minutes,actual_mileage_miles,mileage_status,visit_notes) VALUES ($1,$2,$3,$4,$5,'routine','Completed call',$6,$7,'completed',$8,$9,$10,$11,$12,$13,'submitted','Routine call completed')`, [uuid(),orgId,pkgs[i],pids[i],cw[i%cw.length],s.toISOString(),e.toISOString(),ci.toISOString(),co.toISOString(),52.4862+Math.random()*0.02,-1.8904+Math.random()*0.02,10+Math.floor(Math.random()*20),(2+Math.random()*8).toFixed(2)]);
-        cc++;
-      }
-    }
-    console.log('Completed visits: ' + cc);
+    const CATS=["medication","nutrition","mobility","personal_care","social"];
+    for(let i=0;i<pids.length;i++){for(let j=0;j<2;j++){await c.query("INSERT INTO care_plans (id,person_id,title,category,description,status,review_date) VALUES ($1,$2,$3,$4,$5,$6,$7)",[uuid(),pids[i],CATS[(i+j)%5]+" plan for "+CLIENTS[i].f,CATS[(i+j)%5],"Support plan for "+CLIENTS[i].f,"active",daysFromNow(30+j*30)]);}}
 
-    const cv = await c.query(`SELECT id,assigned_staff_id FROM homecare_visits WHERE organization_id=$1 AND status='completed' AND actual_mileage_miles IS NOT NULL`, [orgId]);
-    for (const v of cv.rows) {
-      const wm=25+Math.floor(Math.random()*10), tm=10+Math.floor(Math.random()*15), pt=Math.min(tm,15), ml=(2+Math.random()*8).toFixed(2), gp=Math.round((wm+pt)*20);
-      await c.query(`INSERT INTO homecare_timesheets (id,organization_id,visit_id,carer_id,work_minutes,travel_minutes,paid_travel_minutes,mileage_miles,mileage_rate_pence,gross_pay_pence,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,45,$9,'submitted')`, [uuid(),orgId,v.id,v.assigned_staff_id,wm,tm,pt,ml,gp]);
-    }
+    const cw=sids.slice(3);let vc=0;
+    for(let d=0;d<7;d++){const dt=daysFromNow(d);for(let i=0;i<pids.length;i++){const n=i%3===0?3:2;const times=[{h:8,m:0,dur:30,t:"morning"},{h:12,m:30,dur:45,t:"lunch"},{h:17,m:0,dur:30,t:"evening"}].slice(0,n);for(const v of times){const s=new Date(dt);s.setHours(v.h,v.m,0,0);const e=new Date(s.getTime()+v.dur*60000);const un=d===6&&i>4;await c.query("INSERT INTO homecare_visits (id,organization_id,package_id,person_id,assigned_staff_id,visit_type,label,scheduled_start,scheduled_end,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",[uuid(),orgId,pkgs[i],pids[i],un?null:cw[(i+d)%cw.length],v.t,v.t+" call",s.toISOString(),e.toISOString(),"scheduled"]);vc++;}}}
+    console.log("Visits: "+vc);
 
-    for (let i=0;i<4;i++) {
-      await c.query(`INSERT INTO family_contacts (id,person_id,name,relationship,phone,email,is_emergency_contact) VALUES ($1,$2,$3,$4,$5,$6,$7)`, [uuid(),pids[i],CLIENTS[i].first_name+"'s "+(i%2===0?'daughter':'son'),i%2===0?'Daughter':'Son','07'+String(Math.floor(1e8+Math.random()*9e8)),CLIENTS[i].last_name.toLowerCase()+'family@email.com',i<2]);
-    }
+    let cc=0;for(let d=-3;d<0;d++){const dt=daysFromNow(d);for(let i=0;i<Math.min(pids.length,5);i++){const s=new Date(dt);s.setHours(9+i,0,0,0);const e=new Date(s.getTime()+30*60000);const ci=new Date(s.getTime()+5*60000);const co=new Date(e.getTime()-2*60000);await c.query("INSERT INTO homecare_visits (id,organization_id,package_id,person_id,assigned_staff_id,visit_type,label,scheduled_start,scheduled_end,status,check_in_at,check_out_at,check_in_latitude,check_in_longitude,actual_travel_minutes,actual_mileage_miles,mileage_status,visit_notes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)",[uuid(),orgId,pkgs[i],pids[i],cw[i%cw.length],"routine","Completed call",s.toISOString(),e.toISOString(),"completed",ci.toISOString(),co.toISOString(),52.4862+Math.random()*0.02,-1.8904+Math.random()*0.02,10+Math.floor(Math.random()*20),(2+Math.random()*8).toFixed(2),"submitted","Routine call completed"]);cc++;}}
+    console.log("Completed: "+cc);
 
-    await c.query('COMMIT');
-    console.log('DONE - Password: ' + PASS);
-  } catch(e) { await c.query('ROLLBACK'); console.error(e.message); throw e; }
+    const cv=await c.query("SELECT id,assigned_staff_id FROM homecare_visits WHERE organization_id=$1 AND status=$2 AND actual_mileage_miles IS NOT NULL",[orgId,"completed"]);
+    for(const v of cv.rows){const wm=25+Math.floor(Math.random()*10),tm=10+Math.floor(Math.random()*15),pt=Math.min(tm,15),ml=(2+Math.random()*8).toFixed(2),gp=Math.round((wm+pt)*20);await c.query("INSERT INTO homecare_timesheets (id,organization_id,visit_id,carer_id,work_minutes,travel_minutes,paid_travel_minutes,mileage_miles,mileage_rate_pence,gross_pay_pence,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",[uuid(),orgId,v.id,v.assigned_staff_id,wm,tm,pt,ml,45,gp,"submitted"]);}
+
+    for(let i=0;i<4;i++){await c.query("INSERT INTO family_contacts (id,person_id,name,relationship,phone,email,is_emergency_contact) VALUES ($1,$2,$3,$4,$5,$6,$7)",[uuid(),pids[i],CLIENTS[i].f+"'s "+(i%2===0?"daughter":"son"),i%2===0?"Daughter":"Son","07"+String(Math.floor(1e8+Math.random()*9e8)),CLIENTS[i].l.toLowerCase()+"family@email.com",i<2]);}
+
+    await c.query("COMMIT");
+    console.log("DONE - Password: Password123$");
+  } catch(e) { await c.query("ROLLBACK"); console.error(e.message); throw e; }
   finally { c.release(); await pool.end(); }
 }
 seed().then(()=>process.exit(0)).catch(()=>process.exit(1));
-SEEDSCRIPT
+INNERSCRIPT'
 
-            docker exec $(docker ps -q -f name=api) node /tmp/seed.js 2>&1
-            echo "Seed complete"
+            docker exec "$API_CONTAINER" node /tmp/seed.js 2>&1
+            echo "DreakCare seed complete"
