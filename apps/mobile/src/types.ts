@@ -27,6 +27,8 @@ export interface HomecareVisit {
   person_id?: string
   person_name?: string
   person_address?: string
+  person_latitude?: number | null
+  person_longitude?: number | null
   package_name?: string
   assigned_staff_name?: string
   actual_travel_minutes?: number | null
