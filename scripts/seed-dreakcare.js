@@ -16,7 +16,7 @@ const df = (n) => {
     await c.query("BEGIN");
 
     // Check if already exists
-    const check = await c.query("SELECT id FROM organizations WHERE slug='dreakcare'");
+    const check = await c.query("SELECT id FROM organizations WHERE name='DreakCare'");
     if (check.rows.length > 0) {
       console.log("DreakCare already exists - skipping");
       await c.query("ROLLBACK");
@@ -28,9 +28,9 @@ const df = (n) => {
 
     // Organisation
     await c.query(
-      `INSERT INTO organizations(id,name,slug,subscription_status,service_types,onboarding_completed,billing_settings)
-       VALUES($1,$2,$3,$4,$5,$6,$7)`,
-      [oid, "DreakCare", "dreakcare", "active", JSON.stringify(["domiciliary"]), true, JSON.stringify({ vat_rate: 20 })]
+      `INSERT INTO organizations(id,name,subscription_status,service_types,onboarding_completed)
+       VALUES($1,$2,$3,$4,$5)`,
+      [oid, "DreakCare", "active", ["domiciliary"], true]
     );
     console.log("Created DreakCare org");
 

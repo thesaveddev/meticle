@@ -28,7 +28,7 @@ jobs:
             if [ -z "$CONTAINER" ]; then CONTAINER=$(docker ps -q | head -1); fi
             if [ -z "$CONTAINER" ]; then docker ps -a; echo "No containers"; exit 1; fi
             echo "Container: $CONTAINER"
-            EXISTS=$(docker exec "$CONTAINER" node -e "const p=require('pg');new p.Pool().query(\"SELECT id FROM organizations WHERE slug='dreakcare'\").then(r=>{process.stdout.write(r.rows.length?'YES':'NO')}).catch(()=>{process.stdout.write('NO')}).finally(()=>process.exit())" 2>/dev/null) || true
+            EXISTS=$(docker exec "$CONTAINER" node -e "const p=require('pg');new p.Pool().query(\"SELECT id FROM organizations WHERE name='DreakCare'\").then(r=>{process.stdout.write(r.rows.length?'YES':'NO')}).catch(()=>{process.stdout.write('NO')}).finally(()=>process.exit())" 2>/dev/null) || true
             if [ "$EXISTS" = "YES" ]; then echo "Already seeded"; exit 0; fi
             SHA="${{ steps.sha.outputs.SHA }}"
             echo "Downloading seed script (commit $SHA)..."
