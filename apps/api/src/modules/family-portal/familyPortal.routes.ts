@@ -27,6 +27,10 @@ publicRouter.get('/:token/care-notes', asyncHandler(Ctrl.portalGetCareNotes));
 publicRouter.get('/:token/care-plans', asyncHandler(Ctrl.portalGetCarePlans));
 publicRouter.get('/:token/goals', asyncHandler(Ctrl.portalGetGoals));
 publicRouter.get('/:token/observations', asyncHandler(Ctrl.portalGetObservations));
+publicRouter.get('/:token/visits', asyncHandler(Ctrl.portalGetUpcomingVisits));
+publicRouter.get('/:token/medications', asyncHandler(Ctrl.portalGetMedications));
+publicRouter.get('/:token/allergies', asyncHandler(Ctrl.portalGetAllergies));
+publicRouter.post('/:token/contact', asyncHandler(Ctrl.portalSendCareTeamMessage));
 
 export default router;
 export { publicRouter };

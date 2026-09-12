@@ -175,4 +175,51 @@ export class FamilyPortalRepository {
     );
     return result.rows;
   }
+
+  // ── Upcoming visits ──
+  static async getUpcomingVisits(personId: string, limit = 10) {
+    const result = await migrateQuery(
+      `SELECT hv.id, hv.visit_type, hv.label, hv.scheduled_start, hv.scheduled_end, hv.status,
+              COALESCE(sp.first_name || ' ' || sp.last_name, u.email) as carer_name
+       FROM homecare_visits hv
+       LEFT JOIN staff_profiles sp ON sp.id = hv.assigned_staff_id
+       LEFT JOIN users u ON u.id = (SELECT user_id FROM staff_profiles WHERE id = hv.assigned_staff_id)
+       WHERE hv.person_id = $1 AND hv.scheduled_start >= NOW() - INTERVAL '1 day'
+       ORDER BY hv.scheduled_start ASC LIMIT $2`,
+      [personId, limit]
+    );
+    return result.rows;
+  }
+
+  // ── Medications ──
+  static async getMedications(personId: string) {
+    const result = await migrateQuery(
+      `SELECT id, medication_name, dosage, frequency, route, prescribed_by, start_date, end_date, status, notes
+       FROM medications WHERE person_id = $1 AND (status = 'active' OR status IS NULL)
+       ORDER BY medication_name ASC`,
+      [personId]
+    );
+    return result.rows;
+  }
+
+  // ── Allergies (from people table) ──
+  static async getAllergies(personId: string) {
+    const result = await migrateQuery(
+      `SELECT allergies FROM people WHERE id = $1`,
+      [personId]
+    );
+    return result.rows[0]?.allergies || [];
+  }
+
+  // ── Contact care team (send message) ──
+  static async sendCareTeamMessage(data: { person_id: string; family_member_name: string; email: string; subject: string; message: string; organization_id: string }) {
+    // Insert into a messages table or log for audit
+    const result = await migrateQuery(
+      `INSERT INTO family_messages (organization_id, person_id, family_member_name, family_email, subject, message, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+       RETURNING *`,
+      [data.organization_id, data.person_id, data.family_member_name, data.email, data.subject, data.message]
+    );
+    return result.rows[0];
+  }
 }

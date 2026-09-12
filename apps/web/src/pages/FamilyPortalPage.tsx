@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   Box, Typography, Paper, Stack, Tabs, Tab, Chip, CircularProgress,
   Avatar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  TextField, Button, Alert,
 } from '@mui/material'
 import { Warning as WarningIcon } from '@mui/icons-material'
 import { useParams } from 'react-router-dom'
@@ -22,6 +23,10 @@ function formatDate(d: string) {
 export default function FamilyPortalPage() {
   const { token } = useParams()
   const [portalTab, setPortalTab] = useState(0)
+  const [contactSubject, setContactSubject] = useState('')
+  const [contactMessage, setContactMessage] = useState('')
+  const [contactSuccess, setContactSuccess] = useState('')
+  const [contactError, setContactError] = useState('')
 
   const { data: info, isLoading: infoLoading, error: infoError } = useQuery({
     queryKey: ['family-portal', token],
@@ -53,6 +58,41 @@ export default function FamilyPortalPage() {
     queryFn: () => apiGet(`${apiBase}/${token}/observations`),
     enabled: !!token && !!info,
   })
+
+  const { data: visits = [], isLoading: visitsLoading } = useQuery({
+    queryKey: ['family-portal', token, 'visits'],
+    queryFn: () => apiGet(`${apiBase}/${token}/visits`),
+    enabled: !!token && !!info,
+  })
+
+  const { data: medications = [], isLoading: medsLoading } = useQuery({
+    queryKey: ['family-portal', token, 'medications'],
+    queryFn: () => apiGet(`${apiBase}/${token}/medications`),
+    enabled: !!token && !!info,
+  })
+
+  const { data: allergies = [] } = useQuery({
+    queryKey: ['family-portal', token, 'allergies'],
+    queryFn: () => apiGet(`${apiBase}/${token}/allergies`),
+    enabled: !!token && !!info,
+  })
+
+  const [contactSending, setContactSending] = useState(false)
+  const handleContactSubmit = async () => {
+    setContactSending(true)
+    setContactSuccess('')
+    setContactError('')
+    try {
+      await axios.post(`${apiBase}/${token}/contact`, { subject: contactSubject, message: contactMessage })
+      setContactSuccess('Your message has been sent to the care team.')
+      setContactSubject('')
+      setContactMessage('')
+    } catch (e: any) {
+      setContactError(e.response?.data?.message || 'Failed to send message')
+    } finally {
+      setContactSending(false)
+    }
+  }
 
   if (infoLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}><CircularProgress /></Box>
 
@@ -116,16 +156,44 @@ export default function FamilyPortalPage() {
       {/* Tabs */}
       <Box sx={{ maxWidth: 900, mx: 'auto', mt: -2, px: 2 }}>
         <Paper sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid #E5E7EB' }}>
-          <Tabs value={portalTab} onChange={(_, v) => setPortalTab(v)} sx={{ px: 2, pt: 1, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 } }}>
+          <Tabs value={portalTab} onChange={(_, v) => setPortalTab(v)} sx={{ px: 2, pt: 1, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 }, flexWrap: 'wrap' }}>
+            <Tab label="Visits" />
             <Tab label="Care Notes" />
             <Tab label="Care Plans" />
             <Tab label="Goals" />
-            <Tab label="Health Observations" />
+            <Tab label="Health" />
+            <Tab label="Medications" />
+            <Tab label="Contact" />
           </Tabs>
 
           <Box sx={{ p: 3 }}>
-            {/* Care Notes */}
+            {/* Upcoming Visits */}
             {portalTab === 0 && (
+              visitsLoading ? <CircularProgress /> :
+              visits.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No upcoming visits</Typography> :
+              <Stack spacing={2}>
+                {visits.map((v: any) => (
+                  <Paper key={v.id} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: `4px solid ${v.status === 'completed' ? '#16A34A' : v.status === 'en_route' || v.status === 'checked_in' ? '#0F4C81' : '#6B7280'}` }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Box>
+                        <Typography fontWeight={700}>{v.label}</Typography>
+                        <Typography variant="body2" color="#4B5563">
+                          {new Date(v.scheduled_start).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          {' — '}
+                          {new Date(v.scheduled_end).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </Typography>
+                        {v.carer_name && <Typography variant="caption" color="#6B7280">Carer: {v.carer_name}</Typography>}
+                      </Box>
+                      <Chip label={v.status.replace('_', ' ')} size="small"
+                        color={v.status === 'completed' ? 'success' : v.status === 'en_route' || v.status === 'checked_in' ? 'primary' : 'default'} />
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            )}
+
+            {/* Care Notes */}
+            {portalTab === 1 && (
               notesLoading ? <CircularProgress /> :
               careNotes.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No care notes yet</Typography> :
               <TableContainer>
@@ -153,7 +221,7 @@ export default function FamilyPortalPage() {
             )}
 
             {/* Care Plans */}
-            {portalTab === 1 && (
+            {portalTab === 2 && (
               plansLoading ? <CircularProgress /> :
               carePlans.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No care plans available</Typography> :
               <Stack spacing={2}>
@@ -172,7 +240,7 @@ export default function FamilyPortalPage() {
             )}
 
             {/* Goals */}
-            {portalTab === 2 && (
+            {portalTab === 3 && (
               goalsLoading ? <CircularProgress /> :
               goals.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No goals set yet</Typography> :
               <TableContainer>
@@ -205,7 +273,7 @@ export default function FamilyPortalPage() {
             )}
 
             {/* Health Observations */}
-            {portalTab === 3 && (
+            {portalTab === 4 && (
               obsLoading ? <CircularProgress /> :
               observations.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No health observations recorded</Typography> :
               <TableContainer>
@@ -228,6 +296,55 @@ export default function FamilyPortalPage() {
                   </TableBody>
                 </Table>
               </TableContainer>
+            )}
+
+            {/* Medications */}
+            {portalTab === 5 && (
+              medsLoading ? <CircularProgress /> :
+              medications.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No active medications</Typography> :
+              <Stack spacing={2}>
+                {allergies.length > 0 && (
+                  <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid #FCA5A5', bgcolor: '#FEF2F2' }}>
+                    <Typography fontWeight={700} color="#DC2626" sx={{ mb: 0.5 }}>Allergies</Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" gap={0.5}>
+                      {allergies.map((a: string, i: number) => (
+                        <Chip key={i} label={a} size="small" sx={{ bgcolor: '#FEE2E2', color: '#991B1B' }} />
+                      ))}
+                    </Stack>
+                  </Paper>
+                )}
+                {medications.map((m: any) => (
+                  <Paper key={m.id} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Box>
+                        <Typography fontWeight={700}>{m.medication_name}</Typography>
+                        <Typography variant="body2" color="#4B5563">
+                          {m.dosage} — {m.frequency} ({m.route})
+                        </Typography>
+                        {m.prescribed_by && <Typography variant="caption" color="#6B7280">Prescribed by: {m.prescribed_by}</Typography>}
+                      </Box>
+                      <Chip label="Active" size="small" color="success" />
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            )}
+
+            {/* Contact Care Team */}
+            {portalTab === 6 && (
+              <Box>
+                <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Send a Message to the Care Team</Typography>
+                <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>Your message will be sent to the care team managing {su.first_name}'s care. They will respond as soon as possible.</Typography>
+                {contactSuccess && <Alert severity="success" sx={{ mb: 2 }}>{contactSuccess}</Alert>}
+                {contactError && <Alert severity="error" sx={{ mb: 2 }}>{contactError}</Alert>}
+                <Stack spacing={2}>
+                  <TextField label="Subject" value={contactSubject} onChange={e => setContactSubject(e.target.value)} fullWidth size="small" />
+                  <TextField label="Message" value={contactMessage} onChange={e => setContactMessage(e.target.value)} fullWidth multiline rows={5} size="small" />
+                  <Button variant="contained" onClick={handleContactSubmit} disabled={!contactSubject || !contactMessage || contactSending} sx={{ bgcolor: '#0F4C81', textTransform: 'none', fontWeight: 600, alignSelf: 'flex-start' }}>
+                    {contactSending ? 'Sending...' : 'Send Message'}
+                  </Button>
+                </Stack>
+              </Box>
             )}
           </Box>
         </Paper>
