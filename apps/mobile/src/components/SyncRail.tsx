@@ -1,122 +1,60 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { colors, radii, spacing, type } from '../theme'
-import type { SyncState } from '../types'
-import { hapticLight } from '../services/haptics'
+import { colors, elevation, radii, spacing, FONT } from '../theme'
+import { IconSyncSmall, IconOffline } from './Icons'
 
-interface SyncRailProps {
-  state: SyncState
-  count: number
-  onPress?: () => void
-}
-
-const copy: Record<SyncState, { icon: string; title: string; color: string; bg: string; detail?: string }> = {
-  synced: {
-    icon: '✓',
-    title: 'All synced',
-    color: colors.success,
-    bg: colors.successSurface,
-    detail: 'Visit actions are up to date',
-  },
-  pending: {
-    icon: '◎',
-    title: 'Pending sync',
-    color: colors.primary,
-    bg: colors.primarySurface,
-  },
-  syncing: {
-    icon: '↻',
-    title: 'Syncing',
-    color: colors.primary,
-    bg: colors.primarySurface,
-    detail: 'Sending securely',
-  },
-  failed: {
-    icon: '!',
-    title: 'Sync issue',
-    color: colors.danger,
-    bg: colors.dangerSurface,
-    detail: 'Tap retry when you have signal',
-  },
-}
-
-export function SyncRail({ state, count, onPress }: SyncRailProps) {
-  const item = copy[state]
-  const detailText = item.detail || (count > 0 ? `${count} action(s) saved offline` : 'No pending actions')
+export function SyncRail({ queue, onSync }: { queue: { state: string; action: string; visitId: string }[]; onSync: () => void }) {
+  if (queue.length === 0) return null
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${item.title}. ${detailText}`}
-      onPress={() => { hapticLight(); onPress?.() }}
-      style={({ pressed }) => [
-        styles.rail,
-        { backgroundColor: item.bg },
-        pressed && styles.pressed,
-      ]}
-    >
-      <View style={[styles.iconWrap, { backgroundColor: item.color + '18' }]}>
-        <Text style={[styles.icon, { color: item.color }]}>{item.icon}</Text>
-      </View>
-      <View style={styles.copyBlock}>
-        <Text style={[styles.title, { color: item.color }]}>
-          {item.title}{count > 0 ? ` · ${count}` : ''}
+    <View style={styles.rail}>
+      <View style={styles.row}>
+        <IconOffline size={14} color={colors.warning} />
+        <Text style={styles.text}>
+          {queue.length} action{queue.length === 1 ? '' : 's'} waiting to sync
         </Text>
-        <Text style={styles.detail}>{detailText}</Text>
+        <Pressable onPress={onSync} style={styles.syncBtn}>
+          <IconSyncSmall size={12} color={colors.inverse} />
+          <Text style={styles.syncText}>Sync</Text>
+        </Pressable>
       </View>
-      {state === 'failed' && (
-        <View style={styles.retryBadge}>
-          <Text style={styles.retryText}>Retry</Text>
-        </View>
-      )}
-    </Pressable>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   rail: {
+    backgroundColor: colors.warningSurface,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.warning + '30',
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.base,
-    borderRadius: radii.lg,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
-  iconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  copyBlock: {
+  text: {
     flex: 1,
-  },
-  title: {
-    fontFamily: 'System',
+    fontFamily: FONT,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '500',
+    color: colors.warning,
   },
-  detail: {
-    ...type.small,
-    marginTop: 1,
-  },
-  retryBadge: {
-    backgroundColor: colors.danger,
+  syncBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.warning,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
     borderRadius: radii.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
   },
-  retryText: {
-    fontFamily: 'System',
+  syncText: {
+    fontFamily: FONT,
     fontSize: 12,
     fontWeight: '600',
     color: colors.inverse,
-  },
-  pressed: {
-    opacity: 0.85,
   },
 })
