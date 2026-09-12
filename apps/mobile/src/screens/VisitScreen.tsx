@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction } from '../types'
@@ -8,6 +8,13 @@ import { getVisitLocation } from '../services/location'
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
+function dateStamp() {
+  return new Date().toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
 }
 
 function statusColor(status: string) {
@@ -37,6 +44,8 @@ export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onCl
   const [success, setSuccess] = useState('')
   const [disruptionOpen, setDisruptionOpen] = useState(false)
   const [disruption, setDisruption] = useState('')
+  const [checkedInAt, setCheckedInAt] = useState<string | null>(null)
+  const [checkedInLocation, setCheckedInLocation] = useState<{ latitude: number; longitude: number } | null>(null)
 
   const isOpen = !['completed', 'cancelled', 'missed'].includes(visit.status)
   const checkedIn = visit.status === 'checked_in'
@@ -52,13 +61,22 @@ export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onCl
         actual_mileage_miles: mileage ? Number(mileage) : undefined,
         note: note.trim() || undefined,
       })
-      setSuccess(
-        result.synced
-          ? action === 'check-in'
-            ? 'Checked in. Location recorded.'
-            : 'Call completed and saved.'
-          : 'Saved offline. Will sync when you reconnect.',
-      )
+
+      if (action === 'check-in') {
+        setCheckedInAt(dateStamp())
+        setCheckedInLocation(location.latitude ? { latitude: location.latitude, longitude: location.longitude } : null)
+        setSuccess(
+          result.synced
+            ? `Checked in at ${dateStamp()}. Location recorded.`
+            : 'Checked in offline. Will sync when you reconnect.'
+        )
+      } else {
+        setSuccess(
+          result.synced
+            ? `Call completed at ${dateStamp()}. Saved.`
+            : 'Saved offline. Will sync when you reconnect.'
+        )
+      }
     } catch (e: any) {
       setError(e.message || 'Could not record this action.')
     } finally {
@@ -87,143 +105,173 @@ export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onCl
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Back */}
-        <Pressable onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.backText}>Today</Text>
-        </Pressable>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {/* Back */}
+          <Pressable onPress={onBack} style={styles.backBtn}>
+            <Text style={styles.backArrow}>←</Text>
+            <Text style={styles.backText}>Today</Text>
+          </Pressable>
 
-        {/* Client card */}
-        <View style={styles.clientCard}>
-          <View style={styles.clientHeader}>
-            <View style={styles.clientInfo}>
-              <Text style={styles.clientName}>{visit.label}</Text>
-              <View style={styles.timeRow}>
-                <Text style={styles.timeText}>{time(visit.scheduled_start)} – {time(visit.scheduled_end)}</Text>
+          {/* Client card */}
+          <View style={styles.clientCard}>
+            <View style={styles.clientHeader}>
+              <View style={styles.clientInfo}>
+                <Text style={styles.clientName}>{visit.label}</Text>
+                <View style={styles.timeRow}>
+                  <Text style={styles.timeText}>{time(visit.scheduled_start)} – {time(visit.scheduled_end)}</Text>
+                </View>
+              </View>
+              <View style={[styles.statusBadge, { backgroundColor: sColor + '18' }]}>
+                <Text style={[styles.statusText, { color: sColor }]}>
+                  {visit.status.replace('_', ' ')}
+                </Text>
               </View>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: sColor + '18' }]}>
-              <Text style={[styles.statusText, { color: sColor }]}>
-                {visit.status.replace('_', ' ')}
+
+            {visit.person_name && (
+              <View style={styles.personSection}>
+                <Text style={styles.personName}>{visit.person_name}</Text>
+                {visit.person_address && (
+                  <Text style={styles.personAddr}>📍 {visit.person_address}</Text>
+                )}
+                {onClientDetail && visit.person_id && (
+                  <Pressable onPress={() => onClientDetail(visit.person_id!)}>
+                    <Text style={styles.viewClient}>View client details →</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* Check-in status card — shown after checking in */}
+          {checkedIn && (
+            <View style={styles.checkInCard}>
+              <View style={styles.checkInHeader}>
+                <View style={styles.checkInDot} />
+                <Text style={styles.checkInTitle}>Checked in</Text>
+              </View>
+              {checkedInAt && (
+                <Text style={styles.checkInDetail}>🕐 {checkedInAt}</Text>
+              )}
+              {checkedInLocation && (
+                <Text style={styles.checkInDetail}>📍 Location captured</Text>
+              )}
+              <Text style={styles.checkInHelper}>
+                Fill in your visit notes below, then check out when you leave.
               </Text>
+            </View>
+          )}
+
+          {/* Messages */}
+          {success ? (
+            <View style={styles.successBanner}>
+              <Text style={styles.successIcon}>✓</Text>
+              <Text style={styles.successText}>{success}</Text>
+            </View>
+          ) : null}
+          {error ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorIcon}>!</Text>
+              <Text accessibilityRole="alert" style={styles.errorMsg}>{error}</Text>
+            </View>
+          ) : null}
+
+          {/* Visit record form */}
+          <View style={styles.formCard}>
+            <Text style={styles.formTitle}>{checkedIn ? 'Visit notes' : 'Pre-visit details'}</Text>
+
+            {!checkedIn && (
+              <Text style={styles.formHelper}>
+                Enter travel time and mileage from your previous call. Location is captured at check-in.
+              </Text>
+            )}
+
+            {!checkedIn && (
+              <View style={styles.fieldRow}>
+                <View style={styles.fieldHalf}>
+                  <Text style={styles.fieldLabel}>Travel (min)</Text>
+                  <TextInput
+                    keyboardType="number-pad"
+                    value={travelMinutes}
+                    onChangeText={setTravelMinutes}
+                    placeholder="—"
+                    placeholderTextColor={colors.subtle}
+                    style={styles.input}
+                  />
+                </View>
+                <View style={styles.fieldHalf}>
+                  <Text style={styles.fieldLabel}>Mileage (mi)</Text>
+                  <TextInput
+                    keyboardType="decimal-pad"
+                    value={mileage}
+                    onChangeText={setMileage}
+                    placeholder="—"
+                    placeholderTextColor={colors.subtle}
+                    style={styles.input}
+                  />
+                </View>
+              </View>
+            )}
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>{checkedIn ? 'What happened during this call?' : 'Notes (optional)'}</Text>
+              <TextInput
+                multiline
+                value={note}
+                onChangeText={setNote}
+                placeholder={checkedIn ? 'Record care provided, observations, client mood...' : 'Any notes before you arrive'}
+                placeholderTextColor={colors.subtle}
+                style={[styles.input, styles.textArea]}
+              />
             </View>
           </View>
 
-          {visit.person_name && (
-            <View style={styles.personSection}>
-              <Text style={styles.personName}>{visit.person_name}</Text>
-              {visit.person_address && (
-                <Text style={styles.personAddr}>📍 {visit.person_address}</Text>
+          {/* Actions */}
+          {isOpen && (
+            <View style={styles.actions}>
+              {!checkedIn && visit.status !== 'completed' && (
+                <PrimaryButton
+                  label="Check in"
+                  onPress={() => execute('check-in')}
+                  loading={busy}
+                  disabled={busy}
+                  tone="primary"
+                />
               )}
-              {onClientDetail && visit.person_id && (
-                <Pressable onPress={() => onClientDetail(visit.person_id!)}>
-                  <Text style={styles.viewClient}>View client details →</Text>
-                </Pressable>
+              {checkedIn && (
+                <PrimaryButton
+                  label="Check out and complete"
+                  onPress={() => execute('check-out')}
+                  loading={busy}
+                  disabled={busy}
+                  tone="success"
+                />
               )}
             </View>
           )}
-        </View>
 
-        {/* Messages */}
-        {success ? (
-          <View style={styles.successBanner}>
-            <Text style={styles.successIcon}>✓</Text>
-            <Text style={styles.successText}>{success}</Text>
-          </View>
-        ) : null}
-        {error ? (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorIcon}>!</Text>
-            <Text accessibilityRole="alert" style={styles.errorMsg}>{error}</Text>
-          </View>
-        ) : null}
+          {isOpen && (
+            <Pressable onPress={() => setDisruptionOpen(true)} style={styles.disruptionBtn}>
+              <Text style={styles.disruptionText}>⚠ Report a delay or safety issue</Text>
+            </Pressable>
+          )}
 
-        {/* Visit record form */}
-        <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Visit record</Text>
-          <Text style={styles.formHelper}>
-            Location is captured at check-in and check-out only. MeticleCare does not track you continuously.
-          </Text>
+          {onReportIncident && (
+            <Pressable onPress={onReportIncident} style={styles.disruptionBtn}>
+              <Text style={[styles.disruptionText, { color: colors.danger }]}>🚨 Report an incident</Text>
+            </Pressable>
+          )}
 
-          <View style={styles.fieldRow}>
-            <View style={styles.fieldHalf}>
-              <Text style={styles.fieldLabel}>Travel (min)</Text>
-              <TextInput
-                keyboardType="number-pad"
-                value={travelMinutes}
-                onChangeText={setTravelMinutes}
-                placeholder="—"
-                placeholderTextColor={colors.subtle}
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.fieldHalf}>
-              <Text style={styles.fieldLabel}>Mileage (mi)</Text>
-              <TextInput
-                keyboardType="decimal-pad"
-                value={mileage}
-                onChangeText={setMileage}
-                placeholder="—"
-                placeholderTextColor={colors.subtle}
-                style={styles.input}
-              />
-            </View>
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Visit note</Text>
-            <TextInput
-              multiline
-              value={note}
-              onChangeText={setNote}
-              placeholder="Record what happened factually"
-              placeholderTextColor={colors.subtle}
-              style={[styles.input, styles.textArea]}
-            />
-          </View>
-        </View>
-
-        {/* Actions */}
-        {isOpen && (
-          <View style={styles.actions}>
-            {!checkedIn && visit.status !== 'completed' && (
-              <PrimaryButton
-                label="Check in"
-                onPress={() => execute('check-in')}
-                loading={busy}
-                disabled={busy}
-                tone="primary"
-              />
-            )}
-            {checkedIn && (
-              <PrimaryButton
-                label="Check out and save"
-                onPress={() => execute('check-out')}
-                loading={busy}
-                disabled={busy}
-                tone="success"
-              />
-            )}
-          </View>
-        )}
-
-        {isOpen && (
-          <Pressable onPress={() => setDisruptionOpen(true)} style={styles.disruptionBtn}>
-            <Text style={styles.disruptionText}>⚠ Report a delay or safety issue</Text>
-          </Pressable>
-        )}
-
-        {onReportIncident && (
-          <Pressable onPress={onReportIncident} style={styles.disruptionBtn}>
-            <Text style={[styles.disruptionText, { color: colors.danger }]}>🚨 Report an incident</Text>
-          </Pressable>
-        )}
-
-        {queue.length > 0 && (
-          <Text style={styles.queueNote}>{queue.length} action{queue.length === 1 ? '' : 's'} waiting to sync.</Text>
-        )}
-      </ScrollView>
+          {queue.length > 0 && (
+            <Text style={styles.queueNote}>{queue.length} action{queue.length === 1 ? '' : 's'} waiting to sync.</Text>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Disruption modal */}
       <Modal visible={disruptionOpen} transparent animationType="fade" onRequestClose={() => setDisruptionOpen(false)}>
@@ -261,6 +309,7 @@ export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onCl
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
+  flex: { flex: 1 },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.md, paddingBottom: spacing.xxxl },
 
   /* Back */
@@ -288,6 +337,21 @@ const styles = StyleSheet.create({
   personName: { ...type.bodyBold, fontSize: 16 },
   personAddr: { ...type.small, marginTop: spacing.xs },
   viewClient: { fontFamily: 'System', fontSize: 13, fontWeight: '600', color: colors.primary, marginTop: spacing.sm },
+
+  /* Check-in status card */
+  checkInCard: {
+    backgroundColor: colors.primarySurface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+    padding: spacing.base,
+    marginTop: spacing.base,
+  },
+  checkInHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  checkInDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
+  checkInTitle: { fontFamily: 'System', fontSize: 15, fontWeight: '700', color: colors.primary },
+  checkInDetail: { fontFamily: 'System', fontSize: 13, color: colors.inkLight, marginTop: spacing.xs },
+  checkInHelper: { ...type.small, marginTop: spacing.sm, color: colors.muted },
 
   /* Messages */
   successBanner: {
