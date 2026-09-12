@@ -118,6 +118,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
   onSync: () => void
 }) {
   const timeline = useMemo(() => classifyVisits(visits), [visits])
+  const total = visits.length
   const completed = visits.filter(v => v.status === 'completed').length
   const remaining = visits.filter(v => !['completed', 'missed', 'cancelled'].includes(v.status)).length
 
@@ -162,20 +163,31 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         </View>
       </View>
 
-      {/* Stats bar */}
-      <View style={styles.statsBar}>
-        <View style={[styles.statCard, { borderLeftColor: colors.primary }]}>
+      {/* Single stats card */}
+      <View style={styles.statsCard}>
+        <View style={styles.statItem}>
           <Text style={styles.statNumber}>{visits.length}</Text>
           <Text style={styles.statLabel}>Calls</Text>
         </View>
-        <View style={[styles.statCard, { borderLeftColor: colors.success }]}>
-          <Text style={styles.statNumber}>{completed}</Text>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={[styles.statNumber, { color: colors.success }]}>{completed}</Text>
           <Text style={styles.statLabel}>Done</Text>
         </View>
-        <View style={[styles.statCard, { borderLeftColor: colors.warning }]}>
-          <Text style={styles.statNumber}>{remaining}</Text>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={[styles.statNumber, { color: remaining > 0 ? colors.ink : colors.subtle }]}>{remaining}</Text>
           <Text style={styles.statLabel}>Left</Text>
         </View>
+        {total > 0 && (
+          <>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { color: colors.primary }]}>{Math.round((completed / total) * 100)}%</Text>
+              <Text style={styles.statLabel}>Done</Text>
+            </View>
+          </>
+        )}
       </View>
 
       {/* Current call highlight */}
@@ -335,13 +347,17 @@ const styles = StyleSheet.create({
   },
 
   /* Stats */
-  statsBar: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
-  statCard: {
-    flex: 1, backgroundColor: colors.surface, borderRadius: radii.md,
-    borderLeftWidth: 3, padding: spacing.md, ...elevation.sm,
+  statsCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.surface, borderRadius: radii.lg,
+    borderWidth: 1, borderColor: colors.borderLight,
+    padding: spacing.base, marginBottom: spacing.xl,
+    ...elevation.sm,
   },
-  statNumber: { fontFamily: FONT, fontSize: 24, fontWeight: '800', color: colors.ink, letterSpacing: -0.5 },
-  statLabel: { fontFamily: FONT, fontSize: 11, fontWeight: '600', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
+  statItem: { flex: 1, alignItems: 'center' },
+  statDivider: { width: 1, height: 28, backgroundColor: colors.border, marginHorizontal: spacing.sm },
+  statNumber: { fontFamily: FONT, fontSize: 22, fontWeight: '800', color: colors.ink, letterSpacing: -0.4 },
+  statLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '600', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
 
   /* Current call highlight */
   currentCard: { marginBottom: spacing.xl },
