@@ -15,6 +15,8 @@ const df = (n) => {
   try {
     await c.query("BEGIN");
 
+    // Set RLS org context for all subsequent inserts
+    const RLS_SET = `SELECT set_config('app.current_org_id', $1, false)`;
     // Check if already exists (by name since slug column doesn't exist)
     const check = await c.query("SELECT id FROM organizations WHERE name='DreakCare'");
     if (check.rows.length > 0) {
@@ -33,6 +35,8 @@ const df = (n) => {
       [oid, "DreakCare", "active", ["domiciliary"], true]
     );
     console.log("Created DreakCare org");
+    // Set RLS context for this org so all subsequent inserts pass tenant isolation
+    await c.query(RLS_SET, [oid]);
 
     // Locations (no status column)
     const l1 = u(), l2 = u();
