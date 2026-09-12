@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { MapPickerModal } from '../components/MapPickerModal'
 import type { AuthSession } from '../types'
 import { getPersonDetail, getMedicationsForPerson, getBodyMapStats, getDailySummary } from '../services/api'
 
@@ -32,6 +33,8 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [tab, setTab] = useState<TabKey>('overview')
+  const [mapPickerOpen, setMapPickerOpen] = useState(false)
+  const [navDest, setNavDest] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
 
   useEffect(() => {
     (async () => {
@@ -56,18 +59,18 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
 
   if (loading) {
     return (
-      <View style={styles.screen}>
-        <Header onBack={onBack} title="Client" />
-        <View style={styles.loading}><ActivityIndicator color={colors.primary} /><Text style={styles.loadingText}>Loading...</Text></View>
+      <View style={[styles.screen, { backgroundColor: c.bg }]}>
+        <Header onBack={onBack} title="Client" c={c} />
+        <View style={styles.loading}><ActivityIndicator color={c.primary} /><Text style={[styles.loadingText, { color: c.muted }]}>Loading...</Text></View>
       </View>
     )
   }
 
   if (error || !person) {
     return (
-      <View style={styles.screen}>
-        <Header onBack={onBack} title="Client" />
-        <View style={styles.loading}><Text style={styles.errorText}>{error || 'Client not found'}</Text></View>
+      <View style={[styles.screen, { backgroundColor: c.bg }]}>
+        <Header onBack={onBack} title="Client" c={c} />
+        <View style={styles.loading}><Text style={[styles.errorText, { color: c.danger }]}>{error || 'Client not found'}</Text></View>
       </View>
     )
   }
@@ -80,13 +83,13 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
   const otherContacts = contacts.filter((c: any) => !c.is_emergency_contact)
 
   return (
-    <View style={styles.screen}>
-      <Header onBack={onBack} title="Client" />
+    <View style={[styles.screen, { backgroundColor: c.bg }]}>
+      <Header onBack={onBack} title="Client" c={c} />
 
       {/* Client card */}
-      <View style={styles.clientCard}>
+      <View style={[styles.clientCard, { backgroundColor: c.surface, borderBottomColor: c.borderLight }]}>
         <View style={styles.clientInfo}>
-          <Text style={styles.clientName}>{personName}</Text>
+          <Text style={[styles.clientName, { color: c.ink }]}>{personName}</Text>
           <View style={styles.tagRow}>
             {person.support_level && (
               <View style={[styles.tag, styles.tagGreen]}>
@@ -100,32 +103,43 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
             )}
           </View>
           <View style={styles.metaRow}>
-            {person.date_of_birth && <Text style={styles.metaText}>DOB: {new Date(person.date_of_birth).toLocaleDateString('en-GB')}</Text>}
-            {person.nhs_number && <Text style={styles.metaText}>NHS: {person.nhs_number}</Text>}
+            {person.date_of_birth && <Text style={[styles.metaText, { color: c.muted }]}>DOB: {new Date(person.date_of_birth).toLocaleDateString('en-GB')}</Text>}
+            {person.nhs_number && <Text style={[styles.metaText, { color: c.muted }]}>NHS: {person.nhs_number}</Text>}
           </View>
         </View>
       </View>
 
+      {/* Navigate button */}
+      {person.address && (
+        <Pressable
+          onPress={() => { setNavDest({ destination: person.address, label: personName }); setMapPickerOpen(true) }}
+          style={({ pressed }) => [[styles.navigateCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.8 }]}
+        >
+          <Text style={[styles.navigateText, { color: c.primary }]}>Navigate to {personName}</Text>
+          <Text style={[styles.navigateArrow, { color: c.primary }]}>→</Text>
+        </Pressable>
+      )}
+
       {/* Allergies warning */}
       {allergies.length > 0 && (
-        <View style={styles.alertCard}>
+        <View style={[styles.alertCard, { backgroundColor: c.warningSurface, borderBottomColor: c.warning + '30' }]}>
           <Text style={styles.alertIcon}>⚠️</Text>
-          <Text style={styles.alertText}>Allergies: {allergies.join(', ')}</Text>
+          <Text style={[styles.alertText, { color: c.warning, flex: 1 }]}>Allergies: {allergies.join(', ')}</Text>
         </View>
       )}
 
       {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabBar}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tabBar, { backgroundColor: c.surface, borderBottomColor: c.borderLight }]}>
         {TABS.map(t => (
-          <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, tab === t.key && styles.tabActive]}>
+          <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, tab === t.key && [styles.tabActive, { backgroundColor: c.primarySurface, borderColor: c.primary + '30' }], { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }]}>
             <Text style={[styles.tabIcon]}>{t.icon}</Text>
-            <Text style={[styles.tabLabel, tab === t.key && styles.tabLabelActive]}>{t.label}</Text>
+            <Text style={[styles.tabLabel, { color: c.muted }, tab === t.key && [styles.tabLabelActive, { color: c.primary }]]}>{t.label}</Text>
           </Pressable>
         ))}
       </ScrollView>
 
       {/* Tab content */}
-      <ScrollView contentContainerStyle={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.tabContent, { padding: spacing.base, paddingBottom: spacing.xxxl }]} showsVerticalScrollIndicator={false}>
         {tab === 'overview' && <OverviewTab person={person} />}
         {tab === 'care' && <CareTab carePlans={carePlans} />}
         {tab === 'body' && (
@@ -169,20 +183,29 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
         {tab === 'meds' && <MedsTab medications={medications} />}
         {tab === 'contacts' && <ContactsTab emergencyContacts={emergencyContacts} otherContacts={otherContacts} person={person} />}
       </ScrollView>
+
+      <MapPickerModal
+        visible={mapPickerOpen}
+        onClose={() => setMapPickerOpen(false)}
+        destination={navDest.destination}
+        latitude={navDest.latitude}
+        longitude={navDest.longitude}
+        label={navDest.label}
+      />
     </View>
   )
 }
 
 /* ─── Sub-components ────────────────────────────────────────── */
 
-function Header({ onBack, title }: { onBack: () => void; title: string }) {
+function Header({ onBack, title, c }: { onBack: () => void; title: string; c: any }) {
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { backgroundColor: c.surface, borderBottomColor: c.borderLight }]}>
       <Pressable onPress={onBack} style={styles.backBtn}>
-        <Text style={styles.backArrow}>←</Text>
-        <Text style={styles.backText}>Back</Text>
+        <Text style={[styles.backArrow, { color: c.primary }]}>←</Text>
+        <Text style={[styles.backText, { color: c.primary }]}>Back</Text>
       </Pressable>
-      <Text style={styles.headerTitle}>{title}</Text>
+      <Text style={[styles.headerTitle, { color: c.ink }]}>{title}</Text>
       <View style={{ width: 60 }} />
     </View>
   )
@@ -296,10 +319,11 @@ function ContactsTab({ emergencyContacts, otherContacts, person }: { emergencyCo
   )
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ title, children, c }: { title: string; children: React.ReactNode; c?: any }) {
+  const cardColors = c || colors
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>{title}</Text>
+    <View style={[styles.card, { backgroundColor: cardColors.surface, borderColor: cardColors.borderLight }]}>
+      <Text style={[styles.cardTitle, { color: cardColors.ink }]}>{title}</Text>
       {children}
     </View>
   )
@@ -336,6 +360,16 @@ const styles = StyleSheet.create({
   tagText: { fontFamily: 'System', fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
   metaRow: { flexDirection: 'row', gap: spacing.base, marginTop: spacing.sm },
   metaText: { ...type.small },
+
+  /* Navigate */
+  navigateCard: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginHorizontal: spacing.base, marginTop: -spacing.sm, marginBottom: spacing.sm,
+    paddingHorizontal: spacing.base, paddingVertical: spacing.md,
+    borderRadius: radii.md, borderWidth: 1,
+  },
+  navigateText: { fontFamily: FONT, fontSize: 14, fontWeight: '600' },
+  navigateArrow: { fontFamily: FONT, fontSize: 16, fontWeight: '600' },
 
   /* Alert */
   alertCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.warningSurface, padding: spacing.md, borderBottomWidth: 1, borderBottomColor: '#FDE68A' },
