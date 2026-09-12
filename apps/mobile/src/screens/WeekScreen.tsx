@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
+import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { getMyVisits } from '../services/api'
 import { IconCheck, IconClock, IconAlert, IconForward, IconNavigate } from '../components/Icons'
@@ -102,7 +103,7 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
+      <SafeAreaView style={[styles.screen, dyn(c).screen]}>
         <View style={styles.loading}>
           <ActivityIndicator color={c.primary} />
           <Text style={[styles.loadingText, { color: c.muted }]}>Loading schedule...</Text>
@@ -112,7 +113,7 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
   }
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
+    <SafeAreaView style={[styles.screen, dyn(c).screen]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { hapticMedium(); loadMonth(true) }} tintColor="transparent" colors={['transparent']} />}
       >
@@ -243,7 +244,7 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1 },
   content: { paddingTop: spacing.base },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   loadingText: { fontFamily: FONT, fontSize: 13, fontWeight: '500', color: colors.muted },

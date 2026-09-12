@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, DietaryProfile, MealRecord } from '../types'
 import { getDietaryProfile, getMealRecords, getDailySummary, createMealRecord } from '../services/api'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -278,7 +279,7 @@ export function NutritionScreen({ personId, personName, session, onBack }: Props
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1 },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.md, paddingBottom: spacing.xxxl, gap: spacing.base },
 
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, Easing, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
+import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../types'
 import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconSync, IconNavigate } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
@@ -150,7 +151,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
 
   return (
     <ScrollView
-      style={[styles.screen, { backgroundColor: c.bg }]}
+      style={[styles.screen, dyn(c).screen]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -305,7 +306,7 @@ export function dayRange() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1 },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg },
 
   /* Header */

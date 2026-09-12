@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import { getMyVisits } from '../services/api'
 
@@ -46,7 +47,7 @@ export function MileageScreen({ session }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
+      <SafeAreaView style={[styles.screen, dyn(c).screen]}>
         <View style={styles.loading}>
           <ActivityIndicator color={c.primary} />
           <Text style={[styles.loadingText, { color: c.muted }]}>Loading mileage...</Text>
@@ -56,7 +57,7 @@ export function MileageScreen({ session }: Props) {
   }
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
+    <SafeAreaView style={[styles.screen, dyn(c).screen]}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />}
@@ -138,7 +139,7 @@ export function MileageScreen({ session }: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1 },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
   pageTitle: { ...type.title, marginBottom: spacing.xs },
   subtitle: { ...type.body, color: colors.muted, marginBottom: spacing.base },
