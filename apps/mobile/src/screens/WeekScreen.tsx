@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type, FONT } from '../theme'
+import { colors, elevation, radii, spacing, FONT } from '../theme'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { getMyVisits } from '../services/api'
 import { IconCheck, IconClock, IconAlert, IconForward, IconNavigate } from '../components/Icons'
@@ -19,46 +19,27 @@ function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
-function shortDay(date: Date) {
-  return date.toLocaleDateString('en-GB', { weekday: 'short' })
-}
-
-function dayNum(date: Date) {
-  return date.getDate()
-}
-
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
-function StatusChip({ status }: { status: string }) {
-  let color = colors.subtle
-  let label = 'Scheduled'
-  let Icon = null
+function getDaysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate()
+}
 
-  switch (status) {
-    case 'completed':
-      color = colors.success; label = 'Done'
-      Icon = <IconCheck size={10} color={colors.success} />
-      break
-    case 'checked_in':
-      color = colors.primary; label = 'Active'
-      Icon = <IconClock size={10} color={colors.primary} />
-      break
-    case 'missed':
-      color = colors.danger; label = 'Missed'
-      Icon = <IconAlert size={10} color={colors.danger} />
-      break
-    default:
-      Icon = <View style={{ width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: colors.subtle }} />
-  }
+function getFirstDayOfMonth(year: number, month: number) {
+  return new Date(year, month, 1).getDay() // 0=Sun, 1=Mon...
+}
 
-  return (
-    <View style={[styles.chip, { backgroundColor: color + '15' }]}>
-      {Icon}
-      <Text style={[styles.chipText, { color }]}>{label}</Text>
-    </View>
-  )
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
+function StatusDot({ status }: { status: string }) {
+  const color = status === 'completed' ? colors.success
+    : status === 'checked_in' ? colors.primary
+    : status === 'missed' ? colors.danger
+    : colors.subtle
+  return <View style={[styles.statusDot, { backgroundColor: color }]} />
 }
 
 export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
@@ -67,50 +48,59 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
   const [refreshing, setRefreshing] = useState(false)
   const [selectedDay, setSelectedDay] = useState<Date>(new Date())
 
-  const loadWeek = useCallback(async (refresh = false) => {
+  const now = new Date()
+  const [viewMonth, setViewMonth] = useState(now.getMonth())
+  const [viewYear, setViewYear] = useState(now.getFullYear())
+
+  const loadMonth = useCallback(async (refresh = false) => {
     if (refresh) setRefreshing(true)
     try {
-      const now = new Date()
-      const from = new Date(now); from.setHours(0, 0, 0, 0)
-      const to = new Date(now); to.setDate(to.getDate() + 7); to.setHours(23, 59, 59)
+      const from = new Date(viewYear, viewMonth, 1)
+      const to = new Date(viewYear, viewMonth + 1, 0, 23, 59, 59)
       const data = await getMyVisits(session.accessToken, from.toISOString(), to.toISOString())
       setVisits(data.sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime()))
     } catch {}
     finally { setLoading(false); setRefreshing(false) }
-  }, [session.accessToken])
+  }, [session.accessToken, viewMonth, viewYear])
 
-  useEffect(() => { loadWeek() }, [loadWeek])
+  useEffect(() => { loadMonth() }, [loadMonth])
 
-  // Generate 7 days starting from today
-  const weekDays = useMemo(() => {
-    const days: Date[] = []
-    const now = new Date()
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(now)
-      d.setDate(d.getDate() + i)
-      d.setHours(0, 0, 0, 0)
-      days.push(d)
-    }
-    return days
-  }, [])
+  // Calendar grid
+  const calendarDays = useMemo(() => {
+    const daysInMonth = getDaysInMonth(viewYear, viewMonth)
+    const firstDay = getFirstDayOfMonth(viewYear, viewMonth)
+    const cells: (number | null)[] = []
+    for (let i = 0; i < firstDay; i++) cells.push(null)
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+    return cells
+  }, [viewYear, viewMonth])
 
   // Visits for selected day
   const dayVisits = useMemo(() => {
-    return visits.filter(v => {
-      const vDate = new Date(v.scheduled_start)
-      return isSameDay(vDate, selectedDay)
-    })
+    return visits.filter(v => isSameDay(new Date(v.scheduled_start), selectedDay))
   }, [visits, selectedDay])
 
   const total = visits.length
   const completed = visits.filter(v => v.status === 'completed').length
+
+  const prevMonth = () => {
+    hapticLight()
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) }
+    else setViewMonth(m => m - 1)
+  }
+
+  const nextMonth = () => {
+    hapticLight()
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1) }
+    else setViewMonth(m => m + 1)
+  }
 
   if (loading) {
     return (
       <SafeAreaView style={styles.screen}>
         <View style={styles.loading}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={styles.loadingText}>Loading your week...</Text>
+          <Text style={styles.loadingText}>Loading schedule...</Text>
         </View>
       </SafeAreaView>
     )
@@ -119,72 +109,66 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { hapticMedium(); loadWeek(true) }} tintColor="transparent" colors={['transparent']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { hapticMedium(); loadMonth(true) }} tintColor="transparent" colors={['transparent']} />}
       >
-        {/* Header */}
-        <Text style={styles.title}>This week</Text>
-        <Text style={styles.subtitle}>{total} calls · {completed} completed</Text>
+        {/* Month header */}
+        <View style={styles.monthHeader}>
+          <Pressable onPress={prevMonth} style={styles.monthNav}>
+            <Text style={styles.monthNavText}>←</Text>
+          </Pressable>
+          <Text style={styles.monthTitle}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
+          <Pressable onPress={nextMonth} style={styles.monthNav}>
+            <Text style={styles.monthNavText}>→</Text>
+          </Pressable>
+        </View>
 
-        {/* Day picker */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayPicker}>
-          {weekDays.map((day, i) => {
-            const isSelected = isSameDay(day, selectedDay)
-            const isToday = isSameDay(day, new Date())
-            const dayVisitCount = visits.filter(v => isSameDay(new Date(v.scheduled_start), day)).length
-            const dayCompleted = visits.filter(v => isSameDay(new Date(v.scheduled_start), day) && v.status === 'completed').length
+        {/* Summary */}
+        <Text style={styles.summary}>{total} calls · {completed} completed</Text>
+
+        {/* Calendar grid */}
+        <View style={styles.calendar}>
+          {/* Day labels */}
+          {DAY_LABELS.map((d, i) => (
+            <Text key={i} style={styles.dayLabel}>{d}</Text>
+          ))}
+          {/* Day cells */}
+          {calendarDays.map((day, i) => {
+            if (day === null) return <View key={`empty-${i}`} style={styles.dayCell} />
+            const cellDate = new Date(viewYear, viewMonth, day)
+            const isToday = isSameDay(cellDate, now)
+            const isSelected = isSameDay(cellDate, selectedDay)
+            const dayVisitCount = visits.filter(v => isSameDay(new Date(v.scheduled_start), cellDate)).length
+            const dayCompleted = visits.filter(v => isSameDay(new Date(v.scheduled_start), cellDate) && v.status === 'completed').length
 
             return (
-              <Pressable
-                key={i}
-                onPress={() => { hapticLight(); setSelectedDay(day) }}
-                style={({ pressed }) => [
-                  styles.dayPill,
-                  isSelected && styles.dayPillActive,
-                  pressed && { opacity: 0.8 },
-                ]}
-              >
-                <Text style={[styles.dayPillLabel, isSelected && styles.dayPillLabelActive]}>
-                  {shortDay(day)}
-                </Text>
-                <Text style={[styles.dayPillNum, isSelected && styles.dayPillNumActive]}>
-                  {dayNum(day)}
-                </Text>
+              <Pressable key={day} onPress={() => { hapticLight(); setSelectedDay(cellDate) }}
+                style={({ pressed }) => [styles.dayCell, pressed && { opacity: 0.7 }]}>
+                <View style={[
+                  styles.dayNum,
+                  isToday && styles.dayNumToday,
+                  isSelected && styles.dayNumSelected,
+                ]}>
+                  <Text style={[
+                    styles.dayNumText,
+                    isToday && styles.dayNumTextToday,
+                    isSelected && styles.dayNumTextSelected,
+                  ]}>{day}</Text>
+                </View>
                 {dayVisitCount > 0 && (
-                  <View style={styles.dayPillDots}>
-                    {Array.from({ length: Math.min(dayVisitCount, 4) }).map((_, j) => (
-                      <View
-                        key={j}
-                        style={[
-                          styles.dayPillDot,
-                          j < dayCompleted && { backgroundColor: isSelected ? colors.inverse : colors.success },
-                          j >= dayCompleted && { backgroundColor: isSelected ? colors.inverse + '60' : colors.subtle + '60' },
-                        ]}
-                      />
-                    ))}
+                  <View style={styles.dayDots}>
+                    {dayCompleted > 0 && <View style={[styles.dayDot, { backgroundColor: colors.success }]} />}
+                    {dayCompleted < dayVisitCount && <View style={[styles.dayDot, { backgroundColor: colors.primary }]} />}
                   </View>
                 )}
               </Pressable>
             )
           })}
-        </ScrollView>
-
-        {/* Progress bar */}
-        {total > 0 && (
-          <View style={styles.progressCard}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>Week progress</Text>
-              <Text style={styles.progressPercent}>{Math.round((completed / total) * 100)}%</Text>
-            </View>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${(completed / total) * 100}%` }]} />
-            </View>
-          </View>
-        )}
+        </View>
 
         {/* Swap button */}
         <Pressable onPress={() => { hapticLight(); onSwap() }} style={({ pressed }) => [styles.swapCard, pressed && { opacity: 0.8 }]}>
           <View style={styles.swapIconWrap}>
-            <IconForward size={18} color={colors.primary} />
+            <IconForward size={16} color={colors.primary} />
           </View>
           <View style={styles.swapInfo}>
             <Text style={styles.swapTitle}>Swap or transfer a call</Text>
@@ -206,24 +190,16 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
             </View>
           ) : (
             dayVisits.map(visit => (
-              <Pressable
-                key={visit.id}
-                onPress={() => { hapticLight(); onVisit(visit) }}
-                style={({ pressed }) => [styles.visitCard, pressed && { opacity: 0.85 }]}
-              >
+              <Pressable key={visit.id} onPress={() => { hapticLight(); onVisit(visit) }}
+                style={({ pressed }) => [styles.visitCard, pressed && { opacity: 0.85 }]}>
                 <View style={styles.visitTimeCol}>
                   <Text style={styles.visitTime}>{time(visit.scheduled_start)}</Text>
                   <View style={styles.visitTimeDash} />
                   <Text style={styles.visitTimeEnd}>{time(visit.scheduled_end)}</Text>
                 </View>
                 <View style={styles.visitInfo}>
-                  <View style={styles.visitTopRow}>
-                    <Text style={styles.visitLabel} numberOfLines={1}>{visit.label}</Text>
-                    <StatusChip status={visit.status} />
-                  </View>
-                  {visit.person_name && (
-                    <Text style={styles.visitPerson} numberOfLines={1}>{visit.person_name}</Text>
-                  )}
+                  <Text style={styles.visitLabel} numberOfLines={1}>{visit.label}</Text>
+                  {visit.person_name && <Text style={styles.visitPerson} numberOfLines={1}>{visit.person_name}</Text>}
                   {visit.person_address && (
                     <View style={styles.addrRow}>
                       <Text style={styles.visitAddr} numberOfLines={1}>{visit.person_address}</Text>
@@ -234,6 +210,7 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
                     </View>
                   )}
                 </View>
+                <StatusDot status={visit.status} />
               </Pressable>
             ))
           )}
@@ -247,40 +224,42 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingTop: spacing.lg },
+  content: { paddingTop: spacing.base },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   loadingText: { fontFamily: FONT, fontSize: 13, fontWeight: '500', color: colors.muted },
 
-  title: { fontFamily: FONT, fontSize: 22, fontWeight: '700', color: colors.ink, letterSpacing: -0.4, paddingHorizontal: spacing.base },
-  subtitle: { fontFamily: FONT, fontSize: 14, fontWeight: '400', color: colors.muted, paddingHorizontal: spacing.base, marginTop: 2, marginBottom: spacing.base },
+  /* Month header */
+  monthHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.base, marginBottom: spacing.xs },
+  monthNav: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight, alignItems: 'center', justifyContent: 'center' },
+  monthNavText: { fontFamily: FONT, fontSize: 16, fontWeight: '600', color: colors.primary },
+  monthTitle: { fontFamily: FONT, fontSize: 20, fontWeight: '700', color: colors.ink, letterSpacing: -0.3 },
+  summary: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted, paddingHorizontal: spacing.base, marginBottom: spacing.base },
 
-  /* Day picker */
-  dayPicker: { paddingHorizontal: spacing.base, gap: spacing.sm, marginBottom: spacing.base },
-  dayPill: {
-    width: 56, alignItems: 'center', paddingVertical: spacing.md,
-    borderRadius: radii.lg, backgroundColor: colors.surface,
-    borderWidth: 1.5, borderColor: colors.borderLight, gap: 4,
+  /* Calendar */
+  calendar: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: spacing.base, marginBottom: spacing.base,
   },
-  dayPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  dayPillLabel: { fontFamily: FONT, fontSize: 11, fontWeight: '600', color: colors.subtle, textTransform: 'uppercase', letterSpacing: 0.5 },
-  dayPillLabelActive: { color: colors.inverse + 'CC' },
-  dayPillNum: { fontFamily: FONT, fontSize: 20, fontWeight: '800', color: colors.ink },
-  dayPillNumActive: { color: colors.inverse },
-  dayPillDots: { flexDirection: 'row', gap: 3, marginTop: 2 },
-  dayPillDot: { width: 4, height: 4, borderRadius: 2 },
-
-  /* Progress */
-  progressCard: {
-    backgroundColor: colors.surface, borderRadius: radii.lg,
-    borderWidth: 1, borderColor: colors.borderLight,
-    padding: spacing.base, marginHorizontal: spacing.base, marginBottom: spacing.base,
-    ...elevation.sm,
+  dayLabel: {
+    width: `${100 / 7}%`, textAlign: 'center',
+    fontFamily: FONT, fontSize: 11, fontWeight: '600', color: colors.subtle,
+    textTransform: 'uppercase', paddingVertical: spacing.xs,
   },
-  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-  progressLabel: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.inkLight },
-  progressPercent: { fontFamily: FONT, fontSize: 14, fontWeight: '700', color: colors.success },
-  progressBar: { height: 6, backgroundColor: colors.border, borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: colors.success, borderRadius: 3 },
+  dayCell: {
+    width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 4,
+    minHeight: 40,
+  },
+  dayNum: {
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  dayNumToday: { backgroundColor: colors.primarySurface },
+  dayNumSelected: { backgroundColor: colors.primary },
+  dayNumText: { fontFamily: FONT, fontSize: 14, fontWeight: '500', color: colors.ink },
+  dayNumTextToday: { color: colors.primary, fontWeight: '700' },
+  dayNumTextSelected: { color: colors.inverse, fontWeight: '700' },
+  dayDots: { flexDirection: 'row', gap: 3, marginTop: 2 },
+  dayDot: { width: 4, height: 4, borderRadius: 2 },
 
   /* Swap */
   swapCard: {
@@ -291,58 +270,51 @@ const styles = StyleSheet.create({
     gap: spacing.md, ...elevation.sm,
   },
   swapIconWrap: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 32, height: 32, borderRadius: 16,
     backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: colors.primary + '20',
   },
   swapInfo: { flex: 1 },
-  swapTitle: { fontFamily: FONT, fontSize: 14, fontWeight: '700', color: colors.primary },
-  swapDesc: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.muted, marginTop: 2 },
-  swapArrow: { fontFamily: FONT, fontSize: 18, fontWeight: '600', color: colors.primary },
+  swapTitle: { fontFamily: FONT, fontSize: 13, fontWeight: '700', color: colors.primary },
+  swapDesc: { fontFamily: FONT, fontSize: 11, fontWeight: '400', color: colors.muted, marginTop: 1 },
+  swapArrow: { fontFamily: FONT, fontSize: 16, fontWeight: '600', color: colors.primary },
 
   /* Day section */
   daySection: { paddingHorizontal: spacing.base },
   daySectionLabel: {
-    fontFamily: FONT, fontSize: 13, fontWeight: '700', color: colors.subtle,
+    fontFamily: FONT, fontSize: 12, fontWeight: '700', color: colors.subtle,
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: spacing.sm,
   },
 
   /* Empty */
   emptyCard: {
     backgroundColor: colors.surface, borderRadius: radii.lg,
-    padding: spacing.xxl, alignItems: 'center',
+    padding: spacing.xl, alignItems: 'center',
     borderWidth: 1, borderColor: colors.borderLight,
   },
-  emptyTitle: { fontFamily: FONT, fontSize: 15, fontWeight: '600', color: colors.ink, marginBottom: spacing.xs },
-  emptyCopy: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted, textAlign: 'center' },
+  emptyTitle: { fontFamily: FONT, fontSize: 14, fontWeight: '600', color: colors.ink, marginBottom: spacing.xs },
+  emptyCopy: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.muted, textAlign: 'center' },
 
   /* Visit card */
   visitCard: {
     flexDirection: 'row', backgroundColor: colors.surface,
     borderRadius: radii.lg, borderWidth: 1, borderColor: colors.borderLight,
-    padding: spacing.base, marginBottom: spacing.sm, gap: spacing.md,
+    padding: spacing.md, marginBottom: spacing.sm, gap: spacing.md,
     ...elevation.sm,
   },
-  visitTimeCol: { width: 48, alignItems: 'center' },
-  visitTime: { fontFamily: FONT, fontSize: 13, fontWeight: '700', color: colors.primary },
-  visitTimeDash: { width: 1, height: 8, backgroundColor: colors.border, marginVertical: 3 },
-  visitTimeEnd: { fontFamily: FONT, fontSize: 11, fontWeight: '400', color: colors.muted },
+  visitTimeCol: { width: 44, alignItems: 'center' },
+  visitTime: { fontFamily: FONT, fontSize: 12, fontWeight: '700', color: colors.primary },
+  visitTimeDash: { width: 1, height: 6, backgroundColor: colors.border, marginVertical: 2 },
+  visitTimeEnd: { fontFamily: FONT, fontSize: 10, fontWeight: '400', color: colors.muted },
   visitInfo: { flex: 1 },
-  visitTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  visitLabel: { fontFamily: FONT, fontSize: 14, fontWeight: '600', color: colors.ink, flex: 1, marginRight: spacing.sm },
-  visitPerson: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.muted, marginTop: 3 },
-  addrRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 3 },
-  visitAddr: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.subtle, flex: 1 },
+  visitLabel: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.ink },
+  visitPerson: { fontFamily: FONT, fontSize: 11, fontWeight: '400', color: colors.muted, marginTop: 2 },
+  addrRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 2 },
+  visitAddr: { fontFamily: FONT, fontSize: 11, fontWeight: '400', color: colors.subtle, flex: 1 },
   navPill: {
-    width: 24, height: 24, borderRadius: 12,
+    width: 22, height: 22, borderRadius: 11,
     backgroundColor: colors.primarySurface, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: colors.primary + '20',
   },
-
-  /* Chip */
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radii.full,
-  },
-  chipText: { fontFamily: FONT, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.3 },
+  statusDot: { width: 7, height: 7, borderRadius: 3.5, marginTop: 4 },
 })

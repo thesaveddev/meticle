@@ -23,13 +23,12 @@ import { WeekScreen } from './src/screens/WeekScreen'
 import { SwapTransferScreen } from './src/screens/SwapTransferScreen'
 import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen'
 
-type TabKey = 'today' | 'week' | 'mileage' | 'availability' | 'settings'
+type TabKey = 'today' | 'schedule' | 'mileage' | 'settings'
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'today', label: 'Today' },
-  { key: 'week', label: 'Week' },
+  { key: 'schedule', label: 'Schedule' },
   { key: 'mileage', label: 'Mileage' },
-  { key: 'availability', label: 'Schedule' },
   { key: 'settings', label: 'Settings' },
 ]
 
@@ -151,7 +150,7 @@ function AppInner() {
 
   /* ─── Tab icon mapping ──────────────────────────────────── */
   const tabIconName: Record<TabKey, 'today' | 'week' | 'mileage' | 'calendar' | 'settings'> = {
-    today: 'today', week: 'week', mileage: 'mileage', availability: 'calendar', settings: 'settings',
+    today: 'today', schedule: 'week', mileage: 'mileage', settings: 'settings',
   }
 
   /* ─── Loading screens ────────────────────────────────────── */
@@ -210,10 +209,9 @@ function AppInner() {
       <SafeAreaView style={[s.app, { backgroundColor: c.bg }]} edges={['top', 'left', 'right']}>
         <View style={[s.body, { backgroundColor: c.bg }]}>
           {tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} />}
-          {tab === 'week' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap' })} />}
+          {tab === 'schedule' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap' })} />}
           {tab === 'mileage' && <MileageScreen session={session} />}
-          {tab === 'availability' && <AvailabilityScreen session={session} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={() => pushScreen({ kind: 'tabs' })} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>

@@ -6,14 +6,15 @@ import type { MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { requestReminderPermission } from '../services/notifications'
 import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
-import { IconProfile, IconSyncSmall, IconWarning, IconSettings } from '../components/Icons'
+import { IconProfile, IconSyncSmall, IconWarning, IconSettings, IconSchedule } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
-export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailability }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
   onProfile?: () => void
+  onAvailability?: () => void
 }) {
   const { mode, scheme, setMode, colors: c } = useTheme()
   const [reminders, setReminders] = useState<'unknown' | 'enabled' | 'disabled'>('unknown')
@@ -147,6 +148,22 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
               <View style={[styles.toggle, hapticOn && styles.toggleOn]}>
                 <View style={[styles.toggleDot, hapticOn && styles.toggleDotOn]} />
               </View>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.group}>
+          <Text style={styles.groupLabel}>AVAILABILITY</Text>
+          <View style={styles.groupCard}>
+            <Pressable onPress={() => { hapticLight(); onAvailability?.() }} style={styles.menuRow}>
+              <View style={styles.menuIconWrap}>
+                <IconSchedule size={18} color={colors.primary} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>Submit availability</Text>
+                <Text style={styles.menuDesc}>Set your available hours for upcoming weeks</Text>
+              </View>
+              <Text style={styles.menuArrow}>→</Text>
             </Pressable>
           </View>
         </View>
@@ -288,6 +305,8 @@ const styles = StyleSheet.create({
   modePillActive: { backgroundColor: colors.primarySurface, borderColor: colors.primary + '40' },
   modePillText: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.muted },
   modePillTextActive: { color: colors.primary },
+
+  menuArrow: { fontFamily: FONT, fontSize: 16, fontWeight: '600', color: colors.subtle },
 
   /* Toggle */
   toggle: {
