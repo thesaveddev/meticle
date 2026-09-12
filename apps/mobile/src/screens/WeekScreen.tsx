@@ -4,8 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT } from '../theme'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { getMyVisits } from '../services/api'
-import { IconCheck, IconClock, IconAlert, IconForward } from '../components/Icons'
+import { IconCheck, IconClock, IconAlert, IconForward, IconNavigate } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
+import { openNavigation } from '../services/navigation'
 
 interface Props {
   session: AuthSession
@@ -224,7 +225,13 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
                     <Text style={styles.visitPerson} numberOfLines={1}>{visit.person_name}</Text>
                   )}
                   {visit.person_address && (
-                    <Text style={styles.visitAddr} numberOfLines={1}>{visit.person_address}</Text>
+                    <View style={styles.addrRow}>
+                      <Text style={styles.visitAddr} numberOfLines={1}>{visit.person_address}</Text>
+                      <Pressable onPress={() => { hapticLight(); openNavigation({ destination: visit.person_address!, label: visit.person_name || visit.label }) }}
+                        style={({ pressed }) => [styles.navPill, pressed && { opacity: 0.7 }]}>
+                        <IconNavigate size={12} color={colors.primary} />
+                      </Pressable>
+                    </View>
                   )}
                 </View>
               </Pressable>
@@ -324,7 +331,13 @@ const styles = StyleSheet.create({
   visitTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   visitLabel: { fontFamily: FONT, fontSize: 14, fontWeight: '600', color: colors.ink, flex: 1, marginRight: spacing.sm },
   visitPerson: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.muted, marginTop: 3 },
-  visitAddr: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.subtle, marginTop: 2 },
+  addrRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 3 },
+  visitAddr: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.subtle, flex: 1 },
+  navPill: {
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: colors.primarySurface, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: colors.primary + '20',
+  },
 
   /* Chip */
   chip: {

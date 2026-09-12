@@ -265,6 +265,30 @@ export function IconSyncSmall({ size = 14, color = '#16A34A' }: IconProps) {
   )
 }
 
+export function IconNavigate({ size = 20, color = '#1E3A5F' }: IconProps) {
+  const s = size / 20
+  return (
+    <View style={{ width: size, height: size }}>
+      {/* Arrow body */}
+      <View style={{ position: 'absolute', left: 9 * s, top: 2 * s, width: 2 * s, height: 12 * s, backgroundColor: color, borderRadius: 1 * s }} />
+      {/* Arrow head */}
+      <View style={{ position: 'absolute', left: 3 * s, top: 10 * s, width: 0, height: 0, borderLeftWidth: 7 * s, borderRightWidth: 7 * s, borderBottomWidth: 8 * s, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: color }} />
+    </View>
+  )
+}
+
+export function IconMapPin({ size = 20, color = '#1E3A5F' }: IconProps) {
+  const s = size / 20
+  return (
+    <View style={{ width: size, height: size }}>
+      {/* Pin head */}
+      <View style={{ position: 'absolute', left: 4 * s, top: 0, width: 12 * s, height: 12 * s, borderRadius: 6 * s, borderWidth: 2 * s, borderColor: color }} />
+      {/* Pin point */}
+      <View style={{ position: 'absolute', left: 8.5 * s, top: 11 * s, width: 3 * s, height: 4 * s, backgroundColor: color, borderRadius: 1 * s }} />
+    </View>
+  )
+}
+
 export function IconOffline({ size = 14, color = '#F59E0B' }: IconProps) {
   const s = size / 14
   return (

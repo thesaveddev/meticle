@@ -7,7 +7,8 @@ import { colors, elevation, radii, spacing, type, FONT } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation } from '../services/location'
-import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident } from '../components/Icons'
+import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate } from '../components/Icons'
+import { openNavigation } from '../services/navigation'
 import { hapticLight, hapticWarning } from '../services/haptics'
 
 function time(value: string) {
@@ -224,12 +225,20 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                 <View style={styles.divider} />
                 <Text style={styles.personName}>{visit.person_name}</Text>
                 {visit.person_address && <Text style={styles.personAddr}>{visit.person_address}</Text>}
-                {onClientDetail && visit.person_id && (
-                  <Pressable onPress={() => { hapticLight(); onClientDetail(visit.person_id!) }} style={({ pressed }) => [styles.fileBtn, pressed && { opacity: 0.7 }]}>
-                    <Text style={styles.fileBtnText}>View client file</Text>
-                    <Text style={styles.fileBtnArrow}>→</Text>
-                  </Pressable>
-                )}
+                <View style={styles.clientActions}>
+                  {onClientDetail && visit.person_id && (
+                    <Pressable onPress={() => { hapticLight(); onClientDetail(visit.person_id!) }} style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.7 }]}>
+                      <Text style={styles.actionBtnText}>View file</Text>
+                      <Text style={styles.actionBtnArrow}>→</Text>
+                    </Pressable>
+                  )}
+                  {visit.person_address && (
+                    <Pressable onPress={() => { hapticLight(); openNavigation({ destination: visit.person_address!, label: visit.person_name || visit.label }) }} style={({ pressed }) => [styles.actionBtn, styles.navigateBtn, pressed && { opacity: 0.7 }]}>
+                      <IconNavigate size={14} color={colors.primary} />
+                      <Text style={styles.navigateBtnText}>Navigate</Text>
+                    </Pressable>
+                  )}
+                </View>
               </>
             )}
           </View>
@@ -417,13 +426,16 @@ const styles = StyleSheet.create({
   metaText: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.primary },
   personName: { fontFamily: FONT, fontSize: 15, fontWeight: '600', color: colors.ink },
   personAddr: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.muted, marginTop: 1 },
-  fileBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.xs,
+  clientActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+  actionBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: colors.primarySurface, paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm, borderRadius: radii.md, alignSelf: 'flex-start',
+    paddingVertical: spacing.sm, borderRadius: radii.md,
   },
-  fileBtnText: { fontFamily: FONT, fontSize: 12, fontWeight: '600', color: colors.primary },
-  fileBtnArrow: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.primary },
+  actionBtnText: { fontFamily: FONT, fontSize: 12, fontWeight: '600', color: colors.primary },
+  actionBtnArrow: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.primary },
+  navigateBtn: { backgroundColor: colors.primarySurface, borderWidth: 1, borderColor: colors.primary + '25' },
+  navigateBtnText: { fontFamily: FONT, fontSize: 12, fontWeight: '600', color: colors.primary },
 
   /* Check-in */
   checkInCard: {
