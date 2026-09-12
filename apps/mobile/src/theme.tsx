@@ -8,56 +8,56 @@ const THEME_KEY = 'app_theme_mode'
 
 /* ─── Light colors ──────────────────────────────────────────── */
 export const lightColors = {
-  primary: '#1E3A5F',
-  primaryLight: '#2E5A8F',
-  primarySurface: '#EBF2FA',
-  success: '#0F766E',
-  successDeep: '#0D5E58',
-  successSurface: '#E6F7F5',
-  warning: '#B45309',
-  warningSurface: '#FEF3C7',
-  danger: '#B91C1C',
-  dangerDeep: '#991B1B',
-  dangerSurface: '#FEE2E2',
-  accent: '#6D28D9',
-  accentSurface: '#F3EEFF',
-  bg: '#F8F7F4',
+  primary: '#1A2332',
+  primaryLight: '#2D3F54',
+  primarySurface: '#EDF2F7',
+  success: '#10B981',
+  successDeep: '#059669',
+  successSurface: '#ECFDF5',
+  warning: '#D97706',
+  warningSurface: '#FFFBEB',
+  danger: '#DC2626',
+  dangerDeep: '#B91C1C',
+  dangerSurface: '#FEF2F2',
+  accent: '#10B981',
+  accentSurface: '#ECFDF5',
+  bg: '#F7F9F7',
   surface: '#FFFFFF',
-  surfaceAlt: '#FDFCFA',
-  border: '#E2DFD9',
-  borderLight: '#F0EDE8',
-  ink: '#0F172A',
-  inkLight: '#334155',
-  muted: '#64748B',
-  subtle: '#94A3B8',
+  surfaceAlt: '#F9FAFB',
+  border: '#E5E7EB',
+  borderLight: '#F3F4F6',
+  ink: '#1A2332',
+  inkLight: '#374151',
+  muted: '#6B7280',
+  subtle: '#9CA3AF',
   inverse: '#FFFFFF',
 }
 
 /* ─── Dark colors ───────────────────────────────────────────── */
 export const darkColors = {
-  primary: '#7C9AC7',
-  primaryLight: '#93B0D8',
-  primarySurface: '#1A2744',
-  success: '#5EEAD4',
-  successDeep: '#2DD4BF',
-  successSurface: '#132E2A',
-  warning: '#FCD34D',
-  warningSurface: '#3D2E0A',
-  danger: '#FCA5A5',
-  dangerDeep: '#F87171',
-  dangerSurface: '#3D1515',
-  accent: '#A78BFA',
-  accentSurface: '#1E1538',
-  bg: '#0B1120',
-  surface: '#131B2E',
-  surfaceAlt: '#1A2440',
-  border: '#1E2D4A',
-  borderLight: '#152038',
+  primary: '#94A3B8',
+  primaryLight: '#CBD5E1',
+  primarySurface: '#1E293B',
+  success: '#34D399',
+  successDeep: '#10B981',
+  successSurface: '#064E3B',
+  warning: '#FBBF24',
+  warningSurface: '#78350F',
+  danger: '#F87171',
+  dangerDeep: '#EF4444',
+  dangerSurface: '#7F1D1D',
+  accent: '#34D399',
+  accentSurface: '#064E3B',
+  bg: '#0F172A',
+  surface: '#1E293B',
+  surfaceAlt: '#334155',
+  border: '#334155',
+  borderLight: '#1E293B',
   ink: '#F1F5F9',
   inkLight: '#CBD5E1',
   muted: '#94A3B8',
   subtle: '#64748B',
-  inverse: '#0B1120',
+  inverse: '#0F172A',
 }
 
 export type AppColors = typeof lightColors
@@ -118,7 +118,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 /* ─── Static default (light) for backward compat ────────────── */
 export const colors = lightColors
 
-/* ─── Spacing (8pt base) ───────────────────────────────────── */
+/* ─── Spacing (4pt base) ───────────────────────────────────── */
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -132,10 +132,10 @@ export const spacing = {
 
 /* ─── Radii ─────────────────────────────────────────────────── */
 export const radii = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
+  sm: 10,
+  md: 14,
+  lg: 18,
+  xl: 22,
   full: 999,
 } as const
 
@@ -143,25 +143,25 @@ export const radii = {
 export const elevation = {
   none: { shadowOpacity: 0 },
   sm: {
-    shadowColor: '#0F172A',
+    shadowColor: '#1A2332',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
   md: {
-    shadowColor: '#0F172A',
+    shadowColor: '#1A2332',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
   },
   lg: {
-    shadowColor: '#0F172A',
+    shadowColor: '#1A2332',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14,
+    shadowOpacity: 0.08,
     shadowRadius: 24,
-    elevation: 8,
+    elevation: 6,
   },
 } as const
 
@@ -169,9 +169,9 @@ export const elevation = {
 export const type = {
   hero: {
     fontFamily: FONT,
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: '800' as const,
-    lineHeight: 36,
+    lineHeight: 38,
     letterSpacing: -0.8,
     color: lightColors.ink,
   },
@@ -254,13 +254,11 @@ export const commonStyles = StyleSheet.create({
   card: {
     backgroundColor: lightColors.surface,
     borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: lightColors.borderLight,
     ...elevation.sm,
   },
   field: {
-    minHeight: 48,
-    borderWidth: 1.5,
+    minHeight: 50,
+    borderWidth: 1,
     borderColor: lightColors.border,
     borderRadius: radii.md,
     backgroundColor: lightColors.surface,
@@ -286,6 +284,6 @@ export const commonStyles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: lightColors.border,
+    backgroundColor: lightColors.borderLight,
   },
 })

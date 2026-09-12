@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Animated, Easing, StyleSheet, View } from 'react-native'
-import { colors, radii, spacing, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, useAppColors } from '../theme'
 
 interface SkeletonProps {
   width?: number | string
@@ -121,8 +121,9 @@ const skStyles = StyleSheet.create({
   calHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.base },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.base },
   card: {
-    borderRadius: radii.lg, borderWidth: 1, padding: spacing.base,
+    borderRadius: radii.lg, padding: spacing.base,
     marginBottom: spacing.sm,
+    ...elevation.sm,
   },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   timeCol: { alignItems: 'center', minWidth: 48 },
