@@ -8,33 +8,114 @@ interface SyncRailProps {
   onPress?: () => void
 }
 
-const copy: Record<SyncState, { title: string; detail: string; color: string; background: string }> = {
-  synced: { title: 'Synced', detail: 'All visit actions are up to date', color: colors.emeraldDeep, background: colors.successSoft },
-  pending: { title: 'Waiting to sync', detail: 'Your visit action is saved on this device', color: colors.navy, background: colors.paper },
-  syncing: { title: 'Syncing', detail: 'Sending your visit action securely', color: colors.navy, background: colors.paper },
-  failed: { title: 'Sync needs attention', detail: 'Tap to retry when you have signal', color: colors.error, background: colors.errorSoft },
+const copy: Record<SyncState, { icon: string; title: string; color: string; bg: string; detail?: string }> = {
+  synced: {
+    icon: '✓',
+    title: 'All synced',
+    color: colors.success,
+    bg: colors.successSurface,
+    detail: 'Visit actions are up to date',
+  },
+  pending: {
+    icon: '◎',
+    title: 'Pending sync',
+    color: colors.primary,
+    bg: colors.primarySurface,
+  },
+  syncing: {
+    icon: '↻',
+    title: 'Syncing',
+    color: colors.primary,
+    bg: colors.primarySurface,
+    detail: 'Sending securely',
+  },
+  failed: {
+    icon: '!',
+    title: 'Sync issue',
+    color: colors.danger,
+    bg: colors.dangerSurface,
+    detail: 'Tap retry when you have signal',
+  },
 }
 
 export function SyncRail({ state, count, onPress }: SyncRailProps) {
   const item = copy[state]
+  const detailText = item.detail || (count > 0 ? `${count} action(s) saved offline` : 'No pending actions')
+
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${item.title}. ${item.detail}`} onPress={onPress} style={({ pressed }) => [styles.rail, { backgroundColor: item.background }, pressed && styles.pressed]}>
-      <View style={[styles.mark, { backgroundColor: item.color }]} />
-      <View style={styles.copy}>
-        <Text style={[styles.title, { color: item.color }]}>{item.title}{count > 0 ? ` · ${count}` : ''}</Text>
-        <Text style={styles.detail}>{item.detail}</Text>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title}. ${detailText}`}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.rail,
+        { backgroundColor: item.bg },
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={[styles.iconWrap, { backgroundColor: item.color + '18' }]}>
+        <Text style={[styles.icon, { color: item.color }]}>{item.icon}</Text>
       </View>
-      {state === 'failed' && <Text style={styles.action}>Retry</Text>}
+      <View style={styles.copyBlock}>
+        <Text style={[styles.title, { color: item.color }]}>
+          {item.title}{count > 0 ? ` · ${count}` : ''}
+        </Text>
+        <Text style={styles.detail}>{detailText}</Text>
+      </View>
+      {state === 'failed' && (
+        <View style={styles.retryBadge}>
+          <Text style={styles.retryText}>Retry</Text>
+        </View>
+      )}
     </Pressable>
   )
 }
 
 const styles = StyleSheet.create({
-  rail: { minHeight: 64, borderRadius: radii.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.hairline },
-  mark: { width: 8, height: 8, borderRadius: 4, marginRight: spacing.sm },
-  copy: { flex: 1 },
-  title: { ...type.label },
-  detail: { ...type.caption, color: colors.mist, marginTop: 2 },
-  action: { ...type.label, color: colors.navy },
-  pressed: { opacity: 0.78 },
+  rail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.base,
+    borderRadius: radii.lg,
+    gap: spacing.md,
+  },
+  iconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  icon: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  copyBlock: {
+    flex: 1,
+  },
+  title: {
+    fontFamily: 'System',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  detail: {
+    ...type.small,
+    marginTop: 1,
+  },
+  retryBadge: {
+    backgroundColor: colors.danger,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+  },
+  retryText: {
+    fontFamily: 'System',
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.inverse,
+  },
+  pressed: {
+    opacity: 0.85,
+  },
 })
