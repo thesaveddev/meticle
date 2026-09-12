@@ -117,11 +117,11 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
       >
         {/* Month header */}
         <View style={styles.monthHeader}>
-          <Pressable onPress={prevMonth} style={[styles.monthNav, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+          <Pressable onPress={prevMonth} style={[styles.monthNav, { backgroundColor: c.surface }]}>  
             <Text style={[styles.monthNavText, { color: c.primary }]}>←</Text>
           </Pressable>
           <Text style={[styles.monthTitle, { color: c.ink }]}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
-          <Pressable onPress={nextMonth} style={[styles.monthNav, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+          <Pressable onPress={nextMonth} style={[styles.monthNav, { backgroundColor: c.surface }]}>  
             <Text style={[styles.monthNavText, { color: c.primary }]}>→</Text>
           </Pressable>
         </View>
@@ -201,9 +201,9 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
                   style={({ pressed }) => [
                     styles.visitCard,
                     ov
-                      ? { backgroundColor: c.dangerSurface, borderColor: c.danger + '40' }
-                      : { backgroundColor: c.surface, borderColor: c.borderLight },
-                    pressed && { opacity: 0.85 },
+                      ? { backgroundColor: c.dangerSurface }
+                      : { backgroundColor: c.surface },
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
                   ]}>
                   <View style={styles.visitTimeCol}>                   <Text style={[styles.visitTime, { color: ov ? c.danger : c.primary }]}>{time(visit.scheduled_start)}</Text>
                     <View style={[styles.visitTimeDash, { backgroundColor: ov ? c.danger : c.border }]} />
@@ -214,7 +214,7 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
                     {ov && <Text style={{ fontFamily: FONT, fontSize: 11, fontWeight: '700', color: c.danger, marginTop: 2 }}>{overdueLabel(visit)}</Text>}
                     {visit.person_address && (
                       <View style={styles.addrRow}>                         <Text style={[styles.visitAddr, { color: ov ? c.danger : c.subtle }]} numberOfLines={1}>{visit.person_address}</Text>
-                        <Pressable onPress={() => { hapticLight(); setNavDest({ destination: visit.person_address!, label: visit.person_name || visit.label }); setMapPickerOpen(true) }}                           style={({ pressed }) => [[styles.navPill, { backgroundColor: ov ? c.dangerSurface : c.primarySurface, borderColor: ov ? c.danger + '20' : c.primary + '20' }], pressed && { opacity: 0.7 }]}>
+                        <Pressable onPress={() => { hapticLight(); setNavDest({ destination: visit.person_address!, label: visit.person_name || visit.label }); setMapPickerOpen(true) }}                           style={({ pressed }) => [[styles.navPill, { backgroundColor: ov ? c.dangerSurface : c.primarySurface }], pressed && { opacity: 0.7 }]}>
                           <IconNavigate size={12} color={ov ? c.danger : c.primary} />
                         </Pressable>
                       </View>
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
 
   /* Month header */
   monthHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.base, marginBottom: spacing.xs },
-  monthNav: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight, alignItems: 'center', justifyContent: 'center' },
+  monthNav: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', ...elevation.sm },
   monthNavText: { fontFamily: FONT, fontSize: 16, fontWeight: '600', color: colors.primary },
   monthTitle: { fontFamily: FONT, fontSize: 20, fontWeight: '700', color: colors.ink, letterSpacing: -0.3 },
   summary: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted, paddingHorizontal: spacing.base, marginBottom: spacing.base },
@@ -291,14 +291,12 @@ const styles = StyleSheet.create({
   swapCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.primarySurface, borderRadius: radii.lg,
-    borderWidth: 1, borderColor: colors.primary + '20',
     padding: spacing.base, marginHorizontal: spacing.base, marginBottom: spacing.base,
     gap: spacing.md, ...elevation.sm,
   },
   swapIconWrap: {
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.primary + '20',
   },
   swapInfo: { flex: 1 },
   swapTitle: { fontFamily: FONT, fontSize: 13, fontWeight: '700', color: colors.primary },
@@ -316,7 +314,7 @@ const styles = StyleSheet.create({
   emptyCard: {
     backgroundColor: colors.surface, borderRadius: radii.lg,
     padding: spacing.xl, alignItems: 'center',
-    borderWidth: 1, borderColor: colors.borderLight,
+    ...elevation.sm,
   },
   emptyTitle: { fontFamily: FONT, fontSize: 14, fontWeight: '600', color: colors.ink, marginBottom: spacing.xs },
   emptyCopy: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.muted, textAlign: 'center' },
@@ -324,7 +322,7 @@ const styles = StyleSheet.create({
   /* Visit card */
   visitCard: {
     flexDirection: 'row', backgroundColor: colors.surface,
-    borderRadius: radii.lg, borderWidth: 1, borderColor: colors.borderLight,
+    borderRadius: radii.lg,
     padding: spacing.md, marginBottom: spacing.sm, gap: spacing.md,
     ...elevation.sm,
   },
@@ -340,7 +338,6 @@ const styles = StyleSheet.create({
   navPill: {
     width: 22, height: 22, borderRadius: 11,
     backgroundColor: colors.primarySurface, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.primary + '20',
   },
   statusDot: { width: 7, height: 7, borderRadius: 3.5, marginTop: 4 },
 })
