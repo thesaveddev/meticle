@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.base },
   statCard: {
     flex: 1, backgroundColor: colors.surface, borderRadius: radii.md,
-    borderLeftWidth: 3, borderWidth: 1, borderColor: colors.borderLight, padding: spacing.md, ...elevation.sm,
+    borderLeftWidth: 3, borderWidth: 0, borderColor: 'transparent', padding: spacing.md, ...elevation.sm,
   },
   statValue: { fontFamily: 'System', fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
   statLabel: { ...type.small, marginTop: 2 },
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   toggleRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.base },
   toggleBtn: {
     flex: 1, paddingVertical: spacing.md, borderRadius: radii.md, alignItems: 'center',
-    backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: 'transparent',
   },
   toggleActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   toggleText: { fontFamily: 'System', fontSize: 14, fontWeight: '600', color: colors.muted },
@@ -456,13 +456,13 @@ const styles = StyleSheet.create({
 
   /* Diagram */
   diagramCard: {
-    backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: 1,
-    borderColor: colors.borderLight, padding: spacing.base, marginBottom: spacing.base, ...elevation.sm,
+    backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: 0,
+    borderColor: 'transparent', padding: spacing.base, marginBottom: spacing.base, ...elevation.sm,
   },
   bodyOutline: { width: '100%', aspectRatio: 0.55, position: 'relative' },
   bodySilhouette: { ...StyleSheet.absoluteFill },
   bodyPart: {
-    position: 'absolute', backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    position: 'absolute', backgroundColor: colors.surfaceAlt, borderWidth: 0, borderColor: 'transparent',
   },
   zoneOverlay: { position: 'absolute', zIndex: 10 },
   zoneDot: {
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
   },
   entryCard: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
-    borderRadius: radii.md, borderWidth: 1, borderColor: colors.borderLight,
+    borderRadius: radii.md, borderWidth: 0, borderColor: 'transparent',
     padding: spacing.md, marginBottom: spacing.sm, gap: spacing.md, ...elevation.sm,
   },
   entryDot: { width: 10, height: 10, borderRadius: 5 },
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
   /* Empty */
   emptyCard: {
     backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.xxl,
-    alignItems: 'center', borderWidth: 1, borderColor: colors.borderLight, marginTop: spacing.xxl,
+    alignItems: 'center', borderWidth: 0, borderColor: 'transparent', marginTop: spacing.xxl,
   },
   emptyIcon: { fontSize: 32, marginBottom: spacing.md },
   emptyTitle: { ...type.bodyBold, marginBottom: spacing.xs },
@@ -511,11 +511,11 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.sm,
-    borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: 'transparent', backgroundColor: colors.surface,
   },
   chipText: { fontFamily: 'System', fontSize: 12, fontWeight: '600', color: colors.muted },
   input: {
-    borderWidth: 1.5, borderColor: colors.border, borderRadius: radii.md,
+    borderWidth: 1, borderColor: 'transparent', borderRadius: radii.md,
     backgroundColor: colors.surface, paddingHorizontal: spacing.base, paddingVertical: spacing.md,
     color: colors.ink, fontFamily: 'System', fontSize: 15,
   },
