@@ -141,7 +141,10 @@ export default function App() {
     setLoginLoading(true); setLoginError('')
     try {
       const active = await login(email, password)
-      setSession(active); await loadQueue(); await loadVisits(active)
+      setSession(active)
+      setTab('today')
+      setScreenStack([{ kind: 'tabs' }])
+      await loadQueue(); await loadVisits(active)
       registerForPushNotifications(active.accessToken).catch(() => {})
     } catch (error: any) {
       setLoginError(error.message || 'Could not sign in.')
