@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, BackHandler, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type } from './src/theme'
-import { TabIcon } from './src/components/TabIcons'
+import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter'
+import { colors, elevation, radii, spacing, type, FONT } from './src/theme'
+import { IconToday, IconWeek, IconMileage, IconSchedule, IconSettings } from './src/components/Icons'
 import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitAction } from './src/types'
 import { readSession } from './src/services/storage'
 import { getCurrentUser, getMyVisits, login, logout, createDisruption } from './src/services/api'
@@ -24,15 +25,27 @@ import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen'
 
 type TabKey = 'today' | 'week' | 'mileage' | 'availability' | 'settings'
 
-const tabs: { key: TabKey; icon: 'today' | 'week' | 'mileage' | 'calendar' | 'settings'; label: string }[] = [
-  { key: 'today', icon: 'today', label: 'Today' },
-  { key: 'week', icon: 'week', label: 'Week' },
-  { key: 'mileage', icon: 'mileage', label: 'Mileage' },
-  { key: 'availability', icon: 'calendar', label: 'Schedule' },
-  { key: 'settings', icon: 'settings', label: 'Settings' },
+const tabs: { key: TabKey; label: string }[] = [
+  { key: 'today', label: 'Today' },
+  { key: 'week', label: 'Week' },
+  { key: 'mileage', label: 'Mileage' },
+  { key: 'availability', label: 'Schedule' },
+  { key: 'settings', label: 'Settings' },
 ]
 
-function AppTab({ icon, label, active, onPress }: { icon: 'today' | 'week' | 'mileage' | 'calendar' | 'settings'; label: string; active: boolean; onPress: () => void }) {
+function TabIcon({ tab, active }: { tab: TabKey; active: boolean }) {
+  const color = active ? colors.primary : colors.subtle
+  const size = 22
+  switch (tab) {
+    case 'today': return <IconToday size={size} color={color} />
+    case 'week': return <IconWeek size={size} color={color} />
+    case 'mileage': return <IconMileage size={size} color={color} />
+    case 'availability': return <IconSchedule size={size} color={color} />
+    case 'settings': return <IconSettings size={size} color={color} />
+  }
+}
+
+function AppTab({ tabKey, label, active, onPress }: { tabKey: TabKey; label: string; active: boolean; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="tab"
@@ -40,7 +53,7 @@ function AppTab({ icon, label, active, onPress }: { icon: 'today' | 'week' | 'mi
       onPress={onPress}
       style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
     >
-      <TabIcon name={icon} size={22} color={active ? colors.primary : colors.subtle} />
+      <TabIcon tab={tabKey} active={active} />
       <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
       {active && <View style={styles.tabIndicator} />}
     </Pressable>
@@ -59,6 +72,10 @@ type Screen =
   | { kind: 'swap' }
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold,
+  })
+
   const [session, setSession] = useState<AuthSession | null>(null)
   const [booting, setBooting] = useState(true)
   const [loginError, setLoginError] = useState('')
@@ -87,9 +104,9 @@ export default function App() {
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (screenStack.length > 1) {
         popScreen()
-        return true // handled — don't close app
+        return true
       }
-      return false // let default behavior (minimize app)
+      return false
     })
     return () => handler.remove()
   }, [screenStack.length, popScreen])
@@ -112,7 +129,7 @@ export default function App() {
 
   const sync = useCallback(async (activeSession = session) => {
     if (!activeSession) return
-    try { await flushQueue(activeSession.accessToken) } catch { /* queue remains durable */ }
+    try { await flushQueue(activeSession.accessToken) } catch {}
     await loadQueue()
   }, [loadQueue, session])
 
@@ -128,10 +145,9 @@ export default function App() {
       finally { setBooting(false) }
     })
 
-    // Listen for push notifications
     addNotificationListeners(
-      (_type, _data) => { /* foreground notification received */ },
-      (_type, _data) => { /* notification tapped — navigate if needed */ },
+      (_type, _data) => {},
+      (_type, _data) => {},
     )
 
     return () => { removeNotificationListeners() }
@@ -180,6 +196,21 @@ export default function App() {
 
   const user: MobileUser | null = session?.user || null
   const activeQueue = useMemo(() => queue.filter(item => item.state !== 'synced'), [queue])
+
+  /* ─── Wait for fonts ──────────────────────────────────────── */
+  if (!fontsLoaded) {
+    return (
+      <SafeAreaView style={styles.boot} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+        <View style={styles.bootCard}>
+          <View style={styles.bootLogo}>
+            <Text style={styles.bootLogoText}>M</Text>
+          </View>
+          <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.base }} />
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   /* ─── Boot ─────────────────────────────────────────────────── */
   if (booting) {
@@ -330,7 +361,7 @@ export default function App() {
           {tabs.map(t => (
             <AppTab
               key={t.key}
-              icon={t.icon}
+              tabKey={t.key}
               label={t.label}
               active={tab === t.key}
               onPress={() => { setTab(t.key); setScreenStack([{ kind: 'tabs' }]) }}
@@ -361,14 +392,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.xs,
-    gap: 3,
+    gap: 4,
   },
-  tabPressed: { opacity: 0.6 },
-  tabLabel: { fontFamily: 'System', fontSize: 10, fontWeight: '500', color: colors.subtle, letterSpacing: 0.2 },
-  tabLabelActive: { color: colors.primary, fontWeight: '600' },
+  tabPressed: { opacity: 0.5 },
+  tabLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '600', color: colors.subtle, letterSpacing: 0.3 },
+  tabLabelActive: { color: colors.primary },
   tabIndicator: {
-    width: 22,
-    height: 2.5,
+    width: 24,
+    height: 3,
     borderRadius: 2,
     backgroundColor: colors.primary,
     marginTop: 2,
@@ -378,14 +409,14 @@ const styles = StyleSheet.create({
   boot: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
   bootCard: { alignItems: 'center', gap: spacing.sm },
   bootLogo: {
-    width: 56,
-    height: 56,
-    borderRadius: radii.lg,
+    width: 64,
+    height: 64,
+    borderRadius: radii.xl,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     ...elevation.md,
   },
-  bootLogoText: { color: colors.inverse, fontSize: 28, fontWeight: '800' },
-  bootText: { ...type.bodyBold, color: colors.muted, marginTop: spacing.sm },
+  bootLogoText: { color: colors.inverse, fontSize: 32, fontWeight: '800', fontFamily: FONT },
+  bootText: { fontFamily: FONT, fontSize: 16, fontWeight: '600', color: colors.muted, marginTop: spacing.sm },
 })

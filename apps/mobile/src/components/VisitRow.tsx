@@ -1,66 +1,67 @@
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
-import { colors, elevation, radii, spacing, type } from '../theme'
-import type { HomecareVisit } from '../types'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { colors, elevation, radii, spacing, FONT } from '../theme'
+import { IconCheck, IconClock, IconAlert } from './Icons'
 import { hapticLight } from '../services/haptics'
+
+interface Props {
+  label: string
+  personName?: string
+  scheduledStart: string
+  scheduledEnd: string
+  status: string
+  mileage?: number
+  onPress: () => void
+}
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
-function statusConfig(status: HomecareVisit['status']) {
+function StatusIcon({ status }: { status: string }) {
   switch (status) {
-    case 'completed':
-      return { label: 'Completed', color: colors.success, bg: colors.successSurface, icon: '✓' }
-    case 'checked_in':
-      return { label: 'Checked in', color: colors.primary, bg: colors.primarySurface, icon: '●' }
-    case 'en_route':
-      return { label: 'En route', color: colors.accent, bg: colors.accentSurface, icon: '→' }
-    case 'missed':
-      return { label: 'Missed', color: colors.danger, bg: colors.dangerSurface, icon: '✕' }
-    case 'cancelled':
-      return { label: 'Cancelled', color: colors.muted, bg: colors.bg, icon: '—' }
-    default:
-      return { label: 'Scheduled', color: colors.subtle, bg: colors.surfaceAlt, icon: '○' }
+    case 'completed': return <IconCheck size={16} color={colors.success} />
+    case 'checked_in': return <IconClock size={16} color={colors.primary} />
+    case 'missed': return <IconAlert size={16} color={colors.danger} />
+    default: return <View style={styles.pendingDot} />
   }
 }
 
-export function VisitRow({ visit, onPress, active = false }: { visit: HomecareVisit; onPress: () => void; active?: boolean }) {
-  const sc = statusConfig(visit.status)
-  const isActive = visit.status === 'checked_in' || visit.status === 'en_route'
+export function VisitRow({ label, personName, scheduledStart, scheduledEnd, status, mileage, onPress }: Props) {
+  const isCompleted = status === 'completed'
+  const isMissed = status === 'missed'
+  const isActive = status === 'checked_in'
 
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${time(visit.scheduled_start)} ${visit.label}${visit.person_name ? `, ${visit.person_name}` : ''}, ${sc.label}`}
       onPress={() => { hapticLight(); onPress() }}
       style={({ pressed }) => [
         styles.row,
-        active && styles.rowActive,
-        pressed && styles.pressed,
+        isActive && styles.rowActive,
+        isCompleted && styles.rowCompleted,
+        pressed && { opacity: 0.85 },
       ]}
     >
-      {/* Timeline column */}
+      {/* Timeline dot */}
       <View style={styles.timeline}>
-        <View style={[styles.dot, isActive && styles.dotActive, visit.status === 'completed' && styles.dotCompleted]}>
-          <Text style={[styles.dotIcon, { color: isActive ? colors.inverse : sc.color }]}>{sc.icon}</Text>
-        </View>
-        <View style={[styles.line, visit.status === 'completed' && styles.lineCompleted]} />
+        <StatusIcon status={status} />
+        <View style={[styles.timelineLine, isCompleted && { backgroundColor: colors.success + '40' }]} />
       </View>
 
       {/* Content */}
       <View style={styles.content}>
-        <View style={styles.topRow}>
-          <Text style={styles.time}>{time(visit.scheduled_start)} – {time(visit.scheduled_end)}</Text>
-          <View style={[styles.chip, { backgroundColor: sc.bg }]}>
-            <Text style={[styles.chipText, { color: sc.color }]}>{sc.label}</Text>
-          </View>
+        <View style={styles.timeRow}>
+          <Text style={[styles.time, isCompleted && styles.timeCompleted]}>
+            {time(scheduledStart)} – {time(scheduledEnd)}
+          </Text>
+          {mileage != null && mileage > 0 && (
+            <View style={styles.mileageBadge}>
+              <Text style={styles.mileageText}>{mileage}mi</Text>
+            </View>
+          )}
         </View>
-        <Text style={styles.label} numberOfLines={1}>{visit.label}</Text>
-        {visit.person_name && (
-          <Text style={styles.person}>{visit.person_name}</Text>
-        )}
-        {visit.person_address && (
-          <Text style={styles.address} numberOfLines={1}>📍 {visit.person_address}</Text>
+        <Text style={[styles.label, isCompleted && styles.labelCompleted]} numberOfLines={1}>{label}</Text>
+        {personName && (
+          <Text style={[styles.person, isCompleted && styles.personCompleted]} numberOfLines={1}>{personName}</Text>
         )}
       </View>
     </Pressable>
@@ -70,95 +71,47 @@ export function VisitRow({ visit, onPress, active = false }: { visit: HomecareVi
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    paddingVertical: spacing.sm,
   },
-  rowActive: {
-    backgroundColor: colors.primarySurface,
-    borderRadius: radii.md,
-    borderBottomWidth: 0,
-    marginBottom: spacing.xs,
-    ...elevation.sm,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
+  rowActive: {},
+  rowCompleted: { opacity: 0.6 },
+
+  /* Timeline */
   timeline: {
-    width: 40,
+    width: 24,
     alignItems: 'center',
   },
-  dot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dotActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  dotCompleted: {
-    backgroundColor: colors.successSurface,
-    borderColor: colors.success,
-  },
-  dotIcon: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  line: {
-    width: 2,
+  timelineLine: {
+    width: 1.5,
     flex: 1,
-    minHeight: 20,
-    backgroundColor: colors.borderLight,
-    marginTop: spacing.xs,
+    backgroundColor: colors.border,
+    marginTop: 4,
   },
-  lineCompleted: {
-    backgroundColor: colors.success + '40',
+  pendingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: colors.subtle,
+    marginTop: 4,
   },
-  content: {
-    flex: 1,
-    paddingLeft: spacing.md,
-    minWidth: 0,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
-  },
-  time: {
-    fontFamily: 'System',
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.muted,
-  },
-  chip: {
-    paddingHorizontal: spacing.sm,
+
+  /* Content */
+  content: { flex: 1, paddingLeft: spacing.sm },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  time: { fontFamily: FONT, fontSize: 12, fontWeight: '600', color: colors.primary },
+  timeCompleted: { color: colors.subtle },
+  label: { fontFamily: FONT, fontSize: 15, fontWeight: '600', color: colors.ink, marginTop: 2 },
+  labelCompleted: { color: colors.muted },
+  person: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted, marginTop: 1 },
+  personCompleted: { color: colors.subtle },
+
+  /* Mileage badge */
+  mileageBadge: {
+    backgroundColor: colors.accentSurface,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: radii.full,
+    borderRadius: radii.sm,
   },
-  chipText: {
-    fontFamily: 'System',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  label: {
-    ...type.bodyBold,
-    marginBottom: 2,
-  },
-  person: {
-    ...type.body,
-    color: colors.inkLight,
-    fontSize: 14,
-  },
-  address: {
-    ...type.small,
-    marginTop: 3,
-  },
+  mileageText: { fontFamily: FONT, fontSize: 10, fontWeight: '700', color: colors.accent },
 })
