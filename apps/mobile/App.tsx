@@ -6,7 +6,7 @@ import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitA
 import { readSession } from './src/services/storage'
 import { getCurrentUser, getMyVisits, login, logout, createDisruption } from './src/services/api'
 import { enqueueVisitAction, flushQueue, getQueue } from './src/services/visitQueue'
-import { scheduleVisitReminder } from './src/services/notifications'
+import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners } from './src/services/notifications'
 import { LoginScreen } from './src/screens/LoginScreen'
 import { TodayScreen, dayRange } from './src/screens/TodayScreen'
 import { VisitScreen } from './src/screens/VisitScreen'
@@ -120,9 +120,18 @@ export default function App() {
         const current = await getCurrentUser(stored.accessToken)
         const active = { ...stored, user: current.user, organization: current.organization }
         setSession(active); await loadQueue(); await loadVisits(active)
+        registerForPushNotifications(active.accessToken).catch(() => {})
       } catch { setSession(null) }
       finally { setBooting(false) }
     })
+
+    // Listen for push notifications
+    addNotificationListeners(
+      (_type, _data) => { /* foreground notification received */ },
+      (_type, _data) => { /* notification tapped — navigate if needed */ },
+    )
+
+    return () => { removeNotificationListeners() }
   }, [loadQueue, loadVisits])
 
   async function handleLogin(email: string, password: string) {
@@ -130,6 +139,7 @@ export default function App() {
     try {
       const active = await login(email, password)
       setSession(active); await loadQueue(); await loadVisits(active)
+      registerForPushNotifications(active.accessToken).catch(() => {})
     } catch (error: any) {
       setLoginError(error.message || 'Could not sign in.')
     } finally {
