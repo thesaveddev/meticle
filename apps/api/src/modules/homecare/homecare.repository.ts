@@ -550,6 +550,29 @@ export async function createMileagePolicy(orgId: string, userId: string, input: 
   return result.rows[0];
 }
 
+export async function updateMileagePolicy(orgId: string, policyId: string, input: Partial<import('./homecare.types').HomecareMileagePolicyInput>) {
+  const fields: string[] = []
+  const values: any[] = [orgId, policyId]
+  let idx = 3
+  for (const [key, val] of Object.entries(input)) {
+    if (val !== undefined) {
+      fields.push(`${key} = $${idx}`)
+      values.push(val)
+      idx++
+    }
+  }
+  if (fields.length === 0) throw new AppError(400, 'No fields to update')
+  fields.push('updated_at = NOW()')
+  const result = await query(`UPDATE homecare_mileage_policies SET ${fields.join(', ')} WHERE organization_id = $1 AND id = $2 RETURNING *`, values)
+  if (!result.rows[0]) throw new AppError(404, 'Mileage policy not found')
+  return result.rows[0]
+}
+
+export async function deleteMileagePolicy(orgId: string, policyId: string) {
+  const result = await query(`DELETE FROM homecare_mileage_policies WHERE organization_id = $1 AND id = $2 RETURNING id`, [orgId, policyId])
+  if (!result.rows[0]) throw new AppError(404, 'Mileage policy not found')
+}
+
 export async function createFollowup(orgId: string, userId: string, visitId: string, input: import('./homecare.types').HomecareFollowupInput) {
   await assertVisit(visitId, orgId);
   if (input.incident_id) {

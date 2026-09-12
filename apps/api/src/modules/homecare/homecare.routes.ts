@@ -104,6 +104,8 @@ router.delete('/availability/:id', requireRole(...managerRoles), asyncHandler(Ho
 router.get('/disruptions', requireRole(...managerRoles), asyncHandler(HomecareController.listDisruptions));
 router.get('/mileage-policies', requireRole(...managerRoles), asyncHandler(HomecareController.listMileagePolicies));
 router.post('/mileage-policies', requireRole(...managerRoles), validate(mileagePolicySchema), asyncHandler(HomecareController.createMileagePolicy));
+router.patch('/mileage-policies/:id', requireRole(...managerRoles), validate(mileagePolicySchema.partial()), asyncHandler(HomecareController.updateMileagePolicy));
+router.delete('/mileage-policies/:id', requireRole(...managerRoles), asyncHandler(HomecareController.deleteMileagePolicy));
 router.get('/followups', requireRole(...managerRoles), asyncHandler(HomecareController.listFollowups));
 router.get('/payroll/reconciliations', requireRole(...managerRoles), asyncHandler(HomecareController.listPayrollReconciliations));
 router.patch('/payroll/reconciliations/:id', requireRole(...managerRoles), validate(reconciliationSchema), asyncHandler(HomecareController.reconcilePayroll));
