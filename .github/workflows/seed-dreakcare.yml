@@ -24,7 +24,6 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           command_timeout: 5m
           script: |
-            set -ex
             CONTAINER=$(docker ps -q -f name=api | head -1)
             if [ -z "$CONTAINER" ]; then CONTAINER=$(docker ps -q | head -1); fi
             if [ -z "$CONTAINER" ]; then docker ps -a; echo "No containers"; exit 1; fi
@@ -34,13 +33,16 @@ jobs:
             SHA="${{ steps.sha.outputs.SHA }}"
             curl -fsSL "https://raw.githubusercontent.com/thesaveddev/meticle/${SHA}/scripts/seed-dreakcare.js" -o /tmp/seed.js
             docker cp /tmp/seed.js "$CONTAINER:/app/seed.js"
-            echo "Checking syntax..."
-            docker exec -w /app "$CONTAINER" node --check seed.js
-            echo "Running with stderr capture..."
-            docker exec -w /app "$CONTAINER" node seed.js 2>&1
+            echo "=== Syntax check ==="
+            docker exec -w /app "$CONTAINER" node --check seed.js && echo "Syntax OK" || echo "Syntax error"
+            echo "=== Running seed ==="
+            set +e
+            OUTPUT=$(docker exec -w /app "$CONTAINER" node seed.js 2>&1)
             RC=$?
-            echo "Exit code: $RC"
+            set -e
+            echo "$OUTPUT"
+            echo "=== Exit code: $RC ==="
             docker exec "$CONTAINER" rm -f /app/seed.js
             rm -f /tmp/seed.js
-            echo "Done"
+            echo "=== Done ==="
             exit $RC
