@@ -26,6 +26,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
 import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
+import { EmptyState } from '../../components/design/EmptyState'
 import HealthTab from './HealthTab'
 import NutritionTab from './NutritionTab'
 import BodyMapTab from './BodyMapTab'
@@ -845,10 +846,12 @@ export default function PersonProfilePage() {
               sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Add Care Plan</Button>
           </Stack>
           {(!user.care_plans || user.care_plans.length === 0) ? (
-            <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-              <AssignmentIcon sx={{ fontSize: 40, color: '#D1D5DB', mb: 1 }} />
-              <Typography color="#9CA3AF">No care plans yet</Typography>
-            </Paper>
+            <EmptyState
+              icon={<AssignmentIcon />}
+              title="No care plans yet"
+              description="Create a care plan to document support needs, goals, and review dates."
+              action={{ label: 'Add Care Plan', onClick: () => { setPlanForm({ ...EMPTY_PLAN_FORM }); setEditPlanId(null); setAddPlanOpen(true) } }}
+            />
           ) : (
             <Grid container spacing={2}>
               {user.care_plans.map((cp: any) => {
@@ -911,10 +914,12 @@ export default function PersonProfilePage() {
             </Stack>
           </Stack>
           {(!user.recent_notes || user.recent_notes.length === 0) ? (
-            <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-              <NoteIcon sx={{ fontSize: 40, color: '#D1D5DB', mb: 1 }} />
-              <Typography color="#9CA3AF">No daily notes yet</Typography>
-            </Paper>
+            <EmptyState
+              icon={<NoteIcon />}
+              title="No daily notes yet"
+              description="Record observations, activities, and wellbeing notes for this person."
+              action={{ label: 'Add Note', onClick: () => { setNoteForm({ note_date: new Date().toISOString().split('T')[0], shift: 'day', category: '', content: '', support_level: '' }); setAddNoteOpen(true) } }}
+            />
           ) : (
             <Stack spacing={1.5}>
               {user.recent_notes.map((n: any) => (
