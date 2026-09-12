@@ -45,6 +45,24 @@ export class HomecareController {
     res.json(await repo.listStaff(orgId(req)));
   }
 
+  static async getStaffVisits(req: Request, res: Response) {
+    const oid = orgId(req);
+    const { staffId } = req.params;
+    const from = req.query.from as string || new Date().toISOString();
+    const to = req.query.to as string || new Date(Date.now() + 7 * 86400000).toISOString();
+    const result = await query(
+      `SELECT v.*, pe.first_name || ' ' || pe.last_name AS person_name, l.address AS person_address, p.name AS package_name
+       FROM homecare_visits v
+       JOIN people pe ON pe.id = v.person_id
+       JOIN homecare_packages p ON p.id = v.package_id AND p.organization_id = v.organization_id
+       LEFT JOIN locations l ON l.id = pe.location_id
+       WHERE v.organization_id = $1 AND v.assigned_staff_id = $2 AND v.scheduled_start >= $3 AND v.scheduled_start <= $4 AND v.status IN ('scheduled', 'en_route')
+       ORDER BY v.scheduled_start`,
+      [oid, staffId, from, to]
+    );
+    res.json(result.rows);
+  }
+
   static async createVisitPlan(req: Request, res: Response) {
     const result = await repo.createVisitPlan(orgId(req), { ...req.body, package_id: req.params.packageId });
     audit(req, 'create', 'homecare_visit_plan', result.id, req.body);
@@ -435,7 +453,7 @@ export class HomecareController {
 
   static async createSwapRequest(req: Request, res: Response) {
     const oid = orgId(req); const uid = userId(req);
-    const { visit_id, target_staff_id, request_type, message } = req.body;
+    const { visit_id, target_staff_id, target_visit_id, request_type, message } = req.body;
     if (!visit_id || !request_type) throw new AppError(400, 'visit_id and request_type required');
 
     // Verify visit exists and belongs to this org
@@ -453,9 +471,9 @@ export class HomecareController {
     if (request_type === 'transfer' && !target_staff_id) throw new AppError(400, 'Transfer requires a target carer');
 
     const result = await query(
-      `INSERT INTO visit_swap_requests (organization_id, visit_id, requested_by, target_staff_id, request_type, message)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [oid, visit_id, uid, target_staff_id || null, request_type, message || null]
+      `INSERT INTO visit_swap_requests (organization_id, visit_id, requested_by, target_staff_id, target_visit_id, request_type, message)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [oid, visit_id, uid, target_staff_id || null, target_visit_id || null, request_type, message || null]
     );
 
     // Notify target carer

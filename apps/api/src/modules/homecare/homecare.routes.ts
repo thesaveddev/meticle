@@ -97,6 +97,7 @@ router.get('/packages', requireRole(...fieldRoles), asyncHandler(HomecareControl
 router.post('/packages', requireRole(...managerRoles), validate(packageSchema), asyncHandler(HomecareController.createPackage));
 router.patch('/packages/:id', requireRole(...managerRoles), validate(packagePatchSchema), asyncHandler(HomecareController.updatePackage));
 router.get('/staff', requireRole(...managerRoles), asyncHandler(HomecareController.listStaff));
+router.get('/staff-visits/:staffId', requireRole(...fieldRoles), asyncHandler(HomecareController.getStaffVisits));
 router.get('/my-availability', requireRole(...fieldRoles), asyncHandler(HomecareController.getMyAvailability));
 router.get('/availability', requireRole(...managerRoles), asyncHandler(HomecareController.listAvailability));
 router.post('/availability', requireRole(...fieldRoles), validate(availabilitySchema), asyncHandler(HomecareController.createAvailability));
@@ -110,7 +111,7 @@ router.get('/followups', requireRole(...managerRoles), asyncHandler(HomecareCont
 router.get('/payroll/reconciliations', requireRole(...managerRoles), asyncHandler(HomecareController.listPayrollReconciliations));
 
 // Swap / Transfer
-const swapSchema = z.object({ visit_id: uuid, target_staff_id: uuid.nullish(), request_type: z.enum(['swap', 'transfer']), message: z.string().max(500).nullish() });
+const swapSchema = z.object({ visit_id: uuid, target_staff_id: uuid.nullish(), target_visit_id: uuid.nullish(), request_type: z.enum(['swap', 'transfer']), message: z.string().max(500).nullish() });
 const swapResponseSchema = z.object({ status: z.enum(['accepted', 'rejected']), response_message: z.string().max(500).nullish() });
 router.post('/swap-requests', requireRole(...fieldRoles), validate(swapSchema), asyncHandler(HomecareController.createSwapRequest));
 router.get('/swap-requests', requireRole(...fieldRoles), asyncHandler(HomecareController.listSwapRequests));

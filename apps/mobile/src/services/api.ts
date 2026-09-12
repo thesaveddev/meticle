@@ -59,6 +59,10 @@ export async function getMyVisits(token: string, from: string, to: string) {
   return request<HomecareVisit[]>(`/homecare/my-visits?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {}, token)
 }
 
+export async function getStaffVisits(token: string, staffId: string, from: string, to: string) {
+  return request<HomecareVisit[]>(`/homecare/staff-visits/${staffId}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {}, token)
+}
+
 export async function executeVisitAction(token: string, visitId: string, action: 'check-in' | 'check-out', payload: Record<string, unknown>, actionKey: string) {
   return request(`/homecare/visits/${visitId}/offline/${action}`, { method: 'POST', body: JSON.stringify({ ...payload, action_key: actionKey }) }, token)
 }
