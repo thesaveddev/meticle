@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
 import type { AuthSession, AvailabilityRecord } from '../types'
 import { getMyAvailability, addAvailability, deleteAvailability } from '../services/api'
+import { hapticLight } from '../services/haptics'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-export function AvailabilityScreen({ session }: { session: AuthSession }) {
+export function AvailabilityScreen({ session, onBack }: { session: AuthSession; onBack?: () => void }) {
   const c = useAppColors()
   const [records, setRecords] = useState<AvailabilityRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,8 +59,16 @@ export function AvailabilityScreen({ session }: { session: AuthSession }) {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: c.surface, borderBottomColor: c.borderLight }]}>
+        <Pressable onPress={() => { hapticLight(); onBack?.() }} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color={c.ink} />
+        </Pressable>
+        <Text style={[styles.headerTitle, { color: c.ink }]}>Availability</Text>
+        <View style={{ width: 40 }} />
+      </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load() }} tintColor={c.primary} />}>
-        <Text style={styles.pageTitle}>My Availability</Text>
+        <Text style={[styles.pageTitle, { color: c.ink }]}>My Availability</Text>
         <Text style={styles.subtitle}>Set the days and times you're available for calls.</Text>
 
         {error ? (
@@ -154,6 +164,12 @@ export function AvailabilityScreen({ session }: { session: AuthSession }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12, borderBottomWidth: 1,
+  },
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 18, fontFamily: 'Inter-SemiBold' },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
   pageTitle: { ...type.title, marginBottom: spacing.xs },
   subtitle: { ...type.body, color: colors.muted, marginBottom: spacing.base },
