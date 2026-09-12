@@ -9,7 +9,7 @@ import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance } from '../services/location'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate } from '../components/Icons'
 import { openNavigation } from '../services/navigation'
-import { hapticLight, hapticWarning } from '../services/haptics'
+import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -91,7 +91,18 @@ function StatusPill({ status }: { status: string }) {
   )
 }
 
-export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident }: {
+/* ─── Read-only label/value pair for completed visits ───────── */
+function ReadOnlyField({ label, value, c }: { label: string; value: string; c: any }) {
+  if (!value) return null
+  return (
+    <View style={styles.roField}>
+      <Text style={[styles.roLabel, { color: c.subtle }]}>{label}</Text>
+      <Text style={[styles.roValue, { color: c.ink }]}>{value}</Text>
+    </View>
+  )
+}
+
+export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident, nextVisit, onVisitNext }: {
   visit: HomecareVisit
   session?: AuthSession
   onBack: () => void
@@ -100,6 +111,8 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   queue: OfflineVisitAction[]
   onClientDetail?: (personId: string) => void
   onReportIncident?: () => void
+  nextVisit?: HomecareVisit | null
+  onVisitNext?: (visit: HomecareVisit) => void
 }) {
   const c = useAppColors()
   const [note, setNote] = useState('')
@@ -114,9 +127,16 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const [checkedInLocation, setCheckedInLocation] = useState<{ latitude: number; longitude: number } | null>(null)
   const [photos, setPhotos] = useState<string[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [previsitSaved, setPrevisitSaved] = useState(false)
+  const [notesSaved, setNotesSaved] = useState(false)
+  const [nextCallModal, setNextCallModal] = useState(false)
 
-  const isOpen = !['completed', 'cancelled', 'missed'].includes(visit.status)
+  const isCompleted = visit.status === 'completed'
+  const isMissed = visit.status === 'missed'
+  const isCancelled = visit.status === 'cancelled'
+  const isReadonly = isCompleted || isMissed || isCancelled
   const checkedIn = visit.status === 'checked_in'
+  const isOpen = !isReadonly
 
   const pickVisitPhoto = async () => {
     hapticLight()
@@ -140,11 +160,8 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
       const filename = uri.split('/').pop() || 'photo.jpg'
       const ext = filename.split('.').pop()?.toLowerCase() || 'jpg'
       const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`
-
-      // Use fetch to read file as blob — no deprecated expo-file-system API
       const response = await fetch(uri)
       const blob = await response.blob()
-
       const formData = new FormData()
       formData.append('file', blob, filename)
       const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://meticlecare.com/api'
@@ -162,13 +179,38 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
   const removePhoto = (index: number) => { hapticLight(); setPhotos(prev => prev.filter((_, i) => i !== index)) }
 
+  /* ─── Submit pre-visit details (save locally, no API call) ── */
+  function submitPrevisit() {
+    hapticLight()
+    if (!travelMinutes.trim() && !mileage.trim()) {
+      setError('Enter at least travel time or mileage before submitting.')
+      return
+    }
+    setPrevisitSaved(true)
+    setError('')
+    setSuccess('Pre-visit details saved. Tap "Check in" when you arrive.')
+  }
+
+  /* ─── Submit care notes (save locally, no API call) ────────── */
+  function submitNotes() {
+    hapticLight()
+    if (!note.trim()) {
+      setError('Write your care notes before submitting.')
+      return
+    }
+    setNotesSaved(true)
+    setError('')
+    setSuccess('Care notes saved. Tap "Check out and complete" when you leave.')
+  }
+
+  /* ─── Execute check-in / check-out ─────────────────────────── */
   async function execute(action: VisitAction) {
     hapticLight(); setError(''); setSuccess('')
 
     // Block check-out without care notes
     if (action === 'check-out' && !note.trim()) {
       hapticWarning()
-      setError('Please record your care notes before checking out.')
+      setError('Please record and submit your care notes before checking out.')
       return
     }
 
@@ -189,7 +231,6 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             `You are ${Math.round(distance)}m away from ${visit.person_name || 'the client'}. ` +
             `Please confirm you are at the correct location before checking in.`
           )
-          // Allow override after showing warning
           return
         }
       }
@@ -207,6 +248,10 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
         setSuccess(result.synced ? `Checked in at ${dateStamp()}. Location recorded.` : 'Checked in offline. Will sync when you reconnect.')
       } else {
         setSuccess(result.synced ? `Call completed at ${dateStamp()}. Saved.` : 'Saved offline. Will sync when you reconnect.')
+        // Show next call modal after a brief delay
+        if (nextVisit) {
+          setTimeout(() => { hapticMedium(); setNextCallModal(true) }, 800)
+        }
       }
     } catch (e: any) { setError(e.message || 'Could not record this action.') }
     finally { setBusy(false) }
@@ -229,42 +274,42 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
           {/* Header */}
           <View style={styles.header}>
             <Pressable onPress={() => { hapticLight(); onBack() }} style={styles.backBtn}>
-              <IconBack size={18} color={colors.primary} />
-              <Text style={styles.backText}>Today</Text>
+              <IconBack size={18} color={c.primary} />
+              <Text style={[styles.backText, { color: c.primary }]}>Today</Text>
             </Pressable>
             <StatusPill status={visit.status} />
           </View>
 
-          {/* Status timeline */}
+          {/* Status timeline — only for open visits */}
           {isOpen && <VisitStatusTimeline status={visit.status} />}
 
           {/* Client info card */}
-          <View style={styles.card}>
-            <Text style={styles.clientName}>{visit.label}</Text>
+          <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Text style={[styles.clientName, { color: c.ink }]}>{visit.label}</Text>
 
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
-                <IconClock size={14} color={colors.primary} />
-                <Text style={styles.metaText}>{time(visit.scheduled_start)} – {time(visit.scheduled_end)}</Text>
+                <IconClock size={14} color={c.primary} />
+                <Text style={[styles.metaText, { color: c.primary }]}>{time(visit.scheduled_start)} – {time(visit.scheduled_end)}</Text>
               </View>
             </View>
 
             {visit.person_name && (
               <>
-                <View style={styles.divider} />
-                <Text style={styles.personName}>{visit.person_name}</Text>
-                {visit.person_address && <Text style={styles.personAddr}>{visit.person_address}</Text>}
+                <View style={[styles.divider, { backgroundColor: c.borderLight }]} />
+                <Text style={[styles.personName, { color: c.ink }]}>{visit.person_name}</Text>
+                {visit.person_address && <Text style={[styles.personAddr, { color: c.muted }]}>{visit.person_address}</Text>}
                 <View style={styles.clientActions}>
                   {onClientDetail && visit.person_id && (
-                    <Pressable onPress={() => { hapticLight(); onClientDetail(visit.person_id!) }} style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.7 }]}>
-                      <Text style={styles.actionBtnText}>View file</Text>
-                      <Text style={styles.actionBtnArrow}>→</Text>
+                    <Pressable onPress={() => { hapticLight(); onClientDetail(visit.person_id!) }} style={({ pressed }) => [[styles.actionBtn, { backgroundColor: c.primarySurface }], pressed && { opacity: 0.7 }]}>
+                      <Text style={[styles.actionBtnText, { color: c.primary }]}>View file</Text>
+                      <Text style={[styles.actionBtnArrow, { color: c.primary }]}>→</Text>
                     </Pressable>
                   )}
                   {visit.person_address && (
-                    <Pressable onPress={() => { hapticLight(); openNavigation({ destination: visit.person_address!, label: visit.person_name || visit.label }) }} style={({ pressed }) => [styles.actionBtn, styles.navigateBtn, pressed && { opacity: 0.7 }]}>
-                      <IconNavigate size={14} color={colors.primary} />
-                      <Text style={styles.navigateBtnText}>Navigate</Text>
+                    <Pressable onPress={() => { hapticLight(); openNavigation({ destination: visit.person_address!, label: visit.person_name || visit.label }) }} style={({ pressed }) => [[styles.actionBtn, styles.navigateBtn, { backgroundColor: c.primarySurface, borderColor: c.primary + '25' }], pressed && { opacity: 0.7 }]}>
+                      <IconNavigate size={14} color={c.primary} />
+                      <Text style={[styles.navigateBtnText, { color: c.primary }]}>Navigate</Text>
                     </Pressable>
                   )}
                 </View>
@@ -272,78 +317,157 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             )}
           </View>
 
+          {/* ═══════════════ COMPLETED / MISSED — READ-ONLY VIEW ═══════════════ */}
+          {isReadonly && (
+            <>
+              {/* Completion banner */}
+              <View style={[styles.banner, { backgroundColor: isCompleted ? c.successSurface : c.dangerSurface }]}>
+                <View style={[styles.bannerDot, { backgroundColor: isCompleted ? c.success : c.danger }]}>
+                  <IconCheck size={10} color={c.inverse} />
+                </View>
+                <Text style={[styles.bannerText, { color: isCompleted ? c.successDeep : c.dangerDeep }]}>
+                  {isCompleted ? `Completed${visit.check_out_at ? ` at ${time(visit.check_out_at)}` : ''}` : isMissed ? 'This call was missed' : 'This call was cancelled'}
+                </Text>
+              </View>
+
+              {/* Read-only care notes */}
+              <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+                <Text style={[styles.cardTitle, { color: c.ink }]}>Care notes</Text>
+                {visit.visit_notes ? (
+                  <Text style={[styles.roNotesText, { color: c.ink }]}>{visit.visit_notes}</Text>
+                ) : (
+                  <Text style={[styles.roNotesText, { color: c.subtle }]}>No care notes recorded.</Text>
+                )}
+              </View>
+
+              {/* Read-only visit details */}
+              <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+                <Text style={[styles.cardTitle, { color: c.ink }]}>Visit details</Text>
+                <ReadOnlyField label="Check-in time" value={visit.check_in_at ? dateStamp.call(null) : '—'} c={c} />
+                <ReadOnlyField label="Check-out time" value={visit.check_out_at ? dateStamp.call(null) : '—'} c={c} />
+                <ReadOnlyField label="Travel time" value={visit.actual_travel_minutes ? `${visit.actual_travel_minutes} min` : '—'} c={c} />
+                <ReadOnlyField label="Mileage" value={visit.actual_mileage_miles ? `${visit.actual_mileage_miles} mi` : '—'} c={c} />
+                <ReadOnlyField label="Assigned carer" value={visit.assigned_staff_name || '—'} c={c} />
+                <ReadOnlyField label="Package" value={visit.package_name || '—'} c={c} />
+              </View>
+
+              {/* Read-only photos */}
+              {visit.photos && visit.photos.length > 0 && (
+                <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+                  <Text style={[styles.cardTitle, { color: c.ink }]}>Photos</Text>
+                  <View style={styles.photoGrid}>
+                    {visit.photos.map((url: string, i: number) => (
+                      <View key={i} style={styles.photoThumb}>
+                        <Image source={{ uri: `https://meticlecare.com${url}` }} style={styles.photoImage} />
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </>
+          )}
+
+          {/* ═══════════════ OPEN VISITS — EDITABLE ═══════════════ */}
+
           {/* Check-in status */}
           {checkedIn && (
-            <View style={styles.checkInCard}>
+            <View style={[styles.checkInCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }]}>
               <View style={styles.checkInRow}>
-                <PulseDot color={colors.primary} />
+                <PulseDot color={c.primary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.checkInTitle}>Checked in</Text>
-                  {checkedInAt && <Text style={styles.checkInTime}>{checkedInAt}</Text>}
+                  <Text style={[styles.checkInTitle, { color: c.primary }]}>Checked in</Text>
+                  {checkedInAt && <Text style={[styles.checkInTime, { color: c.primaryLight }]}>{checkedInAt}</Text>}
                 </View>
                 {checkedInLocation && (
-                  <View style={styles.locBadge}>
-                    <Text style={styles.locBadgeText}>GPS ✓</Text>
+                  <View style={[styles.locBadge, { backgroundColor: c.primary + '20' }]}>
+                    <Text style={[styles.locBadgeText, { color: c.primary }]}>GPS ✓</Text>
                   </View>
                 )}
               </View>
-              <Text style={styles.checkInHint}>Record what happened, then check out when you leave.</Text>
+              <Text style={[styles.checkInHint, { color: c.muted }]}>Record what happened, then check out when you leave.</Text>
             </View>
           )}
 
           {/* Banners */}
           {success ? (
-            <View style={styles.banner}>
-              <View style={[styles.bannerDot, { backgroundColor: colors.success }]}><IconCheck size={10} color={colors.inverse} /></View>
-              <Text style={[styles.bannerText, { color: colors.successDeep }]}>{success}</Text>
+            <View style={[styles.banner, { backgroundColor: c.successSurface }]}>
+              <View style={[styles.bannerDot, { backgroundColor: c.success }]}><IconCheck size={10} color={c.inverse} /></View>
+              <Text style={[styles.bannerText, { color: c.successDeep }]}>{success}</Text>
             </View>
           ) : null}
           {error ? (
-            <View style={[styles.banner, { backgroundColor: colors.dangerSurface }]}>
-              <View style={[styles.bannerDot, { backgroundColor: colors.danger }]}><Text style={styles.bannerDotText}>!</Text></View>
-              <Text accessibilityRole="alert" style={[styles.bannerText, { color: colors.dangerDeep }]}>{error}</Text>
+            <View style={[styles.banner, { backgroundColor: c.dangerSurface }]}>
+              <View style={[styles.bannerDot, { backgroundColor: c.danger }]}><Text style={styles.bannerDotText}>!</Text></View>
+              <Text accessibilityRole="alert" style={[styles.bannerText, { color: c.dangerDeep }]}>{error}</Text>
             </View>
           ) : null}
 
-          {/* Form */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{checkedIn ? 'Visit notes' : 'Pre-visit details'}</Text>
+          {/* ── Pre-visit form (only before check-in, not on completed) ── */}
+          {!checkedIn && isOpen && (
+            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+              <Text style={[styles.cardTitle, { color: c.ink }]}>Pre-visit details</Text>
 
-            {!checkedIn && (
               <View style={styles.fieldRow}>
                 <View style={styles.fieldHalf}>
-                  <Text style={styles.fieldLabel}>Travel (min)</Text>
-                  <TextInput keyboardType="number-pad" value={travelMinutes} onChangeText={setTravelMinutes} placeholder="0" placeholderTextColor={colors.subtle} style={styles.input} />
+                  <Text style={[styles.fieldLabel, { color: c.inkLight }]}>Travel (min)</Text>
+                  <TextInput keyboardType="number-pad" value={travelMinutes} onChangeText={setTravelMinutes}
+                    placeholder="0" placeholderTextColor={c.subtle}
+                    style={[styles.input, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]}
+                    editable={!previsitSaved} />
                 </View>
                 <View style={styles.fieldHalf}>
-                  <Text style={styles.fieldLabel}>Mileage (mi)</Text>
-                  <TextInput keyboardType="decimal-pad" value={mileage} onChangeText={setMileage} placeholder="0.0" placeholderTextColor={colors.subtle} style={styles.input} />
+                  <Text style={[styles.fieldLabel, { color: c.inkLight }]}>Mileage (mi)</Text>
+                  <TextInput keyboardType="decimal-pad" value={mileage} onChangeText={setMileage}
+                    placeholder="0.0" placeholderTextColor={c.subtle}
+                    style={[styles.input, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]}
+                    editable={!previsitSaved} />
                 </View>
               </View>
-            )}
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>{checkedIn ? 'What happened during this call?' : 'Notes (optional)'}</Text>
-              <TextInput multiline value={note} onChangeText={setNote}
-                placeholder={checkedIn ? 'Care provided, observations, client mood...' : 'Any notes before you arrive'}
-                placeholderTextColor={colors.subtle} style={[styles.input, styles.textArea]} />
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.fieldLabel, { color: c.inkLight }]}>Notes (optional)</Text>
+                <TextInput multiline value={note} onChangeText={setNote}
+                  placeholder="Any notes before you arrive" placeholderTextColor={c.subtle}
+                  style={[styles.input, styles.textArea, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]}
+                  editable={!previsitSaved} />
+              </View>
+
+              {!previsitSaved ? (
+                <PrimaryButton label="Submit pre-visit details" onPress={submitPrevisit} tone="primary" />
+              ) : (
+                <View style={[styles.savedBadge, { backgroundColor: c.successSurface }]}>
+                  <IconCheck size={14} color={c.success} />
+                  <Text style={[styles.savedBadgeText, { color: c.success }]}>Saved</Text>
+                </View>
+              )}
             </View>
-          </View>
+          )}
 
-          {/* Photos */}
+          {/* ── Care notes form (only after check-in) ── */}
           {checkedIn && (
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Photos</Text>
+            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+              <Text style={[styles.cardTitle, { color: c.ink }]}>Care notes</Text>
+
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.fieldLabel, { color: c.inkLight }]}>What happened during this call?</Text>
+                <TextInput multiline value={note} onChangeText={setNote}
+                  placeholder="Care provided, observations, client mood, medication given..." placeholderTextColor={c.subtle}
+                  style={[styles.input, styles.textArea, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]}
+                  editable={!notesSaved} />
+              </View>
+
+              {/* Photos */}
+              <Text style={[styles.fieldLabel, { color: c.inkLight, marginTop: spacing.sm }]}>Photos</Text>
               <View style={styles.photoRow}>
-                <Pressable onPress={pickVisitPhoto} style={({ pressed }) => [styles.photoAction, pressed && { opacity: 0.7 }]}>
-                  <IconGallery size={16} color={colors.primary} />
-                  <Text style={styles.photoActionText}>Gallery</Text>
+                <Pressable onPress={pickVisitPhoto} style={({ pressed }) => [[styles.photoAction, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.7 }]}>
+                  <IconGallery size={16} color={c.primary} />
+                  <Text style={[styles.photoActionText, { color: c.primary }]}>Gallery</Text>
                 </Pressable>
-                <Pressable onPress={takeVisitPhoto} style={({ pressed }) => [styles.photoAction, pressed && { opacity: 0.7 }]}>
-                  <IconCamera size={16} color={colors.primary} />
-                  <Text style={styles.photoActionText}>Camera</Text>
+                <Pressable onPress={takeVisitPhoto} style={({ pressed }) => [[styles.photoAction, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.7 }]}>
+                  <IconCamera size={16} color={c.primary} />
+                  <Text style={[styles.photoActionText, { color: c.primary }]}>Camera</Text>
                 </Pressable>
-                {uploadingPhoto && <Text style={styles.uploadingText}>Uploading...</Text>}
+                {uploadingPhoto && <Text style={[styles.uploadingText, { color: c.muted }]}>Uploading...</Text>}
               </View>
               {photos.length > 0 && (
                 <View style={styles.photoGrid}>
@@ -355,10 +479,19 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                   ))}
                 </View>
               )}
+
+              {!notesSaved ? (
+                <PrimaryButton label="Submit care notes" onPress={submitNotes} tone="primary" />
+              ) : (
+                <View style={[styles.savedBadge, { backgroundColor: c.successSurface }]}>
+                  <IconCheck size={14} color={c.success} />
+                  <Text style={[styles.savedBadgeText, { color: c.success }]}>Notes saved</Text>
+                </View>
+              )}
             </View>
           )}
 
-          {/* Care notes hint */}
+          {/* ── Care notes hint ── */}
           {checkedIn && !note.trim() && (
             <View style={[styles.card, { backgroundColor: c.warningSurface, borderColor: c.warning + '20' }]}>
               <Text style={[styles.cardTitle, { color: c.warning }]}>Care notes required</Text>
@@ -366,15 +499,15 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             </View>
           )}
 
-          {/* Primary action */}
+          {/* ── Primary action buttons ── */}
           {isOpen && (
             <View style={{ marginTop: spacing.base }}>
-              {!checkedIn && visit.status !== 'completed' && (
+              {!checkedIn && (
                 <PrimaryButton label="Check in" onPress={() => execute('check-in')} loading={busy} disabled={busy} tone="primary" />
               )}
               {checkedIn && (
                 <PrimaryButton
-                  label={note.trim() ? 'Check out and complete' : 'Enter care notes to check out'}
+                  label={note.trim() ? 'Check out and complete' : 'Submit care notes first'}
                   onPress={() => execute('check-out')}
                   loading={busy}
                   disabled={busy || !note.trim()}
@@ -384,50 +517,119 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             </View>
           )}
 
-          {/* Secondary actions */}
+          {/* ── Secondary actions ── */}
           {isOpen && (
             <View style={styles.secondaryRow}>
-              <Pressable onPress={() => { hapticLight(); setDisruptionOpen(true) }} style={({ pressed }) => [styles.secondaryBtn, pressed && { opacity: 0.7 }]}>
-                <IconWarning size={14} color={colors.warning} />
-                <Text style={styles.secondaryText}>Delay</Text>
+              <Pressable onPress={() => { hapticLight(); setDisruptionOpen(true) }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface, borderColor: c.borderLight }], pressed && { opacity: 0.7 }]}>
+                <IconWarning size={14} color={c.warning} />
+                <Text style={[styles.secondaryText, { color: c.warning }]}>Delay</Text>
               </Pressable>
               {onReportIncident && (
-                <Pressable onPress={() => { hapticLight(); onReportIncident() }} style={({ pressed }) => [styles.secondaryBtn, pressed && { opacity: 0.7 }]}>
-                  <IconIncident size={14} color={colors.danger} />
-                  <Text style={[styles.secondaryText, { color: colors.danger }]}>Incident</Text>
+                <Pressable onPress={() => { hapticLight(); onReportIncident() }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface, borderColor: c.borderLight }], pressed && { opacity: 0.7 }]}>
+                  <IconIncident size={14} color={c.danger} />
+                  <Text style={[styles.secondaryText, { color: c.danger }]}>Incident</Text>
                 </Pressable>
               )}
             </View>
           )}
 
           {queue.length > 0 && (
-            <Text style={styles.queueText}>{queue.length} action{queue.length === 1 ? '' : 's'} queued for sync</Text>
+            <Text style={[styles.queueText, { color: c.subtle }]}>{queue.length} action{queue.length === 1 ? '' : 's'} queued for sync</Text>
           )}
 
           <View style={{ height: spacing.xxl }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Disruption modal */}
+      {/* ═══════════════ DISRUPTION MODAL ═══════════════ */}
       <Modal visible={disruptionOpen} transparent animationType="slide" onRequestClose={() => setDisruptionOpen(false)}>
-        <KeyboardAvoidingView style={styles.modalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={[styles.modalBackdrop, { backgroundColor: 'rgba(15, 23, 42, 0.4)' }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <Pressable onPress={() => setDisruptionOpen(false)} style={styles.modalBackdropTouch}>
             <Pressable>
-              <View style={styles.modal}>
-                <View style={styles.modalHandle} />
-                <Text style={styles.modalTitle}>Report a disruption</Text>
-                <Text style={styles.modalHelper}>Tell the office what is affecting this call.</Text>
+              <View style={[styles.modal, { backgroundColor: c.surface }]}>
+                <View style={[styles.modalHandle, { backgroundColor: c.border }]} />
+                <Text style={[styles.modalTitle, { color: c.ink }]}>Report a disruption</Text>
+                <Text style={[styles.modalHelper, { color: c.muted }]}>Tell the office what is affecting this call.</Text>
                 <TextInput multiline autoFocus value={disruption} onChangeText={setDisruption}
-                  placeholder="What is happening?" placeholderTextColor={colors.subtle}
-                  style={[styles.input, styles.textArea]} />
+                  placeholder="What is happening?" placeholderTextColor={c.subtle}
+                  style={[styles.input, styles.textArea, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]} />
                 <PrimaryButton label="Send to office" onPress={reportDisruption} loading={busy} disabled={busy || !disruption.trim()} tone="danger" />
                 <Pressable onPress={() => setDisruptionOpen(false)} style={styles.cancelBtn}>
-                  <Text style={styles.cancelText}>Cancel</Text>
+                  <Text style={[styles.cancelText, { color: c.muted }]}>Cancel</Text>
                 </Pressable>
               </View>
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ═══════════════ NEXT CALL MODAL (after check-out) ═══════════════ */}
+      <Modal visible={nextCallModal} transparent animationType="slide" onRequestClose={() => setNextCallModal(false)}>
+        <View style={[styles.modalBackdrop, { backgroundColor: 'rgba(15, 23, 42, 0.4)' }]}>
+          <View style={[styles.modalBackdropTouch]}>
+            <View style={[styles.modal, { backgroundColor: c.surface }]}>
+              <View style={[styles.modalHandle, { backgroundColor: c.border }]} />
+
+              <View style={styles.nextCallHeader}>
+                <View style={[styles.nextCallIcon, { backgroundColor: c.successSurface }]}>
+                  <IconCheck size={20} color={c.success} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.nextCallTitle, { color: c.ink }]}>Call completed</Text>
+                  <Text style={[styles.nextCallSub, { color: c.muted }]}>Great work! Here's your next call.</Text>
+                </View>
+              </View>
+
+              {nextVisit && (
+                <View style={[styles.nextCallCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }]}>
+                  <View style={styles.nextCallInfo}>
+                    <Text style={[styles.nextCallName, { color: c.ink }]}>{nextVisit.label}</Text>
+                    {nextVisit.person_name && <Text style={[styles.nextCallPerson, { color: c.muted }]}>{nextVisit.person_name}</Text>}
+                    <View style={styles.nextCallTime}>
+                      <IconClock size={12} color={c.primary} />
+                      <Text style={[styles.nextCallTimeText, { color: c.primary }]}>{time(nextVisit.scheduled_start)} – {time(nextVisit.scheduled_end)}</Text>
+                    </View>
+                    {nextVisit.person_address && (
+                      <Text style={[styles.nextCallAddr, { color: c.subtle }]} numberOfLines={2}>{nextVisit.person_address}</Text>
+                    )}
+                  </View>
+
+                  {/* Action buttons */}
+                  <View style={styles.nextCallActions}>
+                    {nextVisit.person_address && (
+                      <Pressable
+                        onPress={() => { hapticLight(); setNextCallModal(false); openNavigation({ destination: nextVisit.person_address!, label: nextVisit.person_name || nextVisit.label }) }}
+                        style={({ pressed }) => [[styles.nextCallBtn, { backgroundColor: c.primary, borderColor: c.primary }], pressed && { opacity: 0.8 }]}
+                      >
+                        <IconNavigate size={16} color={c.inverse} />
+                        <Text style={[styles.nextCallBtnText, { color: c.inverse }]}>Navigate</Text>
+                      </Pressable>
+                    )}
+                    {onVisitNext && (
+                      <Pressable
+                        onPress={() => { hapticLight(); setNextCallModal(false); onVisitNext(nextVisit) }}
+                        style={({ pressed }) => [[styles.nextCallBtn, { backgroundColor: c.surface, borderColor: c.border }], pressed && { opacity: 0.8 }]}
+                      >
+                        <Text style={[styles.nextCallBtnText, { color: c.primary }]}>Open call</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {!nextVisit && (
+                <View style={[styles.nextCallCard, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }]}>
+                  <Text style={[styles.nextCallName, { color: c.muted, textAlign: 'center' }]}>No more calls today</Text>
+                  <Text style={[styles.nextCallSub, { color: c.subtle, textAlign: 'center' }]}>You're done for the day. Well done!</Text>
+                </View>
+              )}
+
+              <Pressable onPress={() => setNextCallModal(false)} style={styles.cancelBtn}>
+                <Text style={[styles.cancelText, { color: c.muted }]}>Dismiss</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   )
@@ -519,6 +721,14 @@ const styles = StyleSheet.create({
   },
   textArea: { minHeight: 96, textAlignVertical: 'top', paddingTop: spacing.md },
 
+  /* Saved badge */
+  savedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    borderRadius: radii.md, alignSelf: 'flex-start',
+  },
+  savedBadgeText: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
+
   /* Photos */
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   photoAction: {
@@ -550,6 +760,12 @@ const styles = StyleSheet.create({
   /* Queue */
   queueText: { fontFamily: FONT, fontSize: 11, fontWeight: '500', color: colors.subtle, textAlign: 'center', marginTop: spacing.base },
 
+  /* Read-only fields */
+  roField: { paddingVertical: spacing.xs },
+  roLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  roValue: { fontFamily: FONT, fontSize: 14, fontWeight: '500' },
+  roNotesText: { fontFamily: FONT, fontSize: 14, fontWeight: '400', lineHeight: 20 },
+
   /* Modal */
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)' },
   modalBackdropTouch: { flex: 1, justifyContent: 'flex-end' },
@@ -562,4 +778,26 @@ const styles = StyleSheet.create({
   modalHelper: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted, marginTop: -spacing.sm },
   cancelBtn: { alignItems: 'center', paddingVertical: spacing.sm },
   cancelText: { fontFamily: FONT, fontSize: 14, fontWeight: '600', color: colors.muted },
+
+  /* Next call modal */
+  nextCallHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  nextCallIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  nextCallTitle: { fontFamily: FONT, fontSize: 17, fontWeight: '700', color: colors.ink },
+  nextCallSub: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted, marginTop: 1 },
+  nextCallCard: {
+    borderRadius: radii.lg, borderWidth: 1, padding: spacing.base, gap: spacing.sm,
+  },
+  nextCallInfo: { gap: spacing.xs },
+  nextCallName: { fontFamily: FONT, fontSize: 16, fontWeight: '700', color: colors.ink },
+  nextCallPerson: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted },
+  nextCallTime: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs },
+  nextCallTimeText: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: colors.primary },
+  nextCallAddr: { fontFamily: FONT, fontSize: 12, fontWeight: '400', color: colors.subtle, marginTop: spacing.xs },
+  nextCallActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  nextCallBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: spacing.xs, paddingVertical: spacing.md, borderRadius: radii.md,
+    borderWidth: 1.5,
+  },
+  nextCallBtnText: { fontFamily: FONT, fontSize: 13, fontWeight: '600' },
 })

@@ -190,7 +190,11 @@ function AppInner() {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} /></>
   }
   if (currentScreen.kind === 'visit' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} /></>
+    // Find next visit after this one
+    const sortedVisits = [...visits].sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())
+    const currentIdx = sortedVisits.findIndex(v => v.id === currentScreen.visit.id)
+    const nextV = currentIdx >= 0 && currentIdx < sortedVisits.length - 1 ? sortedVisits[currentIdx + 1] : null
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></>
   }
   if (currentScreen.kind === 'profile' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></>

@@ -35,6 +35,10 @@ export interface HomecareVisit {
   actual_mileage_miles?: number | null
   mileage_rate_pence?: number | null
   travel_buffer_minutes?: number | null
+  check_in_at?: string | null
+  check_out_at?: string | null
+  visit_notes?: string | null
+  photos?: string[]
 }
 
 export type VisitAction = 'check-in' | 'check-out'
