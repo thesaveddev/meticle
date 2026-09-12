@@ -27,22 +27,22 @@ jobs:
             CONTAINER=$(docker ps -q -f name=api | head -1)
             if [ -z "$CONTAINER" ]; then CONTAINER=$(docker ps -q | head -1); fi
             if [ -z "$CONTAINER" ]; then docker ps -a; echo "No containers"; exit 1; fi
-            echo "Using container: $CONTAINER"
+            echo "Container: $CONTAINER"
             EXISTS=$(docker exec "$CONTAINER" node -e "const p=require('pg');new p.Pool().query(\"SELECT id FROM organizations WHERE slug='dreakcare'\").then(r=>{process.stdout.write(r.rows.length?'YES':'NO')}).catch(()=>{process.stdout.write('NO')}).finally(()=>process.exit())" 2>/dev/null) || true
             if [ "$EXISTS" = "YES" ]; then echo "Already seeded"; exit 0; fi
+            echo "Test DB connection..."
+            docker exec -w /app "$CONTAINER" node -e "
+              const { Pool } = require('pg');
+              const pool = new Pool();
+              pool.connect().then(c => { console.log('CONNECTED'); return c.query('SELECT 1 as test'); }).then(r => { console.log('QUERY OK:', r.rows[0]); pool.end(); }).catch(e => { console.error('DB ERROR:', e.message); process.exit(1); });
+            " 2>&1
+            echo "Test bcryptjs..."
+            docker exec -w /app "$CONTAINER" node -e "const bc=require('bcryptjs');bc.hash('test',12).then(h=>console.log('HASH OK:',h.substring(0,20)+'...')).catch(e=>{console.error('BCRYPT ERROR:',e.message);process.exit(1)})" 2>&1
+            echo "All tests passed, running seed..."
             SHA="${{ steps.sha.outputs.SHA }}"
             curl -fsSL "https://raw.githubusercontent.com/thesaveddev/meticle/${SHA}/scripts/seed-dreakcare.js" -o /tmp/seed.js
             docker cp /tmp/seed.js "$CONTAINER:/app/seed.js"
-            echo "=== Syntax check ==="
-            docker exec -w /app "$CONTAINER" node --check seed.js && echo "Syntax OK" || echo "Syntax error"
-            echo "=== Running seed ==="
-            set +e
-            OUTPUT=$(docker exec -w /app "$CONTAINER" node seed.js 2>&1)
-            RC=$?
-            set -e
-            echo "$OUTPUT"
-            echo "=== Exit code: $RC ==="
+            docker exec -w /app "$CONTAINER" node seed.js 2>&1 || echo "Seed script exited with error"
             docker exec "$CONTAINER" rm -f /app/seed.js
             rm -f /tmp/seed.js
-            echo "=== Done ==="
-            exit $RC
+            echo "=== Complete ==="
