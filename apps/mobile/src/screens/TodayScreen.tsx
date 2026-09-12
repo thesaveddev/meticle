@@ -4,6 +4,7 @@ import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../types'
 import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconSync } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
+import { isOverdue, overdueLabel } from '../utils/visitStatus'
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -63,7 +64,8 @@ function StatusDot({ status, c }: { status: VisitStatus; c: any }) {
   return <View style={[styles.statusDot, { backgroundColor: color }]} />
 }
 
-function StatusIcon({ status, c }: { status: VisitStatus; c: any }) {
+function StatusIcon({ status, overdue, c }: { status: VisitStatus; overdue?: boolean; c: any }) {
+  if (overdue) return <IconAlert size={14} color={c.danger} />
   switch (status) {
     case 'completed': return <IconCheck size={14} color={c.success} />
     case 'checked_in': return <IconClock size={14} color={c.primary} />
@@ -195,30 +197,42 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
       </View>
 
       {/* Current call highlight */}
-      {currentVisit && (
-        <View style={styles.currentCard}>
-          <View style={styles.currentHeader}>
-            <View style={[styles.currentDot, { backgroundColor: c.primary }]} />
-            <Text style={[styles.currentLabel, { color: c.primary }]}>NOW</Text>
+      {currentVisit && (() => {
+        const overdue = isOverdue(currentVisit.visit)
+        const oLabel = overdueLabel(currentVisit.visit)
+        return (
+          <View style={styles.currentCard}>
+            <View style={styles.currentHeader}>
+              <View style={[styles.currentDot, { backgroundColor: overdue ? c.danger : c.primary }]} />
+              <Text style={[styles.currentLabel, { color: overdue ? c.danger : c.primary }]}>{overdue ? 'OVERDUE' : 'NOW'}</Text>
+              {overdue && <IconAlert size={14} color={c.danger} />}
+            </View>
+            <Pressable
+              onPress={() => { hapticLight(); onVisit(currentVisit.visit) }}
+              style={({ pressed }) => [
+                styles.visitCard,
+                overdue
+                  ? { backgroundColor: c.dangerSurface, borderColor: c.danger + '40' }
+                  : styles.visitCardActive,
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <View style={styles.visitTime}>
+                <Text style={[styles.visitTimeText, { color: overdue ? c.danger : colors.ink }]}>{time(currentVisit.visit.scheduled_start)}</Text>
+                <Text style={[styles.visitTimeEnd, { color: overdue ? c.danger : colors.muted }]}>{time(currentVisit.visit.scheduled_end)}</Text>
+              </View>
+              <View style={styles.visitContent}>
+                <Text style={[styles.visitName, { color: overdue ? c.danger : colors.ink }]} numberOfLines={1}>{currentVisit.visit.label}</Text>
+                {currentVisit.visit.person_name && (
+                  <Text style={[styles.visitPerson, { color: overdue ? c.danger : colors.muted }]} numberOfLines={1}>{currentVisit.visit.person_name}</Text>
+                )}
+                {overdue && <Text style={[styles.overdueLabel, { color: c.danger }]}>{oLabel}</Text>}
+              </View>
+              <StatusIcon status={currentVisit.visit.status} overdue={overdue} c={c} />
+            </Pressable>
           </View>
-          <Pressable
-            onPress={() => { hapticLight(); onVisit(currentVisit.visit) }}
-            style={({ pressed }) => [styles.visitCard, styles.visitCardActive, pressed && { opacity: 0.85 }]}
-          >
-            <View style={styles.visitTime}>
-              <Text style={styles.visitTimeText}>{time(currentVisit.visit.scheduled_start)}</Text>
-              <Text style={styles.visitTimeEnd}>{time(currentVisit.visit.scheduled_end)}</Text>
-            </View>
-            <View style={styles.visitContent}>
-              <Text style={styles.visitName} numberOfLines={1}>{currentVisit.visit.label}</Text>
-              {currentVisit.visit.person_name && (
-                <Text style={styles.visitPerson} numberOfLines={1}>{currentVisit.visit.person_name}</Text>
-              )}
-            </View>
-            <StatusIcon status={currentVisit.visit.status} c={c} />
-          </Pressable>
-        </View>
-      )}
+        )
+      })()}
 
       {/* Next call */}
       {nextVisit && (
@@ -270,11 +284,45 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         </View>
       )}
 
-      {/* Future calls */}
-      {futureVisits.length > 0 && (
+      {/* Overdue calls */}
+      {futureVisits.filter(tv => isOverdue(tv.visit)).length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <IconAlert size={14} color={c.danger} />
+            <Text style={[styles.sectionLabel, { color: c.danger }]}>OVERDUE</Text>
+          </View>
+          {futureVisits.filter(tv => isOverdue(tv.visit)).map(tv => (
+            <Pressable
+              key={tv.visit.id}
+              onPress={() => { hapticLight(); onVisit(tv.visit) }}
+              style={({ pressed }) => [
+                styles.visitCard,
+                { backgroundColor: c.dangerSurface, borderColor: c.danger + '40' },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <View style={styles.visitTime}>
+                <Text style={[styles.visitTimeText, { color: c.danger }]}>{time(tv.visit.scheduled_start)}</Text>
+                <Text style={[styles.visitTimeEnd, { color: c.danger }]}>{time(tv.visit.scheduled_end)}</Text>
+              </View>
+              <View style={styles.visitContent}>
+                <Text style={[styles.visitName, { color: c.danger }]} numberOfLines={1}>{tv.visit.label}</Text>
+                {tv.visit.person_name && (
+                  <Text style={[styles.visitPerson, { color: c.danger }]} numberOfLines={1}>{tv.visit.person_name}</Text>
+                )}
+                <Text style={[styles.overdueLabel, { color: c.danger }]}>{overdueLabel(tv.visit)}</Text>
+              </View>
+              <StatusIcon status={tv.visit.status} overdue c={c} />
+            </Pressable>
+          ))}
+        </View>
+      )}
+
+      {/* Future calls (on time) */}
+      {futureVisits.filter(tv => !isOverdue(tv.visit)).length > 0 && (
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: c.subtle }]}>UPCOMING</Text>
-          {futureVisits.map(tv => (
+          {futureVisits.filter(tv => !isOverdue(tv.visit)).map(tv => (
             <Pressable
               key={tv.visit.id}
               onPress={() => { hapticLight(); onVisit(tv.visit) }}
@@ -395,9 +443,13 @@ const styles = StyleSheet.create({
 
   /* Sections */
   section: { marginBottom: spacing.xl },
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
   sectionLabel: {
     fontFamily: FONT, fontSize: 11, fontWeight: '700', letterSpacing: 1,
     color: colors.subtle, textTransform: 'uppercase', marginBottom: spacing.sm,
+  },
+  overdueLabel: {
+    fontFamily: FONT, fontSize: 11, fontWeight: '700', marginTop: 3,
   },
 
   /* Refresh indicator */

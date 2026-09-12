@@ -10,6 +10,7 @@ import { getVisitLocation, haversineDistance } from '../services/location'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
 import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
+import { isOverdue, overdueLabel } from '../utils/visitStatus'
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -290,6 +291,18 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
           {/* Status timeline — only for open visits */}
           {isOpen && <VisitStatusTimeline status={visit.status} />}
+
+          {/* Overdue alert */}
+          {isOpen && isOverdue(visit) && (
+            <View style={[styles.banner, { backgroundColor: c.dangerSurface, borderColor: c.danger + '20' }]}>
+              <View style={[styles.bannerDot, { backgroundColor: c.danger }]}>
+                <IconWarning size={10} color={c.inverse} />
+              </View>
+              <Text style={[styles.bannerText, { color: c.dangerDeep }]}>
+                This call is {overdueLabel(visit)}. The manager has been notified.
+              </Text>
+            </View>
+          )}
 
           {/* Client info card */}
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
