@@ -192,3 +192,33 @@ export async function getTeamMembers(token: string): Promise<TeamMember[]> {
 export async function updateVisit(token: string, visitId: string, data: Record<string, unknown>): Promise<any> {
   return request(`/homecare/visits/${visitId}`, { method: 'PATCH', body: JSON.stringify(data) }, token)
 }
+
+/* ─── Swap / Transfer ─────────────────────────────────────── */
+export async function createSwapRequest(token: string, data: {
+  visit_id: string
+  target_staff_id?: string
+  request_type: 'swap' | 'transfer'
+  message?: string
+}): Promise<any> {
+  return request('/homecare/swap-requests', { method: 'POST', body: JSON.stringify(data) }, token)
+}
+
+export async function getSwapRequests(token: string): Promise<any[]> {
+  return request<any[]>('/homecare/swap-requests', {}, token)
+}
+
+export async function respondSwapRequest(token: string, swapId: string, status: 'accepted' | 'rejected', message?: string): Promise<any> {
+  return request(`/homecare/swap-requests/${swapId}/respond`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, response_message: message }),
+  }, token)
+}
+
+/* ─── Notifications ───────────────────────────────────────── */
+export async function getCarerNotifications(token: string): Promise<any[]> {
+  return request<any[]>('/homecare/notifications', {}, token)
+}
+
+export async function markNotificationsRead(token: string): Promise<void> {
+  await request('/homecare/notifications/read', { method: 'POST' }, token)
+}

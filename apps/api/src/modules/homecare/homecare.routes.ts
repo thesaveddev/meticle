@@ -108,6 +108,16 @@ router.patch('/mileage-policies/:id', requireRole(...managerRoles), validate(mil
 router.delete('/mileage-policies/:id', requireRole(...managerRoles), asyncHandler(HomecareController.deleteMileagePolicy));
 router.get('/followups', requireRole(...managerRoles), asyncHandler(HomecareController.listFollowups));
 router.get('/payroll/reconciliations', requireRole(...managerRoles), asyncHandler(HomecareController.listPayrollReconciliations));
+
+// Swap / Transfer
+const swapSchema = z.object({ visit_id: uuid, target_staff_id: uuid.nullish(), request_type: z.enum(['swap', 'transfer']), message: z.string().max(500).nullish() });
+const swapResponseSchema = z.object({ status: z.enum(['accepted', 'rejected']), response_message: z.string().max(500).nullish() });
+router.post('/swap-requests', requireRole(...fieldRoles), validate(swapSchema), asyncHandler(HomecareController.createSwapRequest));
+router.get('/swap-requests', requireRole(...fieldRoles), asyncHandler(HomecareController.listSwapRequests));
+router.patch('/swap-requests/:id/respond', requireRole(...fieldRoles), validate(swapResponseSchema), asyncHandler(HomecareController.respondSwapRequest));
+router.get('/notifications', requireRole(...fieldRoles), asyncHandler(HomecareController.getCarerNotifications));
+router.post('/notifications/read', requireRole(...fieldRoles), asyncHandler(HomecareController.markNotificationsRead));
+router.get('/week-visits', requireRole(...fieldRoles), asyncHandler(HomecareController.getWeekVisits));
 router.patch('/payroll/reconciliations/:id', requireRole(...managerRoles), validate(reconciliationSchema), asyncHandler(HomecareController.reconcilePayroll));
 router.get('/packages/:packageId/visit-plans', requireRole(...fieldRoles), asyncHandler(HomecareController.listVisitPlans));
 router.post('/packages/:packageId/visit-plans', requireRole(...managerRoles), validate(planSchema), asyncHandler(HomecareController.createVisitPlan));

@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type } from '../theme'
 import type { MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { requestReminderPermission } from '../services/notifications'
 
-export function SettingsScreen({ user, onSignOut, onSync }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
+  onProfile?: () => void
 }) {
   const [reminders, setReminders] = useState<'unknown' | 'enabled' | 'disabled'>('unknown')
   const [message, setMessage] = useState('')
@@ -33,8 +34,8 @@ export function SettingsScreen({ user, onSignOut, onSync }: {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.pageTitle}>Settings</Text>
 
-        {/* Profile card */}
-        <View style={styles.profileCard}>
+        {/* Profile card — tappable */}
+        <Pressable onPress={onProfile} style={({ pressed }) => [styles.profileCard, pressed && { opacity: 0.8 }]}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
@@ -43,7 +44,8 @@ export function SettingsScreen({ user, onSignOut, onSync }: {
             <Text style={styles.profileEmail}>{user.email}</Text>
             {user.role && <Text style={styles.profileRole}>{user.role.replace(/_/g, ' ')}</Text>}
           </View>
-        </View>
+          <Text style={styles.chevron}>→</Text>
+        </Pressable>
 
         {/* Notifications section */}
         <View style={styles.section}>
@@ -139,6 +141,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginTop: spacing.xs,
   },
+  chevron: { fontFamily: 'System', fontSize: 18, color: colors.subtle, fontWeight: '600' },
 
   /* Sections */
   section: { marginBottom: spacing.lg },
