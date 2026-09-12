@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -120,6 +121,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   onVisitNext?: (visit: HomecareVisit) => void
 }) {
   const c = useAppColors()
+  const s = useDynamicStyles(styles)
   const [note, setNote] = useState('')
   const [travelMinutes, setTravelMinutes] = useState('')
   const [mileage, setMileage] = useState('')
