@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginHorizontal: spacing.base, marginTop: -spacing.sm, marginBottom: spacing.sm,
     paddingHorizontal: spacing.base, paddingVertical: spacing.md,
-    borderRadius: radii.md, borderWidth: 1,
+    borderRadius: radii.md, borderWidth: 0,
   },
   navigateText: { fontFamily: FONT, fontSize: 14, fontWeight: '600' },
   navigateArrow: { fontFamily: FONT, fontSize: 16, fontWeight: '600' },
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
 
   /* Tabs */
   tabBar: { paddingHorizontal: spacing.base, paddingVertical: spacing.sm, gap: spacing.xs, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
-  tab: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.sm, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.borderLight },
+  tab: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.sm, backgroundColor: colors.surfaceAlt, borderWidth: 0, borderColor: colors.borderLight },
   tabActive: { backgroundColor: colors.primarySurface, borderColor: colors.primary + '30' },
   tabIcon: { fontSize: 12 },
   tabLabel: { fontFamily: 'System', fontSize: 11, fontWeight: '600', color: colors.muted },
@@ -392,12 +392,12 @@ const styles = StyleSheet.create({
 
   /* Stats */
   statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.base },
-  miniStat: { flex: 1, backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.borderLight, padding: spacing.md, alignItems: 'center', ...elevation.sm },
+  miniStat: { flex: 1, backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 0, borderColor: 'transparent', padding: spacing.md, alignItems: 'center', ...elevation.sm },
   miniStatValue: { fontFamily: 'System', fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
   miniStatLabel: { ...type.small, marginTop: 2 },
 
   /* Action card */
-  actionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.borderLight, padding: spacing.base, marginBottom: spacing.base, gap: spacing.md, ...elevation.sm },
+  actionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: 0, borderColor: 'transparent', padding: spacing.base, marginBottom: spacing.base, gap: spacing.md, ...elevation.sm },
   actionIcon: { fontSize: 28 },
   actionInfo: { flex: 1 },
   actionTitle: { ...type.bodyBold },
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   actionArrow: { fontFamily: 'System', fontSize: 20, color: colors.primary, fontWeight: '600' },
 
   /* Cards */
-  card: { backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.borderLight, padding: spacing.base, marginBottom: spacing.base, ...elevation.sm },
+  card: { backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: 0, borderColor: 'transparent', padding: spacing.base, marginBottom: spacing.base, ...elevation.sm },
   cardTitle: { fontFamily: 'System', fontSize: 15, fontWeight: '700', color: colors.ink, marginBottom: spacing.sm },
   cardMeta: { ...type.small, marginTop: spacing.xs },
   cardBody: { ...type.body, fontSize: 14, lineHeight: 20 },
