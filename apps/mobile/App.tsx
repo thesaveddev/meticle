@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, BackHandler, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type } from './src/theme'
+import { TabIcon } from './src/components/TabIcons'
 import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitAction } from './src/types'
 import { readSession } from './src/services/storage'
 import { getCurrentUser, getMyVisits, login, logout, createDisruption } from './src/services/api'
@@ -23,15 +24,15 @@ import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen'
 
 type TabKey = 'today' | 'week' | 'mileage' | 'availability' | 'settings'
 
-const tabs: { key: TabKey; icon: string; label: string }[] = [
-  { key: 'today', icon: '📋', label: 'Today' },
-  { key: 'week', icon: '📆', label: 'Week' },
-  { key: 'mileage', icon: '🚗', label: 'Mileage' },
-  { key: 'availability', icon: '📅', label: 'Availability' },
-  { key: 'settings', icon: '⚙️', label: 'Settings' },
+const tabs: { key: TabKey; icon: 'today' | 'week' | 'mileage' | 'calendar' | 'settings'; label: string }[] = [
+  { key: 'today', icon: 'today', label: 'Today' },
+  { key: 'week', icon: 'week', label: 'Week' },
+  { key: 'mileage', icon: 'mileage', label: 'Mileage' },
+  { key: 'availability', icon: 'calendar', label: 'Schedule' },
+  { key: 'settings', icon: 'settings', label: 'Settings' },
 ]
 
-function AppTab({ icon, label, active, onPress }: { icon: string; label: string; active: boolean; onPress: () => void }) {
+function AppTab({ icon, label, active, onPress }: { icon: 'today' | 'week' | 'mileage' | 'calendar' | 'settings'; label: string; active: boolean; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="tab"
@@ -39,7 +40,7 @@ function AppTab({ icon, label, active, onPress }: { icon: string; label: string;
       onPress={onPress}
       style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
     >
-      <Text style={[styles.tabIcon, active && styles.tabIconActive]}>{icon}</Text>
+      <TabIcon name={icon} size={22} color={active ? colors.primary : colors.subtle} />
       <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
       {active && <View style={styles.tabIndicator} />}
     </Pressable>
@@ -345,9 +346,9 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
-    paddingBottom: Platform.OS === 'ios' ? 8 : 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.md,
     paddingTop: spacing.sm,
     ...elevation.sm,
   },
@@ -356,16 +357,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.xs,
-    gap: 2,
+    gap: 3,
   },
-  tabPressed: { opacity: 0.7 },
-  tabIcon: { fontSize: 20, opacity: 0.45 },
-  tabIconActive: { opacity: 1 },
-  tabLabel: { fontFamily: 'System', fontSize: 10, fontWeight: '500', color: colors.subtle },
+  tabPressed: { opacity: 0.6 },
+  tabLabel: { fontFamily: 'System', fontSize: 10, fontWeight: '500', color: colors.subtle, letterSpacing: 0.2 },
   tabLabelActive: { color: colors.primary, fontWeight: '600' },
   tabIndicator: {
-    width: 20,
-    height: 3,
+    width: 22,
+    height: 2.5,
     borderRadius: 2,
     backgroundColor: colors.primary,
     marginTop: 2,
