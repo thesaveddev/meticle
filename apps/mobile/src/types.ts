@@ -52,3 +52,12 @@ export interface OfflineVisitAction {
   state: SyncState
   error?: string
 }
+
+export interface AvailabilityRecord {
+  id: string
+  staff_id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  is_available: boolean
+}
