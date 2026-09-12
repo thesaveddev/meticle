@@ -15,7 +15,7 @@ const df = (n) => {
   try {
     await c.query("BEGIN");
 
-    // Check if already exists
+    // Check if already exists (by name since slug column doesn't exist)
     const check = await c.query("SELECT id FROM organizations WHERE name='DreakCare'");
     if (check.rows.length > 0) {
       console.log("DreakCare already exists - skipping");
@@ -26,7 +26,7 @@ const df = (n) => {
     const oid = u();
     const hp = await bc.hash("Password123$", 12);
 
-    // Organisation
+    // Organisation (no slug, no billing_settings columns)
     await c.query(
       `INSERT INTO organizations(id,name,subscription_status,service_types,onboarding_completed)
        VALUES($1,$2,$3,$4,$5)`,
@@ -34,19 +34,19 @@ const df = (n) => {
     );
     console.log("Created DreakCare org");
 
-    // Locations
+    // Locations (no status column)
     const l1 = u(), l2 = u();
     await c.query(
-      `INSERT INTO locations(id,organization_id,name,address,status) VALUES($1,$2,$3,$4,$5)`,
-      [l1, oid, "DreakCare Office", "100 Corporation Street, Birmingham B4 6AY", "active"]
+      `INSERT INTO locations(id,organization_id,name,address) VALUES($1,$2,$3,$4)`,
+      [l1, oid, "DreakCare Office", "100 Corporation Street, Birmingham B4 6AY"]
     );
     await c.query(
-      `INSERT INTO locations(id,organization_id,name,address,status) VALUES($1,$2,$3,$4,$5)`,
-      [l2, oid, "South Birmingham Hub", "25 Bristol Road, Birmingham B5 7AA", "active"]
+      `INSERT INTO locations(id,organization_id,name,address) VALUES($1,$2,$3,$4)`,
+      [l2, oid, "South Birmingham Hub", "25 Bristol Road, Birmingham B5 7AA"]
     );
     console.log("Created 2 locations");
 
-    // Staff
+    // Staff (staff_profiles: no organization_id, no status)
     const S = [
       { e: "opeyemiolorunfemy@gmail.com", f: "Opeyemi", l: "Olorunfemi", r: "ORG_ADMIN" },
       { e: "opeyemi@meticlecare.com", f: "Opeyemi", l: "Admin", r: "MANAGER" },
@@ -68,33 +68,36 @@ const df = (n) => {
          VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
         [uid, oid, s.e, hp, s.f, s.l, s.r, true]
       );
+      // staff_profiles: id, user_id, first_name, last_name (no org_id, no status)
       await c.query(
-        `INSERT INTO staff_profiles(id,user_id,organization_id,first_name,last_name,status)
-         VALUES($1,$2,$3,$4,$5,$6)`,
-        [sid, uid, oid, s.f, s.l, "active"]
+        `INSERT INTO staff_profiles(id,user_id,first_name,last_name)
+         VALUES($1,$2,$3,$4)`,
+        [sid, uid, s.f, s.l]
       );
     }
     console.log(`Created ${S.length} staff members`);
 
-    // Clients
+    // Clients (people: use room_number, not address; address doesn't exist)
     const P = [
-      { f: "Margaret", l: "Thompson", d: "1942-03-15", a: "12 Oak Lane, Birmingham B15 2TT", al: ["Penicillin", "Latex"], s: "minimal" },
-      { f: "Arthur", l: "Bennett", d: "1938-11-22", a: "45 Maple Road, Birmingham B16 0AA", al: ["Shellfish"], s: "one_to_one" },
-      { f: "Dorothy", l: "Hughes", d: "1945-07-08", a: "78 Elm Street, Solihull B91 3BZ", al: [], s: "minimal" },
-      { f: "Walter", l: "Green", d: "1940-01-30", a: "23 Cedar Avenue, Sutton Coldfield B73 6AP", al: ["Aspirin", "Codeine"], s: "one_to_one" },
-      { f: "Betty", l: "Adams", d: "1943-09-12", a: "56 Birch Close, Wolverhampton WV1 2QR", al: [], s: "minimal" },
-      { f: "George", l: "Clark", d: "1936-05-19", a: "91 Pine Drive, Walsall WS1 1AB", al: ["Peanuts"], s: "two_to_one" },
-      { f: "Edna", l: "Robinson", d: "1944-12-03", a: "14 Willow Way, West Bromwich B70 8DE", al: [], s: "minimal" },
-      { f: "Frank", l: "Hall", d: "1939-08-25", a: "67 Ash Grove, Dudley DY1 3FG", al: ["Ibuprofen"], s: "one_to_one" },
+      { f: "Margaret", l: "Thompson", d: "1942-03-15", room: "12 Oak Lane", al: ["Penicillin", "Latex"], s: "minimal" },
+      { f: "Arthur", l: "Bennett", d: "1938-11-22", room: "45 Maple Road", al: ["Shellfish"], s: "one_to_one" },
+      { f: "Dorothy", l: "Hughes", d: "1945-07-08", room: "78 Elm Street", al: [], s: "minimal" },
+      { f: "Walter", l: "Green", d: "1940-01-30", room: "23 Cedar Avenue", al: ["Aspirin", "Codeine"], s: "one_to_one" },
+      { f: "Betty", l: "Adams", d: "1943-09-12", room: "56 Birch Close", al: [], s: "minimal" },
+      { f: "George", l: "Clark", d: "1936-05-19", room: "91 Pine Drive", al: ["Peanuts"], s: "two_to_one" },
+      { f: "Edna", l: "Robinson", d: "1944-12-03", room: "14 Willow Way", al: [], s: "minimal" },
+      { f: "Frank", l: "Hall", d: "1939-08-25", room: "67 Ash Grove", al: ["Ibuprofen"], s: "one_to_one" },
     ];
     const pids = [];
     for (const p of P) {
       const pid = u();
       pids.push(pid);
+      // people: id, org_id, first_name, last_name, date_of_birth, room_number, allergies, support_level, status, location_id
+      // Note: no 'address' column
       await c.query(
-        `INSERT INTO people(id,organization_id,first_name,last_name,date_of_birth,address,allergies,support_level,status,location_id)
+        `INSERT INTO people(id,organization_id,first_name,last_name,date_of_birth,room_number,allergies,support_level,status,location_id)
          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [pid, oid, p.f, p.l, p.d, p.a, JSON.stringify(p.al), p.s, "active", l1]
+        [pid, oid, p.f, p.l, p.d, p.room, JSON.stringify(p.al), p.s, "active", l1]
       );
     }
     console.log(`Created ${P.length} clients`);
@@ -200,7 +203,7 @@ const df = (n) => {
     }
     console.log(`Created ${completedCount} completed visits`);
 
-    // Timesheets for completed visits
+    // Timesheets (staff_id, not carer_id)
     const cv = await c.query(
       "SELECT id,assigned_staff_id FROM homecare_visits WHERE organization_id=$1 AND status=$2 AND actual_mileage_miles IS NOT NULL",
       [oid, "completed"]
@@ -212,7 +215,7 @@ const df = (n) => {
       const m = (2 + Math.random() * 8).toFixed(2);
       const g = Math.round((w + p) * 20);
       await c.query(
-        `INSERT INTO homecare_timesheets(id,organization_id,visit_id,carer_id,work_minutes,travel_minutes,paid_travel_minutes,mileage_miles,mileage_rate_pence,gross_pay_pence,status)
+        `INSERT INTO homecare_timesheets(id,organization_id,visit_id,staff_id,work_minutes,travel_minutes,paid_travel_minutes,mileage_miles,mileage_rate_pence,gross_pay_pence,status)
          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
         [u(), oid, v.id, v.assigned_staff_id, w, t, p, m, 45, g, "submitted"]
       );
