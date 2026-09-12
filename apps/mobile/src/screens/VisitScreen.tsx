@@ -7,7 +7,7 @@ import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../
 import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
-import { getVisitLocation, haversineDistance } from '../services/location'
+import { getVisitLocation, haversineDistance, watchDistance, formatDistance } from '../services/location'
 import { getLocationThreshold, getRequirePhoto } from '../services/api'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate, IconTwoPerson } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
@@ -138,6 +138,8 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const [mapPickerOpen, setMapPickerOpen] = useState(false)
   const [locationThreshold, setLocationThreshold] = useState(500)
   const [requirePhoto, setRequirePhoto] = useState(false)
+  const [liveDistance, setLiveDistance] = useState<number | null>(null)
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null)
   const [navDestination, setNavDestination] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
 
   // Task list for this call
@@ -178,6 +180,19 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const requiresTwo = !!visit.requires_two_staff
   const [secondCarerCheckedIn, setSecondCarerCheckedIn] = useState(false)
   const canCheckIn = !requiresTwo || secondCarerCheckedIn
+
+  // Real-time distance tracking before check-in
+  useEffect(() => {
+    if (!isOpen || checkedIn || !visit.person_latitude || !visit.person_longitude) return
+    const watcher = watchDistance(
+      visit.person_latitude, visit.person_longitude,
+      (distance, accuracy) => {
+        setLiveDistance(distance)
+        setLocationAccuracy(accuracy)
+      }
+    )
+    return () => watcher.stop()
+  }, [isOpen, checkedIn, visit.person_latitude, visit.person_longitude])
 
   const pickVisitPhoto = async () => {
     hapticLight()
@@ -519,6 +534,31 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
               <Text accessibilityRole="alert" style={[styles.bannerText, { color: c.dangerDeep }]}>{error}</Text>
             </View>
           ) : null}
+
+          {/* ── Live distance indicator ── */}
+          {!checkedIn && isOpen && liveDistance != null && (
+            <View style={[styles.card, { backgroundColor: liveDistance <= locationThreshold ? c.successSurface : c.dangerSurface, borderColor: liveDistance <= locationThreshold ? c.success + '30' : c.danger + '30' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: liveDistance <= locationThreshold ? c.success : c.danger }} />
+                  <Text style={{ fontFamily: FONT, fontSize: 14, fontWeight: '600', color: liveDistance <= locationThreshold ? c.success : c.danger }}>
+                    {liveDistance <= locationThreshold ? 'At location' : 'Approaching client'}
+                  </Text>
+                </View>
+                <Text style={{ fontFamily: FONT, fontSize: 22, fontWeight: '800', color: liveDistance <= locationThreshold ? c.success : c.danger, letterSpacing: -0.5 }}>
+                  {formatDistance(liveDistance)}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm }}>
+                <Text style={{ fontFamily: FONT, fontSize: 11, color: c.muted }}>
+                  {liveDistance <= locationThreshold ? 'Within ' + locationThreshold + 'm threshold' : locationThreshold + 'm threshold needed'}
+                </Text>
+                {locationAccuracy != null && (
+                  <Text style={{ fontFamily: FONT, fontSize: 10, color: c.subtle }}>±{Math.round(locationAccuracy)}m accuracy</Text>
+                )}
+              </View>
+            </View>
+          )}
 
           {/* ── Pre-visit form (only before check-in, not on completed) ── */}
           {!checkedIn && isOpen && (

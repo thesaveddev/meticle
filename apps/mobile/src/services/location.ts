@@ -26,3 +26,30 @@ export function haversineDistance(
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
+
+/** Format distance for display */
+export function formatDistance(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters)}m`
+  return `${(meters / 1000).toFixed(1)}km`
+}
+
+/** Watch position and call callback with distance to target */
+export function watchDistance(
+  targetLat: number,
+  targetLon: number,
+  onDistance: (distance: number, accuracy: number | null) => void
+): { stop: () => void } {
+  let subscription: Location.LocationSubscription | null = null
+
+  Location.watchPositionAsync(
+    { accuracy: Location.Accuracy.Balanced, distanceInterval: 10, timeInterval: 5000 },
+    (pos) => {
+      const dist = haversineDistance(pos.coords.latitude, pos.coords.longitude, targetLat, targetLon)
+      onDistance(dist, pos.coords.accuracy)
+    }
+  ).then(sub => { subscription = sub })
+
+  return {
+    stop: () => { subscription?.remove(); subscription = null },
+  }
+}
