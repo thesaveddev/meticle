@@ -270,7 +270,10 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         <View style={styles.sectionHeader}>  
           <Text style={[styles.sectionTitle, { color: c.ink }]}>Today's calls</Text>
           {completedVisits.length > 0 && (
-            <Text style={[styles.sectionMeta, { color: c.muted }]}>{completedVisits.length} completed</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={[styles.sectionMeta, { color: c.muted }]}>{completedVisits.length} completed</Text>
+              <Text style={{ fontSize: 10, color: c.subtle }}>▾</Text>
+            </View>
           )}
         </View>
       )}
@@ -383,7 +386,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
       {visits.length === 0 && !refreshing && (
         <View style={styles.empty}>  
           <View style={[styles.emptyIconWrap, { backgroundColor: c.successSurface }]}>  
-            <IconClock size={28} color={c.success} />
+            <Text style={{ fontSize: 28 }}>🎉</Text>
           </View>
           <Text style={[styles.emptyTitle, { color: c.ink }]}>You're all set for today!</Text>
           <Text style={[styles.emptyText, { color: c.muted }]}>Enjoy your evening.</Text>

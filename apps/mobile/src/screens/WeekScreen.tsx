@@ -47,6 +47,24 @@ function StatusDot({ status, overdue, c, s }: { status: string; overdue?: boolea
   return <View style={[s.statusDot, { backgroundColor: color }]} />
 }
 
+function StatusPill({ status, overdue, c }: { status: string; overdue?: boolean; c: any }) {
+  let bg = c.surfaceAlt
+  let fg = c.muted
+  let label = status.replace('_', ' ')
+
+  if (overdue) { bg = c.dangerSurface; fg = c.danger; label = 'Overdue' }
+  else if (status === 'completed') { bg = c.successSurface; fg = c.successDeep; label = 'Completed' }
+  else if (status === 'checked_in') { bg = c.primarySurface; fg = c.primary; label = 'In progress' }
+  else if (status === 'missed') { bg = c.dangerSurface; fg = c.danger; label = 'Missed' }
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: bg }}>
+      {status === 'completed' && <IconCheck size={12} color={fg} />}
+      <Text style={{ fontFamily: FONT, fontSize: 11, fontWeight: '600', color: fg, textTransform: 'capitalize' }}>{label}</Text>
+    </View>
+  )
+}
+
 export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
@@ -228,7 +246,7 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
                       <Text style={{ fontFamily: FONT, fontSize: 10, fontWeight: '700', color: c.warning }}>2-person</Text>
                     </View>
                   )}
-                  <StatusDot status={visit.status} overdue={ov} c={c} s={s} />
+                  <StatusPill status={visit.status} overdue={ov} c={c} />
                 </Pressable>
               )
             })
