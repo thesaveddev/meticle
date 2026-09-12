@@ -49,6 +49,7 @@ export interface OfflineVisitAction {
     actual_travel_minutes?: number
     actual_mileage_miles?: number
     note?: string
+    photos?: string[]
   }
   createdAt: string
   state: SyncState
