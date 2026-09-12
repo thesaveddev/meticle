@@ -28,6 +28,7 @@ import {
   AdminPanelSettings as AdminIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  SwapHoriz as SwapHorizIcon,
   Radar as RadarIcon,
   Restaurant as MealIcon,
   HomeWork as HomecareIcon,
@@ -142,6 +143,14 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Analytics',
       items: [
         { text: 'Reports', icon: <ReportsIcon />, path: '/reporting', module: 'reporting', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+      ],
+    },
+    {
+      label: 'My Space',
+      items: [
+        { text: 'My Profile', icon: <PersonIcon />, path: '/my-profile', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'My Week', icon: <ScheduleIcon />, path: '/my-week', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
+        { text: 'Swap & Transfer', icon: <SwapHorizIcon />, path: '/swap-transfer', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
       ],
     },
     {
