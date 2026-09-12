@@ -27,6 +27,9 @@ import {
 import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
 import { PremiumCard, StatCard, SectionHeader } from '../../components/design/PremiumCard'
+import { EmptyState } from '../../components/design/EmptyState'
+import EventIcon from '@mui/icons-material/Event'
+import ScheduleIcon2 from '@mui/icons-material/Schedule'
 
 interface DashboardStats {
   total_staff: number
@@ -447,9 +450,11 @@ export default function DashboardPage() {
               />
               <Box sx={{ flexGrow: 1 }}>
                 {compliance.length === 0 ? (
-                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary, textAlign: 'center', py: 4 }}>
-                    No compliance data yet. Start by uploading staff documents.
-                  </Typography>
+                  <EmptyState
+                    title="No compliance data"
+                    description="Start by uploading staff documents to track compliance."
+                    action={{ label: 'View Compliance', onClick: () => navigate('/compliance') }}
+                  />
                 ) : (
                   <Stack spacing={3}>
                     {compliance.map((item) => (
@@ -503,9 +508,11 @@ export default function DashboardPage() {
             </Box>
             <Divider />
             {todayRota.length === 0 ? (
-              <Box sx={{ p: 6, textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>No shifts scheduled for today.</Typography>
-              </Box>
+              <EmptyState
+                icon={<ScheduleIcon2 />}
+                title="No shifts today"
+                description="You have no shifts scheduled for today. Check your schedule to see upcoming shifts."
+              />
             ) : (
               <List sx={{ pt: 0 }}>
                 {todayRota.map((shift, i) => {
@@ -568,10 +575,12 @@ export default function DashboardPage() {
             </Box>
             <Divider />
             {todayAppointments.length === 0 ? (
-              <Box sx={{ p: 6, textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>No appointments scheduled for today.</Typography>
-                <Button size="small" sx={{ mt: 2, color: '#1A2332', fontWeight: 700 }} onClick={() => navigate('/appointments')}>Book Appointment</Button>
-              </Box>
+              <EmptyState
+                icon={<EventIcon />}
+                title="No appointments today"
+                description="You have no appointments scheduled for today."
+                action={{ label: 'Book Appointment', onClick: () => navigate('/appointments') }}
+              />
             ) : (
               <List sx={{ pt: 0 }}>
                 {todayAppointments.map((apt, i) => {

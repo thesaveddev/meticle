@@ -15,6 +15,9 @@ import {
 } from '@mui/icons-material'
 import api from '../../services/api'
 import { PremiumCard, StatCard, SectionHeader, StatusBadge } from '../../components/design/PremiumCard'
+import { EmptyState } from '../../components/design/EmptyState'
+import CallIcon2 from '@mui/icons-material/Phone'
+import GroupIcon from '@mui/icons-material/Group'
 
 interface DomiciliaryData {
   calls_today: number
@@ -198,13 +201,11 @@ export default function DomiciliaryDashboard() {
           <PremiumCard noBorder sx={{ p: 4 }}>
             <SectionHeader title="Call Schedule" subtitle={`${data.call_timeline.length} calls today`} />
             {data.call_timeline.length === 0 ? (
-              <Box sx={{ py: 8, textAlign: 'center' }}>
-                <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-                  <CallIcon sx={{ color: '#10B981' }} />
-                </Box>
-                <Typography variant="body1" sx={{ fontWeight: 700, mb: 0.5 }}>No calls scheduled today</Typography>
-                <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>Enjoy your day off!</Typography>
-              </Box>
+              <EmptyState
+                icon={<CallIcon2 />}
+                title="No calls today"
+                description="You have no calls scheduled for today. Enjoy your day off!"
+              />
             ) : (
               <Stack spacing={0}>
                 {data.call_timeline.map((call, i) => {
@@ -262,9 +263,12 @@ export default function DomiciliaryDashboard() {
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Carer Coverage</Typography>
             </Stack>
             {data.carer_breakdown.length === 0 ? (
-              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, py: 2, textAlign: 'center' }}>
-                No carers assigned today
-              </Typography>
+              <EmptyState
+                icon={<GroupIcon />}
+                title="No carers assigned"
+                description="No carers have been assigned to calls today."
+                variant="search"
+              />
             ) : (
               <Stack spacing={2}>
                 {data.carer_breakdown.map(carer => {
