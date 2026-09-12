@@ -12,31 +12,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Encode seed script
-        id: encode
-        run: echo "B64=$(base64 -w0 scripts/seed-dreakcare.js)" >> "$GITHUB_OUTPUT"
+      - name: Save SSH key
+        run: |
+          echo "${{ secrets.VPS_SSH_KEY }}" > /tmp/vps_key
+          chmod 600 /tmp/vps_key
 
-      - name: Run seed on production VPS
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: root
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            set -ex
-            echo "${{ steps.encode.outputs.B64 }}" | base64 -d > /tmp/seed.js
-            CONTAINER=$(docker ps -q -f name=api | head -1)
-            if [ -z "$CONTAINER" ]; then
-              docker ps -a
-              CONTAINER=$(docker ps -q | head -1)
-            fi
-            if [ -z "$CONTAINER" ]; then
-              echo "ERROR: No containers running"
-              exit 1
-            fi
-            echo "Container: $CONTAINER"
-            docker cp /tmp/seed.js "$CONTAINER:/tmp/seed.js"
-            docker exec "$CONTAINER" node /tmp/seed.js
-            docker exec "$CONTAINER" rm -f /tmp/seed.js
-            rm -f /tmp/seed.js
-            echo "Seed complete"
+      - name: Find API container
+        id: container
+        run: |
+          CONTAINER=$(ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@${{ secrets.VPS_HOST }} "docker ps -q -f name=api | head -1")
+          if [ -z "$CONTAINER" ]; then
+            CONTAINER=$(ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@${{ secrets.VPS_HOST }} "docker ps -q | head -1")
+          fi
+          echo "CONTAINER=$CONTAINER" >> "$GITHUB_OUTPUT"
+          echo "Found container: $CONTAINER"
+
+      - name: Seed DreakCare
+        run: |
+          CONTAINER=${{ steps.container.outputs.CONTAINER }}
+          echo "Container: $CONTAINER"
+          
+          # Check if DreakCare already exists
+          EXISTS=$(ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@${{ secrets.VPS_HOST }} \
+            "docker exec $CONTAINER node -e \"const p=require('pg');new p.Pool().query(\\\"SELECT id FROM organizations WHERE slug='dreakcare'\\\").then(r=>{process.stdout.write(r.rows.length?'YES':'NO')}).catch(()=>{process.stdout.write('NO')}).finally(()=>process.exit())\" 2>/dev/null" || echo "NO")
+          echo "Exists: $EXISTS"
+          if [ "$EXISTS" = "YES" ]; then
+            echo "DreakCare already exists, skipping"
+            exit 0
+          fi
+          
+          # Pipe seed script directly into the container via SSH
+          echo "Seeding..."
+          cat scripts/seed-dreakcare.js | ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@${{ secrets.VPS_HOST }} \
+            "docker exec -i $CONTAINER sh -c 'cat > /tmp/seed.js'"
+          
+          # Verify file was written
+          ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@${{ secrets.VPS_HOST }} \
+            "docker exec $CONTAINER wc -l /tmp/seed.js"
+          
+          # Run the seed
+          ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@${{ secrets.VPS_HOST }} \
+            "docker exec $CONTAINER node /tmp/seed.js"
+          
+          # Cleanup
+          ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@${{ secrets.VPS_HOST }} \
+            "docker exec $CONTAINER rm -f /tmp/seed.js"
+          
+          echo "Seed complete"
