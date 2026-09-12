@@ -1,0 +1,37 @@
+name: Seed DreakCare Demo Org
+
+on:
+  push:
+    branches: [seed/dreakcare]
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -Eeuo pipefail
+            cd /opt/meticle
+            CONTAINER=$(docker ps -q -f name=api | head -1)
+            if [ -z "$CONTAINER" ]; then echo "No API container found"; exit 1; fi
+
+            EXISTS=$(docker exec "$CONTAINER" node -e "const p=require('pg');new p.Pool().query(\"SELECT id FROM organizations WHERE slug='dreakcare'\").then(r=>{console.log(r.rows.length?'YES':'NO');p.end()}).catch(()=>{console.log('NO');p.end()})" 2>/dev/null || echo NO)
+            if [ "$EXISTS" = "YES" ]; then echo "DreakCare already exists - skipping"; exit 0; fi
+
+            echo "Uploading seed script..."
+            docker cp scripts/seed-dreakcare.js "$CONTAINER:/tmp/seed_dreakcare.js"
+
+            echo "Running seed..."
+            docker exec "$CONTAINER" node /tmp/seed_dreakcare.js
+
+            echo "Cleaning up..."
+            docker exec "$CONTAINER" rm /tmp/seed_dreakcare.js
+
+            echo "Seed complete"
