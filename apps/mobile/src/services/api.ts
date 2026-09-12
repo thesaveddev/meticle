@@ -102,3 +102,11 @@ export async function addAvailability(token: string, dayOfWeek: number, startTim
 export async function deleteAvailability(token: string, id: string): Promise<void> {
   await request(`/homecare/availability/${id}`, { method: 'DELETE' }, token)
 }
+
+export async function getPersonDetail(token: string, personId: string): Promise<any> {
+  return request(`/people/${encodeURIComponent(personId)}`, {}, token)
+}
+
+export async function getMedicationsForPerson(token: string, personId: string): Promise<any[]> {
+  return request<any[]>(`/emedication/records?personId=${encodeURIComponent(personId)}`, {}, token)
+}
