@@ -72,6 +72,15 @@ export async function setLocationThreshold(token: string, meters: number): Promi
   await request('/homecare/settings/location-threshold', { method: 'PATCH', body: JSON.stringify({ location_threshold_meters: meters }) }, token)
 }
 
+export async function getRequirePhoto(token: string): Promise<boolean> {
+  const res = await request<{ require_photo_on_checkout: boolean }>('/homecare/settings/require-photo', {}, token)
+  return res.require_photo_on_checkout || false
+}
+
+export async function setRequirePhoto(token: string, required: boolean): Promise<void> {
+  await request('/homecare/settings/require-photo', { method: 'PATCH', body: JSON.stringify({ require_photo_on_checkout: required }) }, token)
+}
+
 export async function executeVisitAction(token: string, visitId: string, action: 'check-in' | 'check-out', payload: Record<string, unknown>, actionKey: string) {
   return request(`/homecare/visits/${visitId}/offline/${action}`, { method: 'POST', body: JSON.stringify({ ...payload, action_key: actionKey }) }, token)
 }
