@@ -260,6 +260,23 @@ export async function reportIncident(token: string, data: {
   return request('/incidents', { method: 'POST', body: JSON.stringify(data) }, token)
 }
 
+// ── Notifications ──
+export async function getMyNotifications(token: string): Promise<any[]> {
+  return request('/notifications', {}, token)
+}
+
+export async function getUnreadNotificationCount(token: string): Promise<number> {
+  return request('/notifications/unread-count', {}, token)
+}
+
+export async function markNotificationRead(token: string, id: string): Promise<void> {
+  await request(`/notifications/${id}/read`, { method: 'PATCH' }, token)
+}
+
+export async function markAllNotificationsRead(token: string): Promise<void> {
+  await request('/notifications/read-all', { method: 'PATCH' }, token)
+}
+
 // ── Chat ──
 export async function getChatChannels(token: string): Promise<string[]> {
   return request('/chat/channels', {}, token)

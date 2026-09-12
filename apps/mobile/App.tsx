@@ -4,9 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter'
 import { ThemeProvider, useTheme, elevation, radii, spacing, FONT } from './src/theme'
 import { TabIcon } from './src/components/TabIcons'
+import { Ionicons } from '@expo/vector-icons'
+import { hapticLight } from './src/services/haptics'
 import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitAction } from './src/types'
 import { readSession } from './src/services/storage'
-import { getCurrentUser, getMyVisits, login, logout, createDisruption } from './src/services/api'
+import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount } from './src/services/api'
 import { enqueueVisitAction, flushQueue, getQueue } from './src/services/visitQueue'
 import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners } from './src/services/notifications'
 import { LoginScreen } from './src/screens/LoginScreen'
@@ -23,6 +25,7 @@ import { WeekScreen } from './src/screens/WeekScreen'
 import { SwapTransferScreen } from './src/screens/SwapTransferScreen'
 import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen'
 import { ChatScreen } from './src/screens/ChatScreen'
+import { NotificationsScreen } from './src/screens/NotificationsScreen'
 import { SwipeBack } from './src/components/SwipeBack'
 
 type TabKey = 'today' | 'schedule' | 'mileage' | 'settings'
@@ -46,6 +49,7 @@ type Screen =
   | { kind: 'availability' }
   | { kind: 'swap' }
   | { kind: 'chat' }
+  | { kind: 'notifications' }
 
 export default function App() {
   return (
@@ -69,6 +73,7 @@ function AppInner() {
   const [tab, setTab] = useState<TabKey>('today')
   const [refreshing, setRefreshing] = useState(false)
   const [screenStack, setScreenStack] = useState<Screen[]>([{ kind: 'tabs' }])
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const currentScreen = screenStack[screenStack.length - 1]
   const pushScreen = useCallback((screen: Screen) => setScreenStack(prev => [...prev, screen]), [])
@@ -110,12 +115,22 @@ function AppInner() {
         const active = { ...stored, user: current.user, organization: current.organization }
         setSession(active); await loadQueue(); await loadVisits(active)
         registerForPushNotifications(active.accessToken).catch(() => {})
+        getUnreadNotificationCount(active.accessToken).then(setUnreadCount).catch(() => {})
       } catch { setSession(null) }
       finally { setBooting(false) }
     })
     addNotificationListeners(() => {}, () => {})
     return () => { removeNotificationListeners() }
   }, [loadQueue, loadVisits])
+
+  // Poll unread notification count every 30 seconds
+  useEffect(() => {
+    if (!session?.accessToken) return
+    const interval = setInterval(() => {
+      getUnreadNotificationCount(session.accessToken).then(setUnreadCount).catch(() => {})
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [session?.accessToken])
 
   async function handleLogin(email: string, password: string) {
     setLoginLoading(true); setLoginError('')
@@ -216,12 +231,27 @@ function AppInner() {
   if (currentScreen.kind === 'chat' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ChatScreen session={session} onBack={goBack} /></SwipeBack></>
   }
+  if (currentScreen.kind === 'notifications' && session) {
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} /></SwipeBack></>
+  }
 
   /* ─── Main tab view ──────────────────────────────────────── */
   return (
     <>
       <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
       <SafeAreaView style={[s.app, { backgroundColor: c.bg }]} edges={['top', 'left', 'right']}>
+        {/* Header with notification bell */}
+        <View style={[s.header, { backgroundColor: c.bg }]}>  
+          <View style={{ flex: 1 }} />
+          <Pressable onPress={() => { hapticLight(); pushScreen({ kind: 'notifications' }); setUnreadCount(0) }} style={s.notifBtn}>
+            <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={24} color={c.ink} />
+            {unreadCount > 0 && (
+              <View style={[s.notifBadge, { backgroundColor: c.danger }]}>
+                <Text style={s.notifBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
         <View style={[s.body, { backgroundColor: c.bg }]}>
           {tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} />}
           {tab === 'schedule' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap' })} />}
@@ -262,4 +292,8 @@ const s = StyleSheet.create({
   bootLogo: { width: 64, height: 64, borderRadius: radii.xl, alignItems: 'center', justifyContent: 'center', ...elevation.md },
   bootLogoText: { fontSize: 32, fontWeight: '800', fontFamily: FONT },
   bootText: { fontFamily: FONT, fontSize: 16, fontWeight: '600', marginTop: spacing.sm },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: spacing.base, paddingBottom: spacing.xs },
+  notifBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', position: 'relative' },
+  notifBadge: { position: 'absolute', top: 4, right: 4, minWidth: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+  notifBadgeText: { fontSize: 10, fontFamily: FONT, fontWeight: '700', color: '#FFFFFF' },
 })
