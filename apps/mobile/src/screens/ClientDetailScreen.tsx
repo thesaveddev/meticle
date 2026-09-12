@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
 import { SkeletonScreen } from '../components/Skeleton'
@@ -38,24 +38,27 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
   const [mapPickerOpen, setMapPickerOpen] = useState(false)
   const [navDest, setNavDest] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [personData, medData, bmStats, nutSummary] = await Promise.all([
-          getPersonDetail(session.accessToken, personId),
-          getMedicationsForPerson(session.accessToken, personId).catch(() => []),
-          getBodyMapStats(session.accessToken, personId).catch(() => null),
-          getDailySummary(session.accessToken, personId).catch(() => null),
-        ])
-        setPerson(personData)
-        setMedications(medData)
-        setBodyMapStats(bmStats)
-        setNutritionSummary(nutSummary)
-      } catch (e: any) {
-        setError(e.message || 'Could not load details')
-      } finally {
-        setLoading(false)
-      }
+  const [refreshing, setRefreshing] = useState(false)
+  const loadData = useCallback(async () => {
+    try {
+      const [personData, medData, bmStats, nutSummary] = await Promise.all([
+        getPersonDetail(session.accessToken, personId),
+        getMedicationsForPerson(session.accessToken, personId).catch(() => []),
+        getBodyMapStats(session.accessToken, personId).catch(() => null),
+        getDailySummary(session.accessToken, personId).catch(() => null),
+      ])
+      setPerson(personData)
+      setMedications(medData)
+      setBodyMapStats(bmStats)
+      setNutritionSummary(nutSummary)
+    } catch (e: any) {
+      setError(e.message || 'Could not load details')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [session.accessToken, personId])
+  useEffect(() => { loadData() }, [loadData])
     })()
   }, [personId])
 
@@ -141,7 +144,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
       </ScrollView>
 
       {/* Tab content */}
-      <ScrollView contentContainerStyle={[styles.tabContent, { padding: spacing.base, paddingBottom: spacing.xxxl }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.tabContent, { padding: spacing.base, paddingBottom: spacing.xxxl }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData() }} tintColor={c.primary} />}>
         {tab === 'overview' && <OverviewTab person={person} />}
         {tab === 'care' && <CareTab carePlans={carePlans} />}
         {tab === 'body' && (

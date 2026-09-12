@@ -23,6 +23,7 @@ import { WeekScreen } from './src/screens/WeekScreen'
 import { SwapTransferScreen } from './src/screens/SwapTransferScreen'
 import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen'
 import { ChatScreen } from './src/screens/ChatScreen'
+import { SwipeBack } from './src/components/SwipeBack'
 
 type TabKey = 'today' | 'schedule' | 'mileage' | 'settings'
 
@@ -184,13 +185,13 @@ function AppInner() {
 
   /* ─── Sub-screens ────────────────────────────────────────── */
   if (currentScreen.kind === 'bodyMap' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><BodyMapScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><BodyMapScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></SwipeBack></>
   }
   if (currentScreen.kind === 'nutrition' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><NutritionScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><NutritionScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></SwipeBack></>
   }
   if (currentScreen.kind === 'clientDetail' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} /></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} /></SwipeBack></>
   }
   if (currentScreen.kind === 'visit' && session) {
     // Find next visit after this one
@@ -198,22 +199,22 @@ function AppInner() {
     const currentIdx = sortedVisits.findIndex(v => v.id === currentScreen.visit.id)
     const prevV = currentIdx > 0 ? sortedVisits[currentIdx - 1] : null
     const nextV = currentIdx >= 0 && currentIdx < sortedVisits.length - 1 ? sortedVisits[currentIdx + 1] : null
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap' })} previousVisit={prevV} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap' })} previousVisit={prevV} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></SwipeBack></>
   }
   if (currentScreen.kind === 'availability' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><AvailabilityScreen session={session} /></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AvailabilityScreen session={session} /></SwipeBack></>
   }
   if (currentScreen.kind === 'profile' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></SwipeBack></>
   }
   if (currentScreen.kind === 'swap' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwapTransferScreen session={session} user={user} visits={visits} onBack={goBack} onRefresh={() => loadVisits(session)} /></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><SwapTransferScreen session={session} user={user} visits={visits} onBack={goBack} onRefresh={() => loadVisits(session)} /></SwipeBack></>
   }
   if (currentScreen.kind === 'incident' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} /></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} /></SwipeBack></>
   }
   if (currentScreen.kind === 'chat' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><ChatScreen session={session} onBack={goBack} /></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ChatScreen session={session} onBack={goBack} /></SwipeBack></>
   }
 
   /* ─── Main tab view ──────────────────────────────────────── */

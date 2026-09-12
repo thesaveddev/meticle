@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { Alert, Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 
@@ -33,8 +33,9 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetch(`${API_BASE}/staff/me/profile`, {
+  const [refreshing, setRefreshing] = useState(false)
+  const loadProfile = useCallback(() => {
+    return fetch(`${API_BASE}/staff/me/profile`, {
       headers: { Authorization: `Bearer ${session.accessToken}` },
     })
       .then(r => r.json())
@@ -48,8 +49,9 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
         if (data.profile_picture_url) setProfilePhoto(data.profile_picture_url)
       })
       .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => { setLoading(false); setRefreshing(false) })
+  }, [session.accessToken])
+  useEffect(() => { loadProfile() }, [loadProfile])
 
   const pickImage = async () => {
     hapticLight()
@@ -159,7 +161,7 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadProfile() }} tintColor={c.primary} />}>
         <Pressable onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
           <Text style={styles.backText}>Settings</Text>
