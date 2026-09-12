@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Grid, Stack, Button, Dialog, DialogTitle, Dialo
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ExpandMore as ExpandIcon, Warning as WarningIcon, CheckCircle as CheckIcon } from '@mui/icons-material'
 import { useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
+import { EmptyRow } from '../../components/ui'
 
 interface Milestone { id: string; title: string; description?: string; is_completed: boolean; completed_at?: string; sort_order: number }
 interface ProgressEntry { id: string; progress: number; note?: string; recorded_at: string; recorded_by_name?: string }
@@ -250,7 +251,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
           </TableRow></TableHead>
           <TableBody>
             {goals.length === 0 ? (
-              <TableRow><TableCell colSpan={9} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No goals yet</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} align="center"><EmptyRow message="No goals yet" /></TableCell></TableRow>
             ) : goals.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((g) => (
               <>
                 <TableRow key={g.id} hover sx={{ bgcolor: g.overdue_review ? '#FFF7ED' : undefined }}>

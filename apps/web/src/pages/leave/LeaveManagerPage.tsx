@@ -12,7 +12,7 @@ import {
   Info as InfoIcon, ChevronLeft, ChevronRight, Delete as DeleteIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
-import { ConfirmDialog } from '../../components/ui'
+import { ConfirmDialog, EmptyRow } from '../../components/ui'
 
 interface LeaveType {
   id: string; name: string; color: string; days_allowed: number; hours_allowed: number; duration_type: string
@@ -529,7 +529,7 @@ export default function LeaveManagerPage() {
               </TableHead>
               <TableBody>
                 {myRequests.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} align="center" sx={{ py: 4, color: '#9CA3AF' }}>No leave requests yet</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} align="center"><EmptyRow message="No leave requests yet" /></TableCell></TableRow>
                 ) : myRequests.slice(myPage * 10, myPage * 10 + 10).map(r => {
                   const days = requestDays(r)
                   const duration = r.duration_type === 'hours' && r.hours_requested
@@ -615,7 +615,7 @@ export default function LeaveManagerPage() {
                 </TableHead>
                 <TableBody>
                   {allRequests.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4, color: '#9CA3AF' }}>No leave requests found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} align="center"><EmptyRow message="No leave requests found" /></TableCell></TableRow>
                   ) : allRequests.slice(allPage * 10, allPage * 10 + 10).map(r => {
                     const days = requestDays(r)
                     const duration = r.duration_type === 'hours' && r.hours_requested
