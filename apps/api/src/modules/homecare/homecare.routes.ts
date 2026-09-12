@@ -39,7 +39,7 @@ const planSchema = z.object({
   default_staff_id: uuid.nullish(),
 });
 const generationSchema = z.object({ from: date, to: date });
-const availabilitySchema = z.object({ staff_id: uuid, day_of_week: z.number().int().min(0).max(6), start_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/), end_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/), is_available: z.boolean().optional() });
+const availabilitySchema = z.object({ staff_id: uuid.optional(), day_of_week: z.number().int().min(0).max(6), start_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/), end_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/), is_available: z.boolean().optional() });
 const disruptionSchema = z.object({ disruption_type: z.enum(['traffic','public_transport','weather','vehicle','client_unavailable','unsafe','other']), severity: z.enum(['low','medium','high']).optional(), delay_minutes: z.number().int().min(0).max(1440).optional(), description: z.string().trim().min(1).max(5000), expected_arrival: iso.nullish() });
 const mileagePolicySchema = z.object({ tax_year: z.string().trim().min(4).max(9), vehicle_type: z.enum(['car','motorcycle','bicycle','public_transport','other']), fuel_category: z.enum(['petrol','diesel','hybrid','electric','lpg','not_applicable','other']), rate_pence: z.number().int().min(0), effective_from: date.nullish(), effective_to: date.nullish(), source_label: z.string().max(255).nullish(), is_active: z.boolean().optional() });
 const followupSchema = z.object({ followup_type: z.enum(['communication','incident']), channel: z.string().max(30).nullish(), recipient: z.string().max(255).nullish(), outcome: z.enum(['recorded','attempted','completed','no_answer','escalated']).optional(), notes: z.string().trim().min(1).max(5000), incident_id: uuid.nullish() });
