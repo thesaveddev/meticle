@@ -6,7 +6,7 @@ import { dyn } from '../utils/dynamicStyles'
 import { SkeletonCalendar } from '../components/Skeleton'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { getMyVisits } from '../services/api'
-import { IconCheck, IconClock, IconAlert, IconForward, IconNavigate } from '../components/Icons'
+import { IconCheck, IconClock, IconAlert, IconForward, IconNavigate, IconTwoPerson } from '../components/Icons'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { MapPickerModal } from '../components/MapPickerModal'
@@ -219,6 +219,12 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
                       </View>
                     )}
                   </View>
+                  {visit.requires_two_staff && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 }}>
+                      <IconTwoPerson size={12} color={c.warning} />
+                      <Text style={{ fontFamily: FONT, fontSize: 10, fontWeight: '700', color: c.warning }}>2-person</Text>
+                    </View>
+                  )}
                   <StatusDot status={visit.status} overdue={ov} c={c} />
                 </Pressable>
               )

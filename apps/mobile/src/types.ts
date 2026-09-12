@@ -39,6 +39,9 @@ export interface HomecareVisit {
   check_out_at?: string | null
   visit_notes?: string | null
   photos?: string[]
+  requires_two_staff?: boolean
+  second_staff_id?: string | null
+  second_staff_name?: string | null
 }
 
 export type VisitAction = 'check-in' | 'check-out'
