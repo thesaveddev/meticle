@@ -1,8 +1,8 @@
-import { useCallback, useMemo, useState } from 'react'
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Animated, Easing, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, type, FONT } from '../theme'
 import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../types'
-import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline } from '../components/Icons'
+import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconSync } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
 
 function time(value: string) {
@@ -72,6 +72,42 @@ function StatusIcon({ status }: { status: VisitStatus }) {
   }
 }
 
+/* ─── Custom refresh indicator ──────────────────────────────── */
+function CustomRefreshIndicator({ refreshing }: { refreshing: boolean }) {
+  const spin = useRef(new Animated.Value(0)).current
+  const pulse = useRef(new Animated.Value(1)).current
+
+  useEffect(() => {
+    if (refreshing) {
+      Animated.loop(
+        Animated.timing(spin, { toValue: 1, duration: 1000, easing: Easing.linear, useNativeDriver: true })
+      ).start()
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulse, { toValue: 0.5, duration: 500, useNativeDriver: true }),
+          Animated.timing(pulse, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ])
+      ).start()
+    } else {
+      spin.stopAnimation()
+      spin.setValue(0)
+      pulse.stopAnimation()
+      pulse.setValue(1)
+    }
+  }, [refreshing])
+
+  const rotation = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] })
+
+  return (
+    <View style={styles.refreshWrap}>
+      <Animated.View style={{ transform: [{ rotate: rotation }, { scale: pulse }] }}>
+        <IconSync size={20} color={colors.primary} />
+      </Animated.View>
+      <Text style={styles.refreshText}>{refreshing ? 'Refreshing...' : 'Pull to refresh'}</Text>
+    </View>
+  )
+}
+
 export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshing, onSync }: {
   user: MobileUser
   visits: HomecareVisit[]
@@ -95,7 +131,15 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
       style={styles.screen}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { hapticMedium(); onRefresh() }} tintColor={colors.primary} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => { hapticMedium(); onRefresh() }}
+          tintColor="transparent"
+          colors={['transparent']}
+          style={{ backgroundColor: 'transparent' }}
+        />
+      }
     >
       {/* Header */}
       <View style={styles.header}>
@@ -237,10 +281,15 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         </View>
       )}
 
+      {/* Refresh indicator */}
+      <CustomRefreshIndicator refreshing={refreshing} />
+
       {/* Empty state */}
-      {visits.length === 0 && (
+      {visits.length === 0 && !refreshing && (
         <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>📋</Text>
+          <View style={styles.emptyIconWrap}>
+            <IconClock size={32} color={colors.subtle} />
+          </View>
           <Text style={styles.emptyTitle}>No calls today</Text>
           <Text style={styles.emptyText}>Pull down to refresh your schedule.</Text>
         </View>
@@ -336,9 +385,21 @@ const styles = StyleSheet.create({
     color: colors.subtle, textTransform: 'uppercase', marginBottom: spacing.sm,
   },
 
+  /* Refresh indicator */
+  refreshWrap: {
+    alignItems: 'center', justifyContent: 'center',
+    paddingVertical: spacing.md, marginBottom: spacing.sm,
+  },
+  refreshText: { fontFamily: FONT, fontSize: 12, fontWeight: '500', color: colors.subtle, marginTop: spacing.xs },
+
   /* Empty */
   empty: { alignItems: 'center', paddingVertical: spacing.xxxl },
-  emptyIcon: { fontSize: 48, marginBottom: spacing.base },
+  emptyIconWrap: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight,
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.base,
+    ...elevation.sm,
+  },
   emptyTitle: { fontFamily: FONT, fontSize: 18, fontWeight: '700', color: colors.ink, marginBottom: spacing.xs },
   emptyText: { fontFamily: FONT, fontSize: 14, fontWeight: '400', color: colors.muted },
 })
