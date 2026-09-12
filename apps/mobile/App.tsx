@@ -11,6 +11,8 @@ import { TodayScreen, dayRange } from './src/screens/TodayScreen'
 import { VisitScreen } from './src/screens/VisitScreen'
 import { SettingsScreen } from './src/screens/SettingsScreen'
 import { AvailabilityScreen } from './src/screens/AvailabilityScreen'
+import { ClientDetailScreen } from './src/screens/ClientDetailScreen'
+import { MileageScreen } from './src/screens/MileageScreen'
 
 function AppTab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return <Pressable accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={onPress} style={({ pressed }) => [styles.tab, active && styles.activeTab, pressed && styles.pressed]}><Text style={[styles.tabLabel, active && styles.activeTabLabel]}>{label}</Text></Pressable>
@@ -24,7 +26,8 @@ export default function App() {
   const [visits, setVisits] = useState<HomecareVisit[]>([])
   const [queue, setQueue] = useState<OfflineVisitAction[]>([])
   const [selectedVisit, setSelectedVisit] = useState<HomecareVisit | null>(null)
-  const [tab, setTab] = useState<'today' | 'availability' | 'settings'>('today')
+  const [tab, setTab] = useState<'today' | 'mileage' | 'availability' | 'settings'>('today')
+  const [clientDetail, setClientDetail] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
   const loadQueue = useCallback(async () => setQueue(await getQueue()), [])
@@ -88,9 +91,10 @@ export default function App() {
 
   if (booting) return <SafeAreaView style={styles.boot}><ActivityIndicator color={colors.navy} /><Text style={styles.bootText}>Opening MeticleCare</Text></SafeAreaView>
   if (!session || !user) return <LoginScreen onLogin={handleLogin} error={loginError} loading={loginLoading} />
-  if (selectedVisit) return <VisitScreen visit={selectedVisit} queue={activeQueue} onBack={() => setSelectedVisit(null)} onAction={handleAction} onDisruption={handleDisruption} />
+  if (clientDetail && session) return <ClientDetailScreen personId={clientDetail} session={session} onBack={() => setClientDetail(null)} />
+  if (selectedVisit) return <VisitScreen visit={selectedVisit} queue={activeQueue} onBack={() => setSelectedVisit(null)} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(personId) => setClientDetail(personId)} />
 
-  return <SafeAreaView style={styles.app}><View style={styles.body}>{tab === 'today' ? <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={setSelectedVisit} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} /> : tab === 'availability' ? <AvailabilityScreen session={session} /> : <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} />}</View><View style={styles.tabs}><AppTab label="Today" active={tab === 'today'} onPress={() => setTab('today')} /><AppTab label="Availability" active={tab === 'availability'} onPress={() => setTab('availability')} /><AppTab label="Settings" active={tab === 'settings'} onPress={() => setTab('settings')} /></View></SafeAreaView>
+  return <SafeAreaView style={styles.app}><View style={styles.body}>{tab === 'today' ? <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={setSelectedVisit} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} /> : tab === 'mileage' ? <MileageScreen session={session} /> : tab === 'availability' ? <AvailabilityScreen session={session} /> : <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} />}</View><View style={styles.tabs}><AppTab label="Today" active={tab === 'today'} onPress={() => setTab('today')} /><AppTab label="Mileage" active={tab === 'mileage'} onPress={() => setTab('mileage')} /><AppTab label="Availability" active={tab === 'availability'} onPress={() => setTab('availability')} /><AppTab label="Settings" active={tab === 'settings'} onPress={() => setTab('settings')} /></View></SafeAreaView>
 }
 
 const styles = StyleSheet.create({

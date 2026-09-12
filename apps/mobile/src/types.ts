@@ -24,12 +24,14 @@ export interface HomecareVisit {
   status: 'scheduled' | 'en_route' | 'checked_in' | 'completed' | 'missed' | 'cancelled'
   scheduled_start: string
   scheduled_end: string
+  person_id?: string
   person_name?: string
   person_address?: string
   package_name?: string
   assigned_staff_name?: string
   actual_travel_minutes?: number | null
   actual_mileage_miles?: number | null
+  mileage_rate_pence?: number | null
   travel_buffer_minutes?: number | null
 }
 

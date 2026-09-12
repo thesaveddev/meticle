@@ -7,7 +7,7 @@ import { getVisitLocation } from '../services/location'
 
 function time(value: string) { return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) }
 
-export function VisitScreen({ visit, onBack, onAction, onDisruption, queue }: { visit: HomecareVisit; onBack: () => void; onAction: (action: VisitAction, payload: OfflineVisitAction['payload']) => Promise<{ synced: boolean }>; onDisruption: (body: Record<string, unknown>) => Promise<void>; queue: OfflineVisitAction[] }) {
+export function VisitScreen({ visit, onBack, onAction, onDisruption, queue, onClientDetail }: { visit: HomecareVisit; onBack: () => void; onAction: (action: VisitAction, payload: OfflineVisitAction['payload']) => Promise<{ synced: boolean }>; onDisruption: (body: Record<string, unknown>) => Promise<void>; queue: OfflineVisitAction[]; onClientDetail?: (personId: string) => void }) {
   const [note, setNote] = useState('')
   const [travelMinutes, setTravelMinutes] = useState('')
   const [mileage, setMileage] = useState('')
@@ -40,7 +40,7 @@ export function VisitScreen({ visit, onBack, onAction, onDisruption, queue }: { 
       <Text style={styles.back} onPress={onBack}>Back to today</Text>
       <View style={styles.heading}><Text style={type.display}>{visit.label}</Text><Text style={styles.status}>{visit.status.replace('_', ' ')}</Text></View>
       <Text style={styles.time}>{time(visit.scheduled_start)} to {time(visit.scheduled_end)}</Text>
-      {visit.person_name && <View style={styles.personBlock}><Text style={styles.person}>{visit.person_name}</Text>{visit.person_address && <Text style={styles.address}>{visit.person_address}</Text>}</View>}
+      {visit.person_name && <View style={styles.personBlock}><Text style={styles.person}>{visit.person_name}</Text>{visit.person_address && <Text style={styles.address}>{visit.person_address}</Text>}{onClientDetail && visit.person_id && <Text style={styles.viewClient} onPress={() => onClientDetail(visit.person_id!)}>View client details →</Text>}</View>}
 
       {success && <View style={styles.success}><Text style={styles.successText}>{success}</Text></View>}
       {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
@@ -71,6 +71,7 @@ const styles = StyleSheet.create({
   personBlock: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.hairline, paddingVertical: spacing.md, marginTop: spacing.lg },
   person: { ...type.title, color: colors.ink },
   address: { ...type.body, color: colors.mist, marginTop: 2 },
+  viewClient: { ...type.label, color: colors.navy, marginTop: spacing.sm },
   section: { marginTop: spacing.xxl, gap: spacing.md },
   sectionTitle: { ...type.title, color: colors.ink },
   helper: { ...type.caption, color: colors.mist },
