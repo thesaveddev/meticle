@@ -154,6 +154,7 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
                 ]}>
                   <Text style={[
                     styles.dayNumText,
+                    { color: c.ink },
                     isToday && [styles.dayNumTextToday, { color: c.primary }],
                     isSelected && [styles.dayNumTextSelected, { color: c.inverse }],
                   ]}>{day}</Text>
