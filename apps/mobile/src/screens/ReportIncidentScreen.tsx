@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type } from '../theme'
+import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import type { AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { hapticLight, hapticWarning } from '../services/haptics'
@@ -38,6 +38,7 @@ interface Props {
 }
 
 export function ReportIncidentScreen({ session, visitId, personId, personName, onBack, onSubmitted }: Props) {
+  const c = useAppColors()
   const [category, setCategory] = useState('')
   const [severity, setSeverity] = useState('medium')
   const [title, setTitle] = useState('')
@@ -89,7 +90,7 @@ export function ReportIncidentScreen({ session, visitId, personId, personName, o
 
   if (success) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
         <View style={styles.successView}>
           <Text style={styles.successIcon}>✓</Text>
           <Text style={styles.successTitle}>Incident reported</Text>
@@ -100,7 +101,7 @@ export function ReportIncidentScreen({ session, visitId, personId, personName, o
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Pressable onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type } from '../theme'
+import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { PrimaryButton } from '../components/PrimaryButton'
 import type { AuthSession, AvailabilityRecord } from '../types'
 import { getMyAvailability, addAvailability, deleteAvailability } from '../services/api'
@@ -10,6 +10,7 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 export function AvailabilityScreen({ session }: { session: AuthSession }) {
+  const c = useAppColors()
   const [records, setRecords] = useState<AvailabilityRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -53,7 +54,7 @@ export function AvailabilityScreen({ session }: { session: AuthSession }) {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.pageTitle}>My Availability</Text>
         <Text style={styles.subtitle}>Set the days and times you're available for calls.</Text>

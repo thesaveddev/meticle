@@ -3,7 +3,7 @@ import { Alert, Animated, Image, KeyboardAvoidingView, Modal, Platform, Pressabl
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 
-import { colors, elevation, radii, spacing, type, FONT } from '../theme'
+import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation } from '../services/location'
@@ -101,6 +101,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   onClientDetail?: (personId: string) => void
   onReportIncident?: () => void
 }) {
+  const c = useAppColors()
   const [note, setNote] = useState('')
   const [travelMinutes, setTravelMinutes] = useState('')
   const [mileage, setMileage] = useState('')
@@ -194,7 +195,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* Header */}

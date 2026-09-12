@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type } from '../theme'
+import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { PrimaryButton } from '../components/PrimaryButton'
 import {
   isBiometricAvailable,
@@ -21,6 +21,7 @@ interface Props {
 }
 
 export function LoginScreen({ onLogin, error, loading }: Props) {
+  const c = useAppColors()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [touched, setTouched] = useState(false)
@@ -93,7 +94,7 @@ export function LoginScreen({ onLogin, error, loading }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]} edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

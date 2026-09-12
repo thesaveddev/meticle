@@ -3,7 +3,7 @@ import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextIn
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 
-import { colors, elevation, radii, spacing, type } from '../theme'
+import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import type { AuthSession, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { hapticLight } from '../services/haptics'
@@ -18,6 +18,7 @@ interface Props {
 }
 
 export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
+  const c = useAppColors()
   const [firstName, setFirstName] = useState(user.first_name || '')
   const [lastName, setLastName] = useState(user.last_name || '')
   const [phone, setPhone] = useState('')
@@ -156,7 +157,7 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
   const displayPhoto = localPhotoUri || profilePhoto
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Pressable onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>

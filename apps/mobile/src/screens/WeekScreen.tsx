@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, FONT } from '../theme'
+import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { getMyVisits } from '../services/api'
 import { IconCheck, IconClock, IconAlert, IconForward, IconNavigate } from '../components/Icons'
@@ -34,15 +34,16 @@ function getFirstDayOfMonth(year: number, month: number) {
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
-function StatusDot({ status }: { status: string }) {
-  const color = status === 'completed' ? colors.success
-    : status === 'checked_in' ? colors.primary
-    : status === 'missed' ? colors.danger
-    : colors.subtle
+function StatusDot({ status, c }: { status: string; c: any }) {
+  const color = status === 'completed' ? c.success
+    : status === 'checked_in' ? c.primary
+    : status === 'missed' ? c.danger
+    : c.subtle
   return <View style={[styles.statusDot, { backgroundColor: color }]} />
 }
 
 export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
+  const c = useAppColors()
   const [visits, setVisits] = useState<HomecareVisit[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -97,39 +98,39 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
         <View style={styles.loading}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={styles.loadingText}>Loading schedule...</Text>
+          <ActivityIndicator color={c.primary} />
+          <Text style={[styles.loadingText, { color: c.muted }]}>Loading schedule...</Text>
         </View>
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { hapticMedium(); loadMonth(true) }} tintColor="transparent" colors={['transparent']} />}
       >
         {/* Month header */}
         <View style={styles.monthHeader}>
-          <Pressable onPress={prevMonth} style={styles.monthNav}>
-            <Text style={styles.monthNavText}>←</Text>
+          <Pressable onPress={prevMonth} style={[styles.monthNav, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Text style={[styles.monthNavText, { color: c.primary }]}>←</Text>
           </Pressable>
-          <Text style={styles.monthTitle}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
-          <Pressable onPress={nextMonth} style={styles.monthNav}>
-            <Text style={styles.monthNavText}>→</Text>
+          <Text style={[styles.monthTitle, { color: c.ink }]}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
+          <Pressable onPress={nextMonth} style={[styles.monthNav, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Text style={[styles.monthNavText, { color: c.primary }]}>→</Text>
           </Pressable>
         </View>
 
         {/* Summary */}
-        <Text style={styles.summary}>{total} calls · {completed} completed</Text>
+        <Text style={[styles.summary, { color: c.muted }]}>{total} calls · {completed} completed</Text>
 
         {/* Calendar grid */}
         <View style={styles.calendar}>
           {/* Day labels */}
           {DAY_LABELS.map((d, i) => (
-            <Text key={i} style={styles.dayLabel}>{d}</Text>
+            <Text key={i} style={[styles.dayLabel, { color: c.subtle }]}>{d}</Text>
           ))}
           {/* Day cells */}
           {calendarDays.map((day, i) => {
@@ -145,19 +146,19 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
                 style={({ pressed }) => [styles.dayCell, pressed && { opacity: 0.7 }]}>
                 <View style={[
                   styles.dayNum,
-                  isToday && styles.dayNumToday,
-                  isSelected && styles.dayNumSelected,
+                  isToday && { backgroundColor: c.primarySurface },
+                  isSelected && { backgroundColor: c.primary },
                 ]}>
                   <Text style={[
                     styles.dayNumText,
-                    isToday && styles.dayNumTextToday,
-                    isSelected && styles.dayNumTextSelected,
+                    isToday && [styles.dayNumTextToday, { color: c.primary }],
+                    isSelected && [styles.dayNumTextSelected, { color: c.inverse }],
                   ]}>{day}</Text>
                 </View>
                 {dayVisitCount > 0 && (
                   <View style={styles.dayDots}>
-                    {dayCompleted > 0 && <View style={[styles.dayDot, { backgroundColor: colors.success }]} />}
-                    {dayCompleted < dayVisitCount && <View style={[styles.dayDot, { backgroundColor: colors.primary }]} />}
+                    {dayCompleted > 0 && <View style={[styles.dayDot, { backgroundColor: c.success }]} />}
+                    {dayCompleted < dayVisitCount && <View style={[styles.dayDot, { backgroundColor: c.primary }]} />}
                   </View>
                 )}
               </Pressable>
@@ -166,51 +167,47 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
         </View>
 
         {/* Swap button */}
-        <Pressable onPress={() => { hapticLight(); onSwap() }} style={({ pressed }) => [styles.swapCard, pressed && { opacity: 0.8 }]}>
+        <Pressable onPress={() => { hapticLight(); onSwap() }} style={({ pressed }) => [[styles.swapCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.8 }]}>
           <View style={styles.swapIconWrap}>
-            <IconForward size={16} color={colors.primary} />
+            <IconForward size={16} color={c.primary} />
           </View>
           <View style={styles.swapInfo}>
-            <Text style={styles.swapTitle}>Swap or transfer a call</Text>
-            <Text style={styles.swapDesc}>Request to swap with a colleague</Text>
+            <Text style={[styles.swapTitle, { color: c.primary }]}>Swap or transfer a call</Text>
+            <Text style={[styles.swapDesc, { color: c.muted }]}>Request to swap with a colleague</Text>
           </View>
-          <Text style={styles.swapArrow}>→</Text>
+          <Text style={[styles.swapArrow, { color: c.primary }]}>→</Text>
         </Pressable>
 
         {/* Day visits */}
         <View style={styles.daySection}>
-          <Text style={styles.daySectionLabel}>
+          <Text style={[styles.daySectionLabel, { color: c.subtle }]}>
             {selectedDay.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
           </Text>
 
           {dayVisits.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>No calls on this day</Text>
-              <Text style={styles.emptyCopy}>Select another day or swap a call with a colleague.</Text>
+            <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+              <Text style={[styles.emptyTitle, { color: c.ink }]}>No calls on this day</Text>
+              <Text style={[styles.emptyCopy, { color: c.muted }]}>Select another day or swap a call with a colleague.</Text>
             </View>
           ) : (
             dayVisits.map(visit => (
               <Pressable key={visit.id} onPress={() => { hapticLight(); onVisit(visit) }}
-                style={({ pressed }) => [styles.visitCard, pressed && { opacity: 0.85 }]}>
-                <View style={styles.visitTimeCol}>
-                  <Text style={styles.visitTime}>{time(visit.scheduled_start)}</Text>
+                style={({ pressed }) => [[styles.visitCard, { backgroundColor: c.surface, borderColor: c.borderLight }], pressed && { opacity: 0.85 }]}>
+                <View style={styles.visitTimeCol}>                   <Text style={[styles.visitTime, { color: c.primary }]}>{time(visit.scheduled_start)}</Text>
                   <View style={styles.visitTimeDash} />
                   <Text style={styles.visitTimeEnd}>{time(visit.scheduled_end)}</Text>
                 </View>
-                <View style={styles.visitInfo}>
-                  <Text style={styles.visitLabel} numberOfLines={1}>{visit.label}</Text>
-                  {visit.person_name && <Text style={styles.visitPerson} numberOfLines={1}>{visit.person_name}</Text>}
+                <View style={styles.visitInfo}>                   <Text style={[styles.visitLabel, { color: c.ink }]} numberOfLines={1}>{visit.label}</Text>
+                  {visit.person_name && <Text style={[styles.visitPerson, { color: c.muted }]} numberOfLines={1}>{visit.person_name}</Text>}
                   {visit.person_address && (
-                    <View style={styles.addrRow}>
-                      <Text style={styles.visitAddr} numberOfLines={1}>{visit.person_address}</Text>
-                      <Pressable onPress={() => { hapticLight(); openNavigation({ destination: visit.person_address!, label: visit.person_name || visit.label }) }}
-                        style={({ pressed }) => [styles.navPill, pressed && { opacity: 0.7 }]}>
-                        <IconNavigate size={12} color={colors.primary} />
+                    <View style={styles.addrRow}>                       <Text style={[styles.visitAddr, { color: c.subtle }]} numberOfLines={1}>{visit.person_address}</Text>
+                      <Pressable onPress={() => { hapticLight(); openNavigation({ destination: visit.person_address!, label: visit.person_name || visit.label }) }}                         style={({ pressed }) => [[styles.navPill, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.7 }]}>
+                        <IconNavigate size={12} color={c.primary} />
                       </Pressable>
                     </View>
                   )}
                 </View>
-                <StatusDot status={visit.status} />
+                <StatusDot status={visit.status} c={c} />
               </Pressable>
             ))
           )}
