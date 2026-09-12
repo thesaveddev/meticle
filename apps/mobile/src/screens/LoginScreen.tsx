@@ -120,9 +120,9 @@ export function LoginScreen({ onLogin, error, loading }: Props) {
           {/* Biometric login button */}
           {biometricAvailable && biometricEnabled && (
             <Pressable onPress={handleBiometricLogin} style={styles.biometricBtn}>
-              <Text style={styles.biometricIcon}>
-                {biometricLabel === 'Face ID' ? '面容' : '🖐️'}
-              </Text>
+              <View style={styles.biometricIconCircle}>
+                <Text style={styles.biometricIconLetter}>{biometricLabel === 'Face ID' ? 'F' : 'P'}</Text>
+              </View>
               <Text style={styles.biometricText}>Sign in with {biometricLabel}</Text>
             </Pressable>
           )}
@@ -177,7 +177,7 @@ export function LoginScreen({ onLogin, error, loading }: Props) {
                   onPress={() => { hapticLight(); setShowPassword(!showPassword) }}
                   style={styles.eyeBtn}
                 >
-                  <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+                  <Text style={styles.eyeIcon}>{showPassword ? 'HIDE' : 'SHOW'}</Text>
                 </Pressable>
               </View>
             </View>
@@ -249,7 +249,11 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: colors.primary + '30', paddingVertical: spacing.base,
     marginBottom: spacing.base, ...elevation.sm,
   },
-  biometricIcon: { fontSize: 24 },
+  biometricIconCircle: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primarySurface,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  biometricIconLetter: { fontFamily: 'System', fontSize: 14, fontWeight: '700', color: colors.primary },
   biometricText: { fontFamily: 'System', fontSize: 16, fontWeight: '700', color: colors.primary },
 
   form: { gap: spacing.base },
@@ -267,7 +271,7 @@ const styles = StyleSheet.create({
   passwordWrap: { position: 'relative', justifyContent: 'center' },
   passwordInput: { paddingRight: 52 },
   eyeBtn: { position: 'absolute', right: spacing.sm, top: 0, bottom: 0, width: 44, alignItems: 'center', justifyContent: 'center' },
-  eyeIcon: { fontSize: 18 },
+  eyeIcon: { fontFamily: 'System', fontSize: 11, fontWeight: '600', color: colors.primary },
 
   helper: { ...type.small, minHeight: 18 },
   errorBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.dangerSurface, padding: spacing.md, borderRadius: radii.md },

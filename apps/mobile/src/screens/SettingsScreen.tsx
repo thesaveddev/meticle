@@ -5,6 +5,7 @@ import { colors, elevation, radii, spacing, type } from '../theme'
 import type { MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { requestReminderPermission } from '../services/notifications'
+import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
 
 export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
   user: MobileUser
@@ -14,11 +15,13 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
 }) {
   const [reminders, setReminders] = useState<'unknown' | 'enabled' | 'disabled'>('unknown')
   const [message, setMessage] = useState('')
+  const [hapticOn, setHapticOn] = useState(true)
 
   useEffect(() => {
     requestReminderPermission()
       .then(enabled => setReminders(enabled ? 'enabled' : 'disabled'))
       .catch(() => setReminders('disabled'))
+    isHapticEnabled().then(setHapticOn)
   }, [])
 
   async function enableReminders() {
@@ -69,6 +72,31 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile }: {
               </View>
             )}
           </View>
+        </View>
+
+        {/* Haptic feedback */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHead}>PREFERENCES</Text>
+          <Pressable
+            onPress={async () => {
+              const next = !hapticOn
+              await setHapticEnabled(next)
+              setHapticOn(next)
+            }}
+            style={({ pressed }) => [styles.card, pressed && { opacity: 0.8 }]}
+          >
+            <View style={styles.cardRow}>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>Haptic feedback</Text>
+                <Text style={styles.cardDesc}>
+                  Vibration on button presses and pull-to-refresh.
+                </Text>
+              </View>
+              <View style={[styles.toggle, hapticOn && styles.toggleOn]}>
+                <View style={[styles.toggleDot, hapticOn && styles.toggleDotOn]} />
+              </View>
+            </View>
+          </Pressable>
         </View>
 
         {/* Offline section */}
@@ -177,4 +205,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.base,
   },
   msgText: { ...type.small, color: colors.successDeep },
+
+  /* Toggle */
+  toggle: { width: 40, height: 22, borderRadius: 11, backgroundColor: colors.border, justifyContent: 'center', paddingHorizontal: 2 },
+  toggleOn: { backgroundColor: colors.primary },
+  toggleDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.inverse },
+  toggleDotOn: { alignSelf: 'flex-end' },
 })
