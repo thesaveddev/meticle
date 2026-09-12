@@ -4,6 +4,8 @@ import { IncidentsRepository } from './incidents.repository';
 import { publishDomainEvent } from '../events/events.outbox';
 import { AuditRepository } from '../audit/audit.repository';
 import { NotificationsController } from '../notifications/notifications.controller';
+import { EmailService } from '../../shared/utils/email.service';
+import { sendPushToUser } from '../notifications/push.service';
 import { logWarn } from '../../shared/utils/logger';
 import logger from '../../shared/utils/logger';
 import { query } from '../../shared/database';
@@ -39,30 +41,57 @@ export class IncidentsController {
     const urgent = incident.severity === 'high' || incident.severity === 'critical' || incident.is_cqc_reportable;
     try {
       const admins = await query(
-        `SELECT id FROM users WHERE organization_id = $1 AND role = 'ORG_ADMIN' AND ($2::uuid IS NULL OR id != $2::uuid)`,
+        `SELECT u.id, u.email, COALESCE(sp.first_name, u.email) AS name
+         FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+         WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND ($2::uuid IS NULL OR u.id != $2::uuid)`,
         [orgId, IncidentsController.getUserId(req) || null]
       );
       const managers = urgent
         ? await query(
-            `SELECT id FROM users WHERE organization_id = $1 AND role = 'MANAGER' AND ($2::uuid IS NULL OR id != $2::uuid)`,
+            `SELECT u.id, u.email, COALESCE(sp.first_name, u.email) AS name
+             FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+             WHERE u.organization_id = $1 AND u.role = 'MANAGER' AND ($2::uuid IS NULL OR u.id != $2::uuid)`,
             [orgId, IncidentsController.getUserId(req) || null]
           )
-        : { rows: [] as Array<{ id: string }> };
+        : { rows: [] as Array<{ id: string; email: string; name: string }> };
+
       const targets = new Set<string>([...admins.rows, ...managers.rows].map((r) => r.id));
       const verb = incident.is_near_miss ? 'Near miss' : 'Incident';
       const title = urgent ? `${verb} reported (${incident.severity})` : `${verb} reported`;
       const message = `${incident.title}${incident.location ? ` at ${incident.location}` : ''} — ${incident.severity} severity${incident.is_cqc_reportable ? ', CQC reportable' : ''}.`;
-      // Await (in parallel) so the notification rows have committed by the
-      // time the create response lands. Persisted notifications are part of
-      // the API contract — fire-and-forget would let a user create an
-      // incident, close their laptop, and miss the urgent ping because the
-      // INSERT lost the race with the response.
+
+      // Send in-app notifications
       const targetIds = Array.from(targets);
       await Promise.all(
         targetIds.map((id: string) =>
           NotificationsController.createNotification(id, title, message, urgent ? 'warning' : 'info')
             .catch(logWarn('incident notification'))
         )
+      );
+
+      // Send push notifications and emails to managers
+      const reporterResult = await query(
+        `SELECT COALESCE(sp.first_name, u.email) AS name FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id WHERE u.id = $1`,
+        [IncidentsController.getUserId(req) || null]
+      );
+      const reporterName = reporterResult.rows[0]?.name || 'A staff member';
+
+      const allManagers = [...admins.rows, ...managers.rows];
+      await Promise.all(
+        allManagers.map(async (m) => {
+          try {
+            await sendPushToUser(m.id, {
+              type: 'incident_reported',
+              title,
+              body: message,
+              url: '/incidents',
+            }, 'incidents');
+            await EmailService.sendIncidentReportedEmail(
+              m.email, m.name, reporterName, incident.title,
+              incident.location || 'N/A', incident.description || ''
+            );
+          } catch { /* notification failure should not block */ }
+        })
       );
     } catch (err) {
       logger.error({ err }, 'Failed to notify admins of new incident');
