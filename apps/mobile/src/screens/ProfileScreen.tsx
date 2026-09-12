@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
-import * as FileSystem from 'expo-file-system'
+
 import { colors, elevation, radii, spacing, type } from '../theme'
 import type { AuthSession, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -89,20 +89,13 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
   const uploadPhoto = async (uri: string) => {
     setUploadingPhoto(true)
     try {
-      // Read file as base64 for React Native compatibility
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 })
       const filename = uri.split('/').pop() || 'photo.jpg'
       const ext = filename.split('.').pop()?.toLowerCase() || 'jpg'
       const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`
 
-      // Convert base64 to blob for FormData
-      const byteCharacters = atob(base64)
-      const byteNumbers = new Array(byteCharacters.length)
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i)
-      }
-      const byteArray = new Uint8Array(byteNumbers)
-      const blob = new Blob([byteArray], { type: mimeType })
+      // Use fetch to read file as blob — works on all platforms, no deprecated APIs
+      const response = await fetch(uri)
+      const blob = await response.blob()
 
       const formData = new FormData()
       formData.append('file', blob, filename)
