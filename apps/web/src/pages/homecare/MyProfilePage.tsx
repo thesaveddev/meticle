@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  Box, Typography, Paper, Stack, TextField, Button, Avatar, Alert, Grid,
-  CircularProgress, Divider,
+  Box, Typography, Paper, TextField, Button, Avatar, Alert, Grid,
+  CircularProgress,
 } from '@mui/material'
 import { Save as SaveIcon, PhotoCamera as PhotoIcon } from '@mui/icons-material'
 import api from '../../services/api'
