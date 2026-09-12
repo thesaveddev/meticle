@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type } from '../theme'
 import type { AuthSession, BodyMapEntry, BodyMapStats } from '../types'
 import { getBodyMapEntries, getBodyMapStats, createBodyMapEntry, updateBodyMapEntry } from '../services/api'
