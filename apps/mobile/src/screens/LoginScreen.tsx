@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type } from '../theme'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -9,91 +9,112 @@ export function LoginScreen({ onLogin, error, loading }: { onLogin: (email: stri
   const [password, setPassword] = useState('')
   const [touched, setTouched] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
   const invalid = touched && (!email.includes('@') || password.length === 0)
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
-        style={styles.wrap}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        {/* Brand block */}
-        <View style={styles.brandArea}>
-          <View style={styles.logoMark}>
-            <Text style={styles.logoText}>M</Text>
-          </View>
-          <Text style={styles.kicker}>METICLECARE</Text>
-          <Text style={styles.headline}>Your working day,{'\n'}in hand.</Text>
-          <Text style={styles.sub}>
-            Sign in to see your assigned calls and record care at the point it happens.
-          </Text>
-        </View>
-
-        {/* Form */}
-        <View style={styles.form}>
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Work email</Text>
-            <TextInput
-              accessibilityLabel="Work email"
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              onFocus={() => setFocusedField('email')}
-              onBlur={() => { setTouched(true); setFocusedField(null) }}
-              placeholder="name@provider.org"
-              placeholderTextColor={colors.subtle}
-              style={[
-                styles.input,
-                focusedField === 'email' && styles.inputFocused,
-                invalid && styles.inputError,
-              ]}
-            />
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Password</Text>
-            <TextInput
-              accessibilityLabel="Password"
-              secureTextEntry
-              autoComplete="password"
-              value={password}
-              onChangeText={setPassword}
-              onFocus={() => setFocusedField('password')}
-              onBlur={() => { setTouched(true); setFocusedField(null) }}
-              placeholder="Your password"
-              placeholderTextColor={colors.subtle}
-              style={[
-                styles.input,
-                focusedField === 'password' && styles.inputFocused,
-                invalid && styles.inputError,
-              ]}
-            />
-          </View>
-
-          {error ? (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorIcon}>!</Text>
-              <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          bounces={false}
+        >
+          {/* Brand block */}
+          <View style={styles.brandArea}>
+            <View style={styles.logoMark}>
+              <Text style={styles.logoText}>M</Text>
             </View>
-          ) : invalid ? (
-            <Text style={styles.helper}>Enter a valid work email and password.</Text>
-          ) : (
-            <Text style={styles.helper}>Same account as MeticleCare on the web.</Text>
-          )}
+            <Text style={styles.kicker}>METICLECARE</Text>
+            <Text style={styles.headline}>Your working day,{'\n'}in hand.</Text>
+            <Text style={styles.sub}>
+              Sign in to see your assigned calls and record care at the point it happens.
+            </Text>
+          </View>
 
-          <PrimaryButton
-            label="Sign in"
-            onPress={() => { setTouched(true); if (!invalid && email && password) onLogin(email, password) }}
-            loading={loading}
-            disabled={loading}
-          />
-        </View>
+          {/* Form */}
+          <View style={styles.form}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Work email</Text>
+              <TextInput
+                accessibilityLabel="Work email"
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                returnKeyType="next"
+                value={email}
+                onChangeText={setEmail}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => { setTouched(true); setFocusedField(null) }}
+                placeholder="name@provider.org"
+                placeholderTextColor={colors.subtle}
+                style={[
+                  styles.input,
+                  focusedField === 'email' && styles.inputFocused,
+                  invalid && styles.inputError,
+                ]}
+              />
+            </View>
 
-        <Text style={styles.footer}>
-          Location is only requested when you record an assigned call.
-        </Text>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Password</Text>
+              <View style={styles.passwordWrap}>
+                <TextInput
+                  accessibilityLabel="Password"
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                  returnKeyType="done"
+                  value={password}
+                  onChangeText={setPassword}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => { setTouched(true); setFocusedField(null) }}
+                  placeholder="Your password"
+                  placeholderTextColor={colors.subtle}
+                  style={[
+                    styles.input,
+                    styles.passwordInput,
+                    focusedField === 'password' && styles.inputFocused,
+                    invalid && styles.inputError,
+                  ]}
+                />
+                <Pressable
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeBtn}
+                >
+                  <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {error ? (
+              <View style={styles.errorBanner}>
+                <Text style={styles.errorIcon}>!</Text>
+                <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text>
+              </View>
+            ) : invalid ? (
+              <Text style={styles.helper}>Enter a valid work email and password.</Text>
+            ) : (
+              <Text style={styles.helper}>Same account as MeticleCare on the web.</Text>
+            )}
+
+            <PrimaryButton
+              label="Sign in"
+              onPress={() => { setTouched(true); if (!invalid && email && password) onLogin(email, password) }}
+              loading={loading}
+              disabled={loading}
+            />
+          </View>
+
+          <Text style={styles.footer}>
+            Location is only requested when you record an assigned call.
+          </Text>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   )
@@ -104,13 +125,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
-  wrap: {
+  flex: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
   },
   brandArea: {
-    marginBottom: spacing.xxxl,
+    marginBottom: spacing.xxl,
   },
   logoMark: {
     width: 48,
@@ -181,6 +206,27 @@ const styles = StyleSheet.create({
   inputError: {
     borderColor: colors.danger,
   },
+  /* Password field with eye toggle */
+  passwordWrap: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  passwordInput: {
+    paddingRight: 52,
+  },
+  eyeBtn: {
+    position: 'absolute',
+    right: spacing.sm,
+    top: 0,
+    bottom: 0,
+    width: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eyeIcon: {
+    fontSize: 18,
+  },
+  /* Rest */
   helper: {
     ...type.small,
     minHeight: 18,
