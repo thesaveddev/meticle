@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
@@ -21,15 +21,16 @@ export function AvailabilityScreen({ session }: { session: AuthSession }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const load = async () => {
+  const [refreshing, setRefreshing] = useState(false)
+  const load = useCallback(async () => {
     try {
       const data = await getMyAvailability(session.accessToken)
       setRecords(data)
     } catch { /* ignore */ }
-    finally { setLoading(false) }
-  }
+    finally { setLoading(false); setRefreshing(false) }
+  }, [session.accessToken])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   const handleAdd = async () => {
     setAdding(true); setError(''); setSuccess('')
@@ -56,7 +57,7 @@ export function AvailabilityScreen({ session }: { session: AuthSession }) {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load() }} tintColor={c.primary} />}>
         <Text style={styles.pageTitle}>My Availability</Text>
         <Text style={styles.subtitle}>Set the days and times you're available for calls.</Text>
 
