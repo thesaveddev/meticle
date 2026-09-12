@@ -62,6 +62,7 @@ import expensesRoutes from './modules/expenses/expenses.routes';
 import platformAdminRoutes from './modules/platform-admin/platform-admin.routes';
 import dsptRoutes from './modules/dspt/dspt.routes';
 import compliancePortalRoutes from './modules/compliance-portal/compliance-portal.routes';
+import bodyMapRoutes from './modules/body-map/bodyMap.routes';
 import shiftAuditRoutes from './modules/shift-audit/shift-audit.routes';
 import contactRoutes from './modules/contact/contact.routes';
 import eventRoutes from './modules/events/events.routes';
@@ -307,6 +308,7 @@ app.get('/health/ready', asyncHandler(async (req: Request, res: Response) => {
 
 app.use('/health', healthRoutes);
 app.use('/nutrition', nutritionRoutes);
+app.use('/body-map', bodyMapRoutes);
 app.use('/tasks', taskRoutes);
 app.use('/room-checks', roomCheckRoutes);
 app.use('/mobile', mobileRoutes);

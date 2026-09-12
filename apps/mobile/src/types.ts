@@ -63,3 +63,107 @@ export interface AvailabilityRecord {
   end_time: string
   is_available: boolean
 }
+
+/* ─── Body Map ───────────────────────────────────────────── */
+export interface BodyMapEntry {
+  id: string
+  person_id: string
+  body_view: 'front' | 'back'
+  body_zone: string
+  zone_x: number | null
+  zone_y: number | null
+  condition_type: 'bruise' | 'wound' | 'rash' | 'injection' | 'burn' | 'pressure_sore' | 'scar' | 'swelling' | 'skin_tear' | 'other'
+  description: string | null
+  severity: 'mild' | 'moderate' | 'severe'
+  status: 'active' | 'healing' | 'resolved'
+  recorded_date: string
+  resolved_date: string | null
+  image_url: string | null
+  recorded_by_name: string | null
+  created_at: string
+}
+
+export interface BodyMapStats {
+  active_count: number
+  healing_count: number
+  resolved_count: number
+  total_count: number
+}
+
+/* ─── Nutrition ───────────────────────────────────────────── */
+export interface DietaryProfile {
+  id: string
+  person_id: string
+  dietary_type: string | null
+  texture_modified: string | null
+  vegetarian: boolean
+  vegan: boolean
+  halal: boolean
+  kosher: boolean
+  gluten_free: boolean
+  dairy_free: boolean
+  nut_allergy: boolean
+  other_allergies: string | null
+  food_preferences: string | null
+  food_dislikes: string | null
+  fluid_daily_target_ml: number
+  appetite_level: 'poor' | 'fair' | 'good' | 'excellent' | null
+  eating_abilities: string | null
+  additional_notes: string | null
+}
+
+export interface MealRecord {
+  id: string
+  person_id: string
+  meal_date: string
+  meal_time: string | null
+  meal_type: 'breakfast' | 'morning_snack' | 'lunch' | 'afternoon_snack' | 'dinner' | 'evening_snack' | 'supplement'
+  notes: string | null
+  appetite_level: 'poor' | 'fair' | 'good' | 'excellent' | null
+  amount_offered: string | null
+  amount_consumed: string | null
+  consumed_percent: number | null
+  refused: boolean
+  refusal_reason: string | null
+  staff_concerns: string | null
+  fluid_ml: number | null
+  calories_estimate: number | null
+  items?: MealItem[]
+  created_at: string
+}
+
+export interface MealItem {
+  id: string
+  meal_id: string
+  food_name: string
+  portion_size: string | null
+  allergens: string | null
+  preparation_notes: string | null
+}
+
+export interface NutritionSummary {
+  total_meals: number
+  total_fluid_ml: number
+  avg_consumed_percent: number
+  meals_refused: number
+}
+
+/* ─── Two-person calls ─────────────────────────────────────── */
+export interface TeamMember {
+  id: string
+  user_id: string
+  first_name: string | null
+  last_name: string | null
+  email: string
+  role: string
+}
+
+/* ─── Manager view ─────────────────────────────────────────── */
+export interface ManagerVisitSummary {
+  total: number
+  completed: number
+  in_progress: number
+  scheduled: number
+  missed: number
+  unassigned: number
+}

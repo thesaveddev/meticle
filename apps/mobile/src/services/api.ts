@@ -110,3 +110,85 @@ export async function getPersonDetail(token: string, personId: string): Promise<
 export async function getMedicationsForPerson(token: string, personId: string): Promise<any[]> {
   return request<any[]>(`/emedication/records?personId=${encodeURIComponent(personId)}`, {}, token)
 }
+
+/* ─── Body Map ───────────────────────────────────────────── */
+import type { BodyMapEntry, BodyMapStats } from '../types'
+
+export async function getBodyMapEntries(token: string, personId: string): Promise<BodyMapEntry[]> {
+  return request<BodyMapEntry[]>(`/body-map/person/${encodeURIComponent(personId)}`, {}, token)
+}
+
+export async function getBodyMapActive(token: string, personId: string): Promise<BodyMapEntry[]> {
+  return request<BodyMapEntry[]>(`/body-map/person/${encodeURIComponent(personId)}/active`, {}, token)
+}
+
+export async function getBodyMapStats(token: string, personId: string): Promise<BodyMapStats> {
+  return request<BodyMapStats>(`/body-map/person/${encodeURIComponent(personId)}/stats`, {}, token)
+}
+
+export async function createBodyMapEntry(token: string, data: {
+  person_id: string
+  body_view: 'front' | 'back'
+  body_zone: string
+  zone_x?: number
+  zone_y?: number
+  condition_type: string
+  description?: string
+  severity?: string
+}): Promise<BodyMapEntry> {
+  return request<BodyMapEntry>('/body-map', { method: 'POST', body: JSON.stringify(data) }, token)
+}
+
+export async function updateBodyMapEntry(token: string, entryId: string, data: {
+  status?: string
+  description?: string
+  severity?: string
+}): Promise<BodyMapEntry> {
+  return request<BodyMapEntry>(`/body-map/${entryId}`, { method: 'PATCH', body: JSON.stringify(data) }, token)
+}
+
+/* ─── Nutrition ───────────────────────────────────────────── */
+import type { DietaryProfile, MealRecord, NutritionSummary } from '../types'
+
+export async function getDietaryProfile(token: string, personId: string): Promise<DietaryProfile | null> {
+  return request<DietaryProfile | null>(`/nutrition/${encodeURIComponent(personId)}/dietary-profile`, {}, token)
+}
+
+export async function getMealRecords(token: string, personId: string, from?: string, to?: string): Promise<MealRecord[]> {
+  const params = new URLSearchParams()
+  if (from) params.set('from', from)
+  if (to) params.set('to', to)
+  const qs = params.toString()
+  return request<MealRecord[]>(`/nutrition/${encodeURIComponent(personId)}/meals${qs ? '?' + qs : ''}`, {}, token)
+}
+
+export async function getDailySummary(token: string, personId: string): Promise<NutritionSummary> {
+  return request<NutritionSummary>(`/nutrition/${encodeURIComponent(personId)}/meals/summary`, {}, token)
+}
+
+export async function createMealRecord(token: string, personId: string, data: {
+  meal_type: string
+  meal_time?: string
+  notes?: string
+  appetite_level?: string
+  amount_offered?: string
+  amount_consumed?: string
+  consumed_percent?: number
+  refused?: boolean
+  refusal_reason?: string
+  fluid_ml?: number
+}): Promise<MealRecord> {
+  return request<MealRecord>(`/nutrition/${encodeURIComponent(personId)}/meals`, { method: 'POST', body: JSON.stringify(data) }, token)
+}
+
+/* ─── Team (for managers) ──────────────────────────────────── */
+import type { TeamMember } from '../types'
+
+export async function getTeamMembers(token: string): Promise<TeamMember[]> {
+  return request<TeamMember[]>('/homecare/staff', {}, token)
+}
+
+/* ─── Visit update with new fields ─────────────────────────── */
+export async function updateVisit(token: string, visitId: string, data: Record<string, unknown>): Promise<any> {
+  return request(`/homecare/visits/${visitId}`, { method: 'PATCH', body: JSON.stringify(data) }, token)
+}
