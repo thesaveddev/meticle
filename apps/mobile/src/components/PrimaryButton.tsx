@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
-import { colors, elevation, radii, spacing, FONT } from '../theme'
+import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { hapticLight } from '../services/haptics'
 
 type Tone = 'primary' | 'success' | 'danger' | 'outline'
@@ -14,14 +14,15 @@ interface Props {
 }
 
 export function PrimaryButton({ label, onPress, tone = 'primary', size = 'normal', loading = false, disabled = false }: Props) {
-  const bg = tone === 'primary' ? colors.primary
-    : tone === 'success' ? colors.success
-    : tone === 'danger' ? colors.danger
+  const c = useAppColors()
+  const bg = tone === 'primary' ? c.primary
+    : tone === 'success' ? c.success
+    : tone === 'danger' ? c.danger
     : 'transparent'
 
-  const fg = tone === 'outline' ? colors.primary : colors.inverse
+  const fg = tone === 'outline' ? c.primary : c.inverse
 
-  const border = tone === 'outline' ? colors.primary + '40' : bg
+  const border = tone === 'outline' ? c.border : 'transparent'
 
   return (
     <Pressable
@@ -35,7 +36,7 @@ export function PrimaryButton({ label, onPress, tone = 'primary', size = 'normal
         size === 'small' && styles.btnSmall,
         { backgroundColor: bg, borderColor: border },
         pressed && !disabled && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-        disabled && { opacity: 0.5 },
+        disabled && { opacity: 0.4 },
       ]}
     >
       {loading ? (
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     ...elevation.sm,
   },
   btnSmall: {
