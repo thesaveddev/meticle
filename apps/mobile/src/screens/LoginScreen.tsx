@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
 import {
@@ -23,6 +24,7 @@ interface Props {
 
 export function LoginScreen({ onLogin, error, loading }: Props) {
   const c = useAppColors()
+  const s = useDynamicStyles(styles)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [touched, setTouched] = useState(false)
@@ -95,44 +97,44 @@ export function LoginScreen({ onLogin, error, loading }: Props) {
   }
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]} edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={s.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={s.scrollContent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           bounces={false}
         >
           {/* Brand block */}
-          <View style={styles.brandArea}>
-            <View style={styles.logoMark}>
-              <Text style={styles.logoText}>M</Text>
+          <View style={s.brandArea}>
+            <View style={s.logoMark}>
+              <Text style={s.logoText}>M</Text>
             </View>
-            <Text style={styles.kicker}>METICLECARE</Text>
-            <Text style={styles.headline}>Your working day,{'\n'}in hand.</Text>
-            <Text style={styles.sub}>
+            <Text style={s.kicker}>METICLECARE</Text>
+            <Text style={s.headline}>Your working day,{'\n'}in hand.</Text>
+            <Text style={s.sub}>
               Sign in to see your assigned calls and record care at the point it happens.
             </Text>
           </View>
 
           {/* Biometric login button */}
           {biometricAvailable && biometricEnabled && (
-            <Pressable onPress={handleBiometricLogin} style={styles.biometricBtn}>
-              <View style={styles.biometricIconCircle}>
-                <Text style={styles.biometricIconLetter}>{biometricLabel === 'Face ID' ? 'F' : 'P'}</Text>
+            <Pressable onPress={handleBiometricLogin} style={s.biometricBtn}>
+              <View style={s.biometricIconCircle}>
+                <Text style={s.biometricIconLetter}>{biometricLabel === 'Face ID' ? 'F' : 'P'}</Text>
               </View>
-              <Text style={styles.biometricText}>Sign in with {biometricLabel}</Text>
+              <Text style={s.biometricText}>Sign in with {biometricLabel}</Text>
             </Pressable>
           )}
 
           {/* Form */}
-          <View style={styles.form}>
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Work email</Text>
+          <View style={s.form}>
+            <View style={s.fieldGroup}>
+              <Text style={s.fieldLabel}>Work email</Text>
               <TextInput
                 accessibilityLabel="Work email"
                 autoCapitalize="none"
@@ -146,16 +148,16 @@ export function LoginScreen({ onLogin, error, loading }: Props) {
                 placeholder="name@provider.org"
                 placeholderTextColor={colors.subtle}
                 style={[
-                  styles.input,
-                  focusedField === 'email' && styles.inputFocused,
-                  invalid && styles.inputError,
+                  s.input,
+                  focusedField === 'email' && s.inputFocused,
+                  invalid && s.inputError,
                 ]}
               />
             </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Password</Text>
-              <View style={styles.passwordWrap}>
+            <View style={s.fieldGroup}>
+              <Text style={s.fieldLabel}>Password</Text>
+              <View style={s.passwordWrap}>
                 <TextInput
                   accessibilityLabel="Password"
                   secureTextEntry={!showPassword}
@@ -168,31 +170,31 @@ export function LoginScreen({ onLogin, error, loading }: Props) {
                   placeholder="Your password"
                   placeholderTextColor={colors.subtle}
                   style={[
-                    styles.input,
-                    styles.passwordInput,
-                    focusedField === 'password' && styles.inputFocused,
-                    invalid && styles.inputError,
+                    s.input,
+                    s.passwordInput,
+                    focusedField === 'password' && s.inputFocused,
+                    invalid && s.inputError,
                   ]}
                 />
                 <Pressable
                   accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                   onPress={() => { hapticLight(); setShowPassword(!showPassword) }}
-                  style={styles.eyeBtn}
+                  style={s.eyeBtn}
                 >
-                  <Text style={styles.eyeIcon}>{showPassword ? 'HIDE' : 'SHOW'}</Text>
+                  <Text style={s.eyeIcon}>{showPassword ? 'HIDE' : 'SHOW'}</Text>
                 </Pressable>
               </View>
             </View>
 
             {error ? (
-              <View style={styles.errorBanner}>
-                <Text style={styles.errorIcon}>!</Text>
-                <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text>
+              <View style={s.errorBanner}>
+                <Text style={s.errorIcon}>!</Text>
+                <Text accessibilityRole="alert" style={s.errorText}>{error}</Text>
               </View>
             ) : invalid ? (
-              <Text style={styles.helper}>Enter a valid work email and password.</Text>
+              <Text style={s.helper}>Enter a valid work email and password.</Text>
             ) : (
-              <Text style={styles.helper}>Same account as MeticleCare on the web.</Text>
+              <Text style={s.helper}>Same account as MeticleCare on the web.</Text>
             )}
 
             <PrimaryButton
@@ -204,18 +206,18 @@ export function LoginScreen({ onLogin, error, loading }: Props) {
 
             {/* Biometric toggle */}
             {biometricAvailable && (
-              <Pressable onPress={handleBiometricToggle} style={styles.biometricToggle}>
-                <View style={[styles.toggle, biometricEnabled && styles.toggleOn]}>
-                  <View style={[styles.toggleDot, biometricEnabled && styles.toggleDotOn]} />
+              <Pressable onPress={handleBiometricToggle} style={s.biometricToggle}>
+                <View style={[s.toggle, biometricEnabled && s.toggleOn]}>
+                  <View style={[s.toggleDot, biometricEnabled && s.toggleDotOn]} />
                 </View>
-                <Text style={styles.toggleLabel}>
+                <Text style={s.toggleLabel}>
                   {biometricEnabled ? `${biometricLabel} enabled` : `Enable ${biometricLabel}`}
                 </Text>
               </Pressable>
             )}
           </View>
 
-          <Text style={styles.footer}>
+          <Text style={s.footer}>
             Location is only requested when you record an assigned call.
           </Text>
         </ScrollView>

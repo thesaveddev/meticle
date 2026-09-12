@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import { SkeletonInline } from '../components/Skeleton'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
@@ -52,6 +53,7 @@ interface Props {
 
 export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }: Props) {
   const c = useAppColors()
+  const s = useDynamicStyles(styles)
   const [requests, setRequests] = useState<SwapRequest[]>([])
   const [team, setTeam] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
@@ -176,69 +178,69 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
     : ['Your call', 'Transfer to']
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Pressable onPress={onBack} style={styles.backBtn}>
-          <Text style={[styles.backArrow, { color: c.primary }]}>←</Text>
-          <Text style={[styles.backText, { color: c.primary }]}>Back</Text>
+    <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <Pressable onPress={onBack} style={s.backBtn}>
+          <Text style={[s.backArrow, { color: c.primary }]}>←</Text>
+          <Text style={[s.backText, { color: c.primary }]}>Back</Text>
         </Pressable>
-        <Text style={[styles.title, { color: c.ink }]}>Swap & Transfer</Text>
+        <Text style={[s.title, { color: c.ink }]}>Swap & Transfer</Text>
         {pendingCount > 0 && (
-          <Text style={[styles.subtitle, { color: c.muted }]}>{pendingCount} pending request{pendingCount !== 1 ? 's' : ''}</Text>
+          <Text style={[s.subtitle, { color: c.muted }]}>{pendingCount} pending request{pendingCount !== 1 ? 's' : ''}</Text>
         )}
 
         {/* Action cards */}
-        <View style={styles.actionRow}>
-          <Pressable onPress={() => openNewRequest('swap')} style={({ pressed }) => [[styles.actionCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.8 }]}>
-            <Text style={styles.actionIcon}>🔄</Text>
-            <Text style={[styles.actionTitle, { color: c.primary }]}>Swap a call</Text>
-            <Text style={[styles.actionDesc, { color: c.muted }]}>Exchange a call with a colleague</Text>
+        <View style={s.actionRow}>
+          <Pressable onPress={() => openNewRequest('swap')} style={({ pressed }) => [[s.actionCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.8 }]}>
+            <Text style={s.actionIcon}>🔄</Text>
+            <Text style={[s.actionTitle, { color: c.primary }]}>Swap a call</Text>
+            <Text style={[s.actionDesc, { color: c.muted }]}>Exchange a call with a colleague</Text>
           </Pressable>
-          <Pressable onPress={() => openNewRequest('transfer')} style={({ pressed }) => [[styles.actionCard, { backgroundColor: c.accentSurface, borderColor: c.accent + '20' }], pressed && { opacity: 0.8 }]}>
-            <Text style={styles.actionIcon}>➡️</Text>
-            <Text style={[styles.actionTitle, { color: c.accent }]}>Transfer a call</Text>
-            <Text style={[styles.actionDesc, { color: c.muted }]}>Give a call to a colleague</Text>
+          <Pressable onPress={() => openNewRequest('transfer')} style={({ pressed }) => [[s.actionCard, { backgroundColor: c.accentSurface, borderColor: c.accent + '20' }], pressed && { opacity: 0.8 }]}>
+            <Text style={s.actionIcon}>➡️</Text>
+            <Text style={[s.actionTitle, { color: c.accent }]}>Transfer a call</Text>
+            <Text style={[s.actionDesc, { color: c.muted }]}>Give a call to a colleague</Text>
           </Pressable>
         </View>
 
         {/* Filter */}
-        <View style={styles.filterRow}>
+        <View style={s.filterRow}>
           {(['all', 'sent', 'received'] as const).map(f => (
             <Pressable key={f} onPress={() => { hapticLight(); setFilter(f) }}
-              style={[styles.filterBtn, { backgroundColor: c.surface, borderColor: c.borderLight }, filter === f && { backgroundColor: c.primary, borderColor: c.primary }]}>
-              <Text style={[styles.filterText, { color: c.muted }, filter === f && { color: c.inverse }]}>{f.charAt(0).toUpperCase() + f.slice(1)}</Text>
+              style={[s.filterBtn, { backgroundColor: c.surface, borderColor: c.borderLight }, filter === f && { backgroundColor: c.primary, borderColor: c.primary }]}>
+              <Text style={[s.filterText, { color: c.muted }, filter === f && { color: c.inverse }]}>{f.charAt(0).toUpperCase() + f.slice(1)}</Text>
             </Pressable>
           ))}
         </View>
 
         {/* Request list */}
         {filtered.length === 0 ? (
-          <View style={[styles.emptyCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-            <Text style={[styles.emptyTitle, { color: c.ink }]}>No requests</Text>
-            <Text style={[styles.emptyCopy, { color: c.muted }]}>Swap and transfer requests will appear here.</Text>
+          <View style={[s.emptyCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Text style={[s.emptyTitle, { color: c.ink }]}>No requests</Text>
+            <Text style={[s.emptyCopy, { color: c.muted }]}>Swap and transfer requests will appear here.</Text>
           </View>
         ) : (
           filtered.map(req => (
-            <View key={req.id} style={[styles.reqCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-              <View style={styles.reqHeader}>
-                <View style={[styles.reqTypeBadge, { backgroundColor: req.request_type === 'swap' ? c.primarySurface : c.accentSurface }]}>
-                  <Text style={[styles.reqTypeText, { color: req.request_type === 'swap' ? c.primary : c.accent }]}>
+            <View key={req.id} style={[s.reqCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+              <View style={s.reqHeader}>
+                <View style={[s.reqTypeBadge, { backgroundColor: req.request_type === 'swap' ? c.primarySurface : c.accentSurface }]}>
+                  <Text style={[s.reqTypeText, { color: req.request_type === 'swap' ? c.primary : c.accent }]}>
                     {req.request_type === 'swap' ? '🔄 Swap' : '➡️ Transfer'}
                   </Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: req.status === 'pending' ? c.warningSurface : req.status === 'accepted' ? c.successSurface : c.dangerSurface }]}>
-                  <Text style={[styles.statusText, { color: req.status === 'pending' ? c.warning : req.status === 'accepted' ? c.success : c.danger }]}>
+                <View style={[s.statusBadge, { backgroundColor: req.status === 'pending' ? c.warningSurface : req.status === 'accepted' ? c.successSurface : c.dangerSurface }]}>
+                  <Text style={[s.statusText, { color: req.status === 'pending' ? c.warning : req.status === 'accepted' ? c.success : c.danger }]}>
                     {req.status}
                   </Text>
                 </View>
               </View>
-              <Text style={[styles.reqVisit, { color: c.ink }]}>{req.visit_label}</Text>
-              <Text style={[styles.reqClient, { color: c.muted }]}>{req.client_name} · {dateLabel(req.scheduled_start)} {time(req.scheduled_start)}–{time(req.scheduled_end)}</Text>
-              <Text style={[styles.reqMeta, { color: c.subtle }]}>By {req.requested_by_name}{req.target_name ? ` → ${req.target_name}` : ''}</Text>
-              {req.message && <Text style={[styles.reqMsg, { color: c.inkLight }]}>{req.message}</Text>}
+              <Text style={[s.reqVisit, { color: c.ink }]}>{req.visit_label}</Text>
+              <Text style={[s.reqClient, { color: c.muted }]}>{req.client_name} · {dateLabel(req.scheduled_start)} {time(req.scheduled_start)}–{time(req.scheduled_end)}</Text>
+              <Text style={[s.reqMeta, { color: c.subtle }]}>By {req.requested_by_name}{req.target_name ? ` → ${req.target_name}` : ''}</Text>
+              {req.message && <Text style={[s.reqMsg, { color: c.inkLight }]}>{req.message}</Text>}
 
               {req.status === 'pending' && req.target_name === (user.first_name || user.email) && (
-                <View style={styles.reqActions}>
+                <View style={s.reqActions}>
                   <PrimaryButton label="Accept" onPress={() => handleRespond(req.id, 'accepted')} tone="success" size="small" />
                   <PrimaryButton label="Decline" onPress={() => handleRespond(req.id, 'rejected')} tone="danger" size="small" />
                 </View>
@@ -250,19 +252,19 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
 
       {/* ═══════════════ NEW REQUEST MODAL ═══════════════ */}
       <Modal visible={modalOpen} transparent animationType="slide" onRequestClose={() => setModalOpen(false)}>
-        <View style={[styles.modalBackdrop, { backgroundColor: 'rgba(15, 23, 42, 0.4)' }]}>
-          <View style={[styles.modal, { backgroundColor: c.surface }]}>
-            <View style={[styles.modalHandle, { backgroundColor: c.border }]} />
+        <View style={[s.modalBackdrop, { backgroundColor: 'rgba(15, 23, 42, 0.4)' }]}>
+          <View style={[s.modal, { backgroundColor: c.surface }]}>
+            <View style={[s.modalHandle, { backgroundColor: c.border }]} />
 
             {/* Step indicator */}
-            <View style={styles.stepRow}>
+            <View style={s.stepRow}>
               {stepLabels.map((label, i) => (
-                <View key={i} style={styles.stepItem}>
-                  <View style={[styles.stepDot, { backgroundColor: i + 1 <= step ? c.primary : c.border }]}>
-                    <Text style={[styles.stepNum, { color: i + 1 <= step ? c.inverse : c.muted }]}>{i + 1}</Text>
+                <View key={i} style={s.stepItem}>
+                  <View style={[s.stepDot, { backgroundColor: i + 1 <= step ? c.primary : c.border }]}>
+                    <Text style={[s.stepNum, { color: i + 1 <= step ? c.inverse : c.muted }]}>{i + 1}</Text>
                   </View>
-                  <Text style={[styles.stepLabel, { color: i + 1 <= step ? c.primary : c.subtle }]} numberOfLines={1}>{label}</Text>
-                  {i < stepLabels.length - 1 && <View style={[styles.stepLine, { backgroundColor: i + 1 < step ? c.primary : c.border }]} />}
+                  <Text style={[s.stepLabel, { color: i + 1 <= step ? c.primary : c.subtle }]} numberOfLines={1}>{label}</Text>
+                  {i < stepLabels.length - 1 && <View style={[s.stepLine, { backgroundColor: i + 1 < step ? c.primary : c.border }]} />}
                 </View>
               ))}
             </View>
@@ -271,11 +273,11 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
               {/* Step 1: Select your call */}
               {step === 1 && (
                 <>
-                  <Text style={[styles.stepTitle, { color: c.ink }]}>Which of your calls?</Text>
-                  <Text style={[styles.stepDesc, { color: c.muted }]}>
+                  <Text style={[s.stepTitle, { color: c.ink }]}>Which of your calls?</Text>
+                  <Text style={[s.stepDesc, { color: c.muted }]}>
                     {requestType === 'swap' ? 'Pick the call you want to swap.' : 'Pick the call you want to transfer.'}
                   </Text>
-                  <View style={styles.visitList}>
+                  <View style={s.visitList}>
                     {(() => {
                       // Group visits by date
                       const grouped: Record<string, HomecareVisit[]> = {}
@@ -287,22 +289,22 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
                       const dayEntries = Object.entries(grouped)
                       return dayEntries.map(([day, dayVisits]) => (
                         <View key={day} style={{ marginBottom: 12 }}>
-                          <Text style={[styles.dayHeader, { color: c.subtle }]}>{day}</Text>
+                          <Text style={[s.dayHeader, { color: c.subtle }]}>{day}</Text>
                           {dayVisits.map(v => (
                             <Pressable key={v.id} onPress={() => { hapticLight(); setSelectedVisit(v); setStep(2) }}
-                              style={({ pressed }) => [[styles.visitOption, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }, pressed && { opacity: 0.8 }]]}>
-                              <View style={styles.visitOptionHeader}>
-                                <Text style={[styles.visitOptionLabel, { color: c.ink }]}>{v.label}</Text>
-                                <Text style={[styles.visitOptionTime, { color: c.primary }]}>{time(v.scheduled_start)}</Text>
+                              style={({ pressed }) => [[s.visitOption, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }, pressed && { opacity: 0.8 }]]}>
+                              <View style={s.visitOptionHeader}>
+                                <Text style={[s.visitOptionLabel, { color: c.ink }]}>{v.label}</Text>
+                                <Text style={[s.visitOptionTime, { color: c.primary }]}>{time(v.scheduled_start)}</Text>
                               </View>
-                              <Text style={[styles.visitOptionMeta, { color: c.muted }]}>{v.person_name}</Text>
+                              <Text style={[s.visitOptionMeta, { color: c.muted }]}>{v.person_name}</Text>
                             </Pressable>
                           ))}
                         </View>
                       ))
                     })()}
                     {myVisits.length === 0 && (
-                      <Text style={[styles.noVisits, { color: c.subtle }]}>No scheduled calls available to swap.</Text>
+                      <Text style={[s.noVisits, { color: c.subtle }]}>No scheduled calls available to swap.</Text>
                     )}
                   </View>
                 </>
@@ -311,27 +313,27 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
               {/* Step 2: Select team member */}
               {step === 2 && (
                 <>
-                  <Text style={[styles.stepTitle, { color: c.ink }]}>
+                  <Text style={[s.stepTitle, { color: c.ink }]}>
                     {requestType === 'swap' ? 'Who do you want to swap with?' : 'Who should receive this call?'}
                   </Text>
-                  <Text style={[styles.stepDesc, { color: c.muted }]}>
+                  <Text style={[s.stepDesc, { color: c.muted }]}>
                     {requestType === 'swap' ? 'We\'ll show their calls so you can pick one to swap.' : 'They\'ll be notified about the transfer.'}
                   </Text>
-                  <View style={styles.teamList}>
+                  <View style={s.teamList}>
                     {team.map(m => {
                       const name = `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'Unknown'
                       return (
                         <Pressable key={m.id} onPress={() => selectTeamMember(m)}
-                          style={({ pressed }) => [[styles.teamOption, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }, targetStaff?.id === m.id && { backgroundColor: c.primary, borderColor: c.primary }, pressed && { opacity: 0.8 }]]}>
-                          <View style={[styles.teamAvatar, { backgroundColor: c.primarySurface }]}>
-                            <Text style={[styles.teamAvatarText, { color: c.primary }]}>{(m.first_name || '?')[0]}</Text>
+                          style={({ pressed }) => [[s.teamOption, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }, targetStaff?.id === m.id && { backgroundColor: c.primary, borderColor: c.primary }, pressed && { opacity: 0.8 }]]}>
+                          <View style={[s.teamAvatar, { backgroundColor: c.primarySurface }]}>
+                            <Text style={[s.teamAvatarText, { color: c.primary }]}>{(m.first_name || '?')[0]}</Text>
                           </View>
-                          <Text style={[styles.teamName, { color: c.ink }, targetStaff?.id === m.id && { color: c.inverse }]}>{name}</Text>
+                          <Text style={[s.teamName, { color: c.ink }, targetStaff?.id === m.id && { color: c.inverse }]}>{name}</Text>
                         </Pressable>
                       )
                     })}
                     {team.length === 0 && (
-                      <Text style={[styles.noVisits, { color: c.subtle }]}>No team members found.</Text>
+                      <Text style={[s.noVisits, { color: c.subtle }]}>No team members found.</Text>
                     )}
                   </View>
                 </>
@@ -340,14 +342,14 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
               {/* Step 3: Select target's call (swap only) */}
               {step === 3 && requestType === 'swap' && (
                 <>
-                  <Text style={[styles.stepTitle, { color: c.ink }]}>Which of their calls?</Text>
-                  <Text style={[styles.stepDesc, { color: c.muted }]}>
+                  <Text style={[s.stepTitle, { color: c.ink }]}>Which of their calls?</Text>
+                  <Text style={[s.stepDesc, { color: c.muted }]}>
                     Pick the call from {targetStaff?.first_name || 'them'} that you'd like to take.
                   </Text>
                   {loadingTargetVisits ? (
                     <SkeletonInline c={c} />
                   ) : (
-                    <View style={styles.visitList}>
+                    <View style={s.visitList}>
                       {(() => {
                         const grouped: Record<string, HomecareVisit[]> = {}
                         for (const v of targetVisits) {
@@ -357,22 +359,22 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
                         }
                         return Object.entries(grouped).map(([day, dayVisits]) => (
                           <View key={day} style={{ marginBottom: 12 }}>
-                            <Text style={[styles.dayHeader, { color: c.subtle }]}>{day}</Text>
+                            <Text style={[s.dayHeader, { color: c.subtle }]}>{day}</Text>
                             {dayVisits.map(v => (
                               <Pressable key={v.id} onPress={() => { hapticLight(); setSelectedTargetVisit(v); setStep(4) }}
-                                style={({ pressed }) => [[styles.visitOption, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }, pressed && { opacity: 0.8 }]]}>
-                                <View style={styles.visitOptionHeader}>
-                                  <Text style={[styles.visitOptionLabel, { color: c.ink }]}>{v.label}</Text>
-                                  <Text style={[styles.visitOptionTime, { color: c.primary }]}>{time(v.scheduled_start)}</Text>
+                                style={({ pressed }) => [[s.visitOption, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }, pressed && { opacity: 0.8 }]]}>
+                                <View style={s.visitOptionHeader}>
+                                  <Text style={[s.visitOptionLabel, { color: c.ink }]}>{v.label}</Text>
+                                  <Text style={[s.visitOptionTime, { color: c.primary }]}>{time(v.scheduled_start)}</Text>
                                 </View>
-                                <Text style={[styles.visitOptionMeta, { color: c.muted }]}>{v.person_name}</Text>
+                                <Text style={[s.visitOptionMeta, { color: c.muted }]}>{v.person_name}</Text>
                               </Pressable>
                             ))}
                           </View>
                         ))
                       })()}
                       {targetVisits.length === 0 && (
-                        <Text style={[styles.noVisits, { color: c.subtle }]}>They have no scheduled calls to swap.</Text>
+                        <Text style={[s.noVisits, { color: c.subtle }]}>They have no scheduled calls to swap.</Text>
                       )}
                     </View>
                   )}
@@ -382,36 +384,36 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
               {/* Step 3 (transfer) or Step 4 (swap): Summary + message */}
               {(step === (requestType === 'swap' ? 4 : 3)) && (
                 <>
-                  <Text style={[styles.stepTitle, { color: c.ink }]}>Review & submit</Text>
+                  <Text style={[s.stepTitle, { color: c.ink }]}>Review & submit</Text>
 
                   {/* Summary card */}
-                  <View style={[styles.summaryCard, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }]}>
-                    <View style={styles.summaryRow}>
-                      <Text style={[styles.summaryLabel, { color: c.subtle }]}>Your call</Text>
-                      <Text style={[styles.summaryValue, { color: c.ink }]}>{selectedVisit?.label}</Text>
-                      <Text style={[styles.summaryMeta, { color: c.muted }]}>{dateLabel(selectedVisit?.scheduled_start || '')} {time(selectedVisit?.scheduled_start || '')}</Text>
+                  <View style={[s.summaryCard, { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }]}>
+                    <View style={s.summaryRow}>
+                      <Text style={[s.summaryLabel, { color: c.subtle }]}>Your call</Text>
+                      <Text style={[s.summaryValue, { color: c.ink }]}>{selectedVisit?.label}</Text>
+                      <Text style={[s.summaryMeta, { color: c.muted }]}>{dateLabel(selectedVisit?.scheduled_start || '')} {time(selectedVisit?.scheduled_start || '')}</Text>
                     </View>
                     {requestType === 'swap' && selectedTargetVisit && (
                       <>
-                        <View style={[styles.summaryDivider, { backgroundColor: c.border }]} />
-                        <View style={styles.summaryRow}>
-                          <Text style={[styles.summaryLabel, { color: c.subtle }]}>Their call</Text>
-                          <Text style={[styles.summaryValue, { color: c.ink }]}>{selectedTargetVisit.label}</Text>
-                          <Text style={[styles.summaryMeta, { color: c.muted }]}>{dateLabel(selectedTargetVisit.scheduled_start)} {time(selectedTargetVisit.scheduled_start)}</Text>
+                        <View style={[s.summaryDivider, { backgroundColor: c.border }]} />
+                        <View style={s.summaryRow}>
+                          <Text style={[s.summaryLabel, { color: c.subtle }]}>Their call</Text>
+                          <Text style={[s.summaryValue, { color: c.ink }]}>{selectedTargetVisit.label}</Text>
+                          <Text style={[s.summaryMeta, { color: c.muted }]}>{dateLabel(selectedTargetVisit.scheduled_start)} {time(selectedTargetVisit.scheduled_start)}</Text>
                         </View>
                       </>
                     )}
-                    <View style={[styles.summaryDivider, { backgroundColor: c.border }]} />
-                    <View style={styles.summaryRow}>
-                      <Text style={[styles.summaryLabel, { color: c.subtle }]}>{requestType === 'swap' ? 'Swap with' : 'Transfer to'}</Text>
-                      <Text style={[styles.summaryValue, { color: c.ink }]}>{targetStaff?.first_name} {targetStaff?.last_name}</Text>
+                    <View style={[s.summaryDivider, { backgroundColor: c.border }]} />
+                    <View style={s.summaryRow}>
+                      <Text style={[s.summaryLabel, { color: c.subtle }]}>{requestType === 'swap' ? 'Swap with' : 'Transfer to'}</Text>
+                      <Text style={[s.summaryValue, { color: c.ink }]}>{targetStaff?.first_name} {targetStaff?.last_name}</Text>
                     </View>
                   </View>
 
-                  <Text style={[styles.fieldLabel, { color: c.inkLight }]}>Message (optional)</Text>
+                  <Text style={[s.fieldLabel, { color: c.inkLight }]}>Message (optional)</Text>
                   <TextInput value={message} onChangeText={setMessage}
                     placeholder="Why are you requesting this?" placeholderTextColor={c.subtle}
-                    multiline style={[styles.input, styles.textArea, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]} />
+                    multiline style={[s.input, s.textArea, { borderColor: c.border, backgroundColor: c.surfaceAlt, color: c.ink }]} />
 
                   <PrimaryButton
                     label={requestType === 'swap' ? 'Submit swap request' : 'Submit transfer'}
@@ -425,14 +427,14 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
             </ScrollView>
 
             {/* Navigation buttons */}
-            <View style={styles.navRow}>
+            <View style={s.navRow}>
               {step > 1 && (
-                <Pressable onPress={() => { hapticLight(); setStep(s => s - 1) }} style={styles.navBack}>
-                  <Text style={[styles.navBackText, { color: c.primary }]}>← Back</Text>
+                <Pressable onPress={() => { hapticLight(); setStep(s => s - 1) }} style={s.navBack}>
+                  <Text style={[s.navBackText, { color: c.primary }]}>← Back</Text>
                 </Pressable>
               )}
-              <Pressable onPress={() => setModalOpen(false)} style={styles.cancelBtn}>
-                <Text style={[styles.cancelText, { color: c.muted }]}>Cancel</Text>
+              <Pressable onPress={() => setModalOpen(false)} style={s.cancelBtn}>
+                <Text style={[s.cancelText, { color: c.muted }]}>Cancel</Text>
               </Pressable>
             </View>
           </View>
