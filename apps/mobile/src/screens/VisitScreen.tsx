@@ -283,6 +283,28 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   async function execute(action: VisitAction) {
     hapticLight(); setError(''); setSuccess('')
 
+    // Block check-in if call date/time doesn't match current window
+    if (action === 'check-in' && visit.scheduled_start && visit.scheduled_end) {
+      const now = new Date()
+      const scheduledStart = new Date(visit.scheduled_start)
+      const scheduledEnd = new Date(visit.scheduled_end)
+      const earliestCheckIn = new Date(scheduledStart.getTime() - 30 * 60 * 1000)
+      if (now < earliestCheckIn) {
+        hapticWarning()
+        const timeStr = scheduledStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        const minutesUntil = Math.ceil((scheduledStart.getTime() - now.getTime()) / 60000)
+        setError(`This call is scheduled for ${timeStr}. You can check in up to 30 minutes before. ${minutesUntil} minutes remaining.`)
+        return
+      }
+      if (now > scheduledEnd) {
+        hapticWarning()
+        const timeStr = scheduledEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        const minutesOver = Math.ceil((now.getTime() - scheduledEnd.getTime()) / 60000)
+        setError(`This call ended at ${timeStr}. It is ${minutesOver} minutes past the scheduled end time. Please contact your manager.`)
+        return
+      }
+    }
+
     // Block check-out without care notes
     if (action === 'check-out' && !note.trim()) {
       hapticWarning()
