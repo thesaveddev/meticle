@@ -64,9 +64,11 @@ const df = (n) => {
       { e: "rachel.wilson@dreakcare.co.uk", f: "Rachel", l: "Wilson", r: "COMPLIANCE_OFFICER" },
     ];
     const sids = [];
+    const uids = [];
     for (const s of S) {
       const uid = u(), sid = u();
       sids.push(sid);
+      uids.push(uid);
       await c.query(
         `INSERT INTO users(id,organization_id,email,password_hash,role,email_verified)
          VALUES($1,$2,$3,$4,$5,$6)`,
@@ -119,7 +121,7 @@ const df = (n) => {
       await c.query(
         `INSERT INTO homecare_mileage_policies(id,organization_id,tax_year,vehicle_type,fuel_category,rate_pence,is_active,created_by)
          VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [u(), oid, m.t, m.v, m.f, m.r, true, sids[0]]
+        [u(), oid, m.t, m.v, m.f, m.r, true, uids[0]]
       );
     }
     console.log(`Created ${MF.length} mileage policies`);
