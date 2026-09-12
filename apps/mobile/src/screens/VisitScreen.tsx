@@ -104,7 +104,7 @@ function ReadOnlyField({ label, value, c }: { label: string; value: string; c: a
   )
 }
 
-export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident, onSwap, nextVisit, onVisitNext }: {
+export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident, onSwap, previousVisit, nextVisit, onVisitNext }: {
   visit: HomecareVisit
   session?: AuthSession
   onBack: () => void
@@ -114,6 +114,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   onClientDetail?: (personId: string) => void
   onReportIncident?: () => void
   onSwap?: () => void
+  previousVisit?: HomecareVisit | null
   nextVisit?: HomecareVisit | null
   onVisitNext?: (visit: HomecareVisit) => void
 }) {
@@ -135,6 +136,20 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const [nextCallModal, setNextCallModal] = useState(false)
   const [mapPickerOpen, setMapPickerOpen] = useState(false)
   const [navDestination, setNavDestination] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
+
+  // Task list for this call
+  const [tasks, setTasks] = useState([
+    { id: '1', label: 'Personal care completed', done: false },
+    { id: '2', label: 'Medication administered', done: false },
+    { id: '3', label: 'Meal prepared / assistance with eating', done: false },
+    { id: '4', label: 'Environment safe and tidy', done: false },
+    { id: '5', label: 'Client wellbeing checked', done: false },
+  ])
+  const toggleTask = (id: string) => {
+    hapticLight()
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
+  }
+  const allTasksDone = tasks.every(t => t.done)
 
   const openNavPicker = (dest: { destination?: string; latitude?: number; longitude?: number; label?: string }) => {
     hapticLight()
@@ -215,6 +230,26 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
     setSuccess('Care notes saved. Tap "Check out and complete" when you leave.')
   }
 
+  /* ─── Auto-calculate travel time from previous visit ──────── */
+  useEffect(() => {
+    if (previousVisit?.person_latitude && previousVisit?.person_longitude && visit.person_latitude && visit.person_longitude) {
+      const dist = haversineDistance(
+        previousVisit.person_latitude, previousVisit.person_longitude,
+        visit.person_latitude, visit.person_longitude
+      )
+      // Assume ~30mph average speed in town, convert meters to minutes
+      const estimatedMinutes = Math.round((dist / 1000) / 30 * 60)
+      if (estimatedMinutes > 0 && !travelMinutes) {
+        setTravelMinutes(String(estimatedMinutes))
+      }
+      // Estimate mileage (meters to miles)
+      const estimatedMiles = Math.round((dist / 1609.34) * 10) / 10
+      if (estimatedMiles > 0 && !mileage) {
+        setMileage(String(estimatedMiles))
+      }
+    }
+  }, [previousVisit])
+
   /* ─── Execute check-in / check-out ─────────────────────────── */
   async function execute(action: VisitAction) {
     hapticLight(); setError(''); setSuccess('')
@@ -226,12 +261,20 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
       return
     }
 
+    // Block check-out without completing all tasks
+    if (action === 'check-out' && !allTasksDone) {
+      hapticWarning()
+      const incomplete = tasks.filter(t => !t.done).map(t => t.label).join(', ')
+      setError(`Complete all tasks before checking out. Incomplete: ${incomplete}`)
+      return
+    }
+
     setBusy(true)
     try {
       const location = await getVisitLocation()
 
-      // Verify location on check-in
-      if (action === 'check-in' && visit.person_latitude && visit.person_longitude && location.latitude && location.longitude) {
+      // Verify location on check-in AND check-out
+      if (visit.person_latitude && visit.person_longitude && location.latitude && location.longitude) {
         const distance = haversineDistance(
           location.latitude, location.longitude,
           visit.person_latitude, visit.person_longitude
@@ -239,9 +282,10 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
         if (distance > 500) {
           setBusy(false)
           hapticWarning()
+          const actionLabel = action === 'check-in' ? 'checking in' : 'checking out'
           setError(
             `You are ${Math.round(distance)}m away from ${visit.person_name || 'the client'}. ` +
-            `Please confirm you are at the correct location before checking in.`
+            `Please confirm you are at the correct location before ${actionLabel}.`
           )
           return
         }
@@ -253,14 +297,14 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
         actual_mileage_miles: mileage ? Number(mileage) : undefined,
         note: note.trim() || undefined,
         photos: photos.length > 0 ? photos : undefined,
-      })
+        completed_tasks: tasks.filter(t => t.done).map(t => t.label),
+      } as any)
       if (action === 'check-in') {
         setCheckedInAt(dateStamp())
         setCheckedInLocation(location.latitude ? { latitude: location.latitude, longitude: location.longitude } : null)
         setSuccess(result.synced ? `Checked in at ${dateStamp()}. Location recorded.` : 'Checked in offline. Will sync when you reconnect.')
       } else {
         setSuccess(result.synced ? `Call completed at ${dateStamp()}. Saved.` : 'Saved offline. Will sync when you reconnect.')
-        // Show next call modal after a brief delay
         if (nextVisit) {
           setTimeout(() => { hapticMedium(); setNextCallModal(true) }, 800)
         }
@@ -515,6 +559,34 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             </View>
           )}
 
+          {/* ── Task list ── */}
+          {checkedIn && (
+            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+              <Text style={[styles.cardTitle, { color: c.ink }]}>Call tasks</Text>
+              <Text style={{ fontFamily: FONT, fontSize: 12, color: c.muted, marginBottom: spacing.sm }}>Complete all tasks before checking out</Text>
+              {tasks.map(task => (
+                <Pressable key={task.id} onPress={() => toggleTask(task.id)}
+                  style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: c.borderLight }, pressed && { opacity: 0.7 }]}>
+                  <View style={[styles.checkbox, { borderColor: task.done ? c.success : c.border, backgroundColor: task.done ? c.success : 'transparent' }]}>
+                    {task.done && <IconCheck size={12} color={c.inverse} />}
+                  </View>
+                  <Text style={{ flex: 1, fontFamily: FONT, fontSize: 14, fontWeight: '500', color: task.done ? c.muted : c.ink, textDecorationLine: task.done ? 'line-through' : 'none' }}>{task.label}</Text>
+                </Pressable>
+              ))}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm }}>
+                <Text style={{ fontFamily: FONT, fontSize: 12, fontWeight: '600', color: allTasksDone ? c.success : c.muted }}>
+                  {tasks.filter(t => t.done).length}/{tasks.length} completed
+                </Text>
+                {allTasksDone && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <IconCheck size={14} color={c.success} />
+                    <Text style={{ fontFamily: FONT, fontSize: 12, fontWeight: '600', color: c.success }}>All done</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
           {/* ── Care notes hint ── */}
           {checkedIn && !note.trim() && (
             <View style={[styles.card, { backgroundColor: c.warningSurface, borderColor: c.warning + '20' }]}>
@@ -531,10 +603,10 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
               )}
               {checkedIn && (
                 <PrimaryButton
-                  label={note.trim() ? 'Check out and complete' : 'Submit care notes first'}
+                  label={!allTasksDone ? 'Complete all tasks to check out' : !note.trim() ? 'Add care notes to check out' : 'Check out and complete'}
                   onPress={() => execute('check-out')}
                   loading={busy}
-                  disabled={busy || !note.trim()}
+                  disabled={busy || !note.trim() || !allTasksDone}
                   tone="success"
                 />
               )}
@@ -768,6 +840,12 @@ const styles = StyleSheet.create({
     borderRadius: radii.md, alignSelf: 'flex-start',
   },
   savedBadgeText: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
+
+  /* Checkbox */
+  checkbox: {
+    width: 22, height: 22, borderRadius: 6,
+    borderWidth: 2, alignItems: 'center', justifyContent: 'center',
+  },
 
   /* Photos */
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

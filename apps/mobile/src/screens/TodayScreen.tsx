@@ -136,6 +136,8 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
   const currentVisit = timeline.find(t => t.kind === 'current')
   const nextVisit = timeline.find(t => t.kind === 'next')
   const pastVisits = timeline.filter(t => t.kind === 'past')
+  const completedVisits = pastVisits.filter(tv => tv.visit.status === 'completed')
+  const missedVisits = pastVisits.filter(tv => tv.visit.status === 'missed')
   const futureVisits = timeline.filter(t => t.kind === 'future')
   const overdueVisits = futureVisits.filter(tv => isOverdue(tv.visit))
   const onTimeVisits = futureVisits.filter(tv => !isOverdue(tv.visit))
@@ -281,6 +283,27 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         </View>
       )}
 
+      {/* Missed calls alert */}
+      {missedVisits.length > 0 && (
+        <View style={[styles.missedCard, { backgroundColor: c.dangerSurface, borderColor: c.danger + '30' }]}>
+          <View style={styles.missedHeader}>
+            <IconAlert size={18} color={c.danger} />
+            <Text style={[styles.missedTitle, { color: c.danger }]}>{missedVisits.length} missed call{missedVisits.length !== 1 ? 's' : ''}</Text>
+          </View>
+          {missedVisits.map(tv => (
+            <Pressable key={tv.visit.id} onPress={() => { hapticLight(); onVisit(tv.visit) }}
+              style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: c.danger + '20' }, pressed && { opacity: 0.7 }]}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: FONT, fontSize: 14, fontWeight: '600', color: c.danger }} numberOfLines={1}>{tv.visit.label}</Text>
+                <Text style={{ fontFamily: FONT, fontSize: 12, color: c.muted }}>{tv.visit.person_name} · {time(tv.visit.scheduled_start)}</Text>
+              </View>
+              <Text style={{ fontFamily: FONT, fontSize: 12, fontWeight: '600', color: c.danger }}>→</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       {/* Empty state */}
       {visits.length === 0 && !refreshing && (
         <View style={styles.empty}>
@@ -393,6 +416,15 @@ const styles = StyleSheet.create({
   /* Refresh indicator */
   refreshWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.md, marginBottom: spacing.sm },
   refreshText: { fontFamily: FONT, fontSize: 12, fontWeight: '500', marginTop: spacing.xs },
+
+  /* Missed calls */
+  missedCard: {
+    borderRadius: radii.lg, borderWidth: 1,
+    padding: spacing.base, marginBottom: spacing.xl,
+    ...elevation.sm,
+  },
+  missedHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+  missedTitle: { fontFamily: FONT, fontSize: 14, fontWeight: '700' },
 
   /* Empty */
   empty: { alignItems: 'center', paddingVertical: spacing.xxxl },
