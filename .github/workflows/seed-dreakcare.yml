@@ -32,9 +32,21 @@ jobs:
             EXISTS=$(docker exec "$CONTAINER" node -e "const p=require('pg');new p.Pool().query(\"SELECT id FROM organizations WHERE slug='dreakcare'\").then(r=>{process.stdout.write(r.rows.length?'YES':'NO')}).catch(()=>{process.stdout.write('NO')}).finally(()=>process.exit())" 2>/dev/null) || true
             if [ "$EXISTS" = "YES" ]; then echo "Already seeded"; exit 0; fi
             SHA="${{ steps.sha.outputs.SHA }}"
+            echo "Downloading script from GitHub..."
             curl -fsSL "https://raw.githubusercontent.com/thesaveddev/meticle/${SHA}/scripts/seed-dreakcare.js" -o /tmp/seed.js
+            echo "Checking if /app has node_modules..."
+            docker exec "$CONTAINER" ls /app/node_modules/pg/package.json 2>&1 || echo "pg not in /app/node_modules"
+            docker exec "$CONTAINER" ls /app/apps/api/node_modules/pg/package.json 2>&1 || echo "pg not in /app/apps/api/node_modules"
+            docker exec "$CONTAINER" ls /app/node_modules/bcryptjs/package.json 2>&1 || echo "bcryptjs not in /app/node_modules"
+            docker exec "$CONTAINER" ls /app/apps/api/node_modules/bcryptjs/package.json 2>&1 || echo "bcryptjs not in /app/apps/api/node_modules"
+            echo "Copying script to container..."
             docker cp /tmp/seed.js "$CONTAINER:/app/seed.js"
-            docker exec -w /app "$CONTAINER" node seed.js
+            echo "Running seed..."
+            docker exec -w /app "$CONTAINER" node seed.js 2>&1 || {
+              echo "Script failed, trying with NODE_PATH..."
+              docker exec -w /app -e NODE_PATH=/app/apps/api/node_modules "$CONTAINER" node seed.js 2>&1
+            }
+            echo "Cleaning up..."
             docker exec "$CONTAINER" rm -f /app/seed.js
             rm -f /tmp/seed.js
-            echo "Seed complete"
+            echo "Done"
