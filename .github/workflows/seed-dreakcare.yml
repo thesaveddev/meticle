@@ -30,21 +30,16 @@ jobs:
             echo "Container: $CONTAINER"
             EXISTS=$(docker exec "$CONTAINER" node -e "const p=require('pg');new p.Pool().query(\"SELECT id FROM organizations WHERE slug='dreakcare'\").then(r=>{process.stdout.write(r.rows.length?'YES':'NO')}).catch(()=>{process.stdout.write('NO')}).finally(()=>process.exit())" 2>/dev/null) || true
             if [ "$EXISTS" = "YES" ]; then echo "Already seeded"; exit 0; fi
-            echo "Checking env vars..."
-            docker exec "$CONTAINER" node -e "console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET'); console.log('PGHOST:', process.env.PGHOST || 'NOT SET')" 2>&1
-            echo "Testing pool with explicit string..."
-            docker exec -w /app "$CONTAINER" node -e "
-              const { Pool } = require('pg');
-              const url = process.env.DATABASE_URL;
-              console.log('DATABASE_URL in app:', url ? url.substring(0,40)+'...' : 'NOT SET');
-              const pool = url ? new Pool({ connectionString: url }) : new Pool();
-              pool.query('SELECT count(*) as cnt FROM organizations').then(r=>{console.log('Orgs:', r.rows[0].cnt);pool.end()}).catch(e=>{console.error('Error:', e.message, e.code);pool.end()}).finally(()=>process.exit());
-            " 2>&1
             SHA="${{ steps.sha.outputs.SHA }}"
+            echo "Downloading seed script (commit $SHA)..."
             curl -fsSL "https://raw.githubusercontent.com/thesaveddev/meticle/${SHA}/scripts/seed-dreakcare.js" -o /tmp/seed.js
+            echo "Copying to container..."
             docker cp /tmp/seed.js "$CONTAINER:/app/seed.js"
             echo "Running seed..."
-            docker exec -w /app "$CONTAINER" node seed.js 2>&1 || echo "Seed had errors (see above)"
+            docker exec -w /app "$CONTAINER" node seed.js
+            RC=$?
+            echo "Exit code: $RC"
             docker exec "$CONTAINER" rm -f /app/seed.js
             rm -f /tmp/seed.js
-            echo "=== Complete ==="
+            echo "Done"
+            exit $RC

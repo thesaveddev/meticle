@@ -2,7 +2,7 @@ const { Pool } = require("pg");
 const cr = require("crypto");
 const bc = require("bcryptjs");
 
-const pool = new Pool();
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const u = () => cr.randomUUID();
 const df = (n) => {
   const d = new Date();
@@ -234,13 +234,13 @@ const df = (n) => {
     console.log("Login credentials (all Password123$):");
     for (const s of S) console.log(`  ${s.e} -> ${s.r}`);
   } catch (e) {
-    await c.query("ROLLBACK");
-    console.error("Seed failed:", e.message);
-    throw e;
+    try { await c.query("ROLLBACK"); } catch (_e) {}
+    console.error("Seed failed:", e.message || e);
+    process.exit(1);
   } finally {
     c.release();
     await pool.end();
   }
 })()
   .then(() => process.exit(0))
-  .catch(() => process.exit(1));
+  .catch((e) => { console.error("Unhandled:", e.message || e); process.exit(1); });
