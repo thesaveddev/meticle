@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
@@ -183,8 +183,8 @@ const styles = StyleSheet.create({
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.base },
   backArrow: { fontFamily: 'System', fontSize: 18, color: colors.primary, fontWeight: '600' },
   backText: { fontFamily: 'System', fontSize: 15, fontWeight: '500', color: colors.primary },
-  title: { ...type.title, marginBottom: spacing.xs },
-  subtitle: { ...type.body, color: colors.muted, marginBottom: spacing.base },
+  title: { ...typography.title, marginBottom: spacing.xs },
+  subtitle: { ...typography.body, color: colors.muted, marginBottom: spacing.base },
 
   /* Near miss */
   nearMissRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.warningSurface, borderRadius: radii.md, borderWidth: 1, borderColor: '#FDE68A', padding: spacing.base, marginBottom: spacing.base },
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   checkboxChecked: { backgroundColor: colors.warning, borderColor: colors.warning },
   checkmark: { fontFamily: 'System', fontSize: 14, fontWeight: '700', color: colors.inverse },
   checkboxLabel: { fontFamily: 'System', fontSize: 14, fontWeight: '700', color: '#92400E' },
-  checkboxDesc: { ...type.small, color: '#A16207', marginTop: 1 },
+  checkboxDesc: { ...typography.small, color: '#A16207', marginTop: 1 },
 
   /* Category chips */
   fieldLabel: { fontFamily: 'System', fontSize: 12, fontWeight: '600', color: colors.inkLight, marginTop: spacing.base, marginBottom: spacing.sm },
@@ -216,6 +216,6 @@ const styles = StyleSheet.create({
   /* Success */
   successView: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   successIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.success, color: colors.inverse, textAlign: 'center', lineHeight: 56, fontSize: 28, fontWeight: '700' },
-  successTitle: { ...type.title },
-  successDesc: { ...type.body, color: colors.muted },
+  successTitle: { ...typography.title },
+  successDesc: { ...typography.body, color: colors.muted },
 })

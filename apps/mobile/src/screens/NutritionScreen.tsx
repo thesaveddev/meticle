@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, DietaryProfile, MealRecord } from '../types'
@@ -288,17 +288,17 @@ const styles = StyleSheet.create({
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
   backArrow: { fontFamily: 'System', fontSize: 18, color: colors.primary, fontWeight: '600' },
   backText: { fontFamily: 'System', fontSize: 15, fontWeight: '500', color: colors.primary },
-  title: { ...type.title, marginBottom: spacing.xs },
-  subtitle: { ...type.body, color: colors.muted },
+  title: { ...typography.title, marginBottom: spacing.xs },
+  subtitle: { ...typography.body, color: colors.muted },
 
   /* Fluid */
   fluidCard: { backgroundColor: colors.primarySurface, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.primary + '15', padding: spacing.base, ...elevation.sm },
   fluidHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-  fluidTitle: { ...type.bodyBold, color: colors.primary },
+  fluidTitle: { ...typography.bodyBold, color: colors.primary },
   fluidValue: { fontFamily: 'System', fontSize: 14, fontWeight: '700', color: colors.primary },
   fluidBar: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
   fluidFill: { height: '100%', borderRadius: 4 },
-  fluidPercent: { ...type.small, marginTop: spacing.xs, textAlign: 'right' },
+  fluidPercent: { ...typography.small, marginTop: spacing.xs, textAlign: 'right' },
 
   /* Flags */
   flagsCard: { backgroundColor: colors.warningSurface, borderRadius: radii.lg, borderWidth: 1, borderColor: '#FDE68A', padding: spacing.base },
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   flagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   flagChip: { backgroundColor: '#FEF3C7', borderRadius: radii.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderWidth: 1, borderColor: '#FDE68A' },
   flagText: { fontFamily: 'System', fontSize: 12, fontWeight: '600', color: '#92400E' },
-  flagNote: { ...type.small, color: '#78350F', marginTop: spacing.sm },
+  flagNote: { ...typography.small, color: '#78350F', marginTop: spacing.sm },
 
   /* Section */
   sectionHead: { fontFamily: 'System', fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: colors.subtle },
@@ -316,28 +316,28 @@ const styles = StyleSheet.create({
   mealHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   mealIcon: { fontSize: 24 },
   mealInfo: { flex: 1 },
-  mealType: { ...type.bodyBold, fontSize: 15 },
-  mealTime: { ...type.small, marginTop: 1 },
+  mealType: { ...typography.bodyBold, fontSize: 15 },
+  mealTime: { ...typography.small, marginTop: 1 },
   appetiteBadge: { paddingHorizontal: spacing.md, paddingVertical: 3, borderRadius: radii.full },
   appetiteText: { fontFamily: 'System', fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
-  mealDetail: { ...type.small, marginTop: spacing.sm },
-  mealRefused: { ...type.small, color: colors.danger, marginTop: spacing.sm, fontWeight: '600' },
-  mealNotes: { ...type.small, marginTop: spacing.xs, fontStyle: 'italic' },
+  mealDetail: { ...typography.small, marginTop: spacing.sm },
+  mealRefused: { ...typography.small, color: colors.danger, marginTop: spacing.sm, fontWeight: '600' },
+  mealNotes: { ...typography.small, marginTop: spacing.xs, fontStyle: 'italic' },
 
   /* Empty */
   emptyCard: { alignItems: 'center', paddingVertical: spacing.xxl },
-  emptyTitle: { ...type.bodyBold, marginBottom: spacing.xs },
-  emptyCopy: { ...type.small, textAlign: 'center' },
+  emptyTitle: { ...typography.bodyBold, marginBottom: spacing.xs },
+  emptyCopy: { ...typography.small, textAlign: 'center' },
 
   /* Profile */
   profileCard: { backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.borderLight, padding: spacing.base, ...elevation.sm },
-  profileTitle: { ...type.bodyBold, marginBottom: spacing.sm },
-  profileRow: { ...type.small, paddingVertical: spacing.xs },
+  profileTitle: { ...typography.bodyBold, marginBottom: spacing.sm },
+  profileRow: { ...typography.small, paddingVertical: spacing.xs },
 
   /* Modal */
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(28,25,23,0.5)', justifyContent: 'flex-end' },
   modal: { backgroundColor: colors.bg, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, padding: spacing.xl, maxHeight: '85%', ...elevation.lg },
-  modalTitle: { ...type.title, marginBottom: spacing.base },
+  modalTitle: { ...typography.title, marginBottom: spacing.base },
   fieldLabel: { fontFamily: 'System', fontSize: 12, fontWeight: '600', color: colors.inkLight, marginTop: spacing.base, marginBottom: spacing.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.sm, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surface },
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   checkbox: { width: 22, height: 22, borderRadius: 4, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: colors.danger, borderColor: colors.danger },
   checkmark: { fontFamily: 'System', fontSize: 14, fontWeight: '700', color: colors.inverse },
-  checkboxLabel: { ...type.body, fontSize: 14 },
+  checkboxLabel: { ...typography.body, fontSize: 14 },
   cancelBtn: { alignItems: 'center', paddingVertical: spacing.sm },
   cancelText: { fontFamily: 'System', fontSize: 15, fontWeight: '600', color: colors.primary },
 })

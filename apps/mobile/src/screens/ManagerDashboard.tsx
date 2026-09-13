@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
@@ -282,8 +282,8 @@ const styles = StyleSheet.create({
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.base },
-  pageTitle: { ...type.title, marginBottom: spacing.xs },
-  subtitle: { ...type.body },
+  pageTitle: { ...typography.title, marginBottom: spacing.xs },
+  subtitle: { ...typography.body },
   roleBadge: { borderRadius: 12, paddingHorizontal: spacing.md, paddingVertical: 4 },
   roleText: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
 

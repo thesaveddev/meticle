@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   logoText: { color: colors.inverse, fontSize: 24, fontWeight: '800' },
   kicker: { fontFamily: 'System', fontSize: 11, fontWeight: '700', letterSpacing: 1.8, color: colors.primary, marginBottom: spacing.md },
   headline: { fontFamily: 'System', fontSize: 30, fontWeight: '800', lineHeight: 36, letterSpacing: -0.8, color: colors.ink },
-  sub: { ...type.body, color: colors.muted, marginTop: spacing.md, maxWidth: 320, lineHeight: 21 },
+  sub: { ...typography.body, color: colors.muted, marginTop: spacing.md, maxWidth: 320, lineHeight: 21 },
 
   /* Biometric big button */
   biometricBtn: {
@@ -277,10 +277,10 @@ const styles = StyleSheet.create({
   eyeBtn: { position: 'absolute', right: spacing.sm, top: 0, bottom: 0, width: 44, alignItems: 'center', justifyContent: 'center' },
   eyeIcon: { fontFamily: 'System', fontSize: 11, fontWeight: '600', color: colors.primary },
 
-  helper: { ...type.small, minHeight: 18 },
+  helper: { ...typography.small, minHeight: 18 },
   errorBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.dangerSurface, padding: spacing.md, borderRadius: radii.md },
   errorIcon: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.danger, color: colors.inverse, textAlign: 'center', lineHeight: 22, fontSize: 13, fontWeight: '700', overflow: 'hidden' },
-  errorText: { ...type.small, color: colors.dangerDeep, flex: 1 },
+  errorText: { ...typography.small, color: colors.dangerDeep, flex: 1 },
 
   /* Biometric toggle */
   biometricToggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, justifyContent: 'center' },
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   toggleOn: { backgroundColor: colors.primary },
   toggleDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.inverse },
   toggleDotOn: { alignSelf: 'flex-end' },
-  toggleLabel: { ...type.small, color: colors.muted },
+  toggleLabel: { ...typography.small, color: colors.muted },
 
-  footer: { ...type.caption, color: colors.subtle, marginTop: spacing.xxxl, textAlign: 'center' },
+  footer: { ...typography.caption, color: colors.subtle, marginTop: spacing.xxxl, textAlign: 'center' },
 })

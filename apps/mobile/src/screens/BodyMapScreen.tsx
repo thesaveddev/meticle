@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, BodyMapEntry, BodyMapStats } from '../types'
@@ -435,8 +435,8 @@ const styles = StyleSheet.create({
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.base },
   backArrow: { fontFamily: 'System', fontSize: 18, color: colors.primary, fontWeight: '600' },
   backText: { fontFamily: 'System', fontSize: 15, fontWeight: '500', color: colors.primary },
-  title: { ...type.title, marginBottom: spacing.xs },
-  subtitle: { ...type.body, color: colors.muted, marginBottom: spacing.base },
+  title: { ...typography.title, marginBottom: spacing.xs },
+  subtitle: { ...typography.body, color: colors.muted, marginBottom: spacing.base },
 
   /* Stats */
   statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.base },
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3, borderWidth: 0, borderColor: 'transparent', padding: spacing.md, ...elevation.sm,
   },
   statValue: { fontFamily: 'System', fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
-  statLabel: { ...type.small, marginTop: 2 },
+  statLabel: { ...typography.small, marginTop: 2 },
 
   /* Toggle */
   toggleRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.base },
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center', ...elevation.sm,
   },
   zoneDotText: { fontFamily: 'System', fontSize: 10, fontWeight: '700', color: colors.inverse },
-  diagramHint: { ...type.caption, textAlign: 'center', marginTop: spacing.sm },
+  diagramHint: { ...typography.caption, textAlign: 'center', marginTop: spacing.sm },
 
   /* Entries */
   sectionHead: {
@@ -487,9 +487,9 @@ const styles = StyleSheet.create({
   },
   entryDot: { width: 10, height: 10, borderRadius: 5 },
   entryInfo: { flex: 1 },
-  entryZone: { ...type.bodyBold, fontSize: 14, textTransform: 'capitalize' },
-  entryType: { ...type.small, textTransform: 'capitalize', marginTop: 1 },
-  entryDesc: { ...type.caption, marginTop: 2 },
+  entryZone: { ...typography.bodyBold, fontSize: 14, textTransform: 'capitalize' },
+  entryType: { ...typography.small, textTransform: 'capitalize', marginTop: 1 },
+  entryDesc: { ...typography.caption, marginTop: 2 },
   severityBadge: { paddingHorizontal: spacing.md, paddingVertical: 3, borderRadius: radii.full },
   severityText: { fontFamily: 'System', fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
 
@@ -499,8 +499,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', borderWidth: 0, borderColor: 'transparent', marginTop: spacing.xxl,
   },
   emptyIcon: { fontSize: 32, marginBottom: spacing.md },
-  emptyTitle: { ...type.bodyBold, marginBottom: spacing.xs },
-  emptyCopy: { ...type.small, textAlign: 'center', paddingHorizontal: spacing.lg },
+  emptyTitle: { ...typography.bodyBold, marginBottom: spacing.xs },
+  emptyCopy: { ...typography.small, textAlign: 'center', paddingHorizontal: spacing.lg },
 
   /* Modal */
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(28,25,23,0.5)', justifyContent: 'flex-end' },
@@ -508,8 +508,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
     padding: spacing.xl, maxHeight: '85%', ...elevation.lg,
   },
-  modalTitle: { ...type.title, marginBottom: spacing.xs },
-  modalZone: { ...type.small, color: colors.primary, textTransform: 'capitalize', marginBottom: spacing.base },
+  modalTitle: { ...typography.title, marginBottom: spacing.xs },
+  modalZone: { ...typography.small, color: colors.primary, textTransform: 'capitalize', marginBottom: spacing.base },
   fieldLabel: { fontFamily: 'System', fontSize: 12, fontWeight: '600', color: colors.inkLight, marginTop: spacing.base, marginBottom: spacing.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
@@ -529,8 +529,8 @@ const styles = StyleSheet.create({
 
   /* Detail */
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
-  detailLabel: { ...type.small, flex: 1 },
-  detailValue: { ...type.body, fontSize: 14, textTransform: 'capitalize', flex: 2, textAlign: 'right' },
+  detailLabel: { ...typography.small, flex: 1 },
+  detailValue: { ...typography.body, fontSize: 14, textTransform: 'capitalize', flex: 2, textAlign: 'right' },
   detailBlock: { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
-  detailBody: { ...type.body, fontSize: 14, marginTop: spacing.xs },
+  detailBody: { ...typography.body, fontSize: 14, marginTop: spacing.xs },
 })
