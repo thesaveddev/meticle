@@ -8,48 +8,60 @@ import { hapticWarning } from '../services/haptics'
 const SCREEN = Dimensions.get('window')
 const BTN_SIZE = 56
 const PADDING = 12
+const MIN_Y = 60
 
 interface Props {
   managerPhone?: string
+}
+
+function clamp(val: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, val))
 }
 
 export function EmergencyButton({ managerPhone }: Props) {
   const [pressed, setPressed] = useState(false)
   const isDragging = useRef(false)
 
-  // Start at bottom-right
-  const startX = SCREEN.width - BTN_SIZE - PADDING
-  const startY = SCREEN.height - 160
+  // Current position ref — updated on every move and release
+  const posX = useRef(SCREEN.width - BTN_SIZE - PADDING)
+  const posY = useRef(SCREEN.height - 160)
 
-  const panX = useRef(new Animated.Value(startX)).current
-  const panY = useRef(new Animated.Value(startY)).current
+  // Position at the start of the current gesture
+  const gestureStartX = useRef(0)
+  const gestureStartY = useRef(0)
+
+  const panX = useRef(new Animated.Value(posX.current)).current
+  const panY = useRef(new Animated.Value(posY.current)).current
 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         isDragging.current = false
+        // Snapshot where the button currently is
+        gestureStartX.current = posX.current
+        gestureStartY.current = posY.current
       },
       onPanResponderMove: (_, gs) => {
         if (Math.abs(gs.dx) > 3 || Math.abs(gs.dy) > 3) isDragging.current = true
 
-        let nx = startX + gs.dx
-        let ny = startY + gs.dy
-        nx = Math.max(PADDING, Math.min(SCREEN.width - BTN_SIZE - PADDING, nx))
-        ny = Math.max(60, Math.min(SCREEN.height - BTN_SIZE - 40, ny))
+        const nx = clamp(gestureStartX.current + gs.dx, PADDING, SCREEN.width - BTN_SIZE - PADDING)
+        const ny = clamp(gestureStartY.current + gs.dy, MIN_Y, SCREEN.height - BTN_SIZE - 40)
+        posX.current = nx
+        posY.current = ny
         panX.setValue(nx)
         panY.setValue(ny)
       },
-      onPanResponderRelease: (_, gs) => {
-        if (!isDragging.current) return // Was a tap, not a drag
-        let nx = startX + gs.dx
-        let ny = startY + gs.dy
-        nx = Math.max(PADDING, Math.min(SCREEN.width - BTN_SIZE - PADDING, nx))
-        ny = Math.max(60, Math.min(SCREEN.height - BTN_SIZE - 40, ny))
+      onPanResponderRelease: () => {
+        if (!isDragging.current) return
+        const nx = clamp(posX.current, PADDING, SCREEN.width - BTN_SIZE - PADDING)
+        const ny = clamp(posY.current, MIN_Y, SCREEN.height - BTN_SIZE - 40)
         // Snap to nearest horizontal edge
         const snapLeft = PADDING
         const snapRight = SCREEN.width - BTN_SIZE - PADDING
         const snapX = (nx - snapLeft) < (snapRight - nx) ? snapLeft : snapRight
+        posX.current = snapX
+        posY.current = ny
         Animated.parallel([
           Animated.spring(panX, { toValue: snapX, useNativeDriver: false, tension: 200, friction: 18 }),
           Animated.spring(panY, { toValue: ny, useNativeDriver: false, tension: 200, friction: 18 }),
