@@ -347,7 +347,7 @@ const s = StyleSheet.create({
   bootLogo: { width: 64, height: 64, borderRadius: radii.xl, alignItems: 'center', justifyContent: 'center', ...elevation.md },
   bootLogoText: { fontSize: 32, fontWeight: '800', fontFamily: FONT },
   bootText: { fontFamily: FONT, fontSize: 16, fontWeight: '600', marginTop: spacing.sm },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: spacing.base, paddingBottom: spacing.xs },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
   notifBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', position: 'relative' },
   notifBadge: { position: 'absolute', top: 4, right: 4, minWidth: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
   notifBadgeText: { fontSize: 10, fontFamily: FONT, fontWeight: '700', color: '#FFFFFF' },
