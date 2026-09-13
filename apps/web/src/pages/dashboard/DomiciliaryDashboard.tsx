@@ -82,7 +82,7 @@ export default function DomiciliaryDashboard() {
           {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </Typography>
         <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 0.5 }}>
-          {greeting} 👋
+          {greeting}
         </Typography>
         <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
           {data.calls_today} calls scheduled across {data.carers_working_today} carers today
