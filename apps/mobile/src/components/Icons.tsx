@@ -319,13 +319,270 @@ export function IconMiles({ size = 16, color = '#16A34A' }: IconProps) {
   const s = size / 16
   return (
     <View style={{ width: size, height: size }}>
-      {/* Car body */}
       <View style={{ width: 14 * s, height: 5 * s, borderRadius: 2 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 3 * s, left: 1 * s }} />
-      {/* Roof */}
       <View style={{ width: 8 * s, height: 3 * s, borderRadius: 1.5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 1 * s, left: 4 * s }} />
-      {/* Wheels */}
       <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', bottom: 1 * s, left: 2 * s }} />
       <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', bottom: 1 * s, right: 2 * s }} />
     </View>
   )
+}
+
+// ─── Theme / UI Icons ──────────────────────────────────────
+
+/** Sun icon for light mode */
+export function IconSun({ size = 18, color = '#F59E0B' }: IconProps) {
+  const s = size / 18
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 8 * s, height: 8 * s, borderRadius: 4 * s, borderWidth: 2 * s, borderColor: color, position: 'absolute', top: 5 * s, left: 5 * s }} />
+      <View style={{ width: 2 * s, height: 3 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 1 * s, left: 8 * s }} />
+      <View style={{ width: 2 * s, height: 3 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', bottom: 1 * s, left: 8 * s }} />
+      <View style={{ width: 3 * s, height: 2 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 8 * s, left: 1 * s }} />
+      <View style={{ width: 3 * s, height: 2 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 8 * s, right: 1 * s }} />
+      <View style={{ width: 2 * s, height: 3 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 4 * s, right: 2 * s, transform: [{ rotate: '45deg' }] }} />
+      <View style={{ width: 2 * s, height: 3 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', bottom: 4 * s, right: 2 * s, transform: [{ rotate: '-45deg' }] }} />
+      <View style={{ width: 2 * s, height: 3 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 4 * s, left: 2 * s, transform: [{ rotate: '-45deg' }] }} />
+      <View style={{ width: 2 * s, height: 3 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', bottom: 4 * s, left: 2 * s, transform: [{ rotate: '45deg' }] }} />
+    </View>
+  )
+}
+
+/** Moon icon for dark mode */
+export function IconMoon({ size = 18, color = '#6366F1' }: IconProps) {
+  const s = size / 18
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 14 * s, height: 14 * s, borderRadius: 7 * s, borderWidth: 2 * s, borderColor: color, position: 'absolute', top: 2 * s, left: 2 * s }} />
+      <View style={{ width: 10 * s, height: 10 * s, borderRadius: 5 * s, borderWidth: 2 * s, borderColor: color, position: 'absolute', top: 1 * s, left: 7 * s, backgroundColor: 'transparent' }} />
+    </View>
+  )
+}
+
+/** Bell icon for notifications */
+export function IconBell({ size = 18, color = '#EA580C' }: IconProps) {
+  const s = size / 18
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 12 * s, height: 10 * s, borderRadius: 6 * s, borderWidth: 2 * s, borderColor: color, position: 'absolute', top: 1 * s, left: 3 * s, borderBottomWidth: 2 * s }} />
+      <View style={{ width: 16 * s, height: 2 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', bottom: 4 * s, left: 1 * s }} />
+      <View style={{ width: 4 * s, height: 4 * s, borderRadius: 2 * s, backgroundColor: color, position: 'absolute', bottom: 0, left: 7 * s }} />
+    </View>
+  )
+}
+
+// ─── Client Detail Tab Icons ──────────────────────────────
+
+/** Clipboard / overview */
+export function IconOverview({ size = 20, color = '#1E3A5F' }: IconProps) {
+  return <IconToday size={size} color={color} />
+}
+
+/** Clipboard with lines / care plans */
+export function IconCarePlans({ size = 20, color = '#1E3A5F' }: IconProps) {
+  const s = size / 20
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ position: 'absolute', left: 3 * s, top: 2 * s, width: 14 * s, height: 16 * s, borderRadius: 2 * s, borderWidth: 1.5 * s, borderColor: color }} />
+      <View style={{ position: 'absolute', left: 6 * s, top: 0, width: 8 * s, height: 4 * s, borderRadius: 1.5 * s, borderWidth: 1.5 * s, borderColor: color, borderBottomWidth: 0 }} />
+      <View style={{ position: 'absolute', left: 6 * s, top: 8 * s, width: 8 * s, height: 1.5 * s, backgroundColor: color, borderRadius: 1 * s }} />
+      <View style={{ position: 'absolute', left: 6 * s, top: 12 * s, width: 6 * s, height: 1.5 * s, backgroundColor: color, borderRadius: 1 * s }} />
+    </View>
+  )
+}
+
+/** Body map icon */
+export function IconBody({ size = 20, color = '#1E3A5F' }: IconProps) {
+  const s = size / 20
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 8 * s, height: 8 * s, borderRadius: 4 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 0, left: 6 * s }} />
+      <View style={{ width: 2 * s, height: 7 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 8 * s, left: 9 * s }} />
+      <View style={{ width: 8 * s, height: 2 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 10 * s, left: 2 * s }} />
+      <View style={{ width: 8 * s, height: 2 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 10 * s, right: 2 * s }} />
+      <View style={{ width: 2 * s, height: 7 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 15 * s, left: 6 * s }} />
+      <View style={{ width: 2 * s, height: 7 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 15 * s, right: 6 * s }} />
+    </View>
+  )
+}
+
+/** Fork and knife / nutrition */
+export function IconNutrition({ size = 20, color = '#1E3A5F' }: IconProps) {
+  const s = size / 20
+  return (
+    <View style={{ width: size, height: size }}>
+      {/* Fork */}
+      <View style={{ width: 1.5 * s, height: 12 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 4 * s, left: 4 * s }} />
+      <View style={{ width: 1.5 * s, height: 5 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 1 * s, left: 2 * s }} />
+      <View style={{ width: 1.5 * s, height: 5 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 1 * s, left: 6 * s }} />
+      {/* Knife */}
+      <View style={{ width: 1.5 * s, height: 12 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 4 * s, left: 13 * s }} />
+      <View style={{ width: 3 * s, height: 6 * s, borderRadius: 1.5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 1 * s, left: 12 * s }} />
+    </View>
+  )
+}
+
+/** Pill icon / medication */
+export function IconPill({ size = 20, color = '#1E3A5F' }: IconProps) {
+  const s = size / 20
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 8 * s, height: 14 * s, borderRadius: 4 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 3 * s, left: 6 * s, transform: [{ rotate: '-30deg' }] }} />
+      <View style={{ width: 8 * s, height: 1 * s, backgroundColor: color, position: 'absolute', top: 10 * s, left: 5 * s, transform: [{ rotate: '-30deg' }] }} />
+    </View>
+  )
+}
+
+/** Phone / contacts */
+export function IconContacts({ size = 20, color = '#1E3A5F' }: IconProps) {
+  const s = size / 20
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 12 * s, height: 16 * s, borderRadius: 2 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 2 * s, left: 4 * s }} />
+      <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, borderWidth: 1 * s, borderColor: color, position: 'absolute', bottom: 4 * s, left: 8.5 * s }} />
+    </View>
+  )
+}
+
+// ─── Body Map Condition Icons ──────────────────────────────
+
+/** Circle dot — bruise */
+export function IconBruise({ size = 16, color = '#7C3AED' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 12 * s, height: 12 * s, borderRadius: 6 * s, backgroundColor: color + '30', position: 'absolute', top: 2 * s, left: 2 * s }} />
+      <View style={{ width: 6 * s, height: 6 * s, borderRadius: 3 * s, backgroundColor: color, position: 'absolute', top: 5 * s, left: 5 * s }} />
+    </View>
+  )
+}
+
+/** Cross / wound */
+export function IconWound({ size = 16, color = '#DC2626' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 2 * s, height: 10 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 3 * s, left: 7 * s }} />
+      <View style={{ width: 10 * s, height: 2 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 7 * s, left: 3 * s }} />
+    </View>
+  )
+}
+
+/** Dots pattern / rash */
+export function IconRash({ size = 16, color = '#EA580C' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, backgroundColor: color, position: 'absolute', top: 2 * s, left: 2 * s }} />
+      <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, backgroundColor: color, position: 'absolute', top: 2 * s, right: 2 * s }} />
+      <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, backgroundColor: color, position: 'absolute', bottom: 2 * s, left: 5 * s }} />
+      <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, backgroundColor: color, position: 'absolute', top: 7 * s, left: 2 * s }} />
+      <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, backgroundColor: color, position: 'absolute', top: 7 * s, right: 2 * s }} />
+    </View>
+  )
+}
+
+/** Syringe / injection */
+export function IconInjection({ size = 16, color = '#2563EB' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 2 * s, height: 8 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 5 * s, left: 7 * s }} />
+      <View style={{ width: 6 * s, height: 2 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 4 * s, left: 5 * s }} />
+      <View style={{ width: 2 * s, height: 3 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 1 * s, left: 7 * s }} />
+    </View>
+  )
+}
+
+/** Flame / burn */
+export function IconBurn({ size = 16, color = '#DC2626' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 0, height: 0, borderLeftWidth: 5 * s, borderRightWidth: 5 * s, borderBottomWidth: 10 * s, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: color, position: 'absolute', top: 3 * s, left: 3 * s }} />
+      <View style={{ width: 0, height: 0, borderLeftWidth: 3 * s, borderRightWidth: 3 * s, borderBottomWidth: 6 * s, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: color + '80', position: 'absolute', bottom: 1 * s, left: 5 * s }} />
+    </View>
+  )
+}
+
+/** Circle / swelling */
+export function IconSwelling({ size = 16, color = '#0891B2' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 12 * s, height: 12 * s, borderRadius: 6 * s, borderWidth: 2 * s, borderColor: color, position: 'absolute', top: 2 * s, left: 2 * s }} />
+      <View style={{ width: 6 * s, height: 6 * s, borderRadius: 3 * s, backgroundColor: color + '40', position: 'absolute', top: 5 * s, left: 5 * s }} />
+    </View>
+  )
+}
+
+/** Line / scar */
+export function IconScar({ size = 16, color = '#6B7280' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 10 * s, height: 2 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 7 * s, left: 3 * s, transform: [{ rotate: '-15deg' }] }} />
+    </View>
+  )
+}
+
+/** Droplet / skin tear */
+export function IconSkinTear({ size = 16, color = '#BE123C' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 8 * s, height: 10 * s, borderRadius: 4 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 3 * s, left: 4 * s }} />
+      <View style={{ width: 4 * s, height: 4 * s, borderRadius: 2 * s, backgroundColor: color + '40', position: 'absolute', top: 6 * s, left: 6 * s }} />
+    </View>
+  )
+}
+
+// ─── Nutrition Meal Icons ──────────────────────────────────
+
+/** Sunrise / breakfast */
+export function IconBreakfast({ size = 16, color = '#EA580C' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 12 * s, height: 6 * s, borderRadius: 6 * s, borderWidth: 1.5 * s, borderColor: color, borderBottomWidth: 0, position: 'absolute', top: 2 * s, left: 2 * s }} />
+      <View style={{ width: 14 * s, height: 1.5 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 8 * s, left: 1 * s }} />
+    </View>
+  )
+}
+
+/** Apple / snack */
+export function IconSnack({ size = 16, color = '#16A34A' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 10 * s, height: 10 * s, borderRadius: 5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 4 * s, left: 3 * s }} />
+      <View style={{ width: 2 * s, height: 3 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 1 * s, left: 7 * s }} />
+    </View>
+  )
+}
+
+/** Plate / lunch or dinner */
+export function IconPlate({ size = 16, color = '#1E3A5F' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 14 * s, height: 8 * s, borderRadius: 4 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 4 * s, left: 1 * s }} />
+      <View style={{ width: 8 * s, height: 4 * s, borderRadius: 2 * s, borderWidth: 1 * s, borderColor: color, position: 'absolute', top: 6 * s, left: 4 * s }} />
+    </View>
+  )
+}
+
+/** Cup / evening */
+export function IconCup({ size = 16, color = '#7C3AED' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: 10 * s, height: 10 * s, borderRadius: 2 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 3 * s, left: 2 * s }} />
+      <View style={{ width: 4 * s, height: 4 * s, borderRadius: 2 * s, borderWidth: 1.5 * s, borderColor: color, borderLeftWidth: 0, position: 'absolute', top: 5 * s, right: 1 * s }} />
+    </View>
+  )
+}
+
+/** Pill capsule / supplement */
+export function IconSupplement({ size = 16, color = '#2563EB' }: IconProps) {
+  return <IconPill size={size} color={color} />
 }

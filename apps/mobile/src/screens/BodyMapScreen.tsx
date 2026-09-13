@@ -7,18 +7,19 @@ import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, BodyMapEntry, BodyMapStats } from '../types'
 import { getBodyMapEntries, getBodyMapStats, createBodyMapEntry, updateBodyMapEntry } from '../services/api'
 import { PrimaryButton } from '../components/PrimaryButton'
+import { IconBruise, IconWound, IconRash, IconInjection, IconBurn, IconWarning, IconScar, IconSwelling, IconSkinTear, IconAlert } from '../components/Icons'
 
 const CONDITION_TYPES = [
-  { key: 'bruise', label: 'Bruise', color: '#7C3AED', icon: '🟣' },
-  { key: 'wound', label: 'Wound', color: '#DC2626', icon: '🔴' },
-  { key: 'rash', label: 'Rash', color: '#EA580C', icon: '🟠' },
-  { key: 'injection', label: 'Injection', color: '#2563EB', icon: '💉' },
-  { key: 'burn', label: 'Burn', color: '#DC2626', icon: '🔥' },
-  { key: 'pressure_sore', label: 'Pressure sore', color: '#9333EA', icon: '⚠️' },
-  { key: 'scar', label: 'Scar', color: '#6B7280', icon: '—' },
-  { key: 'swelling', label: 'Swelling', color: '#0891B2', icon: '🔵' },
-  { key: 'skin_tear', label: 'Skin tear', color: '#BE123C', icon: '🩹' },
-  { key: 'other', label: 'Other', color: '#6B7280', icon: '❓' },
+  { key: 'bruise', label: 'Bruise', color: '#7C3AED', IconComponent: IconBruise },
+  { key: 'wound', label: 'Wound', color: '#DC2626', IconComponent: IconWound },
+  { key: 'rash', label: 'Rash', color: '#EA580C', IconComponent: IconRash },
+  { key: 'injection', label: 'Injection', color: '#2563EB', IconComponent: IconInjection },
+  { key: 'burn', label: 'Burn', color: '#DC2626', IconComponent: IconBurn },
+  { key: 'pressure_sore', label: 'Pressure sore', color: '#9333EA', IconComponent: IconWarning },
+  { key: 'scar', label: 'Scar', color: '#6B7280', IconComponent: IconScar },
+  { key: 'swelling', label: 'Swelling', color: '#0891B2', IconComponent: IconSwelling },
+  { key: 'skin_tear', label: 'Skin tear', color: '#BE123C', IconComponent: IconSkinTear },
+  { key: 'other', label: 'Other', color: '#6B7280', IconComponent: IconAlert },
 ] as const
 
 const SEVERITIES = [
@@ -335,7 +336,7 @@ export function BodyMapScreen({ personId, personName, session, onBack }: Props) 
                     style={[s.chip, conditionType === ct.key && { backgroundColor: ct.color, borderColor: ct.color }]}
                   >
                     <Text style={[s.chipText, conditionType === ct.key && { color: colors.inverse }]}>
-                      {ct.icon} {ct.label}
+                      <ct.IconComponent size={14} color={ct.color} />  {ct.label}
                     </Text>
                   </Pressable>
                 ))}

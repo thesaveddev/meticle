@@ -8,7 +8,7 @@ import type { MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { requestReminderPermission } from '../services/notifications'
 import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
-import { IconProfile, IconSyncSmall, IconWarning, IconSettings, IconSchedule } from '../components/Icons'
+import { IconProfile, IconSyncSmall, IconWarning, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
 export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailability }: {
@@ -114,7 +114,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
             {/* Dark mode */}
             <View style={s.menuRow}>
               <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
-                <Text style={{ fontSize: 16 }}>{scheme === 'dark' ? '🌙' : '☀️'}</Text>
+                {scheme === 'dark' ? <IconMoon size={18} color={c.primary} /> : <IconSun size={18} color={c.primary} />}
               </View>
               <View style={s.menuContent}>
                 <Text style={[s.menuTitle, { color: c.ink }]}>Dark mode</Text>

@@ -7,20 +7,21 @@ import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { hapticLight, hapticWarning } from '../services/haptics'
+import { IconWarning, IconPill, IconWound, IconSkinTear, IconIncident, IconAlert, IconBody, IconSettings } from '../components/Icons'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://meticlecare.com/api'
 
 const INCIDENT_CATEGORIES = [
-  { key: 'fall', label: 'Fall', icon: '🩹' },
-  { key: 'medication_error', label: 'Medication error', icon: '💊' },
-  { key: 'pressure_sore', label: 'Pressure sore', icon: '🔴' },
-  { key: 'skin_tear', label: 'Skin tear', icon: '🩹' },
-  { key: 'choking', label: 'Choking', icon: '⚠️' },
-  { key: 'behavioral', label: 'Behavioral', icon: '🧠' },
-  { key: 'safeguarding', label: 'Safeguarding', icon: '🛡️' },
-  { key: 'equipment_failure', label: 'Equipment', icon: '🔧' },
-  { key: 'accident', label: 'Accident', icon: '⚡' },
-  { key: 'other', label: 'Other', icon: '📋' },
+  { key: 'fall', label: 'Fall', IconComponent: IconWarning, color: '#D97706' },
+  { key: 'medication_error', label: 'Medication error', IconComponent: IconPill, color: '#DC2626' },
+  { key: 'pressure_sore', label: 'Pressure sore', IconComponent: IconWound, color: '#DC2626' },
+  { key: 'skin_tear', label: 'Skin tear', IconComponent: IconSkinTear, color: '#BE123C' },
+  { key: 'choking', label: 'Choking', IconComponent: IconAlert, color: '#DC2626' },
+  { key: 'behavioral', label: 'Behavioral', IconComponent: IconIncident, color: '#7C3AED' },
+  { key: 'safeguarding', label: 'Safeguarding', IconComponent: IconIncident, color: '#1E3A5F' },
+  { key: 'equipment_failure', label: 'Equipment', IconComponent: IconSettings, color: '#6B7280' },
+  { key: 'accident', label: 'Accident', IconComponent: IconAlert, color: '#EA580C' },
+  { key: 'other', label: 'Other', IconComponent: IconBody, color: '#6B7280' },
 ] as const
 
 const SEVERITY_LEVELS = [
@@ -129,7 +130,7 @@ export function ReportIncidentScreen({ session, visitId, personId, personName, o
         <View style={s.chipGrid}>
           {INCIDENT_CATEGORIES.map(c => (
             <Pressable key={c.key} onPress={() => { hapticLight(); setCategory(c.key) }} style={[s.chip, category === c.key && s.chipActive]}>
-              <Text style={s.chipIcon}>{c.icon}</Text>
+              <c.IconComponent size={14} color={c.color} />
               <Text style={[s.chipText, category === c.key && s.chipTextActive]}>{c.label}</Text>
             </Pressable>
           ))}
