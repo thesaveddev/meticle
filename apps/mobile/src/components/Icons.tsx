@@ -664,3 +664,13 @@ export function IconDocument({ size = 20, color = '#1E3A5F' }: IconProps) {
     </View>
   )
 }
+
+/** Arrow-right transfer icon */
+export function IconTransfer({ size = 16, color = '#0891B2' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: size * 0.7, height: size * 0.12, backgroundColor: color, borderRadius: 1 }} />
+      <View style={{ position: 'absolute', right: size * 0.12, top: size * 0.25, width: 0, height: 0, borderTopWidth: size * 0.2, borderBottomWidth: size * 0.2, borderLeftWidth: size * 0.22, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: color }} />
+    </View>
+  )
+}

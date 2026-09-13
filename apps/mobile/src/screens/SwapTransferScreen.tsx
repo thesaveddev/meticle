@@ -8,6 +8,7 @@ import { SkeletonInline } from '../components/Skeleton'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getMyVisits, getStaffVisits } from '../services/api'
+import { IconSwap, IconTransfer } from '../components/Icons'
 import { hapticLight, hapticWarning } from '../services/haptics'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://meticlecare.com/api'
@@ -192,12 +193,12 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
         {/* Action cards */}
         <View style={s.actionRow}>
           <Pressable onPress={() => openNewRequest('swap')} style={({ pressed }) => [[s.actionCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }], pressed && { opacity: 0.8 }]}>
-            <Text style={s.actionIcon}>🔄</Text>
+            <IconSwap size={24} color={c.primary} />
             <Text style={[s.actionTitle, { color: c.primary }]}>Swap a call</Text>
             <Text style={[s.actionDesc, { color: c.muted }]}>Exchange a call with a colleague</Text>
           </Pressable>
           <Pressable onPress={() => openNewRequest('transfer')} style={({ pressed }) => [[s.actionCard, { backgroundColor: c.accentSurface, borderColor: c.accent + '20' }], pressed && { opacity: 0.8 }]}>
-            <Text style={s.actionIcon}>➡️</Text>
+            <IconTransfer size={24} color={c.accent} />
             <Text style={[s.actionTitle, { color: c.accent }]}>Transfer a call</Text>
             <Text style={[s.actionDesc, { color: c.muted }]}>Give a call to a colleague</Text>
           </Pressable>
@@ -225,7 +226,7 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
               <View style={s.reqHeader}>
                 <View style={[s.reqTypeBadge, { backgroundColor: req.request_type === 'swap' ? c.primarySurface : c.accentSurface }]}>
                   <Text style={[s.reqTypeText, { color: req.request_type === 'swap' ? c.primary : c.accent }]}>
-                    {req.request_type === 'swap' ? '🔄 Swap' : '➡️ Transfer'}
+                    {req.request_type === 'swap' ? 'Swap' : 'Transfer'}
                   </Text>
                 </View>
                 <View style={[s.statusBadge, { backgroundColor: req.status === 'pending' ? c.warningSurface : req.status === 'accepted' ? c.successSurface : c.dangerSurface }]}>
