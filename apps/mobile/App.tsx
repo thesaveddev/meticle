@@ -26,15 +26,26 @@ import { SwapTransferScreen } from './src/screens/SwapTransferScreen'
 import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen'
 import { ChatScreen } from './src/screens/ChatScreen'
 import { NotificationsScreen } from './src/screens/NotificationsScreen'
+import { ManagerDashboard } from './src/screens/ManagerDashboard'
+import { ClientListScreen } from './src/screens/ClientListScreen'
+import { AllVisitsScreen } from './src/screens/AllVisitsScreen'
 import { SwipeBack } from './src/components/SwipeBack'
 
-type TabKey = 'today' | 'schedule' | 'chat' | 'mileage' | 'settings'
+type TabKey = 'today' | 'schedule' | 'chat' | 'mileage' | 'settings' | 'team' | 'clients' | 'visits'
 
-const tabs: { key: TabKey; label: string }[] = [
+const carerTabs: { key: TabKey; label: string }[] = [
   { key: 'today', label: 'Today' },
   { key: 'schedule', label: 'Schedule' },
   { key: 'chat', label: 'Chat' },
   { key: 'mileage', label: 'Earnings' },
+  { key: 'settings', label: 'Settings' },
+]
+
+const managerTabs: { key: TabKey; label: string }[] = [
+  { key: 'today', label: 'Team' },
+  { key: 'clients', label: 'Clients' },
+  { key: 'visits', label: 'Visits' },
+  { key: 'chat', label: 'Chat' },
   { key: 'settings', label: 'Settings' },
 ]
 
@@ -51,6 +62,7 @@ type Screen =
   | { kind: 'swap' }
   | { kind: 'chat' }
   | { kind: 'notifications' }
+  | { kind: 'allVisits'; status?: string; staffName?: string }
 
 export default function App() {
   return (
@@ -78,6 +90,8 @@ function AppInner() {
   const [screenStack, setScreenStack] = useState<Screen[]>([{ kind: 'tabs' }])
   const [unreadCount, setUnreadCount] = useState(0)
 
+  const isManager = session?.user?.role === 'ORG_ADMIN' || session?.user?.role === 'MANAGER'
+  const tabs = isManager ? managerTabs : carerTabs
   const currentScreen = screenStack[screenStack.length - 1]
   const pushScreen = useCallback((screen: Screen) => setScreenStack(prev => [...prev, screen]), [])
   const popScreen = useCallback(() => setScreenStack(prev => prev.length <= 1 ? prev : prev.slice(0, -1)), [])
@@ -173,6 +187,7 @@ function AppInner() {
   /* ─── Tab icon mapping ──────────────────────────────────── */
   const tabIconName: Record<TabKey, 'today' | 'week' | 'chat' | 'mileage' | 'calendar' | 'settings'> = {
     today: 'today', schedule: 'week', chat: 'chat', mileage: 'mileage', settings: 'settings',
+    team: 'today', clients: 'week', visits: 'calendar',
   }
 
   /* ─── Loading screens ────────────────────────────────────── */
@@ -237,6 +252,12 @@ function AppInner() {
   if (currentScreen.kind === 'notifications' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} /></SwipeBack></>
   }
+  if (currentScreen.kind === 'allVisits' && session) {
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AllVisitsScreen session={session} onBack={goBack} initialStatus={currentScreen.status} initialStaffName={currentScreen.staffName} onSelect={(visitId) => {
+      const v = visits.find((vv: any) => vv.id === visitId)
+      if (v) { popScreen(); pushScreen({ kind: 'visit', visit: v }) }
+    }} /></SwipeBack></>
+  }
 
   /* ─── Main tab view ──────────────────────────────────────── */
   return (
@@ -256,11 +277,27 @@ function AppInner() {
           </Pressable>
         </View>
         <View style={[s.body, { backgroundColor: c.bg }]}>
-          {tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} />}
-          {tab === 'schedule' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap' })} />}
-          {tab === 'mileage' && <MileageScreen session={session} />}
+          {/* Carer tabs */}
+          {!isManager && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} />}
+          {!isManager && tab === 'schedule' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap' })} />}
+          {!isManager && tab === 'mileage' && <MileageScreen session={session} />}
+
+          {/* Manager tabs */}
+          {isManager && tab === 'today' && <ManagerDashboard session={session!} onNavigate={(screen, params) => {
+            if (screen === 'clientList') setTab('clients')
+            else if (screen === 'allVisits') { pushScreen({ kind: 'allVisits', ...params }) }
+            else if (screen === 'staffDirectory') { /* TODO */ }
+            else if (screen === 'timesheets') { /* TODO */ }
+          }} />}
+          {isManager && tab === 'clients' && <ClientListScreen session={session!} onSelect={(personId) => pushScreen({ kind: 'clientDetail', personId })} />}
+          {isManager && tab === 'visits' && <AllVisitsScreen session={session!} onSelect={(visitId) => {
+            const v = visits.find((vv: any) => vv.id === visitId)
+            if (v) pushScreen({ kind: 'visit', visit: v })
+          }} />}
+
+          {/* Shared tabs */}
           {tab === 'chat' && <ChatScreen session={session} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={() => pushScreen({ kind: 'availability' })} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>

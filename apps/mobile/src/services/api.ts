@@ -368,3 +368,60 @@ export async function deleteVisitTask(token: string, visitId: string, taskId: st
 export async function getMyEarnings(token: string, from: string, to: string): Promise<any> {
   return request(`/homecare/my-earnings?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {}, token)
 }
+
+// ── Manager endpoints ──
+export async function getManagerDashboard(token: string, from: string, to: string): Promise<any> {
+  const params = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+  const [visits, exceptions, staff, disruptions] = await Promise.all([
+    request(`/homecare/visits?${params}`, {}, token),
+    request('/homecare/exceptions', {}, token),
+    request('/homecare/staff', {}, token),
+    request('/homecare/disruptions?openOnly=true', {}, token),
+  ])
+  return { visits, exceptions, staff, disruptions }
+}
+
+export async function getClientList(token: string): Promise<any[]> {
+  return request('/people/', {}, token)
+}
+
+export async function getClientDetail(token: string, personId: string): Promise<any> {
+  return request(`/people/${personId}`, {}, token)
+}
+
+export async function getStaffDirectory(token: string): Promise<any[]> {
+  return request('/staff/org-members', {}, token)
+}
+
+export async function getAllVisits(token: string, from: string, to: string, staffId?: string, status?: string): Promise<any[]> {
+  let params = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+  if (staffId) params += `&staffId=${encodeURIComponent(staffId)}`
+  if (status) params += `&status=${encodeURIComponent(status)}`
+  return request(`/homecare/visits?${params}`, {}, token)
+}
+
+export async function updateVisitStatus(token: string, visitId: string, data: any): Promise<any> {
+  return request(`/homecare/visits/${visitId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }, token)
+}
+
+export async function resolveException(token: string, visitId: string, data: any): Promise<any> {
+  return request(`/homecare/visits/${visitId}/resolve-exception`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }, token)
+}
+
+export async function getTimesheets(token: string, status?: string): Promise<any[]> {
+  const params = status ? `?status=${status}` : ''
+  return request(`/homecare/timesheets${params}`, {}, token)
+}
+
+export async function updateTimesheet(token: string, timesheetId: string, data: any): Promise<any> {
+  return request(`/homecare/timesheets/${timesheetId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }, token)
+}
