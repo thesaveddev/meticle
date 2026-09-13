@@ -176,9 +176,9 @@ export function RecordCard({ title, meta, actions, footer, onClick, accent = NAV
 
 export function EmptyRow({ message = 'No records yet', action }: { message?: string; action?: ReactNode }) {
   return (
-    <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
-      <Typography color="#9CA3AF">{message}</Typography>
+    <Box sx={{ py: 6, px: 4, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <Typography sx={{ color: 'text.secondary', fontWeight: 600 }}>{message}</Typography>
       {action && <Box sx={{ mt: 2 }}>{action}</Box>}
-    </Paper>
+    </Box>
   )
 }

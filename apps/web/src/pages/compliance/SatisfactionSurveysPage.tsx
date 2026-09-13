@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Button, Stack, Grid, TextField, MenuItem, Ratin
 import { Add as AddIcon, Favorite as HeartIcon, Send as SendIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { EmptyState } from '../../components/design/EmptyState'
 
 const RELATIONSHIPS = ['Family Member', 'Friend', 'Carer', 'Advocate', 'Professional', 'Other']
 
@@ -158,9 +159,7 @@ export default function SatisfactionSurveysPage() {
       )}
 
       {(!aggregate || aggregate.total === 0) && (
-        <Paper sx={{ p: 4, mb: 3, textAlign: 'center', bgcolor: '#F8FAFC' }}>
-          <Typography color="text.secondary">No feedback yet. Record manually or email a survey link to get genuine feedback from carers and families.</Typography>
-        </Paper>
+        <EmptyState title="No feedback yet" description="Record manually or email a survey link to get genuine feedback from carers and families" variant="default" />
       )}
 
       <Paper sx={{ p: 3 }}>
@@ -203,7 +202,7 @@ export default function SatisfactionSurveysPage() {
                 </TableRow>
               ))}
               {(!surveys || surveys.length === 0) && (
-                <TableRow><TableCell colSpan={7} sx={{ textAlign: 'center', py: 2 }}>No feedback recorded yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} sx={{ borderBottom: 'none' }}><EmptyState title="No feedback recorded" description="Feedback will appear here once submitted" variant="default" /></TableCell></TableRow>
               )}
             </TableBody>
           </Table>

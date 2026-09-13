@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Grid, Chip, LinearProgress, Stack, Button, Tool
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Refresh as RefreshIcon, ExpandMore as ExpandIcon, CheckCircle, Warning, Error as ErrorIcon, Download as DownloadIcon, Print as PrintIcon, Lightbulb as ActionIcon, AutoAwesome as AiIcon, SmartToy as AiIconOutlined, Send as SendIcon, Chat as ChatIcon, PriorityHigh as PriorityIcon, AccessTime as EffortIcon, Star as StarIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import api from '../../services/api'
+import { EmptyState } from '../../components/design/EmptyState'
 
 type Html2Pdf = typeof import('html2pdf.js').default
 let html2pdfLoader: Promise<Html2Pdf> | undefined
@@ -494,10 +495,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
               </Stack>
             </>
           )}
-          {!gapLoading && (!gapData?.gaps || gapData.gaps.length === 0) && (
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-              No gaps identified — your organization is fully compliant.
-            </Typography>
+          {!gapLoading && (!gapData?.gaps || gapData.gaps.length === 0) && (              <EmptyState title="Fully compliant" description="No gaps identified — your organization is fully compliant" variant="default" />
           )}
         </Paper>
 
@@ -673,9 +671,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                 {shareChannelsLoading ? (
                   <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} /></Box>
                 ) : filteredShareChannels.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                    No channels found.
-                  </Typography>
+                  <EmptyState title="No channels found" description="Create a channel to share analysis" variant="search" />
                 ) : (
                   <List dense sx={{ maxHeight: 300, overflow: 'auto' }}>
                     {filteredShareChannels.map((channel: any) => (

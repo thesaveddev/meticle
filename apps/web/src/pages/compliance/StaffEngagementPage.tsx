@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Button, Stack, Grid, TextField, Dialog, DialogT
 import { Add as AddIcon, Group as GroupIcon, Edit as EditIcon, Delete as DeleteIcon, Send as SendIcon, RemoveCircleOutline as RemoveIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { EmptyState } from '../../components/design/EmptyState'
 
 export default function StaffEngagementPage() {
   const queryClient = useQueryClient()
@@ -169,9 +170,7 @@ export default function StaffEngagementPage() {
           )}
 
           {(!aggregate || aggregate.total === 0) && (
-            <Paper sx={{ p: 4, mb: 3, textAlign: 'center', bgcolor: '#F8FAFC' }}>
-              <Typography color="text.secondary">No responses yet. Staff can take the anonymous survey or admins can send a survey to everyone.</Typography>
-            </Paper>
+            <EmptyState title="No responses yet" description="Staff can take the anonymous survey or admins can send a survey to everyone" variant="default" />
           )}
         </>
       )}
@@ -259,7 +258,7 @@ export default function StaffEngagementPage() {
                   )
                 })}
                 {(!surveys || surveys.length === 0) && (
-                  <TableRow><TableCell colSpan={6} sx={{ textAlign: 'center', py: 2 }}>No responses yet.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} sx={{ borderBottom: 'none' }}><EmptyState title="No responses yet" description="Survey responses will appear here" variant="default" /></TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

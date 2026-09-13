@@ -4,6 +4,7 @@ import { Refresh as RefreshIcon, NotificationsActive as RemindIcon, Download as 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import api from '../../services/api'
+import { EmptyState } from '../../components/design/EmptyState'
 
 const IDENTITY_TYPES = ['DBS', 'PASSPORT', 'VISA', 'RIGHT_TO_WORK']
 
@@ -231,7 +232,7 @@ export default function IdentityMonitoringPage() {
             {isLoading ? (
               <TableRow><TableCell colSpan={8}><CircularProgress size={24} sx={{ display: 'block', mx: 'auto', my: 2 }} /></TableCell></TableRow>
             ) : !data?.staff?.length ? (
-              <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>No staff identity records found. Upload documents to get started.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} sx={{ borderBottom: 'none' }}><EmptyState title="No identity records" description="Upload documents to get started" variant="default" /></TableCell></TableRow>
             ) : data?.staff?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((s: any) => (
               <TableRow key={s.id} hover>
                 <TableCell sx={{ fontWeight: 600 }}>{s.first_name} {s.last_name}</TableCell>

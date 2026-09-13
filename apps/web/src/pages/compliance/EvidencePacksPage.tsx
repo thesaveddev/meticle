@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Button, Chip, Stack, Grid, Table, TableBody, Ta
 import { Download as DownloadIcon, Print as PrintIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
+import { EmptyState } from '../../components/design/EmptyState'
 
 type Section = 'training' | 'documents' | 'competency'
 
@@ -552,9 +553,7 @@ export default function EvidencePacksPage() {
         )}
 
         {data?.training?.length === 0 && data?.documents?.length === 0 && data?.competency?.length === 0 && (!data?.people || data.people.length === 0) && (!data?.nutrition || data.nutrition.length === 0) && (
-          <Paper sx={{ p: 4, textAlign: 'center' }}>
-            <Typography color="text.secondary">No compliance data found for the selected filters.</Typography>
-          </Paper>
+          <EmptyState title="No compliance data" description="No data found for the selected filters" variant="search" />
         )}
       </Box>
     </Box>
