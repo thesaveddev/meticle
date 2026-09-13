@@ -11,7 +11,7 @@ import type { AuthSession } from '../types'
 import {
   ensureGeneralChannel, getChatChannels, getChatMessages, sendChatMessage,
   editChatMessage, deleteChatMessage, markChatRead, getOrgMembers,
-  createDMChannel, searchChatMessages
+  createDMChannel
 } from '../services/api'
 import { hapticLight } from '../services/haptics'
 
@@ -76,7 +76,6 @@ export function ChatScreen({ session, onBack }: Props) {
   const token = session?.accessToken || ''
   const currentUserId = session?.user?.id || ''
 
-  // View state: 'list' shows conversations, 'chat' shows messages
   const [view, setView] = useState<'list' | 'chat'>('list')
   const [channels, setChannels] = useState<ChatChannel[]>([])
   const [activeChannel, setActiveChannel] = useState<ChatChannel | null>(null)
@@ -87,7 +86,6 @@ export function ChatScreen({ session, onBack }: Props) {
   const [loading, setLoading] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
 
-  // New chat modal
   const [showNewChat, setShowNewChat] = useState(false)
   const [orgMembers, setOrgMembers] = useState<any[]>([])
   const [memberSearch, setMemberSearch] = useState('')
@@ -95,7 +93,6 @@ export function ChatScreen({ session, onBack }: Props) {
 
   const flatListRef = useRef<FlatList>(null)
 
-  // Load channels
   const loadChannels = useCallback(async () => {
     if (!token) return
     try {
@@ -106,14 +103,11 @@ export function ChatScreen({ session, onBack }: Props) {
   }, [token])
 
   useEffect(() => { loadChannels() }, [loadChannels])
-
-  // Poll for channel updates
   useEffect(() => {
     const interval = setInterval(loadChannels, 15000)
     return () => clearInterval(interval)
   }, [loadChannels])
 
-  // Load messages for active channel
   const loadMessages = useCallback(async () => {
     if (!token || !activeChannel) return
     try {
@@ -124,27 +118,21 @@ export function ChatScreen({ session, onBack }: Props) {
   }, [token, activeChannel])
 
   useEffect(() => {
-    if (activeChannel) {
-      setLoadingMessages(true)
-      loadMessages()
-    }
+    if (activeChannel) { setLoadingMessages(true); loadMessages() }
   }, [activeChannel, loadMessages])
 
-  // Poll messages in active chat
   useEffect(() => {
     if (view !== 'chat' || !activeChannel) return
     const interval = setInterval(loadMessages, 8000)
     return () => clearInterval(interval)
   }, [view, activeChannel, loadMessages])
 
-  // Open a channel
   const openChannel = (ch: ChatChannel) => {
     hapticLight()
     setActiveChannel(ch)
     setView('chat')
   }
 
-  // Go back to list
   const backToList = () => {
     hapticLight()
     setView('list')
@@ -153,7 +141,6 @@ export function ChatScreen({ session, onBack }: Props) {
     loadChannels()
   }
 
-  // Send message
   const handleSend = async () => {
     if (!inputText.trim() || sending || !activeChannel) return
     setSending(true)
@@ -169,7 +156,6 @@ export function ChatScreen({ session, onBack }: Props) {
     } finally { setSending(false) }
   }
 
-  // Refresh
   const handleRefresh = async () => {
     setRefreshing(true)
     if (view === 'list') await loadChannels()
@@ -177,7 +163,6 @@ export function ChatScreen({ session, onBack }: Props) {
     setRefreshing(false)
   }
 
-  // Delete message
   const handleDelete = (msg: ChatMessage) => {
     if (msg.sender_id !== currentUserId) return
     Alert.alert('Delete message', 'Delete this message?', [
@@ -191,7 +176,6 @@ export function ChatScreen({ session, onBack }: Props) {
     ])
   }
 
-  // New DM
   const openNewChat = async () => {
     hapticLight()
     setShowNewChat(true)
@@ -208,26 +192,18 @@ export function ChatScreen({ session, onBack }: Props) {
     setMemberSearch('')
     try {
       const ch = await createDMChannel(token, member.id)
-      await loadChannels()
-      // Find the channel in the refreshed list or create a local one
       const updated = await getChatChannels(token)
-      const found = updated.find((c: ChatChannel) => c.id === ch.id)
+      const found = updated.find((cc: ChatChannel) => cc.id === ch.id)
       if (found) {
         setActiveChannel(found)
-        setView('chat')
       } else {
         setActiveChannel({
-          id: ch.id,
-          name: member.name || member.email,
-          type: 'dm',
-          other_member: member,
-          last_message: null,
-          unread_count: 0,
-          member_count: 2,
-          created_at: new Date().toISOString(),
+          id: ch.id, name: member.name || member.email, type: 'dm',
+          other_member: member, last_message: null, unread_count: 0,
+          member_count: 2, created_at: new Date().toISOString(),
         })
-        setView('chat')
       }
+      setView('chat')
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Could not create conversation')
     }
@@ -239,47 +215,42 @@ export function ChatScreen({ session, onBack }: Props) {
     return (m.name || '').toLowerCase().includes(q) || m.email.toLowerCase().includes(q)
   })
 
-  // ─── RENDER: Conversations List ──────────────────────────
+  // ─── Conversations List ──────────────────────────────────
 
   const renderConversation = ({ item }: { item: ChatChannel }) => {
     const color = getAvatarColor(item.id)
     const lastMsg = item.last_message
     const preview = lastMsg ? `${lastMsg.sender_name.split(' ')[0]}: ${lastMsg.content}` : 'No messages yet'
     const time = lastMsg ? formatListTime(lastMsg.created_at) : ''
+    const hasUnread = item.unread_count > 0
 
     return (
       <Pressable
         onPress={() => openChannel(item)}
-        style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', padding: spacing.base, gap: spacing.md, borderBottomWidth: 1, borderBottomColor: c.borderLight }, pressed && { backgroundColor: c.surfaceAlt }]}
+        style={({ pressed }) => [listStyles.row, { backgroundColor: pressed ? c.surfaceAlt : 'transparent' }]}
       >
-        {/* Avatar */}
         <View style={[listStyles.avatar, { backgroundColor: color }]}>
           <Text style={listStyles.avatarText}>{getInitials(item.name)}</Text>
         </View>
-
-        {/* Content */}
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={[listStyles.name, { color: c.ink }]} numberOfLines={1}>{item.name}</Text>
-            {time ? <Text style={[listStyles.time, { color: item.unread_count > 0 ? c.primary : c.muted }]}>{time}</Text> : null}
+        <View style={listStyles.rowContent}>
+          <View style={listStyles.rowTop}>
+            <Text style={[listStyles.name, { color: c.ink, fontWeight: hasUnread ? '700' : '500' }]} numberOfLines={1}>{item.name}</Text>
+            {time ? <Text style={[listStyles.time, { color: hasUnread ? c.primary : c.muted }]}>{time}</Text> : null}
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
-            <Text style={[listStyles.preview, { color: c.muted }]} numberOfLines={1}>{preview}</Text>
-            {item.unread_count > 0 && (
+          <View style={listStyles.rowBottom}>
+            <Text style={[listStyles.preview, { color: hasUnread ? c.ink : c.muted, fontWeight: hasUnread ? '500' : '400' }]} numberOfLines={1}>{preview}</Text>
+            {hasUnread && (
               <View style={[listStyles.badge, { backgroundColor: c.primary }]}>
-                <Text style={listStyles.badgeText}>{item.unread_count}</Text>
+                <Text style={listStyles.badgeText}>{item.unread_count > 99 ? '99+' : item.unread_count}</Text>
               </View>
             )}
           </View>
-          {item.type === 'dm' && (
-            <Text style={[listStyles.typeTag, { color: c.subtle }]}>Direct message</Text>
-          )}
         </View>
       </Pressable>
     )
   }
 
-  // ─── RENDER: Message Bubble ──────────────────────────────
+  // ─── Message Bubble ──────────────────────────────────────
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     if (item.deleted) return null
@@ -296,56 +267,64 @@ export function ChatScreen({ session, onBack }: Props) {
             <Text style={msgStyles.avatarText}>{getInitials(item.sender_name)}</Text>
           </View>
         )}
-        <View style={[msgStyles.bubble, isMe ? msgStyles.bubbleMe : { backgroundColor: c.surface }, !isMe && { borderColor: c.borderLight, borderWidth: 1 }]}>
+        <View style={msgStyles.bubbleWrap}>
           {!isMe && (
             <Text style={[msgStyles.senderName, { color: avatarColor }]}>{item.sender_name}</Text>
           )}
-          <Text style={[msgStyles.text, { color: isMe ? '#FFFFFF' : c.ink }]}>{item.message}</Text>
-          <View style={msgStyles.footer}>
-            <Text style={[msgStyles.time, { color: isMe ? '#FFFFFFAA' : c.muted }]}>{formatMsgTime(item.created_at)}</Text>
-            {item.edited && <Text style={[msgStyles.edited, { color: isMe ? '#FFFFFFAA' : c.muted }]}>edited</Text>}
-            {isMe && (
-              <Ionicons name="checkmark-done" size={14} color="#FFFFFFAA" style={{ marginLeft: 2 }} />
-            )}
+          <View style={[
+            msgStyles.bubble,
+            isMe ? [msgStyles.bubbleMe, { backgroundColor: c.primary }] : [msgStyles.bubbleOther, { backgroundColor: c.surface, borderColor: c.borderLight }]
+          ]}>
+            <Text style={[msgStyles.text, { color: isMe ? '#FFFFFF' : c.ink }]}>{item.message}</Text>
+          </View>
+          <View style={[msgStyles.footer, isMe && msgStyles.footerMe]}>
+            <Text style={[msgStyles.time, { color: c.muted }]}>{formatMsgTime(item.created_at)}</Text>
+            {item.edited && <Text style={[msgStyles.edited, { color: c.muted }]}>edited</Text>}
+            {isMe && <Ionicons name="checkmark-done" size={14} color={c.primary} />}
           </View>
         </View>
       </Pressable>
     )
   }
 
-  // ─── MAIN RENDER ─────────────────────────────────────────
+  // ─── List View ───────────────────────────────────────────
 
   if (view === 'list') {
     return (
       <SafeAreaView style={[listStyles.container, dyn(c).screen]} edges={['top']}>
-        {/* Header */}
-        <View style={[listStyles.header, { backgroundColor: c.surface, borderBottomColor: c.border }]}>
+        <View style={[listStyles.header, { backgroundColor: c.bg }]}>
           {onBack ? (
             <Pressable onPress={onBack} style={listStyles.headerBtn}>
-              <Ionicons name="arrow-back" size={22} color={c.ink} />
+              <Ionicons name="arrow-back" size={22} color={c.primary} />
             </Pressable>
           ) : <View style={{ width: 44 }} />}
           <Text style={[listStyles.headerTitle, { color: c.ink }]}>Messages</Text>
           <Pressable onPress={openNewChat} style={listStyles.headerBtn}>
-            <Ionicons name="create-outline" size={24} color={c.primary} />
+            <View style={[listStyles.composeBtn, { backgroundColor: c.primary }]}>
+              <Ionicons name="pencil" size={16} color="#FFFFFF" />
+            </View>
           </Pressable>
         </View>
 
         {loading ? (
           <View style={listStyles.centered}>
-            <ActivityIndicator size="small" color={c.primary} />
+            <ActivityIndicator size="large" color={c.primary} />
           </View>
         ) : (
           <FlatList
             data={channels}
             keyExtractor={item => item.id}
             renderItem={renderConversation}
+            contentContainerStyle={{ paddingTop: spacing.xs }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="transparent" />}
+            ItemSeparatorComponent={() => <View style={[listStyles.separator, { backgroundColor: c.borderLight }]} />}
             ListEmptyComponent={
               <View style={listStyles.centered}>
-                <Ionicons name="chatbubbles-outline" size={48} color={c.border} />
-                <Text style={[listStyles.emptyTitle, { color: c.ink }]}>No conversations</Text>
-                <Text style={[listStyles.emptySub, { color: c.muted }]}>Tap the compose button to start a chat</Text>
+                <View style={[listStyles.emptyIconCircle, { backgroundColor: c.primarySurface }]}>
+                  <Ionicons name="chatbubbles" size={32} color={c.primary} />
+                </View>
+                <Text style={[listStyles.emptyTitle, { color: c.ink }]}>No conversations yet</Text>
+                <Text style={[listStyles.emptySub, { color: c.muted }]}>Tap the compose button to start chatting</Text>
               </View>
             }
           />
@@ -354,18 +333,18 @@ export function ChatScreen({ session, onBack }: Props) {
         {/* New Chat Modal */}
         <Modal visible={showNewChat} animationType="slide" presentationStyle="pageSheet">
           <SafeAreaView style={[listStyles.container, { backgroundColor: c.bg }]} edges={['top']}>
-            <View style={[listStyles.header, { backgroundColor: c.surface, borderBottomColor: c.border }]}>
+            <View style={[listStyles.header, { backgroundColor: c.bg }]}>
               <Pressable onPress={() => { setShowNewChat(false); setMemberSearch('') }} style={listStyles.headerBtn}>
-                <Ionicons name="close" size={22} color={c.ink} />
+                <Text style={[listStyles.cancelText, { color: c.primary }]}>Cancel</Text>
               </Pressable>
-              <Text style={[listStyles.headerTitle, { color: c.ink }]}>New conversation</Text>
-              <View style={{ width: 44 }} />
+              <Text style={[listStyles.headerTitle, { color: c.ink }]}>New Message</Text>
+              <View style={{ width: 80 }} />
             </View>
             <View style={[listStyles.searchWrap, { backgroundColor: c.surfaceAlt }]}>
-              <Ionicons name="search" size={18} color={c.muted} />
+              <Ionicons name="search" size={16} color={c.muted} />
               <TextInput
                 style={[listStyles.searchInput, { color: c.ink }]}
-                placeholder="Search by name or email..."
+                placeholder="Search people..."
                 placeholderTextColor={c.muted}
                 value={memberSearch}
                 onChangeText={setMemberSearch}
@@ -373,26 +352,26 @@ export function ChatScreen({ session, onBack }: Props) {
               />
             </View>
             {loadingMembers ? (
-              <View style={listStyles.centered}><ActivityIndicator size="small" color={c.primary} /></View>
+              <View style={listStyles.centered}><ActivityIndicator size="large" color={c.primary} /></View>
             ) : (
               <FlatList
                 data={filteredMembers}
                 keyExtractor={item => item.id}
+                ItemSeparatorComponent={() => <View style={[listStyles.separator, { backgroundColor: c.borderLight, marginLeft: 76 }]} />}
                 renderItem={({ item: member }) => {
                   const color = getAvatarColor(member.id)
                   return (
                     <Pressable
                       onPress={() => startDM(member)}
-                      style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', padding: spacing.base, gap: spacing.md, borderBottomWidth: 1, borderBottomColor: c.borderLight }, pressed && { backgroundColor: c.surfaceAlt }]}
+                      style={({ pressed }) => [listStyles.row, { backgroundColor: pressed ? c.surfaceAlt : 'transparent' }]}
                     >
                       <View style={[listStyles.avatar, { backgroundColor: color }]}>
                         <Text style={listStyles.avatarText}>{getInitials(member.name || member.email)}</Text>
                       </View>
-                      <View style={{ flex: 1 }}>
+                      <View style={listStyles.rowContent}>
                         <Text style={[listStyles.name, { color: c.ink }]}>{member.name || member.email}</Text>
-                        <Text style={[listStyles.preview, { color: c.muted }]}>{member.role?.replace('_', ' ')}</Text>
+                        <Text style={[listStyles.roleText, { color: c.muted }]}>{(member.role || '').replace('_', ' ')}</Text>
                       </View>
-                      <Ionicons name="chatbubble-outline" size={18} color={c.primary} />
                     </Pressable>
                   )
                 }}
@@ -404,16 +383,16 @@ export function ChatScreen({ session, onBack }: Props) {
     )
   }
 
-  // ─── RENDER: Chat View ───────────────────────────────────
+  // ─── Chat View ───────────────────────────────────────────
 
   const channelColor = getAvatarColor(activeChannel?.id || '')
 
   return (
     <SafeAreaView style={[chatStyles.container, dyn(c).screen]} edges={['top']}>
-      {/* Chat header */}
-      <View style={[chatStyles.header, { backgroundColor: c.surface, borderBottomColor: c.border }]}>
+      {/* Header */}
+      <View style={[chatStyles.header, { backgroundColor: c.bg, borderBottomColor: c.borderLight }]}>
         <Pressable onPress={backToList} style={chatStyles.headerBtn}>
-          <Ionicons name="arrow-back" size={22} color={c.ink} />
+          <Ionicons name="chevron-back" size={26} color={c.primary} />
         </Pressable>
         <View style={chatStyles.headerInfo}>
           <View style={[chatStyles.headerAvatar, { backgroundColor: channelColor }]}>
@@ -426,14 +405,14 @@ export function ChatScreen({ session, onBack }: Props) {
             </Text>
           </View>
         </View>
-        <View style={{ width: 44 }} />
+        <Pressable style={chatStyles.headerBtn}>
+          <Ionicons name="ellipsis-vertical" size={18} color={c.muted} />
+        </Pressable>
       </View>
 
       {/* Messages */}
       {loadingMessages ? (
-        <View style={chatStyles.centered}>
-          <ActivityIndicator size="small" color={c.primary} />
-        </View>
+        <View style={chatStyles.centered}><ActivityIndicator size="large" color={c.primary} /></View>
       ) : (
         <FlatList
           ref={flatListRef}
@@ -457,22 +436,24 @@ export function ChatScreen({ session, onBack }: Props) {
 
       {/* Input bar */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
-        <View style={[chatStyles.inputBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>
-          <TextInput
-            style={[chatStyles.input, { backgroundColor: c.surfaceAlt, color: c.ink, borderColor: c.border }]}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Type a message..."
-            placeholderTextColor={c.muted}
-            multiline
-            maxLength={5000}
-          />
+        <View style={[chatStyles.inputBar, { backgroundColor: c.bg, borderTopColor: c.borderLight }]}>
+          <View style={[chatStyles.inputWrap, { backgroundColor: c.surfaceAlt }]}>
+            <TextInput
+              style={[chatStyles.input, { color: c.ink }]}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Message..."
+              placeholderTextColor={c.muted}
+              multiline
+              maxLength={5000}
+            />
+          </View>
           <Pressable
             onPress={handleSend}
             disabled={!inputText.trim() || sending}
-            style={[chatStyles.sendBtn, { backgroundColor: inputText.trim() ? c.primary : c.border }]}
+            style={[chatStyles.sendBtn, { backgroundColor: inputText.trim() ? c.primary : c.surfaceAlt }]}
           >
-            <Ionicons name="send" size={18} color="#FFFFFF" />
+            <Ionicons name="arrow-up" size={22} color={inputText.trim() ? '#FFFFFF' : c.muted} />
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -480,84 +461,87 @@ export function ChatScreen({ session, onBack }: Props) {
   )
 }
 
-// ─── Styles: Conversations List ───────────────────────────
+// ─── Styles: List ─────────────────────────────────────────
 
 const listStyles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1,
+    paddingHorizontal: spacing.sm, paddingVertical: spacing.md,
   },
-  headerBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { ...type.title, fontSize: 18 },
+  headerBtn: { width: 80, height: 40, justifyContent: 'center' },
+  headerTitle: { fontSize: 17, fontWeight: '700', fontFamily: FONT, letterSpacing: -0.3 },
+  cancelText: { fontSize: 16, fontFamily: FONT, fontWeight: '500' },
+  composeBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', marginHorizontal: spacing.base,
-    marginTop: spacing.sm, marginBottom: spacing.xs, borderRadius: radii.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm,
+    borderRadius: radii.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm,
   },
-  searchInput: { flex: 1, ...type.body, fontSize: 15 },
-  avatar: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', fontFamily: FONT },
-  name: { fontSize: 16, fontWeight: '600', fontFamily: FONT },
+  searchInput: { flex: 1, fontFamily: FONT, fontSize: 15 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.base, paddingVertical: spacing.md, gap: spacing.md },
+  rowContent: { flex: 1 },
+  rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  rowBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 },
+  avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', fontFamily: FONT },
+  name: { fontSize: 16, fontFamily: FONT },
   preview: { fontSize: 14, fontFamily: FONT, flex: 1 },
-  time: { fontSize: 12, fontFamily: FONT, marginLeft: spacing.sm },
-  badge: { borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  roleText: { fontSize: 12, fontFamily: FONT, textTransform: 'capitalize' as const, marginTop: 1 },
+  time: { fontSize: 12, fontFamily: FONT },
+  badge: { borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, marginLeft: spacing.sm },
   badgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700', fontFamily: FONT },
-  typeTag: { fontSize: 11, fontFamily: FONT, marginTop: 2 },
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: 80 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
-  emptyTitle: { fontSize: 17, fontWeight: '600', fontFamily: FONT, marginTop: spacing.md },
-  emptySub: { fontSize: 14, fontFamily: FONT, textAlign: 'center' },
+  emptyIconCircle: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
+  emptyTitle: { fontSize: 18, fontWeight: '600', fontFamily: FONT },
+  emptySub: { fontSize: 14, fontFamily: FONT, textAlign: 'center', paddingHorizontal: 40 },
 })
 
-// ─── Styles: Chat View ───────────────────────────────────
+// ─── Styles: Chat ─────────────────────────────────────────
 
 const chatStyles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm, borderBottomWidth: 1, gap: spacing.xs,
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   headerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  headerAvatarText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', fontFamily: FONT },
+  headerAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  headerAvatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', fontFamily: FONT },
   headerName: { fontSize: 16, fontWeight: '600', fontFamily: FONT },
-  headerSub: { fontSize: 12, fontFamily: FONT },
-  messageList: { padding: spacing.base, paddingBottom: spacing.sm, gap: 4 },
+  headerSub: { fontSize: 12, fontFamily: FONT, marginTop: 1 },
+  messageList: { padding: spacing.base, paddingBottom: spacing.sm, paddingTop: spacing.md },
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm, borderTopWidth: 1, gap: spacing.sm,
+    paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, gap: spacing.sm,
   },
-  input: {
-    flex: 1, borderWidth: 1, borderRadius: 20, paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm, fontSize: 15, fontFamily: FONT, maxHeight: 100,
-  },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  inputWrap: { flex: 1, borderRadius: 20, paddingHorizontal: spacing.md, minHeight: 40, justifyContent: 'center' },
+  input: { fontSize: 16, fontFamily: FONT, paddingVertical: Platform.OS === 'ios' ? spacing.xs : spacing.sm, maxHeight: 100 },
+  sendBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyWrap: { alignItems: 'center', paddingTop: 80 },
-  emptyAvatar: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.base },
-  emptyAvatarText: { color: '#FFFFFF', fontSize: 24, fontWeight: '700', fontFamily: FONT },
-  emptyTitle: { fontSize: 17, fontWeight: '600', fontFamily: FONT, marginBottom: spacing.xs },
-  emptySub: { fontSize: 14, fontFamily: FONT },
+  emptyWrap: { alignItems: 'center', paddingTop: 100 },
+  emptyAvatar: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.base },
+  emptyAvatarText: { color: '#FFFFFF', fontSize: 26, fontWeight: '700', fontFamily: FONT },
+  emptyTitle: { fontSize: 18, fontWeight: '600', fontFamily: FONT, marginBottom: spacing.xs },
+  emptySub: { fontSize: 14, fontFamily: FONT, textAlign: 'center' },
 })
 
-// ─── Styles: Message Bubbles ──────────────────────────────
+// ─── Styles: Messages ─────────────────────────────────────
 
 const msgStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xs, marginBottom: spacing.sm, maxWidth: '82%' },
+  row: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xs, marginBottom: spacing.sm, maxWidth: '78%' },
   rowMe: { alignSelf: 'flex-end', flexDirection: 'row-reverse' },
-  avatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
   avatarText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', fontFamily: FONT },
-  bubble: {
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderRadius: 18, borderBottomLeftRadius: 4,
-  },
-  bubbleMe: {
-    borderBottomLeftRadius: 18, borderBottomRightRadius: 4,
-  },
-  senderName: { fontSize: 12, fontWeight: '600', fontFamily: FONT, marginBottom: 2 },
+  bubbleWrap: { gap: 3 },
+  bubble: { paddingHorizontal: 14, paddingVertical: 9, maxWidth: '100%' },
+  bubbleMe: { borderRadius: 18, borderBottomLeftRadius: 4, borderBottomRightRadius: 18 },
+  bubbleOther: { borderRadius: 18, borderBottomLeftRadius: 18, borderBottomRightRadius: 4, borderWidth: StyleSheet.hairlineWidth },
+  senderName: { fontSize: 12, fontWeight: '600', fontFamily: FONT },
   text: { fontSize: 15, lineHeight: 20, fontFamily: FONT },
-  footer: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  footer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  footerMe: { justifyContent: 'flex-end' },
   time: { fontSize: 11, fontFamily: FONT },
   edited: { fontSize: 11, fontFamily: FONT, fontStyle: 'italic' },
 })
