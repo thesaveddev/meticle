@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
 import { RefreshControl, FlatList, StyleSheet, Text, View, Pressable, TextInput, ActivityIndicator } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
@@ -82,7 +81,7 @@ export function ClientListScreen({ session, onBack, onSelect }: Props) {
   }
 
   return (
-    <SafeAreaView style={[s.screen, dyn(c).screen]} edges={['top']}>
+    <View style={[s.screen, dyn(c).screen]}>
       {/* Header */}
       <View style={[s.header, { backgroundColor: c.surface, borderBottomColor: c.border }]}>
         <Pressable onPress={onBack} style={s.headerBtn}>
@@ -129,7 +128,7 @@ export function ClientListScreen({ session, onBack, onSelect }: Props) {
           }
         />
       )}
-    </SafeAreaView>
+    </View>
   )
 }
 

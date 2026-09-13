@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
@@ -124,14 +123,14 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={[s.screen, dyn(c).screen]}>
+      <View style={[s.screen, dyn(c).screen]}>
         <SkeletonCalendar c={c} />
-      </SafeAreaView>
+      </View>
     )
   }
 
   return (
-    <SafeAreaView style={[s.screen, dyn(c).screen]}>
+    <View style={[s.screen, dyn(c).screen]}>
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { hapticMedium(); loadMonth(true) }} tintColor="transparent" colors={['transparent']} />}
       >
@@ -264,7 +263,7 @@ export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
         longitude={navDest.longitude}
         label={navDest.label}
       />
-    </SafeAreaView>
+    </View>
   )
 }
 
