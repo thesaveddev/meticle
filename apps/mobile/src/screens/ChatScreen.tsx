@@ -98,7 +98,7 @@ export function ChatScreen({ session, onBack }: Props) {
     try {
       await ensureGeneralChannel(token).catch(() => {})
       const data = await getChatChannels(token)
-      setChannels(data)
+      if (Array.isArray(data)) setChannels(data)
     } catch {} finally { setLoading(false) }
   }, [token])
 
@@ -112,7 +112,7 @@ export function ChatScreen({ session, onBack }: Props) {
     if (!token || !activeChannel) return
     try {
       const msgs = await getChatMessages(token, activeChannel.id, 80)
-      setMessages(msgs)
+      if (Array.isArray(msgs)) setMessages(msgs)
       markChatRead(token, activeChannel.id).catch(() => {})
     } catch {} finally { setLoadingMessages(false) }
   }, [token, activeChannel])
@@ -182,7 +182,7 @@ export function ChatScreen({ session, onBack }: Props) {
     setLoadingMembers(true)
     try {
       const members = await getOrgMembers(token)
-      setOrgMembers(members)
+      if (Array.isArray(members)) setOrgMembers(members)
     } catch {} finally { setLoadingMembers(false) }
   }
 
@@ -193,7 +193,7 @@ export function ChatScreen({ session, onBack }: Props) {
     try {
       const ch = await createDMChannel(token, member.id)
       const updated = await getChatChannels(token)
-      const found = updated.find((cc: ChatChannel) => cc.id === ch.id)
+      const found = Array.isArray(updated) ? updated.find((cc: ChatChannel) => cc.id === ch.id) : null
       if (found) {
         setActiveChannel(found)
       } else {
