@@ -31,6 +31,7 @@ import { ClientListScreen } from './src/screens/ClientListScreen'
 import { AllVisitsScreen } from './src/screens/AllVisitsScreen'
 import { StaffDirectoryScreen } from './src/screens/StaffDirectoryScreen'
 import { TimesheetsScreen } from './src/screens/TimesheetsScreen'
+import { CarerTotalsScreen } from './src/screens/CarerTotalsScreen'
 import { SwipeBack } from './src/components/SwipeBack'
 import { EmergencyButton } from './src/components/EmergencyButton'
 
@@ -68,6 +69,7 @@ type Screen =
   | { kind: 'allVisits'; status?: string; staffName?: string }
   | { kind: 'staffDirectory' }
   | { kind: 'timesheets' }
+  | { kind: 'carerTotals' }
 
 export default function App() {
   return (
@@ -269,6 +271,9 @@ function AppInner() {
   if (currentScreen.kind === 'timesheets' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><TimesheetsScreen session={session} onBack={goBack} /></SwipeBack></>
   }
+  if (currentScreen.kind === 'carerTotals' && session) {
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><CarerTotalsScreen session={session} onBack={goBack} /></SwipeBack></>
+  }
 
   /* ─── Main tab view ──────────────────────────────────────── */
   return (
@@ -299,6 +304,7 @@ function AppInner() {
             else if (screen === 'allVisits') { pushScreen({ kind: 'allVisits', ...params }) }
             else if (screen === 'staffDirectory') { pushScreen({ kind: 'staffDirectory' }) }
             else if (screen === 'timesheets') { pushScreen({ kind: 'timesheets' }) }
+            else if (screen === 'carerTotals') { pushScreen({ kind: 'carerTotals' }) }
           }} />}
           {isManager && tab === 'clients' && <ClientListScreen session={session!} onSelect={(personId) => pushScreen({ kind: 'clientDetail', personId })} />}
           {isManager && tab === 'visits' && <AllVisitsScreen session={session!} onSelect={(visitId) => {
