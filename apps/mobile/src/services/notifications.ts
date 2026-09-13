@@ -1,6 +1,14 @@
 import { Platform } from 'react-native'
 import type { HomecareVisit } from '../types'
 
+// Suppress Expo Go SDK 53+ push notification warnings
+const _origWarn = console.warn
+console.warn = (...args: any[]) => {
+  const msg = args[0]?.toString?.() || ''
+  if (msg.includes('expo-notifications') || msg.includes('Expo Go') || msg.includes('dev-client')) return
+  _origWarn(...args)
+}
+
 // Lazy-load expo-notifications to avoid remote push initialization on Android SDK 53+.
 let Notifications: typeof import('expo-notifications') | null = null
 
