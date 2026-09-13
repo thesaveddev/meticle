@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, Tab, Tabs, TextField, Typography } from '@mui/material'
 import { CheckCircle as CheckCircleIcon, ReceiptLong as ReceiptLongIcon, Block as BlockIcon, PictureAsPdf as PdfIcon, Download as DownloadIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -7,6 +7,8 @@ import { EmptyState } from '../../components/design/EmptyState'
 
 const money = (pence: number | null | undefined) => pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
 const dateLabel = (value: string) => new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+
+const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100]
 
 export default function ClientBillingPage() {
   const user = useMemo(() => { try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} } }, [])
@@ -18,6 +20,9 @@ export default function ClientBillingPage() {
   const [selectedRun, setSelectedRun] = useState<string | null>(null)
   const [voidReason, setVoidReason] = useState('')
   const [voidDialog, setVoidDialog] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState(0)
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(25)
 
   const utilisation = useQuery({
     queryKey: ['homecare-client-utilisation', from, to],
@@ -39,6 +44,7 @@ export default function ClientBillingPage() {
     onSuccess: (response) => {
       setSelectedRun(response.data.run.id)
       setMessage(`Draft billing run created with ${response.data.lines.length} visit line${response.data.lines.length === 1 ? '' : 's'}. VAT, funding and cancellation policy were snapshot at creation.`)
+      setActiveTab(1)
       queryClient.invalidateQueries({ queryKey: ['homecare-client-billing-runs'] })
       queryClient.invalidateQueries({ queryKey: ['homecare-client-billing-lines'] })
     },
@@ -72,6 +78,9 @@ export default function ClientBillingPage() {
   const currentRun = (runs.data || []).find((run: any) => run.id === selectedRun)
   const fundingBreakdown = currentRun?.funding_breakdown || null
 
+  // Pagination
+  const paginatedRows = rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+
   if (!isManager) return <Box sx={{ maxWidth: 1180, mx: 'auto' }}><Alert severity="info">Client billing is available to managers and organisation administrators.</Alert></Box>
 
   return (
@@ -92,75 +101,111 @@ export default function ClientBillingPage() {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
           <TextField type="date" label="From" size="small" value={from} onChange={e => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
           <TextField type="date" label="To" size="small" value={to} onChange={e => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />
-          <Typography variant="body2" color="text.secondary">Completed visits are invoice-ready only when delivered minutes and a package client rate exist. Missed, cancelled and unrated visits are recorded as not billable with a reason. No payment is taken here.</Typography>
+          <Typography variant="body2" color="text.secondary">Completed visits are invoice-ready only when delivered minutes and a package client rate exist. No payment is taken here.</Typography>
         </Stack>
       </Paper>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{rows.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Visits in period</Typography></Paper>
-        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800, color: '#10b981' }}>{billable.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Billable visits</Typography></Paper>
-        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(netTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Net total</Typography></Paper>
-        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(vatTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>VAT</Typography></Paper>
-        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(grossTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Gross invoice-ready</Typography></Paper>
-        <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800, color: review.length ? '#D97706' : '#111827' }}>{review.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Needs review</Typography></Paper>
-      </Stack>
+      {/* ── Tabs ─────────────────────────────────────────── */}
+      <Paper elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2, mb: 3 }}>
+        <Tabs value={activeTab} onChange={(_, v) => { setActiveTab(v); setPage(0) }} sx={{ px: 2, borderBottom: '1px solid #E5E7EB', minHeight: 48, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 48 } }}>
+          <Tab label={`Visits (${rows.length})`} />
+          <Tab label={`Previous runs (${(runs.data || []).length})`} />
+        </Tabs>
+      </Paper>
 
-      {utilisation.isLoading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box> : (
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2, mb: 4 }}>
-          <Table>
-            <TableHead><TableRow><TableCell>Visit</TableCell><TableCell>Client / package</TableCell><TableCell>Funding</TableCell><TableCell>Status</TableCell><TableCell align="right">Delivered</TableCell><TableCell align="right">Net / VAT / gross</TableCell><TableCell>Decision</TableCell></TableRow></TableHead>
-            <TableBody>
-              {!rows.length ? <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>No visits in this period</TableCell></TableRow> : rows.map((row: any) => (
-                <TableRow key={row.visit_id}>
-                  <TableCell><Typography variant="body2" fontWeight={700}>{dateLabel(row.scheduled_start)}</Typography><Typography variant="caption" color="text.secondary">{row.scheduled_minutes} scheduled min · {row.vat_inclusive ? 'VAT inclusive' : row.vat_rate ? `VAT ${row.vat_rate}%` : 'No VAT'}</Typography></TableCell>
-                  <TableCell><Typography variant="body2">{row.person_name}</Typography><Typography variant="caption" color="text.secondary">{row.package_name} · {money(row.client_rate_pence)} / hr</Typography></TableCell>
-                  <TableCell><Chip size="small" label={String(row.funding_type).replace(/_/g, ' ')} variant="outlined" /></TableCell>
-                  <TableCell><Chip size="small" label={row.visit_status.replace(/_/g, ' ')} /></TableCell>
-                  <TableCell align="right">{row.delivered_minutes} min</TableCell>
-                  <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 700 }}>{money(row.gross_amount_pence ?? row.amount_pence)}</Typography><Typography variant="caption" color="text.secondary">{money(row.net_amount_pence ?? row.amount_pence)} net · {money(row.vat_amount_pence)} VAT</Typography></TableCell>
-                  <TableCell><Chip size="small" color={row.billing_status === 'billable' ? 'success' : row.billing_status === 'review' ? 'warning' : 'default'} label={row.billing_status === 'billable' ? 'Billable' : row.exclusion_reason || row.cancellation_policy_applied || 'Not billable'} /></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+      {/* ── Tab 0: Visits ────────────────────────────────── */}
+      {activeTab === 0 && (
+        <>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{rows.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Visits in period</Typography></Paper>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800, color: '#10b981' }}>{billable.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Billable visits</Typography></Paper>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(netTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Net total</Typography></Paper>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(vatTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>VAT</Typography></Paper>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(grossTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Gross invoice-ready</Typography></Paper>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800, color: review.length ? '#D97706' : '#111827' }}>{review.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Needs review</Typography></Paper>
+          </Stack>
 
-      <Typography variant="h6" sx={{ fontWeight: 800, mb: 1.5 }}>Previous runs</Typography>
-      <Stack spacing={1.5} sx={{ mb: 4 }}>
-        {(runs.data || []).length === 0 ? <EmptyState title="No billing runs yet" description="Create your first billing run to generate invoices" variant="default" /> : (runs.data || []).map((run: any) => (
-          <Paper key={run.id} elevation={0} sx={{ p: 2, display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, border: '1px solid #E5E7EB', borderRadius: 2 }}>
-            <Box>
-              <Typography fontWeight={700}>{run.invoice_number || 'Draft run'} · {dateLabel(run.period_from)} – {dateLabel(run.period_to)}</Typography>
-              <Typography variant="body2" color="text.secondary">{run.row_count} lines · gross {money(run.gross_amount_pence ?? run.total_amount_pence)} {run.vat_amount_pence ? `· VAT ${money(run.vat_amount_pence)}` : ''} · {run.funding_breakdown ? `${Object.keys(run.funding_breakdown).length} funder group${Object.keys(run.funding_breakdown).length === 1 ? '' : 's'}` : ''} · created {dateLabel(run.created_at)}</Typography>
-              {run.voided_at && <Typography variant="caption" color="error">Voided {dateLabel(run.voided_at)}{run.void_reason ? ` — ${run.void_reason}` : ''}</Typography>}
-            </Box>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Chip size="small" label={run.status} color={run.status === 'approved' ? 'success' : run.status === 'void' ? 'error' : 'default'} />
-              <Button size="small" onClick={() => setSelectedRun(run.id)} sx={{ textTransform: 'none' }}>View lines</Button>
-              {run.status === 'draft' && <Button size="small" variant="contained" startIcon={<CheckCircleIcon />} onClick={() => approveRun.mutate(run.id)} disabled={approveRun.isPending} sx={{ textTransform: 'none' }}>Approve</Button>}
-              {run.status === 'approved' && <><Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => window.open(`/api/homecare/client-billing/runs/${run.id}/invoice.pdf`, '_blank')} sx={{ textTransform: 'none' }}>Invoice PDF</Button><Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={() => window.open(`/api/homecare/client-billing/runs/${run.id}/mtd-export`, '_blank')} sx={{ textTransform: 'none' }}>MTD Export</Button><Button size="small" color="error" variant="outlined" startIcon={<BlockIcon />} onClick={() => setVoidDialog(run.id)} sx={{ textTransform: 'none' }}>Void</Button></>}
-            </Stack>
-          </Paper>
-        ))}
-      </Stack>
-
-      {selectedRun && (
-        <Paper elevation={0} sx={{ p: 2, mb: 4, border: '1px solid #E5E7EB', borderRadius: 2 }}>
-          <Typography variant="h6" fontWeight={800} sx={{ mb: 1.5 }}>Run detail</Typography>
-          {lines.isLoading ? <CircularProgress size={22} /> : (
-            <Stack spacing={1.5}>
-              <Typography variant="body2" color="text.secondary">{lines.data?.length || 0} snapshot lines. The run is immutable operational output for your invoice process and does not create a payment.</Typography>
-              {fundingBreakdown && (
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small"><TableHead><TableRow><TableCell>Funding</TableCell><TableCell align="right">Lines</TableCell><TableCell align="right">Billable</TableCell><TableCell align="right">Net</TableCell><TableCell align="right">VAT</TableCell><TableCell align="right">Gross</TableCell></TableRow></TableHead><TableBody>{Object.entries(fundingBreakdown as Record<string, any>).map(([key, value]: any) => <TableRow key={key}><TableCell sx={{ textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</TableCell><TableCell align="right">{value.count}</TableCell><TableCell align="right">{value.billable_count}</TableCell><TableCell align="right">{money(value.net_pence)}</TableCell><TableCell align="right">{money(value.vat_pence)}</TableCell><TableCell align="right" sx={{ fontWeight: 700 }}>{money(value.gross_pence)}</TableCell></TableRow>)}</TableBody></Table>
-                </TableContainer>
-              )}
-            </Stack>
+          {utilisation.isLoading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box> : (
+            <Paper elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2 }}>
+              <TableContainer>
+                <Table>
+                  <TableHead><TableRow><TableCell>Visit</TableCell><TableCell>Client / package</TableCell><TableCell>Funding</TableCell><TableCell>Status</TableCell><TableCell align="right">Delivered</TableCell><TableCell align="right">Net / VAT / gross</TableCell><TableCell>Decision</TableCell></TableRow></TableHead>
+                  <TableBody>
+                    {!paginatedRows.length ? (
+                      <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>{rows.length ? 'No visits on this page' : 'No visits in this period'}</TableCell></TableRow>
+                    ) : paginatedRows.map((row: any) => (
+                      <TableRow key={row.visit_id}>
+                        <TableCell><Typography variant="body2" fontWeight={700}>{dateLabel(row.scheduled_start)}</Typography><Typography variant="caption" color="text.secondary">{row.scheduled_minutes} scheduled min · {row.vat_inclusive ? 'VAT inclusive' : row.vat_rate ? `VAT ${row.vat_rate}%` : 'No VAT'}</Typography></TableCell>
+                        <TableCell><Typography variant="body2">{row.person_name}</Typography><Typography variant="caption" color="text.secondary">{row.package_name} · {money(row.client_rate_pence)} / hr</Typography></TableCell>
+                        <TableCell><Chip size="small" label={String(row.funding_type).replace(/_/g, ' ')} variant="outlined" /></TableCell>
+                        <TableCell><Chip size="small" label={row.visit_status.replace(/_/g, ' ')} /></TableCell>
+                        <TableCell align="right">{row.delivered_minutes} min</TableCell>
+                        <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 700 }}>{money(row.gross_amount_pence ?? row.amount_pence)}</Typography><Typography variant="caption" color="text.secondary">{money(row.net_amount_pence ?? row.amount_pence)} net · {money(row.vat_amount_pence)} VAT</Typography></TableCell>
+                        <TableCell><Chip size="small" color={row.billing_status === 'billable' ? 'success' : row.billing_status === 'review' ? 'warning' : 'default'} label={row.billing_status === 'billable' ? 'Billable' : row.exclusion_reason || row.cancellation_policy_applied || 'Not billable'} /></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <TablePagination
+                component="div"
+                count={rows.length}
+                page={page}
+                onPageChange={(_, p) => setPage(p)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }}
+                rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
+              />
+            </Paper>
           )}
-        </Paper>
+        </>
       )}
-      {currentRun && <Alert severity={currentRun.status === 'void' ? 'warning' : 'info'} sx={{ mt: 2 }}>This run is <strong>{currentRun.status}</strong>{currentRun.invoice_number ? ` · ${currentRun.invoice_number}` : ''}. Approved runs are immutable; only a void with a recorded reason can reverse them.</Alert>}
+
+      {/* ── Tab 1: Previous runs ─────────────────────────── */}
+      {activeTab === 1 && (
+        <Stack spacing={1.5}>
+          {(runs.data || []).length === 0 ? (
+            <EmptyState title="No billing runs yet" description="Create your first billing run to generate invoices" variant="default" />
+          ) : (runs.data || []).map((run: any) => (
+            <Paper key={run.id} elevation={0} sx={{ p: 2, display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, border: '1px solid #E5E7EB', borderRadius: 2 }}>
+              <Box>
+                <Typography fontWeight={700}>{run.invoice_number || 'Draft run'} · {dateLabel(run.period_from)} – {dateLabel(run.period_to)}</Typography>
+                <Typography variant="body2" color="text.secondary">{run.row_count} lines · gross {money(run.gross_amount_pence ?? run.total_amount_pence)} {run.vat_amount_pence ? `· VAT ${money(run.vat_amount_pence)}` : ''} · {run.funding_breakdown ? `${Object.keys(run.funding_breakdown).length} funder group${Object.keys(run.funding_breakdown).length === 1 ? '' : 's'}` : ''} · created {dateLabel(run.created_at)}</Typography>
+                {run.voided_at && <Typography variant="caption" color="error">Voided {dateLabel(run.voided_at)}{run.void_reason ? ` — ${run.void_reason}` : ''}</Typography>}
+              </Box>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+                <Chip size="small" label={run.status} color={run.status === 'approved' ? 'success' : run.status === 'void' ? 'error' : 'default'} />
+                <Button size="small" onClick={() => setSelectedRun(run.id)} sx={{ textTransform: 'none' }}>View lines</Button>
+                {run.status === 'draft' && <Button size="small" variant="contained" startIcon={<CheckCircleIcon />} onClick={() => approveRun.mutate(run.id)} disabled={approveRun.isPending} sx={{ textTransform: 'none' }}>Approve</Button>}
+                {run.status === 'approved' && (
+                  <>
+                    <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => window.open(`/api/homecare/client-billing/runs/${run.id}/invoice.pdf`, '_blank')} sx={{ textTransform: 'none' }}>Invoice PDF</Button>
+                    <Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={() => window.open(`/api/homecare/client-billing/runs/${run.id}/mtd-export`, '_blank')} sx={{ textTransform: 'none' }}>MTD Export</Button>
+                    <Button size="small" color="error" variant="outlined" startIcon={<BlockIcon />} onClick={() => setVoidDialog(run.id)} sx={{ textTransform: 'none' }}>Void</Button>
+                  </>
+                )}
+              </Stack>
+            </Paper>
+          ))}
+
+          {selectedRun && (
+            <Paper elevation={0} sx={{ p: 2, mt: 2, border: '1px solid #E5E7EB', borderRadius: 2 }}>
+              <Typography variant="h6" fontWeight={800} sx={{ mb: 1.5 }}>Run detail</Typography>
+              {lines.isLoading ? <CircularProgress size={22} /> : (
+                <Stack spacing={1.5}>
+                  <Typography variant="body2" color="text.secondary">{lines.data?.length || 0} snapshot lines. The run is immutable operational output for your invoice process and does not create a payment.</Typography>
+                  {fundingBreakdown && (
+                    <TableContainer component={Paper} variant="outlined">
+                      <Table size="small"><TableHead><TableRow><TableCell>Funding</TableCell><TableCell align="right">Lines</TableCell><TableCell align="right">Billable</TableCell><TableCell align="right">Net</TableCell><TableCell align="right">VAT</TableCell><TableCell align="right">Gross</TableCell></TableRow></TableHead><TableBody>{Object.entries(fundingBreakdown as Record<string, any>).map(([key, value]: any) => <TableRow key={key}><TableCell sx={{ textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</TableCell><TableCell align="right">{value.count}</TableCell><TableCell align="right">{value.billable_count}</TableCell><TableCell align="right">{money(value.net_pence)}</TableCell><TableCell align="right">{money(value.vat_pence)}</TableCell><TableCell align="right" sx={{ fontWeight: 700 }}>{money(value.gross_pence)}</TableCell></TableRow>)}</TableBody></Table>
+                    </TableContainer>
+                  )}
+                </Stack>
+              )}
+            </Paper>
+          )}
+          {currentRun && <Alert severity={currentRun.status === 'void' ? 'warning' : 'info'} sx={{ mt: 2 }}>This run is <strong>{currentRun.status}</strong>{currentRun.invoice_number ? ` · ${currentRun.invoice_number}` : ''}. Approved runs are immutable; only a void with a recorded reason can reverse them.</Alert>}
+        </Stack>
+      )}
 
       <Dialog open={Boolean(voidDialog)} onClose={() => setVoidDialog(null)} maxWidth="sm" fullWidth>
         <DialogTitle>Void approved run</DialogTitle>
