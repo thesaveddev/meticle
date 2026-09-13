@@ -147,6 +147,8 @@ router.patch('/disruptions/:id/resolve', requireRole(...managerRoles), asyncHand
 router.get('/timesheets', requireRole(...managerRoles), asyncHandler(HomecareController.listTimesheets));
 router.get('/care-plans', requireRole(...managerRoles), asyncHandler(HomecareController.listCarePlans));
 router.get('/timesheets/monthly-totals', requireRole(...managerRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getMonthlyCarerTotals));
+router.get('/timesheets/carer/:staffId', requireRole(...managerRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getCarerTimesheetDetail));
+router.get('/timesheets/pending', requireRole(...managerRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getPendingTimesheets));
 router.patch('/timesheets/:id', requireRole(...managerRoles), validate(timesheetSchema), asyncHandler(HomecareController.updateTimesheet));
 router.get('/payroll/export.csv', requireRole(...managerRoles), validate(exportSchema, 'query'), asyncHandler(HomecareController.exportPayroll));
 router.get('/client-billing/runs', requireRole(...managerRoles), asyncHandler(HomecareController.listClientBillingRuns));
