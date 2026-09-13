@@ -1,20 +1,24 @@
 import { useState } from 'react'
 import {
-  Box, Typography, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TextField, Button,
-  Chip, Stack, Alert, CircularProgress, InputAdornment,
-  Dialog, DialogTitle, DialogContent, DialogActions, MenuItem,
-  TablePagination, Checkbox,
+  Box, Typography, TextField, Button, Stack, Alert,
+  InputAdornment, Dialog, DialogTitle, DialogContent,
+  DialogActions, MenuItem, Checkbox,
+  Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow, TablePagination,
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import {
   Add as AddIcon, Search as SearchIcon,
-  Warning as WarningIcon,
+  Warning as WarningIcon, Group as GroupIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
 import PersonAvatar from '../../components/PersonAvatar'
+import { PremiumCard, StatusBadge } from '../../components/design/PremiumCard'
+import { EmptyState } from '../../components/design/EmptyState'
 
 const SUPPORT_LEVELS = [
   { value: '', label: 'None specified' },
@@ -26,13 +30,20 @@ const SUPPORT_LEVELS = [
   { value: 'complex', label: 'Complex / high dependency' },
 ]
 
-const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' | 'default' | 'warning' }> = {
-  active: { label: 'Active', color: 'success' },
-  discharged: { label: 'Discharged', color: 'default' },
-  deceased: { label: 'Deceased', color: 'error' },
+const STATUS_VARIANT: Record<string, 'completed' | 'scheduled' | 'missed' | 'in-progress' | 'pending'> = {
+  active: 'completed',
+  discharged: 'pending',
+  deceased: 'missed',
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  active: 'Active',
+  discharged: 'Discharged',
+  deceased: 'Deceased',
 }
 
 export default function PersonDirectoryPage() {
+  const theme = useTheme()
   const navigate = useNavigate()
   const { showSnackbar } = useSnackbar()
   const [search, setSearch] = useState('')
@@ -108,38 +119,79 @@ export default function PersonDirectoryPage() {
 
   const paginated = users.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
+  const activeCount = users.filter((u: any) => u.status === 'active').length
+  const dischargedCount = users.filter((u: any) => u.status === 'discharged').length
+  const riskCount = users.filter((u: any) => (u.open_risks || 0) > 0).length
+
   return (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800 }}>People</Typography>
-        <Stack direction="row" spacing={1}>
+    <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+      {/* ── Header ── */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mb: 3, gap: 2 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>People</Typography>
+          <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
+            Manage clients, care plans and support levels
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1} flexWrap="wrap">
           {selected.size > 0 && (
             <>
               <Button variant="outlined" size="small" onClick={() => { setBulkOpen('status'); setBulkStatus('active') }}
-                sx={{ textTransform: 'none' }}>
+                sx={{ textTransform: 'none', borderRadius: '12px', fontWeight: 600, borderColor: theme.palette.divider, color: theme.palette.text.primary }}>
                 Change Status ({selected.size})
               </Button>
               <Button variant="outlined" size="small" color="error" onClick={() => setBulkOpen('discharge')}
-                sx={{ textTransform: 'none' }}>
+                sx={{ textTransform: 'none', borderRadius: '12px', fontWeight: 600 }}>
                 Discharge ({selected.size})
               </Button>
             </>
           )}
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { setInlineForm(!inlineForm); setAddOpen(false) }}
-            sx={{ textTransform: 'none', borderColor: inlineForm ? '#0F4C81' : '#E5E7EB', color: inlineForm ? '#0F4C81' : '#374151', fontWeight: 600 }}>
-            {inlineForm ? 'Close form' : 'Add client'}
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setInlineForm(!inlineForm); setAddOpen(false) }}
+            sx={{ textTransform: 'none', borderRadius: '12px', fontWeight: 600, px: 2.5, py: 1, bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}>
+            {inlineForm ? 'Close' : 'Add client'}
           </Button>
         </Stack>
       </Stack>
 
-      {/* Inline add client form */}
+      {/* ── Stats row ── */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+        <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: '#E9F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <PersonIcon sx={{ fontSize: 20, color: '#047857' }} />
+          </Box>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{activeCount}</Typography>
+            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>Active clients</Typography>
+          </Box>
+        </PremiumCard>
+        <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <GroupIcon sx={{ fontSize: 20, color: '#6B7280' }} />
+          </Box>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{dischargedCount}</Typography>
+            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>Discharged</Typography>
+          </Box>
+        </PremiumCard>
+        <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: riskCount > 0 ? '#FDECEC' : '#E9F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <WarningIcon sx={{ fontSize: 20, color: riskCount > 0 ? '#DC2626' : '#047857' }} />
+          </Box>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{riskCount}</Typography>
+            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>Open risks</Typography>
+          </Box>
+        </PremiumCard>
+      </Stack>
+
+      {/* ── Inline add client form ── */}
       {inlineForm && (
-        <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid #E5E7EB', borderRadius: 2, borderLeft: '4px solid #0F4C81' }}>
+        <PremiumCard noBorder sx={{ p: 3, mb: 3, borderLeft: '4px solid #0F4C81' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0F4C81' }}>Add a new client</Typography>
-            <Button size="small" onClick={() => setInlineForm(false)} sx={{ textTransform: 'none', color: '#6B7280' }}>Close</Button>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Add a new client</Typography>
+            <Button size="small" onClick={() => setInlineForm(false)} sx={{ textTransform: 'none', color: theme.palette.text.secondary, borderRadius: '10px' }}>Close</Button>
           </Stack>
-          {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
+          {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>{formError}</Alert>}
           <Stack spacing={2}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField label="First name" size="small" required value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} sx={{ flex: 1 }} />
@@ -165,97 +217,130 @@ export default function PersonDirectoryPage() {
             </Stack>
             <TextField label="Allergies (comma-separated)" size="small" placeholder="e.g. Penicillin, Latex" value={form.allergies} onChange={e => setForm(f => ({ ...f, allergies: e.target.value }))} />
             <Stack direction="row" justifyContent="flex-end" spacing={1}>
-              <Button size="small" onClick={() => setInlineForm(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
-              <Button size="small" variant="contained" disabled={createMutation.isPending || !form.first_name.trim() || !form.last_name.trim() || !form.location_id} onClick={(e) => { e.preventDefault(); handleCreate(e as any) }} sx={{ textTransform: 'none', bgcolor: '#0F4C81' }}>
-                {createMutation.isPending ? <CircularProgress size={16} color="inherit" /> : 'Add client'}
+              <Button size="small" onClick={() => setInlineForm(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
+              <Button size="small" variant="contained" disabled={createMutation.isPending || !form.first_name.trim() || !form.last_name.trim() || !form.location_id}
+                onClick={(e) => { e.preventDefault(); handleCreate(e as any) }}
+                sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}>
+                {createMutation.isPending ? 'Adding...' : 'Add client'}
               </Button>
             </Stack>
           </Stack>
-        </Paper>
+        </PremiumCard>
       )}
 
-      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
-        <Stack direction="row" spacing={2} alignItems="center">
+      {/* ── Search & Filter ── */}
+      <PremiumCard noBorder sx={{ p: 2, mb: 3 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
           <TextField size="small" placeholder="Search by name or room..." value={search} onChange={e => setSearch(e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
-            sx={{ minWidth: 300 }} />
-          <TextField select size="small" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} label="Status" sx={{ minWidth: 140 }}>
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} /></InputAdornment> }}
+            sx={{ flex: 1, minWidth: 250, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} />
+          <TextField select size="small" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} label="Status"
+            sx={{ minWidth: 140, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
             <MenuItem value="">All</MenuItem>
             <MenuItem value="active">Active</MenuItem>
             <MenuItem value="discharged">Discharged</MenuItem>
             <MenuItem value="deceased">Deceased</MenuItem>
           </TextField>
+          <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            {users.length} {users.length === 1 ? 'person' : 'people'}
+          </Typography>
         </Stack>
-      </Paper>
+      </PremiumCard>
 
-      {isLoading && <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>}
-      {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{(error as any).response?.data?.message || 'Failed to load'}</Alert>}
-
-      {!isLoading && (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox"><Checkbox checked={selected.size === users.length && users.length > 0} indeterminate={selected.size > 0 && selected.size < users.length} onChange={toggleAll} /></TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Photo</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Room</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>NHS Number</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>DOB</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Care Plans</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Open Risks</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginated.length === 0 ? (
-                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: '#9CA3AF' }}>No people found</TableCell></TableRow>
-              ) : paginated.map((u: any) => (
-                <TableRow key={u.id} hover selected={selected.has(u.id)} sx={{ cursor: 'pointer' }}>
-                  <TableCell padding="checkbox" onClick={e => e.stopPropagation()}>
-                    <Checkbox checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} />
-                  </TableCell>
-                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>
-                    <PersonAvatar photoUrl={u.photo_url} name={`${u.first_name} ${u.last_name}`}
-                      sx={{ width: 40, height: 40, bgcolor: '#0F4C81', fontSize: 16 }} />
-                  </TableCell>
-                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography variant="body2" fontWeight={700}>{u.first_name} {u.last_name}</Typography>
-                    </Stack>
-                  </TableCell>
-                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>{u.room_number || '—'}</TableCell>
-                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>{u.nhs_number || '—'}</TableCell>
-                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>{u.date_of_birth ? new Date(u.date_of_birth).toLocaleDateString('en-GB') : '—'}</TableCell>
-                  <TableCell onClick={() => navigate(`/people/${u.id}`)}>
-                    <Chip label={STATUS_CONFIG[u.status]?.label || u.status} size="small" color={STATUS_CONFIG[u.status]?.color || 'default'} />
-                  </TableCell>
-                  <TableCell align="right" onClick={() => navigate(`/people/${u.id}`)}>
-                    <Chip label={u.active_care_plans || 0} size="small" variant="outlined" />
-                  </TableCell>
-                  <TableCell align="right" onClick={() => navigate(`/people/${u.id}`)}>
-                    {(u.open_risks || 0) > 0
-                      ? <Chip icon={<WarningIcon />} label={u.open_risks} size="small" color="error" />
-                      : <Chip label="0" size="small" variant="outlined" />}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <TablePagination
-            component="div" count={users.length} page={page}
-            onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }}
-            rowsPerPageOptions={[5, 10, 25, 50]} />
-        </TableContainer>
+      {/* ── Error state ── */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3, borderRadius: '12px' }}>
+          {(error as any).response?.data?.message || 'Failed to load people'}
+        </Alert>
       )}
 
-      {/* Add Resident Dialog */}
-      <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
+      {/* ── Table ── */}
+      {!isLoading && (
+        <PremiumCard noBorder>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell padding="checkbox" sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+                    <Checkbox checked={selected.size === users.length && users.length > 0} indeterminate={selected.size > 0 && selected.size < users.length} onChange={toggleAll}
+                      sx={{ color: theme.palette.text.secondary, '&.Mui-checked': { color: '#1A2332' } }} />
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary, borderBottom: `1px solid ${theme.palette.divider}` }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary, borderBottom: `1px solid ${theme.palette.divider}` }}>Room</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary, borderBottom: `1px solid ${theme.palette.divider}` }}>NHS Number</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary, borderBottom: `1px solid ${theme.palette.divider}` }}>DOB</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary, borderBottom: `1px solid ${theme.palette.divider}` }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary, borderBottom: `1px solid ${theme.palette.divider}` }} align="right">Plans</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary, borderBottom: `1px solid ${theme.palette.divider}` }} align="right">Risks</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginated.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} sx={{ borderBottom: 'none' }}>
+                      <EmptyState
+                        title={search || statusFilter ? 'No matches found' : 'No people yet'}
+                        description={search || statusFilter ? 'Try adjusting your search or filters' : 'Add your first client to get started'}
+                        variant={search || statusFilter ? 'search' : 'default'}
+                        action={!search && !statusFilter ? { label: 'Add client', onClick: () => setInlineForm(true) } : undefined}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : paginated.map((u: any) => (
+                  <TableRow key={u.id} hover selected={selected.has(u.id)} sx={{ cursor: 'pointer', '&:last-child td': { borderBottom: 'none' } }}>
+                    <TableCell padding="checkbox" onClick={e => e.stopPropagation()}>
+                      <Checkbox checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)}
+                        sx={{ color: theme.palette.text.secondary, '&.Mui-checked': { color: '#1A2332' } }} />
+                    </TableCell>
+                    <TableCell onClick={() => navigate(`/people/${u.id}`)} sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <PersonAvatar photoUrl={u.photo_url} name={`${u.first_name} ${u.last_name}`}
+                          sx={{ width: 36, height: 36, bgcolor: '#1A2332', fontSize: 14 }} />
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {u.first_name} {u.last_name}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell onClick={() => navigate(`/people/${u.id}`)} sx={{ borderBottom: `1px solid ${theme.palette.divider}`, color: u.room_number ? theme.palette.text.primary : theme.palette.text.secondary }}>
+                      {u.room_number || '—'}
+                    </TableCell>
+                    <TableCell onClick={() => navigate(`/people/${u.id}`)} sx={{ borderBottom: `1px solid ${theme.palette.divider}`, color: u.nhs_number ? theme.palette.text.primary : theme.palette.text.secondary, fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                      {u.nhs_number || '—'}
+                    </TableCell>
+                    <TableCell onClick={() => navigate(`/people/${u.id}`)} sx={{ borderBottom: `1px solid ${theme.palette.divider}`, color: theme.palette.text.secondary, fontSize: '0.85rem' }}>
+                      {u.date_of_birth ? new Date(u.date_of_birth).toLocaleDateString('en-GB') : '—'}
+                    </TableCell>
+                    <TableCell onClick={() => navigate(`/people/${u.id}`)} sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+                      <StatusBadge variant={STATUS_VARIANT[u.status] || 'pending'} label={STATUS_LABEL[u.status] || u.status} />
+                    </TableCell>
+                    <TableCell align="right" onClick={() => navigate(`/people/${u.id}`)} sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+                      <StatusBadge variant="scheduled" label={String(u.active_care_plans || 0)} />
+                    </TableCell>
+                    <TableCell align="right" onClick={() => navigate(`/people/${u.id}`)} sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+                      {(u.open_risks || 0) > 0
+                        ? <StatusBadge variant="missed" label={String(u.open_risks)} sx={{ px: 1 }} />
+                        : <StatusBadge variant="completed" label="0" />}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          {users.length > 0 && (
+            <TablePagination component="div" count={users.length} page={page}
+              onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }}
+              rowsPerPageOptions={[5, 10, 25, 50]} />
+          )}
+        </PremiumCard>
+      )}
+
+      {/* ── Add Resident Dialog ── */}
+      <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
         <Box component="form" onSubmit={handleCreate}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Add New Person</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 800, fontSize: '1.2rem' }}>Add New Person</DialogTitle>
           <DialogContent>
-            {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>{formError}</Alert>}
+            {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>{formError}</Alert>}
             <Stack spacing={2} sx={{ mt: 1 }}>
               <Stack direction="row" spacing={1}>
                 <TextField label="First Name" fullWidth required value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} />
@@ -293,18 +378,18 @@ export default function PersonDirectoryPage() {
               )}
             </Stack>
           </DialogContent>
-          <DialogActions sx={{ p: 3 }}>
-            <Button onClick={() => setAddOpen(false)}>Cancel</Button>
+          <DialogActions sx={{ p: 3, pt: 0 }}>
+            <Button onClick={() => setAddOpen(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={createMutation.isPending}
-              sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
-              {createMutation.isPending ? <CircularProgress size={20} /> : 'Create Person'}
+              sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}>
+              {createMutation.isPending ? 'Creating...' : 'Create Person'}
             </Button>
           </DialogActions>
         </Box>
       </Dialog>
 
-      {/* Bulk Status Dialog */}
-      <Dialog open={bulkOpen === 'status'} onClose={() => setBulkOpen(null)} maxWidth="xs" fullWidth>
+      {/* ── Bulk Status Dialog ── */}
+      <Dialog open={bulkOpen === 'status'} onClose={() => setBulkOpen(null)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
         <DialogTitle sx={{ fontWeight: 800 }}>Change Status ({selected.size} people)</DialogTitle>
         <DialogContent>
           <TextField select label="New Status" fullWidth value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} sx={{ mt: 1 }}>
@@ -313,26 +398,28 @@ export default function PersonDirectoryPage() {
             <MenuItem value="deceased">Deceased</MenuItem>
           </TextField>
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setBulkOpen(null)}>Cancel</Button>
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button onClick={() => setBulkOpen(null)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
           <Button variant="contained" onClick={() => bulkStatusMutation.mutate({ ids: Array.from(selected), status: bulkStatus })}
-            disabled={bulkStatusMutation.isPending} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
-            {bulkStatusMutation.isPending ? <CircularProgress size={20} /> : 'Apply'}
+            disabled={bulkStatusMutation.isPending} sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}>
+            {bulkStatusMutation.isPending ? 'Updating...' : 'Apply'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Bulk Discharge Dialog */}
-      <Dialog open={bulkOpen === 'discharge'} onClose={() => setBulkOpen(null)} maxWidth="xs" fullWidth>
+      {/* ── Bulk Discharge Dialog ── */}
+      <Dialog open={bulkOpen === 'discharge'} onClose={() => setBulkOpen(null)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
         <DialogTitle sx={{ fontWeight: 800 }}>Discharge {selected.size} People?</DialogTitle>
         <DialogContent>
-          <Typography>This will mark the selected people as discharged. The action can be reversed later.</Typography>
+          <Typography sx={{ color: theme.palette.text.secondary }}>
+            This will mark the selected people as discharged. The action can be reversed later.
+          </Typography>
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setBulkOpen(null)}>Cancel</Button>
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button onClick={() => setBulkOpen(null)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
           <Button variant="contained" color="error" onClick={() => bulkDischargeMutation.mutate(Array.from(selected))}
-            disabled={bulkDischargeMutation.isPending} sx={{ textTransform: 'none' }}>
-            {bulkDischargeMutation.isPending ? <CircularProgress size={20} /> : 'Confirm Discharge'}
+            disabled={bulkDischargeMutation.isPending} sx={{ textTransform: 'none', borderRadius: '10px' }}>
+            {bulkDischargeMutation.isPending ? 'Discharging...' : 'Confirm Discharge'}
           </Button>
         </DialogActions>
       </Dialog>
