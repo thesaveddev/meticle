@@ -240,10 +240,6 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   /* ─── Submit pre-visit details (save locally, no API call) ── */
   function submitPrevisit() {
     hapticLight()
-    if (!travelMinutes.trim() && !mileage.trim()) {
-      setError('Enter at least travel time or mileage before submitting.')
-      return
-    }
     setPrevisitSaved(true)
     setError('')
     setSuccess('Pre-visit details saved. Tap "Check in" when you arrive.')
@@ -261,25 +257,17 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
     setSuccess('Care notes saved. Tap "Check out and complete" when you leave.')
   }
 
-  /* ─── Auto-calculate travel time from previous visit ──────── */
+  /* ─── Auto-calculate travel time & mileage from live GPS ─── */
   useEffect(() => {
-    if (previousVisit?.person_latitude && previousVisit?.person_longitude && visit.person_latitude && visit.person_longitude) {
-      const dist = haversineDistance(
-        previousVisit.person_latitude, previousVisit.person_longitude,
-        visit.person_latitude, visit.person_longitude
-      )
+    if (liveDistance != null && liveDistance > 0) {
       // Assume ~30mph average speed in town, convert meters to minutes
-      const estimatedMinutes = Math.round((dist / 1000) / 30 * 60)
-      if (estimatedMinutes > 0 && !travelMinutes) {
-        setTravelMinutes(String(estimatedMinutes))
-      }
-      // Estimate mileage (meters to miles)
-      const estimatedMiles = Math.round((dist / 1609.34) * 10) / 10
-      if (estimatedMiles > 0 && !mileage) {
-        setMileage(String(estimatedMiles))
-      }
+      const estimatedMinutes = Math.round((liveDistance / 1000) / 30 * 60)
+      setTravelMinutes(String(Math.max(1, estimatedMinutes)))
+      // Convert meters to miles
+      const estimatedMiles = Math.round((liveDistance / 1609.34) * 10) / 10
+      setMileage(String(Math.max(0.1, estimatedMiles)))
     }
-  }, [previousVisit])
+  }, [liveDistance])
 
   /* ─── Execute check-in / check-out ─────────────────────────── */
   async function execute(action: VisitAction) {
@@ -589,22 +577,33 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               <Text style={[styles.cardTitle, { color: c.ink }]}>Pre-visit details</Text>
 
+              {/* Auto-calculated travel & mileage from your location */}
               <View style={styles.fieldRow}>
                 <View style={styles.fieldHalf}>
                   <Text style={[styles.fieldLabel, { color: c.inkLight }]}>Travel (min)</Text>
-                  <TextInput keyboardType="number-pad" value={travelMinutes} onChangeText={setTravelMinutes}
-                    placeholder="0" placeholderTextColor={c.subtle}
-                    style={[styles.input, { backgroundColor: c.surfaceAlt, color: c.ink }]}
-                    editable={!previsitSaved} />
+                  <View style={[styles.input, { backgroundColor: c.surfaceAlt, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+                    <Text style={{ fontFamily: FONT, fontSize: 16, fontWeight: '600', color: travelMinutes ? c.ink : c.subtle }}>
+                      {travelMinutes || '—'}
+                    </Text>
+                    <Text style={{ fontFamily: FONT, fontSize: 10, color: c.subtle }}>auto</Text>
+                  </View>
                 </View>
                 <View style={styles.fieldHalf}>
                   <Text style={[styles.fieldLabel, { color: c.inkLight }]}>Mileage (mi)</Text>
-                  <TextInput keyboardType="decimal-pad" value={mileage} onChangeText={setMileage}
-                    placeholder="0.0" placeholderTextColor={c.subtle}
-                    style={[styles.input, { backgroundColor: c.surfaceAlt, color: c.ink }]}
-                    editable={!previsitSaved} />
+                  <View style={[styles.input, { backgroundColor: c.surfaceAlt, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+                    <Text style={{ fontFamily: FONT, fontSize: 16, fontWeight: '600', color: mileage ? c.ink : c.subtle }}>
+                      {mileage || '—'}
+                    </Text>
+                    <Text style={{ fontFamily: FONT, fontSize: 10, color: c.subtle }}>auto</Text>
+                  </View>
                 </View>
               </View>
+
+              {liveDistance != null && (
+                <Text style={{ fontFamily: FONT, fontSize: 11, color: c.subtle, marginTop: -spacing.sm, marginBottom: spacing.sm }}>
+                  Calculated from your current location · {formatDistance(liveDistance)} away
+                </Text>
+              )}
 
               <View style={styles.fieldGroup}>
                 <Text style={[styles.fieldLabel, { color: c.inkLight }]}>Notes (optional)</Text>
