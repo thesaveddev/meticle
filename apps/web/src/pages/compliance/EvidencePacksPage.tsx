@@ -258,7 +258,7 @@ export default function EvidencePacksPage() {
             <Grid container spacing={2}>
               {buildDomainEvidence().map(([key, val]) => (
                 <Grid item xs={12} sm={6} key={key}>
-                  <Paper variant="outlined" sx={{ p: 2, borderLeft: `4px solid ${val.color}` }}>
+                  <Paper variant="outlined" sx={{ p: 2,  }}>
                     <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>{val.label} ({val.evidence.length} items)</Typography>
                     {val.evidence.slice(0, 8).map((e, i) => (
                       <Typography key={i} variant="caption" display="block" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>• {e}</Typography>

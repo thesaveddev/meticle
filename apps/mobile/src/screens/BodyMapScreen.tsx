@@ -198,15 +198,15 @@ export function BodyMapScreen({ personId, personName, session, onBack }: Props) 
         {/* Stats */}
         {stats && (
           <View style={s.statsRow}>
-            <View style={[s.statCard, { borderLeftColor: colors.danger }]}>
+            <View style={s.statCard}>
               <Text style={[s.statValue, { color: colors.danger }]}>{stats.active_count}</Text>
               <Text style={s.statLabel}>Active</Text>
             </View>
-            <View style={[s.statCard, { borderLeftColor: colors.warning }]}>
+            <View style={s.statCard}>
               <Text style={[s.statValue, { color: colors.warning }]}>{stats.healing_count}</Text>
               <Text style={s.statLabel}>Healing</Text>
             </View>
-            <View style={[s.statCard, { borderLeftColor: colors.success }]}>
+            <View style={s.statCard}>
               <Text style={[s.statValue, { color: colors.success }]}>{stats.resolved_count}</Text>
               <Text style={s.statLabel}>Resolved</Text>
             </View>
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.base },
   statCard: {
     flex: 1, backgroundColor: colors.surface, borderRadius: radii.md,
-    borderLeftWidth: 3, borderWidth: 0, borderColor: 'transparent', padding: spacing.md, ...elevation.sm,
+    borderWidth: 0, borderColor: 'transparent', padding: spacing.md, ...elevation.sm,
   },
   statValue: { fontFamily: 'System', fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
   statLabel: { ...typography.small, marginTop: 2 },

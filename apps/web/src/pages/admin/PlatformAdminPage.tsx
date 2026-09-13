@@ -140,7 +140,7 @@ export default function PlatformAdminPage() {
             <Grid container spacing={3} sx={{ mb: 3 }}>
               {statCards.map(card => (
                 <Grid item xs={12} sm={6} md={3} key={card.label}>
-                  <Paper sx={{ p: 3, borderRadius: 2.5, borderLeft: 4, borderLeftColor: card.color }}>
+                  <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box>
                         <Typography variant="body2" color="#6B7280">{card.label}</Typography>
@@ -290,25 +290,25 @@ export default function PlatformAdminPage() {
             <>
               <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid item xs={12} sm={6} md={3}>
-                  <Paper sx={{ p: 3, borderRadius: 2.5, borderLeft: 4, borderLeftColor: '#059669' }}>
+                  <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                     <Typography variant="body2" color="#6B7280">MRR</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800, color: '#059669' }}>£{Number(finance.mrr).toLocaleString()}</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
-                  <Paper sx={{ p: 3, borderRadius: 2.5, borderLeft: 4, borderLeftColor: '#0F4C81' }}>
+                  <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                     <Typography variant="body2" color="#6B7280">ARR</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800 }}>£{Number(finance.arr).toLocaleString()}</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
-                  <Paper sx={{ p: 3, borderRadius: 2.5, borderLeft: 4, borderLeftColor: '#D97706' }}>
+                  <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                     <Typography variant="body2" color="#6B7280">Revenue (30d)</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800, color: '#D97706' }}>£{Number(finance.revenue30d).toLocaleString()}</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
-                  <Paper sx={{ p: 3, borderRadius: 2.5, borderLeft: 4, borderLeftColor: '#DC2626' }}>
+                  <Paper sx={{ p: 3, borderRadius: 2.5 }}>
                     <Typography variant="body2" color="#6B7280">Churn Rate (30d)</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800, color: '#DC2626' }}>{finance.churnRate}%</Typography>
                   </Paper>

@@ -274,7 +274,7 @@ export function TimesheetsScreen({ session, onBack }: Props) {
                   {/* ── Care notes preview ── */}
                   {ts.visit_notes && (
                     <View style={{ paddingHorizontal: spacing.md, paddingBottom: spacing.sm }}>
-                      <View style={{ backgroundColor: c.bg, borderRadius: radii.sm, padding: spacing.sm, borderLeftWidth: 3, borderLeftColor: c.primary }}>
+                      <View style={{ backgroundColor: c.bg, borderRadius: radii.sm, padding: spacing.sm }}>
                         <Text numberOfLines={2} style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: c.muted, lineHeight: 18 }}>{ts.visit_notes}</Text>
                       </View>
                     </View>

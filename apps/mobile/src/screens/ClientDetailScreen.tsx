@@ -426,7 +426,7 @@ function RisksTab({ risks, c }: any) {
       {risks.map((risk: any) => {
         const rc = riskColors[risk.risk_level] || riskColors.low
         return (
-          <View key={risk.id} style={[styles.riskCard, { backgroundColor: c.surface, borderLeftColor: rc.text, borderLeftWidth: 3 }]}>
+          <View key={risk.id} style={[styles.riskCard, { backgroundColor: c.surface }]}>
             <View style={styles.riskHeader}>
               <View style={[styles.riskBadge, { backgroundColor: rc.bg }]}>
                 <Ionicons name={rc.icon as any} size={14} color={rc.text} />

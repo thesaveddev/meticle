@@ -198,7 +198,7 @@ export default function MileagePage() {
 
           {/* Active policies bar */}
           {isManager && activePolicies.length > 0 && (
-            <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid #E5E7EB', borderRadius: 3, borderLeft: '4px solid #0F4C81' }}>
+            <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid #E5E7EB', borderRadius: 3 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0F4C81' }}>Active mileage policies</Typography>
                 <Button size="small" onClick={() => setTab(1)} sx={{ textTransform: 'none', color: '#0F4C81' }}>Manage</Button>

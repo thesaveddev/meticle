@@ -484,7 +484,6 @@ function MealRecordsSection({ personId }: { personId: string }) {
                 onClick={() => setViewMeal(meal)}
                 sx={{
                   p: 2, borderRadius: 2, border: '1px solid #E5E7EB',
-                  borderLeft: 4, borderLeftColor: meal.refused ? '#DC2626' : typeInfo.color,
                   cursor: 'pointer', transition: 'box-shadow 0.15s',
                   '&:hover': { borderColor: typeInfo.color, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
                 }}

@@ -174,7 +174,7 @@ export default function SleepTab({ personId }: { personId: string }) {
               onClick={() => setViewRecord(r)}
               sx={{
                 p: 2, borderRadius: 2, border: '1px solid #E5E7EB',
-                borderLeft: 4, borderLeftColor: QUALITY_COLORS[r.sleep_quality] || '#D97706',
+                
                 cursor: 'pointer',
                 '&:hover': { borderColor: '#0F4C81', boxShadow: 1 },
               }}

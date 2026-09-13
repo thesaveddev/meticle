@@ -224,7 +224,7 @@ export default function DashboardPage() {
 
       {/* Onboarding Checklist */}
       {isAdmin && org && !hideOnboarding && !onboardComplete && (
-        <PremiumCard noBorder accentColor="#1A2332" sx={{ p: 4, mb: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F8FAFC' }}>
+        <PremiumCard noBorder sx={{ p: 4, mb: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F8FAFC' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Welcome — let's get you set up</Typography>
@@ -310,7 +310,7 @@ export default function DashboardPage() {
 
       {/* Domiciliary Care Summary */}
       {domiciliaryData && serviceTypes.includes('domiciliary') && (
-        <PremiumCard noBorder accentColor="#10B981" sx={{ p: 4, mb: 4 }}>
+        <PremiumCard noBorder sx={{ p: 4, mb: 4 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
             <SectionHeader
               title="Today's Domiciliary Care"
@@ -412,7 +412,7 @@ export default function DashboardPage() {
 
       {/* Compliance at a Glance */}
       {!isStaff && widgets?.compliance_breakdown && (
-        <PremiumCard noBorder accentColor="#1A2332" sx={{ p: 4, mb: 4 }}>
+        <PremiumCard noBorder sx={{ p: 4, mb: 4 }}>
           <SectionHeader
             title="Compliance at a Glance"
             action={
@@ -643,7 +643,7 @@ export default function DashboardPage() {
 
       {/* Overview Section */}
       {!isStaff && stats && (stats.open_incidents > 0) && (
-        <PremiumCard noBorder accentColor="#DC2626" sx={{ p: 4, mt: 4 }}>
+        <PremiumCard noBorder sx={{ p: 4, mt: 4 }}>
           <SectionHeader title="Overview" />
           <Stack direction="row" spacing={4} flexWrap="wrap" useFlexGap>
             <Stack direction="row" spacing={1.5} alignItems="center">

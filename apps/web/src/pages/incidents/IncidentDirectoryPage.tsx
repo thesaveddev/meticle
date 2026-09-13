@@ -113,7 +113,7 @@ export default function IncidentDirectoryPage() {
             </Stack>
           </Paper>
 
-          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: '#DC2626' }}>
+          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB' }}>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Critical &amp; High</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1, color: '#DC2626' }}>{(stats.critical || 0)}</Typography>
@@ -121,7 +121,7 @@ export default function IncidentDirectoryPage() {
             </Stack>
           </Paper>
 
-          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: stats.overdue_actions > 0 ? '#DC2626' : '#16A34A' }}>
+          <Paper sx={{ flex: '1 1 200px', p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB' }}>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1 }}>{stats.open_actions || 0}</Typography>

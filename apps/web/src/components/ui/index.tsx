@@ -146,17 +146,16 @@ interface RecordCardProps {
   actions?: ReactNode
   footer?: ReactNode
   onClick?: () => void
-  accent?: string
   children?: ReactNode
 }
 
-export function RecordCard({ title, meta, actions, footer, onClick, accent = NAVY, children }: RecordCardProps) {
+export function RecordCard({ title, meta, actions, footer, onClick, children }: RecordCardProps) {
   return (
     <Paper
       onClick={onClick}
       sx={{
-        p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4,
-        borderLeftColor: accent, cursor: onClick ? 'pointer' : 'default',
+        p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB',
+        cursor: onClick ? 'pointer' : 'default',
         transition: 'box-shadow 0.15s, border-color 0.15s',
         '&:hover': onClick ? { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D1D5DB' } : {},
       }}

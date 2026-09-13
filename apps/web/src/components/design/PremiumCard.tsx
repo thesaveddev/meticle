@@ -3,10 +3,9 @@ import { useTheme } from '@mui/material/styles'
 
 interface PremiumCardProps extends BoxProps {
   noBorder?: boolean
-  accentColor?: string
 }
 
-export function PremiumCard({ children, noBorder = false, accentColor, sx, ...props }: PremiumCardProps) {
+export function PremiumCard({ children, noBorder = false, sx, ...props }: PremiumCardProps) {
   const theme = useTheme()
   return (
     <Box
@@ -17,9 +16,6 @@ export function PremiumCard({ children, noBorder = false, accentColor, sx, ...pr
         transition: 'box-shadow 0.2s ease, transform 0.2s ease',
         overflow: 'hidden',
         border: noBorder ? 'none' : `1px solid ${theme.palette.divider}`,
-        ...(accentColor && {
-          borderLeft: `4px solid ${accentColor}`,
-        }),
         '&:hover': {
           boxShadow: theme.palette.mode === 'dark' ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(26,35,50,0.06)',
         },
