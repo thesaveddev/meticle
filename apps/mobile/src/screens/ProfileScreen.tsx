@@ -122,13 +122,14 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
     try {
       const filename = uri.split('/').pop() || 'photo.jpg'
       const ext = filename.split('.').pop()?.toLowerCase() || 'jpg'
-      const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`
-
-      const response = await fetch(uri)
-      const blob = await response.blob()
+      const mimeType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`
 
       const formData = new FormData()
-      formData.append('file', blob, filename)
+      formData.append('file', {
+        uri,
+        name: filename,
+        type: mimeType,
+      } as any)
 
       const res = await fetch(`${API_BASE}/staff/me/photo`, {
         method: 'POST',

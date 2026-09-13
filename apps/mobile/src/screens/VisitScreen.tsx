@@ -242,11 +242,13 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
     try {
       const filename = uri.split('/').pop() || 'photo.jpg'
       const ext = filename.split('.').pop()?.toLowerCase() || 'jpg'
-      const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`
-      const response = await fetch(uri)
-      const blob = await response.blob()
+      const mimeType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`
       const formData = new FormData()
-      formData.append('file', blob, filename)
+      formData.append('file', {
+        uri,
+        name: filename,
+        type: mimeType,
+      } as any)
       const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://meticlecare.com/api'
       const res = await fetch(`${API_BASE}/settings/upload`, {
         method: 'POST',
