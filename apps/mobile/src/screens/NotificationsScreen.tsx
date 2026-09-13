@@ -39,7 +39,7 @@ export function NotificationsScreen({ session, onBack }: Props) {
     if (!token) return
     try {
       const data = await getMyNotifications(token)
-      setNotifications(data)
+      setNotifications(Array.isArray(data) ? data : [])
     } catch {} finally {
       setLoading(false)
       setRefreshing(false)

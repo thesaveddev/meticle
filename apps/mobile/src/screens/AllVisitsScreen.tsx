@@ -76,7 +76,7 @@ export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, init
     try {
       const range = dateRange(daysBack, daysBack === 0 ? 7 : 0)
       const data = await getAllVisits(session.accessToken, range.from, range.to)
-      setVisits(data)
+      setVisits(Array.isArray(data) ? data : [])
     } catch {} finally { setLoading(false); setRefreshing(false) }
   }, [session.accessToken, daysBack])
 

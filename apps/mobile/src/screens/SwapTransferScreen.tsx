@@ -115,7 +115,7 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
         const from = now.toISOString()
         const to = new Date(now.getTime() + 30 * 86400000).toISOString()
         const theirVisits = await getStaffVisits(session.accessToken, member.id, from, to)
-        setTargetVisits(theirVisits.filter((v: HomecareVisit) => ['scheduled', 'en_route'].includes(v.status)))
+        setTargetVisits((Array.isArray(theirVisits) ? theirVisits : []).filter((v: HomecareVisit) => ['scheduled', 'en_route'].includes(v.status)))
       } catch { setTargetVisits([]) }
       finally { setLoadingTargetVisits(false) }
     }
