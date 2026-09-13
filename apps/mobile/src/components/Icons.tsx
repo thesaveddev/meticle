@@ -313,3 +313,19 @@ export function IconTwoPerson({ size = 16, color = '#B45309' }: IconProps) {
     </View>
   )
 }
+
+/** Miles / car icon — simple car silhouette for mileage */
+export function IconMiles({ size = 16, color = '#16A34A' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      {/* Car body */}
+      <View style={{ width: 14 * s, height: 5 * s, borderRadius: 2 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 3 * s, left: 1 * s }} />
+      {/* Roof */}
+      <View style={{ width: 8 * s, height: 3 * s, borderRadius: 1.5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 1 * s, left: 4 * s }} />
+      {/* Wheels */}
+      <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', bottom: 1 * s, left: 2 * s }} />
+      <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', bottom: 1 * s, right: 2 * s }} />
+    </View>
+  )
+}
