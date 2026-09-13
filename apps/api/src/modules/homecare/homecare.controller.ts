@@ -764,4 +764,85 @@ export class HomecareController {
     );
     res.json(result.rows);
   }
+
+  /* ─── Earnings summary ────────────────────────────────────── */
+  static async getMyEarnings(req: Request, res: Response) {
+    const oid = orgId(req); const uid = userId(req);
+    const staffResult = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [uid]);
+    if (!staffResult.rows.length) return res.json({ summary: {}, visits: [] });
+    const staffId = staffResult.rows[0].id;
+    const from = req.query.from as string;
+    const to = req.query.to as string;
+    if (!from || !to) throw new AppError(400, 'from and to date parameters are required');
+
+    // Get all completed visits in the period with timesheet data
+    const result = await query(
+      `SELECT hv.id, hv.label, hv.visit_type, hv.scheduled_start, hv.scheduled_end,
+              hv.status, hv.check_in_at, hv.check_out_at,
+              hv.actual_travel_minutes, hv.actual_mileage_miles, hv.mileage_status,
+              pe.first_name || ' ' || pe.last_name AS person_name,
+              t.work_minutes, t.travel_minutes, t.paid_travel_minutes,
+              t.mileage_miles, t.mileage_rate_pence, t.hourly_rate_pence, t.gross_pay_pence,
+              t.status AS timesheet_status
+       FROM homecare_visits hv
+       JOIN people pe ON pe.id = hv.person_id
+       LEFT JOIN homecare_timesheets t ON t.visit_id = hv.id
+       WHERE hv.organization_id = $1 AND hv.assigned_staff_id = $2
+         AND hv.scheduled_start >= $3 AND hv.scheduled_start <= $4
+         AND hv.status IN ('completed', 'checked_in')
+       ORDER BY hv.scheduled_start`,
+      [oid, staffId, from, to]
+    );
+
+    const visits = result.rows;
+    const totalWorkMinutes = visits.reduce((s: number, v: any) => s + (Number(v.work_minutes) || 0), 0);
+    const totalPaidTravelMinutes = visits.reduce((s: number, v: any) => s + (Number(v.paid_travel_minutes) || 0), 0);
+    const totalTravelMinutes = visits.reduce((s: number, v: any) => s + (Number(v.travel_minutes) || 0), 0);
+    const totalMileageMiles = visits.reduce((s: number, v: any) => s + (Number(v.mileage_miles) || 0), 0);
+    const totalGrossPay = visits.reduce((s: number, v: any) => s + (Number(v.gross_pay_pence) || 0), 0);
+    const avgHourlyRate = visits.find((v: any) => v.hourly_rate_pence)?.hourly_rate_pence || null;
+    const avgMileageRate = visits.find((v: any) => v.mileage_rate_pence)?.mileage_rate_pence || null;
+
+    // Also get upcoming scheduled visits for the same period to show projected earnings
+    const scheduled = await query(
+      `SELECT hv.id, hv.label, hv.visit_type, hv.scheduled_start, hv.scheduled_end, hv.status,
+              pe.first_name || ' ' || pe.last_name AS person_name,
+              p.hourly_rate_pence, p.mileage_rate_pence, p.travel_time_paid,
+              hv.actual_mileage_miles, hv.actual_travel_minutes
+       FROM homecare_visits hv
+       JOIN people pe ON pe.id = hv.person_id
+       JOIN homecare_packages p ON p.id = hv.package_id
+       WHERE hv.organization_id = $1 AND hv.assigned_staff_id = $2
+         AND hv.scheduled_start >= $3 AND hv.scheduled_start <= $4
+         AND hv.status IN ('scheduled', 'en_route')
+       ORDER BY hv.scheduled_start`,
+      [oid, staffId, from, to]
+    );
+
+    const projectedWorkMinutes = scheduled.rows.reduce((s: number, v: any) => {
+      const dur = Math.round((new Date(v.scheduled_end).getTime() - new Date(v.scheduled_start).getTime()) / 60000);
+      return s + Math.max(0, dur);
+    }, 0);
+    const projectedWorkHours = projectedWorkMinutes / 60;
+    const projectedWorkPay = avgHourlyRate ? Math.round(projectedWorkHours * Number(avgHourlyRate)) : 0;
+    const projectedMileagePay = avgMileageRate ? scheduled.rows.length * 0.5 * Number(avgMileageRate) : 0; // rough estimate
+
+    res.json({
+      summary: {
+        total_work_minutes: totalWorkMinutes,
+        total_paid_travel_minutes: totalPaidTravelMinutes,
+        total_travel_minutes: totalTravelMinutes,
+        total_mileage_miles: totalMileageMiles,
+        total_gross_pay_pence: totalGrossPay,
+        hourly_rate_pence: avgHourlyRate,
+        mileage_rate_pence: avgMileageRate,
+        visit_count: visits.length,
+        scheduled_count: scheduled.rows.length,
+        projected_work_minutes: projectedWorkMinutes,
+        projected_gross_pay_pence: projectedWorkPay + projectedMileagePay,
+      },
+      visits,
+      scheduled: scheduled.rows,
+    });
+  }
 }

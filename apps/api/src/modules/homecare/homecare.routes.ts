@@ -129,6 +129,7 @@ router.post('/packages/:packageId/visit-plans', requireRole(...managerRoles), va
 router.post('/visit-plans/:planId/generate', requireRole(...managerRoles), validate(generationSchema), asyncHandler(HomecareController.generateVisits));
 router.get('/visits', requireRole(...managerRoles), asyncHandler(HomecareController.listVisits));
 router.get('/my-visits', requireRole(...fieldRoles), asyncHandler(HomecareController.myVisits));
+router.get('/my-earnings', requireRole(...fieldRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getMyEarnings));
 router.post('/visits', requireRole(...managerRoles), validate(visitSchema), asyncHandler(HomecareController.createVisit));
 router.patch('/visits/:id', requireRole(...managerRoles), validate(visitPatchSchema), asyncHandler(HomecareController.updateVisit));
 router.get('/exceptions', requireRole(...managerRoles), asyncHandler(HomecareController.listExceptions));

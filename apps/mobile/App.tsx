@@ -34,7 +34,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'today', label: 'Today' },
   { key: 'schedule', label: 'Schedule' },
   { key: 'chat', label: 'Chat' },
-  { key: 'mileage', label: 'Mileage' },
+  { key: 'mileage', label: 'Earnings' },
   { key: 'settings', label: 'Settings' },
 ]
 

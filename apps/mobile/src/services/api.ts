@@ -341,3 +341,8 @@ export async function deleteVisitTask(token: string, visitId: string, taskId: st
     method: 'DELETE',
   }, token)
 }
+
+// ── Earnings ──
+export async function getMyEarnings(token: string, from: string, to: string): Promise<any> {
+  return request(`/homecare/my-earnings?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {}, token)
+}
