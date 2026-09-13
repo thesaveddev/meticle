@@ -308,11 +308,25 @@ export async function getChatMessages(token: string, channel: string, limit = 50
   return request(`/chat/channels/${encodeURIComponent(channel)}/messages?${params}`, {}, token)
 }
 
-export async function sendChatMessage(token: string, channel: string, message: string, replyToId?: string): Promise<any> {
+export async function sendChatMessage(token: string, channel: string, message: string, replyToId?: string, fileUrl?: string, fileName?: string): Promise<any> {
   return request(`/chat/channels/${encodeURIComponent(channel)}/messages`, {
     method: 'POST',
-    body: JSON.stringify({ message, reply_to_id: replyToId }),
+    body: JSON.stringify({ message, reply_to_id: replyToId, file_url: fileUrl, file_name: fileName }),
   }, token)
+}
+
+export async function uploadChatFile(token: string, uri: string, fileName: string): Promise<{ url: string }> {
+  const formData = new FormData()
+  const ext = fileName.split('.').pop() || 'jpg'
+  const mimeType = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
+  formData.append('file', { uri, name: fileName, type: mimeType } as any)
+  const response = await fetch(`${API_BASE_URL}/settings/upload`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  })
+  if (!response.ok) throw new ApiError(response.status, 'Upload failed')
+  return response.json()
 }
 
 export async function editChatMessage(token: string, messageId: string, message: string): Promise<any> {
