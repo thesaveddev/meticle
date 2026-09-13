@@ -1,5 +1,6 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
+import { useAppColors } from '../theme'
 
 /** Google Maps logo — multicolored pin with map grid */
 export function GoogleMapsLogo({ size = 40 }: { size?: number }) {
@@ -7,6 +8,8 @@ export function GoogleMapsLogo({ size = 40 }: { size?: number }) {
   const pinH = s * 0.55
   const pinW = s * 0.38
   const headR = s * 0.22
+  const c = useAppColors()
+  const isDark = c.bg === '#0F172A'
 
   return (
     <View style={{ width: s, height: s, alignItems: 'center', justifyContent: 'center' }}>
@@ -14,7 +17,7 @@ export function GoogleMapsLogo({ size = 40 }: { size?: number }) {
       <View style={{
         width: s * 0.7, height: s * 0.7,
         borderRadius: s * 0.14,
-        backgroundColor: '#E8F5E9',
+        backgroundColor: isDark ? '#1A3A2A' : '#E8F5E9',
         alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
@@ -49,13 +52,15 @@ export function AppleMapsLogo({ size = 40 }: { size?: number }) {
   const s = size
   const pinW = s * 0.28
   const pinH = s * 0.5
+  const c = useAppColors()
+  const isDark = c.bg === '#0F172A'
 
   return (
     <View style={{ width: s, height: s, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{
         width: s * 0.7, height: s * 0.7,
         borderRadius: s * 0.14,
-        backgroundColor: '#E3F2FD',
+        backgroundColor: isDark ? '#1A2A3A' : '#E3F2FD',
         alignItems: 'center', justifyContent: 'center',
       }}>
         {/* Road grid */}
@@ -94,13 +99,15 @@ export function WazeLogo({ size = 40 }: { size?: number }) {
   const s = size
   const bubbleW = s * 0.58
   const bubbleH = s * 0.48
+  const c = useAppColors()
+  const isDark = c.bg === '#0F172A'
 
   return (
     <View style={{ width: s, height: s, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{
         width: s * 0.7, height: s * 0.7,
         borderRadius: s * 0.14,
-        backgroundColor: '#33CCFF',
+        backgroundColor: isDark ? '#1A3A4A' : '#33CCFF',
         alignItems: 'center', justifyContent: 'center',
       }}>
         {/* Speech bubble */}
@@ -153,14 +160,15 @@ export function WazeLogo({ size = 40 }: { size?: number }) {
 /** Fallback for unknown map apps */
 export function FallbackMapLogo({ size = 40, color = '#6B7280' }: { size?: number; color?: string }) {
   const s = size
+  const c = useAppColors()
   return (
     <View style={{
       width: s * 0.7, height: s * 0.7,
       borderRadius: s * 0.14,
-      backgroundColor: '#F3F4F6',
+      backgroundColor: c.surfaceAlt,
       alignItems: 'center', justifyContent: 'center',
     }}>
-      <Text style={{ fontSize: s * 0.28, fontWeight: '700', color }}>?</Text>
+      <Text style={{ fontSize: s * 0.28, fontWeight: '700', color: c.muted }}>?</Text>
     </View>
   )
 }
