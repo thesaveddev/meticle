@@ -5,8 +5,9 @@ import { Linking } from 'react-native'
 import { elevation, radii, spacing, FONT } from '../theme'
 import { hapticWarning } from '../services/haptics'
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window')
+const SCREEN = Dimensions.get('window')
 const BTN_SIZE = 56
+const PADDING = 12
 
 interface Props {
   managerPhone?: string
@@ -16,60 +17,32 @@ export function EmergencyButton({ managerPhone }: Props) {
   const [pressed, setPressed] = useState(false)
   const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current
   const isDragging = useRef(false)
-  const lastOffset = useRef({ x: 0, y: 0 })
+  // Start at bottom-right: left = screenW - BTN_SIZE - PADDING, bottom = 100
+  const initX = SCREEN.width - BTN_SIZE - PADDING
+  const initY = SCREEN.height - 100 - BTN_SIZE
+  const lastPos = useRef({ x: initX, y: initY })
 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         isDragging.current = false
-        pan.setOffset({ x: lastOffset.current.x, y: lastOffset.current.y })
+        pan.setOffset({ x: lastPos.current.x, y: lastPos.current.y })
         pan.setValue({ x: 0, y: 0 })
       },
-      onPanResponderMove: (_, gestureState) => {
-        if (Math.abs(gestureState.dx) > 3 || Math.abs(gestureState.dy) > 3) {
-          isDragging.current = true
-        }
-        // Move freely in both X and Y
-        pan.setValue({ x: gestureState.dx, y: gestureState.dy })
+      onPanResponderMove: (_, gs) => {
+        if (Math.abs(gs.dx) > 3 || Math.abs(gs.dy) > 3) isDragging.current = true
+        pan.setValue({ x: gs.dx, y: gs.dy })
       },
-      onPanResponderRelease: (_, gestureState) => {
+      onPanResponderRelease: (_, gs) => {
         pan.flattenOffset()
-
-        let newX = lastOffset.current.x + gestureState.dx
-        let newY = lastOffset.current.y + gestureState.dy
-
-        // Clamp X so button stays within screen bounds
-        // Button starts at right: spacing.base (8px) which in translate coords = 0
-        // Max right translate: positive moves right, max = screen edge
-        // Max left translate: negative moves left, max = -(screenW - BTN_SIZE - spacing.base)
-        const maxRight = 0
-        const minLeft = -(SCREEN_W - BTN_SIZE - spacing.base * 2)
-        newX = Math.max(minLeft, Math.min(maxRight, newX))
-
-        // Clamp Y so button stays within screen bounds
-        // Button starts at bottom: 100, so in translate coords 0 = bottom:100
-        // Max up: move to top of screen (max negative Y)
-        // Max down: move to bottom (max positive Y)
-        const initialBottom = 100
-        const maxDown = initialBottom - 20 // don't go below screen
-        const minUp = -(SCREEN_H - initialBottom - BTN_SIZE - 40) // don't go above screen
-        newY = Math.max(minUp, Math.min(maxDown, newY))
-
-        lastOffset.current = { x: newX, y: newY }
-
-        // Snap to nearest horizontal edge
-        const midX = (SCREEN_W - BTN_SIZE) / 2 - spacing.base
-        const snapX = newX > midX ? maxRight : minLeft
-
-        Animated.spring(pan, {
-          toValue: { x: snapX, y: newY },
-          useNativeDriver: false,
-          tension: 200,
-          friction: 15,
-        }).start()
-
-        lastOffset.current = { x: snapX, y: newY }
+        let nx = lastPos.current.x + gs.dx
+        let ny = lastPos.current.y + gs.dy
+        // Clamp to screen bounds
+        nx = Math.max(PADDING, Math.min(SCREEN.width - BTN_SIZE - PADDING, nx))
+        ny = Math.max(PADDING + 44, Math.min(SCREEN.height - BTN_SIZE - PADDING - 20, ny))
+        lastPos.current = { x: nx, y: ny }
+        Animated.spring(pan, { toValue: { x: nx, y: ny }, useNativeDriver: false, tension: 200, friction: 18 }).start()
       },
     })
   ).current
@@ -106,11 +79,8 @@ export function EmergencyButton({ managerPhone }: Props) {
     try {
       const url = `tel:${number}`
       const canOpen = await Linking.canOpenURL(url)
-      if (canOpen) {
-        await Linking.openURL(url)
-      } else {
-        Alert.alert('Cannot make calls', `Dial ${number} manually from your phone app.`)
-      }
+      if (canOpen) await Linking.openURL(url)
+      else Alert.alert('Cannot make calls', `Dial ${number} manually from your phone app.`)
     } catch {
       Alert.alert('Error', `Could not open phone dialer. Please call ${number} manually.`)
     }
@@ -118,24 +88,11 @@ export function EmergencyButton({ managerPhone }: Props) {
 
   return (
     <Animated.View
-      style={[
-        styles.button,
-        pressed && styles.buttonPressed,
-        { transform: pan.getTranslateTransform() },
-      ]}
+      style={[styles.button, pressed && styles.pressed, { transform: pan.getTranslateTransform() }]}
       {...panResponder.panHandlers}
     >
-      <Pressable
-        onPress={handlePress}
-        onPressIn={() => setPressed(true)}
-        onPressOut={() => setPressed(false)}
-        style={styles.buttonInner}
-        accessibilityLabel="Emergency call"
-        accessibilityRole="button"
-      >
-        <View style={styles.iconWrap}>
-          <Ionicons name="call" size={20} color="#FFFFFF" />
-        </View>
+      <Pressable onPress={handlePress} onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)} style={styles.inner} accessibilityLabel="Emergency call" accessibilityRole="button">
+        <Ionicons name="call" size={20} color="#FFFFFF" />
         <Text style={styles.label}>SOS</Text>
       </Pressable>
     </Animated.View>
@@ -145,37 +102,16 @@ export function EmergencyButton({ managerPhone }: Props) {
 const styles = StyleSheet.create({
   button: {
     position: 'absolute',
-    bottom: 100,
-    right: spacing.base,
     width: BTN_SIZE,
     height: BTN_SIZE,
-    borderRadius: 28,
+    borderRadius: BTN_SIZE / 2,
     backgroundColor: '#DC2626',
     alignItems: 'center',
     justifyContent: 'center',
     ...elevation.md,
     zIndex: 999,
   },
-  buttonInner: {
-    width: BTN_SIZE,
-    height: BTN_SIZE,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonPressed: {
-    backgroundColor: '#B91C1C',
-  },
-  iconWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  label: {
-    fontFamily: FONT,
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-    marginTop: 1,
-  },
+  inner: { width: BTN_SIZE, height: BTN_SIZE, borderRadius: BTN_SIZE / 2, alignItems: 'center', justifyContent: 'center' },
+  pressed: { backgroundColor: '#B91C1C', transform: [{ scale: 0.92 }] },
+  label: { fontFamily: FONT, fontSize: 8, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5, marginTop: 1 },
 })
