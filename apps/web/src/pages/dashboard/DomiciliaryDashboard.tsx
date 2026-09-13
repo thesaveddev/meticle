@@ -16,8 +16,6 @@ import {
 import api from '../../services/api'
 import { PremiumCard, StatCard, SectionHeader, StatusBadge } from '../../components/design/PremiumCard'
 import { EmptyState } from '../../components/design/EmptyState'
-import CallIcon2 from '@mui/icons-material/Phone'
-import GroupIcon from '@mui/icons-material/Group'
 
 interface DomiciliaryData {
   calls_today: number
@@ -89,8 +87,7 @@ export default function DomiciliaryDashboard() {
         </Typography>
       </Box>
 
-      {/* Coverage Hero Card */}
-      <PremiumCard noBorder sx={{ p: 4, mb: 4, bgcolor: theme.palette.background.paper }}>
+      {/* Coverage Hero Card */}          <PremiumCard noBorder sx={{ p: 4, mb: 4 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} gap={4}>
           <Box
             sx={{
@@ -173,8 +170,8 @@ export default function DomiciliaryDashboard() {
           sx={{ p: 3, mb: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F0F9FF' }}
         >
           <Stack direction="row" alignItems="center" gap={2}>
-            <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <TimeIcon sx={{ color: '#0F4C81' }} />
+            <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: theme.palette.mode === 'dark' ? '#1E3A5F' : '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <TimeIcon sx={{ color: theme.palette.mode === 'dark' ? '#60A5FA' : '#0F4C81' }} />
             </Box>
             <Box sx={{ flex: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>Next call: {time(data.next_call.scheduled_start)}</Typography>
@@ -185,9 +182,9 @@ export default function DomiciliaryDashboard() {
             </Box>
             <Button
               size="small"
-              endIcon={<ArrowIcon />}
+              endIcon={<ArrowIcon sx={{ fontSize: 16 }} />}
               onClick={() => navigate('/homecare')}
-              sx={{ color: '#0F4C81', fontWeight: 700, textTransform: 'none' }}
+              sx={{ color: theme.palette.mode === 'dark' ? '#60A5FA' : '#0F4C81', fontWeight: 700, textTransform: 'none', fontSize: '0.8rem' }}
             >
               View calls
             </Button>
@@ -202,9 +199,9 @@ export default function DomiciliaryDashboard() {
             <SectionHeader title="Call Schedule" subtitle={`${data.call_timeline.length} calls today`} />
             {data.call_timeline.length === 0 ? (
               <EmptyState
-                icon={<CallIcon2 />}
+                icon={<CallIcon />}
                 title="No calls today"
-                description="You have no calls scheduled for today. Enjoy your day off!"
+                description="No calls scheduled today."
               />
             ) : (
               <Stack spacing={0}>
@@ -278,10 +275,9 @@ export default function DomiciliaryDashboard() {
             </Stack>
             {data.carer_breakdown.length === 0 ? (
               <EmptyState
-                icon={<GroupIcon />}
+                icon={<CarerIcon />}
                 title="No carers assigned"
-                description="No carers have been assigned to calls today."
-                variant="search"
+                description="No carers assigned to calls today."
               />
             ) : (
               <Stack spacing={2}>
@@ -344,28 +340,30 @@ export default function DomiciliaryDashboard() {
       {/* Quick Actions */}
       <PremiumCard noBorder sx={{ p: 4, mt: 3, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F8FAFC' }}>
         <SectionHeader title="Quick actions" />
-        <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+        <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
           {[
-            { label: 'View all calls', path: '/homecare', color: '#10B981' },
-            { label: 'Call schedule', path: '/call-scheduling', color: '#0F4C81' },
-            { label: 'Mileage & travel', path: '/mileage', color: '#7C3AED' },
+            { label: 'All calls', path: '/homecare', color: '#10B981' },
+            { label: 'Schedule', path: '/call-scheduling', color: '#0F4C81' },
+            { label: 'Mileage', path: '/mileage', color: '#7C3AED' },
             { label: 'Carer totals', path: '/carer-totals', color: '#D97706' },
-            { label: 'Payroll export', path: '/payroll-export', color: '#047857' },
-            { label: 'Client billing', path: '/client-billing', color: '#0F4C81' },
+            { label: 'Payroll', path: '/payroll-export', color: '#047857' },
+            { label: 'Billing', path: '/client-billing', color: '#0F4C81' },
           ].map(action => (
             <Button
               key={action.path}
               variant="outlined"
               size="small"
-              endIcon={<ArrowIcon />}
+              endIcon={<ArrowIcon sx={{ fontSize: 16 }} />}
               onClick={() => navigate(action.path)}
               sx={{
-                borderColor: `${action.color}40`,
+                borderColor: `${action.color}30`,
                 color: action.color,
                 fontWeight: 600,
+                fontSize: '0.8rem',
                 textTransform: 'none',
-                borderRadius: '12px',
+                borderRadius: '10px',
                 px: 2,
+                py: 0.75,
                 '&:hover': { borderColor: action.color, bgcolor: `${action.color}08` },
               }}
             >
