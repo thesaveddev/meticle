@@ -282,6 +282,24 @@ export class EmailService {
         { label: 'View dashboard', url: `${baseUrl()}/dashboard` }), 'notifications');
   }
 
+  static async sendDisruptionReportedEmail(managerEmail: string, managerName: string, carerName: string, personName: string, visitLabel: string, disruptionType: string, description: string) {
+    await sendMail(managerEmail, `Disruption reported — ${personName}`,
+      buildEmailHtml('Disruption Reported', `Hi ${managerName || 'Manager'},`,
+        `<p><strong>${carerName}</strong> has reported a disruption during a <strong>${visitLabel}</strong> call with <strong>${personName}</strong>.</p>` +
+        `<p><strong>Type:</strong> ${disruptionType}</p>` +
+        `<p><strong>Description:</strong> ${description}</p>`,
+        { label: 'View disruptions', url: `${baseUrl()}/homecare` }), 'notifications');
+  }
+
+  static async sendIncidentReportedEmail(managerEmail: string, managerName: string, carerName: string, personName: string, visitLabel: string, description: string) {
+    await sendMail(managerEmail, `Incident reported — ${personName}`,
+      buildEmailHtml('Incident Reported', `Hi ${managerName || 'Manager'},`,
+        `<p><strong>${carerName}</strong> has reported an incident during a <strong>${visitLabel}</strong> call with <strong>${personName}</strong>.</p>` +
+        `<p><strong>Description:</strong> ${description}</p>` +
+        `<p style="color:#DC2626;font-weight:600">This requires immediate attention.</p>`,
+        { label: 'View incident', url: `${baseUrl()}/incidents` }), 'notifications');
+  }
+
   // ── Shifts ──
   static async sendShiftStartEmail(staffEmail: string, staffName: string, date: string, shifts: any[], people?: any[], incidents?: any[], appointments?: any[]) {
     const shiftRows = shifts.map((s: any) => {
