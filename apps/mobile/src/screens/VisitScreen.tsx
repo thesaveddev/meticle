@@ -122,6 +122,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 }) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
+  const isManager = session?.user?.role === 'ORG_ADMIN' || session?.user?.role === 'MANAGER'
   const [note, setNote] = useState('')
   const [travelMinutes, setTravelMinutes] = useState('')
   const [mileage, setMileage] = useState('')
@@ -713,8 +714,8 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                   <Text style={{ flex: 1, fontFamily: FONT, fontSize: 14, fontWeight: '500', color: task.done ? c.muted : c.ink, textDecorationLine: task.done ? 'line-through' : 'none' }}>{task.label}</Text>
                 </Pressable>
               )              )}
-              {/* Add task input */}
-              {!isReadonly && (
+              {/* Add task input — managers only */}
+              {!isReadonly && isManager && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
                   <TextInput
                     style={{ flex: 1, fontFamily: FONT, fontSize: 13, color: c.ink, backgroundColor: c.surfaceAlt, borderRadius: radii.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderWidth: 1, borderColor: c.border }}
@@ -729,6 +730,10 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                     <Text style={{ fontFamily: FONT, fontSize: 13, fontWeight: '600', color: c.inverse }}>Add</Text>
                   </Pressable>
                 </View>
+              )}
+              {/* Carer hint — extra tasks go in notes */}
+              {!isReadonly && !isManager && tasks.length > 0 && (
+                <Text style={{ fontFamily: FONT, fontSize: 12, color: c.muted, marginTop: spacing.sm, fontStyle: 'italic' }}>Extra tasks? Add them in the care notes below.</Text>
               )}
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm }}>
                 <Text style={{ fontFamily: FONT, fontSize: 12, fontWeight: '600', color: allTasksDone ? c.success : c.muted }}>
