@@ -37,6 +37,10 @@ const planSchema = z.object({
   travel_buffer_minutes: z.number().int().min(0).max(240).optional(),
   required_skills: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
   default_staff_id: uuid.nullish(),
+  default_tasks: z.array(z.object({
+    label: z.string().trim().min(1).max(255),
+    sort_order: z.number().int().min(0).optional(),
+  })).max(20).optional(),
 });
 const generationSchema = z.object({ from: date, to: date });
 const availabilitySchema = z.object({ staff_id: uuid.optional(), day_of_week: z.number().int().min(0).max(6), start_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/), end_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/), is_available: z.boolean().optional() });
@@ -131,6 +135,10 @@ router.get('/exceptions', requireRole(...managerRoles), asyncHandler(HomecareCon
 router.post('/visits/:id/resolve-exception', requireRole(...managerRoles), validate(exceptionSchema), asyncHandler(HomecareController.resolveException));
 router.post('/visits/:id/check-in', requireRole(...fieldRoles), validate(executionSchema), asyncHandler(HomecareController.checkIn));
 router.post('/visits/:id/check-out', requireRole(...fieldRoles), validate(executionSchema), asyncHandler(HomecareController.checkOut));
+router.get('/visits/:visitId/tasks', requireRole(...fieldRoles), asyncHandler(HomecareController.getVisitTasks));
+router.post('/visits/:visitId/tasks', requireRole(...fieldRoles), asyncHandler(HomecareController.addVisitTask));
+router.patch('/visits/:visitId/tasks/:taskId', requireRole(...fieldRoles), asyncHandler(HomecareController.updateVisitTask));
+router.delete('/visits/:visitId/tasks/:taskId', requireRole(...fieldRoles), asyncHandler(HomecareController.deleteVisitTask));
 router.post('/visits/:id/disruptions', requireRole(...fieldRoles), validate(disruptionSchema), asyncHandler(HomecareController.createDisruption));
 router.post('/visits/:id/followups', requireRole(...managerRoles), validate(followupSchema), asyncHandler(HomecareController.createFollowup));
 router.post('/visits/:id/offline/:action(check-in|check-out)', requireRole(...fieldRoles), validate(executionSchema), asyncHandler(HomecareController.offlineAction));

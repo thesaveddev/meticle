@@ -253,8 +253,8 @@ export async function listVisitPlans(orgId: string, packageId: string) {
 export async function createVisitPlan(orgId: string, input: HomecareVisitPlanInput) {
   await assertPackage(input.package_id, orgId);
   await assertStaff(input.default_staff_id, orgId);
-  const result = await query(`INSERT INTO homecare_visit_plans (organization_id, package_id, visit_type, label, days_of_week, start_time, duration_minutes, travel_buffer_minutes, required_skills, default_staff_id)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`, [orgId, input.package_id, input.visit_type, input.label, input.days_of_week, input.start_time, input.duration_minutes, input.travel_buffer_minutes ?? 15, input.required_skills || [], input.default_staff_id || null]);
+  const result = await query(`INSERT INTO homecare_visit_plans (organization_id, package_id, visit_type, label, days_of_week, start_time, duration_minutes, travel_buffer_minutes, required_skills, default_staff_id, default_tasks)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`, [orgId, input.package_id, input.visit_type, input.label, input.days_of_week, input.start_time, input.duration_minutes, input.travel_buffer_minutes ?? 15, input.required_skills || [], input.default_staff_id || null, JSON.stringify(input.default_tasks || [])]);
   return result.rows[0];
 }
 
@@ -429,7 +429,23 @@ export async function generateVisitsFromPlan(orgId: string, userId: string, plan
       const result = await client.query(`INSERT INTO homecare_visits (organization_id, package_id, visit_plan_id, person_id, assigned_staff_id, visit_type, label, scheduled_start, scheduled_end, created_by)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT DO NOTHING RETURNING id`, 
         [orgId, plan.package_id, plan.id, plan.person_id, staffId, plan.visit_type, plan.label, scheduledStart, scheduledEnd, userId]);
-      if (result.rows[0]) generated.push(result.rows[0].id); else skipped += 1;
+      if (result.rows[0]) {
+        const visitId = result.rows[0].id;
+        generated.push(visitId);
+        // Copy default_tasks from plan to visit_tasks
+        const defaultTasks = plan.default_tasks;
+        if (Array.isArray(defaultTasks) && defaultTasks.length > 0) {
+          for (let ti = 0; ti < defaultTasks.length; ti++) {
+            const task = defaultTasks[ti];
+            if (task.label && task.label.trim()) {
+              await client.query(
+                'INSERT INTO homecare_visit_tasks (visit_id, label, sort_order) VALUES ($1, $2, $3)',
+                [visitId, task.label.trim(), task.sort_order ?? ti]
+              );
+            }
+          }
+        }
+      } else skipped += 1;
     }
     return { generated, generated_count: generated.length, skipped_existing: skipped };
   });

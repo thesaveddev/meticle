@@ -37,6 +37,7 @@ export interface HomecareVisitPlanInput {
   travel_buffer_minutes?: number;
   required_skills?: string[];
   default_staff_id?: string | null;
+  default_tasks?: { label: string; sort_order?: number }[];
 }
 
 export interface HomecareVisitInput {

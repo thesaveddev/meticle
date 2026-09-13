@@ -202,9 +202,111 @@ export class HomecareController {
     res.json(result);
   }
 
+  /* ── Visit tasks ─────────────────────────────────────────── */
+  static async getVisitTasks(req: Request, res: Response) {
+    const { visitId } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM homecare_visit_tasks WHERE visit_id = $1 ORDER BY sort_order, created_at',
+      [visitId]
+    );
+    res.json(result.rows);
+  }
+
+  static async addVisitTask(req: Request, res: Response) {
+    const { visitId } = req.params;
+    const { label } = req.body;
+    if (!label || !label.trim()) throw new AppError(400, 'Task label is required');
+    const maxOrder = await pool.query(
+      'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM homecare_visit_tasks WHERE visit_id = $1',
+      [visitId]
+    );
+    const result = await pool.query(
+      'INSERT INTO homecare_visit_tasks (visit_id, label, sort_order) VALUES ($1, $2, $3) RETURNING *',
+      [visitId, label.trim(), maxOrder.rows[0].next]
+    );
+    res.status(201).json(result.rows[0]);
+  }
+
+  static async updateVisitTask(req: Request, res: Response) {
+    const { visitId, taskId } = req.params;
+    const { done, label } = req.body;
+    const updates: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+    if (typeof done === 'boolean') {
+      updates.push(`done = $${idx++}`); values.push(done);
+      if (done) {
+        updates.push(`completed_by = $${idx++}`); values.push(userId(req));
+        updates.push(`completed_at = now()`);
+      } else {
+        updates.push('completed_by = NULL');
+        updates.push('completed_at = NULL');
+      }
+    }
+    if (label !== undefined) {
+      updates.push(`label = $${idx++}`); values.push(label.trim());
+    }
+    if (updates.length === 0) throw new AppError(400, 'No fields to update');
+    values.push(visitId, taskId);
+    const result = await pool.query(
+      `UPDATE homecare_visit_tasks SET ${updates.join(', ')} WHERE visit_id = $${idx++} AND id = $${idx} RETURNING *`,
+      values
+    );
+    if (result.rows.length === 0) throw new AppError(404, 'Task not found');
+    res.json(result.rows[0]);
+  }
+
+  static async deleteVisitTask(req: Request, res: Response) {
+    const { visitId, taskId } = req.params;
+    const result = await pool.query(
+      'DELETE FROM homecare_visit_tasks WHERE visit_id = $1 AND id = $2 RETURNING id',
+      [visitId, taskId]
+    );
+    if (result.rows.length === 0) throw new AppError(404, 'Task not found');
+    res.json({ deleted: true });
+  }
+
   static async createDisruption(req: Request, res: Response) {
-    const result = await repo.createDisruption(orgId(req), userId(req), req.params.id, req.body);
+    const oid = orgId(req); const uid = userId(req);
+    const result = await repo.createDisruption(oid, uid, req.params.id, req.body);
     audit(req, 'create', 'homecare_visit_disruption', result.id, req.body);
+
+    // Notify managers about disruption
+    try {
+      const visitResult = await query(`
+        SELECT v.label, pe.first_name || ' ' || pe.last_name AS person_name
+        FROM homecare_visits v JOIN people pe ON pe.id = v.person_id
+        WHERE v.id = $1 AND v.organization_id = $2`, [req.params.id, oid]);
+      const visit = visitResult.rows[0];
+      const staffResult = await query(`
+        SELECT COALESCE(sp.first_name, u.email) AS name
+        FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+        WHERE u.id = $1`, [uid]);
+      const carerName = staffResult.rows[0]?.name || 'A carer';
+
+      if (visit) {
+        const { sendPushToUser } = await import('../notifications/push.service');
+        const { EmailService } = await import('../../shared/utils/email.service');
+        const managers = await query(`
+          SELECT u.id, u.email, COALESCE(sp.first_name, u.email) AS name
+          FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+          WHERE u.organization_id = $1 AND u.role IN ('ORG_ADMIN', 'MANAGER')`, [oid]);
+
+        for (const m of managers.rows) {
+          await sendPushToUser(m.id, {
+            type: 'disruption_reported',
+            title: `Disruption — ${visit.person_name}`,
+            body: `${carerName} reported a ${req.body.disruption_type || 'disruption'} during ${visit.label}`,
+            url: '/homecare',
+          }, 'homecare');
+          await EmailService.sendDisruptionReportedEmail(
+            m.email, m.name, carerName, visit.person_name,
+            visit.label, req.body.disruption_type || 'other', req.body.description || ''
+          );
+        }
+      }
+    } catch { /* notification failure should not block response */ }
+
     res.status(201).json(result);
   }
 

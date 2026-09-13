@@ -9,7 +9,7 @@ import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance, watchDistance, formatDistance } from '../services/location'
-import { getLocationThreshold, getRequirePhoto } from '../services/api'
+import { getLocationThreshold, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask } from '../services/api'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate, IconTwoPerson } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
 import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
@@ -144,19 +144,44 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null)
   const [navDestination, setNavDestination] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
 
-  // Task list for this call
-  const [tasks, setTasks] = useState([
-    { id: '1', label: 'Personal care completed', done: false },
-    { id: '2', label: 'Medication administered', done: false },
-    { id: '3', label: 'Meal prepared / assistance with eating', done: false },
-    { id: '4', label: 'Environment safe and tidy', done: false },
-    { id: '5', label: 'Client wellbeing checked', done: false },
-  ])
-  const toggleTask = (id: string) => {
+  // Task list for this call — loaded from API
+  const [tasks, setTasks] = useState<{ id: string; label: string; done: boolean; sort_order: number }[]>([])
+  const [newTaskLabel, setNewTaskLabel] = useState('')
+
+  useEffect(() => {
+    if (session?.accessToken && visit?.id) {
+      getVisitTasks(session.accessToken, visit.id).then(setTasks).catch(() => {})
+    }
+  }, [session?.accessToken, visit?.id])
+
+  const toggleTask = async (taskId: string) => {
     hapticLight()
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+    // Optimistic update
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: !t.done } : t))
+    try {
+      await toggleVisitTask(session!.accessToken, visit.id, taskId, !task.done)
+    } catch {
+      // Revert on failure
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: task.done } : t))
+    }
   }
-  const allTasksDone = tasks.every(t => t.done)
+
+  const handleAddTask = async () => {
+    const label = newTaskLabel.trim()
+    if (!label) return
+    hapticLight()
+    setNewTaskLabel('')
+    try {
+      const created = await addVisitTask(session!.accessToken, visit.id, label)
+      setTasks(prev => [...prev, created])
+    } catch {
+      setNewTaskLabel(label)
+    }
+  }
+
+  const allTasksDone = tasks.length > 0 && tasks.every(t => t.done)
 
   // Fetch location threshold from org settings
   useEffect(() => {
@@ -685,7 +710,24 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                   </View>
                   <Text style={{ flex: 1, fontFamily: FONT, fontSize: 14, fontWeight: '500', color: task.done ? c.muted : c.ink, textDecorationLine: task.done ? 'line-through' : 'none' }}>{task.label}</Text>
                 </Pressable>
-              ))}
+              )              )}
+              {/* Add task input */}
+              {!isReadonly && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
+                  <TextInput
+                    style={{ flex: 1, fontFamily: FONT, fontSize: 13, color: c.ink, backgroundColor: c.surfaceAlt, borderRadius: radii.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderWidth: 1, borderColor: c.border }}
+                    placeholder="Add a task..."
+                    placeholderTextColor={c.muted}
+                    value={newTaskLabel}
+                    onChangeText={setNewTaskLabel}
+                    onSubmitEditing={handleAddTask}
+                    returnKeyType="done"
+                  />
+                  <Pressable onPress={handleAddTask} style={{ backgroundColor: c.primary, borderRadius: radii.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}>
+                    <Text style={{ fontFamily: FONT, fontSize: 13, fontWeight: '600', color: c.inverse }}>Add</Text>
+                  </Pressable>
+                </View>
+              )}
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm }}>
                 <Text style={{ fontFamily: FONT, fontSize: 12, fontWeight: '600', color: allTasksDone ? c.success : c.muted }}>
                   {tasks.filter(t => t.done).length}/{tasks.length} completed
