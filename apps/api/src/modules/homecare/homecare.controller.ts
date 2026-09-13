@@ -783,7 +783,9 @@ export class HomecareController {
               pe.first_name || ' ' || pe.last_name AS person_name,
               t.work_minutes, t.travel_minutes, t.paid_travel_minutes,
               t.mileage_miles, t.mileage_rate_pence, t.hourly_rate_pence, t.gross_pay_pence,
-              t.status AS timesheet_status
+              t.status AS timesheet_status,
+              (SELECT COUNT(*)::int FROM homecare_visit_tasks WHERE visit_id = hv.id) AS tasks_total,
+              (SELECT COUNT(*)::int FROM homecare_visit_tasks WHERE visit_id = hv.id AND done) AS tasks_completed
        FROM homecare_visits hv
        JOIN people pe ON pe.id = hv.person_id
        LEFT JOIN homecare_timesheets t ON t.visit_id = hv.id
