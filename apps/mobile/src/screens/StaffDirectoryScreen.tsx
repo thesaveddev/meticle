@@ -54,7 +54,7 @@ export function StaffDirectoryScreen({ session, onBack, onSelect }: Props) {
     if (refresh) setRefreshing(true)
     try {
       const data = await getStaffDirectory(session.accessToken)
-      setMembers(data)
+      setMembers(Array.isArray(data) ? data : [])
     } catch {} finally { setLoading(false); setRefreshing(false) }
   }, [session.accessToken])
 

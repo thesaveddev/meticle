@@ -58,7 +58,7 @@ export function TimesheetsScreen({ session, onBack }: Props) {
         headers: { Authorization: `Bearer ${session.accessToken}` },
       })
       const data = res.ok ? await res.json() : []
-      setTimesheets(data)
+      setTimesheets(Array.isArray(data) ? data : [])
     } catch {} finally { setLoading(false); setRefreshing(false) }
   }, [session.accessToken, filter])
 
