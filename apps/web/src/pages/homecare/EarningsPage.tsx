@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  Box, Typography, Stack, Paper, Chip, CircularProgress
+  Box, Typography, Stack, Paper, Chip, CircularProgress, LinearProgress
 } from '@mui/material'
 import api from '../../services/api'
 
@@ -130,6 +130,21 @@ export default function EarningsPage() {
                 <Typography variant="caption" color="text.secondary">
                   {v.label} · {new Date(v.scheduled_start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                 </Typography>
+                {v.tasks_total > 0 && (
+                  <Box sx={{ mt: 0.5 }}>
+                    <Box display="flex" alignItems="center" gap={0.5}>
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: v.tasks_completed === v.tasks_total ? '#10B981' : '#D97706' }} />
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: v.tasks_completed === v.tasks_total ? '#047857' : '#92400E', fontSize: '0.7rem' }}>
+                        {v.tasks_completed}/{v.tasks_total} tasks
+                      </Typography>
+                    </Box>
+                    <LinearProgress
+                      variant="determinate"
+                      value={v.tasks_total > 0 ? (v.tasks_completed / v.tasks_total) * 100 : 0}
+                      sx={{ height: 3, borderRadius: 2, mt: 0.25, bgcolor: '#F3F4F6', '& .MuiLinearProgress-bar': { bgcolor: v.tasks_completed === v.tasks_total ? '#10B981' : '#D97706', borderRadius: 2 } }}
+                    />
+                  </Box>
+                )}
               </Box>
               <Box display="flex" gap={1}>
                 {v.work_minutes != null && <Chip size="small" label={`${fmtMins(v.work_minutes)} work`} />}
