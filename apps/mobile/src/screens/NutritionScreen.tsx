@@ -7,15 +7,16 @@ import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, DietaryProfile, MealRecord } from '../types'
 import { getDietaryProfile, getMealRecords, getDailySummary, createMealRecord } from '../services/api'
 import { PrimaryButton } from '../components/PrimaryButton'
+import { IconBreakfast, IconSnack, IconPlate, IconCup, IconSupplement, IconMoon } from '../components/Icons'
 
 const MEAL_TYPES = [
-  { key: 'breakfast', label: 'Breakfast', icon: '🌅' },
-  { key: 'morning_snack', label: 'AM Snack', icon: '🍎' },
-  { key: 'lunch', label: 'Lunch', icon: '🍽️' },
-  { key: 'afternoon_snack', label: 'PM Snack', icon: '🧁' },
-  { key: 'dinner', label: 'Dinner', icon: '🌙' },
-  { key: 'evening_snack', label: 'Evening', icon: '🍵' },
-  { key: 'supplement', label: 'Supplement', icon: '💊' },
+  { key: 'breakfast', label: 'Breakfast', IconComponent: IconBreakfast },
+  { key: 'morning_snack', label: 'AM Snack', IconComponent: IconSnack },
+  { key: 'lunch', label: 'Lunch', IconComponent: IconPlate },
+  { key: 'afternoon_snack', label: 'PM Snack', IconComponent: IconSnack },
+  { key: 'dinner', label: 'Dinner', IconComponent: IconPlate },
+  { key: 'evening_snack', label: 'Evening', IconComponent: IconCup },
+  { key: 'supplement', label: 'Supplement', IconComponent: IconSupplement },
 ] as const
 
 const APPETITE_LEVELS = [
@@ -169,7 +170,7 @@ export function NutritionScreen({ personId, personName, session, onBack }: Props
             return (
               <View key={meal.id} style={s.mealCard}>
                 <View style={s.mealHeader}>
-                  <Text style={s.mealIcon}>{mt?.icon || '🍽️'}</Text>
+                  {mt?.IconComponent ? <mt.IconComponent size={20} color={c.primary} /> : <IconPlate size={20} color={c.primary} />}
                   <View style={s.mealInfo}>
                     <Text style={s.mealType}>{mt?.label || meal.meal_type}</Text>
                     <Text style={s.mealTime}>{meal.meal_time || '—'} · {meal.consumed_percent != null ? `${meal.consumed_percent}% consumed` : meal.refused ? 'Refused' : '—'}</Text>
@@ -223,7 +224,7 @@ export function NutritionScreen({ personId, personName, session, onBack }: Props
               <View style={s.chipRow}>
                 {MEAL_TYPES.map(mt => (
                   <Pressable key={mt.key} onPress={() => setMealType(mt.key)} style={[s.chip, mealType === mt.key && s.chipActive]}>
-                    <Text style={[s.chipText, mealType === mt.key && s.chipTextActive]}>{mt.icon} {mt.label}</Text>
+                    <Text style={[s.chipText, mealType === mt.key && s.chipTextActive]}>{mt.label}</Text>
                   </Pressable>
                 ))}
               </View>

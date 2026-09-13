@@ -7,16 +7,17 @@ import { SkeletonScreen } from '../components/Skeleton'
 import { MapPickerModal } from '../components/MapPickerModal'
 import type { AuthSession } from '../types'
 import { getPersonDetail, getMedicationsForPerson, getBodyMapStats, getDailySummary } from '../services/api'
+import { IconOverview, IconCarePlans, IconBody, IconNutrition, IconPill, IconContacts } from '../components/Icons'
 
 type TabKey = 'overview' | 'care' | 'body' | 'nutrition' | 'meds' | 'contacts'
 
-const TABS: { key: TabKey; label: string; icon: string }[] = [
-  { key: 'overview', label: 'Overview', icon: '📄' },
-  { key: 'care', label: 'Care Plans', icon: '📋' },
-  { key: 'body', label: 'Body Map', icon: '🩺' },
-  { key: 'nutrition', label: 'Nutrition', icon: '🍽️' },
-  { key: 'meds', label: 'Meds', icon: '💊' },
-  { key: 'contacts', label: 'Contacts', icon: '📞' },
+const TABS: { key: TabKey; label: string; IconComponent: any }[] = [
+  { key: 'overview', label: 'Overview', IconComponent: IconOverview },
+  { key: 'care', label: 'Care Plans', IconComponent: IconCarePlans },
+  { key: 'body', label: 'Body Map', IconComponent: IconBody },
+  { key: 'nutrition', label: 'Nutrition', IconComponent: IconNutrition },
+  { key: 'meds', label: 'Meds', IconComponent: IconPill },
+  { key: 'contacts', label: 'Contacts', IconComponent: IconContacts },
 ]
 
 interface Props {
@@ -137,7 +138,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tabBar, { backgroundColor: c.surface }]}>
         {TABS.map(t => (
           <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, tab === t.key && [styles.tabActive, { backgroundColor: c.primarySurface, borderColor: c.primary + '30' }], { backgroundColor: c.surfaceAlt, borderColor: c.borderLight }]}>
-            <Text style={[styles.tabIcon]}>{t.icon}</Text>
+            <t.IconComponent size={18} color={tab === t.key ? c.primary : c.muted} />
             <Text style={[styles.tabLabel, { color: c.muted }, tab === t.key && [styles.tabLabelActive, { color: c.primary }]]}>{t.label}</Text>
           </Pressable>
         ))}
