@@ -282,8 +282,12 @@ export async function createVisit(orgId: string, userId: string, input: Homecare
   return result.rows[0];
 }
 
-async function hasVisitConflict(orgId: string, staffId: string, start: string, end: string, excludeVisitId?: string) {
-  const params: any[] = [orgId, staffId, start, end];
+async function hasVisitConflict(orgId: string, staffId: string, start: string, end: string, excludeVisitId?: string, travelBufferMinutes = 30) {
+  // Check for overlap considering travel buffer: extend end time by buffer
+  // and check if any existing visit falls within [start - buffer, end + buffer]
+  const bufferedEnd = new Date(new Date(end).getTime() + travelBufferMinutes * 60000).toISOString();
+  const bufferedStart = new Date(new Date(start).getTime() - travelBufferMinutes * 60000).toISOString();
+  const params: any[] = [orgId, staffId, bufferedStart, bufferedEnd];
   let sql = `SELECT 1 FROM homecare_visits
     WHERE organization_id = $1 AND assigned_staff_id = $2 AND status NOT IN ('cancelled', 'missed')
       AND scheduled_start < $4::timestamptz AND scheduled_end > $3::timestamptz`;
@@ -321,6 +325,15 @@ export async function checkIn(orgId: string, staffUserId: string, visitId: strin
   const staff = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [staffUserId]);
   if (!staff.rows[0] || visit.assigned_staff_id !== staff.rows[0].id) throw new AppError(403, 'This visit is not assigned to you');
   if (['completed','cancelled','missed'].includes(visit.status)) throw new AppError(409, 'This visit is no longer open for check-in');
+
+  // Prevent check-in if already checked in at another visit
+  const activeVisit = await query(
+    `SELECT id, label FROM homecare_visits WHERE assigned_staff_id = $1 AND status = 'checked_in' AND id <> $2 AND organization_id = $3 LIMIT 1`,
+    [visit.assigned_staff_id, visitId, orgId]
+  );
+  if (activeVisit.rows[0]) {
+    throw new AppError(409, `You are already checked in at ${activeVisit.rows[0].label}. Please check out first.`);
+  }
 
   // Date/time validation: only allow check-in within a window around scheduled_start
   // Window: 30 minutes before scheduled_start to scheduled_end
@@ -422,8 +435,8 @@ export async function generateVisitsFromPlan(orgId: string, userId: string, plan
               OR (end_time < start_time AND (start_time <= $3::time OR end_time >= $4::time))) LIMIT 1`,
           [staffId, date.getUTCDay(), time, scheduledEnd.slice(11, 19)]);
         if (!availability.rows[0]) throw new AppError(409, `Carer is not available for ${dateText} ${time}`);
-        if (await hasVisitConflict(orgId, staffId, scheduledStart, scheduledEnd)) {
-          throw new AppError(409, `Carer has an overlapping visit on ${dateText} ${time}`);
+        if (await hasVisitConflict(orgId, staffId, scheduledStart, scheduledEnd, undefined, plan.travel_buffer_minutes ?? 30)) {
+          throw new AppError(409, `Carer has an overlapping visit or insufficient travel time on ${dateText} ${time}`);
         }
       }
       const result = await client.query(`INSERT INTO homecare_visits (organization_id, package_id, visit_plan_id, person_id, assigned_staff_id, visit_type, label, scheduled_start, scheduled_end, created_by, hourly_rate_pence, mileage_rate_pence)
