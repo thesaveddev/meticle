@@ -4,7 +4,7 @@ import {
   Grid, TextField, CircularProgress, Alert, Dialog, DialogTitle,
   DialogContent, DialogActions, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, MenuItem, Divider,
-  Menu, ListItemIcon, ListItemText, Tooltip, LinearProgress, Rating,
+  Menu, ListItemIcon, ListItemText,  Tooltip, LinearProgress, Rating, InputAdornment,
 } from '@mui/material'
 import {
   Add as AddIcon, Edit as EditIcon,
@@ -493,7 +493,7 @@ export default function PersonProfilePage() {
     { label: 'Clinical', tabs: [6, 12, 14, 19, 21] },
     { label: 'People', tabs: [5, 15] },
     { label: 'Safety', tabs: [7, 16, 11] },
-    { label: 'Records', tabs: [13, 8, 1, 18, 20] },
+    { label: 'Records', tabs: [13, 8, 1, 18, 20, 22] },
   ]
   const activeCategory = Math.max(0, CATEGORIES.findIndex(cat => cat.tabs.includes(tab)))
   const TAB_LABELS: Record<number, string> = {
@@ -1174,6 +1174,11 @@ export default function PersonProfilePage() {
 
       {/* Tab: Audit Trail */}
       {tab === 20 && <AuditTrailTabInline personId={id!} />}
+
+      {/* Tab: Billing & Rates */}
+      {tab === 22 && (
+        <BillingRatesTabInline personId={id!} personName={user ? `${user.first_name} ${user.last_name}` : ''} />
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
@@ -4384,6 +4389,136 @@ function AuditTrailTabInline({ personId }: { personId: string }) {
           </TableBody>
         </Table>
       </TableContainer>
+    </Box>
+  )
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Billing & Rates Tab — view and edit client billing rates
+   ════════════════════════════════════════════════════════════════ */
+function BillingRatesTabInline({ personId, personName }: { personId: string; personName: string }) {
+  const [packages, setPackages] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState<string | null>(null)
+  const [rateValue, setRateValue] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const res = await api.get('/homecare/packages')
+      const all = Array.isArray(res.data) ? res.data : []
+      setPackages(all.filter((p: any) => p.person_id === personId))
+    } catch {} finally { setLoading(false) }
+  }
+
+  useEffect(() => { load() }, [personId])
+
+  const handleSave = async (packageId: string) => {
+    setSaving(true); setError(''); setSuccess('')
+    try {
+      await api.patch(`/homecare/packages/${packageId}`, { client_rate_pence: Number(rateValue) || null })
+      setSuccess('Client rate updated')
+      setEditing(null)
+      await load()
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to update rate')
+    } finally { setSaving(false) }
+  }
+
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+
+  return (
+    <Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>Billing & Rates</Typography>
+          <Typography variant="body2" sx={{ color: '#6B7280' }}>Client billing rates for {personName}</Typography>
+        </Box>
+      </Stack>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+
+      {packages.length === 0 ? (
+        <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 2 }}>
+          <Typography sx={{ color: '#6B7280', mb: 1 }}>No care packages found</Typography>
+          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Create a homecare package for this client first</Typography>
+        </Paper>
+      ) : (
+        <Stack gap={2}>
+          {packages.map((pkg: any) => (
+            <Paper key={pkg.id} elevation={0} sx={{ p: 3, border: '1px solid #E5E7EB', borderRadius: 2 }}>
+              <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} gap={2}>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{pkg.name}</Typography>
+                  <Stack direction="row" gap={1} sx={{ mt: 0.5 }}>
+                    <Chip label={pkg.status} size="small" sx={{ bgcolor: pkg.status === 'active' ? '#E9F7F0' : '#F3F4F6', color: pkg.status === 'active' ? '#047857' : '#6B7280', fontWeight: 600 }} />
+                    <Chip label={pkg.funding_type || 'private'} size="small" sx={{ bgcolor: '#EFF6FF', color: '#1E40AF', fontWeight: 600 }} />
+                  </Stack>
+                </Box>
+
+                <Stack direction="row" gap={3} alignItems="center" flexWrap="wrap">
+                  {/* Carer rate */}
+                  <Box sx={{ textAlign: 'center', minWidth: 100 }}>
+                    <Typography variant="caption" sx={{ color: '#6B7280' }}>Carer rate</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700, color: '#0F4C81' }}>
+                      {pkg.hourly_rate_pence != null ? `£${(Number(pkg.hourly_rate_pence) / 100).toFixed(2)}/hr` : '—'}
+                    </Typography>
+                  </Box>
+
+                  {/* Client rate — editable */}
+                  <Box sx={{ textAlign: 'center', minWidth: 120 }}>
+                    <Typography variant="caption" sx={{ color: '#6B7280' }}>Client rate (billable)</Typography>
+                    {editing === pkg.id ? (
+                      <Stack direction="row" alignItems="center" gap={1}>
+                        <TextField
+                          size="small"
+                          type="number"
+                          placeholder="pence/hr"
+                          value={rateValue}
+                          onChange={e => setRateValue(e.target.value)}
+                          InputProps={{ startAdornment: <InputAdornment position="start">£</InputAdornment>, endAdornment: <InputAdornment position="end">/hr</InputAdornment> }}
+                          sx={{ width: 140 }}
+                        />
+                        <Button size="small" variant="contained" onClick={() => handleSave(pkg.id)} disabled={saving} sx={{ textTransform: 'none', minWidth: 0 }}>
+                          {saving ? <CircularProgress size={16} /> : 'Save'}
+                        </Button>
+                        <Button size="small" onClick={() => setEditing(null)} sx={{ textTransform: 'none', minWidth: 0 }}>Cancel</Button>
+                      </Stack>
+                    ) : (
+                      <Stack direction="row" alignItems="center" gap={0.5}>
+                        <Typography variant="body1" sx={{ fontWeight: 700, color: pkg.client_rate_pence != null ? '#10b981' : '#D97706' }}>
+                          {pkg.client_rate_pence != null ? `£${(Number(pkg.client_rate_pence) / 100).toFixed(2)}/hr` : 'Not set'}
+                        </Typography>
+                        <IconButton size="small" onClick={() => { setEditing(pkg.id); setRateValue(pkg.client_rate_pence != null ? String(Number(pkg.client_rate_pence) / 100) : '') }} sx={{ color: '#0F4C81' }}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
+                    )}
+                  </Box>
+
+                  {/* Mileage rate */}
+                  <Box sx={{ textAlign: 'center', minWidth: 100 }}>
+                    <Typography variant="caption" sx={{ color: '#6B7280' }}>Mileage</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700, color: '#8B5CF6' }}>
+                      {pkg.mileage_rate_pence != null ? `${Number(pkg.mileage_rate_pence).toFixed(1)}p/mi` : 'Org default'}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Stack>
+
+              {pkg.client_rate_pence == null && (
+                <Alert severity="warning" sx={{ mt: 2 }}>
+                  Client rate not configured. Set it above to enable client billing for this package.
+                </Alert>
+              )}
+            </Paper>
+          ))}
+        </Stack>
+      )}
     </Box>
   )
 }
