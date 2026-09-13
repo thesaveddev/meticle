@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActionSheetIOS, Alert, Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
+import { Ionicons } from '@expo/vector-icons'
 
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
@@ -34,14 +35,15 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
-
   const [refreshing, setRefreshing] = useState(false)
+
   const loadProfile = useCallback(() => {
     return fetch(`${API_BASE}/staff/me/profile`, {
       headers: { Authorization: `Bearer ${session.accessToken}` },
     })
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : null)
       .then(data => {
+        if (!data) return
         if (data.first_name) setFirstName(data.first_name)
         if (data.last_name) setLastName(data.last_name)
         if (data.phone) setPhone(data.phone)
@@ -53,9 +55,10 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
       .catch(() => {})
       .finally(() => { setLoading(false); setRefreshing(false) })
   }, [session.accessToken])
+
   useEffect(() => { loadProfile() }, [loadProfile])
 
-  const pickImage = async () => {
+  const pickFromGallery = async () => {
     hapticLight()
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (status !== 'granted') {
@@ -74,7 +77,7 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
     }
   }
 
-  const takePhoto = async () => {
+  const takeWithCamera = async () => {
     hapticLight()
     const { status } = await ImagePicker.requestCameraPermissionsAsync()
     if (status !== 'granted') {
@@ -92,6 +95,28 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
     }
   }
 
+  const showPhotoOptions = () => {
+    hapticLight()
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) takeWithCamera()
+          else if (buttonIndex === 2) pickFromGallery()
+        }
+      )
+    } else {
+      Alert.alert('Change Photo', 'Choose an option', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Take Photo', onPress: takeWithCamera },
+        { text: 'Choose from Library', onPress: pickFromGallery },
+      ])
+    }
+  }
+
   const uploadPhoto = async (uri: string) => {
     setUploadingPhoto(true)
     try {
@@ -99,14 +124,13 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
       const ext = filename.split('.').pop()?.toLowerCase() || 'jpg'
       const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`
 
-      // Use fetch to read file as blob — works on all platforms, no deprecated APIs
       const response = await fetch(uri)
       const blob = await response.blob()
 
       const formData = new FormData()
       formData.append('file', blob, filename)
 
-      const res = await fetch(`${API_BASE}/settings/upload`, {
+      const res = await fetch(`${API_BASE}/staff/me/photo`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.accessToken}` },
         body: formData,
@@ -132,7 +156,7 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
     }
     setSaving(true); setMessage('')
     try {
-      const res = await fetch(`${API_BASE}/staff/${user.id}/profile`, {
+      const res = await fetch(`${API_BASE}/staff/me/profile`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}` },
         body: JSON.stringify({
@@ -162,83 +186,79 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
   const displayPhoto = localPhotoUri || profilePhoto
 
   return (
-    <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]}>
+    <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]} edges={['top']}>
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadProfile() }} tintColor="transparent" />}>
         <Pressable onPress={onBack} style={s.backBtn}>
-          <Text style={s.backArrow}>←</Text>
-          <Text style={s.backText}>Settings</Text>
+          <Ionicons name="arrow-back" size={20} color={c.primary} />
+          <Text style={[s.backText, { color: c.primary }]}>Settings</Text>
         </Pressable>
-        <Text style={s.title}>My Profile</Text>
+        <Text style={[s.title, { color: c.ink }]}>My Profile</Text>
 
         {/* Avatar with photo upload */}
         <View style={s.avatarSection}>
-          <Pressable onPress={pickImage} style={s.avatarWrap}>
+          <Pressable onPress={showPhotoOptions} style={s.avatarWrap}>
             {displayPhoto ? (
               <Image source={{ uri: displayPhoto } as any} style={s.avatarImage} />
             ) : (
-              <View style={s.avatar}>
-                <Text style={s.avatarText}>{initials}</Text>
+              <View style={[s.avatar, { backgroundColor: c.primarySurface, borderColor: c.primary + '30' }]}>
+                <Text style={[s.avatarText, { color: c.primary }]}>{initials}</Text>
               </View>
             )}
-            <View style={s.cameraBadge}>
-              <Text style={s.cameraIcon}>📷</Text>
+            <View style={[s.cameraBadge, { backgroundColor: c.primary }]}>
+              <Ionicons name="camera" size={14} color="#FFFFFF" />
             </View>
-            {uploadingPhoto && <View style={s.uploadOverlay}><Text style={s.uploadText}>Uploading...</Text></View>}
+            {uploadingPhoto && <View style={s.uploadOverlay}><Text style={[s.uploadText, { color: '#FFFFFF' }]}>Uploading...</Text></View>}
           </Pressable>
-          <View style={s.photoActions}>
-            <Pressable onPress={pickImage} style={s.photoBtn}>
-              <Text style={s.photoBtnText}>📸 Gallery</Text>
-            </Pressable>
-            <Pressable onPress={takePhoto} style={s.photoBtn}>
-              <Text style={s.photoBtnText}>📷 Camera</Text>
-            </Pressable>
-          </View>
+          <Pressable onPress={showPhotoOptions} style={[s.photoBtn, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Ionicons name="camera-outline" size={16} color={c.primary} />
+            <Text style={[s.photoBtnText, { color: c.primary }]}>Change photo</Text>
+          </Pressable>
         </View>
 
         {/* Form */}
-        <View style={s.formCard}>
+        <View style={[s.formCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
           <View style={s.fieldRow}>
             <View style={s.fieldHalf}>
-              <Text style={s.fieldLabel}>First name *</Text>
-              <TextInput value={firstName} onChangeText={setFirstName} placeholder="First name" placeholderTextColor={colors.subtle} style={s.input} />
+              <Text style={[s.fieldLabel, { color: c.inkLight }]}>First name *</Text>
+              <TextInput value={firstName} onChangeText={setFirstName} placeholder="First name" placeholderTextColor={colors.subtle} style={[s.input, { backgroundColor: c.surfaceAlt, color: c.ink, borderColor: c.border }]} />
             </View>
             <View style={s.fieldHalf}>
-              <Text style={s.fieldLabel}>Last name</Text>
-              <TextInput value={lastName} onChangeText={setLastName} placeholder="Last name" placeholderTextColor={colors.subtle} style={s.input} />
+              <Text style={[s.fieldLabel, { color: c.inkLight }]}>Last name</Text>
+              <TextInput value={lastName} onChangeText={setLastName} placeholder="Last name" placeholderTextColor={colors.subtle} style={[s.input, { backgroundColor: c.surfaceAlt, color: c.ink, borderColor: c.border }]} />
             </View>
           </View>
 
           <View style={s.fieldGroup}>
-            <Text style={s.fieldLabel}>Email</Text>
-            <TextInput value={user.email} editable={false} style={[s.input, s.inputDisabled]} />
+            <Text style={[s.fieldLabel, { color: c.inkLight }]}>Email</Text>
+            <TextInput value={user.email} editable={false} style={[s.input, { backgroundColor: c.bg, color: c.muted, borderColor: c.border }]} />
           </View>
 
           <View style={s.fieldGroup}>
-            <Text style={s.fieldLabel}>Phone</Text>
-            <TextInput value={phone} onChangeText={setPhone} placeholder="Your phone number" placeholderTextColor={colors.subtle} keyboardType="phone-pad" style={s.input} />
+            <Text style={[s.fieldLabel, { color: c.inkLight }]}>Phone</Text>
+            <TextInput value={phone} onChangeText={setPhone} placeholder="Your phone number" placeholderTextColor={colors.subtle} keyboardType="phone-pad" style={[s.input, { backgroundColor: c.surfaceAlt, color: c.ink, borderColor: c.border }]} />
           </View>
 
           <View style={s.fieldGroup}>
-            <Text style={s.fieldLabel}>Address</Text>
-            <TextInput value={address} onChangeText={setAddress} placeholder="Street address" placeholderTextColor={colors.subtle} style={s.input} />
+            <Text style={[s.fieldLabel, { color: c.inkLight }]}>Address</Text>
+            <TextInput value={address} onChangeText={setAddress} placeholder="Street address" placeholderTextColor={colors.subtle} style={[s.input, { backgroundColor: c.surfaceAlt, color: c.ink, borderColor: c.border }]} />
           </View>
 
           <View style={s.fieldRow}>
             <View style={s.fieldHalf}>
-              <Text style={s.fieldLabel}>City</Text>
-              <TextInput value={city} onChangeText={setCity} placeholder="City" placeholderTextColor={colors.subtle} style={s.input} />
+              <Text style={[s.fieldLabel, { color: c.inkLight }]}>City</Text>
+              <TextInput value={city} onChangeText={setCity} placeholder="City" placeholderTextColor={colors.subtle} style={[s.input, { backgroundColor: c.surfaceAlt, color: c.ink, borderColor: c.border }]} />
             </View>
             <View style={s.fieldHalf}>
-              <Text style={s.fieldLabel}>Postcode</Text>
-              <TextInput value={postalCode} onChangeText={setPostalCode} placeholder="Postcode" placeholderTextColor={colors.subtle} style={s.input} />
+              <Text style={[s.fieldLabel, { color: c.inkLight }]}>Postcode</Text>
+              <TextInput value={postalCode} onChangeText={setPostalCode} placeholder="Postcode" placeholderTextColor={colors.subtle} style={[s.input, { backgroundColor: c.surfaceAlt, color: c.ink, borderColor: c.border }]} />
             </View>
           </View>
         </View>
 
         {message ? (
-          <View style={s.successBanner}>
-            <Text style={s.successIcon}>✓</Text>
-            <Text style={s.successText}>{message}</Text>
+          <View style={[s.successBanner, { backgroundColor: c.successSurface }]}>
+            <Ionicons name="checkmark-circle" size={20} color={c.success} />
+            <Text style={[s.successText, { color: c.successDeep }]}>{message}</Text>
           </View>
         ) : null}
 
@@ -253,57 +273,52 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.md, paddingBottom: spacing.xxxl },
 
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.base },
-  backArrow: { fontFamily: 'System', fontSize: 18, color: colors.primary, fontWeight: '600' },
-  backText: { fontFamily: 'System', fontSize: 15, fontWeight: '500', color: colors.primary },
-  title: { ...type.title, marginBottom: spacing.base },
+  backText: { fontFamily: FONT, fontSize: 15, fontWeight: '500' },
+  title: { fontFamily: FONT, fontSize: 22, fontWeight: '700', letterSpacing: -0.4, marginBottom: spacing.base },
 
   /* Avatar */
-  avatarSection: { alignItems: 'center', marginBottom: spacing.xl },
+  avatarSection: { alignItems: 'center', marginBottom: spacing.xl, gap: spacing.sm },
   avatarWrap: { position: 'relative', width: 96, height: 96 },
   avatar: {
     width: 96, height: 96, borderRadius: 48,
-    backgroundColor: colors.primarySurface, borderWidth: 3, borderColor: colors.primary + '30',
+    borderWidth: 3,
     alignItems: 'center', justifyContent: 'center', ...elevation.sm,
   },
   avatarImage: { width: 96, height: 96, borderRadius: 48, borderWidth: 3, borderColor: colors.primary + '30' },
-  avatarText: { fontFamily: 'System', fontSize: 36, fontWeight: '700', color: colors.primary },
+  avatarText: { fontFamily: FONT, fontSize: 36, fontWeight: '700' },
   cameraBadge: {
     position: 'absolute', bottom: 0, right: 0, width: 30, height: 30, borderRadius: 15,
-    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: colors.surface, ...elevation.sm,
   },
-  cameraIcon: { fontSize: 14 },
   uploadOverlay: {
     ...StyleSheet.absoluteFill, borderRadius: 48,
     backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center',
   },
-  uploadText: { ...type.small, color: colors.inverse },
-  photoActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
-  photoBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.sm, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight },
-  photoBtnText: { fontFamily: 'System', fontSize: 12, fontWeight: '600', color: colors.muted },
+  uploadText: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
+  photoBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.base, paddingVertical: spacing.sm, borderRadius: radii.md, borderWidth: 1 },
+  photoBtnText: { fontFamily: FONT, fontSize: 13, fontWeight: '600' },
 
   /* Form */
   formCard: {
-    backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: 1,
-    borderColor: colors.borderLight, padding: spacing.base, gap: spacing.base, marginBottom: spacing.base,
+    borderRadius: radii.lg, borderWidth: 1,
+    padding: spacing.base, gap: spacing.base, marginBottom: spacing.base,
     ...elevation.sm,
   },
   fieldRow: { flexDirection: 'row', gap: spacing.base },
   fieldHalf: { flex: 1 },
   fieldGroup: { gap: spacing.xs },
-  fieldLabel: { fontFamily: 'System', fontSize: 12, fontWeight: '600', color: colors.inkLight },
+  fieldLabel: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
   input: {
-    borderWidth: 1.5, borderColor: colors.border, borderRadius: radii.md,
-    backgroundColor: colors.surfaceAlt, paddingHorizontal: spacing.md, paddingVertical: spacing.md,
-    color: colors.ink, fontFamily: 'System', fontSize: 15,
+    borderWidth: 1.5, borderRadius: radii.md,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+    fontFamily: FONT, fontSize: 15,
   },
-  inputDisabled: { backgroundColor: colors.bg, color: colors.muted },
 
   /* Messages */
   successBanner: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.successSurface, padding: spacing.md, borderRadius: radii.md, marginBottom: spacing.base,
+    padding: spacing.md, borderRadius: radii.md, marginBottom: spacing.base,
   },
-  successIcon: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.success, color: colors.inverse, textAlign: 'center', lineHeight: 22, fontSize: 13, fontWeight: '700' },
-  successText: { ...type.small, color: colors.successDeep, flex: 1 },
+  successText: { fontFamily: FONT, fontSize: 13, fontWeight: '500', flex: 1 },
 })
