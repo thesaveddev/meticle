@@ -43,7 +43,16 @@
       "expo-font"
     ],
     "extra": {
-      "apiBaseUrl": "https://meticlecare.com/api"
+      "apiBaseUrl": "https://meticlecare.com/api",
+      "eas": {
+        "projectId": "meticlecare"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/meticlecare"
     }
   }
 }

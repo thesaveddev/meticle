@@ -8,7 +8,16 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "build:dev": "eas build --profile development",
+    "build:preview": "eas build --profile preview",
+    "build:prod": "eas build --profile production",
+    "build:dev:android": "eas build --profile development --platform android",
+    "build:dev:ios": "eas build --profile development --platform ios",
+    "build:preview:android": "eas build --profile preview --platform android",
+    "build:preview:ios": "eas build --profile preview --platform ios",
+    "build:prod:android": "eas build --profile production --platform android",
+    "build:prod:ios": "eas build --profile production --platform ios"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
