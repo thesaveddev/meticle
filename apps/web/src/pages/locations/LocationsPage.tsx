@@ -13,6 +13,7 @@ import {
 } from '@mui/icons-material'
 import api from '../../services/api'
 import { NAVY, ConfirmDialog } from '../../components/ui'
+import { EmptyState } from '../../components/design/EmptyState'
 
 const SERVICE_TYPE_LABEL: Record<string, string> = {
   supported_living: 'Supported Living',
@@ -184,7 +185,7 @@ export default function LocationsPage() {
               </TableHead>
               <TableBody>
                 {locations.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No locations created yet</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} sx={{ borderBottom: 'none' }}><EmptyState title="No locations yet" description="Create your first location to get started" variant="default" action={{ label: 'Add location', onClick: () => setLocDialog(true) }} /></TableCell></TableRow>
                 ) : locations.slice(locPage * rowsPerPage, locPage * rowsPerPage + rowsPerPage).map(loc => (
                   <TableRow key={loc.id} hover sx={{
                     cursor: 'pointer',
