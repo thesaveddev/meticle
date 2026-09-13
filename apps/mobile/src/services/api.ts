@@ -133,6 +133,22 @@ export async function getMedicationsForPerson(token: string, personId: string): 
   return request<any[]>(`/emedication/records?personId=${encodeURIComponent(personId)}`, {}, token)
 }
 
+export async function getDailyNotes(token: string, personId: string): Promise<any[]> {
+  return request<any[]>(`/people/${encodeURIComponent(personId)}/daily-notes`, {}, token)
+}
+
+export async function getPersonAssessments(token: string, personId: string): Promise<any[]> {
+  return request<any[]>(`/people/${encodeURIComponent(personId)}/assessments`, {}, token)
+}
+
+export async function getPersonTimeline(token: string, personId: string): Promise<any[]> {
+  return request<any[]>(`/people/${encodeURIComponent(personId)}/timeline`, {}, token)
+}
+
+export async function getPersonDocuments(token: string, personId: string): Promise<any[]> {
+  return request<any[]>(`/people/${encodeURIComponent(personId)}/documents`, {}, token)
+}
+
 /* ─── Body Map ───────────────────────────────────────────── */
 import type { BodyMapEntry, BodyMapStats } from '../types'
 

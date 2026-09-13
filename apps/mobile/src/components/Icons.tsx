@@ -631,3 +631,36 @@ export function IconCup({ size = 16, color = '#7C3AED' }: IconProps) {
 export function IconSupplement({ size = 16, color = '#2563EB' }: IconProps) {
   return <IconPill size={size} color={color} />
 }
+
+/** Notes / document lines */
+export function IconNotes({ size = 20, color = '#1E3A5F' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: size * 0.75, height: size * 0.12, backgroundColor: color, borderRadius: 1, marginTop: size * 0.15 }} />
+      <View style={{ width: size * 0.55, height: size * 0.12, backgroundColor: color, borderRadius: 1, marginTop: size * 0.12, opacity: 0.6 }} />
+      <View style={{ width: size * 0.65, height: size * 0.12, backgroundColor: color, borderRadius: 1, marginTop: size * 0.12, opacity: 0.4 }} />
+    </View>
+  )
+}
+
+/** Shield / risk */
+export function IconRisk({ size = 20, color = '#DC2626' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: size * 0.65, height: size * 0.7, backgroundColor: color, borderRadius: size * 0.08, borderBottomLeftRadius: size * 0.35, borderBottomRightRadius: size * 0.35, opacity: 0.2 }} />
+      <View style={{ position: 'absolute', width: size * 0.2, height: size * 0.35, backgroundColor: color, borderRadius: 1, top: size * 0.2 }} />
+      <View style={{ position: 'absolute', width: size * 0.2, height: size * 0.04, backgroundColor: color, borderRadius: 1, top: size * 0.6 }} />
+    </View>
+  )
+}
+
+/** Document / file */
+export function IconDocument({ size = 20, color = '#1E3A5F' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size * 1.2, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: size * 0.7, height: size * 1, backgroundColor: color, borderRadius: size * 0.06, opacity: 0.15 }} />
+      <View style={{ position: 'absolute', width: size * 0.35, height: size * 0.1, backgroundColor: color, borderRadius: 1, top: size * 0.3 }} />
+      <View style={{ position: 'absolute', width: size * 0.25, height: size * 0.1, backgroundColor: color, borderRadius: 1, top: size * 0.5 }} />
+    </View>
+  )
+}
