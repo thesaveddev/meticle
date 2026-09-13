@@ -15,34 +15,45 @@ interface Props {
 
 export function EmergencyButton({ managerPhone }: Props) {
   const [pressed, setPressed] = useState(false)
-  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current
   const isDragging = useRef(false)
-  // Start at bottom-right: left = screenW - BTN_SIZE - PADDING, bottom = 100
-  const initX = SCREEN.width - BTN_SIZE - PADDING
-  const initY = SCREEN.height - 100 - BTN_SIZE
-  const lastPos = useRef({ x: initX, y: initY })
+
+  // Start at bottom-right
+  const startX = SCREEN.width - BTN_SIZE - PADDING
+  const startY = SCREEN.height - 160
+
+  const panX = useRef(new Animated.Value(startX)).current
+  const panY = useRef(new Animated.Value(startY)).current
 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         isDragging.current = false
-        pan.setOffset({ x: lastPos.current.x, y: lastPos.current.y })
-        pan.setValue({ x: 0, y: 0 })
       },
       onPanResponderMove: (_, gs) => {
         if (Math.abs(gs.dx) > 3 || Math.abs(gs.dy) > 3) isDragging.current = true
-        pan.setValue({ x: gs.dx, y: gs.dy })
+
+        let nx = startX + gs.dx
+        let ny = startY + gs.dy
+        nx = Math.max(PADDING, Math.min(SCREEN.width - BTN_SIZE - PADDING, nx))
+        ny = Math.max(60, Math.min(SCREEN.height - BTN_SIZE - 40, ny))
+        panX.setValue(nx)
+        panY.setValue(ny)
       },
       onPanResponderRelease: (_, gs) => {
-        pan.flattenOffset()
-        let nx = lastPos.current.x + gs.dx
-        let ny = lastPos.current.y + gs.dy
-        // Clamp to screen bounds
+        if (!isDragging.current) return // Was a tap, not a drag
+        let nx = startX + gs.dx
+        let ny = startY + gs.dy
         nx = Math.max(PADDING, Math.min(SCREEN.width - BTN_SIZE - PADDING, nx))
-        ny = Math.max(PADDING + 44, Math.min(SCREEN.height - BTN_SIZE - PADDING - 20, ny))
-        lastPos.current = { x: nx, y: ny }
-        Animated.spring(pan, { toValue: { x: nx, y: ny }, useNativeDriver: false, tension: 200, friction: 18 }).start()
+        ny = Math.max(60, Math.min(SCREEN.height - BTN_SIZE - 40, ny))
+        // Snap to nearest horizontal edge
+        const snapLeft = PADDING
+        const snapRight = SCREEN.width - BTN_SIZE - PADDING
+        const snapX = (nx - snapLeft) < (snapRight - nx) ? snapLeft : snapRight
+        Animated.parallel([
+          Animated.spring(panX, { toValue: snapX, useNativeDriver: false, tension: 200, friction: 18 }),
+          Animated.spring(panY, { toValue: ny, useNativeDriver: false, tension: 200, friction: 18 }),
+        ]).start()
       },
     })
   ).current
@@ -88,7 +99,10 @@ export function EmergencyButton({ managerPhone }: Props) {
 
   return (
     <Animated.View
-      style={[styles.button, pressed && styles.pressed, { transform: pan.getTranslateTransform() }]}
+      style={[styles.button, pressed && styles.pressed, {
+        left: panX,
+        top: panY,
+      }]}
       {...panResponder.panHandlers}
     >
       <Pressable onPress={handlePress} onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)} style={styles.inner} accessibilityLabel="Emergency call" accessibilityRole="button">
@@ -112,6 +126,6 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   inner: { width: BTN_SIZE, height: BTN_SIZE, borderRadius: BTN_SIZE / 2, alignItems: 'center', justifyContent: 'center' },
-  pressed: { backgroundColor: '#B91C1C', transform: [{ scale: 0.92 }] },
+  pressed: { backgroundColor: '#B91C1C' },
   label: { fontFamily: FONT, fontSize: 8, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5, marginTop: 1 },
 })
