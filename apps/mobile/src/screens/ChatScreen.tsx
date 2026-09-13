@@ -10,15 +10,15 @@ import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import {
   ensureGeneralChannel, getChatChannels, getChatMessages, sendChatMessage,
-  editChatMessage, deleteChatMessage, markChatRead, getOrgMembers,
+  deleteChatMessage, markChatRead, getOrgMembers,
   createDMChannel
 } from '../services/api'
 import { hapticLight } from '../services/haptics'
 
-type ChatChannel = {
+interface ChatChannel {
   id: string
   name: string
-  type: 'general' | 'group' | 'dm'
+  channel_type: 'general' | 'group' | 'dm'
   other_member?: { id: string; name: string; email: string; profile_picture_url?: string } | null
   last_message?: { content: string; sender_name: string; created_at: string } | null
   unread_count: number
@@ -26,7 +26,7 @@ type ChatChannel = {
   created_at: string | null
 }
 
-type ChatMessage = {
+interface ChatMessage {
   id: string
   sender_id: string
   sender_name: string
@@ -39,7 +39,7 @@ type ChatMessage = {
   created_at: string
 }
 
-type Props = {
+interface Props {
   session?: AuthSession
   onBack?: () => void
 }
@@ -92,11 +92,9 @@ export function ChatScreen({ session, onBack }: Props) {
   const [memberSearch, setMemberSearch] = useState('')
   const [loadingMembers, setLoadingMembers] = useState(false)
 
-  // Contact details modal
   const [showContact, setShowContact] = useState(false)
   const [contactInfo, setContactInfo] = useState<{ name: string; email: string; role?: string } | null>(null)
 
-  // Context menu
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; message: ChatMessage | null }>({ visible: false, message: null })
 
   const flatListRef = useRef<FlatList>(null)
@@ -107,7 +105,7 @@ export function ChatScreen({ session, onBack }: Props) {
       await ensureGeneralChannel(token).catch(() => {})
       const data = await getChatChannels(token)
       if (Array.isArray(data)) setChannels(data)
-    } catch {} finally { setLoading(false) }
+    } catch { /* ignore */ } finally { setLoading(false) }
   }, [token])
 
   useEffect(() => { loadChannels() }, [loadChannels])
@@ -122,7 +120,7 @@ export function ChatScreen({ session, onBack }: Props) {
       const msgs = await getChatMessages(token, activeChannel.id, 80)
       if (Array.isArray(msgs)) setMessages(msgs)
       markChatRead(token, activeChannel.id).catch(() => {})
-    } catch {} finally { setLoadingMessages(false) }
+    } catch { /* ignore */ } finally { setLoadingMessages(false) }
   }, [token, activeChannel])
 
   useEffect(() => {
@@ -179,7 +177,7 @@ export function ChatScreen({ session, onBack }: Props) {
         try {
           await deleteChatMessage(token, msg.id)
           setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, deleted: true, message: '' } : m))
-        } catch {}
+        } catch { /* ignore */ }
       }}
     ])
   }
@@ -191,7 +189,7 @@ export function ChatScreen({ session, onBack }: Props) {
     try {
       const members = await getOrgMembers(token)
       if (Array.isArray(members)) setOrgMembers(members)
-    } catch {} finally { setLoadingMembers(false) }
+    } catch { /* ignore */ } finally { setLoadingMembers(false) }
   }
 
   const startDM = async (member: any) => {
@@ -206,7 +204,7 @@ export function ChatScreen({ session, onBack }: Props) {
         setActiveChannel(found)
       } else {
         setActiveChannel({
-          id: ch.id, name: member.name || member.email, type: 'dm',
+          id: ch.id, name: member.name || member.email, channel_type: 'dm',
           other_member: member, last_message: null, unread_count: 0,
           member_count: 2, created_at: new Date().toISOString(),
         })
@@ -303,6 +301,75 @@ export function ChatScreen({ session, onBack }: Props) {
     )
   }
 
+  // ─── Contact Details Modal Content ────────────────────────
+
+  const renderContactModal = () => (
+    <Modal visible={showContact} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={[listStyles.container, { backgroundColor: c.bg }]} edges={['top']}>
+        <View style={[listStyles.header, { backgroundColor: c.bg }]}>
+          <Pressable onPress={() => setShowContact(false)} style={listStyles.headerBtn}>
+            <Text style={[listStyles.cancelText, { color: c.primary }]}>Close</Text>
+          </Pressable>
+          <Text style={[listStyles.headerTitle, { color: c.ink }]}>Contact</Text>
+          <View style={{ width: 80 }} />
+        </View>
+        {contactInfo ? (
+          <View style={{ padding: spacing.base, alignItems: 'center', gap: spacing.lg }}>
+            <View style={[contactStyles.avatar, { backgroundColor: getAvatarColor(contactInfo.email) }]}>
+              <Text style={contactStyles.avatarText}>{getInitials(contactInfo.name)}</Text>
+            </View>
+            <Text style={[contactStyles.name, { color: c.ink }]}>{contactInfo.name}</Text>
+            {contactInfo.role ? <Text style={[contactStyles.role, { color: c.muted }]}>{contactInfo.role.replace('_', ' ')}</Text> : null}
+            <View style={[contactStyles.infoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+              <View style={contactStyles.infoRow}>
+                <Ionicons name="mail-outline" size={18} color={c.muted} />
+                <Text style={[contactStyles.infoText, { color: c.ink }]}>{contactInfo.email}</Text>
+              </View>
+            </View>
+            <Pressable
+              onPress={() => setShowContact(false)}
+              style={[contactStyles.messageBtn, { backgroundColor: c.primary }]}
+            >
+              <Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" />
+              <Text style={contactStyles.messageBtnText}>Send message</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </SafeAreaView>
+    </Modal>
+  )
+
+  // ─── Context Menu Modal Content ────────────────────────────
+
+  const renderContextMenu = () => (
+    <Modal visible={contextMenu.visible} transparent animationType="fade">
+      <Pressable style={ctxStyles.overlay} onPress={() => setContextMenu({ visible: false, message: null })}>
+        <View style={[ctxStyles.menu, { backgroundColor: c.surface, borderColor: c.border }]}>
+          {contextMenu.message && contextMenu.message.sender_id === currentUserId ? (
+            <Pressable style={ctxStyles.item} onPress={() => {
+              handleDelete(contextMenu.message!)
+              setContextMenu({ visible: false, message: null })
+            }}>
+              <Ionicons name="trash-outline" size={20} color={c.danger} />
+              <Text style={[ctxStyles.itemText, { color: c.danger }]}>Delete message</Text>
+            </Pressable>
+          ) : (
+            <Pressable style={ctxStyles.item} onPress={() => {
+              if (contextMenu.message) showContactDetails(contextMenu.message.sender_name, contextMenu.message.sender_email)
+              setContextMenu({ visible: false, message: null })
+            }}>
+              <Ionicons name="person-outline" size={20} color={c.primary} />
+              <Text style={[ctxStyles.itemText, { color: c.ink }]}>View contact</Text>
+            </Pressable>
+          )}
+          <Pressable style={ctxStyles.item} onPress={() => setContextMenu({ visible: false, message: null })}>
+            <Text style={[ctxStyles.itemText, { color: c.muted }]}>Cancel</Text>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
+  )
+
   // ─── List View ───────────────────────────────────────────
 
   if (view === 'list') {
@@ -396,68 +463,8 @@ export function ChatScreen({ session, onBack }: Props) {
           </SafeAreaView>
         </Modal>
 
-        {/* Contact Details Modal */}
-        <Modal visible={showContact} animationType="slide" presentationStyle="pageSheet">
-          <SafeAreaView style={[listStyles.container, { backgroundColor: c.bg }]} edges={['top']}>
-            <View style={[listStyles.header, { backgroundColor: c.bg }]}>
-              <Pressable onPress={() => setShowContact(false)} style={listStyles.headerBtn}>
-                <Text style={[listStyles.cancelText, { color: c.primary }]}>Close</Text>
-              </Pressable>
-              <Text style={[listStyles.headerTitle, { color: c.ink }]}>Contact</Text>
-              <View style={{ width: 80 }} />
-            </View>
-            {contactInfo ? (
-              <View style={{ padding: spacing.base, alignItems: 'center', gap: spacing.lg }}>
-                <View style={[contactStyles.avatar, { backgroundColor: getAvatarColor(contactInfo.email) }]}>
-                  <Text style={contactStyles.avatarText}>{getInitials(contactInfo.name)}</Text>
-                </View>
-                <Text style={[contactStyles.name, { color: c.ink }]}>{contactInfo.name}</Text>
-                {contactInfo.role ? <Text style={[contactStyles.role, { color: c.muted }]}>{contactInfo.role.replace('_', ' ')}</Text> : null}
-                <View style={[contactStyles.infoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-                  <View style={contactStyles.infoRow}>
-                    <Ionicons name="mail-outline" size={18} color={c.muted} />
-                    <Text style={[contactStyles.infoText, { color: c.ink }]}>{contactInfo.email}</Text>
-                  </View>
-                </View>
-                <Pressable
-                  onPress={() => { setShowContact(false); /* Navigate to chat */ }}
-                  style={[contactStyles.messageBtn, { backgroundColor: c.primary }]}
-                >
-                  <Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" />
-                  <Text style={contactStyles.messageBtnText}>Send message</Text>
-                </Pressable>
-              </View>
-            ) : null}
-          </SafeAreaView>
-        </Modal>
-
-        {/* Context Menu Modal */}
-        <Modal visible={contextMenu.visible} transparent animationType="fade">
-          <Pressable style={ctxStyles.overlay} onPress={() => setContextMenu({ visible: false, message: null })}>
-            <View style={[ctxStyles.menu, { backgroundColor: c.surface, borderColor: c.border }]}>
-              {contextMenu.message?.sender_id === currentUserId ? (
-                <Pressable style={ctxStyles.item} onPress={() => {
-                  if (contextMenu.message) handleDelete(contextMenu.message)
-                  setContextMenu({ visible: false, message: null })
-                }}>
-                  <Ionicons name="trash-outline" size={20} color={c.danger} />
-                  <Text style={[ctxStyles.itemText, { color: c.danger }]}>Delete message</Text>
-                </Pressable>
-              ) : (
-                <Pressable style={ctxStyles.item} onPress={() => {
-                  if (contextMenu.message) showContactDetails(contextMenu.message.sender_name, contextMenu.message.sender_email)
-                  setContextMenu({ visible: false, message: null })
-                }}>
-                  <Ionicons name="person-outline" size={20} color={c.primary} />
-                  <Text style={[ctxStyles.itemText, { color: c.ink }]}>View contact</Text>
-                </Pressable>
-              )}
-              <Pressable style={ctxStyles.item} onPress={() => setContextMenu({ visible: false, message: null })}>
-                <Text style={[ctxStyles.itemText, { color: c.muted }]}>Cancel</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Modal>
+        {renderContactModal()}
+        {renderContextMenu()}
       </View>
     )
   }
@@ -487,7 +494,7 @@ export function ChatScreen({ session, onBack }: Props) {
           <View>
             <Text style={[chatStyles.headerName, { color: c.ink }]} numberOfLines={1}>{activeChannel?.name}</Text>
             <Text style={[chatStyles.headerSub, { color: c.muted }]}>
-              {activeChannel?.type === 'dm' ? (channelMember?.email || 'Online') : `${activeChannel?.member_count || 0} members`}
+              {activeChannel?.channel_type === 'dm' ? (channelMember?.email || 'Online') : `${activeChannel?.member_count || 0} members`}
             </Text>
           </View>
         </Pressable>
@@ -544,61 +551,8 @@ export function ChatScreen({ session, onBack }: Props) {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Contact Details Modal (from chat header tap) */}
-      <Modal visible={showContact} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={[listStyles.container, { backgroundColor: c.bg }]} edges={['top']}>
-          <View style={[listStyles.header, { backgroundColor: c.bg }]}>
-            <Pressable onPress={() => setShowContact(false)} style={listStyles.headerBtn}>
-              <Text style={[listStyles.cancelText, { color: c.primary }]}>Close</Text>
-            </Pressable>
-            <Text style={[listStyles.headerTitle, { color: c.ink }]}>Contact</Text>
-            <View style={{ width: 80 }} />
-          </View>
-          {contactInfo ? (
-            <View style={{ padding: spacing.base, alignItems: 'center', gap: spacing.lg }}>
-              <View style={[contactStyles.avatar, { backgroundColor: getAvatarColor(contactInfo.email) }]}>
-                <Text style={contactStyles.avatarText}>{getInitials(contactInfo.name)}</Text>
-              </View>
-              <Text style={[contactStyles.name, { color: c.ink }]}>{contactInfo.name}</Text>
-              {contactInfo.role ? <Text style={[contactStyles.role, { color: c.muted }]}>{contactInfo.role.replace('_', ' ')}</Text> : null}
-              <View style={[contactStyles.infoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-                <View style={contactStyles.infoRow}>
-                  <Ionicons name="mail-outline" size={18} color={c.muted} />
-                  <Text style={[contactStyles.infoText, { color: c.ink }]}>{contactInfo.email}</Text>
-                </View>
-              </View>
-            </View>
-          ) : null}
-        </SafeAreaView>
-      </Modal>
-
-      {/* Context Menu Modal */}
-      <Modal visible={contextMenu.visible} transparent animationType="fade">
-        <Pressable style={ctxStyles.overlay} onPress={() => setContextMenu({ visible: false, message: null })}>
-          <View style={[ctxStyles.menu, { backgroundColor: c.surface, borderColor: c.border }]}>
-            {contextMenu.message?.sender_id === currentUserId ? (
-              <Pressable style={ctxStyles.item} onPress={() => {
-                if (contextMenu.message) handleDelete(contextMenu.message)
-                setContextMenu({ visible: false, message: null })
-              }}>
-                <Ionicons name="trash-outline" size={20} color={c.danger} />
-                <Text style={[ctxStyles.itemText, { color: c.danger }]}>Delete message</Text>
-              </Pressable>
-            ) : (
-              <Pressable style={ctxStyles.item} onPress={() => {
-                if (contextMenu.message) showContactDetails(contextMenu.message.sender_name, contextMenu.message.sender_email)
-                setContextMenu({ visible: false, message: null })
-              }}>
-                <Ionicons name="person-outline" size={20} color={c.primary} />
-                <Text style={[ctxStyles.itemText, { color: c.ink }]}>View contact</Text>
-              </Pressable>
-            )}
-            <Pressable style={ctxStyles.item} onPress={() => setContextMenu({ visible: false, message: null })}>
-              <Text style={[ctxStyles.itemText, { color: c.muted }]}>Cancel</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
+      {renderContactModal()}
+      {renderContextMenu()}
     </View>
   )
 }
@@ -628,7 +582,7 @@ const listStyles = StyleSheet.create({
   avatarText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', fontFamily: FONT },
   name: { fontSize: 16, fontFamily: FONT },
   preview: { fontSize: 14, fontFamily: FONT, flex: 1 },
-  roleText: { fontSize: 12, fontFamily: FONT, textTransform: 'capitalize' as const, marginTop: 1 },
+  roleText: { fontSize: 12, fontFamily: FONT, textTransform: 'capitalize', marginTop: 1 },
   time: { fontSize: 12, fontFamily: FONT },
   badge: { borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, marginLeft: spacing.sm },
   badgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700', fontFamily: FONT },
@@ -685,7 +639,7 @@ const msgStyles = StyleSheet.create({
   footer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   footerMe: { justifyContent: 'flex-end' },
   time: { fontSize: 11, fontFamily: FONT },
-  edited: { fontSize: 11, fontFamily: FONT, fontStyle: 'italic' },
+  edited: { fontSize: 11, fontFamily: FONT },
 })
 
 // ─── Styles: Contact Details ──────────────────────────────
@@ -694,7 +648,7 @@ const contactStyles = StyleSheet.create({
   avatar: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#FFFFFF', fontSize: 28, fontWeight: '700', fontFamily: FONT },
   name: { fontSize: 22, fontWeight: '700', fontFamily: FONT, letterSpacing: -0.3 },
-  role: { fontSize: 14, fontFamily: FONT, textTransform: 'capitalize' as const },
+  role: { fontSize: 14, fontFamily: FONT, textTransform: 'capitalize' },
   infoCard: { width: '100%', borderRadius: radii.lg, padding: spacing.base, borderWidth: 1 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   infoText: { fontSize: 15, fontFamily: FONT, flex: 1 },
