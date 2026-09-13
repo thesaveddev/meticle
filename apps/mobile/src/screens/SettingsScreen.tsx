@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { colors, elevation, radii, spacing, type, FONT, useTheme } from '../theme'
+import { colors, elevation, radii, spacing, typography, FONT, useTheme } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { MobileUser } from '../types'

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native'
-import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { SkeletonScreen } from '../components/Skeleton'
 import { dyn } from '../utils/dynamicStyles'
@@ -343,8 +343,8 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
 
   /* Header */
-  pageTitle: { ...type.title, marginBottom: spacing.xs },
-  subtitle: { ...type.body, marginBottom: spacing.base },
+  pageTitle: { ...typography.title, marginBottom: spacing.xs },
+  subtitle: { ...typography.body, marginBottom: spacing.base },
 
   /* Hero card */
   heroCard: {
@@ -403,8 +403,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.xxl, alignItems: 'center', ...elevation.sm,
   },
-  emptyTitle: { ...type.bodyBold, marginTop: spacing.md, marginBottom: spacing.xs },
-  emptyCopy: { ...type.small, textAlign: 'center', paddingHorizontal: spacing.lg },
+  emptyTitle: { ...typography.bodyBold, marginTop: spacing.md, marginBottom: spacing.xs },
+  emptyCopy: { ...typography.small, textAlign: 'center', paddingHorizontal: spacing.lg },
 
   /* Visit cards */
   visitCard: { borderRadius: radii.lg, padding: spacing.base, marginBottom: spacing.sm, ...elevation.sm },

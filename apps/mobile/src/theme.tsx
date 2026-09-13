@@ -166,7 +166,7 @@ export const elevation = {
 } as const
 
 /* ─── Typography (static — uses light colors by default) ────── */
-export const type = {
+export const typography = {
   hero: {
     fontFamily: FONT,
     fontSize: 32,

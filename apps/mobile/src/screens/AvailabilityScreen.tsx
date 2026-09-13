@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -173,16 +173,16 @@ const styles = StyleSheet.create({
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700', fontFamily: FONT, letterSpacing: -0.3 },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
-  pageTitle: { ...type.title, marginBottom: spacing.xs },
-  subtitle: { ...type.body, color: colors.muted, marginBottom: spacing.base },
+  pageTitle: { ...typography.title, marginBottom: spacing.xs },
+  subtitle: { ...typography.body, color: colors.muted, marginBottom: spacing.base },
 
   /* Messages */
   errorBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.dangerSurface, padding: spacing.md, borderRadius: radii.md, marginBottom: spacing.base },
   errorIcon: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.danger, color: colors.inverse, textAlign: 'center', lineHeight: 22, fontSize: 13, fontWeight: '700' },
-  errorMsg: { ...type.small, color: colors.dangerDeep, flex: 1 },
+  errorMsg: { ...typography.small, color: colors.dangerDeep, flex: 1 },
   successBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.successSurface, padding: spacing.md, borderRadius: radii.md, marginBottom: spacing.base },
   successIcon: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.success, color: colors.inverse, textAlign: 'center', lineHeight: 22, fontSize: 13, fontWeight: '700' },
-  successMsg: { ...type.small, color: colors.successDeep, flex: 1 },
+  successMsg: { ...typography.small, color: colors.successDeep, flex: 1 },
 
   /* Week card */
   weekCard: {
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   dayLabel: { width: 48, fontFamily: 'System', fontSize: 13, fontWeight: '600', color: colors.muted },
   dayLabelActive: { color: colors.successDeep },
   daySlots: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  noSlots: { ...type.small, color: colors.subtle },
+  noSlots: { ...typography.small, color: colors.subtle },
   slotChip: {
     backgroundColor: colors.successSurface,
     borderRadius: radii.sm,
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     gap: spacing.base,
     ...elevation.sm,
   },
-  formTitle: { ...type.bodyBold },
+  formTitle: { ...typography.bodyBold },
   dayPicker: { flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' },
   dayBtn: {
     paddingHorizontal: spacing.md,
