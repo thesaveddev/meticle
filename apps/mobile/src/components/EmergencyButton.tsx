@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Pressable, StyleSheet, Text, View, ActionSheetIOS, Platform, Alert } from 'react-native'
+import { useRef, useState } from 'react'
+import { Animated, PanResponder, Pressable, StyleSheet, Text, View, ActionSheetIOS, Platform, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Linking } from 'react-native'
 import { elevation, radii, spacing, FONT } from '../theme'
@@ -11,8 +11,47 @@ interface Props {
 
 export function EmergencyButton({ managerPhone }: Props) {
   const [pressed, setPressed] = useState(false)
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current
+  const isDragging = useRef(false)
+  const lastOffset = useRef({ x: 0, y: 0 })
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        isDragging.current = false
+        pan.setOffset({ x: lastOffset.current.x, y: lastOffset.current.y })
+        pan.setValue({ x: 0, y: 0 })
+      },
+      onPanResponderMove: (_, gestureState) => {
+        // Detect if it's a drag (moved more than 5px) vs a tap
+        if (Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5) {
+          isDragging.current = true
+        }
+        pan.setValue({ x: gestureState.dx, y: gestureState.dy })
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        pan.flattenOffset()
+        lastOffset.current = {
+          x: lastOffset.current.x + gestureState.dx,
+          y: lastOffset.current.y + gestureState.dy,
+        }
+
+        // If it was a drag (not a tap), snap to nearest edge
+        if (isDragging.current) {
+          const screenWidth = 400 // approximate, will be clamped
+          const newX = lastOffset.current.x
+          const clampedX = newX > screenWidth / 2 ? screenWidth / 2 : -screenWidth / 2
+          lastOffset.current = { ...lastOffset.current, x: clampedX }
+          Animated.spring(pan, { toValue: { x: clampedX, y: lastOffset.current.y }, useNativeDriver: false }).start()
+        }
+      },
+    })
+  ).current
 
   const handlePress = () => {
+    // Only trigger if it wasn't a drag
+    if (isDragging.current) return
     hapticWarning()
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -54,19 +93,24 @@ export function EmergencyButton({ managerPhone }: Props) {
   }
 
   return (
-    <Pressable
-      onPress={handlePress}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
-      style={[styles.button, pressed && styles.buttonPressed]}
-      accessibilityLabel="Emergency call"
-      accessibilityRole="button"
+    <Animated.View
+      style={[styles.button, pressed && styles.buttonPressed, { transform: pan.getTranslateTransform() }]}
+      {...panResponder.panHandlers}
     >
-      <View style={styles.iconWrap}>
-        <Ionicons name="call" size={20} color="#FFFFFF" />
-      </View>
-      <Text style={styles.label}>SOS</Text>
-    </Pressable>
+      <Pressable
+        onPress={handlePress}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        style={styles.buttonInner}
+        accessibilityLabel="Emergency call"
+        accessibilityRole="button"
+      >
+        <View style={styles.iconWrap}>
+          <Ionicons name="call" size={20} color="#FFFFFF" />
+        </View>
+        <Text style={styles.label}>SOS</Text>
+      </Pressable>
+    </Animated.View>
   )
 }
 
@@ -84,8 +128,14 @@ const styles = StyleSheet.create({
     ...elevation.md,
     zIndex: 999,
   },
+  buttonInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   buttonPressed: {
-    transform: [{ scale: 0.92 }],
     backgroundColor: '#B91C1C',
   },
   iconWrap: {
