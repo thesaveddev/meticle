@@ -158,6 +158,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Communication',
       items: [
         { text: 'Communication', icon: <ChatIcon />, path: '/chat', module: 'chat', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
+        { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'tasks', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
         { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'appointments', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER], serviceTypes: ['residential', 'supported_living'] },
         { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'expenses', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
@@ -176,6 +177,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         { text: 'Mileage Policies', icon: <DirectionsCarIcon />, path: '/mileage-policies', module: 'mileage_travel', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Payroll Export', icon: <ReceiptIcon />, path: '/payroll-export', module: 'payroll_export', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Carer Totals', icon: <ReportsIcon />, path: '/carer-totals', module: 'payroll_export', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
+        { text: 'My Earnings', icon: <ReceiptIcon />, path: '/earnings', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Client Billing', icon: <ReceiptIcon />, path: '/client-billing', module: 'client_billing', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
       ],
     },
