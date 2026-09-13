@@ -31,17 +31,24 @@ function monthRange() {
   return { from: from.toISOString(), to: to.toISOString() }
 }
 
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  completed: { bg: '#DCFCE7', text: '#166534' },
-  checked_in: { bg: '#DBEAFE', text: '#1E40AF' },
-  scheduled: { bg: '#FEF3C7', text: '#92400E' },
-  en_route: { bg: '#E0E7FF', text: '#3730A3' },
-  missed: { bg: '#FEE2E2', text: '#991B1B' },
-}
+// Status badge colors are now theme-aware, applied inline
 
 export function MileageScreen({ session }: Props) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
+
+  const statusBg = (status: string) => {
+    if (status === 'completed') return c.successSurface
+    if (status === 'checked_in') return c.primarySurface
+    if (status === 'scheduled' || status === 'en_route') return c.warningSurface
+    return c.dangerSurface || '#FEE2E2'
+  }
+  const statusText = (status: string) => {
+    if (status === 'completed') return c.successDeep
+    if (status === 'checked_in') return c.primary
+    if (status === 'scheduled' || status === 'en_route') return c.warning
+    return c.danger || '#991B1B'
+  }
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -111,7 +118,7 @@ export function MileageScreen({ session }: Props) {
         </View>
 
         {/* Tab bar */}
-        <View style={s.tabBar}>
+        <View style={[s.tabBar, { borderBottomColor: c.borderLight }]}>
           {(['overview', 'completed', 'upcoming'] as const).map(tab => (
             <Pressable
               key={tab}
@@ -229,14 +236,13 @@ export function MileageScreen({ session }: Props) {
         {activeTab === 'completed' && (
           <View>
             {completed.length === 0 ? (
-              <View style={s.emptyCard}>
+              <View style={[s.emptyCard, { backgroundColor: c.surface }]}>
                 <IconCheck size={32} color={c.subtle} />
                 <Text style={[s.emptyTitle, { color: c.ink }]}>No completed calls yet</Text>
                 <Text style={[s.emptyCopy, { color: c.muted }]}>Your completed calls and their pay will appear here.</Text>
               </View>
             ) : (
               completed.map((v: any) => {
-                const sc = STATUS_COLORS[v.status] || STATUS_COLORS.completed
                 return (
                   <View key={v.id} style={[s.visitCard, { backgroundColor: c.surface }]}>
                     <View style={s.visitHeader}>
@@ -246,8 +252,8 @@ export function MileageScreen({ session }: Props) {
                           {v.label} · {new Date(v.scheduled_start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                         </Text>
                       </View>
-                      <View style={[s.statusBadge, { backgroundColor: sc.bg }]}>
-                        <Text style={[s.statusText, { color: sc.text }]}>Completed</Text>
+                      <View style={[s.statusBadge, { backgroundColor: statusBg(v.status) }]}>
+                        <Text style={[s.statusText, { color: statusText(v.status) }]}>Completed</Text>
                       </View>
                     </View>
                     <View style={s.visitChips}>
@@ -279,7 +285,7 @@ export function MileageScreen({ session }: Props) {
         {activeTab === 'upcoming' && (
           <View>
             {scheduled.length === 0 ? (
-              <View style={s.emptyCard}>
+              <View style={[s.emptyCard, { backgroundColor: c.surface }]}>
                 <IconClock size={32} color={c.subtle} />
                 <Text style={[s.emptyTitle, { color: c.ink }]}>No upcoming calls</Text>
                 <Text style={[s.emptyCopy, { color: c.muted }]}>Your scheduled calls for this month will appear here.</Text>
@@ -299,8 +305,8 @@ export function MileageScreen({ session }: Props) {
                           {v.label} · {start.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} · {start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                         </Text>
                       </View>
-                      <View style={[s.statusBadge, { backgroundColor: '#FEF3C7' }]}>
-                        <Text style={[s.statusText, { color: '#92400E' }]}>Scheduled</Text>
+                      <View style={[s.statusBadge, { backgroundColor: statusBg('scheduled') }]}>
+                        <Text style={[s.statusText, { color: statusText('scheduled') }]}>Scheduled</Text>
                       </View>
                     </View>
                     <View style={s.visitChips}>
@@ -322,7 +328,7 @@ export function MileageScreen({ session }: Props) {
 
         {/* Empty state for no data at all */}
         {!loading && completed.length === 0 && scheduled.length === 0 && (
-          <View style={[s.emptyCard, { marginTop: spacing.lg }]}>
+          <View style={[s.emptyCard, { backgroundColor: c.surface, marginTop: spacing.lg }]}>
             <IconWarning size={32} color={c.subtle} />
             <Text style={[s.emptyTitle, { color: c.ink }]}>No earnings data</Text>
             <Text style={[s.emptyCopy, { color: c.muted }]}>Your earnings will appear here after you complete calls.</Text>
@@ -356,7 +362,7 @@ const styles = StyleSheet.create({
   heroDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.2)' },
 
   /* Tabs */
-  tabBar: { flexDirection: 'row', marginBottom: spacing.base, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.06)' },
+  tabBar: { flexDirection: 'row', marginBottom: spacing.base, borderBottomWidth: 1 },
   tab: { flex: 1, paddingVertical: spacing.md, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabText: { fontFamily: FONT, fontSize: 13, fontWeight: '600' },
 
@@ -395,7 +401,7 @@ const styles = StyleSheet.create({
 
   /* Empty */
   emptyCard: {
-    backgroundColor: colors.surface, borderRadius: radii.lg,
+    borderRadius: radii.lg,
     padding: spacing.xxl, alignItems: 'center', ...elevation.sm,
   },
   emptyTitle: { ...type.bodyBold, marginTop: spacing.md, marginBottom: spacing.xs },
