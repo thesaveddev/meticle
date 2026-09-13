@@ -38,6 +38,8 @@ export interface HomecareVisitPlanInput {
   required_skills?: string[];
   default_staff_id?: string | null;
   default_tasks?: { label: string; sort_order?: number }[];
+  hourly_rate_pence?: number | null;
+  mileage_rate_pence?: number | null;
 }
 
 export interface HomecareVisitInput {
@@ -49,6 +51,8 @@ export interface HomecareVisitInput {
   label: string;
   scheduled_start: string;
   scheduled_end: string;
+  hourly_rate_pence?: number | null;
+  mileage_rate_pence?: number | null;
 }
 
 export interface HomecareVisitUpdateInput {
