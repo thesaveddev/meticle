@@ -21,7 +21,7 @@ const VARIANT_CONFIG = {
   error: { Icon: ErrorOutlineIcon, color: '#EF4444' },
 } as const
 
-export default function EmptyState({ icon, title, description, action, variant = 'default' }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, variant = 'default' }: EmptyStateProps) {
   const theme = useTheme()
   const { Icon: DefaultIcon, color } = VARIANT_CONFIG[variant] || VARIANT_CONFIG.default
 
@@ -101,3 +101,5 @@ export default function EmptyState({ icon, title, description, action, variant =
     </Box>
   )
 }
+
+export default EmptyState
