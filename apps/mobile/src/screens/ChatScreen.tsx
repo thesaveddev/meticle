@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, RefreshControl, Alert } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme } from '../theme'
 import type { AuthSession } from '../types'
 import { getChatChannels, getChatMessages, sendChatMessage, editChatMessage, deleteChatMessage, markChatRead } from '../services/api'
@@ -20,7 +21,7 @@ type ChatMessage = {
 
 type Props = {
   session?: AuthSession
-  onBack: () => void
+  onBack?: () => void
 }
 
 export function ChatScreen({ session, onBack }: Props) {
@@ -155,12 +156,15 @@ export function ChatScreen({ session, onBack }: Props) {
   }
 
   return (
-    <KeyboardAvoidingView style={[styles.container, { backgroundColor: c.bg }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
+    <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: c.surface, borderBottomColor: c.border }]}>  
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={c.ink} />
-        </TouchableOpacity>
+        {onBack ? (
+          <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color={c.ink} />
+          </TouchableOpacity>
+        ) : <View style={{ width: 40 }} />}
         <Text style={[styles.headerTitle, { color: c.ink }]}>Team Chat</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -243,6 +247,7 @@ export function ChatScreen({ session, onBack }: Props) {
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 

@@ -11,13 +11,12 @@ import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
 import { IconProfile, IconSyncSmall, IconWarning, IconSettings, IconSchedule } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
-export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailability, onChat }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailability }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
   onProfile?: () => void
   onAvailability?: () => void
-  onChat?: () => void
 }) {
   const { mode, scheme, setMode, colors: c } = useTheme()
   const s = useDynamicStyles(styles)
@@ -180,21 +179,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
           </View>
         </View>
 
-        <View style={s.group}>
-          <Text style={[s.groupLabel, { color: c.subtle }]}>COMMUNICATION</Text>
-          <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-            <Pressable onPress={() => { hapticLight(); onChat?.() }} style={s.menuRow}>
-              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
-                <IconSchedule size={18} color={c.primary} />
-              </View>
-              <View style={s.menuContent}>
-                <Text style={[s.menuTitle, { color: c.ink }]}>Team chat</Text>
-                <Text style={[s.menuDesc, { color: c.muted }]}>Message your team across the organisation</Text>
-              </View>
-              <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
-            </Pressable>
-          </View>
-        </View>
+
 
         <View style={s.group}>
           <Text style={[s.groupLabel, { color: c.subtle }]}>DATA</Text>

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Image, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { detectMapApps, openMapApp, type MapApp } from '../services/navigation'
 import { hapticLight } from '../services/haptics'
+import { Ionicons } from '@expo/vector-icons'
 
 interface Props {
   visible: boolean
@@ -13,12 +14,30 @@ interface Props {
   label?: string
 }
 
+/** Branded icon config for each map app */
+const APP_BRAND: Record<string, { bg: string; icon: keyof typeof Ionicons.glyphMap; iconColor: string }> = {
+  apple: { bg: '#007AFF', icon: 'location', iconColor: '#FFFFFF' },
+  google: { bg: '#FFFFFF', icon: 'logo-google', iconColor: '#4285F4' },
+  waze: { bg: '#33CCFF', icon: 'chatbubble-ellipses', iconColor: '#FFFFFF' },
+  here: { bg: '#48DAD0', icon: 'navigate', iconColor: '#FFFFFF' },
+  mapfactor: { bg: '#FF6B35', icon: 'compass', iconColor: '#FFFFFF' },
+  web: { bg: '#F3F4F6', icon: 'globe-outline', iconColor: '#6B7280' },
+}
+
+function MapAppIcon({ appId }: { appId: string }) {
+  const brand = APP_BRAND[appId] || APP_BRAND.web
+  return (
+    <View style={[mapStyles.iconCircle, { backgroundColor: brand.bg }]}>
+      <Ionicons name={brand.icon} size={20} color={brand.iconColor} />
+    </View>
+  )
+}
+
 export function MapPickerModal({ visible, onClose, destination, latitude, longitude, label }: Props) {
   const c = useAppColors()
   const [apps, setApps] = useState<MapApp[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Detect apps when modal opens
   const detectApps = async () => {
     if (loading) return
     setLoading(true)
@@ -32,7 +51,6 @@ export function MapPickerModal({ visible, onClose, destination, latitude, longit
     }
   }
 
-  // Trigger detection when visibility changes
   if (visible && apps.length === 0 && !loading) {
     detectApps()
   }
@@ -40,9 +58,7 @@ export function MapPickerModal({ visible, onClose, destination, latitude, longit
   const handleSelect = async (app: MapApp) => {
     hapticLight()
     onClose()
-    // Small delay so modal closes first
     setTimeout(() => { openMapApp(app.url) }, 200)
-    // Reset for next open
     setApps([])
   }
 
@@ -54,36 +70,37 @@ export function MapPickerModal({ visible, onClose, destination, latitude, longit
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <Pressable onPress={handleClose} style={styles.backdrop}>
-        <Pressable>              <View style={[styles.sheet, { backgroundColor: c.surface }]}>
-            <View style={[styles.handle, { backgroundColor: c.border }]} />
-            <Text style={[styles.title, { color: c.ink }]}>Open navigation</Text>
-            <Text style={[styles.subtitle, { color: c.muted }]}>
+      <Pressable onPress={handleClose} style={mapStyles.backdrop}>
+        <Pressable>
+          <View style={[mapStyles.sheet, { backgroundColor: c.surface }]}>
+            <View style={[mapStyles.handle, { backgroundColor: c.border }]} />
+            <Text style={[mapStyles.title, { color: c.ink }]}>Open navigation</Text>
+            <Text style={[mapStyles.subtitle, { color: c.muted }]}>
               {label ? `Navigate to ${label}` : 'Choose a maps app'}
             </Text>
 
             {loading ? (
-              <View style={styles.loadingRow}>
-                <Text style={[styles.loadingText, { color: c.muted }]}>Detecting installed apps...</Text>
+              <View style={mapStyles.loadingRow}>
+                <Text style={[mapStyles.loadingText, { color: c.muted }]}>Detecting installed apps...</Text>
               </View>
             ) : (
-              <View style={styles.appList}>
+              <View style={mapStyles.appList}>
                 {apps.map((app) => (
                   <Pressable
                     key={app.id}
                     onPress={() => handleSelect(app)}
-                    style={({ pressed }) => [[styles.appRow, { backgroundColor: c.surfaceAlt }], pressed && { opacity: 0.7 }]}
+                    style={({ pressed }) => [[mapStyles.appRow, { backgroundColor: c.surfaceAlt }], pressed && { opacity: 0.7 }]}
                   >
-                    <Text style={styles.appIcon}>{app.icon}</Text>
-                    <Text style={[styles.appName, { color: c.ink }]}>{app.name}</Text>
-                    <Text style={[styles.appArrow, { color: c.subtle }]}>→</Text>
+                    <MapAppIcon appId={app.id} />
+                    <Text style={[mapStyles.appName, { color: c.ink }]}>{app.name}</Text>
+                    <Ionicons name="chevron-forward" size={18} color={c.subtle} />
                   </Pressable>
                 ))}
               </View>
             )}
 
-            <Pressable onPress={handleClose} style={styles.cancelBtn}>
-              <Text style={[styles.cancelText, { color: c.muted }]}>Cancel</Text>
+            <Pressable onPress={handleClose} style={mapStyles.cancelBtn}>
+              <Text style={[mapStyles.cancelText, { color: c.muted }]}>Cancel</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -92,7 +109,7 @@ export function MapPickerModal({ visible, onClose, destination, latitude, longit
   )
 }
 
-const styles = StyleSheet.create({
+const mapStyles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
@@ -111,9 +128,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md, paddingHorizontal: spacing.base,
     borderRadius: radii.md,
   },
-  appIcon: { fontSize: 22, width: 32, textAlign: 'center' },
+  iconCircle: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+  },
   appName: { flex: 1, fontFamily: FONT, fontSize: 15, fontWeight: '600', color: colors.ink },
-  appArrow: { fontFamily: FONT, fontSize: 16, fontWeight: '600', color: colors.subtle },
 
   cancelBtn: { alignItems: 'center', paddingVertical: spacing.md, marginTop: spacing.sm },
   cancelText: { fontFamily: FONT, fontSize: 14, fontWeight: '600', color: colors.muted },

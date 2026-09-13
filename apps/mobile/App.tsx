@@ -28,11 +28,12 @@ import { ChatScreen } from './src/screens/ChatScreen'
 import { NotificationsScreen } from './src/screens/NotificationsScreen'
 import { SwipeBack } from './src/components/SwipeBack'
 
-type TabKey = 'today' | 'schedule' | 'mileage' | 'settings'
+type TabKey = 'today' | 'schedule' | 'chat' | 'mileage' | 'settings'
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'today', label: 'Today' },
   { key: 'schedule', label: 'Schedule' },
+  { key: 'chat', label: 'Chat' },
   { key: 'mileage', label: 'Mileage' },
   { key: 'settings', label: 'Settings' },
 ]
@@ -170,8 +171,8 @@ function AppInner() {
   const goBack = popScreen
 
   /* ─── Tab icon mapping ──────────────────────────────────── */
-  const tabIconName: Record<TabKey, 'today' | 'week' | 'mileage' | 'calendar' | 'settings'> = {
-    today: 'today', schedule: 'week', mileage: 'mileage', settings: 'settings',
+  const tabIconName: Record<TabKey, 'today' | 'week' | 'chat' | 'mileage' | 'calendar' | 'settings'> = {
+    today: 'today', schedule: 'week', chat: 'chat', mileage: 'mileage', settings: 'settings',
   }
 
   /* ─── Loading screens ────────────────────────────────────── */
@@ -258,7 +259,8 @@ function AppInner() {
           {tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} />}
           {tab === 'schedule' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap' })} />}
           {tab === 'mileage' && <MileageScreen session={session} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={() => pushScreen({ kind: 'availability' })} onChat={() => pushScreen({ kind: 'chat' })} />}
+          {tab === 'chat' && <ChatScreen session={session} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={() => pushScreen({ kind: 'availability' })} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>
