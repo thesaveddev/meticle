@@ -1,19 +1,41 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   View, Text, StyleSheet, TextInput, FlatList, KeyboardAvoidingView, Platform,
-  RefreshControl, Alert, Pressable, Modal, ActivityIndicator
+  RefreshControl, Alert, Pressable, Modal, ActivityIndicator, Image,
+  Dimensions, ScrollView,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import * as ImagePicker from 'expo-image-picker'
 import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import {
   ensureGeneralChannel, getChatChannels, getChatMessages, sendChatMessage,
   deleteChatMessage, markChatRead, getOrgMembers,
-  createDMChannel
+  createDMChannel, uploadChatFile,
 } from '../services/api'
 import { hapticLight } from '../services/haptics'
+
+const EMOJIS = [
+  '\u{1F600}','\u{1F603}','\u{1F604}','\u{1F601}','\u{1F605}','\u{1F602}','\u{1F923}','\u{1F60A}',
+  '\u{1F607}','\u{1F642}','\u{1F643}','\u{1F609}','\u{1F60C}','\u{1F60D}','\u{1F970}','\u{1F618}',
+  '\u{1F617}','\u{1F60B}','\u{1F61B}','\u{1F61C}','\u{1F92A}','\u{1F61D}','\u{1F911}','\u{1F917}',
+  '\u{1F92D}','\u{1F92B}','\u{1F914}','\u{1F910}','\u{1F928}','\u{1F610}','\u{1F611}','\u{1F636}',
+  '\u{1F60F}','\u{1F612}','\u{1F644}','\u{1F62C}','\u{1F614}','\u{1F62A}','\u{1F924}','\u{1F634}',
+  '\u{1F637}','\u{1F912}','\u{1F915}','\u{1F922}','\u{1F92E}','\u{1F974}','\u{1F635}','\u{1F92F}',
+  '\u{1F973}','\u{1F60E}','\u{1F615}','\u{1F61F}','\u{1F61E}','\u{1F61A}','\u{1F623}','\u{1F624}',
+  '\u{1F620}','\u{1F621}','\u{1F92C}','\u{1F44B}','\u{1F44C}','\u{1F90F}','\u{1F91E}','\u{1F91F}',
+  '\u{1F918}','\u{1F44D}','\u{1F44E}','\u{1F44A}','\u{1F44C}','\u{1F91A}','\u{1F91B}','\u{1F44F}',
+  '\u{1F64C}','\u{1F932}','\u{1F91D}','\u{1F4AA}','\u{2764}\u{FE0F}','\u{1F9E1}','\u{1F49B}',
+  '\u{1F49A}','\u{1F499}','\u{1F5A4}','\u{1F90D}','\u{1F90E}','\u{1F494}','\u{1F525}','\u{2B50}',
+  '\u{1F31F}','\u{2728}','\u{1F4AF}','\u{2705}','\u{274C}','\u{2757}','\u{2753}','\u{1F4AC}',
+  '\u{1F4C1}','\u{1F4C2}','\u{1F4CE}','\u{1F517}','\u{1F389}','\u{1F38A}','\u{1F388}','\u{1F680}',
+  '\u{1F4CC}','\u{1F3AF}',
+]
+
+const SCREEN_WIDTH = Dimensions.get('window').width
+const EMOJI_COLUMNS = 8
 
 interface ChatChannel {
   id: string
@@ -33,6 +55,8 @@ interface ChatMessage {
   sender_email: string
   channel: string
   message: string
+  file_url?: string
+  file_name?: string
   reply_to_id?: string
   edited: boolean
   deleted: boolean
@@ -97,6 +121,13 @@ export function ChatScreen({ session, onBack }: Props) {
 
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; message: ChatMessage | null }>({ visible: false, message: null })
 
+  // Emoji picker
+  const [showEmoji, setShowEmoji] = useState(false)
+
+  // Image upload
+  const [pendingImage, setPendingImage] = useState<{ uri: string; name: string } | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+
   const flatListRef = useRef<FlatList>(null)
 
   const loadChannels = useCallback(async () => {
@@ -137,6 +168,8 @@ export function ChatScreen({ session, onBack }: Props) {
     hapticLight()
     setActiveChannel(ch)
     setView('chat')
+    setShowEmoji(false)
+    setPendingImage(null)
   }
 
   const backToList = () => {
@@ -144,20 +177,38 @@ export function ChatScreen({ session, onBack }: Props) {
     setView('list')
     setActiveChannel(null)
     setMessages([])
+    setShowEmoji(false)
+    setPendingImage(null)
     loadChannels()
   }
 
   const handleSend = async () => {
-    if (!inputText.trim() || sending || !activeChannel) return
-    setSending(true)
     const text = inputText.trim()
+    if ((!text && !pendingImage) || sending || !activeChannel) return
+    setSending(true)
     setInputText('')
+    setShowEmoji(false)
+
     try {
-      const msg = await sendChatMessage(token, activeChannel.id, text)
+      let fileUrl: string | undefined
+      let fileName: string | undefined
+
+      if (pendingImage) {
+        setUploadingImage(true)
+        const result = await uploadChatFile(token, pendingImage.uri, pendingImage.name)
+        fileUrl = result.url
+        fileName = pendingImage.name
+        setPendingImage(null)
+        setUploadingImage(false)
+      }
+
+      const msg = await sendChatMessage(token, activeChannel.id, text || (fileName ? `Shared ${fileName}` : ''), undefined, fileUrl, fileName)
       setMessages(prev => [...prev, msg])
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100)
     } catch (e: any) {
       setInputText(text)
+      setPendingImage(null)
+      setUploadingImage(false)
       Alert.alert('Error', e.message || 'Failed to send')
     } finally { setSending(false) }
   }
@@ -226,6 +277,31 @@ export function ChatScreen({ session, onBack }: Props) {
     return (m.name || '').toLowerCase().includes(q) || m.email.toLowerCase().includes(q)
   })
 
+  // ─── Image Picker ───────────────────────────────────────
+
+  const pickImage = async (useCamera: boolean) => {
+    try {
+      const permission = useCamera
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (!permission.granted) {
+        Alert.alert('Permission required', `Please allow ${useCamera ? 'camera' : 'photo library'} access to ${useCamera ? 'take' : 'select'} images.`)
+        return
+      }
+      const result = useCamera
+        ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 })
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0]
+        const name = asset.fileName || `photo_${Date.now()}.jpg`
+        setPendingImage({ uri: asset.uri, name })
+        setShowEmoji(false)
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not pick image')
+    }
+  }
+
   // ─── Conversations List ──────────────────────────────────
 
   const renderConversation = ({ item }: { item: ChatChannel }) => {
@@ -285,12 +361,29 @@ export function ChatScreen({ session, onBack }: Props) {
           {!isMe ? (
             <Text style={[msgStyles.senderName, { color: avatarColor }]}>{item.sender_name}</Text>
           ) : null}
-          <View style={[
-            msgStyles.bubble,
-            isMe ? [msgStyles.bubbleMe, { backgroundColor: c.primary }] : [msgStyles.bubbleOther, { backgroundColor: c.surface, borderColor: c.borderLight }]
-          ]}>
-            <Text style={[msgStyles.text, { color: isMe ? '#FFFFFF' : c.ink }]}>{item.message}</Text>
-          </View>
+          {item.file_url ? (
+            <Pressable onPress={() => {}}>
+              <Image
+                source={{ uri: item.file_url }}
+                style={[msgStyles.image, isMe ? msgStyles.imageMe : msgStyles.imageOther]}
+                resizeMode="cover"
+              />
+              {item.file_name ? (
+                <View style={[msgStyles.fileLabel, { backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : c.surfaceAlt }]}>
+                  <Ionicons name="document-text-outline" size={14} color={isMe ? '#FFFFFF' : c.muted} />
+                  <Text style={[msgStyles.fileLabelText, { color: isMe ? '#FFFFFF' : c.ink }]} numberOfLines={1}>{item.file_name}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ) : null}
+          {item.message && item.message !== `Shared ${item.file_name}` ? (
+            <View style={[
+              msgStyles.bubble,
+              isMe ? [msgStyles.bubbleMe, { backgroundColor: c.primary }] : [msgStyles.bubbleOther, { backgroundColor: c.surface, borderColor: c.borderLight }]
+            ]}>
+              <Text style={[msgStyles.text, { color: isMe ? '#FFFFFF' : c.ink }]}>{item.message}</Text>
+            </View>
+          ) : null}
           <View style={[msgStyles.footer, isMe && msgStyles.footerMe]}>
             <Text style={[msgStyles.time, { color: c.muted }]}>{formatMsgTime(item.created_at)}</Text>
             {item.edited ? <Text style={[msgStyles.edited, { color: c.muted }]}>edited</Text> : null}
@@ -301,7 +394,7 @@ export function ChatScreen({ session, onBack }: Props) {
     )
   }
 
-  // ─── Contact Details Modal Content ────────────────────────
+  // ─── Modals ─────────────────────────────────────────────
 
   const renderContactModal = () => (
     <Modal visible={showContact} animationType="slide" presentationStyle="pageSheet">
@@ -339,8 +432,6 @@ export function ChatScreen({ session, onBack }: Props) {
     </Modal>
   )
 
-  // ─── Context Menu Modal Content ────────────────────────────
-
   const renderContextMenu = () => (
     <Modal visible={contextMenu.visible} transparent animationType="fade">
       <Pressable style={ctxStyles.overlay} onPress={() => setContextMenu({ visible: false, message: null })}>
@@ -369,6 +460,29 @@ export function ChatScreen({ session, onBack }: Props) {
       </Pressable>
     </Modal>
   )
+
+  // ─── Emoji Picker Panel ──────────────────────────────────
+
+  const renderEmojiPicker = () => {
+    if (!showEmoji) return null
+    return (
+      <View style={[emojiStyles.container, { backgroundColor: c.surface, borderTopColor: c.borderLight }]}>
+        <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+          <View style={emojiStyles.grid}>
+            {EMOJIS.map((emoji) => (
+              <Pressable
+                key={emoji}
+                onPress={() => { hapticLight(); setInputText(prev => prev + emoji) }}
+                style={emojiStyles.cell}
+              >
+                <Text style={emojiStyles.emoji}>{emoji}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    )
+  }
 
   // ─── List View ───────────────────────────────────────────
 
@@ -413,7 +527,6 @@ export function ChatScreen({ session, onBack }: Props) {
           />
         )}
 
-        {/* New Chat Modal */}
         <Modal visible={showNewChat} animationType="slide" presentationStyle="pageSheet">
           <SafeAreaView style={[listStyles.container, { backgroundColor: c.bg }]} edges={['top']}>
             <View style={[listStyles.header, { backgroundColor: c.bg }]}>
@@ -473,9 +586,14 @@ export function ChatScreen({ session, onBack }: Props) {
 
   const channelColor = getAvatarColor(activeChannel?.id || '')
   const channelMember = activeChannel?.other_member
+  const canSend = inputText.trim() || pendingImage
 
   return (
-    <View style={[chatStyles.container, dyn(c).screen]}>
+    <KeyboardAvoidingView
+      style={[chatStyles.container, dyn(c).screen]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+    >
       {/* Header */}
       <View style={[chatStyles.header, { backgroundColor: c.bg, borderBottomColor: c.borderLight }]}>
         <Pressable onPress={backToList} style={chatStyles.headerBtn}>
@@ -527,33 +645,77 @@ export function ChatScreen({ session, onBack }: Props) {
         />
       )}
 
-      {/* Input bar */}
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
-        <View style={[chatStyles.inputBar, { backgroundColor: c.bg, borderTopColor: c.borderLight }]}>
-          <View style={[chatStyles.inputWrap, { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1 }]}>
-            <TextInput
-              style={[chatStyles.input, { color: c.ink }]}
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder="Message..."
-              placeholderTextColor={c.subtle}
-              multiline
-              maxLength={5000}
-            />
+      {/* Pending image preview */}
+      {pendingImage ? (
+        <View style={[chatStyles.pendingImageWrap, { backgroundColor: c.surfaceAlt, borderTopColor: c.borderLight }]}>
+          <Image source={{ uri: pendingImage.uri }} style={chatStyles.pendingImage} resizeMode="cover" />
+          <View style={chatStyles.pendingImageInfo}>
+            <Text style={[chatStyles.pendingImageName, { color: c.ink }]} numberOfLines={1}>{pendingImage.name}</Text>
+            <Text style={[chatStyles.pendingImageSize, { color: c.muted }]}>Ready to send</Text>
           </View>
-          <Pressable
-            onPress={handleSend}
-            disabled={!inputText.trim() || sending}
-            style={[chatStyles.sendBtn, { backgroundColor: inputText.trim() ? c.primary : c.surfaceAlt }]}
-          >
-            <Ionicons name="arrow-up" size={22} color={inputText.trim() ? '#FFFFFF' : c.muted} />
+          <Pressable onPress={() => setPendingImage(null)} style={chatStyles.pendingImageRemove}>
+            <Ionicons name="close-circle" size={22} color={c.muted} />
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      ) : null}
+
+      {/* Emoji picker */}
+      {renderEmojiPicker()}
+
+      {/* Input bar */}
+      <View style={[chatStyles.inputBar, { backgroundColor: c.bg, borderTopColor: c.borderLight }]}>
+        {/* Image pick buttons */}
+        <Pressable
+          onPress={() => {
+            Alert.alert('Add image', 'Choose a source', [
+              { text: 'Camera', onPress: () => pickImage(true) },
+              { text: 'Gallery', onPress: () => pickImage(false) },
+              { text: 'Cancel', style: 'cancel' },
+            ])
+          }}
+          style={chatStyles.actionBtn}
+        >
+          <Ionicons name="camera-outline" size={24} color={c.muted} />
+        </Pressable>
+
+        {/* Emoji toggle */}
+        <Pressable
+          onPress={() => { hapticLight(); setShowEmoji(!showEmoji) }}
+          style={chatStyles.actionBtn}
+        >
+          <Ionicons name={showEmoji ? 'happy' : 'happy-outline'} size={24} color={showEmoji ? c.primary : c.muted} />
+        </Pressable>
+
+        {/* Text input */}
+        <View style={[chatStyles.inputWrap, { backgroundColor: c.surface, borderColor: c.border, borderWidth: 1 }]}>
+          <TextInput
+            style={[chatStyles.input, { color: c.ink }]}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Message..."
+            placeholderTextColor={c.subtle}
+            multiline
+            maxLength={5000}
+          />
+        </View>
+
+        {/* Send button */}
+        <Pressable
+          onPress={handleSend}
+          disabled={!canSend || sending || uploadingImage}
+          style={[chatStyles.sendBtn, { backgroundColor: canSend ? c.primary : c.surfaceAlt }]}
+        >
+          {sending || uploadingImage ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Ionicons name="arrow-up" size={22} color={canSend ? '#FFFFFF' : c.muted} />
+          )}
+        </Pressable>
+      </View>
 
       {renderContactModal()}
       {renderContextMenu()}
-    </View>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -610,23 +772,33 @@ const chatStyles = StyleSheet.create({
   messageList: { padding: spacing.base, paddingBottom: spacing.sm, paddingTop: spacing.md },
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, gap: spacing.sm,
+    paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, gap: spacing.xs,
   },
+  actionBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   inputWrap: { flex: 1, borderRadius: 20, paddingHorizontal: spacing.md, minHeight: 40, justifyContent: 'center' },
   input: { fontSize: 16, fontFamily: FONT, paddingVertical: Platform.OS === 'ios' ? spacing.xs : spacing.sm, maxHeight: 100 },
-  sendBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  sendBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyWrap: { alignItems: 'center', paddingTop: 100 },
   emptyAvatar: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.base },
   emptyAvatarText: { color: '#FFFFFF', fontSize: 26, fontWeight: '700', fontFamily: FONT },
   emptyTitle: { fontSize: 18, fontWeight: '600', fontFamily: FONT, marginBottom: spacing.xs },
   emptySub: { fontSize: 14, fontFamily: FONT, textAlign: 'center' },
+  pendingImageWrap: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth, gap: spacing.sm,
+  },
+  pendingImage: { width: 48, height: 48, borderRadius: radii.sm },
+  pendingImageInfo: { flex: 1 },
+  pendingImageName: { fontSize: 13, fontWeight: '600', fontFamily: FONT },
+  pendingImageSize: { fontSize: 11, fontFamily: FONT },
+  pendingImageRemove: { padding: 4 },
 })
 
 // ─── Styles: Messages ─────────────────────────────────────
 
 const msgStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xs, marginBottom: spacing.sm, maxWidth: '78%' },
+  row: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xs, marginBottom: spacing.sm, maxWidth: '80%' },
   rowMe: { alignSelf: 'flex-end', flexDirection: 'row-reverse' },
   avatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
   avatarText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', fontFamily: FONT },
@@ -640,6 +812,26 @@ const msgStyles = StyleSheet.create({
   footerMe: { justifyContent: 'flex-end' },
   time: { fontSize: 11, fontFamily: FONT },
   edited: { fontSize: 11, fontFamily: FONT },
+  image: { width: 200, height: 150, borderRadius: radii.md },
+  imageMe: { borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
+  imageOther: { borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
+  fileLabel: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderBottomLeftRadius: 18, borderBottomRightRadius: 18 },
+  fileLabelText: { fontSize: 12, fontFamily: FONT, flex: 1 },
+})
+
+// ─── Styles: Emoji Picker ────────────────────────────────
+
+const emojiStyles = StyleSheet.create({
+  container: {
+    borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
+  },
+  grid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+  },
+  cell: {
+    width: SCREEN_WIDTH / EMOJI_COLUMNS, height: 40, alignItems: 'center', justifyContent: 'center',
+  },
+  emoji: { fontSize: 22 },
 })
 
 // ─── Styles: Contact Details ──────────────────────────────
