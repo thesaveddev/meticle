@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useTheme } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
@@ -45,7 +44,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
   const roleLabel = user.role ? user.role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''
 
   return (
-    <SafeAreaView style={[s.screen, dyn(c).screen]}>
+    <View style={[s.screen, dyn(c).screen]}>
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <Text style={[s.pageTitle, { color: c.ink }]}>Settings</Text>
@@ -216,7 +215,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
 
         <View style={{ height: spacing.xxxl }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 

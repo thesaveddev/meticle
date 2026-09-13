@@ -291,7 +291,7 @@ export function ChatScreen({ session, onBack }: Props) {
 
   if (view === 'list') {
     return (
-      <SafeAreaView style={[listStyles.container, dyn(c).screen]} edges={['top']}>
+      <View style={[listStyles.container, dyn(c).screen]}>
         <View style={[listStyles.header, { backgroundColor: c.bg }]}>
           {onBack ? (
             <Pressable onPress={onBack} style={listStyles.headerBtn}>
@@ -379,7 +379,7 @@ export function ChatScreen({ session, onBack }: Props) {
             )}
           </SafeAreaView>
         </Modal>
-      </SafeAreaView>
+      </View>
     )
   }
 
@@ -388,7 +388,7 @@ export function ChatScreen({ session, onBack }: Props) {
   const channelColor = getAvatarColor(activeChannel?.id || '')
 
   return (
-    <SafeAreaView style={[chatStyles.container, dyn(c).screen]} edges={['top']}>
+    <View style={[chatStyles.container, dyn(c).screen]}>
       {/* Header */}
       <View style={[chatStyles.header, { backgroundColor: c.bg, borderBottomColor: c.borderLight }]}>
         <Pressable onPress={backToList} style={chatStyles.headerBtn}>
@@ -455,9 +455,9 @@ export function ChatScreen({ session, onBack }: Props) {
           >
             <Ionicons name="arrow-up" size={22} color={inputText.trim() ? '#FFFFFF' : c.muted} />
           </Pressable>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </View>      </KeyboardAvoidingView>
+
+    </View>
   )
 }
 

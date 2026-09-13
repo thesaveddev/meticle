@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
@@ -79,14 +78,14 @@ export function ManagerDashboard({ session, onNavigate }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={[s.screen, dyn(c).screen]} edges={['top']}>
+      <View style={[s.screen, dyn(c).screen]}>
         <View style={s.loadingWrap}><ActivityIndicator size="large" color={c.primary} /></View>
-      </SafeAreaView>
+      </View>
     )
   }
 
   return (
-    <SafeAreaView style={[s.screen, dyn(c).screen]} edges={['top']}>
+    <View style={[s.screen, dyn(c).screen]}>
       <ScrollView
         contentContainerStyle={s.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor="transparent" />}
@@ -266,7 +265,7 @@ export function ManagerDashboard({ session, onNavigate }: Props) {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 

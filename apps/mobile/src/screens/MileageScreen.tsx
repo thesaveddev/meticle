@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { SkeletonScreen } from '../components/Skeleton'
@@ -78,14 +77,14 @@ export function MileageScreen({ session }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={[s.screen, dyn(c).screen]}>
+      <View style={[s.screen, dyn(c).screen]}>
         <SkeletonScreen c={c} />
-      </SafeAreaView>
+      </View>
     )
   }
 
   return (
-    <SafeAreaView style={[s.screen, dyn(c).screen]}>
+    <View style={[s.screen, dyn(c).screen]}>
       <ScrollView
         contentContainerStyle={s.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor="transparent" />}
@@ -335,7 +334,7 @@ export function MileageScreen({ session }: Props) {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 
