@@ -278,7 +278,11 @@ export async function markAllNotificationsRead(token: string): Promise<void> {
 }
 
 // ── Chat ──
-export async function getChatChannels(token: string): Promise<string[]> {
+export async function ensureGeneralChannel(token: string): Promise<any> {
+  return request('/chat/ensure-general', { method: 'POST' }, token)
+}
+
+export async function getChatChannels(token: string): Promise<any[]> {
   return request('/chat/channels', {}, token)
 }
 
@@ -307,14 +311,32 @@ export async function deleteChatMessage(token: string, messageId: string): Promi
 }
 
 export async function markChatRead(token: string, channel: string): Promise<any> {
-  return request('/chat/read-receipts', {
+  return request(`/chat/channels/${channel}/read`, {
     method: 'POST',
-    body: JSON.stringify({ channel }),
   }, token)
 }
 
 export async function getChatUnread(token: string): Promise<Record<string, number>> {
   return request('/chat/unread', {}, token)
+}
+
+export async function getOrgMembers(token: string): Promise<any[]> {
+  return request('/chat/org-members', {}, token)
+}
+
+export async function createDMChannel(token: string, targetUserId: string): Promise<any> {
+  return request(`/chat/channels/dm/${targetUserId}`, { method: 'POST' }, token)
+}
+
+export async function createGroupChannel(token: string, name: string, memberIds: string[]): Promise<any> {
+  return request('/chat/groups', {
+    method: 'POST',
+    body: JSON.stringify({ name, memberIds }),
+  }, token)
+}
+
+export async function searchChatMessages(token: string, query: string): Promise<any[]> {
+  return request(`/chat/search?q=${encodeURIComponent(query)}`, {}, token)
 }
 
 // ── Visit tasks ──
