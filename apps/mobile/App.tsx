@@ -32,6 +32,7 @@ import { AllVisitsScreen } from './src/screens/AllVisitsScreen'
 import { StaffDirectoryScreen } from './src/screens/StaffDirectoryScreen'
 import { TimesheetsScreen } from './src/screens/TimesheetsScreen'
 import { SwipeBack } from './src/components/SwipeBack'
+import { EmergencyButton } from './src/components/EmergencyButton'
 
 type TabKey = 'today' | 'schedule' | 'chat' | 'mileage' | 'settings' | 'team' | 'clients' | 'visits'
 
@@ -322,6 +323,7 @@ function AppInner() {
             </Pressable>
           ))}
         </View>
+        <EmergencyButton />
       </SafeAreaView>
     </>
   )
