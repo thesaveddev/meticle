@@ -583,7 +583,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         component="main"
         ref={mainRef}
         tabIndex={-1}
-        sx={{ flexGrow: 1, p: 4, width: { md: `calc(100% - ${drawerWidth}px)` }, pt: 12, outline: 'none' }}
+        sx={{ flexGrow: 1, px: 4, pt: 12, pb: 4, width: { md: `calc(100% - ${drawerWidth}px)` }, outline: 'none' }}
       >
         <RouteLoadingIndicator />
         <OfflineBanner />
