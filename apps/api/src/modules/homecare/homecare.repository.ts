@@ -700,6 +700,44 @@ export async function reconcilePayroll(orgId: string, userId: string, reconcilia
   return result.rows[0];
 }
 
+export async function getCarerTimesheetDetail(orgId: string, staffId: string, from: string, to: string) {
+  const result = await query(`
+    SELECT hv.id, hv.label, hv.visit_type, hv.scheduled_start, hv.scheduled_end,
+      hv.status, hv.check_in_at, hv.check_out_at,
+      hv.actual_travel_minutes, hv.actual_mileage_miles,
+      pe.first_name || ' ' || pe.last_name AS person_name,
+      t.id AS timesheet_id, t.work_minutes, t.travel_minutes, t.paid_travel_minutes,
+      t.mileage_miles, t.mileage_rate_pence, t.hourly_rate_pence, t.gross_pay_pence,
+      t.status AS timesheet_status, t.submitted_at, t.approved_at, t.rejection_reason,
+      (SELECT COUNT(*)::int FROM homecare_visit_tasks WHERE visit_id = hv.id) AS tasks_total,
+      (SELECT COUNT(*)::int FROM homecare_visit_tasks WHERE visit_id = hv.id AND done) AS tasks_completed
+    FROM homecare_visits hv
+    JOIN staff_profiles sp ON sp.id = hv.assigned_staff_id
+    JOIN people pe ON pe.id = hv.person_id
+    LEFT JOIN homecare_timesheets t ON t.visit_id = hv.id AND t.organization_id = hv.organization_id
+    WHERE hv.organization_id = $1 AND hv.assigned_staff_id = $2
+      AND hv.scheduled_start >= $3::date AND hv.scheduled_start < ($4::date + INTERVAL '1 day')
+    ORDER BY hv.scheduled_start`, [orgId, staffId, from, to]);
+  return result.rows;
+}
+
+export async function getPendingTimesheets(orgId: string, from: string, to: string) {
+  const result = await query(`
+    SELECT t.id AS timesheet_id, t.work_minutes, t.travel_minutes, t.paid_travel_minutes,
+      t.mileage_miles, t.gross_pay_pence, t.status AS timesheet_status, t.submitted_at,
+      sp.first_name || ' ' || sp.last_name AS staff_name, sp.id AS staff_id,
+      hv.label AS visit_label, hv.scheduled_start, hv.scheduled_end,
+      pe.first_name || ' ' || pe.last_name AS person_name
+    FROM homecare_timesheets t
+    JOIN staff_profiles sp ON sp.id = t.staff_id
+    JOIN homecare_visits hv ON hv.id = t.visit_id
+    JOIN people pe ON pe.id = hv.person_id
+    WHERE t.organization_id = $1 AND t.status = 'submitted'
+      AND hv.scheduled_start >= $2::date AND hv.scheduled_start < ($3::date + INTERVAL '1 day')
+    ORDER BY hv.scheduled_start`, [orgId, from, to]);
+  return result.rows;
+}
+
 export async function updateTimesheet(orgId: string, timesheetId: string, userId: string, input: HomecareTimesheetUpdateInput) {
   const current = await query('SELECT * FROM homecare_timesheets WHERE id = $1 AND organization_id = $2', [timesheetId, orgId]);
   if (!current.rows[0]) throw new AppError(404, 'Timesheet not found');
