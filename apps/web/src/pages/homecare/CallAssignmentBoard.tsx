@@ -145,7 +145,7 @@ export default function CallAssignmentBoard() {
       ) : (
         <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
           {/* Unassigned calls column */}
-          <Paper elevation={0} sx={{ p: 3, flex: '0 0 320px', border: '1px solid #E5E7EB', borderRadius: 2, borderLeft: '4px solid #D97706' }}>
+          <Paper elevation={0} sx={{ p: 3, flex: '0 0 320px', border: '1px solid #E5E7EB', borderRadius: 2 }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#D97706' }}>Unassigned calls</Typography>
               <Chip label={unassigned.length} size="small" sx={{ bgcolor: unassigned.length > 0 ? '#FFF5D9' : '#F3F4F6', color: unassigned.length > 0 ? '#D97706' : '#9CA3AF', fontWeight: 700 }} />

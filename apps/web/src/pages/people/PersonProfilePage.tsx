@@ -858,7 +858,7 @@ export default function PersonProfilePage() {
                 const isOverdue = cp.review_date && new Date(cp.review_date) < new Date()
                 return (
                 <Grid item xs={12} md={6} key={cp.id}>
-                  <Paper onClick={() => viewCarePlan(cp)} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: cp.status === 'active' ? '#0F4C81' : '#9CA3AF', cursor: 'pointer', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}>
+                  <Paper onClick={() => viewCarePlan(cp)} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box sx={{ minWidth: 0, flex: 1 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
@@ -923,7 +923,7 @@ export default function PersonProfilePage() {
           ) : (
             <Stack spacing={1.5}>
               {user.recent_notes.map((n: any) => (
-                <Paper key={n.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: n.shift === 'night' ? '#1E293B' : n.shift === 'evening' || n.shift === 'day_pm' ? '#D97706' : '#0F4C81', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D1D5DB' } }} onClick={() => setViewNote(n)}>
+                <Paper key={n.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D1D5DB' } }} onClick={() => setViewNote(n)}>
                   <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.75 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Chip label={n.shift} size="small" color={n.shift === 'day' ? 'primary' : 'default'}
@@ -1031,7 +1031,7 @@ export default function PersonProfilePage() {
                 const portalMember = portalMembers.find((pm: any) => pm.email?.toLowerCase() === fc.email?.toLowerCase())
                 return (
                   <Grid item xs={12} md={6} key={fc.id}>
-                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: fc.is_emergency_contact ? '#DC2626' : '#0F4C81' }}>
+                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                         <Box>
                           <Typography variant="subtitle2" fontWeight={700}>{fc.name}</Typography>
@@ -2704,8 +2704,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
         <Stack spacing={1.5}>
           {scores.map((s: any) => (
             <Paper key={s.id} onClick={() => setViewScore(s)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, cursor: 'pointer',
-              borderLeftColor: s.risk_level === 'high' || s.risk_level === 'severe' ? '#DC2626' : s.risk_level === 'medium' || s.risk_level === 'at_risk' ? '#D97706' : '#16A34A',
+              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer',
               '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>

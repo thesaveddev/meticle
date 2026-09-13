@@ -598,8 +598,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               sx={{
                 bgcolor: '#EFF6FF',
                 border: '1px solid #BFDBFE',
-                borderLeft: 4,
-                borderLeftColor: '#3B82F6',
                 p: 2,
                 mb: 3,
                 borderRadius: 2,
@@ -634,8 +632,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             sx={{
               bgcolor: theme.palette.error.dark + '20',
               border: `1px solid ${theme.palette.error.main}40`,
-              borderLeft: 4,
-              borderLeftColor: theme.palette.error.main,
               p: 2,
               mb: 3,
               borderRadius: 2,
@@ -672,8 +668,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             sx={{
               bgcolor: '#FFFBEB',
               border: '1px solid #FDE68A',
-              borderLeft: 4,
-              borderLeftColor: '#F59E0B',
               p: 2,
               mb: 3,
               borderRadius: 2,
@@ -761,7 +755,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             ) : (
               <Stack spacing={1.25}>
                 {notifications.map((n: any) => (
-                  <Paper key={n.id} component="button" type="button" onClick={() => handleMarkAsRead(n.id)} variant="outlined" sx={{ width: '100%', textAlign: 'left', p: 2, borderRadius: 2, borderColor: n.read ? theme.palette.divider : `${branding.primary_color}66`, borderLeft: 4, borderLeftColor: n.type === 'warning' ? theme.palette.warning.main : n.type === 'success' ? theme.palette.success.main : branding.primary_color, bgcolor: n.read ? theme.palette.background.paper : `${branding.primary_color}0D`, cursor: 'pointer', transition: 'background-color 160ms ease, border-color 160ms ease', '&:hover': { bgcolor: theme.palette.action.hover }, '&:focus-visible': { outline: `2px solid ${branding.primary_color}`, outlineOffset: 2 } }}>
+                  <Paper key={n.id} component="button" type="button" onClick={() => handleMarkAsRead(n.id)} variant="outlined" sx={{ width: '100%', textAlign: 'left', p: 2, borderRadius: 2, borderColor: n.read ? theme.palette.divider : `${branding.primary_color}66`, bgcolor: n.read ? theme.palette.background.paper : `${branding.primary_color}0D`, cursor: 'pointer', transition: 'background-color 160ms ease, border-color 160ms ease', '&:hover': { bgcolor: theme.palette.action.hover }, '&:focus-visible': { outline: `2px solid ${branding.primary_color}`, outlineOffset: 2 } }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
                       <Box sx={{ minWidth: 0, flex: 1 }}>
                         <Typography variant="body2" sx={{ fontWeight: n.read ? 600 : 800, mb: 0.5, overflowWrap: 'anywhere' }}>{n.title || 'Notification'}</Typography>

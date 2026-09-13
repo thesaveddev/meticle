@@ -173,7 +173,7 @@ export default function FamilyPortalPage() {
               visits.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No upcoming visits</Typography> :
               <Stack spacing={2}>
                 {visits.map((v: any) => (
-                  <Paper key={v.id} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: `4px solid ${v.status === 'completed' ? '#16A34A' : v.status === 'en_route' || v.status === 'checked_in' ? '#0F4C81' : '#6B7280'}` }}>
+                  <Paper key={v.id} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box>
                         <Typography fontWeight={700}>{v.label}</Typography>

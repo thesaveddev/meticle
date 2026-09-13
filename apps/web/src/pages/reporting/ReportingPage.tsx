@@ -89,7 +89,7 @@ export default function ReportingPage() {
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>What needs attention today</Typography>
             <Grid container spacing={1.5}>
               {overview.cards.map(card => <Grid item xs={6} sm={4} key={card.label}>
-                <Box sx={{ borderLeft: `4px solid ${card.color}`, pl: 1.5 }}>
+                <Box sx={{ pl: 1.5 }}>
                   <Typography variant="h5" sx={{ fontWeight: 900, color: card.color }}>{card.value}</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>{card.label}</Typography>
                   <Typography variant="caption" color="text.secondary">{card.subtitle}</Typography>

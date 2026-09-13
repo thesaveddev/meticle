@@ -74,7 +74,7 @@ function ObservationsSection({ personId }: { personId: string }) {
             <Paper
               key={o.id}
               onClick={() => setViewEntry(o)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: SEVERITY_COLORS[o.severity] || '#16A34A', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}
+              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}
             >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
@@ -288,7 +288,7 @@ function DentalSection({ personId }: { personId: string }) {
             <Paper
               key={r.id}
               onClick={() => setViewEntry(r)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: r.next_checkup_date && new Date(r.next_checkup_date) <= new Date(Date.now() + 30*86400000) ? '#D97706' : '#0F4C81', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}
+              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}
             >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>

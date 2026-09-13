@@ -580,7 +580,7 @@ export default function AgenciesPage() {
                     { label: 'Net Savings', value: formatCurrency(savings.net_savings), color: Number(savings.net_savings) >= 0 ? '#16A34A' : '#DC2626' },
                   ].map(card => (
                     <Grid item xs={12} sm={6} md={4} key={card.label}>
-                      <Card variant="outlined" sx={{ borderLeft: `4px solid ${card.color}`, borderRadius: 1 }}>
+                      <Card variant="outlined" sx={{ borderRadius: 1 }}>
                         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
                           <Typography variant="caption" color="#6B7280" sx={{ fontWeight: 600 }}>{card.label}</Typography>
                           <Typography variant="h6" sx={{ fontWeight: 700, mt: 0.5 }}>{card.value}</Typography>

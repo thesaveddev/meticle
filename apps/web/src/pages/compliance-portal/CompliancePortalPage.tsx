@@ -404,7 +404,7 @@ export default function CompliancePortalPage() {
         {/* Overview Cards */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ p: 2.5, borderRadius: 2, borderLeft: 4, borderLeftColor: overallScore >= 80 ? '#16A34A' : overallScore >= 60 ? '#F59E0B' : '#EF4444' }}>
+            <Paper sx={{ p: 2.5, borderRadius: 2,  }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                 <CompIcon sx={{ fontSize: 20, color: '#0F4C81' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">COMPLIANCE</Typography>
@@ -414,7 +414,7 @@ export default function CompliancePortalPage() {
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ p: 2.5, borderRadius: 2, borderLeft: 4, borderLeftColor: openIncidents?.length > 0 ? '#EF4444' : '#16A34A' }}>
+            <Paper sx={{ p: 2.5, borderRadius: 2,  }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                 <WarningIcon sx={{ fontSize: 20, color: '#EF4444' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">OPEN INCIDENTS</Typography>
@@ -434,7 +434,7 @@ export default function CompliancePortalPage() {
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ p: 2.5, borderRadius: 2, borderLeft: 4, borderLeftColor: '#F59E0B' }}>
+            <Paper sx={{ p: 2.5, borderRadius: 2,  }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                 <TrainIcon sx={{ fontSize: 20, color: '#F59E0B' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">TRAINING EXPIRING</Typography>
@@ -444,7 +444,7 @@ export default function CompliancePortalPage() {
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ p: 2.5, borderRadius: 2, borderLeft: 4, borderLeftColor: '#3B82F6' }}>
+            <Paper sx={{ p: 2.5, borderRadius: 2,  }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                 <FoodIcon sx={{ fontSize: 20, color: '#3B82F6' }} />
                 <Typography variant="caption" fontWeight={600} color="text.secondary">NUTRITION TODAY</Typography>

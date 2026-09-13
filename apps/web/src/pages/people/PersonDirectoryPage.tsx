@@ -186,7 +186,7 @@ export default function PersonDirectoryPage() {
 
       {/* ── Inline add client form ── */}
       {inlineForm && (
-        <PremiumCard noBorder sx={{ p: 3, mb: 3, borderLeft: '4px solid #0F4C81' }}>
+        <PremiumCard noBorder sx={{ p: 3, mb: 3,  }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Add a new client</Typography>
             <Button size="small" onClick={() => setInlineForm(false)} sx={{ textTransform: 'none', color: theme.palette.text.secondary, borderRadius: '10px' }}>Close</Button>

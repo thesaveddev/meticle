@@ -166,7 +166,6 @@ export default function DomiciliaryDashboard() {
       {data.next_call && (
         <PremiumCard
           noBorder
-          accentColor="#0F4C81"
           sx={{ p: 3, mb: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F0F9FF' }}
         >
           <Stack direction="row" alignItems="center" gap={2}>
@@ -313,7 +312,7 @@ export default function DomiciliaryDashboard() {
 
           {/* Exceptions */}
           {data.exceptions.length > 0 && (
-            <PremiumCard noBorder accentColor="#DC2626" sx={{ p: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFBFB' }}>
+            <PremiumCard noBorder sx={{ p: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFBFB' }}>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
                 <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: '#FDECEC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <MissedIcon sx={{ color: '#DC2626', fontSize: 18 }} />

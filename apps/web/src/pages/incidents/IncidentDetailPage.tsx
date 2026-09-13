@@ -27,10 +27,6 @@ const STATUS_TONE: Record<string, 'warning' | 'info' | 'success' | 'neutral'> = 
 const ACTION_STATUS_TONE: Record<string, 'warning' | 'info' | 'success' | 'neutral'> = {
   pending: 'warning', in_progress: 'info', completed: 'success', cancelled: 'neutral',
 }
-const ACTION_ACCENT: Record<string, string> = {
-  pending: '#D97706', in_progress: NAVY, completed: '#16A34A', cancelled: '#6B7280',
-}
-
 function openFileInNewTab(url: string) {
   const token = localStorage.getItem('accessToken')
   fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => {
@@ -301,7 +297,7 @@ export default function IncidentDetailPage() {
 
               {/* Overdue actions alert */}
               {overdueActions.length > 0 && (
-                <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #FEE2E2', borderLeft: 4, borderLeftColor: '#DC2626', bgcolor: '#FFFBFB' }}>
+                <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #FEE2E2', bgcolor: '#FFFBFB' }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                     <OverdueIcon sx={{ fontSize: 18, color: '#DC2626' }} />
                     <Typography variant="subtitle2" fontWeight={800} color="#B91C1C">Overdue Actions</Typography>
@@ -406,7 +402,7 @@ export default function IncidentDetailPage() {
               {incidentActions.map((a: any) => {
                 const overdue = !a.completed_at && a.status !== 'cancelled' && a.due_date && new Date(a.due_date) < new Date()
                 return (
-                  <Paper key={a.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: ACTION_ACCENT[a.status] || '#6B7280' }}>
+                  <Paper key={a.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB' }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography variant="body2" fontWeight={600}>{a.action}</Typography>

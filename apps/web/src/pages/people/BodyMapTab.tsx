@@ -343,7 +343,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
         <Stack spacing={1.5}>
           {entries.map(e => (
             <Paper key={e.id} onClick={() => openEdit(e)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', borderLeft: 4, borderLeftColor: CONDITION_COLORS[e.condition_type] || '#6B7280', cursor: 'pointer' }}>
+              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer' }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip label={e.condition_type.replace(/_/g, ' ')} size="small"

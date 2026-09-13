@@ -345,7 +345,7 @@ export default function MissionControlPage() {
                 const c = severityColor(alert.severity)
                 const isChecked = selected.has(alert.id)
                 return (
-                  <Paper key={alert.id} elevation={0} sx={{ p: 2, borderRadius: 2, cursor: 'pointer', border: `1px solid ${isChecked ? c.border : c.border + '40'}`, borderLeft: `4px solid ${c.border}`, bgcolor: isChecked ? c.bg : 'background.paper', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px -2px rgba(0,0,0,0.08)' }, opacity: dismissing.has(alert.id) ? 0.5 : 1 }} onClick={() => isWriteRole && toggleSelect(alert.id)}>
+                  <Paper key={alert.id} elevation={0} sx={{ p: 2, borderRadius: 2, cursor: 'pointer', border: `1px solid ${isChecked ? c.border : c.border + '40'}`, bgcolor: isChecked ? c.bg : 'background.paper', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px -2px rgba(0,0,0,0.08)' }, opacity: dismissing.has(alert.id) ? 0.5 : 1 }} onClick={() => isWriteRole && toggleSelect(alert.id)}>
                     <Stack direction="row" spacing={1.5} alignItems="flex-start">
                       <Box sx={{ mt: 0.25 }}><SeverityIcon severity={alert.severity} /></Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -400,9 +400,8 @@ export default function MissionControlPage() {
           ) : (
             <Stack spacing={1}>
               {history.map(alert => {
-                const c = severityColor(alert.severity)
                 return (
-                  <Paper key={alert.id} elevation={0} sx={{ p: 2, borderRadius: 2, border: `1px solid #E2E8F0`, borderLeft: `4px solid ${c.border}40`, opacity: 0.7 }}>
+                  <Paper key={alert.id} elevation={0} sx={{ p: 2, borderRadius: 2, border: `1px solid #E2E8F0`, opacity: 0.7 }}>
                     <Stack direction="row" spacing={1.5} alignItems="flex-start">
                       <Box sx={{ mt: 0.25 }}><SeverityIcon severity={alert.severity} /></Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -435,7 +434,7 @@ export default function MissionControlPage() {
               <Grid container spacing={2} sx={{ mb: 4 }}>
                 {[{ label: 'This Week', data: trends.this_week, color: '#0F4C81' }, { label: 'Last Week', data: trends.last_week, color: '#6B7280' }].map(w => (
                   <Grid item xs={12} md={6} key={w.label}>
-                    <Paper elevation={0} sx={{ p: 3, border: '1px solid #E2E8F0', borderRadius: 2, borderLeft: `4px solid ${w.color}` }}>
+                    <Paper elevation={0} sx={{ p: 3, border: '1px solid #E2E8F0', borderRadius: 2 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, color: w.color, mb: 2 }}>{w.label}</Typography>
                       <Grid container spacing={2}>
                         {[{ l: 'Total', v: w.data.total, c: w.color }, { l: 'Critical', v: w.data.critical, c: '#DC2626' }, { l: 'High', v: w.data.high, c: '#D97706' }, { l: 'Medium', v: w.data.medium, c: '#2563EB' }].map(s => (

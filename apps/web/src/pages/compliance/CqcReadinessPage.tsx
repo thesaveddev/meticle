@@ -423,8 +423,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
             <Stack spacing={1.5}>
               {actions.map((a, i) => (
                 <Box key={i} sx={{
-                  p: 2, borderRadius: 1, borderLeft: '4px solid',
-                  borderColor: a.priority === 'high' ? '#DC2626' : a.priority === 'medium' ? '#F59E0B' : '#9CA3AF',
+                  p: 2, borderRadius: 1,
                   bgcolor: a.priority === 'high' ? '#FEF2F2' : a.priority === 'medium' ? '#FFFBEB' : '#F9FAFB'
                 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -462,8 +461,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                   <Box key={i} sx={{
                     p: 2, borderRadius: 1, border: '1px solid',
                     borderColor: g.priority === 'HIGH' ? '#FECACA' : g.priority === 'MEDIUM' ? '#FDE68A' : '#E5E7EB',
-                    borderLeft: '4px solid',
-                    borderLeftColor: g.priority === 'HIGH' ? '#DC2626' : g.priority === 'MEDIUM' ? '#F59E0B' : '#9CA3AF',
+
                     bgcolor: g.priority === 'HIGH' ? '#FEF2F2' : g.priority === 'MEDIUM' ? '#FFFBEB' : '#FAFAFA'
                   }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
@@ -511,8 +509,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
             </Stack>
             <Stack spacing={1}>
               {actionItems.map((a: any) => (
-                <Paper key={a.id} sx={{ p: 1.5, borderRadius: 1, border: '1px solid #E5E7EB', borderLeft: '4px solid',
-                  borderLeftColor: a.status === 'completed' ? '#16A34A' : a.status === 'in_progress' ? '#F59E0B' : '#0F4C81' }}>
+                <Paper key={a.id} sx={{ p: 1.5, borderRadius: 1, border: '1px solid #E5E7EB' }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Tooltip title={a.status === 'open' ? 'Start' : a.status === 'in_progress' ? 'Complete' : ''}>
@@ -608,8 +605,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                   <Stack spacing={1}>
                     {aiResult.critical_gaps.map((item: any, i: number) => (
                       <Box key={i} sx={{
-                        p: 1.5, borderRadius: 1, borderLeft: '4px solid',
-                        borderColor: item.priority === 'critical' || item.priority === 'high' ? '#DC2626' : item.priority === 'medium' ? '#F59E0B' : '#9CA3AF',
+                        p: 1.5, borderRadius: 1,
                         bgcolor: item.priority === 'critical' || item.priority === 'high' ? '#FEF2F2' : item.priority === 'medium' ? '#FFFBEB' : '#F9FAFB'
                       }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
@@ -735,7 +731,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
           const isExpanded = expandedDomain === domain.key
           const domainRating = getRating(domain.score, data?.framework?.ratings)
           return (
-            <Paper key={domain.key} sx={{ mb: 1.5, borderLeft: `4px solid ${domain.color}`, overflow: 'hidden' }}>
+            <Paper key={domain.key} sx={{ mb: 1.5, overflow: 'hidden' }}>
               <Stack
                 direction="row"
                 alignItems="center"

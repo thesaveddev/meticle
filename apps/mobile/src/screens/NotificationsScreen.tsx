@@ -98,8 +98,6 @@ export function NotificationsScreen({ session, onBack }: Props) {
         activeOpacity={0.7}
         style={[styles.card, {
           backgroundColor: item.read ? c.surface : c.primarySurface,
-          borderLeftColor: item.read ? c.borderLight : c.primary,
-          borderLeftWidth: item.read ? 0 : 3,
         }]}
       >
         <View style={[styles.iconWrap, { backgroundColor: iconInfo.color + '15' }]}>
