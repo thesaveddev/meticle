@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { fetchUserPermissions, updateUserPermissions, MODULE_LABELS, LEVEL_LABELS } from '../../utils/permissions'
 import { LoadingState, StatusBadge, EmptyRow, NAVY } from '../../components/ui'
+import { EmptyState } from '../../components/design/EmptyState'
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'primary' | 'purple'
 
@@ -431,8 +432,8 @@ export default function StaffProfilePage() {
             </Grid>
           </Paper>
         ) : (
-          <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
-            <Typography color="#9CA3AF">No profile details recorded yet.</Typography>
+          <Paper sx={{ p: 6, textAlign: 'center', borderRadius: '18px' }}>
+            <EmptyState title="No profile details" description="Profile information will appear here once recorded" variant="default" />
           </Paper>
         )
       )}

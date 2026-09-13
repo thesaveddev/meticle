@@ -30,6 +30,7 @@ import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
 import { useThemeMode, ZOOM_OPTIONS } from '../../context/ThemeContext'
 import { disablePushNotifications, enablePushNotifications, getPushState, type PushState } from '../../services/push'
+import { EmptyState } from '../../components/design/EmptyState'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -1035,7 +1036,7 @@ export default function SettingsPage() {
             </Stack>
           </Stack>
           {complianceProfiles.length === 0 ? (
-            <Typography variant="body2" color="#9CA3AF" sx={{ py: 2, textAlign: 'center' }}>No compliance profiles yet. Create profiles linked to roles (e.g., 'Carer Profile' for CARE_WORKER role).</Typography>
+            <EmptyState title="No compliance profiles yet" description="Create profiles linked to roles (e.g., 'Carer Profile' for CARE_WORKER role)" variant="default" />
           ) : (
             <TableContainer>
               <Table size="small">
@@ -1116,7 +1117,7 @@ export default function SettingsPage() {
             </FormControl>
             <Typography variant="body2" sx={{ fontWeight: 700, mt: 1 }}>Requirements</Typography>
             {complianceConfigs.length === 0 ? (
-              <Typography variant="body2" color="#9CA3AF">No compliance requirements configured yet.</Typography>
+              <EmptyState title="No compliance requirements" description="Configure requirements to track staff compliance" variant="default" />
             ) : (
               complianceConfigs.map(c => {
                 const checked = (editCompProfile.requirement_ids || []).includes(c.id)
@@ -1511,7 +1512,7 @@ export default function SettingsPage() {
           {delAuditLoading ? (
             <Typography sx={{ py: 2 }}>Loading...</Typography>
           ) : delAuditLogs.length === 0 ? (
-            <Typography sx={{ py: 2, color: '#9CA3AF' }}>No audit entries found.</Typography>
+            <EmptyState title="No audit entries" description="Delegation audit logs will appear here" variant="default" />
           ) : (
             <TableContainer>
               <Table size="small">

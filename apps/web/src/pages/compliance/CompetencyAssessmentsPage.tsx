@@ -3,6 +3,7 @@ import { Box, Typography, Tabs, Tab, Paper, Table, TableBody, TableCell, TableCo
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, ExpandMore as ExpandMoreIcon, Checklist as RubricIcon, CheckCircle as CheckCircleIcon, UploadFile as UploadFileIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { EmptyState } from '../../components/design/EmptyState'
 
 const CATEGORIES = ['Medication', 'Manual Handling', 'Clinical Procedures', 'Safeguarding', 'Emergency Response', 'Communication', 'Dementia Care', 'End of Life', 'Other']
 
@@ -139,7 +140,7 @@ function PendingView() {
       {isLoading ? (
         <Typography>Loading...</Typography>
       ) : Object.entries(grouped).length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', color: '#9CA3AF' }}>No pending assessments.</Paper>
+        <EmptyState title="No pending assessments" description="All competency assessments are up to date" variant="default" />
       ) : (
         Object.entries(grouped).map(([staffId, group]) => (
           <Accordion key={staffId} expanded={expanded === staffId} onChange={(_, isExp) => setExpanded(isExp ? staffId : false)} sx={{ mb: 1 }}>
@@ -504,7 +505,7 @@ function RecordsView() {
             {isLoading ? (
               <TableRow><TableCell colSpan={8}>Loading...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={8}>No records found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} sx={{ borderBottom: 'none' }}><EmptyState title="No assessment records" description="Completed assessments will appear here" variant="default" /></TableCell></TableRow>
             ) : filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((a: any) => (
               <TableRow key={a.id} hover>
                 <TableCell sx={{ fontWeight: 600 }}>{a.first_name} {a.last_name}</TableCell>

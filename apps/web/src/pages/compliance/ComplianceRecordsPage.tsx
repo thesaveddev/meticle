@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Stack, TablePagination, CircularProgress, Alert } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { EmptyState } from '../../components/design/EmptyState'
 import { useSnackbar } from '../../context/SnackbarContext'
 
 export default function ComplianceRecordsPage() {
@@ -66,7 +67,7 @@ export default function ComplianceRecordsPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {records.length === 0 && <TableRow><TableCell colSpan={5} align="center" sx={{ py: 4, color: '#9CA3AF' }}>No records. Click "Seed Records" to auto-assign profiles.</TableCell></TableRow>}
+            {records.length === 0 && <TableRow><TableCell colSpan={5} sx={{ borderBottom: 'none' }}><EmptyState title="No compliance records" description="Click 'Seed Records' to auto-assign profiles" variant="default" /></TableCell></TableRow>}
           </TableBody>
         </Table>
         <TablePagination component="div" count={records.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rows} onRowsPerPageChange={e => { setRows(parseInt(e.target.value, 10)); setPage(0) }} rowsPerPageOptions={[5, 10, 25]} />
