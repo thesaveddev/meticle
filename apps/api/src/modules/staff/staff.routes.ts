@@ -4,12 +4,17 @@ import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
+import { SettingsController } from '../settings/settings.controller';
 import { UserRole } from '@meticle/shared';
 import { createStaffProfileSchema, addQualificationSchema, savePreferencesSchema, updateStaffRoleSchema, updateStaffStatusSchema, updateStaffProfileSchema, updateStaffDepartmentSchema, addSkillSchema, addEmergencyContactSchema, forcePasswordResetSchema } from '../../shared/validation/schemas';
 
 const router = Router();
 
 router.use(authenticate);
+
+// Self-service endpoints (any authenticated user)
+router.patch('/me/profile', asyncHandler(StaffController.updateOwnProfile));
+router.post('/me/photo', SettingsController.uploadMiddleware, asyncHandler(StaffController.uploadOwnPhoto));
 
 router.post('/', requireRole(UserRole.ORG_ADMIN), validate(createStaffProfileSchema), asyncHandler(StaffController.createProfile));
 router.get('/org-members', asyncHandler(StaffController.getOrgMembers));

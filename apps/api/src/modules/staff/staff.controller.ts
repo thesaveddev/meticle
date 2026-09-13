@@ -546,4 +546,43 @@ export class StaffController {
       invitations: invitationsResult.rows,
     });
   }
+
+  /** PATCH /staff/me/profile — any authenticated user can update their own profile */
+  static async updateOwnProfile(req: Request, res: Response) {
+    const userId = req.user!.userId;
+    const orgId = req.user!.organizationId;
+    const { first_name, last_name, phone, address, city, postal_code, profile_picture_url } = req.body;
+
+    const result = await pool.query(
+      `INSERT INTO staff_profiles (user_id, first_name, last_name, phone, address, city, postal_code, profile_picture_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (user_id) DO UPDATE SET
+         first_name = COALESCE(EXCLUDED.first_name, staff_profiles.first_name),
+         last_name = COALESCE(EXCLUDED.last_name, staff_profiles.last_name),
+         phone = COALESCE(EXCLUDED.phone, staff_profiles.phone),
+         address = COALESCE(EXCLUDED.address, staff_profiles.address),
+         city = COALESCE(EXCLUDED.city, staff_profiles.city),
+         postal_code = COALESCE(EXCLUDED.postal_code, staff_profiles.postal_code),
+         profile_picture_url = COALESCE(EXCLUDED.profile_picture_url, staff_profiles.profile_picture_url)
+       RETURNING *`,
+      [userId, first_name || null, last_name || null, phone || null, address || null, city || null, postal_code || null, profile_picture_url || null]
+    );
+
+    res.json(result.rows[0]);
+  }
+
+  /** POST /staff/me/photo — upload profile photo (any authenticated user) */
+  static async uploadOwnPhoto(req: Request, res: Response) {
+    const userId = req.user!.userId;
+    const file = req.file;
+    if (!file) throw new AppError(400, 'No file uploaded');
+
+    const url = `/uploads/${file.filename}`;
+    await pool.query(
+      'UPDATE staff_profiles SET profile_picture_url = $1 WHERE user_id = $2',
+      [url, userId]
+    );
+
+    res.json({ url });
+  }
 }
