@@ -1,9 +1,12 @@
 import { useRef, useState } from 'react'
-import { Animated, PanResponder, Pressable, StyleSheet, Text, View, ActionSheetIOS, Platform, Alert } from 'react-native'
+import { Animated, Dimensions, PanResponder, Pressable, StyleSheet, Text, View, ActionSheetIOS, Platform, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Linking } from 'react-native'
 import { elevation, radii, spacing, FONT } from '../theme'
 import { hapticWarning } from '../services/haptics'
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window')
+const BTN_SIZE = 56
 
 interface Props {
   managerPhone?: string
@@ -24,56 +27,77 @@ export function EmergencyButton({ managerPhone }: Props) {
         pan.setValue({ x: 0, y: 0 })
       },
       onPanResponderMove: (_, gestureState) => {
-        // Detect if it's a drag (moved more than 5px) vs a tap
-        if (Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5) {
+        if (Math.abs(gestureState.dx) > 3 || Math.abs(gestureState.dy) > 3) {
           isDragging.current = true
         }
+        // Move freely in both X and Y
         pan.setValue({ x: gestureState.dx, y: gestureState.dy })
       },
       onPanResponderRelease: (_, gestureState) => {
         pan.flattenOffset()
-        lastOffset.current = {
-          x: lastOffset.current.x + gestureState.dx,
-          y: lastOffset.current.y + gestureState.dy,
-        }
 
-        // If it was a drag (not a tap), snap to nearest edge
-        if (isDragging.current) {
-          const screenWidth = 400 // approximate, will be clamped
-          const newX = lastOffset.current.x
-          const clampedX = newX > screenWidth / 2 ? screenWidth / 2 : -screenWidth / 2
-          lastOffset.current = { ...lastOffset.current, x: clampedX }
-          Animated.spring(pan, { toValue: { x: clampedX, y: lastOffset.current.y }, useNativeDriver: false }).start()
-        }
+        let newX = lastOffset.current.x + gestureState.dx
+        let newY = lastOffset.current.y + gestureState.dy
+
+        // Clamp X so button stays within screen bounds
+        // Button starts at right: spacing.base (8px) which in translate coords = 0
+        // Max right translate: positive moves right, max = screen edge
+        // Max left translate: negative moves left, max = -(screenW - BTN_SIZE - spacing.base)
+        const maxRight = 0
+        const minLeft = -(SCREEN_W - BTN_SIZE - spacing.base * 2)
+        newX = Math.max(minLeft, Math.min(maxRight, newX))
+
+        // Clamp Y so button stays within screen bounds
+        // Button starts at bottom: 100, so in translate coords 0 = bottom:100
+        // Max up: move to top of screen (max negative Y)
+        // Max down: move to bottom (max positive Y)
+        const initialBottom = 100
+        const maxDown = initialBottom - 20 // don't go below screen
+        const minUp = -(SCREEN_H - initialBottom - BTN_SIZE - 40) // don't go above screen
+        newY = Math.max(minUp, Math.min(maxDown, newY))
+
+        lastOffset.current = { x: newX, y: newY }
+
+        // Snap to nearest horizontal edge
+        const midX = (SCREEN_W - BTN_SIZE) / 2 - spacing.base
+        const snapX = newX > midX ? maxRight : minLeft
+
+        Animated.spring(pan, {
+          toValue: { x: snapX, y: newY },
+          useNativeDriver: false,
+          tension: 200,
+          friction: 15,
+        }).start()
+
+        lastOffset.current = { x: snapX, y: newY }
       },
     })
   ).current
 
   const handlePress = () => {
-    // Only trigger if it wasn't a drag
     if (isDragging.current) return
     hapticWarning()
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Call 999 (Emergency)', managerPhone ? 'Call Manager' : null, 'Call 111 (NHS)'].filter(Boolean) as string[],
+          options: ['Cancel', 'Call 999 (Emergency)', 'Call 111 (NHS)', managerPhone ? 'Call Manager' : null].filter(Boolean) as string[],
           cancelButtonIndex: 0,
           destructiveButtonIndex: 1,
         },
         (buttonIndex) => {
           if (buttonIndex === 1) dialNumber('999')
-          else if (buttonIndex === 2 && managerPhone) dialNumber(managerPhone)
-          else if (buttonIndex === 3) dialNumber('111')
+          else if (buttonIndex === 2) dialNumber('111')
+          else if (buttonIndex === 3 && managerPhone) dialNumber(managerPhone)
         }
       )
     } else {
       const options = ['Cancel', 'Call 999 (Emergency)', 'Call 111 (NHS)']
-      if (managerPhone) options.splice(2, 0, 'Call Manager')
+      if (managerPhone) options.push('Call Manager')
       Alert.alert('Emergency Call', 'Who do you need to call?', [
         { text: 'Cancel', style: 'cancel' },
         { text: '999 — Emergency', style: 'destructive', onPress: () => dialNumber('999') },
-        ...(managerPhone ? [{ text: 'Manager', onPress: () => dialNumber(managerPhone) }] : []),
         { text: '111 — NHS', onPress: () => dialNumber('111') },
+        ...(managerPhone ? [{ text: 'Manager', onPress: () => dialNumber(managerPhone) }] : []),
       ])
     }
   }
@@ -94,7 +118,11 @@ export function EmergencyButton({ managerPhone }: Props) {
 
   return (
     <Animated.View
-      style={[styles.button, pressed && styles.buttonPressed, { transform: pan.getTranslateTransform() }]}
+      style={[
+        styles.button,
+        pressed && styles.buttonPressed,
+        { transform: pan.getTranslateTransform() },
+      ]}
       {...panResponder.panHandlers}
     >
       <Pressable
@@ -119,8 +147,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 100,
     right: spacing.base,
-    width: 56,
-    height: 56,
+    width: BTN_SIZE,
+    height: BTN_SIZE,
     borderRadius: 28,
     backgroundColor: '#DC2626',
     alignItems: 'center',
@@ -129,8 +157,8 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   buttonInner: {
-    width: 56,
-    height: 56,
+    width: BTN_SIZE,
+    height: BTN_SIZE,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
