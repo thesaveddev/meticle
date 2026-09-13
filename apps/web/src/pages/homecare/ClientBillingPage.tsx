@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, Dial
 import { CheckCircle as CheckCircleIcon, ReceiptLong as ReceiptLongIcon, Block as BlockIcon, PictureAsPdf as PdfIcon, Download as DownloadIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import { EmptyState } from '../../components/design/EmptyState'
 
 const money = (pence: number | null | undefined) => pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
 const dateLabel = (value: string) => new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -127,7 +128,7 @@ export default function ClientBillingPage() {
 
       <Typography variant="h6" sx={{ fontWeight: 800, mb: 1.5 }}>Previous runs</Typography>
       <Stack spacing={1.5} sx={{ mb: 4 }}>
-        {(runs.data || []).length === 0 ? <Typography variant="body2" color="text.secondary">No billing runs created yet.</Typography> : (runs.data || []).map((run: any) => (
+        {(runs.data || []).length === 0 ? <EmptyState title="No billing runs yet" description="Create your first billing run to generate invoices" variant="default" /> : (runs.data || []).map((run: any) => (
           <Paper key={run.id} elevation={0} sx={{ p: 2, display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, border: '1px solid #E5E7EB', borderRadius: 2 }}>
             <Box>
               <Typography fontWeight={700}>{run.invoice_number || 'Draft run'} · {dateLabel(run.period_from)} – {dateLabel(run.period_to)}</Typography>

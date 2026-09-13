@@ -17,6 +17,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { LoadingState, StatusBadge, NAVY, ConfirmDialog } from '../../components/ui'
+import { EmptyState } from '../../components/design/EmptyState'
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'primary' | 'purple'
 
@@ -545,11 +546,8 @@ export default function LocationDetailPage() {
           {staffLoading ? (
             <Box sx={{ p: 6, textAlign: 'center' }}><CircularProgress /></Box>
           ) : locationStaff.length === 0 ? (
-            <Box sx={{ p: 6, textAlign: 'center' }}>
-              <Typography color="#9CA3AF">No staff assigned to this location yet.</Typography>
-              <Button variant="outlined" sx={{ mt: 2, color: NAVY, borderColor: NAVY }} onClick={() => navigate('/staff')}>
-                Go to Staff Directory
-              </Button>
+            <Box sx={{ p: 4 }}>
+              <EmptyState title="No staff assigned" description="Assign staff to this location from the Staff Directory" variant="default" action={{ label: 'Go to Staff Directory', onClick: () => navigate('/staff') }} />
             </Box>
           ) : (
             <>

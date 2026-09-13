@@ -12,6 +12,7 @@ import {
   Star as StarIcon
 } from '@mui/icons-material'
 import api from '../../services/api'
+import { EmptyState } from '../../components/design/EmptyState'
 
 const rowsPerPage = 10
 
@@ -232,7 +233,7 @@ export default function AgenciesPage() {
                 </TableHead>
                 <TableBody>
                   {agencies.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No agencies added yet</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} sx={{ borderBottom: 'none' }}><EmptyState title="No agencies yet" description="Add your first agency to manage external workers" variant="default" action={{ label: 'Add agency', onClick: () => { setEditAgency({ name: '', contact_name: '', contact_phone: '', contact_email: '', address: '', notes: '', status: 'active', contract_start_date: '', contract_end_date: '' }); setAgencyDialog(true) } }} /></TableCell></TableRow>
                   ) : agencies.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map(a => (
                     <TableRow key={a.id} hover onClick={() => openAgency(a)} sx={{ cursor: 'pointer' }}>
                       <TableCell sx={{ fontWeight: 500 }}>{a.name}</TableCell>
@@ -325,7 +326,7 @@ export default function AgenciesPage() {
                 </TableHead>
                 <TableBody>
                   {workers.length === 0 ? (
-                    <TableRow><TableCell colSpan={9} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No workers added yet</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={9} sx={{ borderBottom: 'none' }}><EmptyState title="No workers yet" description="Add agency workers to assign them to shifts" variant="default" action={{ label: 'Add worker', onClick: () => { setEditWorker({ agency_id: '', first_name: '', last_name: '', role: '', phone: '', email: '', dbs_check_date: '', dbs_expiry_date: '', mandatory_training_completed: false, status: 'active', rating: '', notes: '' }); setWorkerDialog(true) } }} /></TableCell></TableRow>
                   ) : workers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map(w => (
                     <TableRow key={w.id} hover>
                       <TableCell sx={{ fontWeight: 500 }}>{w.first_name} {w.last_name}</TableCell>
@@ -426,7 +427,7 @@ export default function AgenciesPage() {
                 </TableHead>
                 <TableBody>
                   {rates.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No rates configured yet</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} sx={{ borderBottom: 'none' }}><EmptyState title="No rates configured" description="Set up hourly rates for each agency and shift type" variant="default" action={{ label: 'Add rate', onClick: () => { setEditRate({ agency_id: '', shift_type: 'day', rate_per_hour: '', effective_from: '', effective_to: '' }); setRateDialog(true) } }} /></TableCell></TableRow>
                   ) : rates.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map(r => (
                     <TableRow key={r.id} hover>
                       <TableCell sx={{ fontWeight: 500 }}>{r.agency_name}</TableCell>
@@ -528,7 +529,7 @@ export default function AgenciesPage() {
                 </TableHead>
                 <TableBody>
                   {history.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No agency shifts yet</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} sx={{ borderBottom: 'none' }}><EmptyState title="No agency shifts yet" description="Agency shift history will appear here" variant="default" /></TableCell></TableRow>
                   ) : history.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map(h => (
                     <TableRow key={h.id} hover>
                       <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{formatDate(h.start_time)}</TableCell>
@@ -647,9 +648,7 @@ export default function AgenciesPage() {
               )}
 
               {!savings && savingsByMonth.length === 0 && savingsByAgency.length === 0 && (
-                <Paper sx={{ p: 6, textAlign: 'center' }}>
-                  <Typography color="#9CA3AF">No agency shift data yet. Send shifts to agencies to see analytics.</Typography>
-                </Paper>
+                <EmptyState title="No analytics data yet" description="Send shifts to agencies to see cost savings analytics" variant="default" />
               )}
             </>
           )}

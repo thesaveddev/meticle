@@ -13,6 +13,7 @@ import {
   DeleteOutline as DeleteIcon, Download as DownloadIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
+import { EmptyState } from '../../components/design/EmptyState'
 
 const stripePublishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || ''
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null
@@ -501,11 +502,7 @@ function BillingPageInner() {
         </Stack>
 
         {paymentMethods.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <CreditCard sx={{ fontSize: 48, color: '#D1D5DB', mb: 1 }} />
-            <Typography color="#9CA3AF" sx={{ mb: 1 }}>No payment method on file</Typography>
-            <Typography variant="caption" color="#6B7280">Add a card to manage your subscription</Typography>
-          </Box>
+          <EmptyState title="No payment method on file" description="Add a card to manage your subscription" variant="default" />
         ) : (
           <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
             {paymentMethods.map(pm => (
@@ -555,7 +552,7 @@ function BillingPageInner() {
       <Paper sx={{ p: 4, borderRadius: 2.5 }}>
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>Billing History</Typography>
         {invoices.length === 0 ? (
-          <Typography variant="body2" color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No invoices yet.</Typography>
+          <EmptyState title="No invoices yet" description="Billing history will appear here" variant="default" />
         ) : (
           <TableContainer>
             <Table>
