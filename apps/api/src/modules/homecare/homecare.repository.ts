@@ -381,9 +381,12 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
          ORDER BY effective_from DESC NULLS LAST, created_at DESC LIMIT 1`, [orgId]);
       mileageRate = rateRow.rows[0] ? Number(rateRow.rows[0].rate_pence) : 45; // HMRC default
     }
-    const gross = workRate == null ? null : Math.round(((workMinutes + paidTravelMinutes) / 60) * workRate + Number(v.actual_mileage_miles || 0) * Number(mileageRate || 0));
+    // Apply ride share split if applicable
+    const splitPct = v.ride_share_split_pct != null ? Number(v.ride_share_split_pct) : 100;
+    const effectiveMileage = Number(v.actual_mileage_miles || 0) * (splitPct / 100);
+    const gross = workRate == null ? null : Math.round(((workMinutes + paidTravelMinutes) / 60) * workRate + effectiveMileage * Number(mileageRate || 0));
     await client.query(`INSERT INTO homecare_timesheets (organization_id, visit_id, staff_id, work_minutes, travel_minutes, paid_travel_minutes, mileage_miles, mileage_rate_pence, hourly_rate_pence, gross_pay_pence, status)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'submitted') ON CONFLICT (visit_id) DO UPDATE SET work_minutes = EXCLUDED.work_minutes, travel_minutes = EXCLUDED.travel_minutes, paid_travel_minutes = EXCLUDED.paid_travel_minutes, mileage_miles = EXCLUDED.mileage_miles, mileage_rate_pence = EXCLUDED.mileage_rate_pence, hourly_rate_pence = EXCLUDED.hourly_rate_pence, gross_pay_pence = EXCLUDED.gross_pay_pence, updated_at = NOW()`, [orgId, visitId, v.assigned_staff_id, workMinutes, travelMinutes, paidTravelMinutes, Number(v.actual_mileage_miles || 0), mileageRate, workRate, gross]);
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'submitted') ON CONFLICT (visit_id) DO UPDATE SET work_minutes = EXCLUDED.work_minutes, travel_minutes = EXCLUDED.travel_minutes, paid_travel_minutes = EXCLUDED.paid_travel_minutes, mileage_miles = EXCLUDED.mileage_miles, mileage_rate_pence = EXCLUDED.mileage_rate_pence, hourly_rate_pence = EXCLUDED.hourly_rate_pence, gross_pay_pence = EXCLUDED.gross_pay_pence, updated_at = NOW()`, [orgId, visitId, v.assigned_staff_id, workMinutes, travelMinutes, paidTravelMinutes, effectiveMileage, mileageRate, workRate, gross]);
     return v;
   });
 }
