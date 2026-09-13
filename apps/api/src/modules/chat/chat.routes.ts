@@ -32,4 +32,7 @@ router.get('/unread', ChatController.getUnreadCounts);
 // Search
 router.get('/search', ChatController.searchMessages);
 
+// Reactions
+router.post('/channels/:channel/messages/:messageId/reactions', ChatController.addReaction);
+
 export default router;
