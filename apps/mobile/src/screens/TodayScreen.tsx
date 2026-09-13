@@ -177,7 +177,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         <View style={{ flex: 1 }}>
           <Text style={[styles.dateText, { color: c.muted }]}>{dateLabel()}</Text>
           <Text style={[styles.userName, { color: c.ink }]}>
-            {greeting()}, {user.first_name || user.email.split('@')[0]} 👋
+            {greeting()}, {user.first_name || user.email.split('@')[0]}
           </Text>
           {allDone && (
             <Text style={[styles.subtitle, { color: c.muted }]}>All calls completed for today. Great work!</Text>
