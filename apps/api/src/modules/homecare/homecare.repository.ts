@@ -747,8 +747,11 @@ export async function getPendingTimesheets(orgId: string, from: string, to: stri
     SELECT t.id AS timesheet_id, t.work_minutes, t.travel_minutes, t.paid_travel_minutes,
       t.mileage_miles, t.gross_pay_pence, t.status AS timesheet_status, t.submitted_at,
       sp.first_name || ' ' || sp.last_name AS staff_name, sp.id AS staff_id,
-      hv.label AS visit_label, hv.scheduled_start, hv.scheduled_end,
-      pe.first_name || ' ' || pe.last_name AS person_name
+      hv.label AS visit_label, hv.visit_type, hv.scheduled_start, hv.scheduled_end,
+      hv.visit_notes, hv.progress_notes, hv.check_in_at AS actual_check_in, hv.check_out_at AS actual_check_out,
+      pe.first_name || ' ' || pe.last_name AS person_name,
+      (SELECT COUNT(*) FROM homecare_visit_tasks vt WHERE vt.visit_id = hv.id) AS tasks_total,
+      (SELECT COUNT(*) FROM homecare_visit_tasks vt WHERE vt.visit_id = hv.id AND vt.completed = true) AS tasks_completed
     FROM homecare_timesheets t
     JOIN staff_profiles sp ON sp.id = t.staff_id
     JOIN homecare_visits hv ON hv.id = t.visit_id
