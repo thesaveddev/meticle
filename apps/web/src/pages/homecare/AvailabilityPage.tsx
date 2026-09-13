@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Box, Button, Chip, CircularProgress, Container, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { Add as AddIcon, Schedule as ScheduleIcon } from '@mui/icons-material'
 import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
@@ -94,7 +94,7 @@ export default function AvailabilityPage() {
   if (loading) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Box sx={{ maxWidth: 900, mx: 'auto' }}>
       <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
         <ScheduleIcon sx={{ color: '#10b981', fontSize: 28 }} />
         <Typography variant="h4" sx={{ fontWeight: 800 }}>{isCarer ? 'My Availability' : 'Carer Availability'}</Typography>
@@ -182,6 +182,6 @@ export default function AvailabilityPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Box>
   )
 }
