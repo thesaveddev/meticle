@@ -316,3 +316,28 @@ export async function markChatRead(token: string, channel: string): Promise<any>
 export async function getChatUnread(token: string): Promise<Record<string, number>> {
   return request('/chat/unread', {}, token)
 }
+
+// ── Visit tasks ──
+export async function getVisitTasks(token: string, visitId: string): Promise<any[]> {
+  return request(`/homecare/visits/${visitId}/tasks`, {}, token)
+}
+
+export async function addVisitTask(token: string, visitId: string, label: string): Promise<any> {
+  return request(`/homecare/visits/${visitId}/tasks`, {
+    method: 'POST',
+    body: JSON.stringify({ label }),
+  }, token)
+}
+
+export async function toggleVisitTask(token: string, visitId: string, taskId: string, done: boolean): Promise<any> {
+  return request(`/homecare/visits/${visitId}/tasks/${taskId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ done }),
+  }, token)
+}
+
+export async function deleteVisitTask(token: string, visitId: string, taskId: string): Promise<void> {
+  return request(`/homecare/visits/${visitId}/tasks/${taskId}`, {
+    method: 'DELETE',
+  }, token)
+}
