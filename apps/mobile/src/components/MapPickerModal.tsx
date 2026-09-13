@@ -4,6 +4,7 @@ import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { detectMapApps, openMapApp, type MapApp } from '../services/navigation'
 import { hapticLight } from '../services/haptics'
 import { Ionicons } from '@expo/vector-icons'
+import { getMapLogo } from './MapAppLogos'
 
 interface Props {
   visible: boolean
@@ -14,17 +15,19 @@ interface Props {
   label?: string
 }
 
-/** Branded icon config for each map app */
+/** Branded icon config for fallback */
 const APP_BRAND: Record<string, { bg: string; icon: keyof typeof Ionicons.glyphMap; iconColor: string }> = {
-  apple: { bg: '#007AFF', icon: 'location', iconColor: '#FFFFFF' },
-  google: { bg: '#FFFFFF', icon: 'logo-google', iconColor: '#4285F4' },
-  waze: { bg: '#33CCFF', icon: 'chatbubble-ellipses', iconColor: '#FFFFFF' },
   here: { bg: '#48DAD0', icon: 'navigate', iconColor: '#FFFFFF' },
   mapfactor: { bg: '#FF6B35', icon: 'compass', iconColor: '#FFFFFF' },
   web: { bg: '#F3F4F6', icon: 'globe-outline', iconColor: '#6B7280' },
 }
 
 function MapAppIcon({ appId }: { appId: string }) {
+  // Use branded logos for Google, Apple, Waze
+  if (['google', 'apple', 'waze'].includes(appId)) {
+    return getMapLogo(appId, 40)
+  }
+  // Fallback to Ionicons for other apps
   const brand = APP_BRAND[appId] || APP_BRAND.web
   return (
     <View style={[mapStyles.iconCircle, { backgroundColor: brand.bg }]}>
