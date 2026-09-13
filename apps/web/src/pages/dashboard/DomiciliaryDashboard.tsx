@@ -31,7 +31,7 @@ interface DomiciliaryData {
   carers_working_today: number
   carers_with_calls: number
   next_call: { label: string; person_name: string; scheduled_start: string; carer_name: string | null } | null
-  call_timeline: { id: string; label: string; person_name: string; scheduled_start: string; scheduled_end: string; status: string; carer_name: string | null }[]
+  call_timeline: { id: string; label: string; person_name: string; scheduled_start: string; scheduled_end: string; status: string; carer_name: string | null; tasks_total: number; tasks_completed: number }[]
   carer_breakdown: { carer_name: string; calls_assigned: number; calls_completed: number; calls_remaining: number }[]
   exceptions: { id: string; label: string; person_name: string; scheduled_start: string; status: string; carer_name: string | null; exception_type: string | null }[]
 }
@@ -244,6 +244,20 @@ export default function DomiciliaryDashboard() {
                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
                           {call.person_name}{call.carer_name ? ` — ${call.carer_name}` : ' — No carer'}
                         </Typography>
+                        {call.tasks_total > 0 && (
+                          <Stack direction="row" alignItems="center" gap={0.5} sx={{ mt: 0.5 }}>
+                            <Box sx={{ width: 14, height: 14, borderRadius: '50%', bgcolor: call.tasks_completed === call.tasks_total ? '#E9F7F0' : '#FFF5D9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {call.tasks_completed === call.tasks_total ? (
+                                <CompletedIcon sx={{ fontSize: 10, color: '#10B981' }} />
+                              ) : (
+                                <PendingIcon sx={{ fontSize: 10, color: '#D97706' }} />
+                              )}
+                            </Box>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: call.tasks_completed === call.tasks_total ? '#047857' : '#92400E', fontSize: '0.7rem' }}>
+                              {call.tasks_completed}/{call.tasks_total} tasks
+                            </Typography>
+                          </Stack>
+                        )}
                       </Box>
                     </Box>
                   )

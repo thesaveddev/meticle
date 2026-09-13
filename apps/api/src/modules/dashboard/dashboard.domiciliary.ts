@@ -12,7 +12,7 @@ export interface DomiciliaryDashboardData {
   carers_working_today: number;
   carers_with_calls: number;
   next_call: { label: string; person_name: string; scheduled_start: string; carer_name: string | null } | null;
-  call_timeline: { id: string; label: string; person_name: string; scheduled_start: string; scheduled_end: string; status: string; carer_name: string | null }[];
+  call_timeline: { id: string; label: string; person_name: string; scheduled_start: string; scheduled_end: string; status: string; carer_name: string | null; tasks_total: number; tasks_completed: number }[];
   carer_breakdown: { carer_name: string; calls_assigned: number; calls_completed: number; calls_remaining: number }[];
   exceptions: { id: string; label: string; person_name: string; scheduled_start: string; status: string; carer_name: string | null; exception_type: string | null }[];
 }
@@ -22,7 +22,7 @@ export async function getDomiciliaryDashboard(orgId: string): Promise<Domiciliar
   const now = new Date().toISOString();
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
-  const [visitsResult, exceptionsResult, packagesResult] = await Promise.all([
+  const [visitsResult, tasksResult, exceptionsResult, packagesResult] = await Promise.all([
     query(`
       SELECT v.id, v.status, v.scheduled_start, v.scheduled_end, v.label,
              v.assigned_staff_id, v.exception_type,
@@ -35,6 +35,16 @@ export async function getDomiciliaryDashboard(orgId: string): Promise<Domiciliar
         AND v.scheduled_start >= $2
         AND v.scheduled_start < $3
       ORDER BY v.scheduled_start
+    `, [orgId, today, tomorrow]),
+    query(`
+      SELECT visit_id, COUNT(*)::int AS total,
+             COUNT(*) FILTER (WHERE done)::int AS completed
+      FROM homecare_visit_tasks vt
+      JOIN homecare_visits v ON v.id = vt.visit_id
+      WHERE v.organization_id = $1
+        AND v.scheduled_start >= $2
+        AND v.scheduled_start < $3
+      GROUP BY vt.visit_id
     `, [orgId, today, tomorrow]),
     query(`
       SELECT COUNT(*) AS exception_count
@@ -70,15 +80,24 @@ export async function getDomiciliaryDashboard(orgId: string): Promise<Domiciliar
     .sort((a: any, b: any) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())[0] || null;
 
   // Call timeline (all calls for today)
-  const callTimeline = allVisits.map((v: any) => ({
-    id: v.id,
-    label: v.label,
-    person_name: v.person_name,
-    scheduled_start: v.scheduled_start,
-    scheduled_end: v.scheduled_end,
-    status: v.status,
-    carer_name: v.carer_name,
-  }));
+  const taskMap = new Map<string, { total: number; completed: number }>();
+  for (const t of tasksResult.rows) {
+    taskMap.set(t.visit_id, { total: t.total, completed: t.completed });
+  }
+  const callTimeline = allVisits.map((v: any) => {
+    const tasks = taskMap.get(v.id);
+    return {
+      id: v.id,
+      label: v.label,
+      person_name: v.person_name,
+      scheduled_start: v.scheduled_start,
+      scheduled_end: v.scheduled_end,
+      status: v.status,
+      carer_name: v.carer_name,
+      tasks_total: tasks?.total || 0,
+      tasks_completed: tasks?.completed || 0,
+    };
+  });
 
   // Carer breakdown
   const carerMap = new Map<string, { name: string; assigned: number; completed: number }>();
