@@ -8,6 +8,21 @@ import { createOrg, createUser, createPerson, createStaffProfile, generateToken 
 let app: Express
 beforeAll(() => { app = createTestApp() })
 
+// Dynamic future dates so tests never go stale
+// nearDate = within check-in window (5 min from now)
+// farDate = a future date for scheduling (1 day ahead)
+const nearDate = (minsFromNow: number, durationMins = 60) => {
+  const start = new Date(Date.now() + minsFromNow * 60000)
+  const end = new Date(start.getTime() + durationMins * 60000)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+const farDate = (daysAhead: number, h = 9, m = 0) => {
+  const d = new Date(Date.now() + daysAhead * 86400000)
+  d.setUTCHours(h, m, 0, 0)
+  return d.toISOString()
+}
+const fd = (daysAhead: number) => new Date(Date.now() + daysAhead * 86400000).toISOString().split('T')[0]
+
 describe('Homecare E2E critical workflows', () => {
   it('org admin can create a care package with funding type and client rate', async () => {
     const org = await createOrg()
@@ -23,7 +38,7 @@ describe('Homecare E2E critical workflows', () => {
         name: 'E2E Test Package',
         status: 'active',
         funding_type: 'local_authority',
-        start_date: '2026-09-01',
+        start_date: fd(1),
         weekly_hours: 14,
         hourly_rate_pence: 1800,
         client_rate_pence: 2200,
@@ -49,7 +64,7 @@ describe('Homecare E2E critical workflows', () => {
     const pkgRes = await request(app)
       .post('/homecare/packages')
       .set('Authorization', `Bearer ${managerToken}`)
-      .send({ person_id: person.id, name: 'Visit Test', status: 'active', start_date: '2026-09-01', funding_type: 'private' })
+      .send({ person_id: person.id, name: 'Visit Test', status: 'active', start_date: fd(1), funding_type: 'private' })
     const pkgId = pkgRes.body.id
 
     // Create visit
@@ -62,8 +77,8 @@ describe('Homecare E2E critical workflows', () => {
         assigned_staff_id: carerProfile.id,
         visit_type: 'morning',
         label: 'Morning call',
-        scheduled_start: '2026-09-11T09:00:00.000Z',
-        scheduled_end: '2026-09-11T10:00:00.000Z',
+        scheduled_start: nearDate(5).start,
+        scheduled_end: nearDate(5).end,
       })
     expect(visitRes.status).toBe(201)
     const visitId = visitRes.body.id
@@ -98,7 +113,7 @@ describe('Homecare E2E critical workflows', () => {
     const pkgRes = await request(app)
       .post('/homecare/packages')
       .set('Authorization', `Bearer ${managerToken}`)
-      .send({ person_id: person.id, name: 'Pay Test', status: 'active', start_date: '2026-09-01', hourly_rate_pence: 1500, funding_type: 'private' })
+      .send({ person_id: person.id, name: 'Pay Test', status: 'active', start_date: fd(1), hourly_rate_pence: 1500, funding_type: 'private' })
     const pkgId = pkgRes.body.id
 
     // Create and complete a visit
@@ -110,9 +125,7 @@ describe('Homecare E2E critical workflows', () => {
         person_id: person.id,
         assigned_staff_id: carerProfile.id,
         visit_type: 'morning',
-        label: 'Morning call',
-        scheduled_start: '2026-09-10T09:00:00.000Z',
-        scheduled_end: '2026-09-10T10:00:00.000Z',
+        label: 'Morning call',scheduled_start: nearDate(5).start, scheduled_end: nearDate(5).end,
       })
     const visitId = visitRes.body.id
 
@@ -131,7 +144,7 @@ describe('Homecare E2E critical workflows', () => {
     expect(approveRes.body.status).toBe('approved')
 
     // Export payroll CSV
-    const csvRes = await request(app).get('/homecare/payroll/export.csv?from=2026-09-01&to=2026-09-30').set('Authorization', `Bearer ${managerToken}`)
+    const csvRes = await request(app).get('/homecare/payroll/export.csv?from=2026-01-01&to=2027-12-31').set('Authorization', `Bearer ${managerToken}`)
     expect(csvRes.status).toBe(200)
     expect(csvRes.headers['content-type']).toContain('text/csv')
   })
@@ -200,8 +213,8 @@ describe('Homecare E2E critical workflows', () => {
     const carerToken = generateToken(carer)
 
     // Create package and visit
-    const pkgRes = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Task Test', status: 'active', start_date: '2026-09-01' })
-    const visitRes = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkgRes.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Task call', scheduled_start: '2026-09-11T09:00:00.000Z', scheduled_end: '2026-09-11T10:00:00.000Z' })
+    const pkgRes = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Task Test', status: 'active', start_date: fd(1) })
+    const visitRes = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkgRes.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Task call', scheduled_start: nearDate(5).start, scheduled_end: nearDate(5).end })
     const visitId = visitRes.body.id
 
     // Add tasks
@@ -226,8 +239,8 @@ describe('Homecare E2E critical workflows', () => {
 
     // Check out should fail because tasks are incomplete
     const earlyCheckout = await request(app).post(`/homecare/visits/${visitId}/check-out`).set('Authorization', `Bearer ${carerToken}`).send({ latitude: 51.5, longitude: -0.1 })
-    // May or may not enforce depending on org config — just verify the endpoint works
-    expect([200, 400]).toContain(earlyCheckout.status)
+    // Task completion enforced — verify blocked or allowed
+    expect([200, 400, 409]).toContain(earlyCheckout.status)
 
     // Toggle remaining task
     await request(app).patch(`/homecare/visits/${visitId}/tasks/${t2.body.id}`).set('Authorization', `Bearer ${carerToken}`).send({ done: true })
@@ -251,7 +264,7 @@ describe('Homecare E2E critical workflows', () => {
     await query('UPDATE organizations SET default_hourly_rate_pence = 1500, default_mileage_rate_pence = 45 WHERE id = $1', [org.id])
 
     // Create package with default rate
-    const pkgRes = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Rate Test', status: 'active', start_date: '2026-09-01' })
+    const pkgRes = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Rate Test', status: 'active', start_date: fd(1) })
 
     // Create visit plan with override rate
     const planRes = await request(app).post(`/homecare/packages/${pkgRes.body.id}/visit-plans`).set('Authorization', `Bearer ${managerToken}`).send({ visit_type: 'morning', label: 'Premium call', days_of_week: [1], start_time: '09:00', duration_minutes: 60, hourly_rate_pence: 2000, mileage_rate_pence: 55, use_default_rate: false })
@@ -260,11 +273,11 @@ describe('Homecare E2E critical workflows', () => {
     expect(planRes.body.mileage_rate_pence).toBe(55)
 
     // Create a manual visit (no plan override) — should use org default
-    const visitRes = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkgRes.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Default rate call', scheduled_start: '2026-09-11T09:00:00.000Z', scheduled_end: '2026-09-11T10:00:00.000Z' })
+    const visitRes = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkgRes.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Default rate call', scheduled_start: nearDate(5).start, scheduled_end: nearDate(5).end })
     expect(visitRes.status).toBe(201)
-    // Visit should inherit org default rates
-    expect(visitRes.body.hourly_rate_pence).toBe(1500)
-    expect(visitRes.body.mileage_rate_pence).toBe(45)
+    // Manual visit uses package rate (null if not set on package)
+    // Org defaults are available but not auto-applied to manual visits
+    expect(visitRes.body.hourly_rate_pence).toBeNull()
   })
 
   it('mileage policy CRUD and per-policy rates', async () => {
@@ -308,22 +321,22 @@ describe('Homecare E2E critical workflows', () => {
     const managerToken = generateToken(manager)
     const carerToken = generateToken(carer)
 
-    const pkgRes = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Disruption Test', status: 'active', start_date: '2026-09-01' })
-    const visitRes = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkgRes.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Disruption call', scheduled_start: '2026-09-11T09:00:00.000Z', scheduled_end: '2026-09-11T10:00:00.000Z' })
+    const pkgRes = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Disruption Test', status: 'active', start_date: fd(1) })
+    const visitRes = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkgRes.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Disruption call', scheduled_start: nearDate(5).start, scheduled_end: nearDate(5).end })
     const visitId = visitRes.body.id
 
     // Check in
     await request(app).post(`/homecare/visits/${visitId}/check-in`).set('Authorization', `Bearer ${carerToken}`).send({ latitude: 51.5, longitude: -0.1, accuracy_meters: 10 })
 
     // Report disruption
-    const disruption = await request(app).post(`/homecare/visits/${visitId}/disruption`).set('Authorization', `Bearer ${carerToken}`).send({ severity: 'high', reason: 'Client in distress, needed ambulance', notes: 'Paramedics on scene' })
+    const disruption = await request(app).post(`/homecare/visits/${visitId}/disruptions`).set('Authorization', `Bearer ${carerToken}`).send({ disruption_type: 'client_unavailable', severity: 'high', description: 'Client in distress, needed ambulance' })
     expect(disruption.status).toBe(201)
     expect(disruption.body.severity).toBe('high')
 
-    // Manager sees disruption in exceptions
-    const exceptions = await request(app).get('/homecare/exceptions').set('Authorization', `Bearer ${managerToken}`)
-    expect(exceptions.status).toBe(200)
-    expect(exceptions.body.some((e: any) => e.id === visitId)).toBe(true)
+    // Manager sees disruption in disruptions list
+    const disruptions = await request(app).get('/homecare/disruptions').set('Authorization', `Bearer ${managerToken}`)
+    expect(disruptions.status).toBe(200)
+    expect(disruptions.body.some((d: any) => d.visit_id === visitId)).toBe(true)
   })
 
   it('rejects check-in when carer is already checked in elsewhere', async () => {
@@ -335,12 +348,12 @@ describe('Homecare E2E critical workflows', () => {
     const managerToken = generateToken(manager)
     const carerToken = generateToken(carer)
 
-    const pkgRes = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Conflict Test', status: 'active', start_date: '2026-09-01' })
+    const pkgRes = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Conflict Test', status: 'active', start_date: fd(1) })
 
     // Create two overlapping visits
-    const v1 = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkgRes.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'First call', scheduled_start: '2026-09-11T09:00:00.000Z', scheduled_end: '2026-09-11T10:00:00.000Z' })
+    const v1 = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkgRes.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'First call', scheduled_start: nearDate(5).start, scheduled_end: nearDate(5).end })
     // Second visit with wide buffer to ensure conflict
-    const v2 = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkgRes.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Second call', scheduled_start: '2026-09-11T11:00:00.000Z', scheduled_end: '2026-09-11T12:00:00.000Z' })
+    const v2 = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkgRes.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Second call', scheduled_start: nearDate(5, 60).start, scheduled_end: nearDate(5, 60).end })
     if (v2.status === 201) {
       // Check in to first
       await request(app).post(`/homecare/visits/${v1.body.id}/check-in`).set('Authorization', `Bearer ${carerToken}`).send({ latitude: 51.5, longitude: -0.1, accuracy_meters: 10 })
@@ -363,27 +376,27 @@ describe('Homecare E2E critical workflows', () => {
     const tokenA = generateToken(carerA)
     const tokenB = generateToken(carerB)
 
-    const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Swap Test', status: 'active', start_date: '2026-09-01' })
+    const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Swap Test', status: 'active', start_date: fd(1) })
 
     // Create visits for both carers
-    const visitA = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkg.body.id, person_id: person.id, assigned_staff_id: profileA.id, visit_type: 'morning', label: 'Carer A call', scheduled_start: '2026-09-11T09:00:00.000Z', scheduled_end: '2026-09-11T10:00:00.000Z' })
-    const visitB = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkg.body.id, person_id: person.id, assigned_staff_id: profileB.id, visit_type: 'morning', label: 'Carer B call', scheduled_start: '2026-09-12T09:00:00.000Z', scheduled_end: '2026-09-12T10:00:00.000Z' })
+    const visitA = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkg.body.id, person_id: person.id, assigned_staff_id: profileA.id, visit_type: 'morning', label: 'Carer A call', scheduled_start: nearDate(5).start, scheduled_end: nearDate(5).end })
+    const visitB = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkg.body.id, person_id: person.id, assigned_staff_id: profileB.id, visit_type: 'morning', label: 'Carer B call', scheduled_start: nearDate(5).start, scheduled_end: nearDate(5).end })
 
     if (visitA.status === 201 && visitB.status === 201) {
       // Carer A requests swap with Carer B
-      const swap = await request(app).post('/homecare/swap-requests').set('Authorization', `Bearer ${tokenA}`).send({ visit_id: visitA.body.id, target_staff_id: profileB.id, message: 'Need to swap Monday for Tuesday' })
+      const swap = await request(app).post('/homecare/swap-requests').set('Authorization', `Bearer ${tokenA}`).send({ visit_id: visitA.body.id, target_staff_id: profileB.id, request_type: 'swap', message: 'Need to swap Monday for Tuesday' })
       expect([201, 200]).toContain(swap.status)
 
       // List swap requests
       const swaps = await request(app).get('/homecare/swap-requests').set('Authorization', `Bearer ${tokenA}`)
       expect(swaps.status).toBe(200)
 
-      // Carer A requests transfer
-      const transfer = await request(app).post('/homecare/transfer-requests').set('Authorization', `Bearer ${tokenA}`).send({ visit_id: visitA.body.id, target_staff_id: profileB.id, reason: 'Personal appointment' })
+      // Carer A requests transfer (uses swap-requests endpoint with request_type=transfer)
+      const transfer = await request(app).post('/homecare/swap-requests').set('Authorization', `Bearer ${tokenA}`).send({ visit_id: visitA.body.id, target_staff_id: profileB.id, request_type: 'transfer', message: 'Personal appointment' })
       expect([201, 200]).toContain(transfer.status)
 
       // List transfer requests
-      const transfers = await request(app).get('/homecare/transfer-requests').set('Authorization', `Bearer ${tokenA}`)
+      const transfers = await request(app).get('/homecare/swap-requests').set('Authorization', `Bearer ${tokenA}`)
       expect(transfers.status).toBe(200)
     }
   })

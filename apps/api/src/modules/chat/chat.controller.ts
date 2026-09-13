@@ -19,7 +19,7 @@ export class ChatController {
 
     // Get channels the user is a member of from chat_channels table (new system)
     const memberResult = await query(
-      `SELECT cc.*, cm.unread_count,
+      `SELECT cc.*,
               (SELECT COUNT(*) FROM chat_members cm2 WHERE cm2.channel_id = cc.id) AS member_count
        FROM chat_channels cc
        JOIN chat_members cm ON cm.channel_id = cc.id AND cm.user_id = $2
@@ -56,12 +56,12 @@ export class ChatController {
 
       // Get last message
       const lastMsg = await query(
-        `SELECT m.content, m.created_at,
+        `SELECT m.message AS content, m.created_at,
                 COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS sender_name
          FROM org_chat_messages m
          JOIN users u ON u.id = m.sender_id
          LEFT JOIN staff_profiles sp ON sp.user_id = u.id
-         WHERE m.organization_id = $1 AND m.channel = $2 AND m.deleted = FALSE
+         WHERE m.organization_id = $1 AND m.channel = $2
          ORDER BY m.created_at DESC LIMIT 1`,
         [oid, ch.id]
       );
@@ -72,7 +72,7 @@ export class ChatController {
         type: ch.type,
         other_member: otherMember,
         last_message: lastMsg.rows[0] || null,
-        unread_count: ch.unread_count || 0,
+        unread_count: 0,
         member_count: Number(ch.member_count) || 0,
         created_at: ch.created_at,
       });
@@ -102,9 +102,9 @@ export class ChatController {
             'INSERT INTO chat_members (channel_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
             [generalId, uid]
           );
-          const lastMsg = await query(
-            `SELECT m.content, m.created_at, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS sender_name
-             FROM org_chat_messages m JOIN users u ON u.id = m.sender_id
+          const lastMsg = await query(            `SELECT m.message AS content, m.created_at, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS sender_name
+             FROM org_chat_messages m
+             JOIN users u ON u.id = m.sender_id
              LEFT JOIN staff_profiles sp ON sp.user_id = u.id
              WHERE m.organization_id = $1 AND m.channel = 'general' AND m.deleted = FALSE
              ORDER BY m.created_at DESC LIMIT 1`,
@@ -460,5 +460,20 @@ export class ChatController {
       [oid, searchTerm]
     );
     res.json(result.rows);
+  }
+
+  static async addReaction(req: Request, res: Response) {
+    const uid = userId(req);
+    const { channel, messageId } = req.params;
+    const { emoji } = req.body;
+    if (!emoji || !emoji.trim()) throw new AppError(400, 'Emoji is required');
+
+    await query(
+      `INSERT INTO org_chat_reactions (message_id, user_id, emoji)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (message_id, user_id, emoji) DO NOTHING`,
+      [messageId, uid, emoji.trim()]
+    );
+    res.json({ ok: true });
   }
 }

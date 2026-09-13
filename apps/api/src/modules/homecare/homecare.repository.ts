@@ -13,8 +13,6 @@ const VISIT_SELECT = `
   SELECT v.*, pe.first_name || ' ' || pe.last_name AS person_name,
     sp.first_name || ' ' || sp.last_name AS assigned_staff_name,
     l.address AS person_address,
-    l.latitude AS person_latitude,
-    l.longitude AS person_longitude,
     p.name AS package_name,
     p.mileage_rate_pence
   FROM homecare_visits v
@@ -362,6 +360,10 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
   if (!staff.rows[0] || visit.assigned_staff_id !== staff.rows[0].id) throw new AppError(403, 'This visit is not assigned to you');
   if (!visit.check_in_at) throw new AppError(409, 'Check in before checking out');
   if (visit.status === 'completed') throw new AppError(409, 'This visit is already complete');
+  // Check task completion — block checkout if tasks exist and not all done
+  const taskCount = await query('SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE done)::int AS done FROM homecare_visit_tasks WHERE visit_id = $1', [visitId]);
+  const { total, done } = taskCount.rows[0];
+  if (total > 0 && done < total) throw new AppError(409, `Complete all tasks before checking out (${done}/${total} done)`);
   return transaction(async (client) => {
     const updated = await client.query(`UPDATE homecare_visits SET status = 'completed', check_out_at = NOW(), check_out_latitude = $1, check_out_longitude = $2, visit_notes = COALESCE($3, visit_notes), actual_travel_minutes = COALESCE($4, actual_travel_minutes), actual_mileage_miles = COALESCE($5, actual_mileage_miles), care_plan_id = COALESCE($8, care_plan_id), mileage_status = CASE WHEN COALESCE($5, actual_mileage_miles) > 0 THEN 'submitted' ELSE mileage_status END, updated_at = NOW() WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.latitude, input.longitude, input.note || null, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId, input.care_plan_id || null]);
     if (!updated.rows[0]) throw new AppError(404, 'Visit not found');

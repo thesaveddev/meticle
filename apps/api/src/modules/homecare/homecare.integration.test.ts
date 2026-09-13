@@ -8,6 +8,19 @@ import { createOrg, createUser, createPerson, createStaffProfile, generateToken 
 let app: Express
 beforeAll(() => { app = createTestApp() })
 
+// Dynamic future dates so tests never go stale
+const nearDate = (minsFromNow: number, durationMins = 60) => {
+  const start = new Date(Date.now() + minsFromNow * 60000)
+  const end = new Date(start.getTime() + durationMins * 60000)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+const futureDate = (daysAhead: number, h = 9, m = 0) => {
+  const d = new Date(Date.now() + daysAhead * 86400000)
+  d.setUTCHours(h, m, 0, 0)
+  return d.toISOString()
+}
+const fd = (daysAhead: number) => new Date(Date.now() + daysAhead * 86400000).toISOString().split('T')[0]
+
 describe('Homecare Phase 2 foundation', () => {
   it('creates a package, executes an assigned visit, prepares and exports an approved timesheet', async () => {
     const org = await createOrg()
@@ -19,12 +32,12 @@ describe('Homecare Phase 2 foundation', () => {
     const carerToken = generateToken(carer)
 
     const packageResponse = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({
-      person_id: person.id, name: 'Morning and evening support', start_date: '2026-09-01', hourly_rate_pence: 1500, travel_time_paid: true, mileage_rate_pence: 45,
+      person_id: person.id, name: 'Morning and evening support', start_date: fd(1), hourly_rate_pence: 1500, travel_time_paid: true, mileage_rate_pence: 45,
     })
     expect(packageResponse.status).toBe(201)
 
     const visitResponse = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({
-      package_id: packageResponse.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Morning call', scheduled_start: '2026-09-01T08:00:00.000Z', scheduled_end: '2026-09-01T09:00:00.000Z',
+      package_id: packageResponse.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Morning call', scheduled_start: nearDate(5).start, scheduled_end: nearDate(5).end,
     })
     expect(visitResponse.status).toBe(201)
 
@@ -45,7 +58,7 @@ describe('Homecare Phase 2 foundation', () => {
     expect(approved.status).toBe(200)
     expect(approved.body.status).toBe('approved')
 
-    const exportResponse = await request(app).get('/homecare/payroll/export.csv?from=2026-09-01&to=2026-09-30').set('Authorization', `Bearer ${managerToken}`)
+    const exportResponse = await request(app).get('/homecare/payroll/export.csv?from=2026-01-01&to=2027-12-31').set('Authorization', `Bearer ${managerToken}`)
     expect(exportResponse.status).toBe(200)
     expect(exportResponse.headers['content-type']).toContain('text/csv')
     expect(exportResponse.text).toContain('paid_travel_minutes')
@@ -61,24 +74,24 @@ describe('Homecare Phase 2 foundation', () => {
     const managerToken = generateToken(manager)
 
     await migrateQuery(`INSERT INTO staff_availability (staff_id, day_of_week, start_time, end_time, is_available) VALUES ($1, $2, $3, $4, TRUE)`, [carerProfile.id, 1, '08:00', '18:00'])
-    const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Weekday calls', status: 'active', start_date: '2030-01-01' })
+    const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Weekday calls', status: 'active', start_date: fd(30) })
     const plan = await request(app).post(`/homecare/packages/${pkg.body.id}/visit-plans`).set('Authorization', `Bearer ${managerToken}`).send({ visit_type: 'routine', label: 'Routine call', days_of_week: [1], start_time: '09:00', duration_minutes: 30, default_staff_id: carerProfile.id })
     expect(plan.status).toBe(201)
 
-    const generated = await request(app).post(`/homecare/visit-plans/${plan.body.id}/generate`).set('Authorization', `Bearer ${managerToken}`).send({ from: '2030-01-07', to: '2030-01-13' })
+    const generated = await request(app).post(`/homecare/visit-plans/${plan.body.id}/generate`).set('Authorization', `Bearer ${managerToken}`).send({ from: fd(36), to: fd(42) })
     expect(generated.status).toBe(201)
     expect(generated.body.generated_count).toBe(1)
 
-    const repeated = await request(app).post(`/homecare/visit-plans/${plan.body.id}/generate`).set('Authorization', `Bearer ${managerToken}`).send({ from: '2030-01-07', to: '2030-01-13' })
+    const repeated = await request(app).post(`/homecare/visit-plans/${plan.body.id}/generate`).set('Authorization', `Bearer ${managerToken}`).send({ from: fd(36), to: fd(42) })
     expect(repeated.status).toBe(201)
     expect(repeated.body.generated_count).toBe(0)
     expect(repeated.body.skipped_existing).toBe(1)
 
-    const conflictingVisit = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkg.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'routine', label: 'Overlapping call', scheduled_start: '2030-01-07T09:15:00.000Z', scheduled_end: '2030-01-07T09:45:00.000Z' })
+    const conflictingVisit = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkg.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'routine', label: 'Overlapping call', scheduled_start: futureDate(36, 9, 15), scheduled_end: futureDate(36, 9, 45) })
     expect(conflictingVisit.status).toBe(409)
 
     const unavailablePlan = await request(app).post(`/homecare/packages/${pkg.body.id}/visit-plans`).set('Authorization', `Bearer ${managerToken}`).send({ visit_type: 'routine', label: 'Sunday call', days_of_week: [0], start_time: '09:00', duration_minutes: 30, default_staff_id: carerProfile.id })
-    const unavailable = await request(app).post(`/homecare/visit-plans/${unavailablePlan.body.id}/generate`).set('Authorization', `Bearer ${managerToken}`).send({ from: '2030-01-13', to: '2030-01-13' })
+    const unavailable = await request(app).post(`/homecare/visit-plans/${unavailablePlan.body.id}/generate`).set('Authorization', `Bearer ${managerToken}`).send({ from: fd(42), to: fd(42) })
     expect(unavailable.status).toBe(409)
     expect(unavailable.body.message).toContain('not available')
   })
@@ -91,10 +104,10 @@ describe('Homecare Phase 2 foundation', () => {
     const managerToken = generateToken(manager)
     const carerToken = generateToken(carer)
 
-    const forbiddenPackage = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${carerToken}`).send({ person_id: person.id, name: 'No', start_date: '2030-01-01' })
+    const forbiddenPackage = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${carerToken}`).send({ person_id: person.id, name: 'No', start_date: fd(30) })
     expect(forbiddenPackage.status).toBe(403)
 
-    const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Package', start_date: '2030-01-01' })
+    const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Package', start_date: fd(30) })
     const visit = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({ package_id: pkg.body.id, person_id: person.id, visit_type: 'routine', label: 'Missed call', scheduled_start: '2030-01-01T10:00:00.000Z', scheduled_end: '2030-01-01T10:30:00.000Z' })
     const missed = await request(app).patch(`/homecare/visits/${visit.body.id}`).set('Authorization', `Bearer ${managerToken}`).send({ status: 'missed', late_reason: 'Client unavailable' })
     expect(missed.status).toBe(200)
@@ -118,18 +131,21 @@ describe('Homecare Phase 2 foundation', () => {
     const carerToken = generateToken(carer)
 
     const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({
-      person_id: person.id, name: 'Invoice-ready package', start_date: '2030-02-01', client_rate_pence: 1200,
+      person_id: person.id, name: 'Invoice-ready package', start_date: fd(60), client_rate_pence: 1200,
     })
     const visit = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({
-      package_id: pkg.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Invoice visit', scheduled_start: '2030-02-03T08:00:00.000Z', scheduled_end: '2030-02-03T09:00:00.000Z',
+      package_id: pkg.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Invoice visit', scheduled_start: futureDate(62, 8), scheduled_end: futureDate(62, 9),
     })
 
-    const utilisation = await request(app).get('/homecare/client-billing/utilisation?from=2030-02-01&to=2030-02-28').set('Authorization', `Bearer ${managerToken}`)
+    const visitStart = new Date(Date.now() + 62 * 86400000)
+    const from = visitStart.toISOString().split('T')[0]
+    const to = new Date(visitStart.getTime() + 30 * 86400000).toISOString().split('T')[0]
+    const utilisation = await request(app).get(`/homecare/client-billing/utilisation?from=${from}&to=${to}`).set('Authorization', `Bearer ${managerToken}`)
     expect(utilisation.status).toBe(200)
     expect(utilisation.body).toHaveLength(1)
     expect(utilisation.body[0]).toMatchObject({ billing_status: 'review', amount_pence: 0, exclusion_reason: 'Visit is not completed' })
 
-    const run = await request(app).post('/homecare/client-billing/runs').set('Authorization', `Bearer ${managerToken}`).send({ from: '2030-02-01', to: '2030-02-28' })
+    const run = await request(app).post('/homecare/client-billing/runs').set('Authorization', `Bearer ${managerToken}`).send({ from, to })
     expect(run.status).toBe(201)
     expect(run.body.run.total_amount_pence).toBe(0)
     expect(run.body.lines[0].billing_status).toBe('review')

@@ -37,6 +37,8 @@ const planSchema = z.object({
   travel_buffer_minutes: z.number().int().min(0).max(240).optional(),
   required_skills: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
   default_staff_id: uuid.nullish(),
+  hourly_rate_pence: z.number().int().min(0).nullish(),
+  mileage_rate_pence: z.number().int().min(0).nullish(),
   default_tasks: z.array(z.object({
     label: z.string().trim().min(1).max(255),
     sort_order: z.number().int().min(0).optional(),
