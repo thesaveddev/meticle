@@ -182,7 +182,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
     }
   }
 
-  const allTasksDone = tasks.length > 0 && tasks.every(t => t.done)
+  const allTasksDone = tasks.length === 0 || tasks.every(t => t.done)
 
   // Fetch location threshold from org settings
   useEffect(() => {
@@ -749,21 +749,43 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             </View>
           )}
 
-          {/* ── Care notes hint ── */}
-          {checkedIn && !note.trim() && (
-            <View style={[styles.card, { backgroundColor: c.warningSurface, borderColor: c.warning + '20' }]}>
-              <Text style={[styles.cardTitle, { color: c.warning }]}>Care notes required</Text>
-              <Text style={{ fontFamily: FONT, fontSize: 13, color: c.muted }}>Record what happened during this call before you can check out.</Text>
+          {/* ── Before you check out checklist ── */}
+          {checkedIn && (
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <Text style={[styles.cardTitle, { color: c.ink }]}>Before you check out</Text>
+              <Text style={{ fontFamily: FONT, fontSize: 12, color: c.muted, marginBottom: spacing.sm }}>Complete all items below to enable check out</Text>
+              {/* Care notes */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xs }}>
+                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: note.trim() ? c.success : c.warningSurface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: note.trim() ? c.success : c.warning + '40' }}>
+                  {note.trim() ? <IconCheck size={12} color={c.inverse} /> : <Text style={{ fontSize: 10, fontWeight: '700', color: c.warning }}>!</Text>}
+                </View>
+                <Text style={{ flex: 1, fontFamily: FONT, fontSize: 13, fontWeight: '500', color: note.trim() ? c.muted : c.ink, textDecorationLine: note.trim() ? 'line-through' : 'none' }}>Care notes submitted</Text>
+                <Text style={{ fontFamily: FONT, fontSize: 11, color: note.trim() ? c.success : c.warning }}>{note.trim() ? 'Done' : 'Required'}</Text>
+              </View>
+              {/* Tasks */}
+              {tasks.length > 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xs }}>
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: allTasksDone ? c.success : c.warningSurface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: allTasksDone ? c.success : c.warning + '40' }}>
+                    {allTasksDone ? <IconCheck size={12} color={c.inverse} /> : <Text style={{ fontSize: 10, fontWeight: '700', color: c.warning }}>!</Text>}
+                  </View>
+                  <Text style={{ flex: 1, fontFamily: FONT, fontSize: 13, fontWeight: '500', color: allTasksDone ? c.muted : c.ink, textDecorationLine: allTasksDone ? 'line-through' : 'none' }}>All tasks completed ({tasks.filter(t => t.done).length}/{tasks.length})</Text>
+                  <Text style={{ fontFamily: FONT, fontSize: 11, color: allTasksDone ? c.success : c.warning }}>{allTasksDone ? 'Done' : `${tasks.filter(t => !t.done).length} left`}</Text>
+                </View>
+              )}
+              {/* Photo */}
+              {requirePhoto && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xs }}>
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: photos.length > 0 ? c.success : c.warningSurface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: photos.length > 0 ? c.success : c.warning + '40' }}>
+                    {photos.length > 0 ? <IconCheck size={12} color={c.inverse} /> : <Text style={{ fontSize: 10, fontWeight: '700', color: c.warning }}>!</Text>}
+                  </View>
+                  <Text style={{ flex: 1, fontFamily: FONT, fontSize: 13, fontWeight: '500', color: photos.length > 0 ? c.muted : c.ink, textDecorationLine: photos.length > 0 ? 'line-through' : 'none' }}>Photo evidence ({photos.length})</Text>
+                  <Text style={{ fontFamily: FONT, fontSize: 11, color: photos.length > 0 ? c.success : c.warning }}>{photos.length > 0 ? 'Done' : 'Required'}</Text>
+                </View>
+              )}
             </View>
           )}
 
-          {/* ── Photo requirement hint ── */}
-          {checkedIn && requirePhoto && photos.length === 0 && (
-            <View style={[styles.card, { backgroundColor: c.warningSurface, borderColor: c.warning + '20' }]}>
-              <Text style={[styles.cardTitle, { color: c.warning }]}>Photo evidence required</Text>
-              <Text style={{ fontFamily: FONT, fontSize: 13, color: c.muted }}>Your organisation requires at least one photo before you can check out.</Text>
-            </View>
-          )}
+
 
           {/* ── Primary action buttons ── */}
           {isOpen && (
