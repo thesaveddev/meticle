@@ -1,11 +1,10 @@
-import { useRef, useState } from 'react'
-import { Animated, Dimensions, PanResponder, Pressable, StyleSheet, Text, View, ActionSheetIOS, Platform, Alert } from 'react-native'
+import { useRef, useState, useEffect } from 'react'
+import { Animated, Dimensions, PanResponder, Pressable, StyleSheet, Text, View, ActionSheetIOS, Platform, Alert, useWindowDimensions } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Linking } from 'react-native'
 import { elevation, radii, spacing, FONT } from '../theme'
 import { hapticWarning } from '../services/haptics'
 
-const SCREEN = Dimensions.get('window')
 const BTN_SIZE = 56
 const PADDING = 12
 const MIN_Y = 60
@@ -19,34 +18,50 @@ function clamp(val: number, min: number, max: number) {
 }
 
 export function EmergencyButton({ managerPhone }: Props) {
+  const { width: screenW, height: screenH } = useWindowDimensions()
   const [pressed, setPressed] = useState(false)
   const isDragging = useRef(false)
 
-  // Current position ref — updated on every move and release
-  const posX = useRef(SCREEN.width - BTN_SIZE - PADDING)
-  const posY = useRef(SCREEN.height - 160)
+  // Current position — start at bottom-right
+  const posX = useRef(screenW - BTN_SIZE - PADDING)
+  const posY = useRef(screenH - 160)
+
+  // Track if we've initialized position after first valid dimensions
+  const initialized = useRef(false)
+
+  // Snap to bottom-right once we have real dimensions
+  useEffect(() => {
+    if (!initialized.current && screenW > 0 && screenH > 0) {
+      initialized.current = true
+      const startX = screenW - BTN_SIZE - PADDING
+      const startY = screenH - 160
+      posX.current = startX
+      posY.current = startY
+      panX.setValue(startX)
+      panY.setValue(startY)
+    }
+  }, [screenW, screenH])
 
   // Position at the start of the current gesture
   const gestureStartX = useRef(0)
   const gestureStartY = useRef(0)
 
-  const panX = useRef(new Animated.Value(posX.current)).current
-  const panY = useRef(new Animated.Value(posY.current)).current
+  const panX = useRef(new Animated.Value(screenW - BTN_SIZE - PADDING)).current
+  const panY = useRef(new Animated.Value(screenH - 160)).current
 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         isDragging.current = false
-        // Snapshot where the button currently is
         gestureStartX.current = posX.current
         gestureStartY.current = posY.current
       },
       onPanResponderMove: (_, gs) => {
         if (Math.abs(gs.dx) > 3 || Math.abs(gs.dy) > 3) isDragging.current = true
 
-        const nx = clamp(gestureStartX.current + gs.dx, PADDING, SCREEN.width - BTN_SIZE - PADDING)
-        const ny = clamp(gestureStartY.current + gs.dy, MIN_Y, SCREEN.height - BTN_SIZE - 40)
+        const nx = clamp(gestureStartX.current + gs.dx, PADDING, screenW - BTN_SIZE - PADDING)
+        const ny = clamp(gestureStartY.current + gs.dy, MIN_Y, screenH - BTN_SIZE - 40)
         posX.current = nx
         posY.current = ny
         panX.setValue(nx)
@@ -54,11 +69,11 @@ export function EmergencyButton({ managerPhone }: Props) {
       },
       onPanResponderRelease: () => {
         if (!isDragging.current) return
-        const nx = clamp(posX.current, PADDING, SCREEN.width - BTN_SIZE - PADDING)
-        const ny = clamp(posY.current, MIN_Y, SCREEN.height - BTN_SIZE - 40)
+        const nx = clamp(posX.current, PADDING, screenW - BTN_SIZE - PADDING)
+        const ny = clamp(posY.current, MIN_Y, screenH - BTN_SIZE - 40)
         // Snap to nearest horizontal edge
         const snapLeft = PADDING
-        const snapRight = SCREEN.width - BTN_SIZE - PADDING
+        const snapRight = screenW - BTN_SIZE - PADDING
         const snapX = (nx - snapLeft) < (snapRight - nx) ? snapLeft : snapRight
         posX.current = snapX
         posY.current = ny
