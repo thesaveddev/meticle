@@ -150,7 +150,7 @@ export function NotificationsScreen({ session, onBack }: Props) {
           keyExtractor={(item) => item.id}
           renderItem={renderNotification}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load() }} tintColor={c.primary} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load() }} tintColor="transparent" />}
           ListEmptyComponent={
             <View style={styles.centered}>
               <Ionicons name="notifications-off-outline" size={48} color={c.borderLight} />

@@ -163,7 +163,7 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
 
   return (
     <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]}>
-      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadProfile() }} tintColor={c.primary} />}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadProfile() }} tintColor="transparent" />}>
         <Pressable onPress={onBack} style={s.backBtn}>
           <Text style={s.backArrow}>←</Text>
           <Text style={s.backText}>Settings</Text>

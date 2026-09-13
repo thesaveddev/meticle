@@ -144,7 +144,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
       </ScrollView>
 
       {/* Tab content */}
-      <ScrollView contentContainerStyle={[styles.tabContent, { padding: spacing.base, paddingBottom: spacing.xxxl }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData() }} tintColor={c.primary} />}>
+      <ScrollView contentContainerStyle={[styles.tabContent, { padding: spacing.base, paddingBottom: spacing.xxxl }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData() }} tintColor="transparent" />}>
         {tab === 'overview' && <OverviewTab person={person} />}
         {tab === 'care' && <CareTab carePlans={carePlans} />}
         {tab === 'body' && (

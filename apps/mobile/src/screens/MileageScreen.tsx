@@ -60,7 +60,7 @@ export function MileageScreen({ session }: Props) {
     <SafeAreaView style={[s.screen, dyn(c).screen]}>
       <ScrollView
         contentContainerStyle={s.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor="transparent" />}
         showsVerticalScrollIndicator={false}
       >
         <Text style={[s.pageTitle, { color: c.ink }]}>Mileage</Text>

@@ -69,7 +69,7 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
         <Text style={[s.headerTitle, { color: c.ink }]}>Availability</Text>
         <View style={{ width: 40 }} />
       </View>
-      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load() }} tintColor={c.primary} />}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load() }} tintColor="transparent" />}>
         <Text style={[s.pageTitle, { color: c.ink }]}>My Availability</Text>
         <Text style={s.subtitle}>Set the days and times you're available for calls.</Text>
 
