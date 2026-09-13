@@ -315,7 +315,7 @@ export function IconTwoPerson({ size = 16, color = '#B45309' }: IconProps) {
 }
 
 /** Miles / car icon — simple car silhouette for mileage */
-export function IconMiles({ size = 16, color = '#16A34A' }: IconProps) {
+export function IconMiles({ size = 16, color = '#166534' }: IconProps) {
   const s = size / 16
   return (
     <View style={{ width: size, height: size }}>
@@ -323,6 +323,51 @@ export function IconMiles({ size = 16, color = '#16A34A' }: IconProps) {
       <View style={{ width: 8 * s, height: 3 * s, borderRadius: 1.5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 1 * s, left: 4 * s }} />
       <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', bottom: 1 * s, left: 2 * s }} />
       <View style={{ width: 3 * s, height: 3 * s, borderRadius: 1.5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', bottom: 1 * s, right: 2 * s }} />
+    </View>
+  )
+}
+
+/** Swap icon — two arrows in a circle */
+export function IconSwap({ size = 16, color = '#6366F1' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      {/* Top arrow pointing right */}
+      <View style={{ width: 10 * s, height: 1.5 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 4 * s, left: 2 * s }} />
+      <View style={{ width: 0, height: 0, borderLeftWidth: 3 * s, borderRightWidth: 3 * s, borderBottomWidth: 4 * s, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: color, position: 'absolute', top: 1.5 * s, right: 2 * s }} />
+      {/* Bottom arrow pointing left */}
+      <View style={{ width: 10 * s, height: 1.5 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', bottom: 4 * s, left: 4 * s }} />
+      <View style={{ width: 0, height: 0, borderLeftWidth: 3 * s, borderRightWidth: 3 * s, borderTopWidth: 4 * s, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: color, position: 'absolute', bottom: 1.5 * s, left: 2 * s }} />
+    </View>
+  )
+}
+
+/** Delay / timer icon — clock with exclamation */
+export function IconDelay({ size = 16, color = '#D97706' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      {/* Clock face */}
+      <View style={{ width: 13 * s, height: 13 * s, borderRadius: 6.5 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 1.5 * s, left: 1.5 * s }} />
+      {/* Hour hand */}
+      <View style={{ width: 1.5 * s, height: 3.5 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 4 * s, left: 7.25 * s }} />
+      {/* Minute hand */}
+      <View style={{ width: 1.5 * s, height: 3.5 * s, backgroundColor: color, borderRadius: 1 * s, position: 'absolute', top: 4 * s, left: 7.25 * s, transform: [{ rotate: '90deg' }] }} />
+    </View>
+  )
+}
+
+/** Report / incident icon — megaphone */
+export function IconReport({ size = 16, color = '#DC2626' }: IconProps) {
+  const s = size / 16
+  return (
+    <View style={{ width: size, height: size }}>
+      {/* Megaphone body */}
+      <View style={{ width: 8 * s, height: 5 * s, borderRadius: 1 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 3 * s, left: 1 * s }} />
+      {/* Bell */}
+      <View style={{ width: 5 * s, height: 7 * s, borderRadius: 1 * s, borderWidth: 1.5 * s, borderColor: color, position: 'absolute', top: 2 * s, right: 1 * s }} />
+      {/* Sound waves */}
+      <View style={{ width: 2 * s, height: 2 * s, borderRadius: 1 * s, backgroundColor: color, position: 'absolute', top: 4 * s, right: 0 }} />
     </View>
   )
 }
