@@ -120,6 +120,13 @@ const swapResponseSchema = z.object({ status: z.enum(['accepted', 'rejected']), 
 router.post('/swap-requests', requireRole(...fieldRoles), validate(swapSchema), asyncHandler(HomecareController.createSwapRequest));
 router.get('/swap-requests', requireRole(...fieldRoles), asyncHandler(HomecareController.listSwapRequests));
 router.patch('/swap-requests/:id/respond', requireRole(...fieldRoles), validate(swapResponseSchema), asyncHandler(HomecareController.respondSwapRequest));
+
+// Ride sharing
+const rideShareSchema = z.object({ visit_id: uuid, target_visit_id: uuid, message: z.string().max(500).nullish() });
+router.post('/ride-share-requests', requireRole(...fieldRoles), validate(rideShareSchema), asyncHandler(HomecareController.createRideShareRequest));
+router.get('/ride-share-requests', requireRole(...fieldRoles), asyncHandler(HomecareController.listRideShareRequests));
+router.patch('/ride-share-requests/:id/respond', requireRole(...fieldRoles), validate(swapResponseSchema), asyncHandler(HomecareController.respondRideShareRequest));
+
 router.get('/notifications', requireRole(...fieldRoles), asyncHandler(HomecareController.getCarerNotifications));
 router.post('/notifications/read', requireRole(...fieldRoles), asyncHandler(HomecareController.markNotificationsRead));
 router.get('/week-visits', requireRole(...fieldRoles), asyncHandler(HomecareController.getWeekVisits));

@@ -862,4 +862,112 @@ export class HomecareController {
       scheduled: scheduled.rows,
     });
   }
+
+  /* ─── Ride Sharing ─────────────────────────────────────── */
+
+  static async listRideShareRequests(req: Request, res: Response) {
+    const oid = orgId(req);
+    const uid = userId(req);
+    const staffResult = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [uid]);
+    const staffId = staffResult.rows[0]?.id;
+
+    const result = await query(
+      `SELECT rsr.*,
+              hv.label AS visit_label, hv.scheduled_start, hv.scheduled_end,
+              pe1.first_name || ' ' || pe1.last_name AS client_name,
+              pe2.first_name || ' ' || pe2.last_name AS target_client_name,
+              sp1.first_name || ' ' || sp1.last_name AS carer_name,
+              sp2.first_name || ' ' || sp2.last_name AS target_carer_name
+       FROM ride_share_requests rsr
+       JOIN homecare_visits hv ON hv.id = rsr.visit_id
+       JOIN people pe1 ON pe1.id = hv.person_id
+       JOIN staff_profiles sp1 ON sp1.id = hv.assigned_staff_id
+       LEFT JOIN homecare_visits hv2 ON hv2.id = rsr.target_visit_id
+       LEFT JOIN people pe2 ON pe2.id = hv2.person_id
+       LEFT JOIN staff_profiles sp2 ON sp2.id = hv2.assigned_staff_id
+       WHERE rsr.organization_id = $1
+         AND (rsr.requested_by = $2 OR hv2.assigned_staff_id = $3)
+       ORDER BY rsr.created_at DESC LIMIT 50`,
+      [oid, uid, staffId]
+    );
+    res.json(result.rows);
+  }
+
+  static async createRideShareRequest(req: Request, res: Response) {
+    const oid = orgId(req);
+    const uid = userId(req);
+    const { visit_id, target_visit_id, message } = req.body;
+    if (!visit_id || !target_visit_id) throw new AppError(400, 'visit_id and target_visit_id required');
+    if (visit_id === target_visit_id) throw new AppError(400, 'Cannot share a ride with yourself');
+
+    // Verify both visits exist and belong to this org
+    const v1 = await query('SELECT * FROM homecare_visits WHERE id = $1 AND organization_id = $2', [visit_id, oid]);
+    const v2 = await query('SELECT * FROM homecare_visits WHERE id = $1 AND organization_id = $2', [target_visit_id, oid]);
+    if (!v1.rows.length || !v2.rows.length) throw new AppError(404, 'Visit not found');
+
+    // Check for existing request on either visit
+    const existing = await query(
+      `SELECT id FROM ride_share_requests
+       WHERE organization_id = $1 AND status = 'pending'
+         AND (visit_id = $2 OR target_visit_id = $2 OR visit_id = $3 OR target_visit_id = $3)`,
+      [oid, visit_id, target_visit_id]
+    );
+    if (existing.rows.length) throw new AppError(409, 'A ride share request already exists for one of these visits');
+
+    const result = await query(
+      `INSERT INTO ride_share_requests (organization_id, visit_id, target_visit_id, requested_by, message)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [oid, visit_id, target_visit_id, uid, message || null]
+    );
+
+    // Notify target carer
+    const targetVisit = v2.rows[0];
+    if (targetVisit.assigned_staff_id) {
+      const targetUser = await query('SELECT user_id FROM staff_profiles WHERE id = $1', [targetVisit.assigned_staff_id]);
+      if (targetUser.rows.length) {
+        const reqName = await query('SELECT COALESCE(sp.first_name, u.email) as name FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id WHERE u.id = $1', [uid]);
+        const msg = `${reqName.rows[0]?.name || 'A carer'} wants to share a ride for the ${v1.rows[0].label || v1.rows[0].visit_type} call`;
+        const { sendPushToUser } = await import('../notifications/push.service');
+        sendPushToUser(targetUser.rows[0].user_id, { type: 'ride_share_request', title: 'Ride share request', body: msg, url: '/homecare' }, 'homecare').catch(() => {});
+      }
+    }
+
+    audit(req, 'RIDE_SHARE_REQUEST', 'ride_share_request', result.rows[0].id, result.rows[0]);
+    res.status(201).json(result.rows[0]);
+  }
+
+  static async respondRideShareRequest(req: Request, res: Response) {
+    const oid = orgId(req);
+    const uid = userId(req);
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!['accepted', 'declined'].includes(status)) throw new AppError(400, 'Status must be accepted or declined');
+
+    const reqResult = await query(
+      'SELECT * FROM ride_share_requests WHERE id = $1 AND organization_id = $2', [id, oid]
+    );
+    if (!reqResult.rows.length) throw new AppError(404, 'Request not found');
+    const rsr = reqResult.rows[0];
+    if (rsr.status !== 'pending') throw new AppError(409, 'Request already responded to');
+
+    await query(
+      `UPDATE ride_share_requests SET status = $1, responded_by = $2, responded_at = NOW(), updated_at = NOW() WHERE id = $3`,
+      [status, uid, id]
+    );
+
+    if (status === 'accepted') {
+      // Link the visits and split mileage 50/50
+      await query('UPDATE homecare_visits SET ride_share_id = $1, ride_share_split_pct = 50 WHERE id = $2', [rsr.id, rsr.visit_id]);
+      await query('UPDATE homecare_visits SET ride_share_id = $1, ride_share_split_pct = 50 WHERE id = $2', [rsr.id, rsr.target_visit_id]);
+    }
+
+    // Notify requester
+    const staffName = await query('SELECT COALESCE(sp.first_name, u.email) as name FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id WHERE u.id = $1', [uid]);
+    const msg = `${staffName.rows[0]?.name || 'Someone'} ${status}d your ride share request`;
+    const { sendPushToUser } = await import('../notifications/push.service');
+    sendPushToUser(rsr.requested_by, { type: 'ride_share_response', title: `Ride share ${status}`, body: msg, url: '/homecare' }, 'homecare').catch(() => {});
+
+    audit(req, 'RIDE_SHARE_RESPONSE', 'ride_share_requests', id, { status });
+    res.json({ message: `Ride share ${status}` });
+  }
 }

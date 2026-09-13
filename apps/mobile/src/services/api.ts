@@ -482,3 +482,22 @@ export async function rejectTimesheet(token: string, timesheetId: string, reason
     body: JSON.stringify({ status: 'rejected', rejection_reason: reason }),
   }, token)
 }
+
+// ── Ride Sharing ──
+export async function listRideShareRequests(token: string): Promise<any[]> {
+  return request('/homecare/ride-share-requests', {}, token)
+}
+
+export async function createRideShareRequest(token: string, visitId: string, targetVisitId: string, message?: string): Promise<any> {
+  return request('/homecare/ride-share-requests', {
+    method: 'POST',
+    body: JSON.stringify({ visit_id: visitId, target_visit_id: targetVisitId, message }),
+  }, token)
+}
+
+export async function respondRideShareRequest(token: string, requestId: string, status: 'accepted' | 'declined'): Promise<any> {
+  return request(`/homecare/ride-share-requests/${requestId}/respond`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  }, token)
+}
