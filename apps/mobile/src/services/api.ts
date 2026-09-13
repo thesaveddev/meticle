@@ -455,3 +455,30 @@ export async function updateTimesheet(token: string, timesheetId: string, data: 
     body: JSON.stringify(data),
   }, token)
 }
+
+// ── Carer Totals (manager) ──
+export async function getMonthlyCarerTotals(token: string, from: string, to: string): Promise<any[]> {
+  return request(`/homecare/timesheets/monthly-totals?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {}, token)
+}
+
+export async function getCarerTimesheetDetail(token: string, staffId: string, from: string, to: string): Promise<any[]> {
+  return request(`/homecare/timesheets/carer/${staffId}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {}, token)
+}
+
+export async function getPendingTimesheets(token: string, from: string, to: string): Promise<any[]> {
+  return request(`/homecare/timesheets/pending?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {}, token)
+}
+
+export async function approveTimesheet(token: string, timesheetId: string): Promise<any> {
+  return request(`/homecare/timesheets/${timesheetId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'approved' }),
+  }, token)
+}
+
+export async function rejectTimesheet(token: string, timesheetId: string, reason?: string): Promise<any> {
+  return request(`/homecare/timesheets/${timesheetId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'rejected', rejection_reason: reason }),
+  }, token)
+}
