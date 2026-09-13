@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native'
-import { useTheme } from '../theme'
+import { useTheme, spacing, FONT } from '../theme'
 import type { AuthSession } from '../types'
 import { getMyNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead } from '../services/api'
 import { hapticLight } from '../services/haptics'
@@ -168,11 +168,11 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12, borderBottomWidth: 1,
+    paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1,
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  headerTitle: { fontSize: 18, fontFamily: 'Inter-SemiBold' },
+  headerTitle: { fontSize: 17, fontWeight: '700', fontFamily: FONT, letterSpacing: -0.3 },
   headerBadge: { fontSize: 11, fontFamily: 'Inter-Bold', color: '#FFFFFF', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 10, overflow: 'hidden' },
   markAllBtn: { width: 80, alignItems: 'flex-end' },
   markAllText: { fontSize: 13, fontFamily: 'Inter-Medium' },
