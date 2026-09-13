@@ -1,267 +1,392 @@
-import { useEffect, useState, useCallback } from 'react'
-import { RefreshControl, FlatList, StyleSheet, Text, View, Pressable, TextInput, Alert, ActivityIndicator, Modal } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useState, useCallback, useEffect, useMemo } from 'react'
+import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl, TextInput, Modal } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
-import { useDynamicStyles } from '../utils/patchStaticStyles'
-import { dyn } from '../utils/dynamicStyles'
-import type { AuthSession } from '../types'
-import { updateTimesheet } from '../services/api'
-import { hapticLight } from '../services/haptics'
+import { useAppColors, typography, spacing, radii, elevation } from '../theme'
+import { getPendingTimesheets, approveTimesheet, rejectTimesheet } from '../services/api'
+import { hapticLight, hapticSuccess, hapticWarning } from '../services/haptics'
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://meticlecare.com/api'
+/* ── Helpers ── */
+const money = (p: number | null | undefined) => p == null ? '—' : `£${(Number(p) / 100).toFixed(2)}`
+const fmtHours = (m: number | null | undefined) => {
+  const mins = Number(m || 0)
+  const h = Math.floor(mins / 60)
+  const min = mins % 60
+  return h > 0 ? `${h}h ${min}m` : `${min}m`
+}
+const fmtMiles = (m: number | null | undefined) => m == null ? '—' : `${Number(m).toFixed(1)} mi`
+const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', weekday: 'short' })
+const fmtTime = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 
+function getMonthRange(monthsBack = 0) {
+  const now = new Date()
+  const from = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1)
+  const to = new Date(now.getFullYear(), now.getMonth() - monthsBack + 1, 0, 23, 59, 59)
+  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }
+}
+
+/* ── Props ── */
 interface Props {
-  session: AuthSession
-  onBack?: () => void
+  session: { accessToken: string }
+  onBack: () => void
 }
 
-function money(pence: number | null | undefined) {
-  return pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
-}
-
-function mins(h: number | null | undefined) {
-  const m = Number(h || 0)
-  const hrs = Math.floor(m / 60)
-  const rem = m % 60
-  return hrs > 0 ? `${hrs}h ${rem}m` : `${rem}m`
-}
-
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  submitted: { bg: '#FEF3C7', text: '#92400E' },
-  approved: { bg: '#DCFCE7', text: '#166534' },
-  rejected: { bg: '#FEE2E2', text: '#991B1B' },
-  draft: { bg: '#F3F4F6', text: '#6B7280' },
-}
-
-function getAvatarColor(name: string) {
-  const AVATAR_COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444']
-  let hash = 0
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
-
+/* ════════════════════════════════════════════════════════════════ */
 export function TimesheetsScreen({ session, onBack }: Props) {
   const c = useAppColors()
-  const s = useDynamicStyles(styles)
+  const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending')
   const [timesheets, setTimesheets] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [filter, setFilter] = useState<'submitted' | 'all'>('submitted')
+  const [search, setSearch] = useState('')
   const [processing, setProcessing] = useState<string | null>(null)
 
-  const load = useCallback(async (refresh = false) => {
-    if (refresh) setRefreshing(true)
+  /* Reject modal */
+  const [rejectModal, setRejectModal] = useState<{ id: string; name: string } | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+
+  const range = useMemo(() => getMonthRange(), [])
+
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
-      const params = filter === 'submitted' ? '?status=submitted' : ''
-      const res = await fetch(`${API_BASE}/homecare/timesheets${params}`, {
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-      })
-      const data = res.ok ? await res.json() : []
+      const data = await getPendingTimesheets(session.accessToken, range.from, range.to)
       setTimesheets(Array.isArray(data) ? data : [])
     } catch {} finally { setLoading(false); setRefreshing(false) }
-  }, [session.accessToken, filter])
+  }, [session.accessToken, range.from, range.to])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { loadData() }, [loadData])
 
-  const handleApprove = async (ts: any) => {
-    hapticLight()
-    Alert.alert('Approve timesheet', `Approve ${mins(ts.work_minutes)} work for ${ts.staff_name}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Approve', onPress: async () => {
-        setProcessing(ts.id)
-        try {
-          await updateTimesheet(session.accessToken, ts.id, { status: 'approved' })
-          setTimesheets(prev => prev.map(t => t.id === ts.id ? { ...t, status: 'approved' } : t))
-        } catch (e: any) {
-          Alert.alert('Error', e.message || 'Failed to approve')
-        } finally { setProcessing(null) }
-      }}
-    ])
-  }
+  /* ── Filtered + searched list ── */
+  const filtered = useMemo(() => {
+    let list = timesheets
+    if (filter === 'pending') list = list.filter(t => t.timesheet_status === 'submitted')
+    else if (filter === 'approved') list = list.filter(t => t.timesheet_status === 'approved')
+    else if (filter === 'rejected') list = list.filter(t => t.timesheet_status === 'rejected')
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(t => (t.staff_name || '').toLowerCase().includes(q) || (t.person_name || '').toLowerCase().includes(q) || (t.visit_label || '').toLowerCase().includes(q))
+    }
+    return list
+  }, [timesheets, filter, search])
 
-  const handleReject = async (ts: any) => {
-    hapticLight()
-    Alert.alert('Reject timesheet', `Reject ${ts.staff_name}'s timesheet?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Reject', style: 'destructive', onPress: async () => {
-        setProcessing(ts.id)
-        try {
-          await updateTimesheet(session.accessToken, ts.id, { status: 'rejected', rejection_reason: 'Rejected by manager' })
-          setTimesheets(prev => prev.map(t => t.id === ts.id ? { ...t, status: 'rejected' } : t))
-        } catch (e: any) {
-          Alert.alert('Error', e.message || 'Failed to reject')
-        } finally { setProcessing(null) }
-      } },
-    ])
-  }
+  /* ── Summary stats ── */
+  const pendingCount = timesheets.filter(t => t.timesheet_status === 'submitted').length
+  const totalPay = filtered.reduce((s, t) => s + Number(t.gross_pay_pence || 0), 0)
+  const totalWork = filtered.reduce((s, t) => s + Number(t.work_minutes || 0), 0)
+  const totalTravel = filtered.reduce((s, t) => s + Number(t.paid_travel_minutes || 0), 0)
+  const totalMiles = filtered.reduce((s, t) => s + Number(t.mileage_miles || 0), 0)
 
-  const filtered = filter === 'submitted'
-    ? timesheets.filter(t => t.status === 'submitted')
-    : timesheets
+  /* ── Approve ── */
+  const handleApprove = useCallback(async (ts: any) => {
+    hapticWarning()
+    setProcessing(ts.timesheet_id || ts.id)
+    try {
+      await approveTimesheet(session.accessToken, ts.timesheet_id || ts.id)
+      hapticSuccess()
+      setTimesheets(prev => prev.map(t => (t.timesheet_id || t.id) === (ts.timesheet_id || ts.id) ? { ...t, timesheet_status: 'approved' } : t))
+    } catch (e: any) {
+      /* silent */ 
+    } finally { setProcessing(null) }
+  }, [session.accessToken])
 
-  const renderItem = ({ item }: { item: any }) => {
-    const sc = STATUS_COLORS[item.status] || STATUS_COLORS.draft
-    const color = getAvatarColor(item.staff_name || '')
-    const date = item.scheduled_start ? new Date(item.scheduled_start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''
+  /* ── Reject ── */
+  const handleReject = useCallback(async () => {
+    if (!rejectModal) return
+    hapticWarning()
+    setProcessing(rejectModal.id)
+    try {
+      await rejectTimesheet(session.accessToken, rejectModal.id, rejectReason || undefined)
+      hapticSuccess()
+      setTimesheets(prev => prev.map(t => (t.timesheet_id || t.id) === rejectModal.id ? { ...t, timesheet_status: 'rejected' } : t))
+      setRejectModal(null)
+      setRejectReason('')
+    } catch (e: any) {
+      /* silent */
+    } finally { setProcessing(null) }
+  }, [session.accessToken, rejectModal, rejectReason])
 
-    return (
-      <View style={[s.card, { backgroundColor: c.surface }]}>
-        <View style={s.cardHeader}>
-          <View style={s.staffInfo}>
-            <View style={[s.avatar, { backgroundColor: color }]}>
-              <Text style={s.avatarText}>{(item.staff_name || '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}</Text>
-            </View>
-            <View>
-              <Text style={[s.staffName, { color: c.ink }]} numberOfLines={1}>{item.staff_name}</Text>
-              <Text style={[s.visitMeta, { color: c.muted }]}>{item.label} · {item.person_name}</Text>
-              <Text style={[s.visitDate, { color: c.subtle }]}>{date}</Text>
-            </View>
-          </View>
-          <View style={[s.statusBadge, { backgroundColor: sc.bg }]}>
-            <Text style={[s.statusText, { color: sc.text }]}>{item.status}</Text>
-          </View>
-        </View>
+  /* ── Filter tabs ── */
+  const tabs = [
+    { key: 'pending' as const, label: 'Pending', count: pendingCount },
+    { key: 'all' as const, label: 'All', count: timesheets.length },
+    { key: 'approved' as const, label: 'Approved', count: timesheets.filter(t => t.timesheet_status === 'approved').length },
+    { key: 'rejected' as const, label: 'Rejected', count: timesheets.filter(t => t.timesheet_status === 'rejected').length },
+  ]
 
-        {/* Breakdown */}
-        <View style={[s.breakdown, { borderTopColor: c.borderLight }]}>
-          <View style={s.breakdownItem}>
-            <Text style={[s.breakdownLabel, { color: c.muted }]}>Work</Text>
-            <Text style={[s.breakdownValue, { color: c.ink }]}>{mins(item.work_minutes)}</Text>
-          </View>
-          <View style={s.breakdownItem}>
-            <Text style={[s.breakdownLabel, { color: c.muted }]}>Travel</Text>
-            <Text style={[s.breakdownValue, { color: c.ink }]}>{mins(item.paid_travel_minutes)}</Text>
-          </View>
-          <View style={s.breakdownItem}>
-            <Text style={[s.breakdownLabel, { color: c.muted }]}>Miles</Text>
-            <Text style={[s.breakdownValue, { color: c.ink }]}>{Number(item.mileage_miles || 0).toFixed(1)}</Text>
-          </View>
-          <View style={[s.breakdownItem, { alignItems: 'flex-end' }]}>
-            <Text style={[s.breakdownLabel, { color: c.muted }]}>Gross pay</Text>
-            <Text style={[s.breakdownPay, { color: c.primary }]}>{money(item.gross_pay_pence)}</Text>
-          </View>
-        </View>
-
-        {/* Actions */}
-        {item.status === 'submitted' && (
-          <View style={[s.actions, { borderTopColor: c.borderLight }]}>
-            <Pressable
-              onPress={() => handleReject(item)}
-              disabled={processing === item.id}
-              style={[s.rejectBtn, { borderColor: c.danger || '#DC2626' }]}
-            >
-              {processing === item.id ? (
-                <ActivityIndicator size={12} color={c.danger || '#DC2626'} />
-              ) : (
-                <Text style={[s.rejectText, { color: c.danger || '#DC2626' }]}>Reject</Text>
-              )}
-            </Pressable>
-            <Pressable
-              onPress={() => handleApprove(item)}
-              disabled={processing === item.id}
-              style={[s.approveBtn, { backgroundColor: c.success }]}
-            >
-              {processing === item.id ? (
-                <ActivityIndicator size={12} color="#FFFFFF" />
-              ) : (
-                <Text style={s.approveText}>Approve</Text>
-              )}
-            </Pressable>
-          </View>
-        )}
-      </View>
-    )
+  const filterColors: Record<string, { bg: string; text: string }> = {
+    pending: { bg: '#FEF3C7', text: '#92400E' },
+    approved: { bg: '#DCFCE7', text: '#166534' },
+    rejected: { bg: '#FEE2E2', text: '#991B1B' },
+    draft: { bg: '#F3F4F6', text: '#6B7280' },
   }
 
   return (
-    <SafeAreaView style={[s.screen, dyn(c).screen]} edges={['top']}>
-      <View style={[s.header, { backgroundColor: c.surface, borderBottomColor: c.border }]}>
-        <Pressable onPress={onBack} style={s.headerBtn}>
-          <Ionicons name="arrow-back" size={22} color={c.ink} />
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      {/* ── Header ── */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm }}>
+        <Pressable onPress={onBack} style={{ marginRight: spacing.md, padding: spacing.xs }}>
+          <Ionicons name="chevron-back" size={24} color={c.ink} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={[s.headerTitle, { color: c.ink }]}>Timesheets</Text>
-          <Text style={[s.headerSub, { color: c.muted }]}>{timesheets.filter(t => t.status === 'submitted').length} pending</Text>
+          <Text style={{ fontFamily: typography.title.fontFamily, fontSize: typography.title.fontSize, fontWeight: '800', color: c.ink }}>Timesheets</Text>
+          <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: c.muted }}>{pendingCount} pending review</Text>
         </View>
-        <View style={{ width: 44 }} />
       </View>
 
-      <View style={[s.filterBar, { backgroundColor: c.surface, borderBottomColor: c.border }]}>
-        {(['submitted', 'all'] as const).map(f => (
+      {/* ── Filter tabs ── */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: spacing.xs }}>
+        {tabs.map(tab => (
           <Pressable
-            key={f}
-            onPress={() => { hapticLight(); setFilter(f) }}
-            style={[s.filterPill, { backgroundColor: filter === f ? c.primary : c.surfaceAlt }]}
+            key={tab.key}
+            onPress={() => { hapticLight(); setFilter(tab.key) }}
+            style={({ pressed }) => [{
+              flexDirection: 'row', alignItems: 'center', gap: 4,
+              backgroundColor: filter === tab.key ? c.primary : c.surface,
+              borderRadius: 20, paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+              borderWidth: 1, borderColor: filter === tab.key ? c.primary : c.border,
+            }, pressed && { opacity: 0.8 }]}
           >
-            <Text style={[s.filterText, { color: filter === f ? '#FFFFFF' : c.muted }]}>
-              {f === 'submitted' ? 'Pending' : 'All'}
+            <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 13, fontWeight: '600', color: filter === tab.key ? '#FFFFFF' : c.ink }}>
+              {tab.label}
             </Text>
+            {tab.count > 0 && (
+              <View style={{ backgroundColor: filter === tab.key ? 'rgba(255,255,255,0.3)' : (filterColors[tab.key]?.bg || c.surfaceAlt), borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 }}>
+                <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 11, fontWeight: '700', color: filter === tab.key ? '#FFFFFF' : (filterColors[tab.key]?.text || c.muted) }}>{tab.count}</Text>
+              </View>
+            )}
           </Pressable>
         ))}
+      </ScrollView>
+
+      {/* ── Search ── */}
+      <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderRadius: radii.md, borderWidth: 1, borderColor: c.border, paddingHorizontal: spacing.md, height: 40 }}>
+          <Ionicons name="search-outline" size={18} color={c.muted} />
+          <TextInput
+            placeholder="Search by carer or client..."
+            placeholderTextColor={c.muted}
+            value={search}
+            onChangeText={setSearch}
+            style={{ flex: 1, marginLeft: spacing.sm, fontFamily: typography.body.fontFamily, fontSize: 14, color: c.ink, padding: 0 }}
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch('')} hitSlop={12}>
+              <Ionicons name="close-circle" size={18} color={c.muted} />
+            </Pressable>
+          )}
+        </View>
       </View>
 
-      {loading ? (
-        <View style={s.centered}><ActivityIndicator size="small" color={c.primary} /></View>
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={item => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={{ padding: spacing.base, gap: spacing.sm }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor="transparent" />}
-          ListEmptyComponent={
-            <View style={s.emptyWrap}>
-              <Ionicons name="receipt-outline" size={48} color={c.border} />
-              <Text style={[s.emptyTitle, { color: c.ink }]}>No timesheets</Text>
-              <Text style={[s.emptySub, { color: c.muted }]}>{filter === 'submitted' ? 'All timesheets have been reviewed' : 'No timesheets in the system'}</Text>
+      {/* ── Summary stats (when filtering) ── */}
+      {filter !== 'pending' && filtered.length > 0 && (
+        <View style={{ flexDirection: 'row', paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: spacing.xs }}>
+          {[
+            { label: 'Visits', value: String(filtered.length), color: c.primary },
+            { label: 'Work', value: fmtHours(totalWork), color: c.success },
+            { label: 'Travel', value: fmtHours(totalTravel), color: '#3B82F6' },
+            { label: 'Pay', value: money(totalPay), color: '#8B5CF6' },
+          ].map(s => (
+            <View key={s.label} style={{ flex: 1, backgroundColor: c.surface, borderRadius: radii.md, padding: spacing.sm, alignItems: 'center', borderWidth: 1, borderColor: c.border }}>
+              <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 15, fontWeight: '800', color: s.color }}>{s.value}</Text>
+              <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 10, color: c.muted }}>{s.label}</Text>
             </View>
-          }
-        />
+          ))}
+        </View>
       )}
-    </SafeAreaView>
+
+      {/* ── List ── */}
+      {loading ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={c.primary} />
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.sm }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(true) }} tintColor={c.primary} />}
+        >
+          {filtered.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingVertical: spacing.xxl * 2 }}>
+              <Ionicons name={filter === 'pending' ? 'checkmark-circle-outline' : 'receipt-outline'} size={48} color={filter === 'pending' ? c.success : c.border} />
+              <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 16, fontWeight: '600', color: c.ink, marginTop: spacing.md }}>
+                {filter === 'pending' ? 'All caught up' : 'No timesheets found'}
+              </Text>
+              <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 13, color: c.muted, marginTop: spacing.xs, textAlign: 'center', maxWidth: 240 }}>
+                {filter === 'pending' ? 'No timesheets are waiting for your approval' : search ? 'Try a different search term' : 'No timesheets match this filter'}
+              </Text>
+            </View>
+          ) : (
+            filtered.map((ts: any) => {
+              const tsId = ts.timesheet_id || ts.id
+              const sc = filterColors[ts.timesheet_status] || filterColors.pending
+              const isProcessing = processing === tsId
+              const tasksDone = Number(ts.tasks_completed || 0)
+              const tasksTotal = Number(ts.tasks_total || 0)
+
+              return (
+                <View key={tsId} style={{ backgroundColor: c.surface, borderRadius: radii.lg, overflow: 'hidden', borderWidth: 1, borderColor: c.border }}>
+                  {/* ── Card header ── */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md }}>
+                    {/* Avatar */}
+                    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.primarySurface, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 16, fontWeight: '700', color: c.primary }}>
+                        {(ts.staff_name || '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: typography.body.fontFamily, fontWeight: '700', fontSize: 15, color: c.ink }} numberOfLines={1}>{ts.staff_name}</Text>
+                      <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: c.muted, marginTop: 1 }} numberOfLines={1}>{ts.visit_label || ts.visit_type} · {ts.person_name}</Text>
+                    </View>
+                    <View style={{ backgroundColor: sc.bg, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 11, fontWeight: '600', color: sc.text, textTransform: 'capitalize' }}>
+                        {ts.timesheet_status || 'draft'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* ── Date and time ── */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, gap: spacing.md, marginBottom: spacing.sm }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons name="calendar-outline" size={14} color={c.muted} />
+                      <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: c.muted }}>{ts.scheduled_start ? fmtDate(ts.scheduled_start) : '—'}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons name="time-outline" size={14} color={c.muted} />
+                      <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: c.muted }}>
+                        {ts.scheduled_start ? fmtTime(ts.scheduled_start) : '—'} — {ts.scheduled_end ? fmtTime(ts.scheduled_end) : '—'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* ── Breakdown chips ── */}
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: spacing.md, paddingBottom: spacing.sm }}>
+                    {[
+                      { label: 'Work', value: fmtHours(ts.work_minutes), bg: '#F0FDF4', color: '#166534' },
+                      { label: 'Travel', value: fmtHours(ts.paid_travel_minutes), bg: '#EFF6FF', color: '#1E40AF' },
+                      { label: 'Miles', value: fmtMiles(ts.mileage_miles), bg: '#F5F3FF', color: '#5B21B6' },
+                      { label: 'Tasks', value: tasksTotal > 0 ? `${tasksDone}/${tasksTotal}` : '—', bg: tasksTotal > 0 && tasksDone === tasksTotal ? '#F0FDF4' : tasksTotal > 0 ? '#FFFBEB' : '#F3F4F6', color: tasksTotal > 0 && tasksDone === tasksTotal ? '#166534' : tasksTotal > 0 ? '#92400E' : '#6B7280' },
+                    ].map(chip => (
+                      <View key={chip.label} style={{ backgroundColor: chip.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 11, fontWeight: '500', color: chip.color }}>{chip.label}: {chip.value}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* ── Care notes preview ── */}
+                  {ts.visit_notes && (
+                    <View style={{ paddingHorizontal: spacing.md, paddingBottom: spacing.sm }}>
+                      <View style={{ backgroundColor: c.bg, borderRadius: radii.sm, padding: spacing.sm, borderLeftWidth: 3, borderLeftColor: c.primary }}>
+                        <Text numberOfLines={2} style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: c.muted, lineHeight: 18 }}>{ts.visit_notes}</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* ── Pay row ── */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.md, paddingBottom: spacing.sm }}>
+                    <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 11, color: c.muted }}>
+                      {ts.actual_check_in && ts.actual_check_out ? `${fmtTime(ts.actual_check_in)} → ${fmtTime(ts.actual_check_out)}` : 'Not checked in'}
+                    </Text>
+                    <Text style={{ fontFamily: typography.body.fontFamily, fontWeight: '800', fontSize: 16, color: c.primary }}>{money(ts.gross_pay_pence)}</Text>
+                  </View>
+
+                  {/* ── Actions ── */}
+                  {ts.timesheet_status === 'submitted' && (
+                    <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.border, padding: spacing.sm, gap: spacing.sm }}>
+                      <Pressable
+                        onPress={() => {
+                          hapticLight()
+                          setRejectModal({ id: tsId, name: ts.staff_name })
+                        }}
+                        disabled={isProcessing}
+                        style={({ pressed }) => [{
+                          flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+                          backgroundColor: c.surface, borderRadius: radii.md, paddingVertical: spacing.sm + 2,
+                          borderWidth: 1, borderColor: '#DC2626',
+                        }, pressed && { opacity: 0.7, transform: [{ scale: 0.98 }] }]}
+                      >
+                        <Ionicons name="close-circle-outline" size={16} color="#DC2626" />
+                        <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 13, fontWeight: '600', color: '#DC2626' }}>Reject</Text>
+                      </Pressable>
+
+                      <Pressable
+                        onPress={() => handleApprove(ts)}
+                        disabled={isProcessing}
+                        style={({ pressed }) => [{
+                          flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+                          backgroundColor: c.success, borderRadius: radii.md, paddingVertical: spacing.sm + 2,
+                        }, pressed && { opacity: 0.7, transform: [{ scale: 0.98 }] }]}
+                      >
+                        {isProcessing ? (
+                          <ActivityIndicator size={14} color="#FFFFFF" />
+                        ) : (
+                          <>
+                            <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
+                            <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 13, fontWeight: '600', color: '#FFFFFF' }}>Approve</Text>
+                          </>
+                        )}
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+              )
+            })
+          )}
+        </ScrollView>
+      )}
+
+      {/* ── Reject modal ── */}
+      <Modal visible={!!rejectModal} transparent animationType="fade" onRequestClose={() => { setRejectModal(null); setRejectReason('') }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: spacing.lg }}>
+          <View style={{ backgroundColor: c.surface, borderRadius: radii.xl, padding: spacing.lg, width: '100%', maxWidth: 360, ...elevation.lg }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="close-circle" size={20} color="#DC2626" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 17, fontWeight: '700', color: c.ink }}>Reject Timesheet</Text>
+                <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 12, color: c.muted }}>{rejectModal?.name}</Text>
+              </View>
+            </View>
+
+            <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 13, color: c.muted, marginBottom: spacing.sm }}>
+              Reason for rejection (optional)
+            </Text>
+            <TextInput
+              value={rejectReason}
+              onChangeText={setRejectReason}
+              placeholder="e.g. Incorrect hours logged"
+              placeholderTextColor={c.muted}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              style={{
+                backgroundColor: c.bg, borderRadius: radii.md, borderWidth: 1, borderColor: c.border,
+                padding: spacing.md, fontFamily: typography.body.fontFamily, fontSize: 14, color: c.ink,
+                minHeight: 80, marginBottom: spacing.lg,
+              }}
+            />
+
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Pressable
+                onPress={() => { setRejectModal(null); setRejectReason('') }}
+                style={({ pressed }) => [{ flex: 1, backgroundColor: c.bg, borderRadius: radii.md, paddingVertical: spacing.sm + 2, alignItems: 'center', borderWidth: 1, borderColor: c.border }, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 14, fontWeight: '600', color: c.ink }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleReject}
+                disabled={processing === rejectModal?.id}
+                style={({ pressed }) => [{ flex: 1, backgroundColor: '#DC2626', borderRadius: radii.md, paddingVertical: spacing.sm + 2, alignItems: 'center' }, pressed && { opacity: 0.7 }]}
+              >
+                {processing === rejectModal?.id ? (
+                  <ActivityIndicator size={14} color="#FFFFFF" />
+                ) : (
+                  <Text style={{ fontFamily: typography.body.fontFamily, fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>Reject</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   )
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  header: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm, borderBottomWidth: 1,
-  },
-  headerBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { ...typography.title, fontSize: 17 },
-  headerSub: { fontFamily: FONT, fontSize: 12, marginTop: 1 },
-
-  filterBar: { flexDirection: 'row', paddingHorizontal: spacing.base, paddingVertical: spacing.sm, gap: spacing.sm, borderBottomWidth: 1 },
-  filterPill: { borderRadius: 14, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
-  filterText: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
-
-  card: { borderRadius: radii.lg, overflow: 'hidden', ...elevation.sm },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: spacing.base },
-  staffInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', fontFamily: FONT },
-  staffName: { fontFamily: FONT, fontSize: 15, fontWeight: '600' },
-  visitMeta: { fontFamily: FONT, fontSize: 12, marginTop: 1 },
-  visitDate: { fontFamily: FONT, fontSize: 11, marginTop: 2 },
-  statusBadge: { borderRadius: 10, paddingHorizontal: spacing.sm, paddingVertical: 3 },
-  statusText: { fontFamily: FONT, fontSize: 11, fontWeight: '600', textTransform: 'capitalize' as const },
-
-  breakdown: { flexDirection: 'row', paddingHorizontal: spacing.base, paddingVertical: spacing.sm, borderTopWidth: 1 },
-  breakdownItem: { flex: 1 },
-  breakdownLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '500', textTransform: 'uppercase' as const, letterSpacing: 0.5 },
-  breakdownValue: { fontFamily: FONT, fontSize: 13, fontWeight: '600', marginTop: 2 },
-  breakdownPay: { fontFamily: 'System', fontSize: 15, fontWeight: '700', marginTop: 2 },
-
-  actions: { flexDirection: 'row', paddingHorizontal: spacing.base, paddingVertical: spacing.sm, borderTopWidth: 1, gap: spacing.sm, justifyContent: 'flex-end' },
-  rejectBtn: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: spacing.base, paddingVertical: spacing.sm },
-  rejectText: { fontFamily: FONT, fontSize: 13, fontWeight: '600' },
-  approveBtn: { borderRadius: radii.sm, paddingHorizontal: spacing.base, paddingVertical: spacing.sm },
-  approveText: { fontFamily: FONT, fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
-
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyWrap: { alignItems: 'center', paddingTop: 80, gap: spacing.sm },
-  emptyTitle: { fontSize: 17, fontWeight: '600', fontFamily: FONT },
-  emptySub: { fontSize: 14, fontFamily: FONT, textAlign: 'center' },
-})
