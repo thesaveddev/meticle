@@ -18,7 +18,7 @@ export class OrganizationController {
       throw new AppError(403, 'You can only update your own organisation');
     }
 
-    const { name, service_types, primary_service_type, onboarding_completed } = req.body;
+    const { name, service_types, primary_service_type, onboarding_completed, default_hourly_rate_pence, default_mileage_rate_pence } = req.body;
 
     const sets: string[] = [];
     const params: any[] = [];
@@ -28,6 +28,8 @@ export class OrganizationController {
     if (service_types !== undefined) { sets.push(`service_types = $${idx++}`); params.push(service_types); }
     if (primary_service_type !== undefined) { sets.push(`primary_service_type = $${idx++}`); params.push(primary_service_type); }
     if (onboarding_completed !== undefined) { sets.push(`onboarding_completed = $${idx++}`); params.push(onboarding_completed); }
+    if (default_hourly_rate_pence !== undefined) { sets.push(`default_hourly_rate_pence = $${idx++}`); params.push(default_hourly_rate_pence); }
+    if (default_mileage_rate_pence !== undefined) { sets.push(`default_mileage_rate_pence = $${idx++}`); params.push(default_mileage_rate_pence); }
 
     if (sets.length === 0) {
       throw new AppError(400, 'No fields to update');
@@ -37,7 +39,7 @@ export class OrganizationController {
     params.push(orgId);
 
     const result = await pool.query(
-      `UPDATE organizations SET ${sets.join(', ')} WHERE id = $${idx} RETURNING id, name, service_types, primary_service_type, onboarding_completed`,
+      `UPDATE organizations SET ${sets.join(', ')} WHERE id = $${idx} RETURNING id, name, service_types, primary_service_type, onboarding_completed, default_hourly_rate_pence, default_mileage_rate_pence`,
       params,
     );
 

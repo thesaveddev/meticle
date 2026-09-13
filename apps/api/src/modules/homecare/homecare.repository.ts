@@ -253,8 +253,8 @@ export async function listVisitPlans(orgId: string, packageId: string) {
 export async function createVisitPlan(orgId: string, input: HomecareVisitPlanInput) {
   await assertPackage(input.package_id, orgId);
   await assertStaff(input.default_staff_id, orgId);
-  const result = await query(`INSERT INTO homecare_visit_plans (organization_id, package_id, visit_type, label, days_of_week, start_time, duration_minutes, travel_buffer_minutes, required_skills, default_staff_id, default_tasks)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`, [orgId, input.package_id, input.visit_type, input.label, input.days_of_week, input.start_time, input.duration_minutes, input.travel_buffer_minutes ?? 15, input.required_skills || [], input.default_staff_id || null, JSON.stringify(input.default_tasks || [])]);
+  const result = await query(`INSERT INTO homecare_visit_plans (organization_id, package_id, visit_type, label, days_of_week, start_time, duration_minutes, travel_buffer_minutes, required_skills, default_staff_id, default_tasks, hourly_rate_pence, mileage_rate_pence)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`, [orgId, input.package_id, input.visit_type, input.label, input.days_of_week, input.start_time, input.duration_minutes, input.travel_buffer_minutes ?? 15, input.required_skills || [], input.default_staff_id || null, JSON.stringify(input.default_tasks || []), input.hourly_rate_pence ?? null, input.mileage_rate_pence ?? null]);
   return result.rows[0];
 }
 
@@ -277,8 +277,8 @@ export async function createVisit(orgId: string, userId: string, input: Homecare
   if (input.assigned_staff_id && await hasVisitConflict(orgId, input.assigned_staff_id, input.scheduled_start, input.scheduled_end)) {
     throw new AppError(409, 'Assigned carer already has an overlapping homecare visit');
   }
-  const result = await query(`INSERT INTO homecare_visits (organization_id, package_id, visit_plan_id, person_id, assigned_staff_id, visit_type, label, scheduled_start, scheduled_end, created_by)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`, [orgId, input.package_id, input.visit_plan_id || null, input.person_id, input.assigned_staff_id || null, input.visit_type, input.label, input.scheduled_start, input.scheduled_end, userId]);
+  const result = await query(`INSERT INTO homecare_visits (organization_id, package_id, visit_plan_id, person_id, assigned_staff_id, visit_type, label, scheduled_start, scheduled_end, created_by, hourly_rate_pence, mileage_rate_pence)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`, [orgId, input.package_id, input.visit_plan_id || null, input.person_id, input.assigned_staff_id || null, input.visit_type, input.label, input.scheduled_start, input.scheduled_end, userId, input.hourly_rate_pence ?? null, input.mileage_rate_pence ?? null]);
   return result.rows[0];
 }
 
@@ -426,9 +426,9 @@ export async function generateVisitsFromPlan(orgId: string, userId: string, plan
           throw new AppError(409, `Carer has an overlapping visit on ${dateText} ${time}`);
         }
       }
-      const result = await client.query(`INSERT INTO homecare_visits (organization_id, package_id, visit_plan_id, person_id, assigned_staff_id, visit_type, label, scheduled_start, scheduled_end, created_by)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT DO NOTHING RETURNING id`, 
-        [orgId, plan.package_id, plan.id, plan.person_id, staffId, plan.visit_type, plan.label, scheduledStart, scheduledEnd, userId]);
+      const result = await client.query(`INSERT INTO homecare_visits (organization_id, package_id, visit_plan_id, person_id, assigned_staff_id, visit_type, label, scheduled_start, scheduled_end, created_by, hourly_rate_pence, mileage_rate_pence)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT DO NOTHING RETURNING id`, 
+        [orgId, plan.package_id, plan.id, plan.person_id, staffId, plan.visit_type, plan.label, scheduledStart, scheduledEnd, userId, plan.hourly_rate_pence ?? null, plan.mileage_rate_pence ?? null]);
       if (result.rows[0]) {
         const visitId = result.rows[0].id;
         generated.push(visitId);

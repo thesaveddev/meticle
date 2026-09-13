@@ -392,6 +392,8 @@ export default function SettingsPage() {
         plan: orgDetails.plan,
         regulator: orgDetails.regulator,
         auto_approve_documents: orgDetails.auto_approve_documents,
+        default_hourly_rate_pence: orgDetails.default_hourly_rate_pence,
+        default_mileage_rate_pence: orgDetails.default_mileage_rate_pence,
       })
       setOrgDetails(res.data)
       showSnackbar("Settings saved.", "success")
@@ -734,6 +736,20 @@ export default function SettingsPage() {
               <Typography variant="caption" display="block" color="#6B7280" sx={{ ml: 4 }}>
                 When enabled, documents uploaded by staff are automatically approved without manual review. Use with caution.
               </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField label="Default hourly rate (pence)" type="number" fullWidth size="small"
+                inputProps={{ min: 0 }}
+                value={orgDetails.default_hourly_rate_pence ?? ''}
+                onChange={e => setOrgDetails((p: any) => ({ ...p, default_hourly_rate_pence: e.target.value === '' ? null : Number(e.target.value) }))}
+                helperText="Applied to all calls unless overridden per call pattern" />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField label="Default mileage rate (pence/mile)" type="number" fullWidth size="small"
+                inputProps={{ min: 0 }}
+                value={orgDetails.default_mileage_rate_pence ?? ''}
+                onChange={e => setOrgDetails((p: any) => ({ ...p, default_mileage_rate_pence: e.target.value === '' ? null : Number(e.target.value) }))}
+                helperText="Applied to all calls unless overridden per call pattern" />
             </Grid>
           </Grid>
           <Button variant="contained" onClick={saveOrgDetails} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
