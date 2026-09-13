@@ -198,7 +198,7 @@ export function ChatScreen({ session, onBack }: Props) {
           keyExtractor={(item) => item.id}
           renderItem={renderMessage}
           contentContainerStyle={styles.messageList}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#6366F1" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="transparent" />}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
           ListEmptyComponent={
             <View style={styles.centered}>

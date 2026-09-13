@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Animated, Easing, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../types'
-import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconSync, IconNavigate, IconTwoPerson } from '../components/Icons'
+import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconNavigate, IconTwoPerson } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
 
@@ -123,38 +123,6 @@ function StatusPill({ status, c }: { status: string; c: any }) {
 }
 
 /* ─── Custom refresh indicator ──────────────────────────────── */
-function CustomRefreshIndicator({ refreshing, c }: { refreshing: boolean; c: any }) {
-  const spin = useRef(new Animated.Value(0)).current
-  const pulse = useRef(new Animated.Value(1)).current
-
-  useEffect(() => {
-    if (refreshing) {
-      Animated.loop(
-        Animated.timing(spin, { toValue: 1, duration: 1000, easing: Easing.linear, useNativeDriver: true })
-      ).start()
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulse, { toValue: 0.5, duration: 500, useNativeDriver: true }),
-          Animated.timing(pulse, { toValue: 1, duration: 500, useNativeDriver: true }),
-        ])
-      ).start()
-    } else {
-      spin.stopAnimation(); spin.setValue(0)
-      pulse.stopAnimation(); pulse.setValue(1)
-    }
-  }, [refreshing])
-
-  const rotation = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] })
-
-  return (
-    <View style={styles.refreshWrap}>  
-      <Animated.View style={{ transform: [{ rotate: rotation }, { scale: pulse }] }}>
-        <IconSync size={20} color={c.primary} />
-      </Animated.View>
-    </View>
-  )
-}
-
 export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshing, onSync }: {
   user: MobileUser
   visits: HomecareVisit[]
@@ -204,8 +172,6 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         />
       }
     >
-      <CustomRefreshIndicator refreshing={refreshing} c={c} />
-
       {/* Header */}
       <View style={styles.header}>  
         <View style={{ flex: 1 }}>
@@ -522,7 +488,7 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: FONT, fontSize: 11, fontWeight: '600' },
 
   /* Refresh indicator */
-  refreshWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.md, marginBottom: spacing.sm },
+
 
   /* Missed calls */
   missedCard: {
