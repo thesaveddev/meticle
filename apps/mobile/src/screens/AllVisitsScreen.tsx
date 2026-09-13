@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { RefreshControl, FlatList, StyleSheet, Text, View, Pressable, TextInput, ActivityIndicator } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, type, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
@@ -65,6 +65,8 @@ function getAvatarColor(name: string) {
 export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, initialStaffName }: Props) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
+  const insets = useSafeAreaInsets()
+  const isTab = !onBack
   const [visits, setVisits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -107,7 +109,7 @@ export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, init
   const missed = visits.filter((v: any) => v.status === 'missed').length
 
   return (
-    <SafeAreaView style={[s.screen, dyn(c).screen]} edges={['top']}>
+    <View style={[s.screen, dyn(c).screen, !isTab && { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={[s.header, { backgroundColor: c.surface, borderBottomColor: c.border }]}>
         <Pressable onPress={onBack} style={s.headerBtn}>
@@ -199,7 +201,7 @@ export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, init
           }
         />
       )}
-    </SafeAreaView>
+    </View>
   )
 }
 
