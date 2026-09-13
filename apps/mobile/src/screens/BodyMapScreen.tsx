@@ -7,7 +7,7 @@ import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, BodyMapEntry, BodyMapStats } from '../types'
 import { getBodyMapEntries, getBodyMapStats, createBodyMapEntry, updateBodyMapEntry } from '../services/api'
 import { PrimaryButton } from '../components/PrimaryButton'
-import { IconBruise, IconWound, IconRash, IconInjection, IconBurn, IconWarning, IconScar, IconSwelling, IconSkinTear, IconAlert } from '../components/Icons'
+import { IconBruise, IconWound, IconRash, IconInjection, IconBurn, IconWarning, IconScar, IconSwelling, IconSkinTear, IconAlert, IconBody } from '../components/Icons'
 
 const CONDITION_TYPES = [
   { key: 'bruise', label: 'Bruise', color: '#7C3AED', IconComponent: IconBruise },
@@ -312,7 +312,7 @@ export function BodyMapScreen({ personId, personName, session, onBack }: Props) 
 
         {entries.length === 0 && !loading && (
           <View style={s.emptyCard}>
-            <Text style={s.emptyIcon}>🩺</Text>
+            <IconBody size={32} color={c.muted} />
             <Text style={s.emptyTitle}>No conditions recorded</Text>
             <Text style={s.emptyCopy}>Tap a zone on the body diagram to add a condition.</Text>
           </View>

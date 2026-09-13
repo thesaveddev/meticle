@@ -133,7 +133,7 @@ export function NutritionScreen({ personId, personName, session, onBack }: Props
         {/* Fluid tracker */}
         <View style={s.fluidCard}>
           <View style={s.fluidHeader}>
-            <Text style={s.fluidTitle}>💧 Fluid intake today</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><IconCup size={18} color={colors.primary} /><Text style={s.fluidTitle}>Fluid intake today</Text></View>
             <Text style={s.fluidValue}>{fluidSoFar}ml / {fluidTarget}ml</Text>
           </View>
           <View style={s.fluidBar}>
