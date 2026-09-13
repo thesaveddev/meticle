@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Box, Button, Chip, CircularProgress, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, Checkbox, Chip, CircularProgress, IconButton, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Add as AddIcon, Delete as DeleteIcon, Assignment as TaskIcon } from '@mui/icons-material'
 import api from '../../services/api'
 
 const time = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -33,10 +34,28 @@ interface Staff {
   last_name: string
 }
 
+interface VisitTask {
+  id: string
+  visit_id: string
+  label: string
+  sort_order: number
+  done: boolean
+}
+
+function useVisitTasks(visitId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ['visit-tasks', visitId],
+    queryFn: () => api.get(`/homecare/visits/${visitId}/tasks`).then(r => Array.isArray(r.data) ? r.data : []),
+    enabled: enabled && !!visitId,
+  })
+}
+
 export default function CallAssignmentBoard() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [assigningVisit, setAssigningVisit] = useState<string | null>(null)
   const [selectedCarer, setSelectedCarer] = useState('')
+  const [expandedVisit, setExpandedVisit] = useState<string | null>(null)
+  const [newTaskLabel, setNewTaskLabel] = useState('')
   const qc = useQueryClient()
 
   const nextDate = new Date(new Date(date).getTime() + 86400000).toISOString().slice(0, 10)
@@ -63,6 +82,33 @@ export default function CallAssignmentBoard() {
     onError: (e: any) => alert(e.response?.data?.message || 'Could not assign call'),
   })
 
+  const addTask = useMutation({
+    mutationFn: ({ visitId, label }: { visitId: string; label: string }) =>
+      api.post(`/homecare/visits/${visitId}/tasks`, { label }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['visit-tasks', vars.visitId] })
+      setNewTaskLabel('')
+    },
+    onError: (e: any) => alert(e.response?.data?.message || 'Could not add task'),
+  })
+
+  const toggleTask = useMutation({
+    mutationFn: ({ visitId, taskId, done }: { visitId: string; taskId: string; done: boolean }) =>
+      api.patch(`/homecare/visits/${visitId}/tasks/${taskId}`, { done }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['visit-tasks', vars.visitId] })
+      qc.invalidateQueries({ queryKey: ['homecare-visits-assign'] })
+    },
+  })
+
+  const deleteTask = useMutation({
+    mutationFn: ({ visitId, taskId }: { visitId: string; taskId: string }) =>
+      api.delete(`/homecare/visits/${visitId}/tasks/${taskId}`),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['visit-tasks', vars.visitId] })
+    },
+  })
+
   const unassigned = visits.filter((v: any) => !v.assigned_staff_id && v.status === 'scheduled')
   const assigned = visits.filter((v: any) => v.assigned_staff_id && ['scheduled', 'en_route', 'checked_in'].includes(v.status))
 
@@ -85,7 +131,7 @@ export default function CallAssignmentBoard() {
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Call Assignment Board</Typography>
-          <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.5 }}>Assign carers to today's calls and see workload at a glance</Typography>
+          <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.5 }}>Assign carers to today's calls and manage tasks</Typography>
         </Box>
         <Stack direction="row" spacing={1}>
           <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() - 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>←</Button>
@@ -109,27 +155,19 @@ export default function CallAssignmentBoard() {
             ) : (
               <Stack spacing={1}>
                 {unassigned.map((v: any) => (
-                  <Paper key={v.id} elevation={0} sx={{ p: 1.5, border: '1px solid #E5E7EB', borderRadius: 1.5, cursor: 'pointer', '&:hover': { borderColor: '#0F4C81' } }} onClick={() => { setAssigningVisit(v.id); setSelectedCarer('') }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{v.person_name}</Typography>
-                        <Typography variant="caption" sx={{ color: '#6B7280' }}>{time(v.scheduled_start)} - {time(v.scheduled_end)}</Typography>
-                        <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>{v.label}</Typography>
-                      </Box>
-                    </Stack>
-                    {assigningVisit === v.id && (
-                      <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center">
-                        <TextField select size="small" value={selectedCarer} onChange={e => setSelectedCarer(e.target.value)} sx={{ flex: 1, minWidth: 0 }}>
-                          <MenuItem value="">Select carer</MenuItem>
-                          {staff.map((s: Staff) => <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</MenuItem>)}
-                        </TextField>
-                        <Button size="small" variant="contained" disabled={!selectedCarer} onClick={() => assignVisit.mutate({ visitId: v.id, staffId: selectedCarer })} sx={{ textTransform: 'none', bgcolor: '#0F4C81' }}>
-                          {assignVisit.isPending ? <CircularProgress size={16} color="inherit" /> : 'Assign'}
-                        </Button>
-                        <Button size="small" onClick={() => setAssigningVisit(null)} sx={{ minWidth: 'auto' }}>×</Button>
-                      </Stack>
-                    )}
-                  </Paper>
+                  <VisitCard
+                    key={v.id}
+                    visit={v}
+                    isAssigning={assigningVisit === v.id}
+                    selectedCarer={selectedCarer}
+                    staff={staff}
+                    expanded={expandedVisit === v.id}
+                    onAssign={() => { setAssigningVisit(v.id); setSelectedCarer('') }}
+                    onAssignSubmit={() => assignVisit.mutate({ visitId: v.id, staffId: selectedCarer })}
+                    onAssignCancel={() => setAssigningVisit(null)}
+                    onCarerChange={setSelectedCarer}
+                    assignVisit={assignVisit}
+                  />
                 ))}
               </Stack>
             )}
@@ -169,16 +207,13 @@ export default function CallAssignmentBoard() {
                       {carerVisits.sort((a: any, b: any) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime()).map((v: any) => {
                         const cfg = statusConfig[v.status] || statusConfig.scheduled
                         return (
-                          <Stack key={v.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 0.75, px: 1, bgcolor: '#F8FAFC', borderRadius: 1 }}>
-                            <Box>
-                              <Stack direction="row" alignItems="center" gap={0.5}>
-                                <Typography variant="caption" sx={{ fontWeight: 600, color: '#0F4C81' }}>{time(v.scheduled_start)}</Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 600 }}>{v.person_name}</Typography>
-                              </Stack>
-                              <Typography variant="caption" sx={{ color: '#6B7280', display: 'block' }}>{v.label}</Typography>
-                            </Box>
-                            <Chip label={cfg.label} size="small" sx={{ bgcolor: cfg.bg, color: cfg.color, height: 18, fontSize: '0.6rem', fontWeight: 600 }} />
-                          </Stack>
+                          <CarerVisitRow key={v.id} visit={v} cfg={cfg} expanded={expandedVisit === v.id} onExpand={() => setExpandedVisit(expandedVisit === v.id ? null : v.id)}
+                            newTaskLabel={newTaskLabel} onNewTaskLabelChange={setNewTaskLabel}
+                            onAddTask={(label: string) => addTask.mutate({ visitId: v.id, label })}
+                            onToggleTask={(taskId: string, done: boolean) => toggleTask.mutate({ visitId: v.id, taskId, done })}
+                            onDeleteTask={(taskId: string) => deleteTask.mutate({ visitId: v.id, taskId })}
+                            isAddingTask={addTask.isPending}
+                          />
                         )
                       })}
                     </Stack>
@@ -188,6 +223,112 @@ export default function CallAssignmentBoard() {
             )}
           </Box>
         </Stack>
+      )}
+    </Box>
+  )
+}
+
+/* ─── Visit Card (unassigned column) ───────────────────────── */
+
+function VisitCard({ visit, isAssigning, selectedCarer, staff, expanded, onAssign, onAssignSubmit, onAssignCancel, onCarerChange, assignVisit }: any) {
+  const { data: tasks = [] } = useVisitTasks(visit.id, expanded)
+  const doneCount = tasks.filter((t: VisitTask) => t.done).length
+
+  return (
+    <Paper elevation={0} sx={{ p: 1.5, border: '1px solid #E5E7EB', borderRadius: 1.5, cursor: 'pointer', '&:hover': { borderColor: '#0F4C81' } }} onClick={() => { if (!isAssigning) { onAssign() } }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{visit.person_name}</Typography>
+          <Typography variant="caption" sx={{ color: '#6B7280' }}>{time(visit.scheduled_start)} - {time(visit.scheduled_end)}</Typography>
+          <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>{visit.label}</Typography>
+          {tasks.length > 0 && (
+            <Stack direction="row" alignItems="center" gap={0.5} sx={{ mt: 0.5 }}>
+              <TaskIcon sx={{ fontSize: 12, color: doneCount === tasks.length ? '#10B981' : '#D97706' }} />
+              <Typography variant="caption" sx={{ fontWeight: 600, color: doneCount === tasks.length ? '#047857' : '#92400E', fontSize: '0.7rem' }}>
+                {doneCount}/{tasks.length} tasks
+              </Typography>
+            </Stack>
+          )}
+        </Box>
+      </Stack>
+      {isAssigning && (
+        <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center">
+          <TextField select size="small" value={selectedCarer} onChange={e => onCarerChange(e.target.value)} sx={{ flex: 1, minWidth: 0 }}>
+            <MenuItem value="">Select carer</MenuItem>
+            {staff.map((s: Staff) => <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</MenuItem>)}
+          </TextField>
+          <Button size="small" variant="contained" disabled={!selectedCarer} onClick={onAssignSubmit} sx={{ textTransform: 'none', bgcolor: '#0F4C81' }}>
+            {assignVisit.isPending ? <CircularProgress size={16} color="inherit" /> : 'Assign'}
+          </Button>
+          <Button size="small" onClick={onAssignCancel} sx={{ minWidth: 'auto' }}>×</Button>
+        </Stack>
+      )}
+    </Paper>
+  )
+}
+
+/* ─── Carer Visit Row (workload column) ────────────────────── */
+
+function CarerVisitRow({ visit, cfg, expanded, onExpand, newTaskLabel, onNewTaskLabelChange, onAddTask, onToggleTask, onDeleteTask, isAddingTask }: any) {
+  const { data: tasks = [] } = useVisitTasks(visit.id, expanded)
+  const doneCount = tasks.filter((t: VisitTask) => t.done).length
+
+  return (
+    <Box>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 0.75, px: 1, bgcolor: '#F8FAFC', borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: '#F1F5F9' } }} onClick={onExpand}>
+        <Box sx={{ flex: 1 }}>
+          <Stack direction="row" alignItems="center" gap={0.5}>
+            <Typography variant="caption" sx={{ fontWeight: 600, color: '#0F4C81' }}>{time(visit.scheduled_start)}</Typography>
+            <Typography variant="caption" sx={{ fontWeight: 600 }}>{visit.person_name}</Typography>
+          </Stack>
+          <Typography variant="caption" sx={{ color: '#6B7280', display: 'block' }}>{visit.label}</Typography>
+          {tasks.length > 0 && (
+            <Stack direction="row" alignItems="center" gap={0.5} sx={{ mt: 0.25 }}>
+              <TaskIcon sx={{ fontSize: 10, color: doneCount === tasks.length ? '#10B981' : '#D97706' }} />
+              <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: doneCount === tasks.length ? '#047857' : '#92400E' }}>
+                {doneCount}/{tasks.length}
+              </Typography>
+            </Stack>
+          )}
+        </Box>
+        <Chip label={cfg.label} size="small" sx={{ bgcolor: cfg.bg, color: cfg.color, height: 18, fontSize: '0.6rem', fontWeight: 600 }} />
+      </Stack>
+
+      {/* Expanded task list */}
+      {expanded && (
+        <Box sx={{ ml: 2, mt: 0.5, mb: 1, pl: 1, borderLeft: '2px solid #E5E7EB' }}>
+          {tasks.map((task: VisitTask) => (
+            <Stack key={task.id} direction="row" alignItems="center" gap={0.5} sx={{ py: 0.25 }}>
+              <Checkbox
+                checked={task.done}
+                onChange={() => onToggleTask(task.id, !task.done)}
+                size="small"
+                sx={{ p: 0, color: '#D97706', '&.Mui-checked': { color: '#10B981' } }}
+              />
+              <Typography variant="caption" sx={{ flex: 1, textDecoration: task.done ? 'line-through' : 'none', color: task.done ? '#9CA3AF' : '#374151' }}>
+                {task.label}
+              </Typography>
+              <IconButton size="small" onClick={() => onDeleteTask(task.id)} sx={{ p: 0, '&:hover': { color: '#DC2626' } }}>
+                <DeleteIcon sx={{ fontSize: 12 }} />
+              </IconButton>
+            </Stack>
+          ))}
+          {/* Add task input */}
+          <Stack direction="row" alignItems="center" gap={0.5} sx={{ mt: 0.5 }}>
+            <TextField
+              size="small"
+              placeholder="Add a task..."
+              value={newTaskLabel}
+              onChange={e => onNewTaskLabelChange(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && newTaskLabel.trim()) { onAddTask(newTaskLabel.trim()) } }}
+              sx={{ flex: 1, '& .MuiInputBase-input': { fontSize: '0.75rem', py: 0.5 } }}
+              onClick={e => e.stopPropagation()}
+            />
+            <IconButton size="small" disabled={!newTaskLabel.trim() || isAddingTask} onClick={() => { if (newTaskLabel.trim()) onAddTask(newTaskLabel.trim()) }} sx={{ p: 0.5 }}>
+              <AddIcon sx={{ fontSize: 16, color: '#0F4C81' }} />
+            </IconButton>
+          </Stack>
+        </Box>
       )}
     </Box>
   )
