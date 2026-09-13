@@ -10,7 +10,7 @@ import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance, watchDistance, formatDistance } from '../services/location'
 import { getLocationThreshold, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask } from '../services/api'
-import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate, IconTwoPerson } from '../components/Icons'
+import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate, IconTwoPerson, IconSwap, IconDelay, IconReport } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
 import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
@@ -786,20 +786,26 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
           {/* ── Secondary actions ── */}
           {isOpen && (
             <View style={styles.secondaryRow}>
-              <Pressable onPress={() => { hapticLight(); setDisruptionOpen(true) }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface }], pressed && { opacity: 0.7 }]}>
-                <IconWarning size={14} color={c.warning} />
-                <Text style={[styles.secondaryText, { color: c.warning }]}>Delay</Text>
+              <Pressable onPress={() => { hapticLight(); setDisruptionOpen(true) }} style={({ pressed }) => [[styles.actionPill, { backgroundColor: c.warningSurface, borderColor: c.warning + '30' }], pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] }]}>
+                <View style={[styles.actionPillIcon, { backgroundColor: c.warning + '18' }]}>
+                  <IconDelay size={14} color={c.warning} />
+                </View>
+                <Text style={[styles.actionPillText, { color: c.warning }]}>Delay</Text>
               </Pressable>
               {onReportIncident && (
-                <Pressable onPress={() => { hapticLight(); onReportIncident() }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface }], pressed && { opacity: 0.7 }]}>
-                  <IconIncident size={14} color={c.danger} />
-                  <Text style={[styles.secondaryText, { color: c.danger }]}>Incident</Text>
+                <Pressable onPress={() => { hapticLight(); onReportIncident() }} style={({ pressed }) => [[styles.actionPill, { backgroundColor: c.dangerSurface || '#FEE2E2', borderColor: (c.danger || '#DC2626') + '30' }], pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] }]}>
+                  <View style={[styles.actionPillIcon, { backgroundColor: (c.danger || '#DC2626') + '18' }]}>
+                    <IconReport size={14} color={c.danger || '#DC2626'} />
+                  </View>
+                  <Text style={[styles.actionPillText, { color: c.danger || '#DC2626' }]}>Incident</Text>
                 </Pressable>
               )}
               {canSwap && (
-                <Pressable onPress={() => { hapticLight(); onSwap!() }} style={({ pressed }) => [[styles.secondaryBtn, { backgroundColor: c.surface }], pressed && { opacity: 0.7 }]}>
-                  <Text style={{ fontSize: 14 }}>🔄</Text>
-                  <Text style={[styles.secondaryText, { color: c.primary }]}>Swap</Text>
+                <Pressable onPress={() => { hapticLight(); onSwap!() }} style={({ pressed }) => [[styles.actionPill, { backgroundColor: c.primarySurface, borderColor: c.primary + '30' }], pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] }]}>
+                  <View style={[styles.actionPillIcon, { backgroundColor: c.primary + '18' }]}>
+                    <IconSwap size={14} color={c.primary} />
+                  </View>
+                  <Text style={[styles.actionPillText, { color: c.primary }]}>Swap</Text>
                 </Pressable>
               )}
             </View>
@@ -1037,12 +1043,15 @@ const styles = StyleSheet.create({
 
   /* Secondary */
   secondaryRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
-  secondaryBtn: {
+  actionPill: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: spacing.xs, paddingVertical: spacing.md, borderRadius: radii.md,
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight,
+    gap: spacing.sm, paddingVertical: spacing.md, borderRadius: radii.lg,
+    borderWidth: 1,
   },
-  secondaryText: { fontFamily: FONT, fontSize: 12, fontWeight: '600', color: colors.warning },
+  actionPillIcon: {
+    width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+  },
+  actionPillText: { fontFamily: FONT, fontSize: 13, fontWeight: '600' },
 
   /* Queue */
   queueText: { fontFamily: FONT, fontSize: 11, fontWeight: '500', color: colors.subtle, textAlign: 'center', marginTop: spacing.base },
