@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Image, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { detectMapApps, openMapApp, type MapApp } from '../services/navigation'
 import { hapticLight } from '../services/haptics'
 import { Ionicons } from '@expo/vector-icons'
 import { getMapLogo } from './MapAppLogos'
+import { getVisitLocation, haversineDistance, formatDistance } from '../services/location'
 
 interface Props {
   visible: boolean
@@ -40,6 +41,24 @@ export function MapPickerModal({ visible, onClose, destination, latitude, longit
   const c = useAppColors()
   const [apps, setApps] = useState<MapApp[]>([])
   const [loading, setLoading] = useState(false)
+  const [travelInfo, setTravelInfo] = useState<{ distance: string; eta: string } | null>(null)
+
+  // Calculate travel estimate when modal opens
+  useEffect(() => {
+    if (!visible || !latitude || !longitude) { setTravelInfo(null); return }
+    getVisitLocation()
+      .then(loc => {
+        const distMeters = haversineDistance(loc.latitude, loc.longitude, latitude, longitude)
+        const dist = formatDistance(distMeters)
+        // Rough ETA: 30 km/h average in urban areas + 2 min per km under 5km
+        const estMinutes = distMeters < 5000
+          ? Math.max(2, Math.round(distMeters / 500))
+          : Math.round((distMeters / 1000) / 30 * 60)
+        const eta = estMinutes < 60 ? `${estMinutes} min` : `${Math.floor(estMinutes / 60)}h ${estMinutes % 60}m`
+        setTravelInfo({ distance: dist, eta })
+      })
+      .catch(() => setTravelInfo(null))
+  }, [visible, latitude, longitude])
 
   const detectApps = async () => {
     if (loading) return
@@ -82,6 +101,16 @@ export function MapPickerModal({ visible, onClose, destination, latitude, longit
               {label ? `Navigate to ${label}` : 'Choose a maps app'}
             </Text>
 
+            {travelInfo && (
+              <View style={[mapStyles.travelInfo, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }]}>                
+                <Ionicons name="time-outline" size={16} color={c.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[mapStyles.travelDistance, { color: c.primary }]}>{travelInfo.distance}</Text>
+                  <Text style={[mapStyles.travelEta, { color: c.muted }]}>~{travelInfo.eta} by car</Text>
+                </View>
+              </View>
+            )}
+
             {loading ? (
               <View style={mapStyles.loadingRow}>
                 <Text style={[mapStyles.loadingText, { color: c.muted }]}>Detecting installed apps...</Text>
@@ -122,6 +151,9 @@ const mapStyles = StyleSheet.create({
   title: { fontFamily: FONT, fontSize: 18, fontWeight: '700', color: colors.ink, textAlign: 'center' },
   subtitle: { fontFamily: FONT, fontSize: 13, fontWeight: '400', color: colors.muted, textAlign: 'center', marginTop: spacing.xs, marginBottom: spacing.base },
 
+  travelInfo: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.md, borderWidth: 1, marginTop: spacing.xs, marginBottom: spacing.sm },
+  travelDistance: { fontSize: 14, fontWeight: '700', fontFamily: FONT },
+  travelEta: { fontSize: 12, fontFamily: FONT, marginTop: 1 },
   loadingRow: { paddingVertical: spacing.xl, alignItems: 'center' },
   loadingText: { fontFamily: FONT, fontSize: 13, fontWeight: '500', color: colors.muted },
 
