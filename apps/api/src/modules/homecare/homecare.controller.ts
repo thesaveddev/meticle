@@ -166,6 +166,21 @@ export class HomecareController {
     res.json(await repo.getMonthlyCarerTotals(orgId(req), from, to));
   }
 
+  static async getCarerTimesheetDetail(req: Request, res: Response) {
+    const staffId = req.params.staffId as string;
+    const from = req.query.from as string;
+    const to = req.query.to as string;
+    if (!from || !to) throw new AppError(400, 'from and to date parameters are required');
+    res.json(await repo.getCarerTimesheetDetail(orgId(req), staffId, from, to));
+  }
+
+  static async getPendingTimesheets(req: Request, res: Response) {
+    const from = req.query.from as string;
+    const to = req.query.to as string;
+    if (!from || !to) throw new AppError(400, 'from and to date parameters are required');
+    res.json(await repo.getPendingTimesheets(orgId(req), from, to));
+  }
+
   static async updateTimesheet(req: Request, res: Response) {
     const result = await repo.updateTimesheet(orgId(req), req.params.id, userId(req), req.body);
     audit(req, req.body.status === 'approved' ? 'approve' : 'update', 'homecare_timesheet', req.params.id, req.body);
