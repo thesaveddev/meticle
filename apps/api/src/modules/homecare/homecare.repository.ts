@@ -704,16 +704,34 @@ export async function getCarerTimesheetDetail(orgId: string, staffId: string, fr
   const result = await query(`
     SELECT hv.id, hv.label, hv.visit_type, hv.scheduled_start, hv.scheduled_end,
       hv.status, hv.check_in_at, hv.check_out_at,
+      hv.check_in_latitude, hv.check_in_longitude, hv.check_in_accuracy_meters,
+      hv.check_out_latitude, hv.check_out_longitude,
       hv.actual_travel_minutes, hv.actual_mileage_miles,
+      hv.visit_notes, hv.progress_notes, hv.care_plan_notes,
+      hv.client_mood, hv.wellbeing_notes, hv.personal_care, hv.fluid_intake_ml,
+      hv.exception_type, hv.late_reason,
       pe.first_name || ' ' || pe.last_name AS person_name,
+      l.address AS person_address,
       t.id AS timesheet_id, t.work_minutes, t.travel_minutes, t.paid_travel_minutes,
       t.mileage_miles, t.mileage_rate_pence, t.hourly_rate_pence, t.gross_pay_pence,
       t.status AS timesheet_status, t.submitted_at, t.approved_at, t.rejection_reason,
       (SELECT COUNT(*)::int FROM homecare_visit_tasks WHERE visit_id = hv.id) AS tasks_total,
-      (SELECT COUNT(*)::int FROM homecare_visit_tasks WHERE visit_id = hv.id AND done) AS tasks_completed
+      (SELECT COUNT(*)::int FROM homecare_visit_tasks WHERE visit_id = hv.id AND done) AS tasks_completed,
+      (SELECT COALESCE(SUM(hv2.actual_travel_minutes), 0)::int
+       FROM homecare_visits hv2 WHERE hv2.organization_id = $1
+         AND hv2.assigned_staff_id = $2 AND hv2.status = 'completed'
+         AND hv2.scheduled_start >= $3::date AND hv2.scheduled_start < ($4::date + INTERVAL '1 day')
+         AND hv2.actual_travel_minutes IS NOT NULL) AS total_travel_minutes,
+      (SELECT COALESCE(SUM(t2.work_minutes), 0)::int
+       FROM homecare_timesheets t2
+       JOIN homecare_visits hv3 ON hv3.id = t2.visit_id
+       WHERE t2.organization_id = $1 AND hv3.assigned_staff_id = $2
+         AND hv3.scheduled_start >= $3::date AND hv3.scheduled_start < ($4::date + INTERVAL '1 day')
+         AND t2.status = 'approved') AS total_approved_work_minutes
     FROM homecare_visits hv
     JOIN staff_profiles sp ON sp.id = hv.assigned_staff_id
     JOIN people pe ON pe.id = hv.person_id
+    LEFT JOIN locations l ON l.id = pe.location_id
     LEFT JOIN homecare_timesheets t ON t.visit_id = hv.id AND t.organization_id = hv.organization_id
     WHERE hv.organization_id = $1 AND hv.assigned_staff_id = $2
       AND hv.scheduled_start >= $3::date AND hv.scheduled_start < ($4::date + INTERVAL '1 day')

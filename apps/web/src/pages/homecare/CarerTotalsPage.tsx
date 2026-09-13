@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Box, Button, Chip, CircularProgress, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography, LinearProgress, Tooltip } from '@mui/material'
+import { Box, Button, Chip, CircularProgress, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
 import { Receipt as ReceiptIcon, TrendingUp as TrendingIcon, Download as DownloadIcon, Warning as WarningIcon, ArrowBack as BackIcon, CheckCircle as CheckIcon, Schedule as ClockIcon, Person as PersonIcon, DirectionsCar as CarIcon, AttachMoney as MoneyIcon, CheckCircleOutline as PendingCheckIcon } from '@mui/icons-material'
 import api from '../../services/api'
 
@@ -29,9 +29,24 @@ interface VisitDetail {
   status: string
   check_in_at: string | null
   check_out_at: string | null
+  check_in_latitude: number | null
+  check_in_longitude: number | null
+  check_in_accuracy_meters: number | null
+  check_out_latitude: number | null
+  check_out_longitude: number | null
   actual_travel_minutes: number | null
   actual_mileage_miles: number | null
+  visit_notes: string | null
+  progress_notes: string | null
+  care_plan_notes: string | null
+  client_mood: string | null
+  wellbeing_notes: string | null
+  personal_care: string | null
+  fluid_intake_ml: number | null
+  exception_type: string | null
+  late_reason: string | null
   person_name: string
+  person_address: string | null
   timesheet_id: string | null
   work_minutes: number | null
   travel_minutes: number | null
@@ -440,80 +455,190 @@ export default function CarerTotalsPage() {
               <Typography sx={{ color: '#6B7280' }}>No visits for this carer in this period</Typography>
             </Paper>
           ) : (
-            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 3 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Visit</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Client</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Scheduled</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700, color: '#374151' }}>Status</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Tasks</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Work</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Travel</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Mileage</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Pay</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700, color: '#374151' }}>Timesheet</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {carerVisits.map(v => {
-                    const sc = statusColor(v.status)
-                    const tc = tsStatusColor(v.timesheet_status || 'draft')
-                    return (
-                      <TableRow key={v.id} hover>
-                        <TableCell>
-                          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{v.label || v.visit_type}</Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography sx={{ fontSize: '0.875rem' }}>{v.person_name}</Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography sx={{ fontSize: '0.875rem' }}>{fmtDateTime(v.scheduled_start)}</Typography>
-                          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>to {fmtTime(v.scheduled_end)}</Typography>
-                        </TableCell>
-                        <TableCell align="center">
+            <Stack gap={2}>
+              {carerVisits.map(v => {
+                const sc = statusColor(v.status)
+                const tc = tsStatusColor(v.timesheet_status || 'draft')
+                const breakMinutes = v.work_minutes != null && v.actual_travel_minutes != null
+                  ? Math.max(0, (v.work_minutes || 0) + (v.paid_travel_minutes || 0) - (
+                      v.scheduled_end && v.scheduled_start
+                        ? Math.round((new Date(v.scheduled_end).getTime() - new Date(v.scheduled_start).getTime()) / 60000)
+                        : 0
+                    ))
+                  : null
+                const durationMinutes = v.scheduled_end && v.scheduled_start
+                  ? Math.round((new Date(v.scheduled_end).getTime() - new Date(v.scheduled_start).getTime()) / 60000)
+                  : null
+                const actualDurationMinutes = v.check_in_at && v.check_out_at
+                  ? Math.round((new Date(v.check_out_at).getTime() - new Date(v.check_in_at).getTime()) / 60000)
+                  : null
+
+                return (
+                  <Paper key={v.id} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
+                    {/* Header row */}
+                    <Box sx={{ p: 2.5, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+                      <Box sx={{ flex: '1 1 200px' }}>
+                        <Stack direction="row" alignItems="center" gap={1}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{v.label || v.visit_type}</Typography>
                           <Chip label={sc.label} size="small" sx={{ bgcolor: sc.bg, color: sc.color, fontWeight: 600 }} />
-                        </TableCell>
-                        <TableCell align="right">
-                          {v.tasks_total != null && v.tasks_total > 0 ? (
-                            <Tooltip title={`${v.tasks_completed}/${v.tasks_total} tasks completed`}>
-                              <Stack direction="row" alignItems="center" justifyContent="flex-end" gap={0.5}>
-                                <Typography variant="caption" sx={{ color: v.tasks_completed === v.tasks_total ? '#047857' : '#D97706', fontWeight: 600 }}>
-                                  {v.tasks_completed}/{v.tasks_total}
-                                </Typography>
-                                <LinearProgress
-                                  variant="determinate"
-                                  value={v.tasks_total > 0 ? ((v.tasks_completed || 0) / v.tasks_total) * 100 : 0}
-                                  sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#F3F4F6', '& .MuiLinearProgress-bar': { bgcolor: v.tasks_completed === v.tasks_total ? '#10b981' : '#F59E0B' } }}
-                                />
-                              </Stack>
-                            </Tooltip>
-                          ) : (
-                            <Typography variant="caption" sx={{ color: '#D1D5DB' }}>—</Typography>
+                          {v.exception_type && (
+                            <Chip label={v.exception_type} size="small" sx={{ bgcolor: '#FDECEC', color: '#B42318', fontWeight: 600 }} />
                           )}
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography sx={{ fontSize: '0.875rem' }}>{v.work_minutes != null ? fmtHours(v.work_minutes) : '—'}</Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography sx={{ fontSize: '0.875rem' }}>{v.paid_travel_minutes != null ? fmtHours(v.paid_travel_minutes) : '—'}</Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography sx={{ fontSize: '0.875rem' }}>{v.mileage_miles != null ? fmtMiles(v.mileage_miles) : '—'}</Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>{v.gross_pay_pence != null ? fmtPence(v.gross_pay_pence) : '—'}</Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip label={tc.label} size="small" sx={{ bgcolor: tc.bg, color: tc.color, fontWeight: 600 }} />
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                        </Stack>
+                        <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.25 }}>{v.person_name}{v.person_address ? ` · ${v.person_address}` : ''}</Typography>
+                      </Box>
+                      <Stack direction="row" gap={2} flexWrap="wrap">
+                        <Box sx={{ textAlign: 'center', minWidth: 80 }}>
+                          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Date</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmtDate(v.scheduled_start)}</Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'center', minWidth: 80 }}>
+                          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Scheduled</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmtTime(v.scheduled_start)} – {fmtTime(v.scheduled_end)}</Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'center', minWidth: 80 }}>
+                          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Actual</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: v.check_in_at ? '#374151' : '#D1D5DB' }}>
+                            {v.check_in_at ? `${fmtTime(v.check_in_at)} – ${v.check_out_at ? fmtTime(v.check_out_at) : 'ongoing'}` : '—'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'center', minWidth: 80 }}>
+                          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Pay</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F4C81' }}>{v.gross_pay_pence != null ? fmtPence(v.gross_pay_pence) : '—'}</Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
+
+                    {/* Detail chips row */}
+                    <Box sx={{ px: 2.5, pb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {v.work_minutes != null && (
+                        <Chip size="small" label={`Work: ${fmtHours(v.work_minutes)}`} sx={{ bgcolor: '#F0FDF4', color: '#166534', fontWeight: 500 }} />
+                      )}
+                      {v.paid_travel_minutes != null && (
+                        <Chip size="small" label={`Travel: ${fmtHours(v.paid_travel_minutes)}`} sx={{ bgcolor: '#EFF6FF', color: '#1E40AF', fontWeight: 500 }} />
+                      )}
+                      {v.mileage_miles != null && (
+                        <Chip size="small" label={`Mileage: ${fmtMiles(v.mileage_miles)}`} sx={{ bgcolor: '#F5F3FF', color: '#5B21B6', fontWeight: 500 }} />
+                      )}
+                      {breakMinutes != null && breakMinutes > 0 && (
+                        <Chip size="small" label={`Break: ${fmtHours(breakMinutes)}`} sx={{ bgcolor: '#FFF7ED', color: '#9A3412', fontWeight: 500 }} />
+                      )}
+                      {durationMinutes != null && (
+                        <Chip size="small" label={`Duration: ${fmtHours(durationMinutes)}`} sx={{ bgcolor: '#F8FAFC', color: '#475569', fontWeight: 500 }} />
+                      )}
+                      {actualDurationMinutes != null && actualDurationMinutes !== durationMinutes && (
+                        <Chip size="small" label={`Actual: ${fmtHours(actualDurationMinutes)}`} sx={{ bgcolor: actualDurationMinutes > (durationMinutes || 0) ? '#FEF2F2' : '#F0FDF4', color: actualDurationMinutes > (durationMinutes || 0) ? '#991B1B' : '#166534', fontWeight: 500 }} />
+                      )}
+                      {v.tasks_total != null && v.tasks_total > 0 && (
+                        <Chip size="small" label={`Tasks: ${v.tasks_completed}/${v.tasks_total}`} sx={{ bgcolor: v.tasks_completed === v.tasks_total ? '#F0FDF4' : '#FFFBEB', color: v.tasks_completed === v.tasks_total ? '#166534' : '#92400E', fontWeight: 500 }} />
+                      )}
+                      <Chip label={tc.label} size="small" sx={{ bgcolor: tc.bg, color: tc.color, fontWeight: 600 }} />
+                    </Box>
+
+                    {/* Care notes section */}
+                    {(v.visit_notes || v.progress_notes || v.care_plan_notes || v.wellbeing_notes || v.client_mood || v.personal_care || v.fluid_intake_ml) && (
+                      <Box sx={{ px: 2.5, pb: 2 }}>
+                        <Box sx={{ borderTop: '1px solid #F1F5F9', pt: 2 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#374151', mb: 1 }}>Care Notes</Typography>
+                          <Stack gap={1.5}>
+                            {v.visit_notes && (
+                              <Box>
+                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Visit Notes</Typography>
+                                <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.visit_notes}</Typography>
+                              </Box>
+                            )}
+                            {v.progress_notes && (
+                              <Box>
+                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Progress Notes</Typography>
+                                <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.progress_notes}</Typography>
+                              </Box>
+                            )}
+                            {v.care_plan_notes && (
+                              <Box>
+                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Care Plan Notes</Typography>
+                                <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.care_plan_notes}</Typography>
+                              </Box>
+                            )}
+                            {v.wellbeing_notes && (
+                              <Box>
+                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Wellbeing</Typography>
+                                <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.wellbeing_notes}</Typography>
+                              </Box>
+                            )}
+                            <Stack direction="row" gap={2} flexWrap="wrap">
+                              {v.client_mood && (
+                                <Box>
+                                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Mood</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151', mt: 0.25 }}>{v.client_mood}</Typography>
+                                </Box>
+                              )}
+                              {v.personal_care && (
+                                <Box>
+                                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Personal Care</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151', mt: 0.25 }}>{v.personal_care}</Typography>
+                                </Box>
+                              )}
+                              {v.fluid_intake_ml != null && (
+                                <Box>
+                                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Fluid Intake</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151', mt: 0.25 }}>{v.fluid_intake_ml} ml</Typography>
+                                </Box>
+                              )}
+                            </Stack>
+                          </Stack>
+                        </Box>
+                      </Box>
+                    )}
+
+                    {/* Location data */}
+                    {(v.check_in_latitude || v.check_out_latitude) && (
+                      <Box sx={{ px: 2.5, pb: 2 }}>
+                        <Box sx={{ borderTop: '1px solid #F1F5F9', pt: 2 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#374151', mb: 1 }}>Location Data</Typography>
+                          <Stack direction="row" gap={3} flexWrap="wrap">
+                            {v.check_in_latitude && v.check_in_longitude && (
+                              <Box>
+                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Check-in GPS</Typography>
+                                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#374151', mt: 0.25 }}>{Number(v.check_in_latitude).toFixed(6)}, {Number(v.check_in_longitude).toFixed(6)}</Typography>
+                                {v.check_in_accuracy_meters != null && (
+                                  <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Accuracy: ±{Math.round(v.check_in_accuracy_meters)}m</Typography>
+                                )}
+                              </Box>
+                            )}
+                            {v.check_out_latitude && v.check_out_longitude && (
+                              <Box>
+                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Check-out GPS</Typography>
+                                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#374151', mt: 0.25 }}>{Number(v.check_out_latitude).toFixed(6)}, {Number(v.check_out_longitude).toFixed(6)}</Typography>
+                              </Box>
+                            )}
+                          </Stack>
+                        </Box>
+                      </Box>
+                    )}
+
+                    {/* Late reason / exception */}
+                    {(v.late_reason || v.rejection_reason) && (
+                      <Box sx={{ px: 2.5, pb: 2 }}>
+                        <Box sx={{ borderTop: '1px solid #F1F5F9', pt: 2 }}>
+                          {v.late_reason && (
+                            <Box sx={{ mb: 1 }}>
+                              <Typography variant="caption" sx={{ color: '#D97706', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Late Reason</Typography>
+                              <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.late_reason}</Typography>
+                            </Box>
+                          )}
+                          {v.rejection_reason && (
+                            <Box>
+                              <Typography variant="caption" sx={{ color: '#DC2626', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Timesheet Rejected</Typography>
+                              <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.rejection_reason}</Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
+                    )}
+                  </Paper>
+                )
+              })}
+            </Stack>
           )}
         </>
       )}
