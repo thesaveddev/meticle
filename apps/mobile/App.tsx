@@ -29,6 +29,8 @@ import { NotificationsScreen } from './src/screens/NotificationsScreen'
 import { ManagerDashboard } from './src/screens/ManagerDashboard'
 import { ClientListScreen } from './src/screens/ClientListScreen'
 import { AllVisitsScreen } from './src/screens/AllVisitsScreen'
+import { StaffDirectoryScreen } from './src/screens/StaffDirectoryScreen'
+import { TimesheetsScreen } from './src/screens/TimesheetsScreen'
 import { SwipeBack } from './src/components/SwipeBack'
 
 type TabKey = 'today' | 'schedule' | 'chat' | 'mileage' | 'settings' | 'team' | 'clients' | 'visits'
@@ -63,6 +65,8 @@ type Screen =
   | { kind: 'chat' }
   | { kind: 'notifications' }
   | { kind: 'allVisits'; status?: string; staffName?: string }
+  | { kind: 'staffDirectory' }
+  | { kind: 'timesheets' }
 
 export default function App() {
   return (
@@ -258,6 +262,12 @@ function AppInner() {
       if (v) { popScreen(); pushScreen({ kind: 'visit', visit: v }) }
     }} /></SwipeBack></>
   }
+  if (currentScreen.kind === 'staffDirectory' && session) {
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><StaffDirectoryScreen session={session} onBack={goBack} /></SwipeBack></>
+  }
+  if (currentScreen.kind === 'timesheets' && session) {
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><TimesheetsScreen session={session} onBack={goBack} /></SwipeBack></>
+  }
 
   /* ─── Main tab view ──────────────────────────────────────── */
   return (
@@ -286,8 +296,8 @@ function AppInner() {
           {isManager && tab === 'today' && <ManagerDashboard session={session!} onNavigate={(screen, params) => {
             if (screen === 'clientList') setTab('clients')
             else if (screen === 'allVisits') { pushScreen({ kind: 'allVisits', ...params }) }
-            else if (screen === 'staffDirectory') { /* TODO */ }
-            else if (screen === 'timesheets') { /* TODO */ }
+            else if (screen === 'staffDirectory') { pushScreen({ kind: 'staffDirectory' }) }
+            else if (screen === 'timesheets') { pushScreen({ kind: 'timesheets' }) }
           }} />}
           {isManager && tab === 'clients' && <ClientListScreen session={session!} onSelect={(personId) => pushScreen({ kind: 'clientDetail', personId })} />}
           {isManager && tab === 'visits' && <AllVisitsScreen session={session!} onSelect={(visitId) => {
