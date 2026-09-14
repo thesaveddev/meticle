@@ -427,4 +427,62 @@ export class PlatformAdminController {
 
     res.json({ message: 'Organization billing updated' });
   }
+
+  static async getEmailQueueStats(_req: Request, res: Response) {
+    const [counts, recentFailures, hourlyTrend, topRecipients] = await Promise.all([
+      pool.query(`
+        SELECT status, COUNT(*)::int as count
+        FROM email_queue GROUP BY status
+      `),
+      pool.query(`
+        SELECT id, to_email, subject, error_message, retry_count, max_retries, created_at, sent_at
+        FROM email_queue
+        WHERE status = 'failed'
+        ORDER BY created_at DESC
+        LIMIT 50
+      `),
+      pool.query(`
+        SELECT date_trunc('hour', created_at) as hour, status, COUNT(*)::int as count
+        FROM email_queue
+        WHERE created_at > NOW() - INTERVAL '7 days'
+        GROUP BY date_trunc('hour', created_at), status
+        ORDER BY hour DESC
+      `),
+      pool.query(`
+        SELECT to_email, COUNT(*)::int as total,
+          COUNT(*) FILTER (WHERE status = 'failed')::int as failed,
+          COUNT(*) FILTER (WHERE status = 'sent')::int as sent
+        FROM email_queue
+        WHERE created_at > NOW() - INTERVAL '7 days'
+        GROUP BY to_email
+        ORDER BY total DESC
+        LIMIT 20
+      `),
+    ]);
+
+    const statusCounts: Record<string, number> = {};
+    for (const row of counts.rows) statusCounts[row.status] = row.count;
+
+    res.json({
+      counts: statusCounts,
+      total: counts.rows.reduce((sum: number, r: any) => sum + r.count, 0),
+      recentFailures: recentFailures.rows,
+      hourlyTrend: hourlyTrend.rows,
+      topRecipients: topRecipients.rows,
+    });
+  }
+
+  static async retryFailedEmails(_req: Request, res: Response) {
+    const result = await pool.query(`
+      UPDATE email_queue SET status = 'pending', retry_count = 0, error_message = NULL, sending_at = NULL
+      WHERE status = 'failed' AND retry_count < max_retries
+      RETURNING id
+    `);
+    res.json({ retried: result.rowCount });
+  }
+
+  static async purgeFailedEmails(_req: Request, res: Response) {
+    const result = await pool.query(`DELETE FROM email_queue WHERE status = 'failed' RETURNING id`);
+    res.json({ deleted: result.rowCount });
+  }
 }

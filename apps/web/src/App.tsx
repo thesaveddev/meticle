@@ -97,6 +97,7 @@ const UnauthorizedPage = lazy(() => import('./pages/errors/UnauthorizedPage'))
 const NotFoundPage = lazy(() => import('./pages/errors/NotFoundPage'))
 const PlatformAdminPage = lazy(() => import('./pages/admin/PlatformAdminPage'))
 const AdminOrganizationDetailPage = lazy(() => import('./pages/admin/AdminOrganizationDetailPage'))
+const EmailQueueDashboard = lazy(() => import('./pages/admin/EmailQueueDashboard'))
 import { UserRole } from '@meticle/shared'
 import ErrorBoundary from './components/ErrorBoundary'
 import { MeticleThemeProvider } from './context/ThemeContext'
@@ -208,6 +209,7 @@ function App() {
           <Route path="/tasks" element={<ModuleGuard module="tasks"><TasksPage /></ModuleGuard>} />
           <Route path="/platform-admin" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><PlatformAdminPage /></AuthGuard>} />
           <Route path="/platform-admin/organizations/:id" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><AdminOrganizationDetailPage /></AuthGuard>} />
+          <Route path="/platform-admin/email-queue" element={<AuthGuard allowedRoles={[UserRole.SUPER_ADMIN]}><EmailQueueDashboard /></AuthGuard>} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
