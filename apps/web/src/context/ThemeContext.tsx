@@ -149,7 +149,10 @@ const STORAGE_KEY_BRANDING = 'org-branding'
 export const STORAGE_KEY_ZOOM = 'zoom-scale'
 
 export function MeticleThemeProvider({ children }: { children: ReactNode }) {
-  const theme = useMemo(() => createMeticleTheme('light'), [])
+  const mode = loadMode()
+  const theme = useMemo(() => createMeticleTheme(mode), [mode])
+  // Set data-theme for unauthenticated pages too
+  useEffect(() => { document.documentElement.dataset.theme = mode }, [mode])
   return <ThemeProvider theme={theme}>{children}</ThemeProvider>
 }
 
@@ -185,9 +188,16 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
   const [{ colors, logo }, setBrandingState] = useState(() => loadBranding())
   const [zoomScale, setZoomScaleState] = useState<ZoomScale>(loadZoom)
 
+  // Set data-theme attribute on mount and whenever mode changes
   useEffect(() => {
+    document.documentElement.dataset.theme = mode
     localStorage.setItem(STORAGE_KEY_MODE, mode)
   }, [mode])
+
+  // Apply data-theme on initial render
+  useEffect(() => {
+    document.documentElement.dataset.theme = mode
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_BRANDING, JSON.stringify({ colors, logo }))

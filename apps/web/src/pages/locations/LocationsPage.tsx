@@ -200,7 +200,7 @@ export default function LocationsPage() {
                     <TableCell>{loc.max_staff_on_leave ?? '—'}</TableCell>
                     <TableCell>
                       {loc.manager_first_name ? `${loc.manager_first_name} ${loc.manager_last_name}` : (
-                        <Chip label="No manager" size="small" sx={{ bgcolor: '#FEF3C7', color: '#B45309', fontWeight: 700, fontSize: 12, height: 22 }} />
+                        <Chip label="No manager" size="small" sx={{ bgcolor: 'warning.light', color: '#B45309', fontWeight: 700, fontSize: 12, height: 22 }} />
                       )}
                     </TableCell>
                     {isOrgAdmin && (

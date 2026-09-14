@@ -54,7 +54,7 @@ function RotaSkeleton() {
           <Paper key={d} variant="outlined" sx={{ flex: '1 1 0', minWidth: 165, p: 1 }}>
             <Skeleton variant="text" width="45%" sx={{ mb: 1 }} />
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} variant="rounded" height={42} sx={{ mb: 1, bgcolor: '#F1F5F9' }} />
+              <Skeleton key={i} variant="rounded" height={42} sx={{ mb: 1, bgcolor: 'grey.100' }} />
             ))}
           </Paper>
         ))}
@@ -871,7 +871,7 @@ export default function RotaPlannerPage() {
           {!isReadOnly && (rawUser.role === 'ORG_ADMIN' || rawUser.role === 'SUPER_ADMIN' || managedLocationIds.length > 0) && <Button variant="outlined" startIcon={<AddIcon />} onClick={() => openShiftDialog()}>Add Shift</Button>}
           {isAdminOrManager && <Button variant="outlined" color="info" onClick={() => window.location.href = '/scheduling/overtime-claims'}>Overtime Claims</Button>}
           {!isReadOnly && canEdit && <Button variant="outlined" color="secondary" onClick={openStaffingDialog}>Staffing Rules</Button>}
-          <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={runAiAnalysis} sx={{ borderColor: '#A855F7', color: '#A855F7', '&:hover': { borderColor: '#9333EA', bgcolor: '#F5F3FF' } }}>
+          <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={runAiAnalysis} sx={{ borderColor: '#A855F7', color: '#A855F7', '&:hover': { borderColor: '#9333EA', bgcolor: 'grey.50' } }}>
             {aiLoading ? <CircularProgress size={16} sx={{ color: '#A855F7', mr: 0.5 }} /> : null}
             AI Analyze
           </Button>
@@ -935,7 +935,7 @@ export default function RotaPlannerPage() {
       ) : (
         <>
           {refreshing && (
-            <LinearProgress sx={{ mb: 2, height: 3, borderRadius: 2, bgcolor: '#DBEAFE', '& .MuiLinearProgress-bar': { bgcolor: '#0F4C81' } }} />
+            <LinearProgress sx={{ mb: 2, height: 3, borderRadius: 2, bgcolor: 'info.light', '& .MuiLinearProgress-bar': { bgcolor: '#0F4C81' } }} />
           )}
 
           {/* Staffing level summary row */}
@@ -960,7 +960,7 @@ export default function RotaPlannerPage() {
           )}
 
           {isAdminOrManager && pendingClaims.length > 0 && (
-            <Paper sx={{ mb: 2, p: 2, border: '1px solid #FDE68A', bgcolor: '#FFFBEB' }}>
+            <Paper sx={{ mb: 2, p: 2, border: '1px solid #FDE68A', bgcolor: 'warning.light' }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: '#92400E' }}>
                 Pending Overtime Claims ({pendingClaims.length})
               </Typography>
@@ -976,7 +976,7 @@ export default function RotaPlannerPage() {
                         {' '}{new Date(pc.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                         {' — '}{new Date(pc.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                       </Typography>
-                      <Chip label="Pending" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#FEF3C7', color: '#92400E' }} />
+                      <Chip label="Pending" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'warning.light', color: '#92400E' }} />
                     </Stack>
                     <Stack direction="row" spacing={0.5}>
                       <Button size="small" variant="contained" color="success"
@@ -1001,7 +1001,7 @@ export default function RotaPlannerPage() {
           )}
 
           {swapRequests.length > 0 && (
-            <Paper sx={{ mb: 2, p: 2, border: '1px solid #E0E7FF', bgcolor: '#EEF2FF' }}>
+            <Paper sx={{ mb: 2, p: 2, border: '1px solid #E0E7FF', bgcolor: 'info.light' }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: '#3730A3' }}>
                 Pending Swap Requests ({swapRequests.length})
               </Typography>
@@ -1358,18 +1358,18 @@ export default function RotaPlannerPage() {
                             </Stack>
                             {!isTransfer && dayShifts[0]?.shift_type && dayShifts[0].shift_type !== 'day' && (
                               <Chip label={dayShifts[0].shift_type === 'sleep' ? 'Sleep' : 'Wake Night'} size="small"
-                                sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#E9D5FF', color: '#581C87' }} />
+                                sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'grey.50', color: '#581C87' }} />
                             )}
                             {isTransfer && (
                               <Chip label="Transfer" size="small"
-                                sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#FEF3C7', color: '#92400E' }} />
+                                sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'warning.light', color: '#92400E' }} />
                             )}
                           </Stack>
                         </Paper>
                       )
                     })})()}
                     {(!swapShiftDate && weekDates.filter(d => d >= new Date(new Date().toDateString())).length === 0) && (
-                      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: '#F9FAFB' }}>
+                      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
                         <Typography variant="body2" color="#6B7280">
                           No upcoming days this week
                         </Typography>
@@ -1413,7 +1413,7 @@ export default function RotaPlannerPage() {
             <Alert severity="error" sx={{ mt: 1 }}>{aiError}</Alert>
           ) : aiAnalysis ? (
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <Paper sx={{ p: 2, bgcolor: '#F5F3FF', border: '1px solid #E9D5FF', borderRadius: 2 }}>
+              <Paper sx={{ p: 2, bgcolor: 'grey.50', border: '1px solid #E9D5FF', borderRadius: 2 }}>
                 <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>Overall Assessment</Typography>
                 <Typography variant="body2" color="text.secondary">{aiAnalysis.overall_assessment}</Typography>
               </Paper>
@@ -1489,7 +1489,7 @@ export default function RotaPlannerPage() {
               )}
 
               {aiAnalysis.optimization_tips?.length > 0 && (
-                <Paper sx={{ p: 2, bgcolor: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 2 }}>
+                <Paper sx={{ p: 2, bgcolor: 'success.light', border: '1px solid #86EFAC', borderRadius: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: '#166534' }}>Optimization Tips</Typography>
                   <ul style={{ margin: 0, paddingLeft: 16 }}>
                     {aiAnalysis.optimization_tips.map((t: string, i: number) => (
@@ -1500,7 +1500,7 @@ export default function RotaPlannerPage() {
               )}
 
               {aiAnalysis.estimated_savings && (
-                <Paper sx={{ p: 2, bgcolor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 2 }}>
+                <Paper sx={{ p: 2, bgcolor: 'info.light', border: '1px solid #BFDBFE', borderRadius: 2 }}>
                   <Typography variant="body2" fontWeight={700} sx={{ color: '#1E40AF' }}>
                     Estimated Savings: {aiAnalysis.estimated_savings}
                   </Typography>
@@ -1546,7 +1546,7 @@ export default function RotaPlannerPage() {
 
               {selectedLocationId && (
                 <>
-                  <Box sx={{ p: 2, bgcolor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 2 }}>
+                  <Box sx={{ p: 2, bgcolor: 'success.light', border: '1px solid #BBF7D0', borderRadius: 2 }}>
                     <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Shift Start & End Rules</Typography>
 
                     <FormControlLabel
@@ -1612,7 +1612,7 @@ export default function RotaPlannerPage() {
                     </Box>
                   </Box>
 
-                  <Paper sx={{ p: 2, bgcolor: '#F5F3FF', border: '1px solid #E9D5FF', borderRadius: 2 }}>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.50', border: '1px solid #E9D5FF', borderRadius: 2 }}>
                     <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Generation Inputs</Typography>
                     <Typography variant="caption" display="block" color="text.secondary">
                       • Location: {locations.find(l => l.id === selectedLocationId)?.name || 'All locations'} ({selectedLocationId ? getMinStaffForLocation(selectedLocationId) : '-'} min/day | Day:{getShiftTypeMin(selectedLocationId||'','day')} Night:{getShiftTypeMin(selectedLocationId||'','wake_night')} Sleep:{getShiftTypeMin(selectedLocationId||'','sleep')})
@@ -1632,7 +1632,7 @@ export default function RotaPlannerPage() {
               )}
 
               {!selectedLocationId && (
-                <Paper sx={{ p: 2, bgcolor: '#F5F3FF', border: '1px solid #E9D5FF', borderRadius: 2 }}>
+                <Paper sx={{ p: 2, bgcolor: 'grey.50', border: '1px solid #E9D5FF', borderRadius: 2 }}>
                   <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Generation Inputs</Typography>
                   <Typography variant="caption" display="block" color="text.secondary">
                     Select a location to configure shift start/end rules.
@@ -1680,7 +1680,7 @@ export default function RotaPlannerPage() {
               </Stack>
 
               {genResult.summary && (
-                <Paper sx={{ p: 2, bgcolor: '#F5F3FF', border: '1px solid #E9D5FF', borderRadius: 2 }}>
+                <Paper sx={{ p: 2, bgcolor: 'grey.50', border: '1px solid #E9D5FF', borderRadius: 2 }}>
                   <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>Summary</Typography>
                   <Typography variant="body2" color="text.secondary">{genResult.summary}</Typography>
                 </Paper>
@@ -1737,8 +1737,8 @@ export default function RotaPlannerPage() {
                         {editableGenShifts.map((s: any, i: number) => {
                           const dateStr = s.date ? new Date(s.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''
                           return (
-                            <TableRow key={i} sx={{ '&:hover': { bgcolor: '#F5F3FF' } }}>
-                              <TableCell sx={{ fontSize: '0.75rem', color: '#9CA3AF' }}>#{i + 1}</TableCell>
+                            <TableRow key={i} sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                              <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>#{i + 1}</TableCell>
                               {genEditMode ? (
                                 <>
                                   <TableCell sx={{ p: '4px' }}>

@@ -88,7 +88,7 @@ export default function ClientBillingPage() {
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Client billing</Typography>
-          <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.5 }}>Review delivered domiciliary visits and prepare an approved client invoice artefact. VAT and funder type are snapshot from your organisation billing settings.</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Review delivered domiciliary visits and prepare an approved client invoice artefact. VAT and funder type are snapshot from your organisation billing settings.</Typography>
         </Box>
         <Button variant="contained" startIcon={<ReceiptLongIcon />} onClick={() => createRun.mutate()} disabled={createRun.isPending || !from || !to || from > to} sx={{ textTransform: 'none' }}>
           {createRun.isPending ? <CircularProgress size={18} color="inherit" /> : 'Create draft run'}
@@ -97,7 +97,7 @@ export default function ClientBillingPage() {
 
       {message && <Alert severity={message.startsWith('Could not') ? 'error' : 'success'} onClose={() => setMessage('')} sx={{ mb: 3 }}>{message}</Alert>}
 
-      <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid #E5E7EB', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
           <TextField type="date" label="From" size="small" value={from} onChange={e => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
           <TextField type="date" label="To" size="small" value={to} onChange={e => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />
@@ -106,7 +106,7 @@ export default function ClientBillingPage() {
       </Paper>
 
       {/* ── Tabs ─────────────────────────────────────────── */}
-      <Paper elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2, mb: 3 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, mb: 3 }}>
         <Tabs value={activeTab} onChange={(_, v) => { setActiveTab(v); setPage(0) }} sx={{ px: 2, borderBottom: '1px solid #E5E7EB', minHeight: 48, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 48 } }}>
           <Tab label={`Visits (${rows.length})`} />
           <Tab label={`Previous runs (${(runs.data || []).length})`} />
@@ -117,16 +117,16 @@ export default function ClientBillingPage() {
       {activeTab === 0 && (
         <>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{rows.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Visits in period</Typography></Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800, color: '#10b981' }}>{billable.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Billable visits</Typography></Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(netTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Net total</Typography></Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(vatTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>VAT</Typography></Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(grossTotal)}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Gross invoice-ready</Typography></Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800, color: review.length ? '#D97706' : '#111827' }}>{review.length}</Typography><Typography variant="body2" sx={{ color: '#6B7280' }}>Needs review</Typography></Paper>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{rows.length}</Typography><Typography variant="body2" sx={{ color: 'text.secondary' }}>Visits in period</Typography></Paper>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800, color: '#10b981' }}>{billable.length}</Typography><Typography variant="body2" sx={{ color: 'text.secondary' }}>Billable visits</Typography></Paper>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(netTotal)}</Typography><Typography variant="body2" sx={{ color: 'text.secondary' }}>Net total</Typography></Paper>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(vatTotal)}</Typography><Typography variant="body2" sx={{ color: 'text.secondary' }}>VAT</Typography></Paper>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800 }}>{money(grossTotal)}</Typography><Typography variant="body2" sx={{ color: 'text.secondary' }}>Gross invoice-ready</Typography></Paper>
+            <Paper elevation={0} sx={{ p: 2.5, flex: 1, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}><Typography variant="h4" sx={{ fontWeight: 800, color: review.length ? '#D97706' : '#111827' }}>{review.length}</Typography><Typography variant="body2" sx={{ color: 'text.secondary' }}>Needs review</Typography></Paper>
           </Stack>
 
           {utilisation.isLoading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box> : (
-            <Paper elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
               <TableContainer>
                 <Table>
                   <TableHead><TableRow><TableCell>Visit</TableCell><TableCell>Client / package</TableCell><TableCell>Funding</TableCell><TableCell>Status</TableCell><TableCell align="right">Delivered</TableCell><TableCell align="right">Net / VAT / gross</TableCell><TableCell>Decision</TableCell></TableRow></TableHead>
@@ -167,7 +167,7 @@ export default function ClientBillingPage() {
           {(runs.data || []).length === 0 ? (
             <EmptyState title="No billing runs yet" description="Create your first billing run to generate invoices" variant="default" />
           ) : (runs.data || []).map((run: any) => (
-            <Paper key={run.id} elevation={0} sx={{ p: 2, display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', gap: 'var(--card-gap)', flexDirection: { xs: 'column', sm: 'row' }, border: '1px solid #E5E7EB', borderRadius: 2 }}>
+            <Paper key={run.id} elevation={0} sx={{ p: 2, display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', gap: 'var(--card-gap)', flexDirection: { xs: 'column', sm: 'row' }, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
               <Box>
                 <Typography fontWeight={700}>{run.invoice_number || 'Draft run'} · {dateLabel(run.period_from)} – {dateLabel(run.period_to)}</Typography>
                 <Typography variant="body2" color="text.secondary">{run.row_count} lines · gross {money(run.gross_amount_pence ?? run.total_amount_pence)} {run.vat_amount_pence ? `· VAT ${money(run.vat_amount_pence)}` : ''} · {run.funding_breakdown ? `${Object.keys(run.funding_breakdown).length} funder group${Object.keys(run.funding_breakdown).length === 1 ? '' : 's'}` : ''} · created {dateLabel(run.created_at)}</Typography>
@@ -189,7 +189,7 @@ export default function ClientBillingPage() {
           ))}
 
           {selectedRun && (
-            <Paper elevation={0} sx={{ p: 2, mt: 2, border: '1px solid #E5E7EB', borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ p: 2, mt: 2, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
               <Typography variant="h6" fontWeight={800} sx={{ mb: 1.5 }}>Run detail</Typography>
               {lines.isLoading ? <CircularProgress size={22} /> : (
                 <Stack spacing={1.5}>

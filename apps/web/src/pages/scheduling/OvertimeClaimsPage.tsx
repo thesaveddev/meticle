@@ -117,7 +117,7 @@ export default function OvertimeClaimsPage() {
   }
 
   const shiftTypeChip = (t: string) => {
-    if (t === 'sleep') return <Chip label="Sleep" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: '#E9D5FF', color: '#581C87' }} />
+    if (t === 'sleep') return <Chip label="Sleep" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'grey.50', color: '#581C87' }} />
     if (t === 'wake_night') return <Chip label="Wake Night" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: '#1E1B4B', color: '#F8FAFC' }} />
     return <Chip label="Day" size="small" sx={{ height: 20, fontSize: '0.65rem' }} />
   }
@@ -210,7 +210,7 @@ export default function OvertimeClaimsPage() {
             </TableHead>
             <TableBody>
               {myFiltered.length === 0 ? (
-                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: '#6B7280' }}>No claims yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: 'text.secondary' }}>No claims yet</TableCell></TableRow>
               ) : myFiltered.map((c: any) => (
                 <TableRow key={c.assignment_id} hover>
                   <TableCell>
@@ -260,12 +260,12 @@ export default function OvertimeClaimsPage() {
             </TableHead>
             <TableBody>
               {allFiltered.length === 0 ? (
-                <TableRow><TableCell colSpan={10} align="center" sx={{ py: 4, color: '#6B7280' }}>No claims to review</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} align="center" sx={{ py: 4, color: 'text.secondary' }}>No claims to review</TableCell></TableRow>
               ) : allFiltered.map((c: any) => (
                 <TableRow key={c.assignment_id} hover>
                   <TableCell>
                     <Stack direction="row" spacing={0.5} alignItems="center">
-                      <Person sx={{ fontSize: 14, color: '#6B7280' }} />
+                      <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.first_name} {c.last_name}</Typography>
                     </Stack>
                   </TableCell>
@@ -338,12 +338,12 @@ export default function OvertimeClaimsPage() {
             </TableHead>
             <TableBody>
               {approvedClaims.length === 0 ? (
-                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: '#6B7280' }}>No approved overtime claims</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: 'text.secondary' }}>No approved overtime claims</TableCell></TableRow>
               ) : approvedClaims.map((c: any) => (
                 <TableRow key={c.assignment_id} hover>
                   <TableCell>
                     <Stack direction="row" spacing={0.5} alignItems="center">
-                      <Person sx={{ fontSize: 14, color: '#6B7280' }} />
+                      <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.first_name} {c.last_name}</Typography>
                     </Stack>
                   </TableCell>

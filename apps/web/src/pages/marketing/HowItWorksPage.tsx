@@ -138,7 +138,7 @@ export default function HowItWorksPage() {
             <Box
               sx={{
                 display: 'inline-flex', alignItems: 'center', gap: 1.25,
-                bgcolor: '#FFFFFF', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
+                bgcolor: 'background.paper', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
                 px: 2, py: 0.75, mb: 3,
               }}
             >
@@ -231,7 +231,7 @@ export default function HowItWorksPage() {
                       p: { xs: 3.5, md: 5 },
                       border: `1px solid ${HAIRLINE}`,
                       borderRadius: 3,
-                      bgcolor: '#FFFFFF',
+                      bgcolor: 'background.paper',
                       boxShadow: '0 24px 60px -32px rgba(20,32,45,0.18)',
                     }}
                   >
@@ -271,7 +271,7 @@ export default function HowItWorksPage() {
       })}
 
       {/* ILLUSTRATED WHAT-HAPPENS-NEXT — the timeline-card.svg with our caption */}
-      <Box component="section" sx={{ py: { xs: 9, md: 12 }, bgcolor: '#FFFFFF', borderBottom: `1px solid ${HAIRLINE}` }}>
+      <Box component="section" sx={{ py: { xs: 9, md: 12 }, bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}` }}>
         <Container maxWidth="lg">
           <Stack spacing={2} sx={{ maxWidth: 760, mb: { xs: 5, md: 7 } }}>
             <Typography
@@ -320,7 +320,7 @@ export default function HowItWorksPage() {
                 <Box
                   sx={{
                     height: '100%',
-                    bgcolor: '#FFFFFF',
+                    bgcolor: 'background.paper',
                     border: `1px solid ${HAIRLINE}`,
                     borderRadius: 3,
                     p: { xs: 3, md: 4 },
@@ -370,7 +370,7 @@ export default function HowItWorksPage() {
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate('/register')}
               sx={{
-                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: '#065F46' },
+                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
                 fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >

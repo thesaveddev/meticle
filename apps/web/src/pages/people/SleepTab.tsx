@@ -72,7 +72,7 @@ function SleepViewDialog({ open, onClose, record }: { open: boolean; onClose: ()
             </Box>
           </Stack>
           {record.night_disturbances && (
-            <Paper sx={{ p: 2, bgcolor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 2 }}>
+            <Paper sx={{ p: 2, bgcolor: 'error.light', border: '1px solid #FECACA', borderRadius: 2 }}>
               <Typography variant="subtitle2" fontWeight={700} color="#DC2626" sx={{ mb: 0.5 }}>Night disturbances: {record.disturbance_count || 0}</Typography>
               {record.disturbance_reasons && <Typography variant="body2" color="#991B1B">{record.disturbance_reasons}</Typography>}
             </Paper>
@@ -155,7 +155,7 @@ export default function SleepTab({ personId }: { personId: string }) {
         action={
           <Stack direction="row" spacing={1} alignItems="center">
             {avgQuality && (
-              <Chip label={`Avg quality: ${avgQuality}/5`} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81', fontWeight: 700 }} />
+              <Chip label={`Avg quality: ${avgQuality}/5`} size="small" sx={{ bgcolor: 'grey.100', color: '#0F4C81', fontWeight: 700 }} />
             )}
             <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
               Log Sleep
@@ -173,7 +173,7 @@ export default function SleepTab({ personId }: { personId: string }) {
               key={r.id}
               onClick={() => setViewRecord(r)}
               sx={{
-                p: 2, borderRadius: 2, border: '1px solid #E5E7EB',
+                p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200',
                 
                 cursor: 'pointer',
                 '&:hover': { borderColor: '#0F4C81', boxShadow: 1 },
@@ -199,7 +199,7 @@ export default function SleepTab({ personId }: { personId: string }) {
                   <Chip
                     label={formatDuration(r.bedtime, r.wake_time)}
                     size="small"
-                    sx={{ bgcolor: '#F3F4F6', fontWeight: 700 }}
+                    sx={{ bgcolor: 'grey.100', fontWeight: 700 }}
                   />
                   <Chip
                     label={`${QUALITY_LABELS[r.sleep_quality]} (${r.sleep_quality}/5)`}
@@ -233,7 +233,7 @@ export default function SleepTab({ personId }: { personId: string }) {
                   <IconButton size="small" onClick={() => setDeleteTarget({ id: r.id, label: 'this sleep record' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
               </Stack>
-              {r.notes && <Typography variant="body2" sx={{ mt: 1, color: '#6B7280' }} noWrap>{r.notes}</Typography>}
+              {r.notes && <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }} noWrap>{r.notes}</Typography>}
             </Paper>
           ))}
         </Stack>
@@ -256,7 +256,7 @@ export default function SleepTab({ personId }: { personId: string }) {
               </Stack>
 
               {form.bedtime && form.wake_time && (
-                <Paper sx={{ p: 1.5, bgcolor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 2, textAlign: 'center' }}>
+                <Paper sx={{ p: 1.5, bgcolor: 'info.light', border: '1px solid #BAE6FD', borderRadius: 2, textAlign: 'center' }}>
                   <Typography variant="body2" fontWeight={700} color="#0369A1">
                     Estimated sleep duration: {formatDuration(form.bedtime, form.wake_time)}
                   </Typography>

@@ -248,7 +248,7 @@ export default function MissionControlPage() {
           {/* Severity Bar */}
           <Paper elevation={0} sx={{ p: 2.5, mb: 3, borderRadius: 2, bgcolor: severityCounts.critical > 0 ? '#FEF2F2' : severityCounts.high > 0 ? '#FFFBEB' : '#F8FAFC', border: `1px solid ${severityCounts.critical > 0 ? '#FECACA' : severityCounts.high > 0 ? '#FDE68A' : '#E2E8F0'}` }}>
             <Grid container spacing={2} alignItems="center">
-              {[{ label: 'Critical', val: severityCounts.critical, color: '#DC2626' }, { label: 'High', val: severityCounts.high, color: '#D97706' }, { label: 'Medium', val: severityCounts.medium, color: '#2563EB' }, { label: 'Low', val: severityCounts.low, color: '#9CA3AF' }].map(s => (
+              {[{ label: 'Critical', val: severityCounts.critical, color: '#DC2626' }, { label: 'High', val: severityCounts.high, color: '#D97706' }, { label: 'Medium', val: severityCounts.medium, color: '#2563EB' }, { label: 'Low', val: severityCounts.low, color: 'text.secondary' }].map(s => (
                 <Grid item xs={6} md={3} key={s.label}>
                   <Stack direction="row" spacing={1.5} alignItems="center">
                     <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: s.val > 0 ? s.color : '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -352,7 +352,7 @@ export default function MissionControlPage() {
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                           <Chip label={categoryLabel(alert.alert_type)} size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: `${c.border}18`, color: c.text, '& .MuiChip-label': { px: 1 } }} />
                           {alert.severity === 'critical' && <Chip label="Critical" size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: '#DC262610', color: '#DC2626' }} />}
-                          {alert.assigned_name && <Chip label={`Assigned: ${alert.assigned_name}`} size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: '#F1F5F9', color: '#475569' }} />}
+                          {alert.assigned_name && <Chip label={`Assigned: ${alert.assigned_name}`} size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: 'grey.100', color: '#475569' }} />}
                         </Stack>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>{alert.title}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{alert.message}</Typography>
@@ -369,11 +369,11 @@ export default function MissionControlPage() {
 
                     {/* Assign Dropdown */}
                     {assignDialog === alert.id && (
-                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: '#F8FAFC', borderRadius: 1, border: '1px solid #E2E8F0' }} onClick={e => e.stopPropagation()}>
+                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid #E2E8F0' }} onClick={e => e.stopPropagation()}>
                         <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>Assign to staff member:</Typography>
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                           {staff.slice(0, 8).map((s: any) => (
-                            <Chip key={s.id} label={`${s.first_name || ''} ${s.last_name || ''}`} size="small" onClick={() => handleAssign(alert.id, s.user_id || s.id, `${s.first_name || ''} ${s.last_name || ''}`)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#E0E7FF' } }} />
+                            <Chip key={s.id} label={`${s.first_name || ''} ${s.last_name || ''}`} size="small" onClick={() => handleAssign(alert.id, s.user_id || s.id, `${s.first_name || ''} ${s.last_name || ''}`)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'info.light' } }} />
                           ))}
                           <Chip label="Cancel" size="small" onClick={() => setAssignDialog(null)} sx={{ cursor: 'pointer' }} />
                         </Stack>
@@ -393,7 +393,7 @@ export default function MissionControlPage() {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>Recently dismissed alerts. These are kept for audit purposes.</Typography>
           {history.length === 0 ? (
             <Paper elevation={0} sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-              <HistoryIcon sx={{ fontSize: 48, color: '#9CA3AF', mb: 2 }} />
+              <HistoryIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
               <Typography variant="h6" sx={{ fontWeight: 700 }}>No history yet</Typography>
               <Typography variant="body2" color="text.secondary">Dismissed alerts will appear here.</Typography>
             </Paper>
@@ -406,8 +406,8 @@ export default function MissionControlPage() {
                       <Box sx={{ mt: 0.25 }}><SeverityIcon severity={alert.severity} /></Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                          <Chip label={categoryLabel(alert.alert_type)} size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: '#F1F5F9', color: '#6B7280', '& .MuiChip-label': { px: 1 } }} />
-                          <Chip label="Dismissed" size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: '#F0FDF4', color: '#16A34A' }} />
+                          <Chip label={categoryLabel(alert.alert_type)} size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: 'grey.100', color: 'text.secondary', '& .MuiChip-label': { px: 1 } }} />
+                          <Chip label="Dismissed" size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: 'success.light', color: '#16A34A' }} />
                         </Stack>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{alert.title}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{alert.message}</Typography>
@@ -432,7 +432,7 @@ export default function MissionControlPage() {
             <>
               {/* Week Summary Cards */}
               <Grid container spacing={2} sx={{ mb: 4 }}>
-                {[{ label: 'This Week', data: trends.this_week, color: '#0F4C81' }, { label: 'Last Week', data: trends.last_week, color: '#6B7280' }].map(w => (
+                {[{ label: 'This Week', data: trends.this_week, color: '#0F4C81' }, { label: 'Last Week', data: trends.last_week, color: 'text.secondary' }].map(w => (
                   <Grid item xs={12} md={6} key={w.label}>
                     <Paper elevation={0} sx={{ p: 3, border: '1px solid #E2E8F0', borderRadius: 2 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, color: w.color, mb: 2 }}>{w.label}</Typography>
@@ -481,11 +481,11 @@ export default function MissionControlPage() {
                           <Typography variant="caption" sx={{ width: 70, color: 'text.secondary', fontWeight: 600 }}>
                             {new Date(day.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}
                           </Typography>
-                          <Box sx={{ flex: 1, height: 20, bgcolor: '#F1F5F9', borderRadius: 1, overflow: 'hidden', display: 'flex' }}>
+                          <Box sx={{ flex: 1, height: 20, bgcolor: 'grey.100', borderRadius: 1, overflow: 'hidden', display: 'flex' }}>
                             {day.critical > 0 && <Box sx={{ width: `${(day.critical / maxVal) * 100}%`, bgcolor: '#DC2626' }} />}
                             {day.high > 0 && <Box sx={{ width: `${(day.high / maxVal) * 100}%`, bgcolor: '#D97706' }} />}
                             {day.medium > 0 && <Box sx={{ width: `${(day.medium / maxVal) * 100}%`, bgcolor: '#2563EB' }} />}
-                            {day.low > 0 && <Box sx={{ width: `${(day.low / maxVal) * 100}%`, bgcolor: '#9CA3AF' }} />}
+                            {day.low > 0 && <Box sx={{ width: `${(day.low / maxVal) * 100}%`, bgcolor: 'text.secondary' }} />}
                           </Box>
                           <Typography variant="caption" sx={{ width: 30, textAlign: 'right', fontWeight: 700 }}>{day.total}</Typography>
                         </Stack>

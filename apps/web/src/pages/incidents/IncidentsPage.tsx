@@ -56,10 +56,10 @@ const severityConfig: Record<string, { label: string; color: string; bg: string 
 }
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  reported: { label: 'Reported', color: '#6B7280', bg: '#F3F4F6' },
+  reported: { label: 'Reported', color: 'text.secondary', bg: '#F3F4F6' },
   investigating: { label: 'Investigating', color: '#0F4C81', bg: '#E0F2FE' },
   resolved: { label: 'Resolved', color: '#047857', bg: '#E9F7F0' },
-  closed: { label: 'Closed', color: '#6B7280', bg: '#F3F4F6' },
+  closed: { label: 'Closed', color: 'text.secondary', bg: '#F3F4F6' },
 }
 
 function dateLabel(d: string) {
@@ -256,9 +256,9 @@ export default function IncidentsPage() {
                         <TableCell>
                           <Stack direction="row" alignItems="center" gap={1}>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{inc.title}</Typography>
-                            {inc.is_confidential && <Chip label="Confidential" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#FEF3C7', color: '#92400E' }} />}
+                            {inc.is_confidential && <Chip label="Confidential" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'warning.light', color: '#92400E' }} />}
                             {inc.is_near_miss && <Chip label="Near miss" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#EDE9FE', color: '#6D28D9' }} />}
-                            {inc.is_cqc_reportable && <Chip label="CQC" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#FEE2E2', color: '#DC2626' }} />}
+                            {inc.is_cqc_reportable && <Chip label="CQC" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'error.light', color: '#DC2626' }} />}
                           </Stack>
                           {inc.description && (
                             <Typography variant="caption" sx={{ color: theme.palette.text.secondary, maxWidth: 300 }} display="block" noWrap>
@@ -284,7 +284,7 @@ export default function IncidentsPage() {
                         </TableCell>
                         <TableCell>
                           {inc.open_actions > 0 ? (
-                            <Chip label={`${inc.open_actions} open`} size="small" sx={{ bgcolor: '#FEF3C7', color: '#92400E', fontWeight: 600, borderRadius: '8px' }} />
+                            <Chip label={`${inc.open_actions} open`} size="small" sx={{ bgcolor: 'warning.light', color: '#92400E', fontWeight: 600, borderRadius: '8px' }} />
                           ) : (
                             <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>None</Typography>
                           )}
@@ -338,8 +338,8 @@ export default function IncidentsPage() {
                     <Chip label={statusConfig[selectedIncident.status]?.label || selectedIncident.status}
                       sx={{ bgcolor: statusConfig[selectedIncident.status]?.bg, color: statusConfig[selectedIncident.status]?.color, fontWeight: 600 }} />
                     {selectedIncident.is_near_miss && <Chip label="Near miss" sx={{ bgcolor: '#EDE9FE', color: '#6D28D9' }} />}
-                    {selectedIncident.is_cqc_reportable && <Chip label="CQC reportable" sx={{ bgcolor: '#FEE2E2', color: '#DC2626' }} />}
-                    {selectedIncident.is_confidential && <Chip label="Confidential" sx={{ bgcolor: '#FEF3C7', color: '#92400E' }} />}
+                    {selectedIncident.is_cqc_reportable && <Chip label="CQC reportable" sx={{ bgcolor: 'error.light', color: '#DC2626' }} />}
+                    {selectedIncident.is_confidential && <Chip label="Confidential" sx={{ bgcolor: 'warning.light', color: '#92400E' }} />}
                   </Stack>
 
                   {/* Info */}

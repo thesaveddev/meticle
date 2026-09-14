@@ -92,11 +92,11 @@ export default function TasksPage() {
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
         {[['Pending', pending], ['In progress', inProgress], ['Completed', completed]].map(([label, value]) => (
-          <Paper key={String(label)} sx={{ px: 2, py: 1.5, flex: 1, border: '1px solid #E5E7EB', borderRadius: 2 }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={800}>{value}</Typography></Paper>
+          <Paper key={String(label)} sx={{ px: 2, py: 1.5, flex: 1, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={800}>{value}</Typography></Paper>
         ))}
       </Stack>
 
-      <Paper sx={{ p: 1.5, mb: 2, border: '1px solid #E5E7EB', borderRadius: 2 }}>
+      <Paper sx={{ p: 1.5, mb: 2, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
           <TextField type="date" size="small" label="Calendar day" InputLabelProps={{ shrink: true }} value={calendarDate} onChange={e => setCalendarDate(e.target.value)} />
           <Typography variant="body2" color="text.secondary">{calendarTasks.length} task{calendarTasks.length === 1 ? '' : 's'} due on this day</Typography>
@@ -111,7 +111,7 @@ export default function TasksPage() {
         {calendarTasks.length === 0 ? <Typography variant="body2" color="text.secondary">Nothing is scheduled for this day.</Typography> : <Stack spacing={1}>{calendarTasks.map((task: any) => <Paper key={task.id} variant="outlined" onClick={() => openView(task)} sx={{ p: 1.25, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1, '&:hover': { borderColor: NAVY } }}><Box sx={{ flex: 1 }}><Typography fontWeight={700}>{task.title}</Typography><Typography variant="caption" color="text.secondary">{task.assigned_name || 'Unassigned'} · {RECURRENCE_LABELS[task.recurrence] || 'Once'}</Typography></Box><Chip size="small" label={task.status === 'completed' ? 'Completed' : 'Mark complete'} color={task.status === 'completed' ? 'success' : 'default'} onClick={e => { e.stopPropagation(); if (task.status !== 'completed') openCompletion(task) }} /></Paper>)}</Stack>}
       </Paper>
 
-      <TableContainer component={Paper} sx={{ border: '1px solid #E5E7EB', borderRadius: 2 }}>
+      <TableContainer component={Paper} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
         <Table size="small">
           <TableHead><TableRow>{['Task', 'For', 'Owner', 'Cadence', 'Due', 'Status', ''].map(h => <TableCell key={h} sx={{ fontWeight: 800, color: 'text.secondary' }}>{h}</TableCell>)}</TableRow></TableHead>
           <TableBody>
@@ -125,7 +125,7 @@ export default function TasksPage() {
                 <TableCell align="right" onClick={e => e.stopPropagation()}><Button size="small" startIcon={<VisibilityIcon />} onClick={() => openView(task)} sx={{ textTransform: 'none' }}>View</Button></TableCell>
               </TableRow>
             ))}
-            {tasks.length === 0 && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No tasks match this view.</TableCell></TableRow>}
+            {tasks.length === 0 && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>No tasks match this view.</TableCell></TableRow>}
           </TableBody>
         </Table>
         <TablePagination component="div" count={tasks.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rows} onRowsPerPageChange={e => { setRows(parseInt(e.target.value, 10)); setPage(0) }} rowsPerPageOptions={[5, 10, 25]} />

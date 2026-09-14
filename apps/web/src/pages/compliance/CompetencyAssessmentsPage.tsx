@@ -210,7 +210,7 @@ function PendingView() {
               </Typography>
 
               {rubric && rubric.length > 0 && (
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: '#F8FAFC' }}>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
                   <Typography variant="subtitle2" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <RubricIcon fontSize="small" /> Observation Scoring Rubric
                   </Typography>
@@ -240,7 +240,7 @@ function PendingView() {
                       {i < rubric.length - 1 && <Divider sx={{ mt: 1 }} />}
                     </Box>
                   ))}
-                  <Box sx={{ mt: 1, p: 1.5, bgcolor: '#EEF2FF', borderRadius: 1 }}>
+                  <Box sx={{ mt: 1, p: 1.5, bgcolor: 'info.light', borderRadius: 1 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Typography variant="body2" fontWeight={700}>Total Score</Typography>
                       <Typography variant="body1" fontWeight={800}>

@@ -114,7 +114,7 @@ export default function BlogPage() {
             <Box
               sx={{
                 display: 'inline-flex', alignItems: 'center', gap: 1.25,
-                bgcolor: '#FFFFFF', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
+                bgcolor: 'background.paper', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
                 px: 2, py: 0.75, mb: 3,
               }}
             >
@@ -140,7 +140,7 @@ export default function BlogPage() {
       </Box>
 
       {/* TRUST STRIP — same slot as the rest of the marketing site */}
-      <Box component="section" aria-label="Standards MeticleCare is built for" sx={{ bgcolor: '#FFFFFF', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
+      <Box component="section" aria-label="Standards MeticleCare is built for" sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
             <Grid item xs={12} md={3}>
@@ -193,7 +193,7 @@ export default function BlogPage() {
                 p: { xs: 3, md: 5 },
                 border: `1px solid ${HAIRLINE}`,
                 borderRadius: 3,
-                bgcolor: '#FFFFFF',
+                bgcolor: 'background.paper',
                 boxShadow: '0 24px 60px -32px rgba(20,32,45,0.18)',
                 cursor: 'pointer',
                 transition: 'transform 0.15s ease, box-shadow 0.15s ease',
@@ -272,7 +272,7 @@ export default function BlogPage() {
                     <Box
                       sx={{
                         width: 56, height: 56, mx: 'auto', my: 1.5, borderRadius: '50%',
-                        bgcolor: '#FFFFFF', color: NAVY,
+                        bgcolor: 'background.paper', color: NAVY,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}
                     >
@@ -290,7 +290,7 @@ export default function BlogPage() {
       )}
 
       {/* POST GRID */}
-      <Box component="section" sx={{ py: { xs: 9, md: 11 }, bgcolor: '#FFFFFF' }}>
+      <Box component="section" sx={{ py: { xs: 9, md: 11 }, bgcolor: 'background.paper' }}>
         <Container maxWidth="lg">
           <Stack
             direction={{ xs: 'column', md: 'row' }}
@@ -317,7 +317,7 @@ export default function BlogPage() {
                     p: { xs: 2.75, md: 3.25 },
                     border: `1px solid ${HAIRLINE}`,
                     borderRadius: 2.5,
-                    bgcolor: '#FFFFFF',
+                    bgcolor: 'background.paper',
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
@@ -390,7 +390,7 @@ export default function BlogPage() {
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate('/register')}
               sx={{
-                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: '#065F46' },
+                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
                 fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >

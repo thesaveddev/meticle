@@ -63,7 +63,7 @@ export default function AboutPage() {
               <Box
                 sx={{
                   display: 'inline-flex', alignItems: 'center', gap: 1.25,
-                  bgcolor: '#FFFFFF', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
+                  bgcolor: 'background.paper', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
                   px: 2, py: 0.75, mb: 3,
                 }}
               >
@@ -100,7 +100,7 @@ export default function AboutPage() {
               <Box
                 sx={{
                   p: { xs: 4, md: 5 },
-                  bgcolor: '#FFFFFF',
+                  bgcolor: 'background.paper',
                   border: `1px solid ${HAIRLINE}`,
                   borderRadius: 3,
                   boxShadow: '0 24px 60px -32px rgba(20,32,45,0.2)',
@@ -144,7 +144,7 @@ export default function AboutPage() {
       </Box>
 
       {/* TRUST STRIP */}
-      <Box component="section" aria-label="Standards MeticleCare is built for" sx={{ bgcolor: '#FFFFFF', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
+      <Box component="section" aria-label="Standards MeticleCare is built for" sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
             <Grid item xs={12} md={3}>
@@ -188,7 +188,7 @@ export default function AboutPage() {
       </Box>
 
       {/* VALUES */}
-      <Box component="section" sx={{ py: { xs: 9, md: 12 }, bgcolor: '#FFFFFF' }}>
+      <Box component="section" sx={{ py: { xs: 9, md: 12 }, bgcolor: 'background.paper' }}>
         <Container maxWidth="lg">
           <Stack spacing={ 1.5 } sx={{ maxWidth: 720, mb: { xs: 5, md: 7 } }}>
             <Typography
@@ -218,7 +218,7 @@ export default function AboutPage() {
                   <Box
                     sx={{
                       width: 52, height: 52, borderRadius: 1.5,
-                      bgcolor: '#FFFFFF', color: NAVY,
+                      bgcolor: 'background.paper', color: NAVY,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       mb: 2.5, border: `1px solid ${HAIRLINE}`,
                     }}
@@ -277,7 +277,7 @@ export default function AboutPage() {
                   <Grid item xs={12} sm={6} key={row.label}>
                     <Box
                       sx={{
-                        bgcolor: '#FFFFFF',
+                        bgcolor: 'background.paper',
                         border: `1px solid ${HAIRLINE}`,
                         borderLeft: `3px solid ${EMERALD}`,
                         borderRadius: 2.5,
@@ -319,7 +319,7 @@ export default function AboutPage() {
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate('/register')}
               sx={{
-                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: '#065F46' },
+                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
                 fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >

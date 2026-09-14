@@ -59,7 +59,7 @@ export default function RosterView(props: RotaViewProps) {
         <TableHead>
           <TableRow>
             <TableCell sx={{
-              fontWeight: 700, bgcolor: '#F8FAFC', position: 'sticky', left: 0, top: 0, zIndex: 3, minWidth: 170, fontSize: '0.7rem',
+              fontWeight: 700, bgcolor: 'grey.50', position: 'sticky', left: 0, top: 0, zIndex: 3, minWidth: 170, fontSize: '0.7rem',
             }}>
               Staff
             </TableCell>
@@ -76,7 +76,7 @@ export default function RosterView(props: RotaViewProps) {
                   <Stack direction="row" spacing={0.4} alignItems="center" justifyContent="center">
                     <Box>
                       <Box sx={{ fontWeight: 800, color: today ? '#0F4C81' : '#1B2430', lineHeight: 1.1 }}>{DAYS[i]}</Box>
-                      <Box sx={{ fontSize: '0.6rem', color: '#6B7280', fontWeight: 500 }}>{d.getDate()}</Box>
+                      <Box sx={{ fontSize: '0.6rem', color: 'text.secondary', fontWeight: 500 }}>{d.getDate()}</Box>
                     </Box>
                     {short.length > 0 ? (
                       <Tooltip title={short.map(x => `${x.loc.name}: ${x.cnt}/${x.need}`).join(', ')}>
@@ -100,7 +100,7 @@ export default function RosterView(props: RotaViewProps) {
         <TableBody>
           {visibleStaff.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} align="center" sx={{ py: 4, color: '#6B7280', fontSize: '0.75rem' }}>
+              <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary', fontSize: '0.75rem' }}>
                 No staff assigned to shifts this week
               </TableCell>
             </TableRow>
@@ -109,16 +109,16 @@ export default function RosterView(props: RotaViewProps) {
             const role = roleColor(staff.role)
             const weeklyHours = weeklyHoursByStaff.get(staff.staff_id) || 0
             return (
-              <TableRow key={staff.staff_id} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
+              <TableRow key={staff.staff_id} sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
                 <TableCell sx={{
-                  position: 'sticky', left: 0, bgcolor: '#fff', zIndex: 1, minWidth: 170, borderRight: '1px solid #F3F4F6',
+                  position: 'sticky', left: 0, bgcolor: 'background.paper', zIndex: 1, minWidth: 170, borderRight: '1px solid #F3F4F6',
                 }}>
                   <Stack direction="row" spacing={0.75} alignItems="center">
                     <Box sx={{ minWidth: 0 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.72rem', lineHeight: 1.2 }}>
                         {staff.first_name} {staff.last_name}
                       </Typography>
-                      <Typography variant="caption" sx={{ fontSize: '0.58rem', color: '#6B7280', display: 'block' }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.58rem', color: 'text.secondary', display: 'block' }}>
                         {staff.location_name || '—'} · {weeklyHours}h
                       </Typography>
                     </Box>

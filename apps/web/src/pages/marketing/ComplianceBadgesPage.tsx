@@ -204,7 +204,7 @@ export default function ComplianceBadgesPage() {
       </Box>
 
       {/* Badge Overview Grid */}
-      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: '#FFFFFF' }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: 'background.paper' }}>
         <Container maxWidth="lg">
           <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 6, justifyContent: 'center' }}>
             {badges.map((b) => (
@@ -303,7 +303,7 @@ export default function ComplianceBadgesPage() {
                         {badge.howMeticleHelps.map((item, i) => (
                           <Stack key={i} direction="row" spacing={1} alignItems="flex-start">
                             <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: EMERALD, mt: '6px', flexShrink: 0 }} />
-                            <Typography variant="body2" sx={{ fontSize: '0.82rem', color: '#374151', lineHeight: 1.5 }}>
+                            <Typography variant="body2" sx={{ fontSize: '0.82rem', color: 'text.primary', lineHeight: 1.5 }}>
                               {item}
                             </Typography>
                           </Stack>
@@ -320,7 +320,7 @@ export default function ComplianceBadgesPage() {
                         {badge.keyRequirements.map((req, i) => (
                           <Stack key={i} direction="row" spacing={1} alignItems="flex-start">
                             <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: badge.color, mt: '6px', flexShrink: 0 }} />
-                            <Typography variant="body2" sx={{ fontSize: '0.82rem', color: '#374151', lineHeight: 1.5 }}>
+                            <Typography variant="body2" sx={{ fontSize: '0.82rem', color: 'text.primary', lineHeight: 1.5 }}>
                               {req}
                             </Typography>
                           </Stack>
@@ -336,7 +336,7 @@ export default function ComplianceBadgesPage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: '#F7F4EE' }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: 'grey.50' }}>
         <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
           <Typography variant="h2" sx={{ fontSize: { xs: '1.8rem', md: '2.4rem' }, fontWeight: 800, color: INK, mb: 2 }}>
             Ready to simplify compliance?

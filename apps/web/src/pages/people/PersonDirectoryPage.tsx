@@ -147,7 +147,7 @@ export default function PersonDirectoryPage() {
             </>
           )}
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setInlineForm(!inlineForm); setAddOpen(false) }}
-            sx={{ textTransform: 'none', borderRadius: '12px', fontWeight: 600, px: 2.5, py: 1, bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}>
+            sx={{ textTransform: 'none', borderRadius: '12px', fontWeight: 600, px: 2.5, py: 1, bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
             {inlineForm ? 'Close' : 'Add client'}
           </Button>
         </Stack>
@@ -156,7 +156,7 @@ export default function PersonDirectoryPage() {
       {/* ── Stats row ── */}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: '#E9F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'success.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <PersonIcon sx={{ fontSize: 20, color: '#047857' }} />
           </Box>
           <Box>
@@ -165,8 +165,8 @@ export default function PersonDirectoryPage() {
           </Box>
         </PremiumCard>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <GroupIcon sx={{ fontSize: 20, color: '#6B7280' }} />
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <GroupIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{dischargedCount}</Typography>
@@ -220,7 +220,7 @@ export default function PersonDirectoryPage() {
               <Button size="small" onClick={() => setInlineForm(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
               <Button size="small" variant="contained" disabled={createMutation.isPending || !form.first_name.trim() || !form.last_name.trim() || !form.location_id}
                 onClick={(e) => { e.preventDefault(); handleCreate(e as any) }}
-                sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}>
+                sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
                 {createMutation.isPending ? 'Adding...' : 'Add client'}
               </Button>
             </Stack>
@@ -263,7 +263,7 @@ export default function PersonDirectoryPage() {
                 <TableRow>
                   <TableCell padding="checkbox" sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
                     <Checkbox checked={selected.size === users.length && users.length > 0} indeterminate={selected.size > 0 && selected.size < users.length} onChange={toggleAll}
-                      sx={{ color: theme.palette.text.secondary, '&.Mui-checked': { color: '#1A2332' } }} />
+                      sx={{ color: theme.palette.text.secondary, '&.Mui-checked': { color: 'text.primary' } }} />
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary, borderBottom: `1px solid ${theme.palette.divider}` }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.palette.text.secondary, borderBottom: `1px solid ${theme.palette.divider}` }}>Room</TableCell>
@@ -290,12 +290,12 @@ export default function PersonDirectoryPage() {
                   <TableRow key={u.id} hover selected={selected.has(u.id)} sx={{ cursor: 'pointer', '&:last-child td': { borderBottom: 'none' } }}>
                     <TableCell padding="checkbox" onClick={e => e.stopPropagation()}>
                       <Checkbox checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)}
-                        sx={{ color: theme.palette.text.secondary, '&.Mui-checked': { color: '#1A2332' } }} />
+                        sx={{ color: theme.palette.text.secondary, '&.Mui-checked': { color: 'text.primary' } }} />
                     </TableCell>
                     <TableCell onClick={() => navigate(`/people/${u.id}`)} sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
                       <Stack direction="row" spacing={1.5} alignItems="center">
                         <PersonAvatar photoUrl={u.photo_url} name={`${u.first_name} ${u.last_name}`}
-                          sx={{ width: 36, height: 36, bgcolor: '#1A2332', fontSize: 14 }} />
+                          sx={{ width: 36, height: 36, bgcolor: 'text.primary', fontSize: 14 }} />
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
                           {u.first_name} {u.last_name}
                         </Typography>
@@ -381,7 +381,7 @@ export default function PersonDirectoryPage() {
           <DialogActions sx={{ p: 3, pt: 0 }}>
             <Button onClick={() => setAddOpen(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={createMutation.isPending}
-              sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}>
+              sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
               {createMutation.isPending ? 'Creating...' : 'Create Person'}
             </Button>
           </DialogActions>
@@ -401,7 +401,7 @@ export default function PersonDirectoryPage() {
         <DialogActions sx={{ p: 3, pt: 0 }}>
           <Button onClick={() => setBulkOpen(null)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
           <Button variant="contained" onClick={() => bulkStatusMutation.mutate({ ids: Array.from(selected), status: bulkStatus })}
-            disabled={bulkStatusMutation.isPending} sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}>
+            disabled={bulkStatusMutation.isPending} sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
             {bulkStatusMutation.isPending ? 'Updating...' : 'Apply'}
           </Button>
         </DialogActions>

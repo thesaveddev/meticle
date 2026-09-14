@@ -395,7 +395,7 @@ export default function MealPlanPage() {
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>{aiResult.plan_name}</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{aiResult.description}</Typography>
               {aiResult.person_context && (
-                <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#F8F9FA' }}>
+                <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'grey.50' }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Person Context</Typography>
                   <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
                     <Chip size="small" label={`Diet: ${aiResult.person_context.dietary_summary}`} />
@@ -441,7 +441,7 @@ export default function MealPlanPage() {
                 })}
               </Grid>
               {aiResult.daily_totals && (
-                <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#F0FDF4' }}>
+                <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'success.light' }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Daily Totals</Typography>
                   <Stack direction="row" spacing={2}>
                     <Chip label={`${aiResult.daily_totals.total_calories} kcal`} color="primary" />

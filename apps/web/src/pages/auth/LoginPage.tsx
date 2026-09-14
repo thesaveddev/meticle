@@ -77,7 +77,7 @@ export default function LoginPage() {
               Meticle
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>Welcome back</Typography>
-            <Typography sx={{ color: '#6B7280' }}>Care operations, unified.</Typography>
+            <Typography sx={{ color: 'text.secondary' }}>Care operations, unified.</Typography>
           </Box>
 
           {justRegistered && (
@@ -90,7 +90,7 @@ export default function LoginPage() {
           <Box component="form" onSubmit={handleSubmit}>
             <Stack spacing={3}>
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Work Email</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Work Email</Typography>
                 <TextField fullWidth placeholder="name@organization.com" variant="outlined"
                   value={email} onChange={e => setEmail(e.target.value)}
                   autoFocus autoComplete="email" />
@@ -98,7 +98,7 @@ export default function LoginPage() {
 
               <Box>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151' }}>Password</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Password</Typography>
                   <Link onClick={() => navigate('/forgot-password')} sx={{ color: '#0F4C81', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
                     Forgot password?
                   </Link>
@@ -121,7 +121,7 @@ export default function LoginPage() {
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <FormControlLabel
                   control={<Checkbox sx={{ color: '#E5E7EB', '&.Mui-checked': { color: '#0F4C81' } }} />}
-                  label={<Typography variant="body2" sx={{ color: '#6B7280' }}>Remember me</Typography>}
+                  label={<Typography variant="body2" sx={{ color: 'text.secondary' }}>Remember me</Typography>}
                 />
               </Stack>
 
@@ -131,7 +131,7 @@ export default function LoginPage() {
               </Button>
 
               <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Don't have an account?{' '}
                   <Link onClick={() => navigate('/register')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
                     Sign Up Free
@@ -162,7 +162,7 @@ export default function LoginPage() {
             </Stack>
           </Box>
 
-          <Box sx={{ mt: 8, display: 'flex', alignItems: 'center', gap: 1, color: '#9CA3AF' }}>
+          <Box sx={{ mt: 8, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
             <SecurityIcon sx={{ fontSize: 16 }} />
             <Typography variant="caption" sx={{ fontWeight: 600 }}>SSO Ready & Enterprise Secure</Typography>
           </Box>
@@ -172,7 +172,7 @@ export default function LoginPage() {
       <Box sx={{
         flex: { xs: 0, md: 1.2, lg: 1.6 },
         display: { xs: 'none', md: 'flex' },
-        flexDirection: 'column', bgcolor: '#F8FAFC', p: 8,
+        flexDirection: 'column', bgcolor: 'grey.50', p: 8,
         alignItems: 'center', justifyContent: 'center',
         borderLeft: '1px solid #E5E7EB'
       }}>
@@ -181,7 +181,7 @@ export default function LoginPage() {
           <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>
             Care records, medication, staffing and compliance — one working view.
           </Typography>
-          <Typography sx={{ color: '#6B7280', lineHeight: 1.7 }}>
+          <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
             Built for UK supported living teams who need complete records without the double-entry.
           </Typography>
         </Box>

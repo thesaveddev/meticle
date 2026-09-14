@@ -45,7 +45,7 @@ export default function DayBoardView(props: RotaViewProps) {
                 <Typography variant="subtitle2" sx={{ fontWeight: 800, lineHeight: 1.1, color: today ? '#0F4C81' : '#1B2430' }}>
                   {DAYS[i]}
                 </Typography>
-                <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#6B7280' }}>
+                <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
                   {d.getDate()} {d.toLocaleDateString('en-GB', { month: 'short' })}
                 </Typography>
               </Box>
@@ -53,12 +53,12 @@ export default function DayBoardView(props: RotaViewProps) {
                 {shortLocs.length > 0 && (
                   <Tooltip title={shortLocs.map(x => `${x.loc.name}: ${x.cnt}/${x.need}`).join(', ')}>
                     <Chip icon={<WarningIcon sx={{ fontSize: 11 }} />} label={`${shortLocs.length} short`} size="small"
-                      sx={{ height: 18, fontSize: '0.55rem', bgcolor: '#FEF3C7', color: '#92400E', '& .MuiChip-icon': { color: '#D97706' } }} />
+                      sx={{ height: 18, fontSize: '0.55rem', bgcolor: 'warning.light', color: '#92400E', '& .MuiChip-icon': { color: '#D97706' } }} />
                   </Tooltip>
                 )}
                 {shortLocs.length === 0 && stats.length > 0 && (
                   <Chip icon={<CheckIcon sx={{ fontSize: 11 }} />} label="Covered" size="small"
-                    sx={{ height: 18, fontSize: '0.55rem', bgcolor: '#ECFDF5', color: '#065F46', '& .MuiChip-icon': { color: '#10B981' } }} />
+                    sx={{ height: 18, fontSize: '0.55rem', bgcolor: 'success.light', color: '#065F46', '& .MuiChip-icon': { color: '#10B981' } }} />
                 )}
                 {canEdit && !isReadOnly && !past && (
                   <IconButton size="small" onClick={() => props.onOpenShiftDialog(d)}
@@ -91,7 +91,7 @@ export default function DayBoardView(props: RotaViewProps) {
             {/* Shift cards */}
             <Stack spacing={0.75} sx={{ flex: 1, overflowY: 'auto', maxHeight: 560, pr: 0.25 }}>
               {dayShifts.length === 0 ? (
-                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: '#6B7280', textAlign: 'center', py: 2 }}>
+                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', textAlign: 'center', py: 2 }}>
                   No shifts
                 </Typography>
               ) : dayShifts.map(s => (

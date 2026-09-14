@@ -123,7 +123,7 @@ export default function SatisfactionSurveysPage() {
       {aggregate && aggregate.total > 0 && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+            <Card sx={{ bgcolor: 'success.light', border: '1px solid #BBF7D0' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <HeartIcon sx={{ fontSize: 32, color: '#16A34A', mb: 1 }} />
                 <Typography variant="h4" fontWeight={800}>{aggregate.average_rating?.toFixed(1) || '—'}</Typography>
@@ -132,7 +132,7 @@ export default function SatisfactionSurveysPage() {
             </Card>
           </Grid>
           <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+            <Card sx={{ bgcolor: 'info.light', border: '1px solid #BAE6FD' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Typography variant="h4" fontWeight={800} color="#0284C7">{aggregate.total}</Typography>
                 <Typography variant="body2" color="text.secondary">Responses</Typography>
@@ -140,7 +140,7 @@ export default function SatisfactionSurveysPage() {
             </Card>
           </Grid>
           <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: '#FFF7ED', border: '1px solid #FED7AA' }}>
+            <Card sx={{ bgcolor: 'warning.light', border: '1px solid #FED7AA' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Typography variant="h4" fontWeight={800} color="#EA580C">{aggregate.positive_count}</Typography>
                 <Typography variant="body2" color="text.secondary">Positive (4-5★)</Typography>
@@ -148,7 +148,7 @@ export default function SatisfactionSurveysPage() {
             </Card>
           </Grid>
           <Grid item xs={12} sm={3}>
-            <Card sx={{ bgcolor: '#FEF2F2', border: '1px solid #FECACA' }}>
+            <Card sx={{ bgcolor: 'error.light', border: '1px solid #FECACA' }}>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Typography variant="h4" fontWeight={800} color="#DC2626">{aggregate.negative_count}</Typography>
                 <Typography variant="body2" color="text.secondary">Negative (1-2★)</Typography>
@@ -321,7 +321,7 @@ export default function SatisfactionSurveysPage() {
                   <Typography variant="body2" fontWeight={600}>{new Date(viewSurvey.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Typography>
                 </Stack>
                 {viewSurvey.comments && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: '#F9FAFB', borderRadius: 1, border: '1px solid #E5E7EB' }}>
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.200' }}>
                     <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Comments</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{viewSurvey.comments}</Typography>
                   </Box>

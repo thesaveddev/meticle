@@ -40,7 +40,7 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
   completed: { label: 'Done', color: '#047857', bg: '#E9F7F0' },
   checked_in: { label: 'At client', color: '#0F4C81', bg: '#E0F2FE' },
   en_route: { label: 'En route', color: '#7C3AED', bg: '#EDE9FE' },
-  scheduled: { label: 'Upcoming', color: '#6B7280', bg: '#F3F4F6' },
+  scheduled: { label: 'Upcoming', color: 'text.secondary', bg: '#F3F4F6' },
   missed: { label: 'Missed', color: '#DC2626', bg: '#FDECEC' },
   cancelled: { label: 'Cancelled', color: '#D97706', bg: '#FFF5D9' },
 }
@@ -129,7 +129,7 @@ export default function DomiciliaryDashboard() {
             <Chip
               icon={<CompletedIcon sx={{ fontSize: 16 }} />}
               label="All covered!"
-              sx={{ bgcolor: '#E9F7F0', color: '#047857', fontWeight: 700, borderRadius: '12px', px: 1 }}
+              sx={{ bgcolor: 'success.light', color: '#047857', fontWeight: 700, borderRadius: '12px', px: 1 }}
             />
           ) : (
             <Chip
@@ -152,7 +152,7 @@ export default function DomiciliaryDashboard() {
         {[
           { label: 'Completed', value: data.calls_completed, color: '#10B981', icon: <CompletedIcon /> },
           { label: 'In Progress', value: data.calls_in_progress, color: '#0F4C81', icon: <CallIcon /> },
-          { label: 'Upcoming', value: data.calls_scheduled, color: '#6B7280', icon: <PendingIcon /> },
+          { label: 'Upcoming', value: data.calls_scheduled, color: 'text.secondary', icon: <PendingIcon /> },
           { label: 'Missed', value: data.calls_missed, color: '#DC2626', icon: <MissedIcon /> },
           { label: 'Unassigned', value: data.calls_unassigned, color: '#D97706', icon: <UnassignedIcon /> },
         ].map(card => (
@@ -267,7 +267,7 @@ export default function DomiciliaryDashboard() {
         <Grid item xs={12} md={4}>
           <PremiumCard noBorder sx={{ p: 4, mb: 3 }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 3 }}>
-              <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: '#E9F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: 'success.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CarerIcon sx={{ color: '#10B981', fontSize: 18 }} />
               </Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Carer Coverage</Typography>
@@ -314,7 +314,7 @@ export default function DomiciliaryDashboard() {
           {data.exceptions.length > 0 && (
             <PremiumCard noBorder sx={{ p: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFBFB' }}>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
-                <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: '#FDECEC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: 'error.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <MissedIcon sx={{ color: '#DC2626', fontSize: 18 }} />
                 </Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#DC2626' }}>Exceptions</Typography>

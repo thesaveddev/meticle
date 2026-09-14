@@ -2565,7 +2565,7 @@ export default function EMedicationPage() {
                                             display: 'flex', alignItems: 'center', justifyContent: 'center', height: 30,
                                             '&:hover': { bgcolor: 'rgba(15,76,129,0.06)' }
                                           }}>
-                                            <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: '#D8D2C4' }} />
+                                            <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: 'grey.200' }} />
                                           </Box>
                                         )}
                                       </TableCell>
@@ -2689,7 +2689,7 @@ export default function EMedicationPage() {
                             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ opacity: 0.65 }}>
                               <Box>
                                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                                  <MedIcon sx={{ fontSize: 16, color: '#9CA3AF' }} />
+                                  <MedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                   <Typography variant="body2" fontWeight={700} sx={{ textDecoration: 'line-through' }}>{item.name}</Typography>
                                   <Chip label={`${item.dosage} ${item.unit}`} size="small" variant="outlined" />
                                   <Chip label={item.route} size="small" variant="outlined" />

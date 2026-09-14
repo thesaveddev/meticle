@@ -199,7 +199,7 @@ export default function MessageBubble({
                       <EditIcon sx={{ fontSize: 14, color: MIST }} />
                     </IconButton>
                     <IconButton size="small" onClick={e => { e.stopPropagation(); onDelete() }}
-                      sx={{ width: 28, height: 28, bgcolor: WHITE, border: `1px solid ${OUTLINE}`, boxShadow: '0 1px 4px rgba(0,0,0,0.1)', '&:hover': { bgcolor: '#FEE2E2', borderColor: DANGER } }}>
+                      sx={{ width: 28, height: 28, bgcolor: WHITE, border: `1px solid ${OUTLINE}`, boxShadow: '0 1px 4px rgba(0,0,0,0.1)', '&:hover': { bgcolor: 'error.light', borderColor: DANGER } }}>
                       <DeleteIcon sx={{ fontSize: 14, color: DANGER }} />
                     </IconButton>
                   </>

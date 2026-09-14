@@ -62,7 +62,7 @@ export default function MessageList({
     : -1
 
   return (
-    <Box ref={containerRef} sx={{ flex: 1, overflow: 'auto', px: { xs: 1.5, md: 2.5 }, py: 1.5, bgcolor: '#F3F0EA', display: 'flex', flexDirection: 'column' }}>
+    <Box ref={containerRef} sx={{ flex: 1, overflow: 'auto', px: { xs: 1.5, md: 2.5 }, py: 1.5, bgcolor: 'grey.50', display: 'flex', flexDirection: 'column' }}>
       {hasOlder && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
           <Button size="small" variant="outlined" onClick={onLoadOlder} disabled={olderLoading}

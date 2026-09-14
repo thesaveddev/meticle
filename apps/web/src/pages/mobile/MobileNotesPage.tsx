@@ -87,9 +87,9 @@ export default function MobileNotesPage() {
           </TextField>
         </Stack>
 
-        <Paper sx={{ p: 3, borderRadius: 3, bgcolor: recording ? '#FEF2F2' : '#F8FAFC', border: '1px solid #E5E7EB', minHeight: 120, textAlign: 'center' }}>
+        <Paper sx={{ p: 3, borderRadius: 3, bgcolor: recording ? '#FEF2F2' : '#F8FAFC', border: '1px solid', borderColor: 'grey.200', minHeight: 120, textAlign: 'center' }}>
           {transcript ? (
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: '#374151' }}>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: 'text.primary' }}>
               {transcript}
             </Typography>
           ) : (
@@ -107,7 +107,7 @@ export default function MobileNotesPage() {
             </Button>
           ) : (
             <Button variant="contained" fullWidth startIcon={<StopIcon />} onClick={stopRecording}
-              sx={{ bgcolor: '#6B7280', textTransform: 'none', borderRadius: 3, py: 1.5 }}>
+              sx={{ bgcolor: 'text.secondary', textTransform: 'none', borderRadius: 3, py: 1.5 }}>
               Stop Recording
             </Button>
           )}

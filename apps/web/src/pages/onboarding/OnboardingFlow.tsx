@@ -120,7 +120,7 @@ export default function OnboardingFlow() {
           <Typography variant="h4" sx={{ fontWeight: 900, color: 'white', mb: 1 }}>
             {step === 1 ? 'What kind of care do you provide?' : step === 2 ? 'Tell us about your organisation' : 'Set up your first record'}
           </Typography>
-          <Typography sx={{ color: '#94a3b8' }}>
+          <Typography sx={{ color: 'text.secondary' }}>
             {step === 1 ? "Select all that apply. We'll tailor your experience." : step === 2 ? 'Almost done — set your organisation details.' : 'Optional: create your first record now, or skip and do it later.'}
           </Typography>
         </Box>
@@ -142,7 +142,7 @@ export default function OnboardingFlow() {
                       </Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={{ fontWeight: 700, color: 'white' }}>{type.label}</Typography>
-                        <Typography variant="body2" sx={{ color: '#94a3b8' }}>{type.desc}</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>{type.desc}</Typography>
                       </Box>
                       <Checkbox checked={selected} sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: type.color } }} />
                     </CardContent>
@@ -167,7 +167,7 @@ export default function OnboardingFlow() {
             {isOrg ? (
               <>
                 <Box>
-                  <Typography variant="caption" sx={{ color: '#94a3b8', mb: 1, display: 'block' }}>Selected services</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', mb: 1, display: 'block' }}>Selected services</Typography>
                   <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                     {selectedTypes.map(id => {
                       const type = SERVICE_TYPES.find(t => t.id === id)
@@ -176,11 +176,11 @@ export default function OnboardingFlow() {
                   </Stack>
                 </Box>
                 <TextField label="Organization Name" fullWidth value={name} onChange={e => setName(e.target.value)}
-                  sx={{ '& .MuiInputLabel-root': { color: '#94a3b8' }, '& .MuiOutlinedInput-root': { bgcolor: '#0f172a', '& input': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+                  sx={{ '& .MuiInputLabel-root': { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { bgcolor: '#0f172a', '& input': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
                 <TextField label="Address (optional)" fullWidth multiline rows={2} value={address} onChange={e => setAddress(e.target.value)}
-                  sx={{ '& .MuiInputLabel-root': { color: '#94a3b8' }, '& .MuiOutlinedInput-root': { bgcolor: '#0f172a', '& textarea': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+                  sx={{ '& .MuiInputLabel-root': { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { bgcolor: '#0f172a', '& textarea': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
                 <Box>
-                  <Typography variant="caption" sx={{ color: '#94a3b8', mb: 1, display: 'block' }}>Invite team members (optional)</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', mb: 1, display: 'block' }}>Invite team members (optional)</Typography>
                   <Stack direction="row" spacing={1}>
                     <TextField size="small" placeholder="email@example.com" fullWidth value={emailInput}
                       onChange={e => setEmailInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addEmail() } }}
@@ -191,7 +191,7 @@ export default function OnboardingFlow() {
                     <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
                       {invites.map(email => (
                         <Chip key={email} label={email} size="small" onDelete={() => setInvites(invites.filter(e => e !== email))}
-                          sx={{ color: 'white', bgcolor: '#0f172a', '& .MuiChip-deleteIcon': { color: '#94a3b8' } }} />
+                          sx={{ color: 'white', bgcolor: '#0f172a', '& .MuiChip-deleteIcon': { color: 'text.secondary' } }} />
                       ))}
                     </Stack>
                   )}
@@ -199,10 +199,10 @@ export default function OnboardingFlow() {
               </>
             ) : (
               <TextField label="Your Name" fullWidth value={name} onChange={e => setName(e.target.value)}
-                sx={{ '& .MuiInputLabel-root': { color: '#94a3b8' }, '& .MuiOutlinedInput-root': { bgcolor: '#0f172a', '& input': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+                sx={{ '& .MuiInputLabel-root': { color: 'text.secondary' }, '& .MuiOutlinedInput-root': { bgcolor: '#0f172a', '& input': { color: 'white' } }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
             )}
             <Stack direction="row" spacing={2}>
-              <Button variant="outlined" fullWidth onClick={() => setStep(1)} sx={{ color: '#94a3b8', borderColor: 'rgba(255,255,255,0.2)' }}>Back</Button>
+              <Button variant="outlined" fullWidth onClick={() => setStep(1)} sx={{ color: 'text.secondary', borderColor: 'rgba(255,255,255,0.2)' }}>Back</Button>
               <Button variant="contained" fullWidth size="large" onClick={handleStep2Submit} disabled={saving || (isOrg ? false : !name)}
                 sx={{ bgcolor: '#10b981', py: 1.5, fontWeight: 700 }}>
                 {saving ? <CircularProgress size={24} color="inherit" /> : 'Continue'}
@@ -235,7 +235,7 @@ export default function OnboardingFlow() {
                     </Box>
                     <Box>
                       <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{item.title}</Typography>
-                      <Typography sx={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.5 }}>{item.desc}</Typography>
+                      <Typography sx={{ color: 'text.secondary', fontSize: 13, lineHeight: 1.5 }}>{item.desc}</Typography>
                     </Box>
                   </Box>
                 ))}
@@ -264,7 +264,7 @@ export default function OnboardingFlow() {
                     </Box>
                     <Box>
                       <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{item.title}</Typography>
-                      <Typography sx={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.5 }}>{item.desc}</Typography>
+                      <Typography sx={{ color: 'text.secondary', fontSize: 13, lineHeight: 1.5 }}>{item.desc}</Typography>
                     </Box>
                   </Box>
                 ))}
@@ -293,7 +293,7 @@ export default function OnboardingFlow() {
                     </Box>
                     <Box>
                       <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{item.title}</Typography>
-                      <Typography sx={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.5 }}>{item.desc}</Typography>
+                      <Typography sx={{ color: 'text.secondary', fontSize: 13, lineHeight: 1.5 }}>{item.desc}</Typography>
                     </Box>
                   </Box>
                 ))}
@@ -322,17 +322,17 @@ export default function OnboardingFlow() {
                     </Box>
                     <Box>
                       <Typography sx={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{item.title}</Typography>
-                      <Typography sx={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.5 }}>{item.desc}</Typography>
+                      <Typography sx={{ color: 'text.secondary', fontSize: 13, lineHeight: 1.5 }}>{item.desc}</Typography>
                     </Box>
                   </Box>
                 ))}
               </>
             )}
-            <Alert severity="info" sx={{ bgcolor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>
+            <Alert severity="info" sx={{ bgcolor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: 'text.secondary' }}>
               You can do all of this later from the dashboard. This guide is here to help you get started quickly.
             </Alert>
             <Stack direction="row" spacing={2}>
-              <Button variant="outlined" fullWidth onClick={() => setStep(2)} sx={{ color: '#94a3b8', borderColor: 'rgba(255,255,255,0.2)' }}>Back</Button>
+              <Button variant="outlined" fullWidth onClick={() => setStep(2)} sx={{ color: 'text.secondary', borderColor: 'rgba(255,255,255,0.2)' }}>Back</Button>
               <Button variant="contained" fullWidth size="large" onClick={handleStep3Submit} disabled={saving}
                 sx={{ bgcolor: '#10b981', py: 1.5, fontWeight: 700 }}>
                 {saving ? <CircularProgress size={24} color="inherit" /> : 'Go to Dashboard'}

@@ -60,7 +60,7 @@ export default function ShiftDetailDialog({
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
         Shift Detail
-        {isOpen && <Chip label="Open shift" size="small" sx={{ ml: 1, height: 18, fontSize: '0.6rem', bgcolor: '#FEF3C7', color: '#92400E' }} />}
+        {isOpen && <Chip label="Open shift" size="small" sx={{ ml: 1, height: 18, fontSize: '0.6rem', bgcolor: 'warning.light', color: '#92400E' }} />}
       </DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         <Stack spacing={1.5}>
@@ -74,7 +74,7 @@ export default function ShiftDetailDialog({
               )}
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center">
-              <ScheduleIcon sx={{ fontSize: 16, color: '#6B7280' }} />
+              <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
               <Typography variant="body2" color="text.secondary">
                 {fmtDate(shift.start_time)} · {fmtTime(shift.start_time)} – {fmtTime(shift.end_time)}
               </Typography>
@@ -89,13 +89,13 @@ export default function ShiftDetailDialog({
               <Stack spacing={0.5}>
                 {shift.assignments.map((a: any) => (
                   <Stack key={a.id} direction="row" spacing={1} alignItems="center">
-                    <PersonIcon sx={{ fontSize: 15, color: '#6B7280' }} />
+                    <PersonIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
                     <Typography variant="body2">{a.first_name} {a.last_name}</Typography>
-                    {a.is_overtime && <Chip label="OT" size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: '#FEF3C7', color: '#92400E', fontWeight: 700 }} />}
+                    {a.is_overtime && <Chip label="OT" size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: 'warning.light', color: '#92400E', fontWeight: 700 }} />}
                     {canEditShift && (
                       <Tooltip title="Unassign staff">
                         <IconButton size="small" sx={{ ml: 'auto', p: 0.4 }} onClick={() => onUnassign(shift.id, a.staff_id)} aria-label={`Unassign ${a.first_name}`}>
-                          <CloseIcon sx={{ fontSize: 13, color: '#9CA3AF', '&:hover': { color: '#DC2626' } }} />
+                          <CloseIcon sx={{ fontSize: 13, color: 'text.secondary', '&:hover': { color: '#DC2626' } }} />
                         </IconButton>
                       </Tooltip>
                     )}
@@ -126,7 +126,7 @@ export default function ShiftDetailDialog({
               <Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>Agency</Typography>
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <Chip label="Agency shift" size="small" sx={{ height: 17, fontSize: '0.58rem', bgcolor: '#DBEAFE', color: '#1E40AF' }} />
+                  <Chip label="Agency shift" size="small" sx={{ height: 17, fontSize: '0.58rem', bgcolor: 'info.light', color: '#1E40AF' }} />
                   <Chip label={shift.agency_covered ? 'Covered' : 'Uncovered'} size="small"
                     sx={{ height: 17, fontSize: '0.58rem', bgcolor: shift.agency_covered ? '#D1FAE5' : '#FEF3C7', color: shift.agency_covered ? '#065F46' : '#92400E' }} />
                   {canEditShift && (

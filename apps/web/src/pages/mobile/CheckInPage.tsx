@@ -41,7 +41,7 @@ export default function CheckInPage() {
       </Typography>
 
       {status === 'idle' && (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3, border: '1px solid #E5E7EB' }}>
+        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: 'grey.200' }}>
           <GpsIcon sx={{ fontSize: 64, color: '#0F4C81', mb: 2, opacity: 0.3 }} />
           <Typography variant="body1" fontWeight={600} sx={{ mb: 1 }}>Ready to check in</Typography>
           <Typography variant="body2" color="#6B7280" sx={{ mb: 3 }}>
@@ -62,7 +62,7 @@ export default function CheckInPage() {
       )}
 
       {status === 'success' && (
-        <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3, bgcolor: '#DCFCE7', border: '1px solid #BBF7D0' }}>
+        <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3, bgcolor: 'success.light', border: '1px solid #BBF7D0' }}>
           <CheckIcon sx={{ fontSize: 64, color: '#16A34A', mb: 1 }} />
           <Typography variant="h6" fontWeight={800} color="#16A34A">Checked In!</Typography>
           {coords && (
@@ -85,7 +85,7 @@ export default function CheckInPage() {
       <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 4, mb: 1.5 }}>Recent Check-Ins</Typography>
       <Stack spacing={1}>
         {(recentCheckins || []).slice(0, 10).map((c: any) => (
-          <Paper key={c.id} sx={{ p: 1.5, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+          <Paper key={c.id} sx={{ p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="body2" fontWeight={600}>{c.location_name || 'Check-in'}</Typography>
               <Chip label="Verified" size="small" color="success" />

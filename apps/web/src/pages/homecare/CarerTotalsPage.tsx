@@ -92,11 +92,11 @@ function statusColor(status: string) {
   switch (status) {
     case 'completed': return { bg: '#E9F7F0', color: '#047857', label: 'Completed' }
     case 'checked_in': return { bg: '#EFF6FF', color: '#1D4ED8', label: 'Checked in' }
-    case 'scheduled': return { bg: '#F3F4F6', color: '#374151', label: 'Scheduled' }
+    case 'scheduled': return { bg: '#F3F4F6', color: 'text.primary', label: 'Scheduled' }
     case 'en_route': return { bg: '#FFF5D9', color: '#D97706', label: 'En route' }
     case 'missed': return { bg: '#FDECEC', color: '#B42318', label: 'Missed' }
-    case 'cancelled': return { bg: '#F3F4F6', color: '#9CA3AF', label: 'Cancelled' }
-    default: return { bg: '#F3F4F6', color: '#6B7280', label: status }
+    case 'cancelled': return { bg: '#F3F4F6', color: 'text.secondary', label: 'Cancelled' }
+    default: return { bg: '#F3F4F6', color: 'text.secondary', label: status }
   }
 }
 
@@ -105,8 +105,8 @@ function tsStatusColor(status: string) {
     case 'approved': return { bg: '#E9F7F0', color: '#047857', label: 'Approved' }
     case 'submitted': return { bg: '#FFF5D9', color: '#D97706', label: 'Submitted' }
     case 'rejected': return { bg: '#FDECEC', color: '#B42318', label: 'Rejected' }
-    case 'draft': return { bg: '#F3F4F6', color: '#6B7280', label: 'Draft' }
-    default: return { bg: '#F3F4F6', color: '#6B7280', label: status }
+    case 'draft': return { bg: '#F3F4F6', color: 'text.secondary', label: 'Draft' }
+    default: return { bg: '#F3F4F6', color: 'text.secondary', label: status }
   }
 }
 
@@ -227,7 +227,7 @@ export default function CarerTotalsPage() {
                view === 'pending-approvals' ? 'Pending Approvals' :
                'Carer Monthly Totals'}
             </Typography>
-            <Typography variant="body2" sx={{ color: '#6B7280' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {view === 'carer-detail' ? `${fmtDate(from)} — ${fmtDate(to)}` :
                view === 'pending-approvals' ? `${pendingVisits.length} timesheet${pendingVisits.length !== 1 ? 's' : ''} awaiting review` :
                'Per-carer summary of paid minutes, travel, mileage and gross pay'}
@@ -235,7 +235,7 @@ export default function CarerTotalsPage() {
           </Box>
         </Stack>
         {view === 'overview' && (
-          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv} disabled={!totals.length} sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: '#374151' }}>
+          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv} disabled={!totals.length} sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: 'text.primary' }}>
             Export CSV
           </Button>
         )}
@@ -261,30 +261,30 @@ export default function CarerTotalsPage() {
           <Stack direction="row" gap={2} mb={3} flexWrap="wrap">
             <Paper
               elevation={0}
-              sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3, cursor: 'default' }}
+              sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3, cursor: 'default' }}
             >
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F4C81' }}>{totals.length}</Typography>
-              <Typography variant="caption" sx={{ color: '#6B7280' }}>Carers</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Carers</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3, cursor: 'default' }}>
+            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3, cursor: 'default' }}>
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#10b981' }}>{fmtHours(grandWork)}</Typography>
-              <Typography variant="caption" sx={{ color: '#6B7280' }}>Total paid time</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Total paid time</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3, cursor: 'default' }}>
+            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3, cursor: 'default' }}>
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#3b82f6' }}>{fmtHours(grandTravel)}</Typography>
-              <Typography variant="caption" sx={{ color: '#6B7280' }}>Travel time</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Travel time</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3, cursor: 'default' }}>
+            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3, cursor: 'default' }}>
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#8b5cf6' }}>{fmtMiles(grandMileage)}</Typography>
-              <Typography variant="caption" sx={{ color: '#6B7280' }}>Mileage</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Mileage</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3, cursor: 'default' }}>
+            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3, cursor: 'default' }}>
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F4C81' }}>{fmtPence(grandGross)}</Typography>
-              <Typography variant="caption" sx={{ color: '#6B7280' }}>Gross pay</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Gross pay</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3, cursor: 'default' }}>
+            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', minWidth: 140, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3, cursor: 'default' }}>
               <Typography variant="h5" sx={{ fontWeight: 800, color: grandExceptions > 0 ? '#DC2626' : '#10b981' }}>{grandExceptions}</Typography>
-              <Typography variant="caption" sx={{ color: '#6B7280' }}>Exceptions</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Exceptions</Typography>
             </Paper>
             <Paper
               elevation={0}
@@ -295,14 +295,14 @@ export default function CarerTotalsPage() {
                 borderRadius: 3,
                 cursor: grandPending > 0 ? 'pointer' : 'default',
                 transition: 'all 0.15s ease',
-                '&:hover': grandPending > 0 ? { bgcolor: '#FFFBEB', transform: 'translateY(-1px)' } : {},
+                '&:hover': grandPending > 0 ? { bgcolor: 'warning.light', transform: 'translateY(-1px)' } : {},
               }}
             >
               <Stack direction="row" alignItems="center" justifyContent="center" gap={0.5}>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: grandPending > 0 ? '#D97706' : '#10b981' }}>{grandPending}</Typography>
                 {grandPending > 0 && <PendingCheckIcon sx={{ color: '#D97706', fontSize: 18 }} />}
               </Stack>
-              <Typography variant="caption" sx={{ color: '#6B7280' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 {grandPending > 0 ? 'Click to review' : 'Awaiting approval'}
               </Typography>
             </Paper>
@@ -312,26 +312,26 @@ export default function CarerTotalsPage() {
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
           ) : totals.length === 0 ? (
-            <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <ReceiptIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 1 }} />
-              <Typography sx={{ color: '#6B7280' }}>No timesheet data for this period</Typography>
+              <Typography sx={{ color: 'text.secondary' }}>No timesheet data for this period</Typography>
             </Paper>
           ) : (
             <>
-              <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 3 }}>
+              <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Carer</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Visits</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Paid time</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Travel</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Mileage</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Gross pay</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Approved</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Pending</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Rejected</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Exceptions</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Carer</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Visits</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Paid time</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Travel</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Mileage</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Gross pay</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Approved</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Pending</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Rejected</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Exceptions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -340,11 +340,11 @@ export default function CarerTotalsPage() {
                         key={t.staff_id}
                         hover
                         onClick={() => loadCarerDetail(t)}
-                        sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#F8FAFC' } }}
+                        sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'grey.50' } }}
                       >
                         <TableCell>
                           <Stack direction="row" alignItems="center" gap={1}>
-                            <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'info.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <PersonIcon sx={{ color: '#0F4C81', fontSize: 20 }} />
                             </Box>
                             <Typography sx={{ fontWeight: 600 }}>{t.staff_name}</Typography>
@@ -356,7 +356,7 @@ export default function CarerTotalsPage() {
                         <TableCell align="right">{fmtMiles(t.total_mileage_miles)}</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 700 }}>{fmtPence(t.total_gross_pay_pence)}</TableCell>
                         <TableCell align="right">
-                          <Chip label={t.approved_count} size="small" sx={{ bgcolor: '#E9F7F0', color: '#047857', fontWeight: 600 }} />
+                          <Chip label={t.approved_count} size="small" sx={{ bgcolor: 'success.light', color: '#047857', fontWeight: 600 }} />
                         </TableCell>
                         <TableCell align="right">
                           <Chip
@@ -376,9 +376,9 @@ export default function CarerTotalsPage() {
                         </TableCell>
                         <TableCell align="right">
                           {Number(t.exception_count) > 0 ? (
-                            <Chip icon={<WarningIcon sx={{ fontSize: 16 }} />} label={t.exception_count} size="small" sx={{ bgcolor: '#FDECEC', color: '#B42318', fontWeight: 600 }} />
+                            <Chip icon={<WarningIcon sx={{ fontSize: 16 }} />} label={t.exception_count} size="small" sx={{ bgcolor: 'error.light', color: '#B42318', fontWeight: 600 }} />
                           ) : (
-                            <Chip label="0" size="small" sx={{ bgcolor: '#E9F7F0', color: '#047857' }} />
+                            <Chip label="0" size="small" sx={{ bgcolor: 'success.light', color: '#047857' }} />
                           )}
                         </TableCell>
                       </TableRow>
@@ -389,7 +389,7 @@ export default function CarerTotalsPage() {
 
               {/* Pagination */}
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2, px: 1 }}>
-                <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Showing {page * rowsPerPage + 1}–{Math.min((page + 1) * rowsPerPage, totals.length)} of {totals.length} carers
                 </Typography>
                 <Stack direction="row" gap={1} alignItems="center">
@@ -417,31 +417,31 @@ export default function CarerTotalsPage() {
         <>
           {/* Carer summary cards */}
           <Stack direction="row" gap={2} mb={3} flexWrap="wrap">
-            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 160px', minWidth: 160, border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 160px', minWidth: 160, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Stack direction="row" alignItems="center" gap={1}>
                 <PersonIcon sx={{ color: '#0F4C81', fontSize: 20 }} />
-                <Typography variant="caption" sx={{ color: '#6B7280' }}>Visits</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>Visits</Typography>
               </Stack>
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F4C81', mt: 0.5 }}>{selectedCarer.visit_count}</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 160px', minWidth: 160, border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 160px', minWidth: 160, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Stack direction="row" alignItems="center" gap={1}>
                 <ClockIcon sx={{ color: '#10b981', fontSize: 20 }} />
-                <Typography variant="caption" sx={{ color: '#6B7280' }}>Paid time</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>Paid time</Typography>
               </Stack>
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#10b981', mt: 0.5 }}>{fmtHours(Number(selectedCarer.total_work_minutes || 0))}</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 160px', minWidth: 160, border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 160px', minWidth: 160, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Stack direction="row" alignItems="center" gap={1}>
                 <CarIcon sx={{ color: '#3b82f6', fontSize: 20 }} />
-                <Typography variant="caption" sx={{ color: '#6B7280' }}>Travel</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>Travel</Typography>
               </Stack>
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#3b82f6', mt: 0.5 }}>{fmtHours(Number(selectedCarer.total_paid_travel_minutes || 0))}</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 160px', minWidth: 160, border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 160px', minWidth: 160, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Stack direction="row" alignItems="center" gap={1}>
                 <MoneyIcon sx={{ color: '#8b5cf6', fontSize: 20 }} />
-                <Typography variant="caption" sx={{ color: '#6B7280' }}>Gross pay</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>Gross pay</Typography>
               </Stack>
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#8b5cf6', mt: 0.5 }}>{fmtPence(selectedCarer.total_gross_pay_pence)}</Typography>
             </Paper>
@@ -450,9 +450,9 @@ export default function CarerTotalsPage() {
           {carerLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
           ) : carerVisits.length === 0 ? (
-            <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <ReceiptIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 1 }} />
-              <Typography sx={{ color: '#6B7280' }}>No visits for this carer in this period</Typography>
+              <Typography sx={{ color: 'text.secondary' }}>No visits for this carer in this period</Typography>
             </Paper>
           ) : (
             <Stack gap={2}>
@@ -474,7 +474,7 @@ export default function CarerTotalsPage() {
                   : null
 
                 return (
-                  <Paper key={v.id} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
+                  <Paper key={v.id} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 3, overflow: 'hidden' }}>
                     {/* Header row */}
                     <Box sx={{ p: 2.5, display: 'flex', flexWrap: 'wrap', gap: 'var(--card-gap)', alignItems: 'center' }}>
                       <Box sx={{ flex: '1 1 200px' }}>
@@ -482,28 +482,28 @@ export default function CarerTotalsPage() {
                           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{v.label || v.visit_type}</Typography>
                           <Chip label={sc.label} size="small" sx={{ bgcolor: sc.bg, color: sc.color, fontWeight: 600 }} />
                           {v.exception_type && (
-                            <Chip label={v.exception_type} size="small" sx={{ bgcolor: '#FDECEC', color: '#B42318', fontWeight: 600 }} />
+                            <Chip label={v.exception_type} size="small" sx={{ bgcolor: 'error.light', color: '#B42318', fontWeight: 600 }} />
                           )}
                         </Stack>
-                        <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.25 }}>{v.person_name}{v.person_address ? ` · ${v.person_address}` : ''}</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>{v.person_name}{v.person_address ? ` · ${v.person_address}` : ''}</Typography>
                       </Box>
                       <Stack direction="row" gap={2} flexWrap="wrap">
                         <Box sx={{ textAlign: 'center', minWidth: 80 }}>
-                          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Date</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Date</Typography>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmtDate(v.scheduled_start)}</Typography>
                         </Box>
                         <Box sx={{ textAlign: 'center', minWidth: 80 }}>
-                          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Scheduled</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Scheduled</Typography>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmtTime(v.scheduled_start)} – {fmtTime(v.scheduled_end)}</Typography>
                         </Box>
                         <Box sx={{ textAlign: 'center', minWidth: 80 }}>
-                          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Actual</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Actual</Typography>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: v.check_in_at ? '#374151' : '#D1D5DB' }}>
                             {v.check_in_at ? `${fmtTime(v.check_in_at)} – ${v.check_out_at ? fmtTime(v.check_out_at) : 'ongoing'}` : '—'}
                           </Typography>
                         </Box>
                         <Box sx={{ textAlign: 'center', minWidth: 80 }}>
-                          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Pay</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Pay</Typography>
                           <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F4C81' }}>{v.gross_pay_pence != null ? fmtPence(v.gross_pay_pence) : '—'}</Typography>
                         </Box>
                       </Stack>
@@ -512,19 +512,19 @@ export default function CarerTotalsPage() {
                     {/* Detail chips row */}
                     <Box sx={{ px: 2.5, pb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                       {v.work_minutes != null && (
-                        <Chip size="small" label={`Work: ${fmtHours(v.work_minutes)}`} sx={{ bgcolor: '#F0FDF4', color: '#166534', fontWeight: 500 }} />
+                        <Chip size="small" label={`Work: ${fmtHours(v.work_minutes)}`} sx={{ bgcolor: 'success.light', color: '#166534', fontWeight: 500 }} />
                       )}
                       {v.paid_travel_minutes != null && (
-                        <Chip size="small" label={`Travel: ${fmtHours(v.paid_travel_minutes)}`} sx={{ bgcolor: '#EFF6FF', color: '#1E40AF', fontWeight: 500 }} />
+                        <Chip size="small" label={`Travel: ${fmtHours(v.paid_travel_minutes)}`} sx={{ bgcolor: 'info.light', color: '#1E40AF', fontWeight: 500 }} />
                       )}
                       {v.mileage_miles != null && (
-                        <Chip size="small" label={`Mileage: ${fmtMiles(v.mileage_miles)}`} sx={{ bgcolor: '#F5F3FF', color: '#5B21B6', fontWeight: 500 }} />
+                        <Chip size="small" label={`Mileage: ${fmtMiles(v.mileage_miles)}`} sx={{ bgcolor: 'grey.50', color: '#5B21B6', fontWeight: 500 }} />
                       )}
                       {breakMinutes != null && breakMinutes > 0 && (
-                        <Chip size="small" label={`Break: ${fmtHours(breakMinutes)}`} sx={{ bgcolor: '#FFF7ED', color: '#9A3412', fontWeight: 500 }} />
+                        <Chip size="small" label={`Break: ${fmtHours(breakMinutes)}`} sx={{ bgcolor: 'warning.light', color: '#9A3412', fontWeight: 500 }} />
                       )}
                       {durationMinutes != null && (
-                        <Chip size="small" label={`Duration: ${fmtHours(durationMinutes)}`} sx={{ bgcolor: '#F8FAFC', color: '#475569', fontWeight: 500 }} />
+                        <Chip size="small" label={`Duration: ${fmtHours(durationMinutes)}`} sx={{ bgcolor: 'grey.50', color: '#475569', fontWeight: 500 }} />
                       )}
                       {actualDurationMinutes != null && actualDurationMinutes !== durationMinutes && (
                         <Chip size="small" label={`Actual: ${fmtHours(actualDurationMinutes)}`} sx={{ bgcolor: actualDurationMinutes > (durationMinutes || 0) ? '#FEF2F2' : '#F0FDF4', color: actualDurationMinutes > (durationMinutes || 0) ? '#991B1B' : '#166534', fontWeight: 500 }} />
@@ -539,49 +539,49 @@ export default function CarerTotalsPage() {
                     {(v.visit_notes || v.progress_notes || v.care_plan_notes || v.wellbeing_notes || v.client_mood || v.personal_care || v.fluid_intake_ml) && (
                       <Box sx={{ px: 2.5, pb: 2 }}>
                         <Box sx={{ borderTop: '1px solid #F1F5F9', pt: 2 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#374151', mb: 1 }}>Care Notes</Typography>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>Care Notes</Typography>
                           <Stack gap={1.5}>
                             {v.visit_notes && (
                               <Box>
-                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Visit Notes</Typography>
-                                <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.visit_notes}</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Visit Notes</Typography>
+                                <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.visit_notes}</Typography>
                               </Box>
                             )}
                             {v.progress_notes && (
                               <Box>
-                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Progress Notes</Typography>
-                                <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.progress_notes}</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Progress Notes</Typography>
+                                <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.progress_notes}</Typography>
                               </Box>
                             )}
                             {v.care_plan_notes && (
                               <Box>
-                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Care Plan Notes</Typography>
-                                <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.care_plan_notes}</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Care Plan Notes</Typography>
+                                <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.care_plan_notes}</Typography>
                               </Box>
                             )}
                             {v.wellbeing_notes && (
                               <Box>
-                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Wellbeing</Typography>
-                                <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.wellbeing_notes}</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Wellbeing</Typography>
+                                <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.wellbeing_notes}</Typography>
                               </Box>
                             )}
                             <Stack direction="row" gap={2} flexWrap="wrap">
                               {v.client_mood && (
                                 <Box>
-                                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Mood</Typography>
-                                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151', mt: 0.25 }}>{v.client_mood}</Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Mood</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mt: 0.25 }}>{v.client_mood}</Typography>
                                 </Box>
                               )}
                               {v.personal_care && (
                                 <Box>
-                                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Personal Care</Typography>
-                                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151', mt: 0.25 }}>{v.personal_care}</Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Personal Care</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mt: 0.25 }}>{v.personal_care}</Typography>
                                 </Box>
                               )}
                               {v.fluid_intake_ml != null && (
                                 <Box>
-                                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Fluid Intake</Typography>
-                                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151', mt: 0.25 }}>{v.fluid_intake_ml} ml</Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Fluid Intake</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mt: 0.25 }}>{v.fluid_intake_ml} ml</Typography>
                                 </Box>
                               )}
                             </Stack>
@@ -594,21 +594,21 @@ export default function CarerTotalsPage() {
                     {(v.check_in_latitude || v.check_out_latitude) && (
                       <Box sx={{ px: 2.5, pb: 2 }}>
                         <Box sx={{ borderTop: '1px solid #F1F5F9', pt: 2 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#374151', mb: 1 }}>Location Data</Typography>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>Location Data</Typography>
                           <Stack direction="row" gap={3} flexWrap="wrap">
                             {v.check_in_latitude && v.check_in_longitude && (
                               <Box>
-                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Check-in GPS</Typography>
-                                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#374151', mt: 0.25 }}>{Number(v.check_in_latitude).toFixed(6)}, {Number(v.check_in_longitude).toFixed(6)}</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Check-in GPS</Typography>
+                                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'text.primary', mt: 0.25 }}>{Number(v.check_in_latitude).toFixed(6)}, {Number(v.check_in_longitude).toFixed(6)}</Typography>
                                 {v.check_in_accuracy_meters != null && (
-                                  <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Accuracy: ±{Math.round(v.check_in_accuracy_meters)}m</Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>Accuracy: ±{Math.round(v.check_in_accuracy_meters)}m</Typography>
                                 )}
                               </Box>
                             )}
                             {v.check_out_latitude && v.check_out_longitude && (
                               <Box>
-                                <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Check-out GPS</Typography>
-                                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#374151', mt: 0.25 }}>{Number(v.check_out_latitude).toFixed(6)}, {Number(v.check_out_longitude).toFixed(6)}</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Check-out GPS</Typography>
+                                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'text.primary', mt: 0.25 }}>{Number(v.check_out_latitude).toFixed(6)}, {Number(v.check_out_longitude).toFixed(6)}</Typography>
                               </Box>
                             )}
                           </Stack>
@@ -623,13 +623,13 @@ export default function CarerTotalsPage() {
                           {v.late_reason && (
                             <Box sx={{ mb: 1 }}>
                               <Typography variant="caption" sx={{ color: '#D97706', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Late Reason</Typography>
-                              <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.late_reason}</Typography>
+                              <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.late_reason}</Typography>
                             </Box>
                           )}
                           {v.rejection_reason && (
                             <Box>
                               <Typography variant="caption" sx={{ color: '#DC2626', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Timesheet Rejected</Typography>
-                              <Typography variant="body2" sx={{ color: '#374151', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.rejection_reason}</Typography>
+                              <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-wrap', mt: 0.25 }}>{v.rejection_reason}</Typography>
                             </Box>
                           )}
                         </Box>
@@ -649,24 +649,24 @@ export default function CarerTotalsPage() {
           {pendingLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
           ) : pendingVisits.length === 0 ? (
-            <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <CheckIcon sx={{ fontSize: 48, color: '#10b981', mb: 1 }} />
-              <Typography sx={{ color: '#6B7280' }}>All timesheets have been reviewed</Typography>
+              <Typography sx={{ color: 'text.secondary' }}>All timesheets have been reviewed</Typography>
             </Paper>
           ) : (
-            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Carer</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Visit</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Client</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Date</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Work</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Travel</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Mileage</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Pay</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700, color: '#374151' }}>Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Carer</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Visit</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Client</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Date</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Work</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Travel</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Mileage</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Pay</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700, color: 'text.primary' }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -674,7 +674,7 @@ export default function CarerTotalsPage() {
                     <TableRow key={v.timesheet_id} hover>
                       <TableCell>
                         <Stack direction="row" alignItems="center" gap={1}>
-                          <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: 'info.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <PersonIcon sx={{ color: '#0F4C81', fontSize: 18 }} />
                           </Box>
                           <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{v.staff_name}</Typography>

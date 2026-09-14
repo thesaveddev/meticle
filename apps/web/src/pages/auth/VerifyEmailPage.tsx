@@ -54,7 +54,7 @@ export default function VerifyEmailPage() {
             <>
               <CheckCircleIcon sx={{ fontSize: 80, color: '#10b981', mb: 3 }} />
               <Typography variant="h4" sx={{ fontWeight: 800, color: 'white', mb: 2 }}>Account Verified!</Typography>
-              <Typography sx={{ color: '#94a3b8', mb: 4 }}>
+              <Typography sx={{ color: 'text.secondary', mb: 4 }}>
                 Your email has been successfully verified. You can now log in to your Meticle dashboard.
               </Typography>
               <Button variant="contained" fullWidth sx={{ bgcolor: '#10b981', py: 1.5, fontWeight: 700 }} onClick={() => navigate('/login')}>
@@ -67,7 +67,7 @@ export default function VerifyEmailPage() {
             <>
               <ErrorIcon sx={{ fontSize: 80, color: '#ef4444', mb: 3 }} />
               <Typography variant="h4" sx={{ fontWeight: 800, color: 'white', mb: 2 }}>Verification Error</Typography>
-              <Typography sx={{ color: '#94a3b8', mb: 4 }}>{message}</Typography>
+              <Typography sx={{ color: 'text.secondary', mb: 4 }}>{message}</Typography>
               <Button variant="outlined" fullWidth sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.2)' }} onClick={() => navigate('/')}>
                 Back to Home
               </Button>

@@ -57,7 +57,7 @@ export default function MfaSetupPage() {
 
   if (backupCodes) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
         <Container maxWidth="sm">
           <Paper sx={{ p: 4, borderRadius: 2 }}>
             <Typography variant="h5" sx={{ fontWeight: 800, mb: 2, color: '#0F4C81' }}>MFA Enabled Successfully</Typography>
@@ -66,7 +66,7 @@ export default function MfaSetupPage() {
             </Alert>
             <Stack spacing={1} sx={{ mb: 3 }}>
               {backupCodes.map((code, i) => (
-                <Paper key={i} variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: '#F9FAFB' }}>
+                <Paper key={i} variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: 'grey.50' }}>
                   <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1.1rem', letterSpacing: 2 }}>{code}</Typography>
                 </Paper>
               ))}
@@ -103,12 +103,12 @@ export default function MfaSetupPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
       <Container maxWidth="sm">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle</Typography>
           <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>Set Up Multi-Factor Authentication</Typography>
-          <Typography sx={{ color: '#6B7280', mt: 1 }}>
+          <Typography sx={{ color: 'text.secondary', mt: 1 }}>
             Your organisation requires MFA. Scan the QR code with your authenticator app{email ? ` (${email})` : ''}.
           </Typography>
         </Box>
@@ -123,7 +123,7 @@ export default function MfaSetupPage() {
                 Scan with Google Authenticator, Microsoft Authenticator, or Authy
               </Typography>
               {secret && (
-                <Typography variant="caption" sx={{ display: 'block', mt: 1, fontFamily: 'monospace', color: '#9CA3AF', wordBreak: 'break-all' }}>
+                <Typography variant="caption" sx={{ display: 'block', mt: 1, fontFamily: 'monospace', color: 'text.secondary', wordBreak: 'break-all' }}>
                   Secret: {secret}
                 </Typography>
               )}

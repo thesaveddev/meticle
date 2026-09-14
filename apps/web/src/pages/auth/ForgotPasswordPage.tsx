@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
               Reset your password
             </Typography>
-            <Typography sx={{ color: '#6B7280' }}>
+            <Typography sx={{ color: 'text.secondary' }}>
               Enter your email and we'll send you a reset link.
             </Typography>
           </Box>
@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
           {error && (
             <Box sx={{
               mb: 3, p: 2, borderRadius: 2,
-              bgcolor: '#FEF2F2', border: '1px solid #FECACA',
+              bgcolor: 'error.light', border: '1px solid #FECACA',
             }}>
               <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 500 }}>{error}</Typography>
             </Box>
@@ -74,7 +74,7 @@ export default function ForgotPasswordPage() {
             <Box>
               <Box sx={{
                 display: 'flex', alignItems: 'center', gap: 1.5, mb: 3,
-                p: 2.5, borderRadius: 2, bgcolor: '#F0FDF4', border: '1px solid #BBF7D0',
+                p: 2.5, borderRadius: 2, bgcolor: 'success.light', border: '1px solid #BBF7D0',
               }}>
                 <MailIcon sx={{ color: '#16A34A', fontSize: 22 }} />
                 <Box>
@@ -89,9 +89,9 @@ export default function ForgotPasswordPage() {
                 variant="outlined"
                 onClick={() => navigate('/login')}
                 sx={{
-                  borderColor: '#E5E7EB', color: '#374151', fontWeight: 600,
+                  borderColor: '#E5E7EB', color: 'text.primary', fontWeight: 600,
                   textTransform: 'none', borderRadius: 2, py: 1.5,
-                  '&:hover': { borderColor: '#D1D5DB', bgcolor: '#F9FAFB' },
+                  '&:hover': { borderColor: '#D1D5DB', bgcolor: 'grey.50' },
                 }}
               >
                 Back to sign in
@@ -101,7 +101,7 @@ export default function ForgotPasswordPage() {
             <Box component="form" onSubmit={handleSubmit}>
               <Stack spacing={3}>
                 <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Email address</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Email address</Typography>
                   <TextField
                     fullWidth
                     placeholder="name@organization.com"
@@ -114,7 +114,7 @@ export default function ForgotPasswordPage() {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <MailIcon sx={{ color: '#9CA3AF', fontSize: 20 }} />
+                          <MailIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
                         </InputAdornment>
                       ),
                     }}
@@ -143,7 +143,7 @@ export default function ForgotPasswordPage() {
                 </Button>
 
                 <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
-                  <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Remember your password?{' '}
                     <Link
                       onClick={() => navigate('/login')}
@@ -162,7 +162,7 @@ export default function ForgotPasswordPage() {
       <Box sx={{
         flex: { xs: 0, md: 1.2, lg: 1.6 },
         display: { xs: 'none', md: 'flex' },
-        flexDirection: 'column', bgcolor: '#F8FAFC', p: 8,
+        flexDirection: 'column', bgcolor: 'grey.50', p: 8,
         alignItems: 'center', justifyContent: 'center',
         borderLeft: '1px solid #E5E7EB',
       }}>
@@ -170,7 +170,7 @@ export default function ForgotPasswordPage() {
           <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>
             Your data stays safe
           </Typography>
-          <Typography sx={{ color: '#6B7280', lineHeight: 1.7 }}>
+          <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
             Password resets are sent only to verified email addresses. The link expires in 1 hour and can only be used once.
           </Typography>
         </Box>

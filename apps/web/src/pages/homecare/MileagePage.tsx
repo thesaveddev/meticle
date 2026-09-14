@@ -145,12 +145,12 @@ export default function MileagePage() {
           <CarIcon sx={{ color: '#0F4C81', fontSize: 28 }} />
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800 }}>Mileage & Travel</Typography>
-            <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.5 }}>Track carer travel and manage mileage policies</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Track carer travel and manage mileage policies</Typography>
           </Box>
         </Stack>
         <Stack direction="row" spacing={1}>
           {tab === 0 && (
-            <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv} disabled={!mileageVisits.length} sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: '#374151' }}>
+            <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv} disabled={!mileageVisits.length} sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: 'text.primary' }}>
               Export CSV
             </Button>
           )}
@@ -178,34 +178,34 @@ export default function MileagePage() {
           </Stack>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F4C81' }}>{totalMiles.toFixed(1)}</Typography>
-              <Typography variant="body2" sx={{ color: '#6B7280' }}>Total miles</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total miles</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, color: '#10b981' }}>{fmtMoney(totalMileagePay)}</Typography>
-              <Typography variant="body2" sx={{ color: '#6B7280' }}>Total mileage pay</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total mileage pay</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, color: '#3b82f6' }}>{`${Math.floor(totalTravelMinutes / 60)}h ${totalTravelMinutes % 60}m`}</Typography>
-              <Typography variant="body2" sx={{ color: '#6B7280' }}>Total travel time</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total travel time</Typography>
             </Paper>
-            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Typography variant="h4" sx={{ fontWeight: 800 }}>{mileageVisits.length}</Typography>
-              <Typography variant="body2" sx={{ color: '#6B7280' }}>Tracked visits</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Tracked visits</Typography>
             </Paper>
           </Stack>
 
           {/* Active policies bar */}
           {isManager && activePolicies.length > 0 && (
-            <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0F4C81' }}>Active mileage policies</Typography>
                 <Button size="small" onClick={() => setTab(1)} sx={{ textTransform: 'none', color: '#0F4C81' }}>Manage</Button>
               </Stack>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {activePolicies.map((p: MileagePolicy) => (
-                  <Chip key={p.id} label={`${VEHICLE_TYPES.find(v => v.value === p.vehicle_type)?.label || p.vehicle_type} · ${FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} — ${fmtRate(p.rate_pence)} (${p.tax_year})`} size="small" sx={{ bgcolor: '#F0F7FF', fontWeight: 600, color: '#0F4C81' }} />
+                  <Chip key={p.id} label={`${VEHICLE_TYPES.find(v => v.value === p.vehicle_type)?.label || p.vehicle_type} · ${FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} — ${fmtRate(p.rate_pence)} (${p.tax_year})`} size="small" sx={{ bgcolor: 'info.light', fontWeight: 600, color: '#0F4C81' }} />
                 ))}
               </Stack>
             </Paper>
@@ -214,22 +214,22 @@ export default function MileagePage() {
           {isLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
           ) : (
-            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Carer</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Client</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Date</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Miles</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Travel time</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Rate</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Mileage pay</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Carer</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Client</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Date</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Miles</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Travel time</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Rate</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Mileage pay</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {mileageVisits.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: '#6B7280' }}>No mileage records for this period</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>No mileage records for this period</TableCell></TableRow>
                   ) : mileageVisits.map((v: any) => (
                     <TableRow key={v.id} hover>
                       <TableCell>
@@ -241,7 +241,7 @@ export default function MileagePage() {
                       <TableCell align="right">
                         {v.actual_travel_minutes != null ? `${Math.floor(v.actual_travel_minutes / 60)}h ${v.actual_travel_minutes % 60}m` : '—'}
                       </TableCell>
-                      <TableCell align="right" sx={{ color: '#6B7280' }}>{v.mileage_rate_pence ? fmtRate(v.mileage_rate_pence) : '—'}</TableCell>
+                      <TableCell align="right" sx={{ color: 'text.secondary' }}>{v.mileage_rate_pence ? fmtRate(v.mileage_rate_pence) : '—'}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#10b981' }}>
                         {fmtMoney((Number(v.actual_mileage_miles) || 0) * (Number(v.mileage_rate_pence) || 0))}
                       </TableCell>
@@ -260,10 +260,10 @@ export default function MileagePage() {
           {policiesLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
           ) : policies.length === 0 ? (
-            <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <PolicyIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 1 }} />
-              <Typography sx={{ color: '#6B7280', mb: 1 }}>No mileage policies configured</Typography>
-              <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Add your first policy to set mileage rates for carer travel</Typography>
+              <Typography sx={{ color: 'text.secondary', mb: 1 }}>No mileage policies configured</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Add your first policy to set mileage rates for carer travel</Typography>
               {isManager && (
                 <Box sx={{ mt: 2 }}>
                   <Button variant="outlined" startIcon={<AddIcon />} onClick={openPolicyCreate} sx={{ textTransform: 'none' }}>Add policy</Button>
@@ -271,19 +271,19 @@ export default function MileagePage() {
               )}
             </Paper>
           ) : (
-            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 3 }}>
+            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Tax year</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Vehicle</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Fuel</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Rate</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Effective from</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Effective to</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Source</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Status</TableCell>
-                    {isManager && <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Actions</TableCell>}
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Tax year</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Vehicle</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Fuel</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Rate</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Effective from</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Effective to</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Source</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Status</TableCell>
+                    {isManager && <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Actions</TableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -291,15 +291,15 @@ export default function MileagePage() {
                     <TableRow key={p.id} hover sx={{ opacity: p.is_active ? 1 : 0.6 }}>
                       <TableCell><Typography sx={{ fontWeight: 600 }}>{p.tax_year}</Typography></TableCell>
                       <TableCell>
-                        <Chip label={VEHICLE_TYPES.find(v => v.value === p.vehicle_type)?.label || p.vehicle_type} size="small" sx={{ bgcolor: '#F3F4F6' }} />
+                        <Chip label={VEHICLE_TYPES.find(v => v.value === p.vehicle_type)?.label || p.vehicle_type} size="small" sx={{ bgcolor: 'grey.100' }} />
                       </TableCell>
                       <TableCell>
-                        <Chip label={FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} size="small" sx={{ bgcolor: '#F3F4F6' }} />
+                        <Chip label={FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} size="small" sx={{ bgcolor: 'grey.100' }} />
                       </TableCell>
                       <TableCell align="right"><Typography sx={{ fontWeight: 700, color: '#0F4C81' }}>{fmtRate(p.rate_pence)}</Typography></TableCell>
                       <TableCell>{p.effective_from ? new Date(p.effective_from).toLocaleDateString('en-GB') : '—'}</TableCell>
                       <TableCell>{p.effective_to ? new Date(p.effective_to).toLocaleDateString('en-GB') : '—'}</TableCell>
-                      <TableCell><Typography variant="body2" sx={{ color: '#6B7280' }}>{p.source_label || '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" sx={{ color: 'text.secondary' }}>{p.source_label || '—'}</Typography></TableCell>
                       <TableCell>
                         <Chip label={p.is_active ? 'Active' : 'Inactive'} size="small" sx={{ bgcolor: p.is_active ? '#E9F7F0' : '#F3F4F6', color: p.is_active ? '#047857' : '#9CA3AF', fontWeight: 600 }} />
                       </TableCell>
@@ -354,7 +354,7 @@ export default function MileagePage() {
       <Dialog open={Boolean(deleteConfirm)} onClose={() => setDeleteConfirm(null)} maxWidth="xs">
         <DialogTitle>Delete mileage policy</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ color: '#6B7280' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             This will permanently remove this mileage policy. Visits that used this rate will retain their original mileage data.
           </Typography>
         </DialogContent>
