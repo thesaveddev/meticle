@@ -46,6 +46,7 @@ const localDateToISOStartEncoded = (date: Date) => encodeURIComponent(localDateT
 function RotaSkeleton() {
   return (
     <Box>
+
       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
         {[0, 1, 2].map(i => <Skeleton key={i} variant="rounded" width={220} height={34} />)}
       </Stack>

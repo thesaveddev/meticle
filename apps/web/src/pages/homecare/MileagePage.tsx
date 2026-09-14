@@ -138,7 +138,7 @@ export default function MileagePage() {
 
   /* ──────────── RENDER ──────────── */
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <Box>
       {/* Header */}
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 2 }}>
         <Stack direction="row" alignItems="center" gap={1.5}>

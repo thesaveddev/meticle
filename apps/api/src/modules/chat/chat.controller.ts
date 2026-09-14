@@ -194,6 +194,32 @@ export class ChatController {
       [oid, channel]
     ).catch(() => {});
 
+    // Send push notifications to other channel members
+    try {
+      const channelInfo = await query(
+        'SELECT name FROM chat_channels WHERE id = $1 AND organization_id = $2',
+        [channel, oid]
+      );
+      const channelName = channelInfo.rows[0]?.name || 'Chat';
+      const senderName = senderResult.rows[0]?.sender_name || 'Someone';
+
+      const members = await query(
+        'SELECT user_id FROM chat_members WHERE channel_id = $1 AND user_id != $2',
+        [channel, uid]
+      );
+
+      const { sendPushNotification } = await import('../notifications/push.service');
+      for (const member of members.rows) {
+        sendPushNotification(member.user_id, {
+          title: channelName,
+          body: `${senderName}: ${message.trim().substring(0, 120)}`,
+          url: '/chat',
+        }, 'chat').catch(() => {});
+      }
+    } catch (e) {
+      // Notification failure should not block the message send
+    }
+
     res.status(201).json({
       ...msg,
       sender_name: senderResult.rows[0]?.sender_name || 'Unknown',

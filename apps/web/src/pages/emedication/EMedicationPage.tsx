@@ -2167,12 +2167,7 @@ export default function EMedicationPage() {
   }
 
   return (
-    <Box sx={{
-      py: { xs: 2, md: 3 },
-      bgcolor: EMR.bone,
-      border: `1px solid ${EMR.hairline}`,
-      borderRadius: 3,
-    }}>
+    <Box sx={{ py: { xs: 2, md: 3 }, bgcolor: EMR.bone, border: `1px solid ${EMR.hairline}`, borderRadius: 3 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5} sx={{ mb: 3 }} className="no-print">
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800, color: EMR.ink, letterSpacing: '-0.01em' }}>Medication (eMAR)</Typography>

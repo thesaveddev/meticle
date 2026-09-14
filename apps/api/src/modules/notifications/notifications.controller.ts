@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import pool from '../../shared/database';
 import { safeIo } from '../../shared/socket';
+import { AppError } from '../../shared/middleware/error.middleware';
 
 export class NotificationsController {
   static async getMyNotifications(req: Request, res: Response) {
@@ -96,5 +97,23 @@ export class NotificationsController {
       [userId, notification_type, enabled]
     );
     res.json({ notification_type, enabled });
+  }
+
+  static async registerPushToken(req: Request, res: Response) {
+    const userId = req.user!.userId;
+    const orgId = req.user!.organizationId;
+    const { push_token, platform } = req.body;
+
+    if (!push_token || typeof push_token !== 'string') throw new AppError(400, 'push_token is required');
+    if (!platform || !['ios', 'android', 'web'].includes(platform)) throw new AppError(400, 'platform must be ios, android, or web');
+
+    await pool.query(
+      `INSERT INTO device_push_tokens (organization_id, user_id, push_token, platform, is_active, updated_at)
+       VALUES ($1, $2, $3, $4, true, NOW())
+       ON CONFLICT (user_id, push_token) DO UPDATE SET is_active = true, updated_at = NOW()`,
+      [orgId, userId, push_token, platform]
+    );
+
+    res.json({ registered: true });
   }
 }
