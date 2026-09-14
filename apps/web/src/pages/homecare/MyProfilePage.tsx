@@ -84,7 +84,7 @@ export default function MyProfilePage() {
   if (loading) return <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>
 
   return (
-    <Box maxWidth={700} mx="auto" py={4} px={2}>
+    <Box sx={{ maxWidth: 800, mx: 'auto' }}>
       <Typography variant="h4" fontWeight={700} mb={1}>My Profile</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>Manage your personal details and profile photo.</Typography>
 

@@ -81,10 +81,10 @@ export default function ClientBillingPage() {
   // Pagination
   const paginatedRows = rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
-  if (!isManager) return <Box sx={{ maxWidth: 1180, mx: 'auto' }}><Alert severity="info">Client billing is available to managers and organisation administrators.</Alert></Box>
+  if (!isManager) return <Box sx={{ maxWidth: 1280, mx: 'auto' }}><Alert severity="info">Client billing is available to managers and organisation administrators.</Alert></Box>
 
   return (
-    <Box sx={{ maxWidth: 1180, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Client billing</Typography>

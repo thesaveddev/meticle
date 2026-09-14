@@ -2168,7 +2168,7 @@ export default function EMedicationPage() {
 
   return (
     <Box sx={{
-      p: { xs: 2, md: 3.5 },
+      py: { xs: 2, md: 3 },
       bgcolor: EMR.bone,
       border: `1px solid ${EMR.hairline}`,
       borderRadius: 3,

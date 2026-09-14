@@ -34,7 +34,7 @@ export default function CallSchedulingPage() {
   const sorted = [...visits].sort((a: any, b: any) => new Date(a.scheduled_start || a.visit_date).getTime() - new Date(b.scheduled_start || b.visit_date).getTime())
 
   return (
-    <Box sx={{ maxWidth: 1180, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Call Schedule</Typography>
