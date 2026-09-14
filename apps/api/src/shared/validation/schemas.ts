@@ -707,6 +707,7 @@ export const updateOrgSettingsSchema = z.object({
   reorder_alert_enabled: z.boolean().optional(),
   late_med_alert_enabled: z.boolean().optional(),
   late_med_alert_delay_minutes: z.number().int().min(1).max(1440).optional(),
+  overdue_alert_frequency_minutes: z.union([z.literal(30), z.literal(60), z.literal(120), z.literal(240)]).optional(),
   emedication_count_convention: z.enum(['end_of_day', 'am_pm', 'after_each']).optional(),
   service_types: z.array(z.string()).optional(),
   primary_service_type: z.string().optional(),

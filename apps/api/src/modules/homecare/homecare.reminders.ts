@@ -101,10 +101,15 @@ export async function runHomecareOverdueAlerts(now = new Date()): Promise<{ sent
 
   for (const visit of overdue.rows) {
     const overdueMinutes = Math.round((now.getTime() - new Date(visit.scheduled_end).getTime()) / 60000);
-    // Only alert once per 2 hours to avoid spam
+    // Only alert once per the org-configured frequency to avoid spam
+    const orgSettings = await migrateQuery(
+      `SELECT overdue_alert_frequency_minutes FROM organizations WHERE id = $1`,
+      [visit.organization_id]
+    );
+    const alertFrequencyMinutes = orgSettings.rows[0]?.overdue_alert_frequency_minutes || 120;
     const recentAlert = await migrateQuery(
-      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'overdue_alert' AND created_at > NOW() - INTERVAL '2 hours'`,
-      [visit.id]
+      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'overdue_alert' AND created_at > NOW() - INTERVAL '1 minute' * $2`,
+      [visit.id, alertFrequencyMinutes]
     );
     if (recentAlert.rows.length > 0) continue;
 
@@ -146,10 +151,15 @@ export async function runHomecareOverdueAlerts(now = new Date()): Promise<{ sent
   `, [now]);
 
   for (const visit of unassigned.rows) {
-    // Only alert once per 2 hours to avoid spam
+    // Only alert once per the org-configured frequency to avoid spam
+    const orgSettings2 = await migrateQuery(
+      `SELECT overdue_alert_frequency_minutes FROM organizations WHERE id = $1`,
+      [visit.organization_id]
+    );
+    const unassignedFreqMinutes = orgSettings2.rows[0]?.overdue_alert_frequency_minutes || 120;
     const recentAlert = await migrateQuery(
-      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'unassigned_alert' AND created_at > NOW() - INTERVAL '2 hours'`,
-      [visit.id]
+      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'unassigned_alert' AND created_at > NOW() - INTERVAL '1 minute' * $2`,
+      [visit.id, unassignedFreqMinutes]
     );
     if (recentAlert.rows.length > 0) continue;
 
