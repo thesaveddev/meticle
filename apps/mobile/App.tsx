@@ -32,6 +32,7 @@ import { AllVisitsScreen } from './src/screens/AllVisitsScreen'
 import { StaffDirectoryScreen } from './src/screens/StaffDirectoryScreen'
 import { TimesheetsScreen } from './src/screens/TimesheetsScreen'
 import { CarerTotalsScreen } from './src/screens/CarerTotalsScreen'
+import { RideShareScreen } from './src/screens/RideShareScreen'
 import { SwipeBack } from './src/components/SwipeBack'
 import { EmergencyButton } from './src/components/EmergencyButton'
 
@@ -70,6 +71,7 @@ type Screen =
   | { kind: 'staffDirectory' }
   | { kind: 'timesheets' }
   | { kind: 'carerTotals' }
+  | { kind: 'rideShare'; visit?: HomecareVisit }
 
 export default function App() {
   return (
@@ -239,7 +241,7 @@ function AppInner() {
     const currentIdx = sortedVisits.findIndex(v => v.id === currentScreen.visit.id)
     const prevV = currentIdx > 0 ? sortedVisits[currentIdx - 1] : null
     const nextV = currentIdx >= 0 && currentIdx < sortedVisits.length - 1 ? sortedVisits[currentIdx + 1] : null
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap' })} previousVisit={prevV} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></SwipeBack></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap' })} onRideShare={() => pushScreen({ kind: 'rideShare', visit: currentScreen.visit })} previousVisit={prevV} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></SwipeBack></>
   }
   if (currentScreen.kind === 'availability' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AvailabilityScreen session={session} onBack={goBack} /></SwipeBack></>
@@ -273,6 +275,9 @@ function AppInner() {
   }
   if (currentScreen.kind === 'carerTotals' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><CarerTotalsScreen session={session} onBack={goBack} /></SwipeBack></>
+  }
+  if (currentScreen.kind === 'rideShare' && session) {
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><RideShareScreen session={session} currentVisit={currentScreen.visit} onBack={goBack} /></SwipeBack></>
   }
 
   /* ─── Main tab view ──────────────────────────────────────── */
