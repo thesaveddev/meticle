@@ -811,7 +811,7 @@ export default function SettingsPage() {
         </Button>
       </Paper>
 
-      <Paper sx={{ p: 4, mt: 'var(--section-gap)' }}>
+      <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <SecurityIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Security Policies
         </Typography>
@@ -830,7 +830,7 @@ export default function SettingsPage() {
         </Button>
       </Paper>
 
-      <Paper sx={{ p: 4, mt: 'var(--section-gap)' }}>
+      <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Staffing Rules for Rota Planner
         </Typography>
@@ -859,7 +859,7 @@ export default function SettingsPage() {
         </Button>
       </Paper>
 
-      <Paper sx={{ p: 4, mt: 'var(--section-gap)' }}>
+      <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Compliance Notifications
         </Typography>
@@ -903,7 +903,7 @@ export default function SettingsPage() {
         </Button>
       </Paper>
 
-      <Paper sx={{ p: 4, mt: 'var(--section-gap)' }}>
+      <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Daily Shift Audit
         </Typography>
@@ -927,7 +927,7 @@ export default function SettingsPage() {
         </Button>
       </Paper>
 
-      <Paper sx={{ p: 4, mt: 'var(--section-gap)' }}>
+      <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Medication Alerts
         </Typography>
@@ -962,7 +962,7 @@ export default function SettingsPage() {
         </Button>
       </Paper>
 
-      <Paper sx={{ p: 4, mt: 'var(--section-gap)' }}>
+      <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Call Alert Frequency
         </Typography>
@@ -988,7 +988,7 @@ export default function SettingsPage() {
         </Button>
       </Paper>
 
-      <Paper sx={{ p: 4, mt: 'var(--section-gap)' }}>
+      <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <MedicationIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Daily Medication Counts
         </Typography>
