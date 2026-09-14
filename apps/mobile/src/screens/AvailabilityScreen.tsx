@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, Animated } from 'react-native'
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
+import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
-import { dyn } from '../utils/dynamicStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
 import type { AuthSession, AvailabilityRecord } from '../types'
 import { getMyAvailability, addAvailability, deleteAvailability } from '../services/api'
-import { hapticLight, hapticWarning } from '../services/haptics'
+import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
 
 const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -17,23 +16,27 @@ function isValidTime(t: string) {
   return /^\d{2}:\d{2}$/.test(t) && Number(t.slice(0, 2)) <= 23 && Number(t.slice(3, 5)) <= 59
 }
 
-// Common time presets for quick selection
-const TIME_PRESETS = ['07:00', '08:00', '09:00', '10:00', '12:00', '14:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00']
+const TIME_PRESETS = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00']
+
+function formatTimeRange(start: string, end: string) {
+  const s = start.replace(':00', '').replace(/^0/, '')
+  const e = end.replace(':00', '').replace(/^0/, '')
+  return `${s} - ${e}`
+}
 
 export function AvailabilityScreen({ session, onBack }: { session: AuthSession; onBack?: () => void }) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
   const [records, setRecords] = useState<AvailabilityRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [adding, setAdding] = useState(false)
-  const [selectedDay, setSelectedDay] = useState(new Date().getDay()) // Default to today
+  const [saving, setSaving] = useState(false)
+  const [selectedDay, setSelectedDay] = useState(new Date().getDay())
   const [start, setStart] = useState('09:00')
   const [end, setEnd] = useState('17:00')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  const [showStartTimePicker, setShowStartTimePicker] = useState(false)
-  const [showEndTimePicker, setShowEndTimePicker] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const successTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -48,7 +51,6 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
 
   useEffect(() => { load() }, [load])
 
-  // Auto-dismiss success after 3 seconds
   useEffect(() => {
     if (success) {
       if (successTimeout.current) clearTimeout(successTimeout.current)
@@ -57,28 +59,44 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
     return () => { if (successTimeout.current) clearTimeout(successTimeout.current) }
   }, [success])
 
-  const handleAdd = async () => {
-    // Validate
+  const byDay: Record<number, AvailabilityRecord[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
+  for (const rec of records) {
+    byDay[rec.day_of_week] = byDay[rec.day_of_week] || []
+    byDay[rec.day_of_week].push(rec)
+  }
+
+  const handleSave = async () => {
     if (!isValidTime(start)) { setError('Start time must be HH:MM format'); return }
     if (!isValidTime(end)) { setError('End time must be HH:MM format'); return }
     if (start >= end) { setError('Start time must be before end time'); return }
 
-    setAdding(true); setError(''); setSuccess('')
+    setSaving(true); setError(''); setSuccess('')
     try {
       await addAvailability(session.accessToken, selectedDay, start, end)
-      setSuccess(`${FULL_DAYS[selectedDay]} availability saved`)
+      setSuccess(editingId ? `${FULL_DAYS[selectedDay]} availability updated` : `${FULL_DAYS[selectedDay]} availability saved`)
+      setEditingId(null)
       setStart('09:00')
       setEnd('17:00')
       await load()
     } catch (e: any) { setError(e.message || 'Could not save') }
-    finally { setAdding(false) }
+    finally { setSaving(false) }
   }
 
-  const handleDelete = async (id: string, dayName: string, timeRange: string) => {
+  const handleSlotTap = (rec: AvailabilityRecord) => {
+    hapticMedium()
+    setSelectedDay(rec.day_of_week)
+    setStart(rec.start_time.slice(0, 5))
+    setEnd(rec.end_time.slice(0, 5))
+    setEditingId(rec.id)
+    setError('')
+    setSuccess('')
+  }
+
+  const handleDelete = async (id: string, dayName: string) => {
     hapticWarning()
     Alert.alert(
       'Remove availability',
-      `Remove ${dayName} ${timeRange}?`,
+      `Remove ${dayName} availability?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -86,6 +104,7 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
             setDeletingId(id)
             try {
               await deleteAvailability(session.accessToken, id)
+              if (editingId === id) { setEditingId(null); setStart('09:00'); setEnd('17:00') }
               setSuccess('Availability removed')
               await load()
             } catch (e: any) {
@@ -97,10 +116,12 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
     )
   }
 
-  const byDay: Record<number, AvailabilityRecord[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
-  for (const rec of records) {
-    byDay[rec.day_of_week] = byDay[rec.day_of_week] || []
-    byDay[rec.day_of_week].push(rec)
+  const handleCancelEdit = () => {
+    hapticLight()
+    setEditingId(null)
+    setStart('09:00')
+    setEnd('17:00')
+    setError('')
   }
 
   const totalSlots = records.length
@@ -129,24 +150,24 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
             <Text style={[s.subtitle, { color: c.muted }]}>Set the days and times you're available for calls.</Text>
           </View>
           {totalSlots > 0 && (
-            <View style={[s.countBadge, { backgroundColor: c.successSurface }]}>
-              <Text style={[s.countText, { color: c.successDeep }]}>{totalSlots}</Text>
+            <View style={[s.countBadge, { backgroundColor: c.primarySurface }]}>
+              <Text style={[s.countText, { color: c.primary }]}>{totalSlots}</Text>
             </View>
           )}
         </View>
 
         {/* Messages */}
         {error ? (
-          <View style={[s.banner, { backgroundColor: c.dangerSurface, borderColor: c.danger + '20' }]}>
-            <Ionicons name="alert-circle" size={16} color={c.danger} />
-            <Text style={[s.bannerText, { color: c.dangerDeep }]}>{error}</Text>
-            <Pressable onPress={() => setError('')}><Ionicons name="close" size={16} color={c.danger} /></Pressable>
+          <View style={[s.banner, { backgroundColor: c.dangerSurface, borderColor: (c.danger || '#DC2626') + '20' }]}>
+            <Ionicons name="alert-circle" size={16} color={c.danger || '#DC2626'} />
+            <Text style={[s.bannerText, { color: c.danger || '#DC2626', flex: 1 }]}>{error}</Text>
+            <Pressable onPress={() => setError('')} hitSlop={8}><Ionicons name="close" size={16} color={c.danger || '#DC2626'} /></Pressable>
           </View>
         ) : null}
         {success ? (
           <View style={[s.banner, { backgroundColor: c.successSurface, borderColor: c.success + '20' }]}>
             <Ionicons name="checkmark-circle" size={16} color={c.success} />
-            <Text style={[s.bannerText, { color: c.successDeep }]}>{success}</Text>
+            <Text style={[s.bannerText, { color: c.success, flex: 1 }]}>{success}</Text>
           </View>
         ) : null}
 
@@ -156,8 +177,25 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
           {FULL_DAYS.map((dayName, dayIndex) => {
             const slots = byDay[dayIndex] || []
             const isToday = dayIndex === new Date().getDay()
+            const isSelected = dayIndex === selectedDay
             return (
-              <View key={dayIndex} style={[s.dayRow, dayIndex < 6 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.borderLight }]}>
+              <Pressable
+                key={dayIndex}
+                onPress={() => {
+                  hapticLight()
+                  setSelectedDay(dayIndex)
+                  // If this day has a slot, pre-fill it for editing
+                  if (slots.length > 0 && !editingId) {
+                    handleSlotTap(slots[0])
+                  }
+                }}
+                style={({ pressed }) => [
+                  s.dayRow,
+                  dayIndex < 6 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.borderLight },
+                  isSelected && { backgroundColor: c.primarySurface + '40' },
+                  pressed && { backgroundColor: c.surfaceAlt },
+                ]}
+              >
                 <View style={[s.dayLabelWrap, isToday && { backgroundColor: c.primarySurface }]}>
                   <Text style={[s.dayLabel, { color: isToday ? c.primary : c.muted }, isToday && { fontWeight: '700' }]}>
                     {SHORT_DAYS[dayIndex]}
@@ -171,26 +209,52 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
                     slots.map(rec => (
                       <Pressable
                         key={rec.id}
-                        onLongPress={() => handleDelete(rec.id, dayName, `${rec.start_time}–${rec.end_time}`)}
+                        onPress={() => handleSlotTap(rec)}
+                        onLongPress={() => handleDelete(rec.id, dayName)}
                         disabled={deletingId === rec.id}
-                        style={({ pressed }) => [[s.slotChip, { backgroundColor: c.successSurface, borderColor: c.success + '20' }], pressed && { opacity: 0.6 }]}
+                        style={({ pressed }) => [
+                          s.slotChip,
+                          {
+                            backgroundColor: editingId === rec.id ? c.primarySurface : c.successSurface,
+                            borderColor: editingId === rec.id ? c.primary : c.success + '30',
+                            borderWidth: 1,
+                          },
+                          pressed && { opacity: 0.6 },
+                        ]}
                       >
-                        <Ionicons name="time-outline" size={12} color={c.successDeep} />
-                        <Text style={[s.slotText, { color: c.successDeep }]}>{rec.start_time}–{rec.end_time}</Text>
+                        <Ionicons
+                          name={editingId === rec.id ? 'pencil' : 'time-outline'}
+                          size={12}
+                          color={editingId === rec.id ? c.primary : c.success}
+                        />
+                        <Text style={[s.slotText, { color: editingId === rec.id ? c.primary : c.success }]}>
+                          {formatTimeRange(rec.start_time, rec.end_time)}
+                        </Text>
                       </Pressable>
                     ))
                   )}
                 </View>
-              </View>
+              </Pressable>
             )
           })}
         </View>
         {totalSlots > 0 && (
-          <Text style={[s.hint, { color: c.subtle }]}>Tap and hold a slot to remove it</Text>
+          <Text style={[s.hint, { color: c.subtle }]}>Tap a slot to edit. Long-press to remove.</Text>
         )}
 
-        {/* Add form */}
-        <Text style={[s.sectionHead, { color: c.subtle, marginTop: spacing.xl }]}>ADD AVAILABILITY</Text>
+        {/* Add / Edit form */}
+        <View style={s.formHeader}>
+          <Text style={[s.sectionHead, { color: c.subtle, marginTop: spacing.xl, marginBottom: 0 }]}>
+            {editingId ? 'EDIT' : 'ADD'} AVAILABILITY
+          </Text>
+          {editingId && (
+            <Pressable onPress={handleCancelEdit} style={s.cancelEditBtn}>
+              <Ionicons name="close-circle" size={16} color={c.muted} />
+              <Text style={[s.cancelEditText, { color: c.muted }]}>Cancel edit</Text>
+            </Pressable>
+          )}
+        </View>
+
         <View style={[s.formCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
           {/* Day picker */}
           <Text style={[s.fieldLabel, { color: c.inkLight }]}>Day</Text>
@@ -201,68 +265,62 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
                 <Pressable
                   key={i}
                   onPress={() => { hapticLight(); setSelectedDay(i) }}
-                  style={[s.dayBtn, { backgroundColor: c.surfaceAlt, borderColor: c.border }, selectedDay === i && { backgroundColor: c.primary, borderColor: c.primary }, hasSlots && selectedDay !== i && { borderColor: c.success + '40' }]}
+                  style={[
+                    s.dayBtn,
+                    { backgroundColor: c.surfaceAlt, borderColor: c.border },
+                    selectedDay === i && { backgroundColor: c.primary, borderColor: c.primary },
+                    hasSlots && selectedDay !== i && { borderColor: c.success + '40' },
+                  ]}
                 >
-                  <Text style={[s.dayBtnText, { color: c.muted }, selectedDay === i && { color: c.inverse }, hasSlots && selectedDay !== i && { color: c.successDeep }]}>
+                  <Text style={[
+                    s.dayBtnText,
+                    { color: c.muted },
+                    selectedDay === i && { color: '#FFFFFF' },
+                    hasSlots && selectedDay !== i && { color: c.success },
+                  ]}>
                     {SHORT_DAYS[i]}
                   </Text>
-                  {hasSlots && <View style={[s.dayDot, { backgroundColor: selectedDay === i ? c.inverse : c.success }]} />}
+                  {hasSlots && <View style={[s.dayDot, { backgroundColor: selectedDay === i ? '#FFFFFF' : c.success }]} />}
                 </Pressable>
               )
             })}
           </View>
 
-          {/* Time picker - Start */}
-          <Text style={[s.fieldLabel, { color: c.inkLight }]}>From</Text>
-          <Pressable
-            onPress={() => { hapticLight(); setShowStartTimePicker(!showStartTimePicker); setShowEndTimePicker(false) }}
-            style={[s.timeInput, { backgroundColor: c.surfaceAlt, borderColor: c.border }]}
-          >
-            <Ionicons name="time-outline" size={16} color={c.muted} />
-            <Text style={[s.timeInputText, { color: c.ink }]}>{start}</Text>
-            <Ionicons name={showStartTimePicker ? "chevron-up" : "chevron-down"} size={16} color={c.subtle} />
-          </Pressable>
-          {showStartTimePicker && (
-            <View style={[s.timePicker, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.timePickerScroll}>
-                {TIME_PRESETS.map(t => (
-                  <Pressable
-                    key={t}
-                    onPress={() => { hapticLight(); setStart(t); setShowStartTimePicker(false) }}
-                    style={[s.timePresetBtn, { backgroundColor: c.surfaceAlt }, start === t && { backgroundColor: c.primary }]}
-                  >
-                    <Text style={[s.timePresetText, { color: c.muted }, start === t && { color: c.inverse }]}>{t}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+          {/* Time - From */}
+          <Text style={[s.fieldLabel, { color: c.inkLight }]}>Start time</Text>
+          <View style={s.timeGrid}>
+            {TIME_PRESETS.map(t => (
+              <Pressable
+                key={t}
+                onPress={() => { hapticLight(); setStart(t) }}
+                style={[
+                  s.timePresetBtn,
+                  { backgroundColor: c.surfaceAlt, borderColor: c.border, borderWidth: 1 },
+                  start === t && { backgroundColor: c.primary, borderColor: c.primary },
+                ]}
+              >
+                <Text style={[s.timePresetText, { color: c.muted }, start === t && { color: '#FFFFFF' }]}>{t}</Text>
+              </Pressable>
+            ))}
+          </View>
 
-          {/* Time picker - End */}
-          <Text style={[s.fieldLabel, { color: c.inkLight }]}>To</Text>
-          <Pressable
-            onPress={() => { hapticLight(); setShowEndTimePicker(!showEndTimePicker); setShowStartTimePicker(false) }}
-            style={[s.timeInput, { backgroundColor: c.surfaceAlt, borderColor: c.border }]}
-          >
-            <Ionicons name="time-outline" size={16} color={c.muted} />
-            <Text style={[s.timeInputText, { color: c.ink }]}>{end}</Text>
-            <Ionicons name={showEndTimePicker ? "chevron-up" : "chevron-down"} size={16} color={c.subtle} />
-          </Pressable>
-          {showEndTimePicker && (
-            <View style={[s.timePicker, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.timePickerScroll}>
-                {TIME_PRESETS.map(t => (
-                  <Pressable
-                    key={t}
-                    onPress={() => { hapticLight(); setEnd(t); setShowEndTimePicker(false) }}
-                    style={[s.timePresetBtn, { backgroundColor: c.surfaceAlt }, end === t && { backgroundColor: c.primary }]}
-                  >
-                    <Text style={[s.timePresetText, { color: c.muted }, end === t && { color: c.inverse }]}>{t}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+          {/* Time - To */}
+          <Text style={[s.fieldLabel, { color: c.inkLight }]}>End time</Text>
+          <View style={s.timeGrid}>
+            {TIME_PRESETS.map(t => (
+              <Pressable
+                key={t}
+                onPress={() => { hapticLight(); setEnd(t) }}
+                style={[
+                  s.timePresetBtn,
+                  { backgroundColor: c.surfaceAlt, borderColor: c.border, borderWidth: 1 },
+                  end === t && { backgroundColor: c.primary, borderColor: c.primary },
+                ]}
+              >
+                <Text style={[s.timePresetText, { color: c.muted }, end === t && { color: '#FFFFFF' }]}>{t}</Text>
+              </Pressable>
+            ))}
+          </View>
 
           {/* Duration hint */}
           {isValidTime(start) && isValidTime(end) && start < end && (
@@ -275,17 +333,23 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
                   const mins = (eh * 60 + em) - (sh * 60 + sm)
                   const h = Math.floor(mins / 60)
                   const m = mins % 60
-                  return h > 0 ? `${h}h ${m > 0 ? m + 'm' : ''} available` : `${m}m available`
+                  return `${h}h ${m > 0 ? m + 'm ' : ''}available on ${FULL_DAYS[selectedDay]}`
                 })()}
               </Text>
             </View>
           )}
+          {isValidTime(start) && isValidTime(end) && start >= end && (
+            <View style={[s.durationHint, { backgroundColor: (c.dangerSurface || '#FEE2E2') }]}>
+              <Ionicons name="alert-circle" size={14} color={c.danger || '#DC2626'} />
+              <Text style={[s.durationText, { color: c.danger || '#DC2626' }]}>Start time must be before end time</Text>
+            </View>
+          )}
 
           <PrimaryButton
-            label={adding ? 'Saving...' : 'Save availability'}
-            onPress={handleAdd}
-            loading={adding}
-            disabled={adding}
+            label={saving ? 'Saving...' : editingId ? `Update ${FULL_DAYS[selectedDay]}` : `Save ${FULL_DAYS[selectedDay]}`}
+            onPress={handleSave}
+            loading={saving}
+            disabled={saving}
           />
         </View>
       </ScrollView>
@@ -305,13 +369,11 @@ const styles = StyleSheet.create({
   countBadge: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radii.full, marginTop: spacing.xs },
   countText: { fontFamily: FONT, fontSize: 13, fontWeight: '700' },
 
-  /* Banners */
   banner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radii.md, marginBottom: spacing.base, borderWidth: 1 },
-  bannerText: { fontFamily: FONT, fontSize: 13, fontWeight: '500', flex: 1 },
+  bannerText: { fontFamily: FONT, fontSize: 13, fontWeight: '500' },
 
   sectionHead: { fontFamily: FONT, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: spacing.sm },
 
-  /* Week card */
   weekCard: { borderRadius: radii.lg, borderWidth: 1, overflow: 'hidden', marginBottom: spacing.xs, ...elevation.sm },
   dayRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.md },
   dayLabelWrap: { width: 48, alignItems: 'center', gap: 2 },
@@ -319,11 +381,14 @@ const styles = StyleSheet.create({
   todayDot: { width: 4, height: 4, borderRadius: 2 },
   daySlots: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   noSlots: { fontFamily: FONT, fontSize: 13 },
-  slotChip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderWidth: 1 },
+  slotChip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   slotText: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
   hint: { fontFamily: FONT, fontSize: 11, marginBottom: spacing.base, fontStyle: 'italic' },
 
-  /* Form */
+  formHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cancelEditBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.xl },
+  cancelEditText: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
+
   formCard: { borderRadius: radii.lg, borderWidth: 1, padding: spacing.base, gap: spacing.md, ...elevation.sm },
   fieldLabel: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
 
@@ -332,14 +397,10 @@ const styles = StyleSheet.create({
   dayBtnText: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
   dayDot: { width: 5, height: 5, borderRadius: 2.5 },
 
-  timeInput: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radii.md, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: spacing.md },
-  timeInputText: { flex: 1, fontFamily: FONT, fontSize: 16, fontWeight: '600' },
-
-  timePicker: { borderRadius: radii.md, borderWidth: 1, overflow: 'hidden' },
-  timePickerScroll: { padding: spacing.sm, gap: spacing.xs },
-  timePresetBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.sm },
+  timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  timePresetBtn: { paddingHorizontal: spacing.sm + 2, paddingVertical: spacing.sm, borderRadius: radii.sm },
   timePresetText: { fontFamily: FONT, fontSize: 13, fontWeight: '600' },
 
   durationHint: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, padding: spacing.sm, borderRadius: radii.sm },
-  durationText: { fontFamily: FONT, fontSize: 12, fontWeight: '500' },
+  durationText: { fontFamily: FONT, fontSize: 12, fontWeight: '500', flex: 1 },
 })
