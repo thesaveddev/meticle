@@ -1,5 +1,4 @@
-import * as Print from 'expo-print'
-import * as Sharing from 'expo-sharing'
+import { Linking } from 'react-native'
 
 function money(pence: number | null | undefined) {
   return pence == null ? '£0.00' : `£${(Number(pence) / 100).toFixed(2)}`
@@ -189,18 +188,30 @@ export async function generateAndSharePayslip(data: PayslipData): Promise<boolea
   try {
     const html = buildPayslipHTML(data)
 
-    if (await Sharing.isAvailableAsync()) {
-      const { uri } = await Print.printToFileAsync({ html, base64: false })
-      await Sharing.shareAsync(uri, {
-        mimeType: 'application/pdf',
-        dialogTitle: 'Save payslip',
-        UTI: 'com.adobe.pdf',
-      })
-    } else {
-      await Print.printAsync({ html })
-    }
+    // Try expo-print + sharing first (works in dev builds)
+    try {
+      const Print = await import('expo-print')
+      const Sharing = await import('expo-sharing')
+      if (await Sharing.isAvailableAsync()) {
+        const { uri } = await Print.printToFileAsync({ html, base64: false })
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Save payslip',
+          UTI: 'com.adobe.pdf',
+        })
+        return true
+      }
+    } catch { /* expo-print not available in Expo Go */ }
 
-    return true
+    // Fallback: open HTML in browser for printing/saving
+    try {
+      // Use a Blob URL approach — encode HTML and open via the browser
+      const encoded = btoa(unescape(encodeURIComponent(html)))
+      await Linking.openURL(`data:text/html;base64,${encoded}`)
+      return true
+    } catch { /* fallback failed */ }
+
+    return false
   } catch {
     return false
   }
