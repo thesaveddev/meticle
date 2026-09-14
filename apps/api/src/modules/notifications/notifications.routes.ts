@@ -15,5 +15,6 @@ router.patch('/:id/read', asyncHandler(NotificationsController.markAsRead));
 router.patch('/read-all', validate(markAllNotificationsReadSchema), asyncHandler(NotificationsController.markAllAsRead));
 router.get('/preferences', asyncHandler(NotificationsController.getPreferences));
 router.patch('/preferences', asyncHandler(NotificationsController.updatePreference));
+router.post('/register-push', asyncHandler(NotificationsController.registerPushToken));
 
 export default router;

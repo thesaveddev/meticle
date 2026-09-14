@@ -286,6 +286,7 @@ export default function StaffProfilePage() {
   if (!memberData && !complianceData) {
     return (
       <Box>
+
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
           <Typography color="#9CA3AF">Staff member not found.</Typography>
         </Paper>

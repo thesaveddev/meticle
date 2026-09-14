@@ -10,6 +10,7 @@ import {
   Replay as RetryIcon,  People as PeopleIcon,
 
 } from '@mui/icons-material'
+import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
 
 interface EmailStats {
@@ -114,7 +115,7 @@ export default function EmailQueueDashboard() {
   const successRate = total > 0 ? ((sent / total) * 100).toFixed(1) : '0'
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <PageContainer>
       {/* Header */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
         <Box>
@@ -343,6 +344,6 @@ export default function EmailQueueDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

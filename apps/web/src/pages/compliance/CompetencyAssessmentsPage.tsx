@@ -22,6 +22,7 @@ export default function CompetencyAssessmentsPage() {
   const [tab, setTab] = useState(0)
   return (
     <Box>
+
       <Typography variant="h4" sx={{ mb: 4 }}>Competency Assessments</Typography>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
         <Tab label="Pending Assessments" />

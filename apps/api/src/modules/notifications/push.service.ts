@@ -98,3 +98,59 @@ export async function sendPushToUser(userId: string, payload: Record<string, unk
   }
   return { sent, failed, skipped: 0 };
 }
+
+/**
+ * Send push notification to a user via Expo push (mobile) and web push.
+ * This is the unified function that should be used for all notifications.
+ */
+export async function sendPushNotification(userId: string, payload: { title: string; body: string; data?: Record<string, unknown>; url?: string }, notificationType = 'homecare'): Promise<void> {
+  // Send web push (VAPID)
+  await sendPushToUser(userId, { ...payload, type: notificationType, url: payload.url || '/' }, notificationType).catch(() => {});
+
+  // Send Expo push to mobile devices
+  try {
+    const tokens = await migrateQuery(
+      'SELECT push_token, platform FROM device_push_tokens WHERE user_id = $1 AND is_active = true',
+      [userId]
+    );
+
+    if (tokens.rows.length === 0) return;
+
+    const messages = tokens.rows.map((t: any) => ({
+      to: t.push_token,
+      sound: 'default',
+      title: payload.title,
+      body: payload.body,
+      data: { ...payload.data, url: payload.url },
+      channelId: 'default',
+    }));
+
+    // Expo push API accepts batches of up to 100
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(messages),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      logger.warn({ userId, status: response.status, body: errText }, 'Expo push delivery failed');
+    } else {
+      const result = await response.json();
+      // Check for individual errors (e.g., invalid tokens)
+      if (result.data) {
+        for (const ticket of result.data) {
+          if (ticket.status === 'error' && (ticket.message?.includes('DeviceNotRegistered') || ticket.message?.includes('InvalidCredentials'))) {
+            // Deactivate invalid token
+            await migrateQuery(
+              'UPDATE device_push_tokens SET is_active = false WHERE push_token = $1',
+              [ticket.message?.includes('DeviceNotRegistered') ? '' : ticket.push_token]
+            ).catch(() => {});
+          }
+        }
+      }
+    }
+  } catch (error: any) {
+    logger.warn({ userId, error: error?.message }, 'Expo push failed');
+  }
+}

@@ -69,6 +69,7 @@ function StripeCardForm({ cardholderName, setCardholderName, onSuccess }: {
 
   return (
     <Box>
+
       <Box sx={{ p: 2, mb: 2, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
         <CardElement options={{
           style: { base: { fontSize: '16px', color: 'text.primary', '::placeholder': { color: 'text.secondary' } } },

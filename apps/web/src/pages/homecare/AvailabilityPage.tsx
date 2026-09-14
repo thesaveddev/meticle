@@ -94,7 +94,7 @@ export default function AvailabilityPage() {
   if (loading) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-narrow)', mx: 'auto' }}>
+    <Box>
       <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
         <ScheduleIcon sx={{ color: '#10b981', fontSize: 28 }} />
         <Typography variant="h4" sx={{ fontWeight: 800 }}>{isCarer ? 'My Availability' : 'Carer Availability'}</Typography>

@@ -170,14 +170,14 @@ export default function LiveMapPage() {
 
   if (isLoading) {
     return (
-      <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+      <Box>
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
       </Box>
     )
   }
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <Box>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Live Visit Map</Typography>

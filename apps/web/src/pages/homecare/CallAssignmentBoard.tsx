@@ -127,7 +127,7 @@ export default function CallAssignmentBoard() {
   const idleCarers = staff.filter((s: Staff) => !assignedIds.has(s.id))
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <Box>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Call Assignment Board</Typography>
