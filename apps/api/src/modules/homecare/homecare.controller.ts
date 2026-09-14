@@ -212,6 +212,13 @@ export class HomecareController {
   }
 
   static async deleteAvailability(req: Request, res: Response) {
+    // Carers can only delete their own availability
+    if (req.user!.role === 'CARE_WORKER') {
+      const staff = await pool.query('SELECT id FROM staff_profiles WHERE user_id = $1', [req.user!.userId]);
+      if (!staff.rows[0]) throw new AppError(404, 'Staff profile not found');
+      const owner = await pool.query('SELECT id FROM staff_availability WHERE id = $1 AND staff_id = $2', [req.params.id, staff.rows[0].id]);
+      if (!owner.rows[0]) throw new AppError(403, 'You can only delete your own availability');
+    }
     const result = await repo.deleteAvailability(orgId(req), req.params.id);
     audit(req, 'delete', 'homecare_availability', req.params.id);
     res.json(result);
