@@ -10,6 +10,7 @@ import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance, watchDistance, formatDistance } from '../services/location'
 import { getLocationThreshold, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask } from '../services/api'
+import { Ionicons } from '@expo/vector-icons'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate, IconTwoPerson, IconSwap, IconDelay, IconReport } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
 import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
@@ -106,7 +107,7 @@ function ReadOnlyField({ label, value, c }: { label: string; value: string; c: a
   )
 }
 
-export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident, onSwap, previousVisit, nextVisit, onVisitNext }: {
+export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident, onSwap, onRideShare, previousVisit, nextVisit, onVisitNext }: {
   visit: HomecareVisit
   session?: AuthSession
   onBack: () => void
@@ -116,6 +117,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   onClientDetail?: (personId: string) => void
   onReportIncident?: () => void
   onSwap?: () => void
+  onRideShare?: () => void
   previousVisit?: HomecareVisit | null
   nextVisit?: HomecareVisit | null
   onVisitNext?: (visit: HomecareVisit) => void
@@ -828,6 +830,14 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                     <IconSwap size={14} color={c.primary} />
                   </View>
                   <Text style={[styles.actionPillText, { color: c.primary }]}>Swap</Text>
+                </Pressable>
+              )}
+              {onRideShare && (
+                <Pressable onPress={() => { hapticLight(); onRideShare() }} style={({ pressed }) => [[styles.actionPill, { backgroundColor: c.successSurface, borderColor: c.success + '30' }], pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] }]}>
+                  <View style={[styles.actionPillIcon, { backgroundColor: c.success + '18' }]}>
+                    <Ionicons name="car" size={14} color={c.success} />
+                  </View>
+                  <Text style={[styles.actionPillText, { color: c.success }]}>Share ride</Text>
                 </Pressable>
               )}
             </View>
