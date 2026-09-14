@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../types'
+import { listRideShareRequests, respondRideShareRequest } from '../services/api'
 import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconNavigate, IconTwoPerson } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
@@ -123,7 +125,7 @@ function StatusPill({ status, c }: { status: string; c: any }) {
 }
 
 /* ─── Custom refresh indicator ──────────────────────────────── */
-export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshing, onSync }: {
+export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshing, onSync, session }: {
   user: MobileUser
   visits: HomecareVisit[]
   queue: OfflineVisitAction[]
@@ -131,6 +133,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
   onRefresh: () => void
   refreshing: boolean
   onSync: () => void
+  session?: any
 }) {
   const c = useAppColors()
   const timeline = useMemo(() => classifyVisits(visits), [visits])
@@ -155,7 +158,35 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
     ...onTimeVisits,
   ]
 
-  const allDone = total > 0 && completed === total && !currentVisit
+  const allDone = total > 0 && completed === total
+
+  // Ride-share incoming requests
+  const [rideRequests, setRideRequests] = useState<any[]>([])
+  const [processingRide, setProcessingRide] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!session?.accessToken) return
+    listRideShareRequests(session.accessToken)
+      .then((data: any[]) => {
+        if (Array.isArray(data)) {
+          setRideRequests(data.filter((r: any) => r.status === 'pending' && r.requested_by !== session.user?.id))
+        }
+      })
+      .catch(() => {})
+  }, [session?.accessToken])
+
+  const handleRideResponse = async (id: string, status: 'accepted' | 'declined') => {
+    hapticMedium()
+    setProcessingRide(id)
+    try {
+      await respondRideShareRequest(session.accessToken, id, status)
+      setRideRequests(prev => prev.filter(r => r.id !== id))
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not respond')
+    } finally { setProcessingRide(null) }
+  }
+
+
 
   return (
     <ScrollView
@@ -348,6 +379,41 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
         </View>
       )}
 
+      {/* Ride share requests */}
+      {rideRequests.length > 0 && (
+        <View style={[styles.rideSection, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }]}>  
+          <View style={styles.rideHeader}>  
+            <Ionicons name="car" size={18} color={c.primary} />
+            <Text style={[styles.rideTitle, { color: c.primary }]}>{rideRequests.length} ride share request{rideRequests.length !== 1 ? 's' : ''}</Text>
+          </View>
+          {rideRequests.map(req => (
+            <View key={req.id} style={[styles.rideCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>  
+              <View style={styles.rideInfo}>  
+                <Text style={[styles.rideName, { color: c.ink }]}>{req.carer_name || 'Carer'}</Text>
+                <Text style={[styles.rideSub, { color: c.muted }]}>{req.visit_label} · {time(req.scheduled_start)}</Text>
+                {req.message && <Text style={[styles.rideMsg, { color: c.subtle }]}>"{req.message}"</Text>}
+              </View>
+              <View style={styles.rideActions}>  
+                <Pressable
+                  onPress={() => handleRideResponse(req.id, 'declined')}
+                  disabled={processingRide === req.id}
+                  style={({ pressed }) => [styles.rideBtn, { backgroundColor: c.surfaceAlt, borderColor: c.border }, pressed && { opacity: 0.7 }]}
+                >
+                  <Text style={[styles.rideBtnText, { color: c.muted }]}>Decline</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => handleRideResponse(req.id, 'accepted')}
+                  disabled={processingRide === req.id}
+                  style={({ pressed }) => [styles.rideBtn, styles.rideBtnAccept, { backgroundColor: c.primary }, pressed && { opacity: 0.8 }]}
+                >
+                  <Text style={[styles.rideBtnText, { color: '#FFFFFF' }]}>Accept</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
       {/* Empty state */}
       {visits.length === 0 && !refreshing && (
         <View style={styles.empty}>  
@@ -498,6 +564,20 @@ const styles = StyleSheet.create({
   },
   missedHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   missedTitle: { fontFamily: FONT, fontSize: 14, fontWeight: '700' },
+
+  /* Ride share */
+  rideSection: { borderRadius: radii.lg, borderWidth: 1, padding: spacing.base, marginBottom: spacing.xl, ...elevation.sm },
+  rideHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+  rideTitle: { fontFamily: FONT, fontSize: 14, fontWeight: '700' },
+  rideCard: { borderWidth: 1, borderRadius: radii.md, padding: spacing.md, marginBottom: spacing.sm },
+  rideInfo: { marginBottom: spacing.sm },
+  rideName: { fontFamily: FONT, fontSize: 14, fontWeight: '600' },
+  rideSub: { fontFamily: FONT, fontSize: 12, marginTop: 2 },
+  rideMsg: { fontFamily: FONT, fontSize: 12, fontStyle: 'italic', marginTop: 4 },
+  rideActions: { flexDirection: 'row', gap: spacing.sm },
+  rideBtn: { flex: 1, paddingVertical: spacing.sm + 2, borderRadius: radii.md, alignItems: 'center', borderWidth: 1 },
+  rideBtnAccept: { borderColor: 'transparent' },
+  rideBtnText: { fontFamily: FONT, fontSize: 13, fontWeight: '600' },
 
   /* Empty */
   empty: { alignItems: 'center', paddingVertical: spacing.xxxl },
