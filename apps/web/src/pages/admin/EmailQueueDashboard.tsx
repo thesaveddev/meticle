@@ -114,7 +114,7 @@ export default function EmailQueueDashboard() {
   const successRate = total > 0 ? ((sent / total) * 100).toFixed(1) : '0'
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
         <Box>

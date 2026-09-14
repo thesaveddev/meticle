@@ -208,7 +208,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 0.5 }}>
@@ -643,7 +643,7 @@ export default function DashboardPage() {
 
       {/* Overview Section */}
       {!isStaff && stats && (stats.open_incidents > 0) && (
-        <PremiumCard noBorder sx={{ p: 4, mt: 4 }}>
+        <PremiumCard noBorder sx={{ p: 4, mt: 'var(--section-gap)' }}>
           <SectionHeader title="Overview" />
           <Stack direction="row" spacing={4} flexWrap="wrap" useFlexGap>
             <Stack direction="row" spacing={1.5} alignItems="center">

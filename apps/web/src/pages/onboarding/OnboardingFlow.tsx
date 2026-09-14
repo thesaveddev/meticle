@@ -136,7 +136,7 @@ export default function OnboardingFlow() {
               return (
                 <Card key={type.id} sx={{ bgcolor: selected ? '#1e293b' : '#0f172a', border: `2px solid ${selected ? type.color : 'rgba(255,255,255,0.1)'}`, borderRadius: 2, transition: 'all 0.2s' }}>
                   <CardActionArea onClick={() => toggleType(type.id)} sx={{ p: 2 }}>
-                    <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '0 !important' }}>
+                    <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 'var(--card-gap)', p: '0 !important' }}>
                       <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: `${type.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Icon sx={{ color: type.color, fontSize: 28 }} />
                       </Box>
@@ -229,7 +229,7 @@ export default function OnboardingFlow() {
                   { num: 5, title: 'Set your mileage policy', desc: 'Go to Settings → Billing and configure your HMRC mileage rate, travel time payment rules, and whether you pay for inter-client travel.', link: '/settings' },
                   { num: 6, title: 'Review the dashboard', desc: 'Once visits are scheduled, the dashboard shows daily route, carer locations, and exceptions. Check Carer Totals for payroll summaries.', link: '/dashboard' },
                 ].map(item => (
-                  <Box key={item.num} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                  <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
                     <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
                       <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
                     </Box>
@@ -258,7 +258,7 @@ export default function OnboardingFlow() {
                   { num: 5, title: 'Invite your team', desc: 'Go to Staff Directory and invite managers and support workers. Assign roles and locations.', link: '/staff' },
                   { num: 6, title: 'Review the dashboard', desc: 'The dashboard shows staffing coverage, compliance scores, upcoming shifts, and incident alerts at a glance.', link: '/dashboard' },
                 ].map(item => (
-                  <Box key={item.num} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                  <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
                     <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
                       <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
                     </Box>
@@ -287,7 +287,7 @@ export default function OnboardingFlow() {
                   { num: 5, title: 'Set up room checks', desc: 'Go to Room Checks and configure check schedules — hourly rounds, sleep checks, and fire drill rotations.', link: '/room-checks' },
                   { num: 6, title: 'Review the dashboard', desc: 'The dashboard shows bed occupancy, medication status, incident alerts and daily notes summary.', link: '/dashboard' },
                 ].map(item => (
-                  <Box key={item.num} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                  <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
                     <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
                       <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
                     </Box>
@@ -316,7 +316,7 @@ export default function OnboardingFlow() {
                   { num: 5, title: 'Configure mileage and travel', desc: 'Set mileage rates, travel time policies, and whether inter-client travel is compensated.', link: '/settings' },
                   { num: 6, title: 'Review the dashboard', desc: 'The dashboard shows the current carer, handover status, next rotation, and any exceptions or missed check-ins.', link: '/dashboard' },
                 ].map(item => (
-                  <Box key={item.num} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                  <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
                     <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
                       <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{item.num}</Typography>
                     </Box>

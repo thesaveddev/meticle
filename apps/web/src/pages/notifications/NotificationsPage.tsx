@@ -104,7 +104,7 @@ export default function NotificationsPage() {
                 key={n.id}
                 variant="outlined"
                 sx={{
-                  p: 2, display: 'flex', alignItems: 'flex-start', gap: 2, cursor: 'pointer',
+                  p: 2, display: 'flex', alignItems: 'flex-start', gap: 'var(--card-gap)', cursor: 'pointer',
                   bgcolor: n.read ? 'transparent' : 'action.hover',
                   borderLeft: `3px solid ${color}`,
                   '&:hover': { bgcolor: 'action.hover' },

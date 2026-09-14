@@ -167,7 +167,7 @@ export default function IdentityMonitoringPage() {
         </Stack>
       </Stack>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 4 }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--card-gap)', mb: 4 }}>
         <Box sx={{ flex: '1 1 180px', minWidth: 140 }}>
           <Card sx={{ bgcolor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'center', py: 3, '&:last-child': { pb: 3 } }}>

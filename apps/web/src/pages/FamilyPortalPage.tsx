@@ -132,7 +132,7 @@ export default function FamilyPortalPage() {
     <Box sx={{ minHeight: '100vh', bgcolor: '#F9FAFB' }}>
       {/* Header */}
       <Box sx={{ bgcolor: '#0F4C81', color: 'white', p: 4, pb: 6 }}>
-        <Box sx={{ maxWidth: 900, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 'var(--container-narrow)', mx: 'auto' }}>
           <Stack direction="row" spacing={3} alignItems="center">
             <Avatar src={su.photo_url || undefined}
               sx={{ width: 72, height: 72, bgcolor: 'rgba(255,255,255,0.2)', fontSize: 28, border: '3px solid rgba(255,255,255,0.3)' }}>
@@ -154,7 +154,7 @@ export default function FamilyPortalPage() {
       </Box>
 
       {/* Tabs */}
-      <Box sx={{ maxWidth: 900, mx: 'auto', mt: -2, px: 2 }}>
+      <Box sx={{ maxWidth: 'var(--container-narrow)', mx: 'auto', mt: -2, px: 2 }}>
         <Paper sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid #E5E7EB' }}>
           <Tabs value={portalTab} onChange={(_, v) => setPortalTab(v)} sx={{ px: 2, pt: 1, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 }, flexWrap: 'wrap' }}>
             <Tab label="Visits" />

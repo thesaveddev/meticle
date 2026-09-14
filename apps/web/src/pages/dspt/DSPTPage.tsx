@@ -101,7 +101,7 @@ export default function DSPTPage() {
   const daysLeft = Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000))
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <ShieldIcon sx={{ fontSize: 32, color: '#005EB8' }} />
@@ -120,7 +120,7 @@ export default function DSPTPage() {
         </Stack>
       </Stack>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 4 }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--card-gap)', mb: 4 }}>
         <Card sx={{ flex: '1 1 200px', borderTop: `4px solid ${si.color}` }}>
           <CardContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Overall Status</Typography>

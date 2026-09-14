@@ -73,7 +73,7 @@ export default function DomiciliaryDashboard() {
   })()
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 0.5 }}>
@@ -211,7 +211,7 @@ export default function DomiciliaryDashboard() {
                       key={call.id}
                       sx={{
                         display: 'flex',
-                        gap: 2,
+                        gap: 'var(--card-gap)',
                         py: 2,
                         borderBottom: i < data.call_timeline.length - 1 ? `1px solid ${theme.palette.divider}` : 'none',
                       }}

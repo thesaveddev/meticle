@@ -238,7 +238,7 @@ export default function EvidencePacksPage() {
           </Typography>
 
           {data?.summary && (
-            <Box className="summary" sx={{ display: 'flex', gap: 2, my: 3, flexWrap: 'wrap' }}>
+            <Box className="summary" sx={{ display: 'flex', gap: 'var(--card-gap)', my: 3, flexWrap: 'wrap' }}>
               {Object.entries(data.summary).map(([k, v]) => (
                 <Box key={k} sx={{ flex: 1, minWidth: 100, border: '1px solid #D1D5DB', borderRadius: 2, p: 2, textAlign: 'center' }}>
                   <Typography variant="h5" fontWeight={800}>{v as number}</Typography>
