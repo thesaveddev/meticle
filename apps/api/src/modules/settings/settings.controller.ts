@@ -110,17 +110,25 @@ export class SettingsController {
 
   static async createLocation(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
-    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection, max_staff_on_leave } = req.body;
+    const { name, address, latitude, longitude, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection, max_staff_on_leave } = req.body;
     if (manager_id) {
       const user = await pool.query('SELECT role FROM users WHERE id = $1', [manager_id]);
       if (user.rows.length > 0 && user.rows[0].role !== 'MANAGER' && user.rows[0].role !== 'ORG_ADMIN') {
         throw new AppError(400, 'Location manager must have MANAGER or ORG_ADMIN role');
       }
     }
+    // Auto-geocode from address if lat/lng not provided
+    let lat = latitude ?? null;
+    let lng = longitude ?? null;
+    if (address && lat == null && lng == null) {
+      const { geocodeAddress } = await import('../../shared/services/geocoding');
+      const geo = await geocodeAddress(address);
+      if (geo) { lat = geo.latitude; lng = geo.longitude; }
+    }
     const result = await pool.query(
-      `INSERT INTO locations (organization_id, name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection, max_staff_on_leave)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
-      [orgId, name, address, manager_id || null, minimum_staff_per_day ?? null, min_day_staff ?? null, min_night_staff ?? null, min_sleep_staff ?? null, service_type || null, service_capacity ?? null, phone || null, email || null, food_hygiene_rating ?? null, cqc_rating || null, last_cqc_inspection || null, max_staff_on_leave ?? null]
+      `INSERT INTO locations (organization_id, name, address, latitude, longitude, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection, max_staff_on_leave)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING *`,
+      [orgId, name, address, lat, lng, manager_id || null, minimum_staff_per_day ?? null, min_day_staff ?? null, min_night_staff ?? null, min_sleep_staff ?? null, service_type || null, service_capacity ?? null, phone || null, email || null, food_hygiene_rating ?? null, cqc_rating || null, last_cqc_inspection || null, max_staff_on_leave ?? null]
     );
     SettingsController.checkLocationManagerCoverage(orgId);
     res.status(201).json(result.rows[0]);
@@ -129,9 +137,9 @@ export class SettingsController {
   static async updateLocation(req: Request, res: Response) {
     const user = req.user!;
     const { id } = req.params;
-    const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection, max_staff_on_leave } = req.body;
+    const { name, address, latitude, longitude, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection, max_staff_on_leave } = req.body;
     // Verify location belongs to org
-    const locCheck = await pool.query('SELECT 1 FROM locations WHERE id = $1 AND organization_id = $2', [id, user.organizationId]);
+    const locCheck = await pool.query('SELECT address, latitude, longitude FROM locations WHERE id = $1 AND organization_id = $2', [id, user.organizationId]);
     if (locCheck.rows.length === 0) throw new AppError(404, 'Location not found');
     if (manager_id) {
       const mUser = await pool.query('SELECT role FROM users WHERE id = $1 AND organization_id = $2', [manager_id, user.organizationId]);
@@ -139,8 +147,19 @@ export class SettingsController {
         throw new AppError(400, 'Location manager must have MANAGER or ORG_ADMIN role');
       }
     }
+    // Auto-geocode if address changed and lat/lng not explicitly provided
+    let lat = latitude;
+    let lng = longitude;
+    const existing = locCheck.rows[0];
+    const newAddress = address ?? existing.address;
+    if (address != null && address !== existing.address && lat == null && lng == null) {
+      const { geocodeAddress } = await import('../../shared/services/geocoding');
+      const geo = await geocodeAddress(address);
+      if (geo) { lat = geo.latitude; lng = geo.longitude; }
+    }
     const result = await pool.query(
       `UPDATE locations SET name = COALESCE($1, name), address = COALESCE($2, address),
+       latitude = $18, longitude = $19,
        manager_id = $3, minimum_staff_per_day = COALESCE($4, minimum_staff_per_day),
        min_day_staff = COALESCE($5, min_day_staff), min_night_staff = COALESCE($6, min_night_staff),
        min_sleep_staff = COALESCE($7, min_sleep_staff),
@@ -148,7 +167,7 @@ export class SettingsController {
        food_hygiene_rating = $14, cqc_rating = $15, last_cqc_inspection = $16,
        max_staff_on_leave = $17
        WHERE id = $8 AND organization_id = $9 RETURNING *`,
-      [name, address, manager_id || null, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, id, user.organizationId, service_type || null, service_capacity ?? null, phone || null, email || null, food_hygiene_rating ?? null, cqc_rating || null, last_cqc_inspection || null, max_staff_on_leave ?? null]
+      [name, address, manager_id || null, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, id, user.organizationId, service_type || null, service_capacity ?? null, phone || null, email || null, food_hygiene_rating ?? null, cqc_rating || null, last_cqc_inspection || null, max_staff_on_leave ?? null, lat ?? existing.latitude, lng ?? existing.longitude]
     );
     if (result.rows.length === 0) throw new AppError(404, 'Location not found');
     SettingsController.checkLocationManagerCoverage(user.organizationId);

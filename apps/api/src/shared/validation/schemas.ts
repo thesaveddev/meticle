@@ -226,6 +226,8 @@ const operationalLocationFields = {
 export const createLocationSchema = z.object({
   name: z.string().min(1, 'Location name is required').max(255),
   address: z.string().nullable().optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
   manager_id: z.string().uuid().nullable().optional(),
   minimum_staff_per_day: z.number().int().min(0).nullable().optional(),
   min_day_staff: z.number().int().min(0).nullable().optional(),
@@ -237,6 +239,8 @@ export const createLocationSchema = z.object({
 export const updateLocationSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   address: z.string().nullable().optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
   manager_id: z.string().uuid().nullable().optional(),
   minimum_staff_per_day: z.number().int().min(0).nullable().optional(),
   min_day_staff: z.number().int().min(0).nullable().optional(),

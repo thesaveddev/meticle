@@ -22,7 +22,7 @@ const SERVICE_TYPE_LABEL: Record<string, string> = {
 }
 
 const EMPTY_LOC = {
-  name: '', address: '', manager_id: '', minimum_staff_per_day: 1,
+  name: '', address: '', latitude: '', longitude: '', manager_id: '', minimum_staff_per_day: 1,
   min_day_staff: '', min_night_staff: '', min_sleep_staff: '', max_staff_on_leave: '',
   service_type: '', service_capacity: '', phone: '', email: '',
   food_hygiene_rating: '', cqc_rating: '', last_cqc_inspection: '',
@@ -72,7 +72,7 @@ export default function LocationsPage() {
   const openEdit = (loc: any) => {
     setEditLoc({
       ...EMPTY_LOC,
-      id: loc.id, name: loc.name, address: loc.address || '',
+      id: loc.id, name: loc.name, address: loc.address || '', latitude: loc.latitude ?? '', longitude: loc.longitude ?? '',
       manager_id: loc.manager_id || '', minimum_staff_per_day: loc.minimum_staff_per_day ?? 1,
       min_day_staff: loc.min_day_staff ?? '', min_night_staff: loc.min_night_staff ?? '', min_sleep_staff: loc.min_sleep_staff ?? '',
       max_staff_on_leave: loc.max_staff_on_leave ?? '',
@@ -228,6 +228,22 @@ export default function LocationsPage() {
             {error && <Alert severity="error">{error}</Alert>}
             <TextField label="Name" fullWidth size="small" value={editLoc.name} onChange={e => setEditLoc((p: any) => ({ ...p, name: e.target.value }))} />
             <TextField label="Address" fullWidth size="small" value={editLoc.address || ''} onChange={e => setEditLoc((p: any) => ({ ...p, address: e.target.value }))} />
+            <Stack direction="row" spacing={2} alignItems="center">
+              <TextField label="Latitude" type="number" size="small" sx={{ flex: 1 }} value={editLoc.latitude ?? ''}
+                onChange={e => setEditLoc((p: any) => ({ ...p, latitude: e.target.value }))} />
+              <TextField label="Longitude" type="number" size="small" sx={{ flex: 1 }} value={editLoc.longitude ?? ''}
+                onChange={e => setEditLoc((p: any) => ({ ...p, longitude: e.target.value }))} />
+              <Button variant="outlined" size="small" onClick={async () => {
+                if (!editLoc.address) return
+                try {
+                  const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(editLoc.address)}&format=json&limit=1&countrycodes=gb`, { headers: { 'User-Agent': 'MeticleCare/1.0' } })
+                  const data = await res.json()
+                  if (data.length > 0) {
+                    setEditLoc((p: any) => ({ ...p, latitude: data[0].lat, longitude: data[0].lon }))
+                  }
+                } catch {}
+              }} sx={{ whiteSpace: 'nowrap', textTransform: 'none' }}>Auto-locate</Button>
+            </Stack>
             <Stack direction="row" spacing={2}>
               <FormControl size="small" sx={{ minWidth: 180 }}>
                 <InputLabel>Service Type</InputLabel>
