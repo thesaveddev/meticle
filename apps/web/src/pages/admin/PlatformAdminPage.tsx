@@ -486,7 +486,10 @@ export default function PlatformAdminPage() {
             </Grid>
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 3, borderRadius: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Email Queue</Typography>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>Email Queue</Typography>
+                  <Button size="small" variant="outlined" onClick={() => navigate('/platform-admin/email-queue')}>Full Dashboard</Button>
+                </Stack>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {health.emailQueue?.map((q: any) => (
                     <Chip key={q.status} size="small" label={`${q.status}: ${q.count}`} color={q.status === 'sent' ? 'success' : q.status === 'failed' ? 'error' : 'warning'} variant="outlined" />

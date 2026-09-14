@@ -22,5 +22,8 @@ router.get('/users', asyncHandler(PlatformAdminController.listUsers));
 router.get('/trial-followups', asyncHandler(PlatformAdminController.listTrialFollowups));
 router.post('/trial-followups/:organizationId/email', asyncHandler(PlatformAdminController.sendTrialFollowupEmail));
 router.patch('/users/:id/status', asyncHandler(PlatformAdminController.updateUserStatus));
+router.get('/email-queue', asyncHandler(PlatformAdminController.getEmailQueueStats));
+router.post('/email-queue/retry-failed', asyncHandler(PlatformAdminController.retryFailedEmails));
+router.post('/email-queue/purge-failed', asyncHandler(PlatformAdminController.purgeFailedEmails));
 
 export default router;
