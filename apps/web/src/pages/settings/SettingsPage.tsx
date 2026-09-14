@@ -964,6 +964,32 @@ export default function SettingsPage() {
 
       <Paper sx={{ p: 4, mt: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+          <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Call Alert Frequency
+        </Typography>
+        <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+          Control how often managers are notified about overdue and unassigned calls. Managers receive a repeat alert
+          at this interval until the call is resolved or completed.
+        </Typography>
+        <TextField
+          select
+          label="Alert frequency"
+          size="small"
+          sx={{ width: 300 }}
+          value={String(orgSettings.overdue_alert_frequency_minutes ?? 120)}
+          onChange={e => setOrgSettings((p: any) => ({ ...p, overdue_alert_frequency_minutes: Number(e.target.value) }))}
+        >
+          <MenuItem value="30">Every 30 minutes</MenuItem>
+          <MenuItem value="60">Every 1 hour</MenuItem>
+          <MenuItem value="120">Every 2 hours (default)</MenuItem>
+          <MenuItem value="240">Every 4 hours</MenuItem>
+        </TextField>
+        <Button variant="contained" onClick={() => saveOrgSettings({ overdue_alert_frequency_minutes: orgSettings.overdue_alert_frequency_minutes })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <SaveIcon sx={{ mr: 1 }} /> Save Alert Frequency
+        </Button>
+      </Paper>
+
+      <Paper sx={{ p: 4, mt: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <MedicationIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Daily Medication Counts
         </Typography>
         <TextField
