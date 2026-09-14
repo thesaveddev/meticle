@@ -182,7 +182,7 @@ export default function LearningCenterPage() {
       )}
 
       {/* Main Content */}
-      <Box sx={{ flex: 1, pt: isMobile ? 8 : 3, px: isMobile ? 2 : 4, pb: 8, maxWidth: 900, mx: 'auto', width: '100%' }}>
+      <Box sx={{ flex: 1, pt: isMobile ? 8 : 3, px: isMobile ? 2 : 4, pb: 8, maxWidth: 'var(--container-narrow)', mx: 'auto', width: '100%' }}>
         {currentSection && currentSubsection ? (
           <>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>

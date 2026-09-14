@@ -94,7 +94,7 @@ export default function AvailabilityPage() {
   if (loading) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
 
   return (
-    <Box sx={{ maxWidth: 900, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-narrow)', mx: 'auto' }}>
       <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
         <ScheduleIcon sx={{ color: '#10b981', fontSize: 28 }} />
         <Typography variant="h4" sx={{ fontWeight: 800 }}>{isCarer ? 'My Availability' : 'Carer Availability'}</Typography>
@@ -125,7 +125,7 @@ export default function AvailabilityPage() {
         {DAYS.map((dayName, dayIndex) => {
           const dayRecords = (byDay[dayIndex] || []).filter(r => !selectedStaff || r.staff_id === selectedStaff)
           return (
-            <Box key={dayIndex} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', py: 1.5, borderBottom: '1px solid #F3F4F6' }}>
+            <Box key={dayIndex} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start', py: 1.5, borderBottom: '1px solid #F3F4F6' }}>
               <Box sx={{ width: 100, flexShrink: 0 }}>
                 <Typography variant="body2" sx={{ fontWeight: 700, color: dayRecords.length > 0 ? '#10b981' : '#9CA3AF' }}>{dayName}</Typography>
               </Box>

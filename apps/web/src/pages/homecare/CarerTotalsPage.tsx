@@ -213,7 +213,7 @@ export default function CarerTotalsPage() {
 
   /* ────────────── RENDER ────────────── */
   return (
-    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
       {/* Header */}
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Stack direction="row" alignItems="center" gap={1.5}>
@@ -476,7 +476,7 @@ export default function CarerTotalsPage() {
                 return (
                   <Paper key={v.id} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
                     {/* Header row */}
-                    <Box sx={{ p: 2.5, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+                    <Box sx={{ p: 2.5, display: 'flex', flexWrap: 'wrap', gap: 'var(--card-gap)', alignItems: 'center' }}>
                       <Box sx={{ flex: '1 1 200px' }}>
                         <Stack direction="row" alignItems="center" gap={1}>
                           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{v.label || v.visit_type}</Typography>

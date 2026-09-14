@@ -190,7 +190,7 @@ export default function MealPlanPage() {
         <WeeklyMealGrid people={people || []} />
       ) : (
       <>
-      <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+      <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 'var(--card-gap)', alignItems: 'center', flexWrap: 'wrap' }}>
         <MealIcon color="primary" />
         <Typography variant="subtitle2">Filter:</Typography>
         <TextField select size="small" label="Meal Type" value={fType} onChange={e => setFType(e.target.value)} sx={{ minWidth: 160 }}>
@@ -304,7 +304,7 @@ export default function MealPlanPage() {
       <Dialog open={tmplDlg.open} onClose={() => setTmplDlg({ open: false })} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>{tmplDlg.edit ? 'Edit Meal Plan' : 'New Meal Plan'}</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'var(--card-gap)', pt: 1 }}>
             <TextField label="Name" value={tf.name} onChange={e => setTf(p => ({ ...p, name: e.target.value }))} fullWidth required placeholder="e.g. Monday Breakfast Menu" />
             <TextField label="Description" value={tf.description} onChange={e => setTf(p => ({ ...p, description: e.target.value }))} fullWidth multiline rows={2} placeholder="Optional description" />
             <TextField select label="Meal Type" value={tf.meal_type} onChange={e => setTf(p => ({ ...p, meal_type: e.target.value }))} fullWidth>
@@ -327,7 +327,7 @@ export default function MealPlanPage() {
       <Dialog open={itemDlg.open} onClose={() => setItemDlg({ open: false, tplId: '' })} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>{itemDlg.edit ? 'Edit Food Item' : 'Add Food Item'}</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'var(--card-gap)', pt: 1 }}>
             <TextField label="Food Name" value={itf.food_name} onChange={e => setItf(p => ({ ...p, food_name: e.target.value }))} fullWidth required placeholder="e.g. Chicken Pie" />
             <TextField label="Portion Size" value={itf.portion_size} onChange={e => setItf(p => ({ ...p, portion_size: e.target.value }))} fullWidth placeholder="e.g. Standard, Half" />
             <TextField label="Allergens" value={itf.allergens} onChange={e => setItf(p => ({ ...p, allergens: e.target.value }))} fullWidth placeholder="e.g. Gluten, Dairy" />

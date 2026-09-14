@@ -301,7 +301,7 @@ export default function PoliciesPage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
 
       <Paper variant="outlined" sx={{ mb: 4, p: { xs: 2, md: 2.5 }, borderRadius: 2, borderColor: '#C7D7E8', bgcolor: '#F4F8FC' }}>
@@ -431,7 +431,7 @@ export default function PoliciesPage() {
             const color = categoryColors[policy.category] || NAVY
             const due = isReviewDue(policy.review_due_at)
             return (
-              <Box key={policy.id} component="button" type="button" onClick={() => setSelectedPolicy(policy)} sx={{ width: '100%', border: 0, borderBottom: index < visiblePolicies.length - 1 ? `1px solid ${HAIRLINE}` : 0, bgcolor: '#FFFFFF', p: 2, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, '&:hover': { bgcolor: '#F8FAFC' } }}>
+              <Box key={policy.id} component="button" type="button" onClick={() => setSelectedPolicy(policy)} sx={{ width: '100%', border: 0, borderBottom: index < visiblePolicies.length - 1 ? `1px solid ${HAIRLINE}` : 0, bgcolor: '#FFFFFF', p: 2, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--card-gap)', '&:hover': { bgcolor: '#F8FAFC' } }}>
                 <Box sx={{ width: 8, alignSelf: 'stretch', minHeight: 42, borderRadius: 1, bgcolor: color, flexShrink: 0 }} />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ sm: 1 }} alignItems={{ sm: 'center' }}>

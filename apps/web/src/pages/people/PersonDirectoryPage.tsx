@@ -124,7 +124,7 @@ export default function PersonDirectoryPage() {
   const riskCount = users.filter((u: any) => (u.open_risks || 0) > 0).length
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
       {/* ── Header ── */}
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mb: 3, gap: 2 }}>
         <Box>

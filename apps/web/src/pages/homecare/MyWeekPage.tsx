@@ -47,7 +47,7 @@ export default function MyWeekPage() {
   if (loading) return <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
       <Typography variant="h4" fontWeight={700} mb={1}>My week</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>{visits.length} calls · {completed} completed</Typography>
 
@@ -87,7 +87,7 @@ export default function MyWeekPage() {
 
               <Stack spacing={1}>
                 {dayVisits.map((v: any) => (
-                  <Paper key={v.id} variant="outlined" sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'flex-start', '&:hover': { bgcolor: 'action.hover' } }}>
+                  <Paper key={v.id} variant="outlined" sx={{ p: 2, display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start', '&:hover': { bgcolor: 'action.hover' } }}>
                     <Box sx={{ minWidth: 60 }}>
                       <Typography fontWeight={700} color="primary.main" fontSize={14}>{time(v.scheduled_start)}</Typography>
                       <Typography variant="caption" color="text.secondary">{time(v.scheduled_end)}</Typography>

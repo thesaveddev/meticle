@@ -78,7 +78,7 @@ export default function SwapTransferPage() {
   if (loading) return <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-narrow)', mx: 'auto' }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
           <Typography variant="h4" fontWeight={700} mb={0.5}>Swap & Transfer</Typography>

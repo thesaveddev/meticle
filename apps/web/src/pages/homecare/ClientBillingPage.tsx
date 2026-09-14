@@ -81,10 +81,10 @@ export default function ClientBillingPage() {
   // Pagination
   const paginatedRows = rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
-  if (!isManager) return <Box sx={{ maxWidth: 1280, mx: 'auto' }}><Alert severity="info">Client billing is available to managers and organisation administrators.</Alert></Box>
+  if (!isManager) return <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}><Alert severity="info">Client billing is available to managers and organisation administrators.</Alert></Box>
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Client billing</Typography>
@@ -167,7 +167,7 @@ export default function ClientBillingPage() {
           {(runs.data || []).length === 0 ? (
             <EmptyState title="No billing runs yet" description="Create your first billing run to generate invoices" variant="default" />
           ) : (runs.data || []).map((run: any) => (
-            <Paper key={run.id} elevation={0} sx={{ p: 2, display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, border: '1px solid #E5E7EB', borderRadius: 2 }}>
+            <Paper key={run.id} elevation={0} sx={{ p: 2, display: 'flex', alignItems: { sm: 'center' }, justifyContent: 'space-between', gap: 'var(--card-gap)', flexDirection: { xs: 'column', sm: 'row' }, border: '1px solid #E5E7EB', borderRadius: 2 }}>
               <Box>
                 <Typography fontWeight={700}>{run.invoice_number || 'Draft run'} · {dateLabel(run.period_from)} – {dateLabel(run.period_to)}</Typography>
                 <Typography variant="body2" color="text.secondary">{run.row_count} lines · gross {money(run.gross_amount_pence ?? run.total_amount_pence)} {run.vat_amount_pence ? `· VAT ${money(run.vat_amount_pence)}` : ''} · {run.funding_breakdown ? `${Object.keys(run.funding_breakdown).length} funder group${Object.keys(run.funding_breakdown).length === 1 ? '' : 's'}` : ''} · created {dateLabel(run.created_at)}</Typography>

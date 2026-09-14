@@ -39,7 +39,7 @@ export default function PayrollExportPage() {
   const totalMileage = timesheets.reduce((sum: number, t: any) => sum + ((Number(t.mileage_miles) || 0) * (Number(t.mileage_rate_pence) || 0)), 0)
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Payroll Export</Typography>
