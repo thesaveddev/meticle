@@ -13,10 +13,16 @@ export interface EmailAttachment {
 }
 
 export class EmailQueue {
-  static enqueue(to: string, subject: string, htmlBody: string, fromEmail?: string, attachments?: EmailAttachment[]) {
-    // Persist the attachment bytes in the queue row. Storing only the filename
-    // silently produced empty attachments when the worker later tried to send
-    // the message.
+  static async enqueue(to: string, subject: string, htmlBody: string, fromEmail?: string, attachments?: EmailAttachment[]) {
+    // Dedup: skip if a pending/sending email with the same recipient and subject exists
+    const dup = await query(
+      `SELECT id FROM email_queue WHERE to_email = $1 AND subject = $2 AND status IN ('pending', 'sending') LIMIT 1`,
+      [to, subject]
+    );
+    if (dup.rows.length > 0) {
+      logger.info({ to, subject, existingId: dup.rows[0].id }, 'Email dedup — skipping duplicate');
+      return null;
+    }
     const attachmentMeta = attachments?.map(a => ({
       filename: a.filename,
       content: a.content.toString('base64'),
@@ -64,12 +70,14 @@ export class EmailQueue {
           [email.id]
         );
       } catch (err: any) {
-        const retryable = err.code === 'ECONNECTION' || err.code === 'ETIMEDOUT' || err.code === 'EENVELOPE' || (err.responseCode >= 400 && err.responseCode < 500);
-        const nextStatus = (email.retry_count + 1) >= email.max_retries ? 'failed' : 'pending';
-        logger.error({ err: err.message, code: err.code, command: err.command, smtpCode: err.responseCode, queueId: email.id, retryCount: email.retry_count + 1, nextStatus }, 'Email queue send failed');
+        // 5xx SMTP responses and protocol errors are permanent — do not retry
+        const isPermanent = err.responseCode >= 500 || err.code === 'EPROTOCOL' || err.code === 'ESOCKET' || /554/.test(err.message || '');
+        const isTransient = err.code === 'ECONNECTION' || err.code === 'ETIMEDOUT' || err.code === 'EENVELOPE' || (err.responseCode >= 400 && err.responseCode < 500);
+        const nextStatus = isPermanent ? 'failed' : ((email.retry_count + 1) >= email.max_retries ? 'failed' : 'pending');
+        logger.error({ err: err.message, code: err.code, command: err.command, smtpCode: err.responseCode, queueId: email.id, retryCount: email.retry_count + 1, nextStatus, isPermanent }, 'Email queue send failed');
         await query(
-          `UPDATE email_queue SET status = $1, sending_at = NULL, error_message = $2 WHERE id = $3`,
-          [nextStatus, `${err.code ? err.code + ': ' : ''}${err.message || 'Unknown error'}`, email.id]
+          `UPDATE email_queue SET status = $1, sending_at = NULL, retry_count = $2, error_message = $3 WHERE id = $4`,
+          [nextStatus, isPermanent ? email.max_retries : email.retry_count + 1, `${err.code ? err.code + ': ' : ''}${err.message || 'Unknown error'}`, email.id]
         );
       }
     }
