@@ -6,7 +6,9 @@ import { SkeletonScreen } from '../components/Skeleton'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import { getMyEarnings } from '../services/api'
+import { Ionicons } from '@expo/vector-icons'
 import { IconCheck, IconClock, IconMiles, IconWarning } from '../components/Icons'
+import { generateAndSharePayslip } from '../services/payslip'
 import { hapticLight } from '../services/haptics'
 
 interface Props {
@@ -52,6 +54,7 @@ export function MileageScreen({ session }: Props) {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'completed' | 'upcoming'>('overview')
+  const [downloading, setDownloading] = useState(false)
 
   const load = async (refresh = false) => {
     if (refresh) setRefreshing(true)
@@ -64,6 +67,29 @@ export function MileageScreen({ session }: Props) {
   }
 
   useEffect(() => { load() }, [])
+
+  const handleDownloadPayslip = async () => {
+    hapticLight()
+    setDownloading(true)
+    try {
+      const now = new Date()
+      const orgName = (session as any).organization?.name || 'MeticleCare'
+      const userName = session.user?.first_name ? `${session.user.first_name} ${session.user.last_name || ''}`.trim() : session.user?.email || 'Carer'
+      const monthLabel = now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+      const ok = await generateAndSharePayslip({
+        userName,
+        userEmail: session.user?.email || '',
+        orgName,
+        monthLabel,
+        summary,
+        completedVisits: completed,
+      })
+      if (!ok) {
+        // Silent failure — expo-print may not work in Expo Go
+      }
+    } catch { /* ignore */ }
+    finally { setDownloading(false) }
+  }
 
   const summary = data?.summary || {}
   const completed = (data?.visits || [])
@@ -115,6 +141,22 @@ export function MileageScreen({ session }: Props) {
             </View>
           </View>
         </View>
+
+        {/* Download payslip */}
+        <Pressable
+          onPress={handleDownloadPayslip}
+          disabled={downloading}
+          style={({ pressed }) => [[styles.downloadBtn, { backgroundColor: c.surface, borderColor: c.border }], pressed && { opacity: 0.7, transform: [{ scale: 0.98 }] }]}
+        >
+          {downloading ? (
+            <Text style={[styles.downloadText, { color: c.muted }]}>Generating payslip...</Text>
+          ) : (
+            <>
+              <Ionicons name="download-outline" size={18} color={c.primary} />
+              <Text style={[styles.downloadText, { color: c.primary }]}>Download payslip</Text>
+            </>
+          )}
+        </Pressable>
 
         {/* Tab bar */}
         <View style={[s.tabBar, { borderBottomColor: c.borderLight }]}>
@@ -341,6 +383,10 @@ export function MileageScreen({ session }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { paddingHorizontal: spacing.base, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
+
+  /* Download button */
+  downloadBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md, borderRadius: radii.md, borderWidth: 1, marginBottom: spacing.base },
+  downloadText: { fontFamily: FONT, fontSize: 14, fontWeight: '600' },
 
   /* Header */
   pageTitle: { ...typography.title, marginBottom: spacing.xs },
