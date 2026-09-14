@@ -81,7 +81,7 @@ export default function SurveyFormPage() {
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}><CircularProgress /></Box>
 
   if (error && !formData) return (
-    <Box sx={{ maxWidth: 480, mx: 'auto', mt: 8, p: 3 }}>
+    <Box sx={{ maxWidth: 480, mx: 'auto', p: 3 }}>
       <Paper sx={{ p: 4, textAlign: 'center' }}>
         <Typography variant="h5" sx={{ mb: 2, color: '#DC2626' }}>Survey Unavailable</Typography>
         <Typography color="text.secondary">{error}</Typography>
@@ -90,7 +90,7 @@ export default function SurveyFormPage() {
   )
 
   if (done) return (
-    <Box sx={{ maxWidth: 480, mx: 'auto', mt: 8, p: 3 }}>
+    <Box sx={{ maxWidth: 480, mx: 'auto', p: 3 }}>
       <Paper sx={{ p: 4, textAlign: 'center' }}>
         <Typography variant="h5" sx={{ color: '#16A34A', mb: 2 }}>Thank You!</Typography>
         <Typography color="text.secondary">Your feedback has been submitted successfully.</Typography>

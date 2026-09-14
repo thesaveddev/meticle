@@ -160,7 +160,7 @@ export default function OvertimeClaimsPage() {
     : allClaims
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={1} alignItems="center">
           <Schedule sx={{ color: '#0F4C81', fontSize: 28 }} />

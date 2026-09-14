@@ -344,7 +344,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
   const actions = buildActions(data.gaps || [])
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <Typography variant="h4">Readiness</Typography>
