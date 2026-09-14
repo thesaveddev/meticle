@@ -342,7 +342,7 @@ export default function FeaturesPage() {
             <Box
               sx={{
                 display: 'inline-flex', alignItems: 'center', gap: 1.25,
-                bgcolor: '#FFFFFF', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
+                bgcolor: 'background.paper', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
                 px: 2, py: 0.75, mb: 3,
               }}
             >
@@ -377,7 +377,7 @@ export default function FeaturesPage() {
           <Box
             component="section"
             aria-label={group.cat}
-            sx={{ py: { xs: 5, md: 6 }, bgcolor: '#FFFFFF', borderBottom: `1px solid ${HAIRLINE}` }}
+            sx={{ py: { xs: 5, md: 6 }, bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}` }}
           >
             <Container maxWidth="lg">
               <Stack direction="row" spacing={1.75} alignItems="center">
@@ -448,7 +448,7 @@ export default function FeaturesPage() {
                           {section.tag && (
                             <Box
                               sx={{
-                                bgcolor: '#FEF3C7', color: '#92400E',
+                                bgcolor: 'warning.light', color: '#92400E',
                                 px: 1.25, py: 0.25, borderRadius: 1,
                                 fontSize: '0.65rem', fontWeight: 800,
                                 textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -509,7 +509,7 @@ export default function FeaturesPage() {
       ))}
 
       {/* CTA Section */}
-      <Box component="section" sx={{ py: { xs: 11, md: 15 }, bgcolor: '#FFFFFF', textAlign: 'center' }}>
+      <Box component="section" sx={{ py: { xs: 11, md: 15 }, bgcolor: 'background.paper', textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography
             variant="h2"

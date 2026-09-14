@@ -11,7 +11,7 @@ const statusColor = (s: string) => {
   if (s === 'completed') return { bg: '#E9F7F0', color: '#047857' }
   if (s === 'missed' || s === 'cancelled') return { bg: '#FDECEC', color: '#B42318' }
   if (s === 'in_progress') return { bg: '#FFF5D9', color: '#D97706' }
-  return { bg: '#F3F4F6', color: '#6B7280' }
+  return { bg: '#F3F4F6', color: 'text.secondary' }
 }
 
 export default function CallSchedulingPage() {
@@ -38,7 +38,7 @@ export default function CallSchedulingPage() {
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Call Schedule</Typography>
-          <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.5 }}>Today's visit schedule and call patterns</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Today's visit schedule and call patterns</Typography>
         </Box>
       </Stack>
 
@@ -57,7 +57,7 @@ export default function CallSchedulingPage() {
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
       ) : (
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2 }}>
+        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
           <Table>
             <TableHead>
               <TableRow>
@@ -71,7 +71,7 @@ export default function CallSchedulingPage() {
             </TableHead>
             <TableBody>
               {sorted.length === 0 ? (
-                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: '#6B7280' }}>No calls scheduled for this day</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>No calls scheduled for this day</TableCell></TableRow>
               ) : sorted.map((v: any) => {
                 const start = v.scheduled_start || v.visit_date
                 const end = v.scheduled_end

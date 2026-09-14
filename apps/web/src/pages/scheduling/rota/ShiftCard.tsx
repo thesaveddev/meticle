@@ -115,18 +115,18 @@ export const ShiftCard = memo(function ShiftCard({
             }}>
               {shift._startLabel} – {shift._endLabel}
             </Typography>
-            <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#9CA3AF', fontWeight: 600 }}>
+            <Typography variant="caption" sx={{ fontSize: '0.55rem', color: 'text.secondary', fontWeight: 600 }}>
               {durationH}h
             </Typography>
             {isOpen && (
               <Chip label="Open" size="small"
-                sx={{ height: 15, fontSize: '0.55rem', fontWeight: 800, bgcolor: '#FEF3C7', color: '#92400E', '& .MuiChip-label': { px: 0.6 } }} />
+                sx={{ height: 15, fontSize: '0.55rem', fontWeight: 800, bgcolor: 'warning.light', color: '#92400E', '& .MuiChip-label': { px: 0.6 } }} />
             )}
           </Stack>
 
           {shift.su_first_name && (
             <Typography variant="caption" sx={{
-              fontSize: compact ? '0.58rem' : '0.64rem', color: '#6B7280', display: 'block', mb: 0.4,
+              fontSize: compact ? '0.58rem' : '0.64rem', color: 'text.secondary', display: 'block', mb: 0.4,
               textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
             }}>
               {shift.su_first_name} {shift.su_last_name || ''}
@@ -149,15 +149,15 @@ export const ShiftCard = memo(function ShiftCard({
           {/* Agency */}
           {shift.agency_id && (
             <Stack direction="row" spacing={0.4} alignItems="center" onClick={(e) => e.stopPropagation()} sx={{ mt: 0.3 }}>
-              <Chip label="Agency" size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: '#DBEAFE', color: '#1E40AF', fontWeight: 700 }} />
+              <Chip label="Agency" size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: 'info.light', color: '#1E40AF', fontWeight: 700 }} />
               {canEdit && !isReadOnly && canEditShift ? (
                 <ToggleButtonGroup size="small" value={shift.agency_covered ? 'covered' : 'uncovered'} exclusive
                   onChange={() => onToggleCoverage(shift.id, shift.agency_covered)}
                   sx={{ height: 17, '& .MuiToggleButton-root': { px: 0.4, py: 0, fontSize: '0.52rem', lineHeight: 1, border: '1px solid #D1D5DB', textTransform: 'none', fontWeight: 700 } }}>
-                  <ToggleButton value="covered" sx={{ bgcolor: shift.agency_covered ? '#D1FAE5' : 'transparent', color: shift.agency_covered ? '#065F46' : '#9CA3AF', '&:hover': { bgcolor: '#A7F3D0' } }}>
+                  <ToggleButton value="covered" sx={{ bgcolor: shift.agency_covered ? '#D1FAE5' : 'transparent', color: shift.agency_covered ? '#065F46' : '#9CA3AF', '&:hover': { bgcolor: 'success.light' } }}>
                     Yes
                   </ToggleButton>
-                  <ToggleButton value="uncovered" sx={{ bgcolor: !shift.agency_covered ? '#FEF3C7' : 'transparent', color: !shift.agency_covered ? '#92400E' : '#9CA3AF', '&:hover': { bgcolor: '#FDE68A' } }}>
+                  <ToggleButton value="uncovered" sx={{ bgcolor: !shift.agency_covered ? '#FEF3C7' : 'transparent', color: !shift.agency_covered ? '#92400E' : '#9CA3AF', '&:hover': { bgcolor: 'warning.light' } }}>
                     No
                   </ToggleButton>
                 </ToggleButtonGroup>
@@ -173,7 +173,7 @@ export const ShiftCard = memo(function ShiftCard({
             <ButtonBlock onClick={(e) => { e.stopPropagation(); onClaimShift(shift.id) }} />
           )}
           {!canEdit && isOpen && (
-            <Typography variant="caption" sx={{ fontSize: '0.6rem', color: '#6B7280', display: 'block', mt: 0.3 }}>
+            <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', display: 'block', mt: 0.3 }}>
               Open shift — contact manager to claim
             </Typography>
           )}
@@ -200,7 +200,7 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
       height: compact ? 17 : 19, px: 0.5,
       borderRadius: '999px',
       border: '1px solid #E4E4DD',
-      bgcolor: '#FAF9F5',
+      bgcolor: 'grey.50',
     }}>
       <Box sx={{
         width: 11, height: 11, borderRadius: '50%', flexShrink: 0,
@@ -211,7 +211,7 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
         {initials}
       </Box>
       <Box component="span" sx={{
-        fontSize: compact ? '0.56rem' : '0.6rem', fontWeight: 600, color: '#374151',
+        fontSize: compact ? '0.56rem' : '0.6rem', fontWeight: 600, color: 'text.primary',
         whiteSpace: 'nowrap', lineHeight: 1,
       }}>
         {a.first_name} {a.last_name?.[0] || ''}
@@ -219,7 +219,7 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
       {a.is_overtime && (
         <Box component="span" sx={{
           height: 11, lineHeight: '11px', px: 0.35, borderRadius: '4px',
-          bgcolor: '#FEF3C7', color: '#92400E', fontSize: '0.5rem', fontWeight: 800,
+          bgcolor: 'warning.light', color: '#92400E', fontSize: '0.5rem', fontWeight: 800,
         }}>
           OT
         </Box>
@@ -228,7 +228,7 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
         <SwapHorizIcon sx={{ fontSize: 11, cursor: 'pointer', color: '#0F4C81', ml: 0.1 }} onClick={onSwap} />
       )}
       {canDelete && (
-        <CloseIcon sx={{ fontSize: 10, cursor: 'pointer', color: '#9CA3AF', ml: 0.1, '&:hover': { color: '#DC2626' } }} onClick={onDelete} />
+        <CloseIcon sx={{ fontSize: 10, cursor: 'pointer', color: 'text.secondary', ml: 0.1, '&:hover': { color: '#DC2626' } }} onClick={onDelete} />
       )}
     </Box>
   )

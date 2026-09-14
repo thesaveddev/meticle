@@ -48,12 +48,12 @@ export default function MfaChallengePage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
       <Container maxWidth="xs">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle</Typography>
           <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>Two-Factor Authentication</Typography>
-          <Typography sx={{ color: '#6B7280', mt: 1 }}>
+          <Typography sx={{ color: 'text.secondary', mt: 1 }}>
             Enter the code from your authenticator app{email ? ` (${email})` : ''}.
           </Typography>
         </Box>
@@ -81,23 +81,23 @@ export default function MfaChallengePage() {
             {!showLostAccess ? (
               <Typography
                 onClick={() => setShowLostAccess(true)}
-                sx={{ cursor: 'pointer', textAlign: 'center', color: '#6B7280', fontSize: '0.85rem', textDecoration: 'none', '&:hover': { color: '#0F4C81', textDecoration: 'underline' } }}>
+                sx={{ cursor: 'pointer', textAlign: 'center', color: 'text.secondary', fontSize: '0.85rem', textDecoration: 'none', '&:hover': { color: '#0F4C81', textDecoration: 'underline' } }}>
                 Lost access to your authenticator?
               </Typography>
             ) : (
-              <Paper sx={{ p: 2, bgcolor: '#F9FAFB' }}>
+              <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
                 <Stack spacing={1.5}>
                   <Typography variant="body2" color="#6B7280" sx={{ textAlign: 'center' }}>
                     Contact your organization administrator to reset your MFA. They can reset it from the Staff Directory, allowing you to log in and set up a new authenticator.
                   </Typography>
-                  <Button fullWidth variant="text" onClick={() => setShowLostAccess(false)} sx={{ textTransform: 'none', color: '#9CA3AF' }}>
+                  <Button fullWidth variant="text" onClick={() => setShowLostAccess(false)} sx={{ textTransform: 'none', color: 'text.secondary' }}>
                     Back
                   </Button>
                 </Stack>
               </Paper>
             )}
 
-            <Button fullWidth variant="text" onClick={() => navigate('/login')} sx={{ textTransform: 'none', color: '#9CA3AF' }}>
+            <Button fullWidth variant="text" onClick={() => navigate('/login')} sx={{ textTransform: 'none', color: 'text.secondary' }}>
               Back to Login
             </Button>
           </Stack>

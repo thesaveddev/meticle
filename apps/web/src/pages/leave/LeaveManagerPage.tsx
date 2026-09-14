@@ -466,7 +466,7 @@ export default function LeaveManagerPage() {
       {fetchError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFetchError('')}>{fetchError}</Alert>}
 
       {isAdminOrManager && (
-        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #DBEAFE', bgcolor: '#F8FAFC' }}>
+        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #DBEAFE', bgcolor: 'grey.50' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F4C81', mb: 1 }}>
             Active Delegations
           </Typography>
@@ -721,7 +721,7 @@ export default function LeaveManagerPage() {
                     bgcolor: isToday ? '#E7EEF4' : 'transparent',
                     border: '1px solid #F3F4F6',
                     cursor: 'pointer',
-                    '&:hover': { bgcolor: '#F8FAFC' },
+                    '&:hover': { bgcolor: 'grey.50' },
                   }}
                     onClick={async (e) => {
                       const dayStats = calendarStats.find(s => s.date === toYMD(day))
@@ -766,7 +766,7 @@ export default function LeaveManagerPage() {
                           bgcolor: (e.color || '#0F4C81') + '30', color: e.color || '#0F4C81', fontWeight: 700, '& .MuiChip-label': { px: 0.2 } }} />
                     ))}
                     {events.length > 2 && (
-                      <Typography variant="caption" sx={{ fontSize: '0.45rem', color: '#9CA3AF', display: 'block', textAlign: 'center' }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.45rem', color: 'text.secondary', display: 'block', textAlign: 'center' }}>
                         +{events.length - 2} more
                       </Typography>
                     )}

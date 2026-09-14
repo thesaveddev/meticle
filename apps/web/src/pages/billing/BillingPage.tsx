@@ -69,9 +69,9 @@ function StripeCardForm({ cardholderName, setCardholderName, onSuccess }: {
 
   return (
     <Box>
-      <Box sx={{ p: 2, mb: 2, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E5E7EB' }}>
+      <Box sx={{ p: 2, mb: 2, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
         <CardElement options={{
-          style: { base: { fontSize: '16px', color: '#374151', '::placeholder': { color: '#9CA3AF' } } },
+          style: { base: { fontSize: '16px', color: 'text.primary', '::placeholder': { color: 'text.secondary' } } },
           hidePostalCode: true,
         }} />
       </Box>
@@ -323,7 +323,7 @@ function BillingPageInner() {
           {message}
         </Alert>
       )}      {isRedirectedFromBlock && (
-        <Alert severity="warning" sx={{ mb: 4, borderRadius: 2, bgcolor: '#FFFBEB', border: '1px solid #FDE68A' }}>
+        <Alert severity="warning" sx={{ mb: 4, borderRadius: 2, bgcolor: 'warning.light', border: '1px solid #FDE68A' }}>
           <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Welcome back</Typography>
           <Typography variant="body2">
             {subMessage || 'Your subscription needs attention. Please update your billing information below to restore access.'}
@@ -332,7 +332,7 @@ function BillingPageInner() {
       )}
 
       {!isActive && (
-        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '2px solid #FEE2E2', bgcolor: '#FEF2F2' }}>
+        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '2px solid #FEE2E2', bgcolor: 'error.light' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <Box sx={{ flex: 1 }}>
               <Typography variant="h6" fontWeight={800} color="#991B1B" sx={{ mb: 0.5 }}>
@@ -355,7 +355,7 @@ function BillingPageInner() {
                   variant="contained"
                   size="small"
                   disabled={retrying}
-                  sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, textTransform: 'none', fontWeight: 700 }}
+                  sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: 'error.dark' }, textTransform: 'none', fontWeight: 700 }}
                   onClick={async () => {
                     setRetrying(true)
                     setMessage('')
@@ -403,7 +403,7 @@ function BillingPageInner() {
       )}
 
       {isTrialActive && (
-        <Alert severity="info" sx={{ mb: 4, borderRadius: 2, bgcolor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+        <Alert severity="info" sx={{ mb: 4, borderRadius: 2, bgcolor: 'info.light', border: '1px solid #BAE6FD' }}>
           <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Trial limitations</Typography>
           <Typography variant="body2" color="#6B7280">
             Your trial is limited to <strong>10 staff members</strong>. You currently have access to all features including AI insights, compliance tracking, and the rota planner. Upgrade anytime to remove the limit and continue after your trial expires.
@@ -443,7 +443,7 @@ function BillingPageInner() {
       </Grid>
 
       {isOrgAdmin && billingConfig?.domiciliary && (
-        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '1px solid #E5E7EB' }}>
+        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '1px solid', borderColor: 'grey.200' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2} sx={{ mb: 1 }}>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 800 }}>Internal care pricing & VAT</Typography>
@@ -529,7 +529,7 @@ function BillingPageInner() {
               <CardContent sx={{ pt: plan.popular ? 5 : 3, pb: 3 }}>
                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{plan.name}</Typography>
                 <Typography sx={{ color: '#0F4C81', fontSize: '2.5rem', fontWeight: 800 }}>
-                  £{plan.price}<Typography component="span" sx={{ color: '#6B7280', fontSize: '1rem', fontWeight: 400 }}>/month</Typography>
+                  £{plan.price}<Typography component="span" sx={{ color: 'text.secondary', fontSize: '1rem', fontWeight: 400 }}>/month</Typography>
                 </Typography>
                 <Typography variant="body2" color="#6B7280" sx={{ mt: 1, mb: 2 }}>{plan.description}</Typography>
                 <Stack spacing={1}>

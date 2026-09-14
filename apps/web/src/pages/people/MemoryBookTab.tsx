@@ -173,7 +173,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
         sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 2, px: 2 }}>Add Memory</Button>} />
 
       {entries.length === 0 ? (
-        <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
+        <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
           <ImageIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 1 }} />
           <Typography color="#9CA3AF" sx={{ mb: 1 }}>No memories recorded yet</Typography>
           <Typography variant="caption" color="#6B7280">
@@ -187,20 +187,20 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
             const urls = getAllImageUrls(e)
             return (
               <Grid item xs={12} sm={6} md={4} key={e.id}>
-                <Card sx={{ borderRadius: 2, border: '1px solid #E5E7EB', transition: 'box-shadow 0.2s', cursor: 'pointer', '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.1)' } }} onClick={() => { setViewEntry(e); setViewImageIdx(0) }}>
+                <Card sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200', transition: 'box-shadow 0.2s', cursor: 'pointer', '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.1)' } }} onClick={() => { setViewEntry(e); setViewImageIdx(0) }}>
                   {urls.length > 0 && thumbnails[urls[0]] ? (
                     <CardMedia component="img" height="200" image={thumbnails[urls[0]]} alt={e.title}
                       sx={{ objectFit: 'cover' }} />
                   ) : urls.length > 0 && loadingThumbs[urls[0]] ? (
-                    <Box sx={{ height: 200, bgcolor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Box sx={{ height: 200, bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <CircularProgress size={24} sx={{ color: '#D1D5DB' }} />
                     </Box>
                   ) : urls.length > 0 ? (
-                    <Box sx={{ height: 200, bgcolor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Box sx={{ height: 200, bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <ImageIcon sx={{ fontSize: 48, color: '#D1D5DB' }} />
                     </Box>
                   ) : (
-                    <Box sx={{ height: 200, bgcolor: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                    <Box sx={{ height: 200, bgcolor: 'warning.light', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
                       <ImageIcon sx={{ fontSize: 40, color: '#FDBA74', mb: 0.5 }} />
                       <Typography variant="caption" color="#9A3412">No photo</Typography>
                     </Box>
@@ -260,7 +260,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
                 return (
                   <Stack spacing={2}>
                     {urls.length > 0 && (
-                      <Box sx={{ position: 'relative', borderRadius: 1, overflow: 'hidden', bgcolor: '#F9FAFB' }}>
+                      <Box sx={{ position: 'relative', borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.50' }}>
                         {thumbnails[urls[viewImageIdx]] ? (
                           <img src={thumbnails[urls[viewImageIdx]]} alt={viewEntry.title}
                             style={{ width: '100%', maxHeight: 400, objectFit: 'contain', display: 'block' }} />

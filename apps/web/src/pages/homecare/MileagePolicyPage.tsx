@@ -124,7 +124,7 @@ export default function MileagePolicyPage() {
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Mileage Policies</Typography>
-          <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.5 }}>Manage HMRC-approved mileage rates by vehicle type and fuel category</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Manage HMRC-approved mileage rates by vehicle type and fuel category</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ textTransform: 'none', bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0D3D6B' } }}>
           Add policy
@@ -135,32 +135,32 @@ export default function MileagePolicyPage() {
 
       {/* Summary */}
       <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
-        <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', border: '1px solid #E5E7EB', borderRadius: 2, textAlign: 'center' }}>
+        <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, textAlign: 'center' }}>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F4C81' }}>{policies.length}</Typography>
-          <Typography variant="caption" sx={{ color: '#6B7280' }}>Total policies</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Total policies</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', border: '1px solid #E5E7EB', borderRadius: 2, textAlign: 'center' }}>
+        <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, textAlign: 'center' }}>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#10b981' }}>{activePolicies.length}</Typography>
-          <Typography variant="caption" sx={{ color: '#6B7280' }}>Active</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Active</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', border: '1px solid #E5E7EB', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#6B7280' }}>{inactivePolicies.length}</Typography>
-          <Typography variant="caption" sx={{ color: '#6B7280' }}>Inactive</Typography>
+        <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 140px', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, textAlign: 'center' }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.secondary' }}>{inactivePolicies.length}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Inactive</Typography>
         </Paper>
       </Stack>
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
       ) : policies.length === 0 ? (
-        <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 2 }}>
-          <Typography sx={{ color: '#6B7280', mb: 1 }}>No mileage policies configured</Typography>
-          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Add your first policy to set mileage rates for carer travel</Typography>
+        <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
+          <Typography sx={{ color: 'text.secondary', mb: 1 }}>No mileage policies configured</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Add your first policy to set mileage rates for carer travel</Typography>
           <Box sx={{ mt: 2 }}>
             <Button variant="outlined" startIcon={<AddIcon />} onClick={openCreate} sx={{ textTransform: 'none' }}>Add policy</Button>
           </Box>
         </Paper>
       ) : (
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2 }}>
+        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
           <Table>
             <TableHead>
               <TableRow>
@@ -180,15 +180,15 @@ export default function MileagePolicyPage() {
                 <TableRow key={p.id} hover sx={{ opacity: p.is_active ? 1 : 0.6 }}>
                   <TableCell><Typography sx={{ fontWeight: 600 }}>{p.tax_year}</Typography></TableCell>
                   <TableCell>
-                    <Chip label={VEHICLE_TYPES.find(v => v.value === p.vehicle_type)?.label || p.vehicle_type} size="small" sx={{ bgcolor: '#F3F4F6' }} />
+                    <Chip label={VEHICLE_TYPES.find(v => v.value === p.vehicle_type)?.label || p.vehicle_type} size="small" sx={{ bgcolor: 'grey.100' }} />
                   </TableCell>
                   <TableCell>
-                    <Chip label={FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} size="small" sx={{ bgcolor: '#F3F4F6' }} />
+                    <Chip label={FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} size="small" sx={{ bgcolor: 'grey.100' }} />
                   </TableCell>
                   <TableCell align="right"><Typography sx={{ fontWeight: 700, color: '#0F4C81' }}>{money(p.rate_pence)}</Typography></TableCell>
                   <TableCell>{p.effective_from ? new Date(p.effective_from).toLocaleDateString('en-GB') : '—'}</TableCell>
                   <TableCell>{p.effective_to ? new Date(p.effective_to).toLocaleDateString('en-GB') : '—'}</TableCell>
-                  <TableCell><Typography variant="body2" sx={{ color: '#6B7280' }}>{p.source_label || '—'}</Typography></TableCell>
+                  <TableCell><Typography variant="body2" sx={{ color: 'text.secondary' }}>{p.source_label || '—'}</Typography></TableCell>
                   <TableCell>
                     <Chip label={p.is_active ? 'Active' : 'Inactive'} size="small" sx={{ bgcolor: p.is_active ? '#E9F7F0' : '#F3F4F6', color: p.is_active ? '#047857' : '#9CA3AF', fontWeight: 600 }} />
                   </TableCell>
@@ -239,7 +239,7 @@ export default function MileagePolicyPage() {
       <Dialog open={Boolean(deleteConfirm)} onClose={() => setDeleteConfirm(null)} maxWidth="xs">
         <DialogTitle>Delete mileage policy</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ color: '#6B7280' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             This will permanently remove this mileage policy. Visits that used this rate will retain their original mileage data.
           </Typography>
         </DialogContent>

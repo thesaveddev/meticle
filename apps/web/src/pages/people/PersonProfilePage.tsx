@@ -507,7 +507,7 @@ export default function PersonProfilePage() {
   return (
     <Box>
       {/* Profile Header */}
-      <Paper sx={{ p: 3, mb: 3, borderRadius: 2.5, border: '1px solid #E5E7EB', background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
+      <Paper sx={{ p: 3, mb: 3, borderRadius: 2.5, border: '1px solid', borderColor: 'grey.200', background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} spacing={2}>
           <Stack direction="row" spacing={2.5} alignItems="center">
             {/* Photo */}
@@ -564,7 +564,7 @@ export default function PersonProfilePage() {
 
       {/* Flags / Alerts Banner (visible on every tab) */}
       {user.flags && user.flags.length > 0 && (
-        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: '#FEF2F2', border: '1px solid #FECACA' }}>
+        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: 'error.light', border: '1px solid #FECACA' }}>
           <Typography variant="subtitle2" fontWeight={800} color="#DC2626" sx={{ mb: 1 }}>
             ⚠ Clinical Alerts
           </Typography>
@@ -579,7 +579,7 @@ export default function PersonProfilePage() {
 
       {/* DNACPR Banner */}
       {user.dnacpr_status === 'in_place' && (
-        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: '#FFF7ED', border: '1px solid #FED7AA' }}>
+        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: 'warning.light', border: '1px solid #FED7AA' }}>
           <Typography variant="subtitle2" fontWeight={800} color="#EA580C" sx={{ mb: 0.5 }}>
             DNACPR in place
           </Typography>
@@ -599,8 +599,8 @@ export default function PersonProfilePage() {
       )}
 
       {/* Category Navigation */}
-      <Paper sx={{ mb: 2, borderRadius: 2, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
-        <Stack direction="row" sx={{ bgcolor: '#F9FAFB', px: 1, py: 0.5, borderBottom: '1px solid #E5E7EB' }}>
+      <Paper sx={{ mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', overflow: 'hidden' }}>
+        <Stack direction="row" sx={{ bgcolor: 'grey.50', px: 1, py: 0.5, borderBottom: '1px solid #E5E7EB' }}>
           {CATEGORIES.map((cat, i) => (
             <Box key={cat.label}
               onClick={() => handleTabChange(cat.tabs[0])}
@@ -630,7 +630,7 @@ export default function PersonProfilePage() {
         <Grid container spacing={2.5}>
           {/* Personal Details */}
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
+            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <PersonIcon sx={{ fontSize: 18, color: '#0F4C81' }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Personal Details</Typography>
@@ -655,7 +655,7 @@ export default function PersonProfilePage() {
 
           {/* Medical & GP */}
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
+            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <HealthIcon sx={{ fontSize: 18, color: '#16A34A' }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Medical &amp; GP</Typography>
@@ -679,7 +679,7 @@ export default function PersonProfilePage() {
 
           {/* Pharmacy */}
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
+            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <AssignmentIcon sx={{ fontSize: 18, color: '#7C3AED' }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Pharmacy</Typography>
@@ -700,7 +700,7 @@ export default function PersonProfilePage() {
 
           {/* Social Worker */}
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
+            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <PersonIcon sx={{ fontSize: 18, color: '#D97706' }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Social Worker</Typography>
@@ -721,7 +721,7 @@ export default function PersonProfilePage() {
 
           {/* Communication */}
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
+            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <NoteIcon sx={{ fontSize: 18, color: '#0F4C81' }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Communication</Typography>
@@ -742,7 +742,7 @@ export default function PersonProfilePage() {
 
           {/* Admission & Funding */}
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
+            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', '&:hover': { boxShadow: '0 1px 6px rgba(0,0,0,0.06)' } }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
                 <EventIcon sx={{ fontSize: 18, color: '#16A34A' }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Admission &amp; Funding</Typography>
@@ -765,7 +765,7 @@ export default function PersonProfilePage() {
           {/* Allergies */}
           {user.allergies?.length > 0 && (
             <Grid item xs={12}>
-              <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #FECACA', bgcolor: '#FEF2F2' }}>
+              <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #FECACA', bgcolor: 'error.light' }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
                   <WarningIcon sx={{ fontSize: 18, color: '#DC2626' }} />
                   <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#DC2626' }}>Allergies</Typography>
@@ -791,13 +791,13 @@ export default function PersonProfilePage() {
                     </Stack>
                     {user.dnacpr_date && <Typography variant="caption" color="#6B7280">Recorded: {new Date(user.dnacpr_date).toLocaleDateString('en-GB')}</Typography>}
                     {user.dnacpr_review_date && <Typography variant="caption" color="#6B7280" sx={{ ml: 2 }}>Review: {new Date(user.dnacpr_review_date).toLocaleDateString('en-GB')}</Typography>}
-                    {user.dnacpr_details && <Typography variant="body2" sx={{ mt: 1, color: '#6B7280' }}>{user.dnacpr_details}</Typography>}
+                    {user.dnacpr_details && <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>{user.dnacpr_details}</Typography>}
                   </Paper>
                 </Grid>
               )}
               {user.advance_decision && (
                 <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E9D5FF', bgcolor: '#FAF5FF' }}>
+                  <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E9D5FF', bgcolor: 'grey.50' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                       <NoteIcon sx={{ fontSize: 18, color: '#7C3AED' }} />
                       <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#7C3AED' }}>Advance Decision / Living Will</Typography>
@@ -813,10 +813,10 @@ export default function PersonProfilePage() {
           {/* Discharge Summary */}
           {user.discharge_date && (
             <Grid item xs={12}>
-              <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', bgcolor: '#F9FAFB' }}>
+              <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', bgcolor: 'grey.50' }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
-                  <NoteIcon sx={{ fontSize: 18, color: '#6B7280' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#6B7280' }}>Discharge Summary</Typography>
+                  <NoteIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.secondary' }}>Discharge Summary</Typography>
                 </Stack>
                 <Stack spacing={0.5}>
                   <Stack direction="row" spacing={2}>
@@ -858,7 +858,7 @@ export default function PersonProfilePage() {
                 const isOverdue = cp.review_date && new Date(cp.review_date) < new Date()
                 return (
                 <Grid item xs={12} md={6} key={cp.id}>
-                  <Paper onClick={() => viewCarePlan(cp)} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}>
+                  <Paper onClick={() => viewCarePlan(cp)} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', cursor: 'pointer', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box sx={{ minWidth: 0, flex: 1 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
@@ -923,7 +923,7 @@ export default function PersonProfilePage() {
           ) : (
             <Stack spacing={1.5}>
               {user.recent_notes.map((n: any) => (
-                <Paper key={n.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D1D5DB' } }} onClick={() => setViewNote(n)}>
+                <Paper key={n.id} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: '0 2px 10px rgba(0,0,0,0.08)', borderColor: '#D1D5DB' } }} onClick={() => setViewNote(n)}>
                   <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.75 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Chip label={n.shift} size="small" color={n.shift === 'day' ? 'primary' : 'default'}
@@ -936,13 +936,13 @@ export default function PersonProfilePage() {
                       )}
                       {n.generated_by_ai && (
                         <Chip icon={<AiIcon sx={{ fontSize: 12 }} />} label="AI" size="small"
-                          sx={{ height: 20, fontSize: 10, bgcolor: '#F3E8FF', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
+                          sx={{ height: 20, fontSize: 10, bgcolor: 'grey.50', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
                       )}
                       <Typography variant="caption" color="#6B7280">{n.note_date ? new Date(n.note_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</Typography>
                     </Stack>
                     <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 500 }}>{n.author_name || ''}</Typography>
                   </Stack>
-                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: '#374151', lineHeight: 1.6 }}>{n.content}</Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.primary', lineHeight: 1.6 }}>{n.content}</Typography>
                   {n.generated_by_ai && n.ai_risk_level && (
                     <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.75 }}>
                       {n.ai_mood_analysis && <Typography variant="caption" color="#7C3AED">{getMoodEmoji(n.ai_mood_analysis.mood_score)} Mood {n.ai_mood_analysis.mood_score}/10</Typography>}
@@ -968,15 +968,15 @@ export default function PersonProfilePage() {
               sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 1.5, px: 2 }}>Add Assessment</Button>
           </Stack>
           {(!user.risk_assessments || user.risk_assessments.length === 0) ? (
-            <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
+            <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
               <WarningIcon sx={{ fontSize: 40, color: '#D1D5DB', mb: 1 }} />
               <Typography color="#9CA3AF">No risk assessments</Typography>
             </Paper>
           ) : (
-            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
+            <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#F9FAFB' }}>
+                  <TableRow sx={{ bgcolor: 'grey.50' }}>
                     <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Risk Level</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Details</TableCell>
@@ -986,7 +986,7 @@ export default function PersonProfilePage() {
                 </TableHead>
                 <TableBody>
                   {user.risk_assessments.map((ra: any) => (
-                    <TableRow key={ra.id} onClick={() => setViewRisk(ra)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#F9FAFB' } }}>
+                    <TableRow key={ra.id} onClick={() => setViewRisk(ra)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'grey.50' } }}>
                       <TableCell sx={{ textTransform: 'capitalize', fontWeight: 600 }}>{ra.type?.replace(/_/g, ' ')}</TableCell>
                       <TableCell>
                         <Chip icon={<WarningIcon sx={{ fontSize: 14 }} />} label={ra.risk_level} size="small"
@@ -1022,7 +1022,7 @@ export default function PersonProfilePage() {
           <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>Add family members and their contact details, then invite them to the Family Portal so they can view care notes and plans securely.</Typography>
 
           {(!user.family_contacts || user.family_contacts.length === 0) ? (
-            <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB', mb: 3 }}>
+            <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'grey.200', mb: 3 }}>
               <Typography color="#9CA3AF">No family contacts added</Typography>
             </Paper>
           ) : (
@@ -1031,7 +1031,7 @@ export default function PersonProfilePage() {
                 const portalMember = portalMembers.find((pm: any) => pm.email?.toLowerCase() === fc.email?.toLowerCase())
                 return (
                   <Grid item xs={12} md={6} key={fc.id}>
-                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+                    <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                         <Box>
                           <Typography variant="subtitle2" fontWeight={700}>{fc.name}</Typography>
@@ -1065,7 +1065,7 @@ export default function PersonProfilePage() {
                         </Stack>
                       </Stack>
                       <Stack spacing={0.5} sx={{ mt: 1 }}>
-                        {fc.phone && <Stack direction="row" spacing={1} alignItems="center"><PhoneIcon sx={{ fontSize: 14, color: '#6B7280' }} /><Typography variant="body2">{fc.phone}</Typography></Stack>}
+                        {fc.phone && <Stack direction="row" spacing={1} alignItems="center"><PhoneIcon sx={{ fontSize: 14, color: 'text.secondary' }} /><Typography variant="body2">{fc.phone}</Typography></Stack>}
                       </Stack>
                     </Paper>
                   </Grid>
@@ -1558,13 +1558,13 @@ export default function PersonProfilePage() {
             <DialogContent dividers>
               <Stack spacing={2}>
                 {viewPlan.description && (
-                  <Paper variant="outlined" sx={{ p: 2, bgcolor: '#F8FAFC', borderRadius: 2 }}>
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                     <Typography variant="caption" color="#6B7280" fontWeight={700}>DESCRIPTION</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewPlan.description}</Typography>
                   </Paper>
                 )}
                 {viewPlan.risk_assessment && (
-                  <Paper variant="outlined" sx={{ p: 2, bgcolor: '#FFF7ED', borderColor: '#FED7AA', borderRadius: 2 }}>
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'warning.light', borderColor: '#FED7AA', borderRadius: 2 }}>
                     <Typography variant="caption" color="#C2410C" fontWeight={700}>RISK ASSESSMENT</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewPlan.risk_assessment}</Typography>
                   </Paper>
@@ -1589,7 +1589,7 @@ export default function PersonProfilePage() {
                 </Grid>
 
                 {viewPlan.sections && (viewPlan.sections.contributors?.length > 0 || viewPlan.sections.what_tried || viewPlan.sections.what_learned || viewPlan.sections.what_pleased || viewPlan.sections.what_concerned || viewPlan.sections.next_steps) && (
-                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderColor: '#0F4C81', bgcolor: '#F8FAFC' }}>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderColor: '#0F4C81', bgcolor: 'grey.50' }}>
                     <Typography variant="subtitle2" fontWeight={800} color="#0F4C81" sx={{ mb: 1.5 }}>PERSON-CENTRED PLAN</Typography>
                     <Stack spacing={2}>
                       {(viewPlan.sections.contributors || []).length > 0 && (
@@ -1704,7 +1704,7 @@ export default function PersonProfilePage() {
                 </TextField>
                 <Stack direction="row" spacing={1} alignItems="flex-start">
                   <TextField label="Notes" fullWidth multiline rows={4} required value={noteForm.content} onChange={e => setNoteForm({ ...noteForm, content: e.target.value })}
-                    sx={{ '& .MuiOutlinedInput-root': aiRecording ? { bgcolor: '#FAF5FF', borderColor: '#7C3AED' } : {} }} />
+                    sx={{ '& .MuiOutlinedInput-root': aiRecording ? { bgcolor: 'grey.50', borderColor: '#7C3AED' } : {} }} />
                   <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
                     <Tooltip title={aiRecording ? 'Stop dictation' : 'Dictate note with voice'}>
                       <IconButton size="small" onClick={aiRecording ? stopAiRecording : startNoteDictation}
@@ -1736,7 +1736,7 @@ export default function PersonProfilePage() {
                   ))}
                 </TextField>
 
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: '#FAF5FF', borderColor: '#C4B5FD' }}>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', borderColor: '#C4B5FD' }}>
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                     <MicIcon sx={{ color: '#7C3AED' }} />
                     <Typography variant="subtitle2" sx={{ color: '#7C3AED' }}>Voice Input</Typography>
@@ -1753,7 +1753,7 @@ export default function PersonProfilePage() {
                     {aiRecording && <Chip label="Recording..." size="small" color="error" variant="outlined" sx={{ animation: 'blink 1s infinite' }} />}
                   </Stack>
                   <TextField placeholder="Type your observations here, or use voice input above..." fullWidth multiline rows={3} value={aiTranscript} onChange={e => setAiTranscript(e.target.value)}
-                    sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#fff' } }} />
+                    sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper' } }} />
                 </Paper>
 
                 <Button variant="contained" fullWidth onClick={handleAiGenerate} disabled={!aiTranscript.trim() || aiGenerateMutation.isPending}
@@ -1775,7 +1775,7 @@ export default function PersonProfilePage() {
                 </Alert>
 
                 {aiResult.safeguarding_flags?.length > 0 && (
-                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#EF4444', bgcolor: '#FEF2F2' }}>
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#EF4444', bgcolor: 'error.light' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                       <FlagIcon sx={{ color: '#EF4444', fontSize: 20 }} />
                       <Typography variant="subtitle2" sx={{ color: '#EF4444', fontWeight: 700 }}>Safeguarding Alerts ({aiResult.safeguarding_flags.length})</Typography>
@@ -1793,7 +1793,7 @@ export default function PersonProfilePage() {
                   </Paper>
                 )}
 
-                <TextField label="Generated Daily Note" fullWidth multiline rows={4} value={aiEditedContent} onChange={e => setAiEditedContent(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F0FDF4' } }} />
+                <TextField label="Generated Daily Note" fullWidth multiline rows={4} value={aiEditedContent} onChange={e => setAiEditedContent(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'success.light' } }} />
 
                 {aiResult.care_plan_updates?.length > 0 && (
                   <Paper variant="outlined" sx={{ p: 2, borderColor: '#0F4C81' }}>
@@ -1866,7 +1866,7 @@ export default function PersonProfilePage() {
                 )}
                 {viewNote.generated_by_ai && (
                   <Chip icon={<AiIcon sx={{ fontSize: 14 }} />} label="AI Generated" size="small"
-                    sx={{ bgcolor: '#F3E8FF', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
+                    sx={{ bgcolor: 'grey.50', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
                 )}
                 <Typography variant="caption" color="#6B7280">{new Date(viewNote.note_date).toLocaleDateString('en-GB')}</Typography>
                 <Typography variant="caption" color="#9CA3AF">{viewNote.author_name ? `by ${viewNote.author_name}` : ''}</Typography>
@@ -1878,7 +1878,7 @@ export default function PersonProfilePage() {
               {viewNote.ai_risk_level && (
                 <>
                   <Divider />
-                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#C4B5FD', bgcolor: '#FAF5FF' }}>
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#C4B5FD', bgcolor: 'grey.50' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
                       <AiIcon sx={{ color: '#7C3AED', fontSize: 20 }} />
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#7C3AED' }}>AI Analysis</Typography>
@@ -1894,7 +1894,7 @@ export default function PersonProfilePage() {
 
                     {viewNote.ai_mood_analysis && (
                       <Box sx={{ mb: 1.5 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151' }}>Mood: {getMoodEmoji(viewNote.ai_mood_analysis.mood_score)} {viewNote.ai_mood_analysis.mood_label} ({viewNote.ai_mood_analysis.mood_score}/10)</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary' }}>Mood: {getMoodEmoji(viewNote.ai_mood_analysis.mood_score)} {viewNote.ai_mood_analysis.mood_label} ({viewNote.ai_mood_analysis.mood_score}/10)</Typography>
                         {viewNote.ai_mood_analysis.indicators?.length > 0 && (
                           <Typography variant="caption" display="block" color="#6B7280">{viewNote.ai_mood_analysis.indicators.join(', ')}</Typography>
                         )}
@@ -1908,7 +1908,7 @@ export default function PersonProfilePage() {
                           <Typography variant="caption" sx={{ fontWeight: 700, color: '#EF4444' }}>Safeguarding ({viewNote.ai_safeguarding_flags.length})</Typography>
                         </Stack>
                         {viewNote.ai_safeguarding_flags.map((f: any, i: number) => (
-                          <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: '#FCA5A5', bgcolor: '#FEF2F2' }}>
+                          <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: '#FCA5A5', bgcolor: 'error.light' }}>
                             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
                               <Chip label={f.severity} size="small" color={f.severity === 'high' ? 'error' : 'warning'} sx={{ height: 16, fontSize: 9 }} />
                               <Typography variant="caption" fontWeight={700}>{f.concern_type}</Typography>
@@ -1965,7 +1965,7 @@ export default function PersonProfilePage() {
             <Button startIcon={aiAnalyzeNoteMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <AiIcon />}
               onClick={() => aiAnalyzeNoteMutation.mutate(viewNote.id)}
               disabled={aiAnalyzeNoteMutation.isPending}
-              sx={{ textTransform: 'none', color: '#7C3AED', borderColor: '#C4B5FD', '&:hover': { borderColor: '#7C3AED', bgcolor: '#FAF5FF' } }}
+              sx={{ textTransform: 'none', color: '#7C3AED', borderColor: '#C4B5FD', '&:hover': { borderColor: '#7C3AED', bgcolor: 'grey.50' } }}
               variant="outlined">
               {aiAnalyzeNoteMutation.isPending ? 'Analyzing...' : 'Analyze with AI'}
             </Button>
@@ -2237,7 +2237,7 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
       {(!assessments || assessments.length === 0) ? (
         <EmptyRow message="No assessments yet" />
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -2289,12 +2289,12 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
                 <Box><Typography variant="caption" color="#6B7280">Status</Typography><Chip label={selected.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[selected.status] || '#6B7280'}20`, color: ASSESSMENT_STATUS_COLORS[selected.status] || '#6B7280', fontWeight: 700 }} /></Box>
                 <Box><Typography variant="caption" color="#6B7280">Next Review</Typography><Typography fontWeight={600}>{selected.next_review_date ? new Date(selected.next_review_date).toLocaleDateString('en-GB') : '—'}</Typography></Box>
               </Stack>
-              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Findings</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: '#F9FAFB', whiteSpace: 'pre-wrap' }}>{selected.findings || 'No findings recorded'}</Paper></Box>
-              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Recommendations</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: '#F9FAFB', whiteSpace: 'pre-wrap' }}>{selected.recommendations || 'No recommendations recorded'}</Paper></Box>
+              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Findings</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', whiteSpace: 'pre-wrap' }}>{selected.findings || 'No findings recorded'}</Paper></Box>
+              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Recommendations</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', whiteSpace: 'pre-wrap' }}>{selected.recommendations || 'No recommendations recorded'}</Paper></Box>
               {selected.file_url && (
                 <Box>
                   <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Attachment</Typography>
-                  <Paper variant="outlined" sx={{ p: 1.5, bgcolor: '#F9FAFB', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'grey.50', display: 'flex', alignItems: 'center', gap: 1 }}>
                     <FileIcon sx={{ color: '#0F4C81' }} />
                     <Typography noWrap sx={{ flex: 1 }}>{selected.file_name || selected.file_url.split('/').pop()}</Typography>
                     <Button size="small" variant="outlined" startIcon={<OpenInNewIcon />} onClick={() => openFileInNewTab(selected.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
@@ -2414,14 +2414,14 @@ function TimelineTab({ personId }: { personId: string }) {
         <EmptyRow message="No timeline events yet" />
       ) : (
         <Box sx={{ position: 'relative' }}>
-          <Box sx={{ position: 'absolute', left: 19, top: 0, bottom: 0, width: 2, bgcolor: '#E5E7EB' }} />
+          <Box sx={{ position: 'absolute', left: 19, top: 0, bottom: 0, width: 2, bgcolor: 'grey.200' }} />
           <Stack spacing={2}>
             {timeline.map((event: any, i: number) => (
               <Box key={event.id || i} sx={{ position: 'relative', pl: 6 }}>
                 <Box sx={{ position: 'absolute', left: 12, top: 4, width: 16, height: 16, borderRadius: '50%', bgcolor: 'white', border: '2px solid', borderColor: '#0F4C81', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
                   <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#0F4C81' }} />
                 </Box>
-                <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+                <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
                   <Stack direction="row" spacing={1.5} alignItems="flex-start">
                     <Box sx={{ mt: 0.3 }}>{EVENT_ICONS[event.event_type] || <EventIcon />}</Box>
                     <Box sx={{ flex: 1 }}>
@@ -2518,7 +2518,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
       {checks.length === 0 ? (
         <EmptyRow message="No room checks recorded for this room" />
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
           <Table size="small">
             <TableHead><TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
@@ -2597,9 +2597,9 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
                   <Box>
                     <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>Photo</Typography>
                     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
-                      <Box component="img" src={rcPhotoBlob} alt="Room check" sx={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block', bgcolor: '#F3F4F6' }} />
+                      <Box component="img" src={rcPhotoBlob} alt="Room check" sx={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block', bgcolor: 'grey.100' }} />
                       <IconButton size="small" onClick={() => { const url = rcView.photo_url; const token = localStorage.getItem('accessToken'); fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => window.open(URL.createObjectURL(b), '_blank', 'noopener')).catch(() => {}) }}
-                        sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: '#fff' } }}>
+                        sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'background.paper' } }}>
                         <OpenInNewIcon fontSize="small" />
                       </IconButton>
                     </Paper>
@@ -2704,7 +2704,7 @@ function ClinicalScoresTab({ personId }: { personId: string }) {
         <Stack spacing={1.5}>
           {scores.map((s: any) => (
             <Paper key={s.id} onClick={() => setViewScore(s)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer',
+              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', cursor: 'pointer',
               '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>
@@ -2879,7 +2879,7 @@ function DocumentsTab({ personId }: { personId: string }) {
         <Stack spacing={1.5}>
           {docs.map((d: any) => (
             <Paper key={d.id} onClick={() => viewDocument(d.file_url)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
+              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Stack direction="row" spacing={1} alignItems="center">
@@ -3010,8 +3010,8 @@ function WellbeingTabInline({ personId }: { personId: string }) {
       <SectionHeader title="Wellbeing" action={<Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}
         sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>Record Entry</Button>} />
       {radarData.length >= 3 && (
-        <Paper sx={{ p: 3, mb: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
-          <Typography variant="caption" sx={{ fontWeight: 700, color: '#6B7280', mb: 1, display: 'block' }}>Latest Wellbeing Snapshot</Typography>
+        <Paper sx={{ p: 3, mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', mb: 1, display: 'block' }}>Latest Wellbeing Snapshot</Typography>
           <RechartsResponsiveContainer width="100%" height={280}>
             <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
               <PolarGrid stroke="#E5E7EB" />
@@ -3030,7 +3030,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
             const domainColor = DOMAIN_COLORS[domain] || '#6B7280'
             const latest = items.reduce((a: any, b: any) => new Date(a.recorded_date) > new Date(b.recorded_date) ? a : b)
             return (
-              <Paper key={domain} sx={{ borderRadius: 2, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+              <Paper key={domain} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200', overflow: 'hidden' }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center"
                   sx={{ px: 2, py: 1.25, borderBottom: '1px solid #E5E7EB', bgcolor: `${domainColor}0D` }}>
                   <Stack direction="row" spacing={1} alignItems="center">
@@ -3047,7 +3047,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
                     const sc = (e.score || 0) >= 8 ? '#16A34A' : (e.score || 0) >= 5 ? '#D97706' : '#DC2626'
                     return (
                       <Box key={e.id} onClick={() => setViewEntry(e)}
-                        sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', '&:hover': { bgcolor: '#F8FAFC' } }}>
+                        sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'grey.50' } }}>
                         <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: `${sc}18`, color: sc, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Typography variant="subtitle2" fontWeight={800}>{e.score}</Typography>
                         </Box>
@@ -3074,7 +3074,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
         <DialogContent>
           <Stack spacing={2}>
             <Stack direction="row" spacing={1} flexWrap="wrap">
-              <Chip label={`${viewEntry?.score}/10`} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81', fontWeight: 700 }} />
+              <Chip label={`${viewEntry?.score}/10`} size="small" sx={{ bgcolor: 'grey.100', color: '#0F4C81', fontWeight: 700 }} />
               {viewEntry?.recorded_date && <Chip label={new Date(viewEntry.recorded_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />}
             </Stack>
             <Box>
@@ -3179,7 +3179,7 @@ function CommunicationLogTabInline({ personId }: { personId: string }) {
       {entries.length === 0 ? (
         <EmptyRow message="No communication entries recorded" />
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -3362,7 +3362,7 @@ function CapacityMcaTabInline({ personId }: { personId: string }) {
       ) : (
         <Stack spacing={2}>
           {assessments.map((a: any) => (
-            <Paper key={a.id} onClick={() => setViewEntry(a)} sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', transition: 'border-color .15s', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
+            <Paper key={a.id} onClick={() => setViewEntry(a)} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', cursor: 'pointer', transition: 'border-color .15s', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box sx={{ flex: 1 }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
@@ -3610,7 +3610,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
 
   const renderCard = (p: any) => (
     <Paper key={p.id} onClick={() => setViewId(p.id)}
-      sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
+      sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
         <Box sx={{ flex: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
@@ -3665,7 +3665,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
           )}
           {completed.length > 0 && (
             <Box>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: '#6B7280' }}>Completed / Cancelled</Typography>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: 'text.secondary' }}>Completed / Cancelled</Typography>
               <Stack spacing={1.5}>{completed.map(renderCard)}</Stack>
             </Box>
           )}
@@ -3777,7 +3777,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
             {viewPathway?.file_url && (
               <Box>
                 <Typography variant="caption" color="#6B7280" fontWeight={700}>ATTACHMENT</Typography>
-                <Paper variant="outlined" sx={{ mt: 0.5, p: 1.5, bgcolor: '#F9FAFB', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Paper variant="outlined" sx={{ mt: 0.5, p: 1.5, bgcolor: 'grey.50', display: 'flex', alignItems: 'center', gap: 1 }}>
                   <FileIcon sx={{ color: '#0F4C81' }} />
                   <Typography noWrap sx={{ flex: 1 }}>{viewPathway.file_name || viewPathway.file_url.split('/').pop()}</Typography>
                   <Button size="small" variant="outlined" startIcon={<OpenInNewIcon />} onClick={() => openFileInNewTab(viewPathway.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
@@ -3824,7 +3824,7 @@ const TIME_AWAY_TYPES: { value: string; label: string; color: string }[] = [
   { value: 'hospital_admission', label: 'Hospital Admission', color: '#DC2626' },
   { value: 'hospital_discharge', label: 'Hospital Discharge', color: '#7C3AED' },
   { value: 'trial_leave', label: 'Trial Leave', color: '#16A34A' },
-  { value: 'discharge', label: 'Permanent Discharge', color: '#6B7280' },
+  { value: 'discharge', label: 'Permanent Discharge', color: 'text.secondary' },
   { value: 'other', label: 'Other', color: '#0F4C81' },
 ]
 
@@ -3894,7 +3894,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
             items.forEach((i: any) => { const cat = i.category || 'other'; if (!grouped[cat]) grouped[cat] = []; grouped[cat].push(i) })
             return (
               <Paper key={record.id} onClick={() => setViewRecord(record)}
-                sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
+                sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s', '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' } }}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} spacing={1}>
                   <Stack direction="row" spacing={1.5} alignItems="flex-start">
                     <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: type.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -3929,17 +3929,17 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
                 {items.length > 0 && (
                   <Box sx={{ mt: 2 }}>
                     <LinearProgress variant="determinate" value={pct}
-                      sx={{ height: 8, borderRadius: 5, bgcolor: '#E5E7EB', '& .MuiLinearProgress-bar': { bgcolor: pct === 100 ? '#16A34A' : '#0F4C81' } }} />
+                      sx={{ height: 8, borderRadius: 5, bgcolor: 'grey.200', '& .MuiLinearProgress-bar': { bgcolor: pct === 100 ? '#16A34A' : '#0F4C81' } }} />
                     <Typography variant="caption" color="#6B7280" sx={{ mt: 0.5, display: 'block' }}>{completedCount}/{items.length} ready ({pct}%)</Typography>
                     <Stack spacing={1} sx={{ mt: 1 }}>
                       {Object.entries(grouped).map(([category, catItems]) => (
                         <Box key={category}>
-                          <Typography variant="overline" sx={{ color: '#9CA3AF', fontWeight: 700 }}>{category.replace(/_/g, ' ')}</Typography>
+                          <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700 }}>{category.replace(/_/g, ' ')}</Typography>
                           <Stack spacing={0.5}>
                             {catItems.map((item: any) => (
-                              <Stack key={item.id} direction="row" alignItems="center" spacing={1} sx={{ bgcolor: '#F9FAFB', borderRadius: 1, px: 1, py: 0.5 }}>
+                              <Stack key={item.id} direction="row" alignItems="center" spacing={1} sx={{ bgcolor: 'grey.50', borderRadius: 1, px: 1, py: 0.5 }}>
                                 <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleMutation.mutate({ id: item.id, completed: !item.is_complete }) }} disabled={toggleMutation.isPending}>
-                                  {item.is_complete ? <CheckCircleIcon sx={{ color: '#16A34A' }} /> : <UncheckedIcon sx={{ color: '#9CA3AF' }} />}
+                                  {item.is_complete ? <CheckCircleIcon sx={{ color: '#16A34A' }} /> : <UncheckedIcon sx={{ color: 'text.secondary' }} />}
                                 </IconButton>
                                 <Box sx={{ flex: 1 }}>
                                   <Stack direction="row" spacing={0.5} alignItems="center">
@@ -3947,7 +3947,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
                                       {item.item}
                                     </Typography>
                                     {item.quantity != null && item.quantity !== '' && (
-                                      <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: '#EFF6FF', color: '#0F4C81', fontWeight: 700 }} />
+                                      <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'info.light', color: '#0F4C81', fontWeight: 700 }} />
                                     )}
                                   </Stack>
                                   {item.is_complete && item.completed_by_name && (
@@ -4061,12 +4061,12 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
                     <Stack spacing={0.5}>
                       {items.map((item: any) => (
                         <Stack key={item.id} direction="row" spacing={1} alignItems="center">
-                          {item.is_complete ? <CheckCircleIcon sx={{ color: '#16A34A', fontSize: 18 }} /> : <UncheckedIcon sx={{ color: '#9CA3AF', fontSize: 18 }} />}
+                          {item.is_complete ? <CheckCircleIcon sx={{ color: '#16A34A', fontSize: 18 }} /> : <UncheckedIcon sx={{ color: 'text.secondary', fontSize: 18 }} />}
                           <Typography variant="body2" sx={{ textDecoration: item.is_complete ? 'line-through' : 'none', color: item.is_complete ? '#9CA3AF' : 'inherit' }}>
                             {item.item}
                           </Typography>
                           {item.quantity != null && item.quantity !== '' && (
-                            <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: '#EFF6FF', color: '#0F4C81', fontWeight: 700 }} />
+                            <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'info.light', color: '#0F4C81', fontWeight: 700 }} />
                           )}
                         </Stack>
                       ))}
@@ -4136,7 +4136,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Mood Chart — Last 30 Days</Typography>
         <Stack direction="row" spacing={1} alignItems="center">
-          <Stack direction="row" sx={{ border: '1px solid #E5E7EB', borderRadius: 2, overflow: 'hidden' }}>
+          <Stack direction="row" sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
             <Button size="small" onClick={() => setView('chart')}
               sx={{ textTransform: 'none', borderRadius: 0, px: 1.5, fontWeight: 700, color: view === 'chart' ? '#0F4C81' : '#9CA3AF', bgcolor: view === 'chart' ? '#E7EEF4' : 'transparent' }}>
               Charts
@@ -4152,11 +4152,11 @@ function MoodChartTabInline({ personId }: { personId: string }) {
       </Stack>
 
       {view === 'table' ? (
-        <Paper sx={{ borderRadius: 2, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+        <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200', overflow: 'hidden' }}>
           <TableContainer>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: '#F9FAFB' }}>
+                <TableRow sx={{ bgcolor: 'grey.50' }}>
                   <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Domain</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Score</TableCell>
@@ -4165,7 +4165,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
               </TableHead>
               <TableBody>
                 {recentEntries.length === 0 ? (
-                  <TableRow><TableCell colSpan={4} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No entries in the last 30 days</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} align="center" sx={{ py: 3, color: 'text.secondary' }}>No entries in the last 30 days</TableCell></TableRow>
                 ) : recentEntries.map((e: any) => (
                   <TableRow key={e.id} hover onClick={() => setViewEntry(e)} sx={{ cursor: 'pointer' }}>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(e.recorded_date).toLocaleDateString('en-GB')}</TableCell>
@@ -4183,7 +4183,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
           </TableContainer>
         </Paper>
       ) : entries.length === 0 ? (
-        <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid #E5E7EB' }}>
+        <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
           <Typography color="#9CA3AF">No wellbeing data yet</Typography>
           <Typography variant="caption" color="#6B7280" sx={{ mt: 0.5, display: 'block' }}>Record mood, engagement, sleep and other wellbeing scores to see trends here.</Typography>
         </Paper>
@@ -4191,7 +4191,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
         <EmptyRow message="No entries in the last 30 days" />
       ) : (
         <Stack spacing={3}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #E5E7EB', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: 3 }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: 3 }}>
             <Box sx={{ position: 'relative', width: 220, height: 220, flexShrink: 0 }}>
               <RechartsResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -4199,7 +4199,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
                     {pieData.map((s: any) => <Cell key={s.name} fill={s.fill} />)}
                   </Pie>
                   <RechartsTooltip
-                    contentStyle={{ borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12 }}
+                    contentStyle={{ borderRadius: 8, border: '1px solid', borderColor: 'grey.200', fontSize: 12 }}
                     formatter={(value: any, name: any) => [`${value} entries`, name]}
                   />
                 </PieChart>
@@ -4212,7 +4212,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
             <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
               <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap' }}>
                 {Object.entries(BAND_COLORS).map(([name, color]) => (
-                  <Box key={name} sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: '#F9FAFB', border: '1px solid #E5E7EB', minWidth: 96 }}>
+                  <Box key={name} sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200', minWidth: 96 }}>
                     <Typography sx={{ fontWeight: 800, color, fontSize: 20, lineHeight: 1.2 }}>{bandCounts[name]}</Typography>
                     <Typography variant="caption" color="#6B7280">{name}</Typography>
                   </Box>
@@ -4237,7 +4237,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
                   key={e.id}
                   onClick={() => setViewEntry(e)}
                   sx={{
-                    p: 1.5, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1.5,
+                    p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1.5,
                     '&:hover': { borderColor: '#0F4C81', boxShadow: '0 2px 8px rgba(15,76,129,0.12)' },
                   }}>
                   <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: `${scoreColor(e.score)}18`, color: scoreColor(e.score), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
@@ -4358,7 +4358,7 @@ function AuditTrailTabInline({ personId }: { personId: string }) {
   return (
     <Box>
       <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 2 }}>Audit Trail</Typography>
-      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
+      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -4434,7 +4434,7 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>Billing & Rates</Typography>
-          <Typography variant="body2" sx={{ color: '#6B7280' }}>Client billing rates for {personName}</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>Client billing rates for {personName}</Typography>
         </Box>
       </Stack>
 
@@ -4442,27 +4442,27 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
       {packages.length === 0 ? (
-        <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 2 }}>
-          <Typography sx={{ color: '#6B7280', mb: 1 }}>No care packages found</Typography>
-          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>Create a homecare package for this client first</Typography>
+        <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
+          <Typography sx={{ color: 'text.secondary', mb: 1 }}>No care packages found</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Create a homecare package for this client first</Typography>
         </Paper>
       ) : (
         <Stack gap={2}>
           {packages.map((pkg: any) => (
-            <Paper key={pkg.id} elevation={0} sx={{ p: 3, border: '1px solid #E5E7EB', borderRadius: 2 }}>
+            <Paper key={pkg.id} elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
               <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} gap={2}>
                 <Box>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{pkg.name}</Typography>
                   <Stack direction="row" gap={1} sx={{ mt: 0.5 }}>
                     <Chip label={pkg.status} size="small" sx={{ bgcolor: pkg.status === 'active' ? '#E9F7F0' : '#F3F4F6', color: pkg.status === 'active' ? '#047857' : '#6B7280', fontWeight: 600 }} />
-                    <Chip label={pkg.funding_type || 'private'} size="small" sx={{ bgcolor: '#EFF6FF', color: '#1E40AF', fontWeight: 600 }} />
+                    <Chip label={pkg.funding_type || 'private'} size="small" sx={{ bgcolor: 'info.light', color: '#1E40AF', fontWeight: 600 }} />
                   </Stack>
                 </Box>
 
                 <Stack direction="row" gap={3} alignItems="center" flexWrap="wrap">
                   {/* Carer rate */}
                   <Box sx={{ textAlign: 'center', minWidth: 100 }}>
-                    <Typography variant="caption" sx={{ color: '#6B7280' }}>Carer rate</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>Carer rate</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 700, color: '#0F4C81' }}>
                       {pkg.hourly_rate_pence != null ? `£${(Number(pkg.hourly_rate_pence) / 100).toFixed(2)}/hr` : '—'}
                     </Typography>
@@ -4470,7 +4470,7 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
 
                   {/* Client rate — editable */}
                   <Box sx={{ textAlign: 'center', minWidth: 120 }}>
-                    <Typography variant="caption" sx={{ color: '#6B7280' }}>Client rate (billable)</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>Client rate (billable)</Typography>
                     {editing === pkg.id ? (
                       <Stack direction="row" alignItems="center" gap={1}>
                         <TextField
@@ -4501,7 +4501,7 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
 
                   {/* Mileage rate */}
                   <Box sx={{ textAlign: 'center', minWidth: 100 }}>
-                    <Typography variant="caption" sx={{ color: '#6B7280' }}>Mileage</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>Mileage</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 700, color: '#8B5CF6' }}>
                       {pkg.mileage_rate_pence != null ? `${Number(pkg.mileage_rate_pence).toFixed(1)}p/mi` : 'Org default'}
                     </Typography>

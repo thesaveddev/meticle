@@ -232,12 +232,12 @@ export default function BodyMapTab({ personId }: { personId: string }) {
     <Box>
       <SectionHeader title="Body Map" action={<Chip label={`${entries.filter(e => e.status === 'active').length} Active`} size="small" color="error" variant="outlined" />} />
 
-      <Paper sx={{ borderRadius: 2, border: '1px solid #E5E7EB', mb: 3, overflow: 'hidden' }}>
+      <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200', mb: 3, overflow: 'hidden' }}>
         <Tabs value={view} onChange={(_, v) => setView(v)} sx={{ borderBottom: 1, borderColor: '#E5E7EB' }}>
           <Tab value="front" label="Front View" sx={{ textTransform: 'none', fontWeight: 700 }} />
           <Tab value="back" label="Back View" sx={{ textTransform: 'none', fontWeight: 700 }} />
         </Tabs>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: '#FAFBFC', py: 2, px: 1, position: 'relative' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: 'grey.50', py: 2, px: 1, position: 'relative' }}>
           <Typography variant="caption" color="#6B7280" sx={{ mb: 0.5 }}>
             Click any body part to add a condition
           </Typography>
@@ -325,7 +325,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
         </Box>
 
         {/* Legend */}
-        <Box sx={{ p: 1.5, borderTop: '1px solid #E5E7EB', bgcolor: '#F8FAFC', display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center' }}>
+        <Box sx={{ p: 1.5, borderTop: '1px solid #E5E7EB', bgcolor: 'grey.50', display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center' }}>
           {zones.map(z => {
             const has = zoneCounts[z.id]
             return <Chip key={z.id} label={`${z.label}${has ? ` (${has})` : ''}`}
@@ -343,7 +343,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
         <Stack spacing={1.5}>
           {entries.map(e => (
             <Paper key={e.id} onClick={() => openEdit(e)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer' }}>
+              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', cursor: 'pointer' }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip label={e.condition_type.replace(/_/g, ' ')} size="small"

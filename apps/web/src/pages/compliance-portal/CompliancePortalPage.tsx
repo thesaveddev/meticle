@@ -100,7 +100,7 @@ export function PortalLoginPage() {
   }
 
   if (loading) return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
       <Stack alignItems="center" spacing={2}>
         <CircularProgress size={32} sx={{ color: '#0F4C81' }} />
         <Typography variant="body2" color="#6B7280">Verifying access...</Typography>
@@ -109,8 +109,8 @@ export function PortalLoginPage() {
   )
 
   if (error) return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC', px: 2 }}>
-      <Paper sx={{ p: 5, maxWidth: 440, textAlign: 'center', borderRadius: 3, border: '1px solid #E5E7EB' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50', px: 2 }}>
+      <Paper sx={{ p: 5, maxWidth: 440, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: 'grey.200' }}>
         <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: errorType === 'expired' || errorType === 'session_expired' ? '#FFF7ED' : '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
           {getErrorIcon()}
         </Box>
@@ -203,7 +203,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
       {/* Token management list */}
       {showTokens && (
         <Paper variant="outlined" sx={{ mt: 2, borderRadius: 2, overflow: 'hidden' }}>
-          <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #E5E7EB', bgcolor: '#F9FAFB' }}>
+          <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #E5E7EB', bgcolor: 'grey.50' }}>
             <Typography variant="subtitle2" fontWeight={800}>Compliance Portal Links</Typography>
             <Typography variant="caption" color="#6B7280">Manage and revoke access tokens for compliance officers</Typography>
           </Box>
@@ -215,7 +215,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
             <TableContainer>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#F9FAFB' }}>
+                  <TableRow sx={{ bgcolor: 'grey.50' }}>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Officer</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Link</TableCell>
@@ -279,7 +279,7 @@ export function PortalAccessManager({ orgId: _orgId }: { orgId: string }) {
                 Share this link with {result.officerName} for access to {result.locationName}.
                 <br />Access expires: {new Date(result.expiresAt).toLocaleString('en-GB')}
               </Typography>
-              <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#F0F9FF' }}>
+              <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'info.light' }}>
                 <Typography variant="caption" color="#6B7280" display="block" sx={{ mb: 0.5 }}>Link (tap to copy)</Typography>
                 <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
                   <Typography variant="body2" fontFamily="monospace" sx={{ wordBreak: 'break-all' }}>{truncateUrl(result.portalUrl)}</Typography>
@@ -361,13 +361,13 @@ export default function CompliancePortalPage() {
   }
 
   if (loading) return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
       <CircularProgress />
     </Box>
   )
 
   if (error) return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
       <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
         <WarningIcon sx={{ fontSize: 48, color: '#EF4444', mb: 2 }} />
         <Typography variant="h6" fontWeight={700}>{error}</Typography>
@@ -383,7 +383,7 @@ export default function CompliancePortalPage() {
   const toggleSection = (s: string) => setExpandedSection(prev => prev === s ? null : s)
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#F8FAFC' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
       {/* Header */}
       <Paper elevation={0} sx={{ borderRadius: 0, borderBottom: '1px solid #E5E7EB', bgcolor: '#0F4C81', color: 'white', px: 4, py: 2 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -427,7 +427,7 @@ export default function CompliancePortalPage() {
                 <Chip
                   label={`${nutritionAlerts.length} nutrition alert${nutritionAlerts.length > 1 ? 's' : ''}`}
                   size="small"
-                  sx={{ mt: 0.5, bgcolor: '#FEF2F2', color: '#DC2626', fontWeight: 600 }}
+                  sx={{ mt: 0.5, bgcolor: 'error.light', color: '#DC2626', fontWeight: 600 }}
                   onClick={() => toggleSection('nutrition-alerts')}
                 />
               )}
@@ -459,7 +459,7 @@ export default function CompliancePortalPage() {
 
         {/* Location Details */}
         {location && (
-          <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+          <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
             <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
               <Typography variant="subtitle2" fontWeight={700}>{location.name}</Typography>
               {location.address && <Typography variant="body2" color="text.secondary">{location.address}</Typography>}
@@ -481,10 +481,10 @@ export default function CompliancePortalPage() {
           { key: 'people', label: 'People', icon: <PeopleIcon />, count: people?.length },
           { key: 'policies', label: 'Policies', icon: <CompIcon />, count: policies?.length },
         ].map(section => (
-          <Paper key={section.key} sx={{ mb: 2, borderRadius: 2, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+          <Paper key={section.key} sx={{ mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', overflow: 'hidden' }}>
             <Box
               onClick={() => toggleSection(section.key)}
-              sx={{ p: 2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', '&:hover': { bgcolor: '#F9FAFB' } }}
+              sx={{ p: 2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', '&:hover': { bgcolor: 'grey.50' } }}
             >
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <Box sx={{ color: '#0F4C81' }}>{section.icon}</Box>
@@ -537,7 +537,7 @@ function StaffComplianceTable({ data }: { data: any[] }) {
               <TableCell sx={{ fontWeight: 600 }}>{s.name}</TableCell>
               <TableCell>
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <Box sx={{ width: 60, height: 6, bgcolor: '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
+                  <Box sx={{ width: 60, height: 6, bgcolor: 'grey.200', borderRadius: 3, overflow: 'hidden' }}>
                     <Box sx={{ width: `${s.score}%`, height: 6, bgcolor: s.score >= 80 ? '#16A34A' : s.score >= 50 ? '#F59E0B' : '#EF4444', borderRadius: 3 }} />
                   </Box>
                   <Typography variant="body2" fontWeight={600}>{s.score}%</Typography>
@@ -674,8 +674,8 @@ function NutritionAuditTable({ data }: { data: any[] }) {
           {data.map((p: any) => (
             <TableRow key={p.id} hover>
               <TableCell sx={{ fontWeight: 600 }}>{p.person_name}</TableCell>
-              <TableCell>{p.dietary_type || <span style={{ color: '#9CA3AF' }}>—</span>}</TableCell>
-              <TableCell>{p.texture_modified || <span style={{ color: '#9CA3AF' }}>—</span>}</TableCell>
+              <TableCell>{p.dietary_type || <span style={{ color: 'text.secondary' }}>—</span>}</TableCell>
+              <TableCell>{p.texture_modified || <span style={{ color: 'text.secondary' }}>—</span>}</TableCell>
               <TableCell><Chip label={p.meals_today} size="small" color={p.meals_today > 0 ? 'success' : 'error'} /></TableCell>
               <TableCell>{p.refused_today > 0 && <Chip label={p.refused_today} size="small" color="error" icon={<CancelIcon />} />}</TableCell>
               <TableCell>
@@ -687,7 +687,7 @@ function NutritionAuditTable({ data }: { data: any[] }) {
                   )}
                 </Stack>
               </TableCell>
-              <TableCell>{p.appetite_level || <span style={{ color: '#9CA3AF' }}>—</span>}</TableCell>
+              <TableCell>{p.appetite_level || <span style={{ color: 'text.secondary' }}>—</span>}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -725,7 +725,7 @@ function PeopleList({ data, onView }: { data: any[]; onView: (id: string) => voi
               <TableCell>
                 {p.allergies?.length > 0 && <Chip icon={<WarningIcon sx={{ fontSize: 12 }} />} label={`${p.allergies.length} allergies`} size="small" color="error" variant="outlined" />}
                 {p.dietary_requirements && <Chip label={p.dietary_requirements} size="small" variant="outlined" sx={{ ml: p.allergies?.length > 0 ? 0.5 : 0 }} />}
-                {!p.dietary_requirements && (!p.allergies || p.allergies.length === 0) && <span style={{ color: '#9CA3AF' }}>—</span>}
+                {!p.dietary_requirements && (!p.allergies || p.allergies.length === 0) && <span style={{ color: 'text.secondary' }}>—</span>}
               </TableCell>
               <TableCell><IconButton size="small"><ViewIcon fontSize="small" /></IconButton></TableCell>
             </TableRow>
@@ -867,7 +867,7 @@ function PersonDetailDialog({ person, onClose }: { person: any; onClose: () => v
               <Paper variant="outlined" sx={{ p: 2, borderLeft: 3, borderLeftColor: '#059669' }}>
                 <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Dietary Profile</Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {dietaryProfile.dietary_type && <Chip label={dietaryProfile.dietary_type} size="small" sx={{ bgcolor: '#ECFDF5', color: '#065F46' }} />}
+                  {dietaryProfile.dietary_type && <Chip label={dietaryProfile.dietary_type} size="small" sx={{ bgcolor: 'success.light', color: '#065F46' }} />}
                   {dietaryProfile.texture_modified && <Chip label={`Texture: ${dietaryProfile.texture_modified}`} size="small" />}
                   {dietaryProfile.vegetarian && <Chip label="Vegetarian" size="small" color="success" variant="outlined" />}
                   {dietaryProfile.vegan && <Chip label="Vegan" size="small" color="success" variant="outlined" />}
@@ -881,7 +881,7 @@ function PersonDetailDialog({ person, onClose }: { person: any; onClose: () => v
 
             {/* Allergies */}
             {p.allergies?.length > 0 && (
-              <Paper variant="outlined" sx={{ p: 2, borderLeft: 3, borderLeftColor: '#DC2626', bgcolor: '#FEF2F2' }}>
+              <Paper variant="outlined" sx={{ p: 2, borderLeft: 3, borderLeftColor: '#DC2626', bgcolor: 'error.light' }}>
                 <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#DC2626', mb: 1 }}>Allergies</Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
                   {p.allergies.map((a: string, i: number) => <Chip key={i} label={a} size="small" color="error" />)}

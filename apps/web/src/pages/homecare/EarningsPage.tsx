@@ -57,8 +57,8 @@ export default function EarningsPage() {
           </Typography>
         </Box>
         <Box display="flex" gap={1}>
-          <input type="date" value={period.from} onChange={e => setPeriod(p => ({ ...p, from: e.target.value }))} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: 13 }} />
-          <input type="date" value={period.to} onChange={e => setPeriod(p => ({ ...p, to: e.target.value }))} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: 13 }} />
+          <input type="date" value={period.from} onChange={e => setPeriod(p => ({ ...p, from: e.target.value }))} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid', borderColor: 'grey.200', fontSize: 13 }} />
+          <input type="date" value={period.to} onChange={e => setPeriod(p => ({ ...p, to: e.target.value }))} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid', borderColor: 'grey.200', fontSize: 13 }} />
         </Box>
       </Box>
 
@@ -141,7 +141,7 @@ export default function EarningsPage() {
                     <LinearProgress
                       variant="determinate"
                       value={v.tasks_total > 0 ? (v.tasks_completed / v.tasks_total) * 100 : 0}
-                      sx={{ height: 3, borderRadius: 2, mt: 0.25, bgcolor: '#F3F4F6', '& .MuiLinearProgress-bar': { bgcolor: v.tasks_completed === v.tasks_total ? '#10B981' : '#D97706', borderRadius: 2 } }}
+                      sx={{ height: 3, borderRadius: 2, mt: 0.25, bgcolor: 'grey.100', '& .MuiLinearProgress-bar': { bgcolor: v.tasks_completed === v.tasks_total ? '#10B981' : '#D97706', borderRadius: 2 } }}
                     />
                   </Box>
                 )}

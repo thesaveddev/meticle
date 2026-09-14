@@ -94,7 +94,7 @@ export default function RoomChecksPage() {
         </Button>
       </Stack>
 
-      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <TextField select size="small" value={filter} onChange={e => { setFilter(e.target.value); setPage(0) }} label="Status" sx={{ minWidth: 160 }}>
             <MenuItem value="">All</MenuItem><MenuItem value="pass">Pass</MenuItem><MenuItem value="fail">Fail</MenuItem><MenuItem value="needs_attention">Needs Attention</MenuItem>
@@ -106,7 +106,7 @@ export default function RoomChecksPage() {
         </Stack>
       </Paper>
 
-      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
+      <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
         <Table size="small">
           <TableHead><TableRow>
             <TableCell sx={{ fontWeight: 700 }}>Room</TableCell>
@@ -136,7 +136,7 @@ export default function RoomChecksPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {checks.length === 0 && <TableRow><TableCell colSpan={8} align="center" sx={{ py: 4, color: '#9CA3AF' }}>No room checks recorded</TableCell></TableRow>}
+            {checks.length === 0 && <TableRow><TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>No room checks recorded</TableCell></TableRow>}
           </TableBody>
         </Table>
         <TablePagination component="div" count={checks.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rows} onRowsPerPageChange={e => { setRows(parseInt(e.target.value, 10)); setPage(0) }} rowsPerPageOptions={[5, 10, 25]} />
@@ -184,9 +184,9 @@ export default function RoomChecksPage() {
                   <Box>
                     <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>Photo</Typography>
                     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
-                      <Box component="img" src={photoBlob} alt="Room check" sx={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block', bgcolor: '#F3F4F6' }} />
+                      <Box component="img" src={photoBlob} alt="Room check" sx={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block', bgcolor: 'grey.100' }} />
                       <IconButton size="small" onClick={() => openFileInNewTab(view.photo_url)}
-                        sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: '#fff' } }}>
+                        sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'background.paper' } }}>
                         <OpenInNewIcon fontSize="small" />
                       </IconButton>
                     </Paper>

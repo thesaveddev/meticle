@@ -276,7 +276,7 @@ function TierCard({ tier, billing }: { tier: Tier; billing: 'monthly' | 'annual'
     <Box
       sx={{
         position: 'relative',
-        bgcolor: '#FFFFFF',
+        bgcolor: 'background.paper',
         border: tier.popular ? `2px solid ${NAVY}` : `1px solid ${HAIRLINE}`,
         borderRadius: 3,
         p: { xs: 4, md: 5 },
@@ -428,7 +428,7 @@ function CapacityMeter() {
         <Grid container spacing={1.5} sx={{ flex: 1.4 }}>
           {rows.map((r) => (
             <Grid item xs={12} sm={6} md={4} key={r.label}>
-              <Box sx={{ p: 1.5, bgcolor: '#FFFFFF', borderRadius: 2, border: `1px solid ${HAIRLINE}`, height: '100%' }}>
+              <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 2, border: `1px solid ${HAIRLINE}`, height: '100%' }}>
                 <Typography sx={{ fontSize: '0.72rem', fontWeight: 800, color: MIST, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                   {r.label}
                 </Typography>
@@ -558,7 +558,7 @@ export default function PricingPage() {
           <Stack spacing={3} alignItems="center" sx={{ textAlign: 'center' }}>
             <Box
               sx={{
-                bgcolor: '#FFFFFF', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
+                bgcolor: 'background.paper', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
                 px: 2, py: 0.75, display: 'inline-flex', alignItems: 'center', gap: 1.25,
               }}
             >
@@ -581,7 +581,7 @@ export default function PricingPage() {
       </Box>
 
       {/* TIER CARDS */}
-      <Box component="section" sx={{ bgcolor: '#FFFFFF', py: { xs: 8, md: 11 } }}>
+      <Box component="section" sx={{ bgcolor: 'background.paper', py: { xs: 8, md: 11 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 4 }} alignItems="stretch">
             {TIERS.map((tier) => (
@@ -611,7 +611,7 @@ export default function PricingPage() {
 
           <Box
             sx={{
-              bgcolor: '#FFFFFF', border: `1px solid ${HAIRLINE}`, borderRadius: 3, overflow: 'hidden',
+              bgcolor: 'background.paper', border: `1px solid ${HAIRLINE}`, borderRadius: 3, overflow: 'hidden',
             }}
           >
             <Box sx={{ overflowX: 'auto' }}>
@@ -678,7 +678,7 @@ export default function PricingPage() {
       </Box>
 
       {/* ADD-ONS */}
-      <Box component="section" sx={{ bgcolor: '#FFFFFF', py: { xs: 9, md: 12 } }}>
+      <Box component="section" sx={{ bgcolor: 'background.paper', py: { xs: 9, md: 12 } }}>
         <Container maxWidth="lg">
           <Stack spacing={2} sx={{ maxWidth: 720, mb: { xs: 5, md: 7 } }}>
             <Typography
@@ -720,7 +720,7 @@ export default function PricingPage() {
       <Box
         component="section"
         aria-label="Standards MeticleCare is built for"
-        sx={{ bgcolor: '#FFFFFF', borderTop: `1px solid ${HAIRLINE}`, borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}
+        sx={{ bgcolor: 'background.paper', borderTop: `1px solid ${HAIRLINE}`, borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}
       >
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
@@ -789,7 +789,7 @@ export default function PricingPage() {
                 <Box
                   sx={{
                     height: '100%',
-                    bgcolor: '#FFFFFF', border: `1px solid ${HAIRLINE}`,
+                    bgcolor: 'background.paper', border: `1px solid ${HAIRLINE}`,
                     borderRadius: 3, p: { xs: 2.5, md: 3 },
                   }}
                 >
@@ -820,7 +820,7 @@ export default function PricingPage() {
       </Box>
 
       {/* FAQ */}
-      <Box component="section" sx={{ bgcolor: '#FFFFFF', py: { xs: 9, md: 13 } }}>
+      <Box component="section" sx={{ bgcolor: 'background.paper', py: { xs: 9, md: 13 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 5, md: 8 }}>
             <Grid item xs={12} md={4}>
@@ -875,7 +875,7 @@ export default function PricingPage() {
               onClick={() => navigate('/register')}
               endIcon={<ArrowForwardIcon />}
               sx={{
-                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: '#065F46' },
+                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
                 fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >

@@ -179,7 +179,7 @@ export default function RegisterPage() {
         flex: { xs: 0, md: 1 }, 
         display: { xs: 'none', md: 'flex' }, 
         flexDirection: 'column',
-        bgcolor: '#F8FAFC', 
+        bgcolor: 'grey.50', 
         p: 8,
         alignItems: 'center',
         justifyContent: 'center',
@@ -190,7 +190,7 @@ export default function RegisterPage() {
             {invitation ? `Join ${invitation.organizationName}` : 'Scale your care operations with confidence.'}
           </Typography>
           {invitation ? (
-            <Typography sx={{ color: '#6B7280', mb: 4, fontSize: '1.1rem' }}>
+            <Typography sx={{ color: 'text.secondary', mb: 4, fontSize: '1.1rem' }}>
               You've been invited to join <strong>{invitation.organizationName}</strong> as a{' '}
               {invitation.role === 'MANAGER' ? 'Manager' : 'Staff Member'}. Create your account to get started.
             </Typography>
@@ -205,7 +205,7 @@ export default function RegisterPage() {
                   <CheckIcon sx={{ color: '#16A34A', mt: 0.5 }} />
                   <Box>
                     <Typography sx={{ fontWeight: 700, color: '#111827' }}>{v.t}</Typography>
-                    <Typography variant="body2" sx={{ color: '#6B7280' }}>{v.d}</Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>{v.d}</Typography>
                   </Box>
                 </Stack>
               ))}
@@ -224,7 +224,7 @@ export default function RegisterPage() {
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
               {invitation ? 'Complete Your Registration' : 'Create Your Account'}
             </Typography>
-            <Typography sx={{ color: '#6B7280' }}>
+            <Typography sx={{ color: 'text.secondary' }}>
               {invitation
                 ? 'Set your password to join your organization.'
                 : 'Join modern care providers in 2 minutes. Start your free 14-day trial — no credit card required.'}
@@ -241,7 +241,7 @@ export default function RegisterPage() {
             <Stack spacing={2.5}>
               <Stack direction="row" spacing={1}>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>First Name</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>First Name</Typography>
                   <TextField
                     fullWidth
                     placeholder="First name"
@@ -251,7 +251,7 @@ export default function RegisterPage() {
                   />
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Last Name</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Last Name</Typography>
                   <TextField
                     fullWidth
                     placeholder="Last name"
@@ -263,7 +263,7 @@ export default function RegisterPage() {
               </Stack>
 
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Work Email</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Work Email</Typography>
                 <TextField
                   fullWidth
                   placeholder="john@carehome.com"
@@ -286,7 +286,7 @@ export default function RegisterPage() {
 
               {/* Email verification section */}
               {!invitation && !emailVerified && (
-                <Box sx={{ bgcolor: '#F9FAFB', borderRadius: 2, p: 2, border: '1px solid #E5E7EB' }}>
+                <Box sx={{ bgcolor: 'grey.50', borderRadius: 2, p: 2, border: '1px solid', borderColor: 'grey.200' }}>
                   {!codeSent ? (
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Button
@@ -298,7 +298,7 @@ export default function RegisterPage() {
                       >
                         {sendingCode ? <CircularProgress size={16} /> : 'Send Verification Code'}
                       </Button>
-                      <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                         We'll send a 6-digit code to verify your email
                       </Typography>
                     </Stack>
@@ -306,7 +306,7 @@ export default function RegisterPage() {
                     <Stack spacing={1.5}>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <VerifiedIcon sx={{ color: '#0F4C81', fontSize: 18 }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                           Enter the 6-digit code sent to {email}
                         </Typography>
                       </Stack>
@@ -351,7 +351,7 @@ export default function RegisterPage() {
               )}
 
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Create Password</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Create Password</Typography>
                 <TextField
                   fullWidth
                   type={showPassword ? 'text' : 'password'}
@@ -382,7 +382,7 @@ export default function RegisterPage() {
               </Box>
 
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Confirm Password</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Confirm Password</Typography>
                 <TextField
                   fullWidth
                   type={showConfirm ? 'text' : 'password'}
@@ -405,8 +405,8 @@ export default function RegisterPage() {
               </Box>
 
               {password && (
-                <Box sx={{ bgcolor: '#F9FAFB', borderRadius: 2, p: 2 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', mb: 1, display: 'block' }}>
+                <Box sx={{ bgcolor: 'grey.50', borderRadius: 2, p: 2 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', mb: 1, display: 'block' }}>
                     Password requirements:
                   </Typography>
                   <Stack spacing={0.5}>
@@ -435,7 +435,7 @@ export default function RegisterPage() {
                   />
                 }
                 label={
-                  <Typography variant="body2" sx={{ color: '#374151' }}>
+                  <Typography variant="body2" sx={{ color: 'text.primary' }}>
                     I agree to the{' '}
                     <Link onClick={() => navigate('/terms')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
                       Terms and Conditions
@@ -461,22 +461,22 @@ export default function RegisterPage() {
               </Button>
 
               <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Already have an account? <Link onClick={() => navigate('/login')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>Sign In</Link>
                 </Typography>
               </Box>
             </Stack>
           </Box>
           
-           <Box sx={{ mt: 6, display: 'flex', alignItems: 'center', gap: 1, color: '#9CA3AF', justifyContent: 'center' }}>
+           <Box sx={{ mt: 6, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', justifyContent: 'center' }}>
             <SecurityIcon sx={{ fontSize: 16 }} />
             <Typography variant="caption" sx={{ fontWeight: 600 }}>
               By signing up, you agree to our{' '}
-              <Link onClick={() => navigate('/terms')} sx={{ color: '#9CA3AF', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}>
+              <Link onClick={() => navigate('/terms')} sx={{ color: 'text.secondary', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}>
                 Terms
               </Link>{' '}
               and{' '}
-              <Link onClick={() => navigate('/privacy')} sx={{ color: '#9CA3AF', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}>
+              <Link onClick={() => navigate('/privacy')} sx={{ color: 'text.secondary', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}>
                 Privacy Policy
               </Link>.
             </Typography>

@@ -108,8 +108,8 @@ export default function AvailabilityPage() {
 
       {/* Summary */}
       <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
-        <Chip label={`${availability.length} entries`} size="small" sx={{ bgcolor: '#E9F7F0', color: '#047857' }} />
-        <Chip label={`~${totalHours.toFixed(0)} hours/week`} size="small" sx={{ bgcolor: '#E0F2FE', color: '#0F4C81' }} />
+        <Chip label={`${availability.length} entries`} size="small" sx={{ bgcolor: 'success.light', color: '#047857' }} />
+        <Chip label={`~${totalHours.toFixed(0)} hours/week`} size="small" sx={{ bgcolor: 'info.light', color: '#0F4C81' }} />
       </Stack>
 
       {/* Manager: carer filter */}
@@ -139,7 +139,7 @@ export default function AvailabilityPage() {
                       label={`${rec.start_time} - ${rec.end_time}${rec.staff_name ? ` (${rec.staff_name})` : ''}`}
                       size="small"
                       onDelete={isCarer || rawUser.role === UserRole.ORG_ADMIN || rawUser.role === UserRole.MANAGER ? () => deleteAvailability(rec.id) : undefined}
-                      sx={{ bgcolor: '#E9F7F0', color: '#047857', '& .MuiChip-deleteIcon': { color: '#DC2626' } }}
+                      sx={{ bgcolor: 'success.light', color: '#047857', '& .MuiChip-deleteIcon': { color: '#DC2626' } }}
                     />
                   ))
                 )}

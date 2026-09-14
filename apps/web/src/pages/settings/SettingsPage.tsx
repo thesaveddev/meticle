@@ -378,7 +378,7 @@ export default function SettingsPage() {
   // Branding state
   const [brandingColors, setBrandingColors] = useState({
     primary_color: '#0F4C81',
-    secondary_color: '#6B7280',
+    secondary_color: 'text.secondary',
     accent_color: '#F8FAFC',
   })
   const [brandingLogo, setBrandingLogo] = useState('')
@@ -599,7 +599,7 @@ export default function SettingsPage() {
             <Alert severity="warning" sx={{ fontWeight: 600 }}>
               Store these codes in a safe place. Each code can be used <strong>once</strong> to log in if you lose access to your authenticator app.
             </Alert>
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: '#F8FAFC' }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
               <Stack spacing={1}>
                 {mfaBackupCodes.map((code, i) => (
                   <Typography key={i} variant="body2" sx={{ fontFamily: 'monospace', fontSize: '1rem', letterSpacing: '0.1rem', fontWeight: 700 }}>
@@ -766,7 +766,7 @@ export default function SettingsPage() {
             <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Logo</Typography>
             <Stack direction="row" spacing={2} alignItems="center">
               {brandingLogo && (
-                <Box component="img" src={brandingLogo} sx={{ width: 60, height: 60, objectFit: 'contain', border: '1px solid #E5E7EB', borderRadius: 1 }} />
+                <Box component="img" src={brandingLogo} sx={{ width: 60, height: 60, objectFit: 'contain', border: '1px solid', borderColor: 'grey.200', borderRadius: 1 }} />
               )}
               <input type="file" accept="image/*" hidden ref={logoInputRef} onChange={handleLogoUpload} />
               <Button variant="outlined" size="small" disabled={logoUploading} onClick={() => logoInputRef.current?.click()}>
@@ -785,13 +785,13 @@ export default function SettingsPage() {
                     <Box sx={{ position: 'relative', width: 44, height: 44 }}>
                       <input type="color" value={brandingColors[field]}
                         onChange={e => setBrandingColors((p: any) => ({ ...p, [field]: e.target.value }))}
-                        style={{ width: 44, height: 44, border: '1px solid #E5E7EB', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none' }} />
+                        style={{ width: 44, height: 44, border: '1px solid', borderColor: 'grey.200', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none' }} />
                     </Box>
                     <TextField size="small" value={brandingColors[field]}
                       onChange={e => setBrandingColors((p: any) => ({ ...p, [field]: e.target.value }))}
                       sx={{ width: 120 }}
                       InputProps={{ sx: { fontSize: '0.85rem', fontFamily: 'monospace' } }} />
-                    <Typography variant="caption" sx={{ textTransform: 'capitalize', color: '#6B7280', minWidth: 80 }}>
+                    <Typography variant="caption" sx={{ textTransform: 'capitalize', color: 'text.secondary', minWidth: 80 }}>
                       {field.replace('_color', '')}
                     </Typography>
                   </Stack>
@@ -1043,7 +1043,7 @@ export default function SettingsPage() {
               </TableHead>
               <TableBody>
                 {complianceConfigs.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No compliance requirements configured. Add requirements, then use "Seed Records from Config" to generate records for all staff.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.secondary' }}>No compliance requirements configured. Add requirements, then use "Seed Records from Config" to generate records for all staff.</TableCell></TableRow>
                 ) : complianceConfigs.slice(compConfigPage * rowsPerPage, compConfigPage * rowsPerPage + rowsPerPage).map(c => (
                   <TableRow key={c.id} hover>
                     <TableCell sx={{ fontWeight: 600 }}>{c.name}
@@ -1316,14 +1316,14 @@ export default function SettingsPage() {
                 helperText="Set to 0 for unlimited. AI features stop when budget is reached."
               />
               {aiUsageStats && aiConfig?.monthlyBudgetCents > 0 && (
-                <Box sx={{ p: 1.5, bgcolor: '#F8FAFC', borderRadius: 1, border: '1px solid #E2E8F0' }}>
+                <Box sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid #E2E8F0' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="caption" color="text.secondary">Budget used this month</Typography>
                     <Typography variant="caption" sx={{ fontWeight: 600 }}>
                       £{((aiUsageStats.estimated_cost_cents || 0) / 100).toFixed(2)} / £{(aiConfig.monthlyBudgetCents / 100).toFixed(2)}
                     </Typography>
                   </Box>
-                  <Box sx={{ height: 6, bgcolor: '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
+                  <Box sx={{ height: 6, bgcolor: 'grey.200', borderRadius: 3, overflow: 'hidden' }}>
                     <Box sx={{
                       height: '100%',
                       width: `${Math.min(100, ((aiUsageStats.estimated_cost_cents || 0) / aiConfig.monthlyBudgetCents) * 100)}%`,
@@ -1389,7 +1389,7 @@ export default function SettingsPage() {
               {aiAnalyzing ? 'Analyzing...' : 'Run Analysis'}
             </Button>
             {aiAnalysisResult && (
-              <Box sx={{ mt: 2, p: 2, bgcolor: '#F8FAFC', borderRadius: 1, border: '1px solid #E2E8F0' }}>
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid #E2E8F0' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Assessment</Typography>
                 <Typography variant="body2" sx={{ mb: 1.5 }}>{aiAnalysisResult.overall_assessment}</Typography>
                 {aiAnalysisResult.estimated_timeline && (
@@ -1494,7 +1494,7 @@ export default function SettingsPage() {
             </TableHead>
             <TableBody>
               {delegations.length === 0 ? (
-                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: '#9CA3AF' }}>No delegations set up</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.secondary' }}>No delegations set up</TableCell></TableRow>
               ) : delegations.slice(delPage * rowsPerPage, delPage * rowsPerPage + rowsPerPage).map(d => (
                 <TableRow key={d.id} hover>
                   <TableCell sx={{ fontWeight: 600 }}>{d.primary_first_name} {d.primary_last_name}</TableCell>
@@ -1859,7 +1859,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
                 Requests for this type will be auto-approved when submitted.
               </Alert>
             )}
-            <Box sx={{ p: 1.5, bgcolor: '#F7F4EE', borderRadius: 1 }}>
+            <Box sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
               <Typography variant="body2" color="#4B5563">
                 Type allowances total <Typography component="span" fontWeight={700} color={mismatch ? 'error.main' : 'success.main'}>{fmt(projectedTotal)}h</Typography> of {fmt(base)}h allowed
                 <Typography component="span" color="#6B7280"> ({fmt(base - projectedTotal) >= 0 ? `${fmt(base - projectedTotal)}h remaining` : `${fmt(projectedTotal - base)}h over`})</Typography>

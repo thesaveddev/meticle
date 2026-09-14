@@ -74,11 +74,11 @@ function ObservationsSection({ personId }: { personId: string }) {
             <Paper
               key={o.id}
               onClick={() => setViewEntry(o)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}
+              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}
             >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                  <Chip label={o.category} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81', fontWeight: 700, textTransform: 'capitalize' }} />
+                  <Chip label={o.category} size="small" sx={{ bgcolor: 'grey.100', color: '#0F4C81', fontWeight: 700, textTransform: 'capitalize' }} />
                   <Chip label={o.severity} size="small" sx={{ bgcolor: `${SEVERITY_COLORS[o.severity] || '#16A34A'}20`, color: SEVERITY_COLORS[o.severity] || '#16A34A', fontWeight: 700 }} />
                   <Typography variant="caption" color="#6B7280">{new Date(o.observation_date).toLocaleDateString('en-GB')}</Typography>
                   {o.recorded_by_name && <Typography variant="caption" color="#9CA3AF">by {o.recorded_by_name}</Typography>}
@@ -131,7 +131,7 @@ function ObservationsSection({ personId }: { personId: string }) {
         title="Health Observation"
         chips={viewEntry ? (
           <>
-            <Chip label={viewEntry.category} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81', fontWeight: 700, textTransform: 'capitalize' }} />
+            <Chip label={viewEntry.category} size="small" sx={{ bgcolor: 'grey.100', color: '#0F4C81', fontWeight: 700, textTransform: 'capitalize' }} />
             <Chip label={viewEntry.severity} size="small" sx={{ bgcolor: `${SEVERITY_COLORS[viewEntry.severity] || '#16A34A'}20`, color: SEVERITY_COLORS[viewEntry.severity] || '#16A34A', fontWeight: 700 }} />
             <Chip label={new Date(viewEntry.observation_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />
           </>
@@ -171,7 +171,7 @@ function BowelSection({ personId }: { personId: string }) {
       {(!data || data.length === 0) ? (
         <EmptyRow message="No bowel movements recorded" />
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
           <Table size="small">
             <TableHead><TableRow><TableCell sx={{ fontWeight: 700 }}>Date/Time</TableCell><TableCell sx={{ fontWeight: 700 }}>Type</TableCell><TableCell sx={{ fontWeight: 700 }}>Consistency</TableCell><TableCell sx={{ fontWeight: 700 }}>Notes</TableCell><TableCell sx={{ fontWeight: 700 }} width={60}></TableCell></TableRow></TableHead>
             <TableBody>
@@ -288,7 +288,7 @@ function DentalSection({ personId }: { personId: string }) {
             <Paper
               key={r.id}
               onClick={() => setViewEntry(r)}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}
+              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', cursor: 'pointer', '&:hover': { borderColor: '#0F4C81', boxShadow: 1 } }}
             >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>
@@ -303,8 +303,8 @@ function DentalSection({ personId }: { personId: string }) {
                   <IconButton size="small" onClick={() => setDeleteTarget({ id: r.id, label: 'this dental record' })} color="error"><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
               </Stack>
-              {r.findings && <Typography variant="body2" sx={{ mt: 1, color: '#6B7280' }}><strong>Findings:</strong> {r.findings}</Typography>}
-              {r.actions_taken && <Typography variant="body2" sx={{ color: '#6B7280' }}><strong>Actions:</strong> {r.actions_taken}</Typography>}
+              {r.findings && <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}><strong>Findings:</strong> {r.findings}</Typography>}
+              {r.actions_taken && <Typography variant="body2" sx={{ color: 'text.secondary' }}><strong>Actions:</strong> {r.actions_taken}</Typography>}
             </Paper>
           ))}
         </Stack>
@@ -390,10 +390,10 @@ function FluidSection({ personId, fluidTarget = 2000 }: { personId: string; flui
           </Stack>
         }
       />
-      <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #E5E7EB', bgcolor: '#F0F9FF' }}>
+      <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', bgcolor: 'info.light' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" fontWeight={700}>Daily Total: <strong style={{ fontSize: '1.1rem', color: '#0F4C81' }}>{totalMl} ml</strong></Typography>
-          <Box sx={{ width: 200, bgcolor: '#E5E7EB', borderRadius: 1, height: 8, overflow: 'hidden' }}>
+          <Box sx={{ width: 200, bgcolor: 'grey.200', borderRadius: 1, height: 8, overflow: 'hidden' }}>
             <Box sx={{ width: `${Math.min((totalMl / (fluidTarget || 2000)) * 100, 100)}%`, bgcolor: totalMl >= (fluidTarget || 2000) * 0.75 ? '#16A34A' : totalMl >= (fluidTarget || 2000) * 0.5 ? '#D97706' : '#DC2626', height: 8, borderRadius: 1, transition: 'width 0.3s' }} />
           </Box>
           {editingTarget ? (
@@ -420,14 +420,14 @@ function FluidSection({ personId, fluidTarget = 2000 }: { personId: string; flui
       {(!data || data.length === 0) ? (
         <EmptyRow message="No fluid intake recorded for this date" />
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid #E5E7EB' }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
           <Table size="small">
             <TableHead><TableRow><TableCell sx={{ fontWeight: 700 }}>Time</TableCell><TableCell sx={{ fontWeight: 700 }}>Type</TableCell><TableCell sx={{ fontWeight: 700 }}>Amount</TableCell><TableCell sx={{ fontWeight: 700 }}>Notes</TableCell><TableCell sx={{ fontWeight: 700 }} width={60}></TableCell></TableRow></TableHead>
             <TableBody>
               {data.map((f: any) => (
                 <TableRow key={f.id} hover sx={{ cursor: 'pointer' }} onClick={() => setViewEntry(f)}>
                   <TableCell>{f.recorded_time ? f.recorded_time.slice(0, 5) : '-'}</TableCell>
-                  <TableCell><Chip label={f.fluid_type} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81' }} /></TableCell>
+                  <TableCell><Chip label={f.fluid_type} size="small" sx={{ bgcolor: 'grey.100', color: '#0F4C81' }} /></TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>{f.amount_ml} ml</TableCell>
                   <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>{f.notes || '-'}</Typography></TableCell>
                   <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()}>
@@ -472,7 +472,7 @@ function FluidSection({ personId, fluidTarget = 2000 }: { personId: string; flui
         chips={viewEntry ? (
           <>
             <Chip label={new Date(viewEntry.recorded_date).toLocaleDateString('en-GB') + (viewEntry.recorded_time ? ` ${viewEntry.recorded_time.slice(0, 5)}` : '')} size="small" variant="outlined" />
-            <Chip label={viewEntry.fluid_type} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81' }} />
+            <Chip label={viewEntry.fluid_type} size="small" sx={{ bgcolor: 'grey.100', color: '#0F4C81' }} />
           </>
         ) : undefined}
         rows={[
@@ -502,7 +502,7 @@ export default function HealthTab({ personId, fluidTarget }: HealthSectionProps)
   return (
     <Box>
       <Stack direction="row" alignItems="flex-start" spacing={2}>
-        <Tabs orientation="vertical" value={innerTab} onChange={(_, v) => setInnerTab(v)} sx={{ borderRight: 1, borderColor: '#E5E7EB', minWidth: { xs: 132, sm: 170 }, flexShrink: 0, '& .MuiTabs-flexContainer': { gap: 0.5 }, '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 42, alignItems: 'flex-start', textAlign: 'left', px: 1.5, borderRadius: 1.5, '&.Mui-selected': { bgcolor: '#E7EEF4', color: '#0F4C81' } }, '& .MuiTabs-indicator': { left: 0, width: 3, borderRadius: 2, bgcolor: '#0F4C81' } }}>
+        <Tabs orientation="vertical" value={innerTab} onChange={(_, v) => setInnerTab(v)} sx={{ borderRight: 1, borderColor: '#E5E7EB', minWidth: { xs: 132, sm: 170 }, flexShrink: 0, '& .MuiTabs-flexContainer': { gap: 0.5 }, '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 42, alignItems: 'flex-start', textAlign: 'left', px: 1.5, borderRadius: 1.5, '&.Mui-selected': { bgcolor: 'grey.100', color: '#0F4C81' } }, '& .MuiTabs-indicator': { left: 0, width: 3, borderRadius: 2, bgcolor: '#0F4C81' } }}>
           {HEALTH_TABS.map((t) => <Tab key={t.label} label={t.label} />)}
         </Tabs>
         <Box sx={{ minWidth: 0, flex: 1 }}><Active personId={personId} fluidTarget={fluidTarget} /></Box>

@@ -82,7 +82,7 @@ export default function CaseStudiesPage() {
           <Box
             sx={{
               display: 'inline-flex', alignItems: 'center', gap: 1.25,
-              bgcolor: '#FFFFFF', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
+              bgcolor: 'background.paper', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
               px: 2, py: 0.75, mb: 3,
             }}
           >
@@ -107,7 +107,7 @@ export default function CaseStudiesPage() {
       </Box>
 
       {/* STAT STRIP PRE-FACE — gives the reader aggregate credibility before the cases */}
-      <Box component="section" aria-label="Aggregate outcomes" sx={{ bgcolor: '#FFFFFF', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
+      <Box component="section" aria-label="Aggregate outcomes" sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 4, md: 4 }} alignItems="center">
             {[
@@ -173,7 +173,7 @@ export default function CaseStudiesPage() {
                 <Box
                   sx={{
                     p: { xs: 2.5, md: 3 },
-                    bgcolor: '#FFFFFF',
+                    bgcolor: 'background.paper',
                     border: `1px solid ${HAIRLINE}`,
                     borderLeft: `3px solid ${EMERALD}`,
                     borderRadius: 2.5,
@@ -238,7 +238,7 @@ export default function CaseStudiesPage() {
       ))}
 
       {/* TRUST STRIP — pre-final CTA, mirrors landing/pricing/how-it-works */}
-      <Box component="section" aria-label="Standards MeticleCare is built for" sx={{ bgcolor: '#FFFFFF', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
+      <Box component="section" aria-label="Standards MeticleCare is built for" sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
             <Grid item xs={12} md={3}>
@@ -300,7 +300,7 @@ export default function CaseStudiesPage() {
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate('/register')}
               sx={{
-                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: '#065F46' },
+                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
                 fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >

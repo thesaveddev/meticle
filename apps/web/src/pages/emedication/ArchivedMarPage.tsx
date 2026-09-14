@@ -156,7 +156,7 @@ export default function ArchivedMarPage() {
             return (
               <Paper key={record.id} variant="outlined" sx={{ overflow: 'hidden' }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center"
-                  sx={{ p: 2, cursor: 'pointer', '&:hover': { bgcolor: '#F9FAFB' } }}
+                  sx={{ p: 2, cursor: 'pointer', '&:hover': { bgcolor: 'grey.50' } }}
                   onClick={() => handleExpand(record)}>
                   <Stack direction="row" spacing={2} alignItems="center">
                     {isExpanded ? <ExpandLess /> : <ExpandMore />}
@@ -190,20 +190,20 @@ export default function ArchivedMarPage() {
                           <Table size="small" stickyHeader>
                             <TableHead>
                               <TableRow>
-                                <TableCell sx={{ fontWeight: 700, minWidth: 200, bgcolor: '#F9FAFB', position: 'sticky', left: 0, zIndex: 3, borderRight: '2px solid #E5E7EB' }}>
+                                <TableCell sx={{ fontWeight: 700, minWidth: 200, bgcolor: 'grey.50', position: 'sticky', left: 0, zIndex: 3, borderRight: '2px solid #E5E7EB' }}>
                                   Medication
                                 </TableCell>
-                                <TableCell sx={{ fontWeight: 700, minWidth: 80, bgcolor: '#F8FAFC', position: 'sticky', left: 200, zIndex: 3, borderRight: '1px solid #E5E7EB' }}>
+                                <TableCell sx={{ fontWeight: 700, minWidth: 80, bgcolor: 'grey.50', position: 'sticky', left: 200, zIndex: 3, borderRight: '1px solid #E5E7EB' }}>
                                   Time
                                 </TableCell>
                                 {chartData.days.map((day, i) => (
                                   <TableCell key={day} align="center" sx={{
                                     fontWeight: 700, fontSize: '0.7rem', p: 0.5, minWidth: 36,
-                                    bgcolor: '#F9FAFB', borderLeft: i > 0 ? '1px solid #F3F4F6' : 'none'
+                                    bgcolor: 'grey.50', borderLeft: i > 0 ? '1px solid #F3F4F6' : 'none'
                                   }}>
                                     {new Date(day + 'T12:00:00').getDate()}
                                     <br />
-                                    <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#9CA3AF' }}>
+                                    <Typography variant="caption" sx={{ fontSize: '0.55rem', color: 'text.secondary' }}>
                                       {new Date(day + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }).slice(0, 2)}
                                     </Typography>
                                   </TableCell>
@@ -226,7 +226,7 @@ export default function ArchivedMarPage() {
                                     </Stack>
                                   </TableCell>
                                   <TableCell sx={{
-                                    fontWeight: 500, fontSize: '0.75rem', bgcolor: '#F8FAFC',
+                                    fontWeight: 500, fontSize: '0.75rem', bgcolor: 'grey.50',
                                     whiteSpace: 'nowrap', borderRight: '1px solid #E5E7EB',
                                     position: 'sticky', left: 200, zIndex: 1
                                   }}>

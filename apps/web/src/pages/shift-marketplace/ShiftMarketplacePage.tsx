@@ -339,12 +339,12 @@ export default function ShiftMarketplacePage() {
 
   const openStatusChip = (s: any) => {
     if (s.status === 'pending') {
-      return <Chip label="Pending approval" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#FEF3C7', color: '#92400E', fontWeight: 700 }} />
+      return <Chip label="Pending approval" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'warning.light', color: '#92400E', fontWeight: 700 }} />
     }
     if (new Date(s.start_time) < new Date()) {
-      return <Chip label="Unclaimed" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#FEE2E2', color: '#991B1B', fontWeight: 700 }} />
+      return <Chip label="Unclaimed" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'error.light', color: '#991B1B', fontWeight: 700 }} />
     }
-    return <Chip label="Open" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#D1FAE5', color: '#065F46', fontWeight: 700 }} />
+    return <Chip label="Open" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'success.light', color: '#065F46', fontWeight: 700 }} />
   }
 
   return (
@@ -448,7 +448,7 @@ export default function ShiftMarketplacePage() {
                   {dayShifts.map((s: any) => (
                     <Grid item xs={12} sm={6} md={4} key={s.id}>
                       <Card variant="outlined" onClick={() => setDetail(s)} sx={{
-                        borderRadius: 2, borderColor: '#E5E7EB', bgcolor: '#FFFFFF', cursor: 'pointer',
+                        borderRadius: 2, borderColor: '#E5E7EB', bgcolor: 'background.paper', cursor: 'pointer',
                         transition: 'box-shadow 0.2s, border-color 0.2s',
                         '&:hover': { boxShadow: '0 6px 18px rgba(15,76,129,0.12)', borderColor: '#0F4C81' },
                       }}>
@@ -467,7 +467,7 @@ export default function ShiftMarketplacePage() {
                             <Chip label={shiftTypeLabel(s.shift_type)} size="small" variant="outlined" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, color: '#0F4C81', borderColor: '#BFDBFE' }} />
                           </Stack>
                           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.25 }}>
-                            <AccessTimeIcon sx={{ fontSize: 15, color: '#6B7280' }} />
+                            <AccessTimeIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
                             <Typography variant="body2" sx={{ fontWeight: 700 }}>
                               {fmtTime(s.start_time)} – {fmtTime(s.end_time)}
                             </Typography>
@@ -491,7 +491,7 @@ export default function ShiftMarketplacePage() {
                                 startIcon={<SendIcon />}
                                 onClick={(e) => { e.stopPropagation(); openAgencyDialog(s) }}
                                 disabled={new Date(s.start_time) < new Date()}
-                                sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#0F4C81', borderColor: '#93C5FD', '&:hover': { borderColor: '#0F4C81', bgcolor: '#EFF6FF' } }}>
+                                sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#0F4C81', borderColor: '#93C5FD', '&:hover': { borderColor: '#0F4C81', bgcolor: 'info.light' } }}>
                                 Send to Agency
                               </Button>
                             )}
@@ -526,7 +526,7 @@ export default function ShiftMarketplacePage() {
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow sx={{ bgcolor: 'grey.50' }}>
                     {isAdminOrManager && <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>}
                     <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Time</TableCell>
@@ -626,7 +626,7 @@ export default function ShiftMarketplacePage() {
                   <>
                     <Divider />
                     <Box>
-                      <Typography variant="overline" sx={{ fontWeight: 700, color: '#6B7280' }}>Assigned staff</Typography>
+                      <Typography variant="overline" sx={{ fontWeight: 700, color: 'text.secondary' }}>Assigned staff</Typography>
                       <Stack spacing={0.5}>
                         {detail.assignments.map((a: any) => (
                           <Stack key={a.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 0.5 }}>
@@ -704,7 +704,7 @@ export default function ShiftMarketplacePage() {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: '#F8FAFC' }}>
+            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'grey.50' }}>
               <Stack direction="row" justifyContent="space-between" flexWrap="wrap" useFlexGap>
                 <Typography variant="body2" color="#6B7280">Shift</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -764,7 +764,7 @@ export default function ShiftMarketplacePage() {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: '#F8FAFC' }}>
+            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'grey.50' }}>
               <Stack direction="row" justifyContent="space-between" flexWrap="wrap" useFlexGap>
                 <Typography variant="body2" color="#6B7280">Currently claimed by</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>{reassignDialog.staffName}</Typography>

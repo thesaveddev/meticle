@@ -76,7 +76,7 @@ export default function ContactPage() {
             <Box
               sx={{
                 display: 'inline-flex', alignItems: 'center', gap: 1.25,
-                bgcolor: '#FFFFFF', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
+                bgcolor: 'background.paper', border: `1px solid ${HAIRLINE}`, borderRadius: 999,
                 px: 2, py: 0.75, mb: 3,
               }}
             >
@@ -102,7 +102,7 @@ export default function ContactPage() {
       </Box>
 
       {/* BODY — contact methods + working form */}
-      <Box component="section" sx={{ py: { xs: 8, md: 11 }, bgcolor: '#FFFFFF' }}>
+      <Box component="section" sx={{ py: { xs: 8, md: 11 }, bgcolor: 'background.paper' }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 5, md: 7 }}>
             <Grid item xs={12} md={5}>
@@ -156,7 +156,7 @@ export default function ContactPage() {
                   p: { xs: 3.5, md: 5 },
                   border: `1px solid ${HAIRLINE}`,
                   borderRadius: 3,
-                  bgcolor: '#FFFFFF',
+                  bgcolor: 'background.paper',
                   boxShadow: '0 24px 60px -32px rgba(20,32,45,0.18)',
                 }}
               >
@@ -254,7 +254,7 @@ export default function ContactPage() {
                 sx={{
                   height: '100%',
                   p: { xs: 3, md: 4 },
-                  bgcolor: '#FFFFFF',
+                  bgcolor: 'background.paper',
                   border: `1px solid ${HAIRLINE}`,
                   borderRadius: 3,
                   borderLeft: `3px solid ${EMERALD}`,
@@ -280,7 +280,7 @@ export default function ContactPage() {
                 sx={{
                   height: '100%',
                   p: { xs: 3, md: 4 },
-                  bgcolor: '#FFFFFF',
+                  bgcolor: 'background.paper',
                   border: `1px solid ${HAIRLINE}`,
                   borderRadius: 3,
                   borderLeft: `3px solid ${EMERALD}`,
@@ -306,7 +306,7 @@ export default function ContactPage() {
       </Box>
 
       {/* TRUST STRIP — same as the rest of the marketing site */}
-      <Box component="section" aria-label="Standards MeticleCare is built for" sx={{ bgcolor: '#FFFFFF', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
+      <Box component="section" aria-label="Standards MeticleCare is built for" sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
             <Grid item xs={12} md={3}>
@@ -367,7 +367,7 @@ export default function ContactPage() {
               size="large"
               onClick={() => { window.location.href = '/register' }}
               sx={{
-                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: '#065F46' },
+                bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
                 fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >

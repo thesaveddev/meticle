@@ -125,7 +125,7 @@ export default function PlatformAdminPage() {
           <Typography variant="h4" sx={{ fontWeight: 800 }}>Platform Admin</Typography>
         </Stack>
         <Tooltip title="Refresh">
-          <IconButton onClick={() => { loadData(); if (tab === 2) loadUsers(); if (tab === 3) loadFinance(); if (tab === 4) loadAuditLog(); if (tab === 5) loadHealth(); }} sx={{ bgcolor: '#F8FAFC' }}><RefreshIcon /></IconButton>
+          <IconButton onClick={() => { loadData(); if (tab === 2) loadUsers(); if (tab === 3) loadFinance(); if (tab === 4) loadAuditLog(); if (tab === 5) loadHealth(); }} sx={{ bgcolor: 'grey.50' }}><RefreshIcon /></IconButton>
         </Tooltip>
       </Stack>
 
@@ -233,7 +233,7 @@ export default function PlatformAdminPage() {
                       <TableCell align="right"><Button size="small" onClick={(e) => { e.stopPropagation(); navigate(`/platform-admin/organizations/${org.id}`) }}>View</Button></TableCell>
                     </TableRow>
                   ))}
-                  {orgs.length === 0 && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No organizations found</TableCell></TableRow>}
+                  {orgs.length === 0 && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>No organizations found</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -276,7 +276,7 @@ export default function PlatformAdminPage() {
                     <TableCell>{new Date(user.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</TableCell>
                   </TableRow>
                 ))}
-                {users.length === 0 && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No users found</TableCell></TableRow>}
+                {users.length === 0 && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>No users found</TableCell></TableRow>}
               </TableBody>
             </Table>
           </TableContainer>
@@ -400,7 +400,7 @@ export default function PlatformAdminPage() {
       {tab === 4 && (
         <Paper sx={{ p: 3, borderRadius: 2.5 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-            <HistoryIcon sx={{ color: '#6B7280' }} />
+            <HistoryIcon sx={{ color: 'text.secondary' }} />
             <Typography variant="h6" sx={{ fontWeight: 800 }}>Recent Activity</Typography>
           </Stack>
           {auditLog.length > 0 ? (
@@ -459,7 +459,7 @@ export default function PlatformAdminPage() {
                       <TableCell><Button size="small" variant="outlined" disabled={!!lead.contacted_recently || followupSending === lead.id} onClick={() => sendFollowup(lead.id)}>{followupSending === lead.id ? 'Sending…' : lead.contacted_recently ? 'Contacted recently' : 'Send email'}</Button></TableCell>
                     </TableRow>
                   ))}
-                  {trialFollowups.length === 0 && <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: '#9CA3AF' }}>No unpaid expired trials found</TableCell></TableRow>}
+                  {trialFollowups.length === 0 && <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>No unpaid expired trials found</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -506,7 +506,7 @@ export default function PlatformAdminPage() {
                 <Grid container spacing={2}>
                   {health.tableCounts?.map((t: any) => (
                     <Grid item xs={6} sm={4} md={3} key={t.tbl}>
-                      <Box sx={{ p: 2, bgcolor: '#F8FAFC', borderRadius: 1.5 }}>
+                      <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1.5 }}>
                         <Typography variant="caption" color="#6B7280">{t.tbl}</Typography>
                         <Typography variant="h6" sx={{ fontWeight: 700 }}>{Number(t.cnt).toLocaleString()}</Typography>
                       </Box>

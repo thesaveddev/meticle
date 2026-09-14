@@ -48,7 +48,7 @@ function getFrameworkStyle(frameworkName: string) {
   if (name.includes('ciw')) return { label: 'CIW', color: '#7C3AED' as const }
   if (name.includes('care inspectorate')) return { label: 'Care Inspectorate', color: '#059669' as const }
   if (name.includes('rqia')) return { label: 'RQIA', color: '#DC2626' as const }
-  return { label: frameworkName || 'Regulatory Framework', color: '#6B7280' as const }
+  return { label: frameworkName || 'Regulatory Framework', color: 'text.secondary' as const }
 }
 
 export default function CqcReadinessPage() {
@@ -415,7 +415,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
 
         {/* Top Actions */}
         {actions.length > 0 && (
-          <Paper sx={{ p: 3, mb: 3, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+          <Paper sx={{ p: 3, mb: 3, bgcolor: 'grey.50', border: '1px solid #E2E8F0' }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
               <ActionIcon sx={{ color: '#0F4C81' }} />
               <Typography variant="h6">What To Action Next</Typography>
@@ -509,7 +509,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
             </Stack>
             <Stack spacing={1}>
               {actionItems.map((a: any) => (
-                <Paper key={a.id} sx={{ p: 1.5, borderRadius: 1, border: '1px solid #E5E7EB' }}>
+                <Paper key={a.id} sx={{ p: 1.5, borderRadius: 1, border: '1px solid', borderColor: 'grey.200' }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Tooltip title={a.status === 'open' ? 'Start' : a.status === 'in_progress' ? 'Complete' : ''}>
@@ -574,7 +574,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                       <Typography variant="caption" sx={{ minWidth: 80, fontWeight: 600, fontSize: 11 }}>
                         {domain.label}
                       </Typography>
-                      <Box sx={{ flex: 1, height: 14, bgcolor: '#F1F5F9', borderRadius: 7, overflow: 'hidden', position: 'relative' }}>
+                      <Box sx={{ flex: 1, height: 14, bgcolor: 'grey.100', borderRadius: 7, overflow: 'hidden', position: 'relative' }}>
                         <Box sx={{
                           width: `${Math.max(domain.score, 3)}%`, height: '100%',
                           bgcolor: dr.color, borderRadius: 7,
@@ -594,7 +594,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
               </Paper>
 
               {aiResult.overall_assessment && (
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: '#FAF5FF' }}>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
                   <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Overall Assessment</Typography>
                   <Typography variant="body2" color="text.secondary">{aiResult.overall_assessment}</Typography>
                 </Paper>
@@ -627,7 +627,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                   <Typography variant="subtitle2" fontWeight={700}>Quick Wins</Typography>
                   <Stack spacing={1}>
                     {aiResult.quick_wins.map((item: string, i: number) => (
-                      <Box key={i} sx={{ p: 1.5, borderRadius: 1, bgcolor: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+                      <Box key={i} sx={{ p: 1.5, borderRadius: 1, bgcolor: 'success.light', border: '1px solid #BBF7D0' }}>
                         <Typography variant="body2">✓ {item}</Typography>
                       </Box>
                     ))}
@@ -686,7 +686,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                         {shareSending === channel.id ? (
                           <CircularProgress size={18} />
                         ) : (
-                          <SendIcon sx={{ fontSize: 18, color: '#9CA3AF' }} />
+                          <SendIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
                         )}
                       </ListItemButton>
                     ))}
@@ -746,7 +746,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                   <LinearProgress
                     variant="determinate"
                     value={domain.score}
-                    sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: '#E2E8F0', '& .MuiLinearProgress-bar': { bgcolor: domainRating.color } }}
+                    sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: 'grey.200', '& .MuiLinearProgress-bar': { bgcolor: domainRating.color } }}
                   />
                 </Box>
                 <IconButton sx={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: '0.2s' }} aria-label={isExpanded ? 'Collapse domain' : 'Expand domain'}>

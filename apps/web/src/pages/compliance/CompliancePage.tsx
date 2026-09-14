@@ -235,12 +235,12 @@ export default function CompliancePage() {
 
       {/* ── Alert banner ── */}
       {overallCompliance < 80 || pendingDocs > 0 || incompleteRequirements > 0 || nutritionConcerns > 0 ? (
-        <PremiumCard noBorder sx={{ p: 2.5, mb: 3, bgcolor: '#FEF2F2', border: 'none' }}>
+        <PremiumCard noBorder sx={{ p: 2.5, mb: 3, bgcolor: 'error.light', border: 'none' }}>
           <Stack spacing={1.5}>
             {overallCompliance < 80 && (
               <Stack direction="row" alignItems="center" justifyContent="space-between">
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: 'error.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <ErrorIcon sx={{ color: '#DC2626', fontSize: 18 }} />
                   </Box>
                   <Box>
@@ -249,13 +249,13 @@ export default function CompliancePage() {
                   </Box>
                 </Stack>
                 <Button size="small" variant="contained" onClick={() => navigate('/compliance/readiness')}
-                  sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, fontWeight: 600, fontSize: '0.75rem' }}>View Gaps</Button>
+                  sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#DC2626', '&:hover': { bgcolor: 'error.dark' }, fontWeight: 600, fontSize: '0.75rem' }}>View Gaps</Button>
               </Stack>
             )}
             {pendingDocs > 0 && (
               <Stack direction="row" alignItems="center" justifyContent="space-between">
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: '#FFF5D9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: 'warning.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <DocIcon sx={{ color: '#D97706', fontSize: 18 }} />
                   </Box>
                   <Box>
@@ -270,7 +270,7 @@ export default function CompliancePage() {
             {incompleteRequirements > 0 && (
               <Stack direction="row" alignItems="center" justifyContent="space-between">
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: '#FFF5D9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: 'warning.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <WarningIcon sx={{ color: '#D97706', fontSize: 18 }} />
                   </Box>
                   <Box>
@@ -278,9 +278,9 @@ export default function CompliancePage() {
                     <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
                       <Typography variant="caption" sx={{ color: '#78350F' }}>Click a requirement below to see which staff are missing it.</Typography>
                       <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: '#D97706' }} onClick={() => navigate('/compliance/training')}>Assign training</Button>
-                      <Typography variant="caption" sx={{ color: '#9CA3AF' }}>|</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>|</Typography>
                       <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: '#D97706' }} onClick={() => navigate('/compliance/competency')}>Run assessments</Button>
-                      <Typography variant="caption" sx={{ color: '#9CA3AF' }}>|</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>|</Typography>
                       <Button size="small" sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', textDecoration: 'underline', color: '#D97706' }} onClick={() => navigate('/compliance/identity')}>Upload docs</Button>
                     </Stack>
                   </Box>
@@ -316,8 +316,8 @@ export default function CompliancePage() {
           </Stack>
         </PremiumCard>
       ) : (
-        <PremiumCard noBorder sx={{ p: 2.5, mb: 3, bgcolor: '#ECFDF5', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <PremiumCard noBorder sx={{ p: 2.5, mb: 3, bgcolor: 'success.light', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: 'success.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CheckCircle sx={{ color: '#047857', fontSize: 18 }} />
           </Box>
           <Typography sx={{ fontWeight: 700, color: '#047857' }}>All compliance areas are on track, including nutrition.</Typography>
@@ -405,10 +405,10 @@ function SectionHeader({ label, count, expanded, onToggle, icon }: { label: stri
       sx={{ cursor: 'pointer', py: 1.5, '&:hover': { opacity: 0.8 } }}
     >
       <Stack direction="row" spacing={1} alignItems="center">
-        <Box sx={{ color: '#1A2332', display: 'flex' }}>{icon}</Box>
+        <Box sx={{ color: 'text.primary', display: 'flex' }}>{icon}</Box>
         <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>{label}</Typography>
         {count !== undefined && (
-          <Chip label={count} size="small" sx={{ bgcolor: '#E7EEF4', color: '#0F4C81', fontWeight: 700, minWidth: 28, height: 22, fontSize: '0.7rem' }} />
+          <Chip label={count} size="small" sx={{ bgcolor: 'grey.100', color: '#0F4C81', fontWeight: 700, minWidth: 28, height: 22, fontSize: '0.7rem' }} />
         )}
       </Stack>
       <IconButton size="small" sx={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: '0.2s', color: theme.palette.text.secondary }}>
@@ -529,14 +529,14 @@ function RequirementsSectionWithCollapse({ configs, records, membersData, expand
               <Typography variant="subtitle2" sx={{ color: '#047857', fontWeight: 700, mb: 1 }}>Completed ({selectedStats?.completeStaff.length || 0})</Typography>
               {selectedStats?.completeStaff.length ? selectedStats.completeStaff.map((s: any, i: number) => (
                 <Chip key={i} label={s.name} size="small" onClick={() => navigate(`/staff/${s.userId}`)}
-                  sx={{ mr: 0.5, mb: 0.5, cursor: 'pointer', bgcolor: '#D1FAE5', color: '#047857', fontWeight: 600, '&:hover': { bgcolor: '#A7F3D0' } }} />
+                  sx={{ mr: 0.5, mb: 0.5, cursor: 'pointer', bgcolor: 'success.light', color: '#047857', fontWeight: 600, '&:hover': { bgcolor: 'success.light' } }} />
               )) : <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>None</Typography>}
             </Box>
             <Box>
               <Typography variant="subtitle2" sx={{ color: '#D97706', fontWeight: 700, mb: 1 }}>Incomplete / Pending ({selectedStats?.incompleteStaff.length || 0})</Typography>
               {selectedStats?.incompleteStaff.length ? selectedStats.incompleteStaff.map((s: any, i: number) => (
                 <Chip key={i} label={s.name} size="small" onClick={() => navigate(`/staff/${s.userId}`)}
-                  sx={{ mr: 0.5, mb: 0.5, cursor: 'pointer', bgcolor: '#FEF3C7', color: '#92400E', fontWeight: 600, '&:hover': { bgcolor: '#FDE68A' } }} />
+                  sx={{ mr: 0.5, mb: 0.5, cursor: 'pointer', bgcolor: 'warning.light', color: '#92400E', fontWeight: 600, '&:hover': { bgcolor: 'warning.light' } }} />
               )) : <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>None</Typography>}
             </Box>
           </Stack>
@@ -623,7 +623,7 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
               Uploaded documents start as <strong>Pending</strong> until reviewed. Enable <strong>Auto-approve</strong> in Settings &gt; Organization to skip manual review.
             </Alert>
             <Button variant="contained" size="small" onClick={() => setOpen(true)}
-              sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' }, fontWeight: 600, whiteSpace: 'nowrap' }}>Upload</Button>
+              sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' }, fontWeight: 600, whiteSpace: 'nowrap' }}>Upload</Button>
           </Stack>
           <TableContainer>
             <Table>
@@ -656,11 +656,11 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
                             <Button size="small" variant="contained"
                               disabled={docStatusMutation.isPending}
                               onClick={() => docStatusMutation.mutate({ id: d.id, status: 'approved' })}
-                              sx={{ textTransform: 'none', borderRadius: '8px', bgcolor: '#047857', '&:hover': { bgcolor: '#065F46' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Approve</Button>
+                              sx={{ textTransform: 'none', borderRadius: '8px', bgcolor: '#047857', '&:hover': { bgcolor: 'success.dark' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Approve</Button>
                             <Button size="small" variant="contained"
                               disabled={docStatusMutation.isPending}
                               onClick={() => docStatusMutation.mutate({ id: d.id, status: 'rejected' })}
-                              sx={{ textTransform: 'none', borderRadius: '8px', bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Reject</Button>
+                              sx={{ textTransform: 'none', borderRadius: '8px', bgcolor: '#DC2626', '&:hover': { bgcolor: 'error.dark' }, fontSize: '0.7rem', minWidth: 60, py: 0.5 }}>Reject</Button>
                           </Stack>
                         )}
                       </TableCell>
@@ -700,7 +700,7 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
             <DialogActions sx={{ p: 3, pt: 0 }}>
               <Button onClick={() => setOpen(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
               <Button onClick={handleFormSubmit} variant="contained" disabled={uploadMutation.isPending}
-                sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}>
+                sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
                 {uploadMutation.isPending ? 'Uploading...' : 'Upload'}
               </Button>
             </DialogActions>
@@ -798,7 +798,7 @@ function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onT
             ))}
             <Box sx={{ flex: 1 }} />
             <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setOpen(true)}
-              sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' }, fontWeight: 600 }}>
+              sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' }, fontWeight: 600 }}>
               New DBS Check
             </Button>
           </Stack>
@@ -839,7 +839,7 @@ function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onT
                         {c.status === 'draft' && (
                           <Tooltip title="Submit to DBS provider">
                             <IconButton size="small" color="primary" onClick={() => submitMutation.mutate(c.id)} disabled={submitMutation.isPending}
-                              sx={{ color: '#0369A1', '&:hover': { bgcolor: '#DBEAFE' } }}>
+                              sx={{ color: '#0369A1', '&:hover': { bgcolor: 'info.light' } }}>
                               {submitMutation.isPending ? <Typography variant="caption">...</Typography> : <SubmitIcon fontSize="small" />}
                             </IconButton>
                           </Tooltip>
@@ -885,7 +885,7 @@ function DbsSectionWithCollapse({ expanded, onToggle }: { expanded: boolean; onT
             <DialogActions sx={{ p: 3, pt: 0 }}>
               <Button onClick={() => setOpen(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
               <Button variant="contained" onClick={handleCreate} disabled={createMutation.isPending}
-                sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}>
+                sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
                 {createMutation.isPending ? 'Creating...' : 'Create Check'}
               </Button>
             </DialogActions>

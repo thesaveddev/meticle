@@ -260,7 +260,7 @@ export default function AgenciesPage() {
               {agencies.length > rowsPerPage && <TablePagination component="div" count={agencies.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} rowsPerPageOptions={[rowsPerPage]} />}
             </TableContainer>
           )}
-          {selectedAgency && <Paper sx={{ mt: 3, p: 3, border: '1px solid #DBEAFE', borderRadius: 2, bgcolor: '#F8FAFC' }}>
+          {selectedAgency && <Paper sx={{ mt: 3, p: 3, border: '1px solid #DBEAFE', borderRadius: 2, bgcolor: 'grey.50' }}>
             <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={2} sx={{ mb: 2 }}><Box><Typography variant="overline" color="primary">Agency workspace</Typography><Typography variant="h5" fontWeight={800}>{selectedAgency.name}</Typography><Typography variant="body2" color="text.secondary">{selectedAgency.address || 'No address recorded'} · {selectedAgency.contact_name || 'No contact person'}</Typography></Box><Button onClick={() => setSelectedAgency(null)}>Close workspace</Button></Stack>
             <Stack direction="row" spacing={1} sx={{ mb: 2 }}><Chip label={selectedAgency.status || 'Active'} color="success" /><Chip icon={<StarIcon />} label={`${selectedAgency.rating || '—'} agency rating`} variant="outlined" /><Chip label={`${selectedAgency.active_workers || selectedAgencyWorkers.length} workers`} variant="outlined" /></Stack>
             <Tabs value={agencyView} onChange={(_, v) => setAgencyView(v)}><Tab value="overview" label="Details" /><Tab value="workers" label={`Workers (${selectedAgencyWorkers.length})`} /><Tab value="rates" label={`Rates (${selectedAgencyRates.length})`} /></Tabs>
@@ -546,10 +546,10 @@ export default function AgenciesPage() {
                           onChange={() => handleToggleCoverage(h.id, h.agency_covered)}
                           disabled={updatingCoverage === h.id}
                           sx={{ '& .MuiToggleButton-root': { px: 1, py: 0.2, fontSize: '0.7rem', lineHeight: 1, textTransform: 'none', fontWeight: 700, border: '1px solid #D1D5DB' } }}>
-                          <ToggleButton value="covered" sx={{ bgcolor: h.agency_covered ? '#D1FAE5' : 'transparent', color: h.agency_covered ? '#065F46' : '#9CA3AF', '&:hover': { bgcolor: '#A7F3D0' } }}>
+                          <ToggleButton value="covered" sx={{ bgcolor: h.agency_covered ? '#D1FAE5' : 'transparent', color: h.agency_covered ? '#065F46' : '#9CA3AF', '&:hover': { bgcolor: 'success.light' } }}>
                             Covered
                           </ToggleButton>
-                          <ToggleButton value="uncovered" sx={{ bgcolor: !h.agency_covered ? '#FEF3C7' : 'transparent', color: !h.agency_covered ? '#92400E' : '#9CA3AF', '&:hover': { bgcolor: '#FDE68A' } }}>
+                          <ToggleButton value="uncovered" sx={{ bgcolor: !h.agency_covered ? '#FEF3C7' : 'transparent', color: !h.agency_covered ? '#92400E' : '#9CA3AF', '&:hover': { bgcolor: 'warning.light' } }}>
                             Uncovered
                           </ToggleButton>
                         </ToggleButtonGroup>

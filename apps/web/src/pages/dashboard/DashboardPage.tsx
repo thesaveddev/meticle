@@ -180,16 +180,16 @@ export default function DashboardPage() {
 
   const statCards = isStaff
     ? [
-        { label: 'My Shifts Today', value: String(todayRota.length), color: '#1A2332', icon: <ScheduleIcon /> },
+        { label: 'My Shifts Today', value: String(todayRota.length), color: 'text.primary', icon: <ScheduleIcon /> },
       ]
     : [
-        { label: 'Total Staff', value: String(stats?.total_staff ?? 0), color: '#1A2332', icon: <PeopleIcon />, path: '/staff' },
-        { label: 'Active People', value: String(stats?.active_people ?? 0), color: '#1A2332', icon: <HomeIcon />, path: '/people' },
+        { label: 'Total Staff', value: String(stats?.total_staff ?? 0), color: 'text.primary', icon: <PeopleIcon />, path: '/staff' },
+        { label: 'Active People', value: String(stats?.active_people ?? 0), color: 'text.primary', icon: <HomeIcon />, path: '/people' },
         { label: 'Staff on Duty', value: String(stats?.staff_on_duty ?? 0), color: '#10B981', icon: <BadgeIcon /> },
         { label: 'Compliance Rate', value: `${stats?.compliance_rate ?? 0}%`, color: '#10B981', icon: <VerifiedIcon />, path: '/compliance' },
         { label: 'Open Shifts', value: String(stats?.open_shifts ?? 0), color: '#D97706', icon: <AlertIcon />, path: '/shift-marketplace' },
         { label: 'Alerts', value: String(stats?.open_incidents ?? 0), color: (stats?.open_incidents ?? 0) > 0 ? '#DC2626' : '#10B981', icon: <WarningIcon />, path: '/incidents' },
-        { label: 'Agency Saved', value: `£${stats?.agency_saved ?? 0}`, color: '#1A2332', icon: <TrendingUpIcon /> },
+        { label: 'Agency Saved', value: `£${stats?.agency_saved ?? 0}`, color: 'text.primary', icon: <TrendingUpIcon /> },
       ]
 
   const onboardSteps = [
@@ -244,7 +244,7 @@ export default function DashboardPage() {
               borderRadius: 3,
               mb: 3,
               bgcolor: theme.palette.mode === 'dark' ? '#334155' : '#E5E7EB',
-              '& .MuiLinearProgress-bar': { bgcolor: '#1A2332' },
+              '& .MuiLinearProgress-bar': { bgcolor: 'text.primary' },
             }}
           />
           <Grid container spacing={2}>
@@ -416,14 +416,14 @@ export default function DashboardPage() {
           <SectionHeader
             title="Compliance at a Glance"
             action={
-              <Button size="small" endIcon={<ArrowIcon fontSize="small" />} onClick={() => navigate('/compliance')} sx={{ color: '#1A2332', fontWeight: 700, textTransform: 'none' }}>
+              <Button size="small" endIcon={<ArrowIcon fontSize="small" />} onClick={() => navigate('/compliance')} sx={{ color: 'text.primary', fontWeight: 700, textTransform: 'none' }}>
                 View Full Report
               </Button>
             }
           />
           <Grid container spacing={2.5}>
             {[
-              { label: 'Staff Compliant', value: widgets.compliance_breakdown.compliant_count, color: '#1A2332' },
+              { label: 'Staff Compliant', value: widgets.compliance_breakdown.compliant_count, color: 'text.primary' },
               { label: 'Below Threshold', value: widgets.compliance_breakdown.below_threshold, color: widgets.compliance_breakdown.below_threshold > 0 ? '#DC2626' : '#10B981' },
               { label: 'Competency Due', value: widgets.competency_due, color: widgets.competency_due > 0 ? '#D97706' : '#10B981' },
               { label: 'Open Severe Incidents', value: widgets.open_severe_incidents, color: widgets.open_severe_incidents > 0 ? '#DC2626' : '#10B981' },
@@ -482,7 +482,7 @@ export default function DashboardPage() {
               </Box>
               <Divider sx={{ my: 2 }} />
               <Box sx={{ textAlign: 'center' }}>
-                <Button size="small" endIcon={<ArrowIcon fontSize="small" />} sx={{ color: '#1A2332', fontWeight: 700 }} onClick={() => navigate('/compliance')}>
+                <Button size="small" endIcon={<ArrowIcon fontSize="small" />} sx={{ color: 'text.primary', fontWeight: 700 }} onClick={() => navigate('/compliance')}>
                   View Full Report
                 </Button>
               </Box>

@@ -125,7 +125,7 @@ export default function InsightsPage() {
           { label: 'Overtime (Month)', value: `${overview?.overtime_hours_month ?? 0}h`, icon: <TrendIcon />, color: '#0F4C81' },
         ].map((item, i) => (
           <Grid item xs={6} md={4} lg={2} key={i}>
-            <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+            <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <Box sx={{ color: item.color }}>{item.icon}</Box>
                 <Box>
@@ -141,7 +141,7 @@ export default function InsightsPage() {
       <Grid container spacing={3}>
         {/* Staffing */}
         <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>Staff by Role</Typography>
             {staffingByRole.length === 0 ? (
               <Typography variant="body2" color="#9CA3AF">No staff data</Typography>
@@ -194,7 +194,7 @@ export default function InsightsPage() {
 
         {/* Compliance */}
         <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>Compliance</Typography>
             <Stack spacing={2}>
               <Box>
@@ -207,7 +207,7 @@ export default function InsightsPage() {
                 <LinearProgress
                   variant="determinate"
                   value={complianceOverall?.rate ?? 0}
-                  sx={{ height: 8, borderRadius: 4, bgcolor: '#E5E7EB', '& .MuiLinearProgress-bar': { bgcolor: (complianceOverall?.rate ?? 0) >= complianceThreshold ? '#16A34A' : '#DC2626' } }}
+                  sx={{ height: 8, borderRadius: 4, bgcolor: 'grey.200', '& .MuiLinearProgress-bar': { bgcolor: (complianceOverall?.rate ?? 0) >= complianceThreshold ? '#16A34A' : '#DC2626' } }}
                 />
               </Box>
               <Typography variant="caption" color="#6B7280">
@@ -241,7 +241,7 @@ export default function InsightsPage() {
                             <LinearProgress
                               variant="determinate"
                               value={c.total > 0 ? (c.completed / c.total) * 100 : 0}
-                              sx={{ width: 60, height: 6, borderRadius: 3, bgcolor: '#E5E7EB', '& .MuiLinearProgress-bar': { bgcolor: '#0F4C81' } }}
+                              sx={{ width: 60, height: 6, borderRadius: 3, bgcolor: 'grey.200', '& .MuiLinearProgress-bar': { bgcolor: '#0F4C81' } }}
                             />
                           </Stack>
                         </TableCell>
@@ -272,7 +272,7 @@ export default function InsightsPage() {
 
         {/* Leave */}
         <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>Leave by Type (This Year)</Typography>
             {leaveByType.length === 0 ? (
               <Typography variant="body2" color="#9CA3AF">No leave data</Typography>
@@ -361,7 +361,7 @@ export default function InsightsPage() {
 
         {/* Rota */}
         <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>Shift Status (Last 30 Days)</Typography>
             {shiftStatuses.length === 0 ? (
               <Typography variant="body2" color="#9CA3AF">No shift data</Typography>
@@ -454,7 +454,7 @@ export default function InsightsPage() {
 
         {/* Outcomes */}
         <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
               <OutcomeIcon sx={{ color: '#7C3AED' }} />
               <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Care Outcomes</Typography>
@@ -476,11 +476,11 @@ export default function InsightsPage() {
                           {outcomes.goal_completion_by_domain.map(d => (
                             <TableRow key={d.cqc_domain}>
                               <TableCell><Chip label={d.cqc_domain} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /></TableCell>
-                              <TableCell align="right"><Chip label={d.completed} size="small" sx={{ bgcolor: '#DCFCE7', color: '#16A34A', fontWeight: 700 }} /></TableCell>
+                              <TableCell align="right"><Chip label={d.completed} size="small" sx={{ bgcolor: 'success.light', color: '#16A34A', fontWeight: 700 }} /></TableCell>
                               <TableCell align="right">{d.total}</TableCell>
                               <TableCell align="right">
                                 <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
-                                  <LinearProgress variant="determinate" value={d.avg_progress || 0} sx={{ width: 60, height: 5, borderRadius: 3, bgcolor: '#F1F5F9', '& .MuiLinearProgress-bar': { bgcolor: d.avg_progress >= 60 ? '#16A34A' : '#D97706' } }} />
+                                  <LinearProgress variant="determinate" value={d.avg_progress || 0} sx={{ width: 60, height: 5, borderRadius: 3, bgcolor: 'grey.100', '& .MuiLinearProgress-bar': { bgcolor: d.avg_progress >= 60 ? '#16A34A' : '#D97706' } }} />
                                   <Typography variant="caption" sx={{ fontWeight: 700, minWidth: 30 }}>{d.avg_progress || 0}%</Typography>
                                 </Stack>
                               </TableCell>
@@ -493,7 +493,7 @@ export default function InsightsPage() {
                   </>
                 )}
                 {outcomes.overdue_reviews > 0 && (
-                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2, p: 1.5, bgcolor: '#FFF7ED', borderRadius: 1.5 }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2, p: 1.5, bgcolor: 'warning.light', borderRadius: 1.5 }}>
                     <WarningAmberIcon sx={{ color: '#DC2626', fontSize: 18 }} />
                     <Typography variant="body2" sx={{ fontWeight: 700, color: '#DC2626' }}>{outcomes.overdue_reviews} overdue goal reviews</Typography>
                   </Stack>
@@ -505,7 +505,7 @@ export default function InsightsPage() {
                       {outcomes.wellbeing_by_domain.map(w => (
                         <Stack key={w.domain} direction="row" alignItems="center" spacing={1}>
                           <Typography variant="body2" sx={{ minWidth: 80, textTransform: 'capitalize', fontSize: '0.8rem' }}>{w.domain}</Typography>
-                          <LinearProgress variant="determinate" value={(w.avg_score || 0) * 10} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: '#F1F5F9', '& .MuiLinearProgress-bar': { bgcolor: (w.avg_score || 0) >= 8 ? '#16A34A' : (w.avg_score || 0) >= 5 ? '#D97706' : '#DC2626' } }} />
+                          <LinearProgress variant="determinate" value={(w.avg_score || 0) * 10} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'grey.100', '& .MuiLinearProgress-bar': { bgcolor: (w.avg_score || 0) >= 8 ? '#16A34A' : (w.avg_score || 0) >= 5 ? '#D97706' : '#DC2626' } }} />
                           <Typography variant="caption" sx={{ fontWeight: 700, minWidth: 35 }}>{w.avg_score}/10</Typography>
                         </Stack>
                       ))}

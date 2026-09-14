@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 export default function UnauthorizedPage() {
   const navigate = useNavigate()
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
       <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
         <Typography variant="h1" sx={{ fontWeight: 900, color: '#0F4C81', fontSize: '6rem', mb: 2 }}>403</Typography>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Access Denied</Typography>

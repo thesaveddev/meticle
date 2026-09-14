@@ -61,22 +61,22 @@ export default function ResetPasswordPage() {
                 Meticle
               </Typography>
             </Box>
-            <Box sx={{ p: 3, borderRadius: 2, bgcolor: '#FEF2F2', border: '1px solid #FECACA' }}>
+            <Box sx={{ p: 3, borderRadius: 2, bgcolor: 'error.light', border: '1px solid #FECACA' }}>
               <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 600, mb: 1 }}>Invalid reset link</Typography>
               <Typography variant="body2" sx={{ color: '#991B1B' }}>
                 This link is invalid or has expired. Please request a new password reset.
               </Typography>
             </Box>
             <Button fullWidth variant="outlined" onClick={() => navigate('/forgot-password')}
-              sx={{ mt: 3, borderColor: '#E5E7EB', color: '#374151', fontWeight: 600, textTransform: 'none', borderRadius: 2, py: 1.5, '&:hover': { borderColor: '#D1D5DB', bgcolor: '#F9FAFB' } }}>
+              sx={{ mt: 3, borderColor: '#E5E7EB', color: 'text.primary', fontWeight: 600, textTransform: 'none', borderRadius: 2, py: 1.5, '&:hover': { borderColor: '#D1D5DB', bgcolor: 'grey.50' } }}>
               Request new reset link
             </Button>
           </Container>
         </Box>
-        <Box sx={{ flex: { xs: 0, md: 1.2, lg: 1.6 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: '#F8FAFC', p: 8, alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid #E5E7EB' }}>
+        <Box sx={{ flex: { xs: 0, md: 1.2, lg: 1.6 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: 'grey.50', p: 8, alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid #E5E7EB' }}>
           <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>Link expired?</Typography>
-            <Typography sx={{ color: '#6B7280', lineHeight: 1.7 }}>
+            <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
               Reset links expire after 1 hour for security. Request a new one and check your inbox.
             </Typography>
           </Box>
@@ -100,18 +100,18 @@ export default function ResetPasswordPage() {
               <LockIcon sx={{ fontSize: 22 }} />
             </Box>
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>Choose a new password</Typography>
-            <Typography sx={{ color: '#6B7280', lineHeight: 1.6 }}>Use a password you do not use anywhere else.</Typography>
+            <Typography sx={{ color: 'text.secondary', lineHeight: 1.6 }}>Use a password you do not use anywhere else.</Typography>
           </Box>
 
           {error && (
-            <Box sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: '#FEF2F2', border: '1px solid #FECACA' }}>
+            <Box sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: 'error.light', border: '1px solid #FECACA' }}>
               <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 500 }}>{error}</Typography>
             </Box>
           )}
 
           {success ? (
             <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3, p: 2.5, borderRadius: 2, bgcolor: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3, p: 2.5, borderRadius: 2, bgcolor: 'success.light', border: '1px solid #BBF7D0' }}>
                 <CheckIcon sx={{ color: '#16A34A', fontSize: 22 }} />
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: '#166534' }}>Password updated</Typography>
@@ -119,7 +119,7 @@ export default function ResetPasswordPage() {
                 </Box>
               </Box>
               <Button fullWidth variant="outlined" onClick={() => navigate('/login')}
-                sx={{ borderColor: '#E5E7EB', color: '#374151', fontWeight: 600, textTransform: 'none', borderRadius: 2, py: 1.5, '&:hover': { borderColor: '#D1D5DB', bgcolor: '#F9FAFB' } }}>
+                sx={{ borderColor: '#E5E7EB', color: 'text.primary', fontWeight: 600, textTransform: 'none', borderRadius: 2, py: 1.5, '&:hover': { borderColor: '#D1D5DB', bgcolor: 'grey.50' } }}>
                 Sign in now
               </Button>
             </Box>
@@ -127,21 +127,21 @@ export default function ResetPasswordPage() {
             <Box component="form" onSubmit={handleSubmit}>
               <Stack spacing={3}>
                 <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>New password</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>New password</Typography>
                   <TextField fullWidth type={showNewPassword ? 'text' : 'password'} placeholder="••••••••" variant="outlined"
                     value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required autoFocus autoComplete="new-password"
                     InputProps={{
-                      startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: '#9CA3AF', fontSize: 20 }} /></InputAdornment>),
+                      startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment>),
                       endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowNewPassword(!showNewPassword)} edge="end" size="small">{showNewPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</IconButton></InputAdornment>),
                     }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, '&.Mui-focused fieldset': { borderColor: '#0F4C81' } } }} />
                 </Box>
                 <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>Confirm password</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>Confirm password</Typography>
                   <TextField fullWidth type={showConfirmPassword ? 'text' : 'password'} placeholder="••••••••" variant="outlined"
                     value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required autoComplete="new-password"
                     InputProps={{
-                      startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: '#9CA3AF', fontSize: 20 }} /></InputAdornment>),
+                      startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment>),
                       endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end" size="small">{showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}</IconButton></InputAdornment>),
                     }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, '&.Mui-focused fieldset': { borderColor: '#0F4C81' } } }} />
@@ -151,7 +151,7 @@ export default function ResetPasswordPage() {
                   {loading ? <CircularProgress size={24} color="inherit" /> : 'Save new password'}
                 </Button>
                 <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
-                  <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Remember your password?{' '}
                     <Link onClick={() => navigate('/login')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
                   </Typography>
@@ -161,13 +161,13 @@ export default function ResetPasswordPage() {
           )}
         </Container>
       </Box>
-      <Box sx={{ flex: { xs: 0, md: 1.2, lg: 1.6 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: '#F8FAFC', p: 8, alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid #E5E7EB' }}>
+      <Box sx={{ flex: { xs: 0, md: 1.2, lg: 1.6 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: 'grey.50', p: 8, alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid #E5E7EB' }}>
         <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
           <Typography variant="body2" sx={{ color: '#0F4C81', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', mb: 2 }}>
             Account security
           </Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>A private moment for your account</Typography>
-          <Typography sx={{ color: '#6B7280', lineHeight: 1.7 }}>
+          <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
             This reset link is single-use and expires after one hour. Your password is never shown to anyone at Meticle.
           </Typography>
         </Box>

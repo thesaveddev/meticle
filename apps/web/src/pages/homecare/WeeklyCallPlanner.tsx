@@ -86,7 +86,7 @@ export default function WeeklyCallPlanner() {
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Weekly Call Planner</Typography>
-          <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.5 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
             {dayName(weekFrom)} {dayNum(weekFrom)} - {dayName(weekTo)} {dayNum(weekTo)} · {totalCalls} calls · {assignedCalls} assigned · {unassignedCalls} unassigned
           </Typography>
         </Box>
@@ -125,7 +125,7 @@ export default function WeeklyCallPlanner() {
             {HOURS.map(hour => (
               <Stack key={hour} direction="row" sx={{ borderTop: '1px solid #F3F4F6' }}>
                 <Box sx={{ width: 60, flexShrink: 0, py: 1, px: 1, textAlign: 'right' }}>
-                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{String(hour).padStart(2, '0')}:00</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>{String(hour).padStart(2, '0')}:00</Typography>
                 </Box>
                 {weekDays.map(d => {
                   const dayVisits = (dayMap.get(d) || []).filter((v: any) => {

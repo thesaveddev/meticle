@@ -489,7 +489,7 @@ export default function StaffDirectoryPage() {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => setAddDialogOpen(true)}
-              sx={{ textTransform: 'none', borderRadius: '12px', fontWeight: 600, px: 2.5, py: 1, bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}
+              sx={{ textTransform: 'none', borderRadius: '12px', fontWeight: 600, px: 2.5, py: 1, bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}
             >
               Add staff member
             </Button>
@@ -504,7 +504,7 @@ export default function StaffDirectoryPage() {
       {/* ── Stats row ── */}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: '#E7EEF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <GroupIcon sx={{ fontSize: 20, color: '#0F4C81' }} />
           </Box>
           <Box>
@@ -513,7 +513,7 @@ export default function StaffDirectoryPage() {
           </Box>
         </PremiumCard>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: '#E9F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'success.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <PersonIcon sx={{ fontSize: 20, color: '#047857' }} />
           </Box>
           <Box>
@@ -522,7 +522,7 @@ export default function StaffDirectoryPage() {
           </Box>
         </PremiumCard>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: '#E9F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'success.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <PeopleIcon sx={{ fontSize: 20, color: '#047857' }} />
           </Box>
           <Box>
@@ -782,7 +782,7 @@ export default function StaffDirectoryPage() {
                   {locationList.map((l: any) => (<MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>))}
                 </Select>
               </FormControl>
-              <Button variant="contained" onClick={handleAddEntry} sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' }, minWidth: 64, py: 1.05 }}>Add</Button>
+              <Button variant="contained" onClick={handleAddEntry} sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' }, minWidth: 64, py: 1.05 }}>Add</Button>
             </Stack>
 
             <input
@@ -821,7 +821,7 @@ export default function StaffDirectoryPage() {
                         <Chip
                           label={ROLE_BADGE[entry.role] || entry.role}
                           size="small"
-                          sx={{ height: 20, fontSize: '0.7rem', bgcolor: '#E7EEF4', color: '#0F4C81', fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'grey.100', color: '#0F4C81', fontWeight: 700 }}
                         />
                         {entry.location_id && (() => {
                           const loc = locationList.find((l: any) => l.id === entry.location_id)
@@ -844,7 +844,7 @@ export default function StaffDirectoryPage() {
             variant="contained"
             onClick={handleSendInvitations}
             disabled={inviteEntries.length === 0 || inviteMutation.isPending}
-            sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}
+            sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}
           >
             {inviteMutation.isPending ? 'Sending...' : `Send Invitations (${inviteEntries.length})`}
           </Button>
@@ -872,7 +872,7 @@ export default function StaffDirectoryPage() {
         <DialogActions sx={{ p: 3, pt: 0 }}>
           <Button onClick={() => setChangeRoleOpen(false)} sx={{ textTransform: 'none', borderRadius: '10px', color: theme.palette.text.secondary }}>Cancel</Button>
           <Button variant="contained" onClick={handleSaveRole} disabled={changeRoleMutation.isPending}
-            sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: '#1A2332', '&:hover': { bgcolor: '#263347' } }}>
+            sx={{ textTransform: 'none', borderRadius: '10px', bgcolor: 'text.primary', '&:hover': { bgcolor: '#263347' } }}>
             {changeRoleMutation.isPending ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>

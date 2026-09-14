@@ -83,7 +83,7 @@ export default function LearningCenterPage() {
       <Box sx={{ flex: 1, overflow: 'auto', pb: 12 }}>
         {Object.entries(groupedByCategory).map(([category, cats]) => (
           <Box key={category}>
-            <Typography variant="caption" sx={{ px: 2, py: 1, display: 'block', color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.65rem' }}>
+            <Typography variant="caption" sx={{ px: 2, py: 1, display: 'block', color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.65rem' }}>
               {category}
             </Typography>
             {cats.map(section => {
@@ -97,7 +97,7 @@ export default function LearningCenterPage() {
                       px: 2, py: 0.5,
                       borderLeft: isSelected ? '3px solid #0F4C81' : '3px solid transparent',
                       bgcolor: isSelected ? '#EEF2FF' : 'transparent',
-                      '&:hover': { bgcolor: '#F3F4F6' },
+                      '&:hover': { bgcolor: 'grey.100' },
                     }}
                   >
                     <ListItemIcon sx={{ minWidth: 28, fontSize: 18 }}>{section.icon}</ListItemIcon>
@@ -105,7 +105,7 @@ export default function LearningCenterPage() {
                       primary={section.title}
                       primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: isSelected ? 700 : 500 }}
                     />
-                    {isExpanded ? <ExpandLess fontSize="small" sx={{ color: '#9CA3AF' }} /> : <ExpandMore fontSize="small" sx={{ color: '#9CA3AF' }} />}
+                    {isExpanded ? <ExpandLess fontSize="small" sx={{ color: 'text.secondary' }} /> : <ExpandMore fontSize="small" sx={{ color: 'text.secondary' }} />}
                   </ListItemButton>
                   <Collapse in={isExpanded}>
                     {section.subsections.map(ss => {
@@ -118,7 +118,7 @@ export default function LearningCenterPage() {
                             pl: 5, py: 0.25,
                             borderLeft: subSelected ? '3px solid #0F4C81' : '3px solid transparent',
                             bgcolor: subSelected ? '#EEF2FF' : 'transparent',
-                            '&:hover': { bgcolor: '#F3F4F6' },
+                            '&:hover': { bgcolor: 'grey.100' },
                           }}
                         >
                           <ListItemText
@@ -146,7 +146,7 @@ export default function LearningCenterPage() {
   return (
     <>
       <PageMeta title="Learning Center | MeticleCare" description="Learn how to use MeticleCare for care planning, staff management, medication records, compliance and daily operations. Guides and resources for care providers." canonicalPath="/learn" />
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F9FAFB' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'grey.50' }}>
       {/* Mobile app bar */}
       {isMobile && (
         <AppBar position="fixed" sx={{ bgcolor: '#0F4C81', zIndex: 1201 }}>
@@ -196,20 +196,20 @@ export default function LearningCenterPage() {
 
             <Divider sx={{ mb: 3 }} />
 
-            <Paper sx={{ p: 4, borderRadius: 2, border: '1px solid #E5E7EB' }}>
+            <Paper sx={{ p: 4, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
               <Box
                 className="learn-content"
                 dangerouslySetInnerHTML={{ __html: currentSubsection.content }}
                 sx={{
                   '& h2': { fontSize: '1.3rem', fontWeight: 700, color: '#0F4C81', mt: 4, mb: 1.5 },
                   '& h3': { fontSize: '1.1rem', fontWeight: 700, mt: 3, mb: 1 },
-                  '& p': { lineHeight: 1.8, mb: 1.5, color: '#374151', fontSize: '0.95rem' },
+                  '& p': { lineHeight: 1.8, mb: 1.5, color: 'text.primary', fontSize: '0.95rem' },
                   '& strong': { color: '#111827' },
                   '& ul, & ol': { pl: 2.5, mb: 2 },
-                  '& li': { mb: 0.5, lineHeight: 1.7, color: '#374151', fontSize: '0.95rem' },
+                  '& li': { mb: 0.5, lineHeight: 1.7, color: 'text.primary', fontSize: '0.95rem' },
                   '& ul li strong': { color: '#0F4C81' },
-                  '& code': { bgcolor: '#F3F4F6', px: 0.75, py: 0.25, borderRadius: 0.5, fontSize: '0.85rem', fontFamily: 'monospace' },
-                  '& em': { fontStyle: 'italic', color: '#6B7280' },
+                  '& code': { bgcolor: 'grey.100', px: 0.75, py: 0.25, borderRadius: 0.5, fontSize: '0.85rem', fontFamily: 'monospace' },
+                  '& em': { fontStyle: 'italic', color: 'text.secondary' },
                 }}
               />
             </Paper>

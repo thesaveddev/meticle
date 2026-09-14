@@ -5,7 +5,7 @@ import { Security as ShieldIcon, CheckCircle, Refresh as RefreshIcon, OpenInNew 
 import api from '../../services/api'
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
-  not_started: { label: 'Not Started', color: '#9CA3AF' },
+  not_started: { label: 'Not Started', color: 'text.secondary' },
   in_progress: { label: 'In Progress', color: '#F59E0B' },
   submitted: { label: 'Submitted', color: '#6366F1' },
   standards_met: { label: 'Standards Met', color: '#16A34A' },
@@ -13,7 +13,7 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
 }
 
 const STD_STATUS = [
-  { value: 'not_assessed', label: 'Not Assessed', color: '#9CA3AF' },
+  { value: 'not_assessed', label: 'Not Assessed', color: 'text.secondary' },
   { value: 'partially', label: 'Partially Met', color: '#F59E0B' },
   { value: 'met', label: 'Met', color: '#16A34A' },
   { value: 'exceeded', label: 'Exceeded', color: '#6366F1' },
@@ -146,7 +146,7 @@ export default function DSPTPage() {
         </Card>
       </Box>
 
-      <Paper sx={{ p: 2.5, mb: 3, bgcolor: '#F0F7FF', border: '1px solid #B3D4FC', borderRadius: 2 }}>
+      <Paper sx={{ p: 2.5, mb: 3, bgcolor: 'info.light', border: '1px solid #B3D4FC', borderRadius: 2 }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <ExternalIcon sx={{ color: '#005EB8' }} />
           <Typography variant="body2" sx={{ flex: 1 }}>
@@ -189,7 +189,7 @@ export default function DSPTPage() {
                         <Paper key={std.standard_key} variant="outlined" sx={{
                           p: 1.75, mb: 0.75, cursor: 'pointer', transition: 'all 0.1s',
                           borderLeft: `3px solid ${theme.color}`,
-                          '&:hover': { bgcolor: '#F8FAFC', borderColor: '#B3D4FC' }
+                          '&:hover': { bgcolor: 'grey.50', borderColor: '#B3D4FC' }
                         }} onClick={() => setEditing({
                           key: std.standard_key,
                           label: `${std.standard_key}: ${std.label}`,
@@ -216,7 +216,7 @@ export default function DSPTPage() {
                   </Box>
                 )
               })}
-              <Box sx={{ mt: 2, p: 1.5, bgcolor: '#FAFAFA', borderRadius: 1 }}>
+              <Box sx={{ mt: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
                 <Typography variant="caption" color="text.secondary">
                   Click any standard to update its status and add evidence notes. Once submitted on the official DSPT portal, mark this assessment as "Submitted".
                 </Typography>
@@ -227,7 +227,7 @@ export default function DSPTPage() {
       )}
 
       {!active && (
-        <Paper sx={{ p: 6, textAlign: 'center', bgcolor: '#FAFAFA', border: '2px dashed #D1D5DB' }}>
+        <Paper sx={{ p: 6, textAlign: 'center', bgcolor: 'grey.50', border: '2px dashed #D1D5DB' }}>
           <ShieldIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>No Active Assessment</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -241,7 +241,7 @@ export default function DSPTPage() {
       )}
 
       {active && active.status === 'submitted' && (
-        <Paper sx={{ p: 3, mt: 3, bgcolor: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 2 }}>
+        <Paper sx={{ p: 3, mt: 3, bgcolor: 'success.light', border: '1px solid #86EFAC', borderRadius: 2 }}>
           <Stack direction="row" spacing={1.5} alignItems="center">
             <CheckCircle sx={{ color: '#16A34A' }} />
             <Box>

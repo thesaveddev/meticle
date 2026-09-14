@@ -43,7 +43,7 @@ export default function PayrollExportPage() {
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Payroll Export</Typography>
-          <Typography variant="body2" sx={{ color: '#6B7280', mt: 0.5 }}>Export carer timesheets to your payroll provider</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Export carer timesheets to your payroll provider</Typography>
         </Box>
         <Button variant="contained" startIcon={<DownloadIcon />} onClick={async () => {
           try {
@@ -69,17 +69,17 @@ export default function PayrollExportPage() {
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-        <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F4C81' }}>{totalHours.toFixed(1)}</Typography>
-          <Typography variant="body2" sx={{ color: '#6B7280' }}>Total hours</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total hours</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#10b981' }}>{money(totalPay)}</Typography>
-          <Typography variant="body2" sx={{ color: '#6B7280' }}>Total pay</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total pay</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
           <Typography variant="h4" sx={{ fontWeight: 800 }}>{money(totalMileage)}</Typography>
-          <Typography variant="body2" sx={{ color: '#6B7280' }}>Total mileage</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total mileage</Typography>
         </Paper>
       </Stack>
 
@@ -90,7 +90,7 @@ export default function PayrollExportPage() {
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
       ) : (
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2 }}>
+        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
           <Table>
             <TableHead>
               <TableRow>
@@ -104,7 +104,7 @@ export default function PayrollExportPage() {
             </TableHead>
             <TableBody>
               {timesheets.length === 0 ? (
-                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: '#6B7280' }}>No timesheets for this period</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>No timesheets for this period</TableCell></TableRow>
               ) : timesheets.map((t: any) => (
                 <TableRow key={t.carer_id || t.id} hover>
                   <TableCell>{t.staff_name || '—'}</TableCell>

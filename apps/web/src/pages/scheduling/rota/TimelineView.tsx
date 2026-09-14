@@ -107,7 +107,7 @@ export default function TimelineView(props: RotaViewProps) {
         <Box sx={{ position: 'relative', height: 22, mb: 0.5 }}>
           {HOURS.map(h => (
             <Box key={h} sx={{ position: 'absolute', left: h * PIXELS_PER_HOUR - 12, top: 0, width: 24, textAlign: 'center' }}>
-              <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#6B7280' }}>{h}:00</Typography>
+              <Typography variant="caption" sx={{ fontSize: '0.55rem', color: 'text.secondary' }}>{h}:00</Typography>
             </Box>
           ))}
         </Box>
@@ -158,7 +158,7 @@ export default function TimelineView(props: RotaViewProps) {
               {/* Lane background */}
               <Box sx={{
                 position: 'absolute', top: 0, left: 0, right: 0, height: laneContainerHeight,
-                bgcolor: '#FBFBFA', borderRadius: 1, border: '1px solid #EEF1F4',
+                bgcolor: 'grey.50', borderRadius: 1, border: '1px solid #EEF1F4',
               }} />
 
               {/* Shift bars (above the add zone so they stay clickable) */}

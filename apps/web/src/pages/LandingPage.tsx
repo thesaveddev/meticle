@@ -167,7 +167,7 @@ Keep care records, medication, staffing and compliance in one working view — b
                     transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease',
                   }}
               >
-                <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E0D9CA`, bgcolor: '#FFFFFF' }}>
+                <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E0D9CA`, bgcolor: 'background.paper' }}>
                   <img src={HERO_IMAGE} alt="MeticleCare dashboard showing a person's daily support plan and medication administration chart" width="1280" height="854" fetchPriority="high" style={{ display: 'block', width: '100%', height: 'auto' }} />
                 </Box>
               </Box>
@@ -184,7 +184,7 @@ A clear working record for the people you support — and a calmer day for the t
       <Box
         component="section"
         aria-label="Standards MeticleCare is built for"
-        sx={{ bgcolor: '#FFFFFF', py: { xs: 5, md: 5.5 }, borderTop: `1px solid ${HAIRLINE}`, borderBottom: `1px solid ${HAIRLINE}` }}
+        sx={{ bgcolor: 'background.paper', py: { xs: 5, md: 5.5 }, borderTop: `1px solid ${HAIRLINE}`, borderBottom: `1px solid ${HAIRLINE}` }}
       >
         <Container maxWidth="lg">
           <Typography
@@ -255,7 +255,7 @@ A clear working record for the people you support — and a calmer day for the t
       </Box>
 
       {/* TRUST & VALUE */}
-      <Box sx={{ py: { xs: 7, md: 10 }, bgcolor: '#FFFFFF' }}>
+      <Box sx={{ py: { xs: 7, md: 10 }, bgcolor: 'background.paper' }}>
         <Container maxWidth="lg">
           <FadeSection>
             <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
@@ -356,7 +356,7 @@ The tools your team uses every day, connected around the person and the service.
       </Box>
 
       {/* CONNECTED OPERATIONS */}
-      <Box sx={{ py: { xs: 9, md: 14 }, bgcolor: '#FFFFFF' }}>
+      <Box sx={{ py: { xs: 9, md: 14 }, bgcolor: 'background.paper' }}>
         <Container maxWidth="lg">
           <FadeSection>
             <Box sx={{ maxWidth: 680, mb: { xs: 7, md: 9 } }}>
@@ -459,7 +459,7 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
               <Box
                 sx={{
                   height: '100%',
-                  bgcolor: '#FFFFFF',
+                  bgcolor: 'background.paper',
                   border: `1px solid ${HAIRLINE}`,
                   borderRadius: 2,
                   p: { xs: 3, md: 4 },
@@ -510,7 +510,7 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
                   <Box
                     key={r.role}
                     sx={{
-                      bgcolor: '#FFFFFF',
+                      bgcolor: 'background.paper',
                       border: `1px solid ${HAIRLINE}`,
                       borderRadius: 2,
                       p: { xs: 2.5, md: 3 },
@@ -541,13 +541,13 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
       </Box>
 
       {/* PRODUCT INTERFACE SHOWCASE */}
-      <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: '#FFFFFF' }}>
+      <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: 'background.paper' }}>
         <Container maxWidth="lg">
           <FadeSection>
             <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
               <Grid item xs={12} md={7}>
-              <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E0D9CA`, bgcolor: '#FFFFFF', boxShadow: '0 32px 64px -28px rgba(20, 32, 45, 0.35)' }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid #F0EBE1`, bgcolor: '#FCFAF6' }}>
+              <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E0D9CA`, bgcolor: 'background.paper', boxShadow: '0 32px 64px -28px rgba(20, 32, 45, 0.35)' }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid #F0EBE1`, bgcolor: 'grey.50' }}>
                   <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.85rem' }}>MeticleCare · Today's care</Typography>
                 </Stack>
                 <img src={SHOWCASE_IMAGE} alt="Mobile view of a care note being recorded in MeticleCare with family and manager receiving the update" width="1280" height="800" loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
@@ -598,7 +598,7 @@ When records are complete and current, compliance work becomes easier to evidenc
                   variant="contained"
                   size="large"
                   onClick={() => navigate('/features#compliance')}
-                  sx={{ bgcolor: '#FFFFFF', color: NAVY, '&:hover': { bgcolor: '#F3F1EA' }, fontWeight: 800, px: 4, transition: 'background-color 0.15s ease' }}
+                  sx={{ bgcolor: 'background.paper', color: NAVY, '&:hover': { bgcolor: 'grey.50' }, fontWeight: 800, px: 4, transition: 'background-color 0.15s ease' }}
                 >
                   See the compliance module
                 </Button>
@@ -651,7 +651,7 @@ Give your team one place for the records, decisions and follow-through that keep
                 variant="contained"
                 size="large"
                 onClick={() => navigate('/register')}
-                sx={{ bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: '#065F46' }, fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem', transition: 'background-color 0.15s ease' }}
+                sx={{ bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' }, fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem', transition: 'background-color 0.15s ease' }}
               >
                 Start your free trial
               </Button>
