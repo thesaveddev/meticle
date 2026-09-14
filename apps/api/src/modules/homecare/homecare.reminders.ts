@@ -101,9 +101,9 @@ export async function runHomecareOverdueAlerts(now = new Date()): Promise<{ sent
 
   for (const visit of overdue.rows) {
     const overdueMinutes = Math.round((now.getTime() - new Date(visit.scheduled_end).getTime()) / 60000);
-    // Only alert once per 30 minutes to avoid spam
+    // Only alert once per 2 hours to avoid spam
     const recentAlert = await migrateQuery(
-      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'overdue_alert' AND created_at > NOW() - INTERVAL '30 minutes'`,
+      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'overdue_alert' AND created_at > NOW() - INTERVAL '2 hours'`,
       [visit.id]
     );
     if (recentAlert.rows.length > 0) continue;
@@ -146,8 +146,9 @@ export async function runHomecareOverdueAlerts(now = new Date()): Promise<{ sent
   `, [now]);
 
   for (const visit of unassigned.rows) {
+    // Only alert once per 2 hours to avoid spam
     const recentAlert = await migrateQuery(
-      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'unassigned_alert' AND created_at > NOW() - INTERVAL '30 minutes'`,
+      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'unassigned_alert' AND created_at > NOW() - INTERVAL '2 hours'`,
       [visit.id]
     );
     if (recentAlert.rows.length > 0) continue;
