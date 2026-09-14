@@ -186,7 +186,7 @@ export default function AgenciesPage() {
   const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
         <BusinessIcon sx={{ color: '#0F4C81', fontSize: 28 }} />
         <Typography variant="h5" sx={{ fontWeight: 700 }}>Agency Management</Typography>
