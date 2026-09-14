@@ -44,6 +44,18 @@
   --radius-md: 14px;
   --radius-lg: 18px;
   --radius-xl: 22px;
+
+  /* Layout Tokens */
+  --sidebar-width: 260px;
+  --page-padding-x: 32px;
+  --page-padding-top: 64px;
+  --page-padding-bottom: 32px;
+  --container-compact: 640px;
+  --container-narrow: 800px;
+  --container-standard: 1280px;
+  --section-gap: 24px;
+  --card-gap: 16px;
+  --header-height: 64px;
 }
 
 /* Dark mode overrides */
