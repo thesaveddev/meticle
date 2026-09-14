@@ -551,6 +551,14 @@ export async function listAvailability(orgId: string, staffId?: string) {
 export async function upsertAvailability(orgId: string, input: import('./homecare.types').HomecareAvailabilityInput) {
   await assertStaff(input.staff_id, orgId);
   if (input.day_of_week < 0 || input.day_of_week > 6 || input.start_time >= input.end_time) throw new AppError(400, 'Availability day or time range is invalid');
+  // Check for overlapping entries on the same day
+  const overlap = await query(
+    `SELECT id FROM staff_availability
+     WHERE staff_id = $1 AND day_of_week = $2
+       AND start_time < $4 AND end_time > $3`,
+    [input.staff_id, input.day_of_week, input.start_time, input.end_time]
+  );
+  if (overlap.rows.length > 0) throw new AppError(409, 'You already have availability set during this time');
   const result = await query(`INSERT INTO staff_availability (staff_id, day_of_week, start_time, end_time, is_available)
     VALUES ($1,$2,$3,$4,$5) RETURNING *`, [input.staff_id, input.day_of_week, input.start_time, input.end_time, input.is_available ?? true]);
   return result.rows[0];
