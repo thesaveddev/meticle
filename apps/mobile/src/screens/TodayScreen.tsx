@@ -91,34 +91,39 @@ function StatusPill({ status, c }: { status: string; c: any }) {
   let bg = c.surfaceAlt
   let fg = c.muted
   let label = status
+  let icon = <View style={[styles.pillDot, { backgroundColor: fg }]} />
 
   switch (status) {
     case 'completed':
       bg = c.successSurface
       fg = c.successDeep
       label = 'Completed'
+      icon = <IconCheck size={12} color={fg} />
       break
     case 'checked_in':
       bg = c.primarySurface
       fg = c.primary
       label = 'In progress'
+      icon = <IconClock size={12} color={fg} />
       break
     case 'missed':
       bg = c.dangerSurface
       fg = c.danger
       label = 'Missed'
+      icon = <IconAlert size={12} color={fg} />
       break
     case 'scheduled':
     case 'en_route':
       bg = c.surfaceAlt
       fg = c.muted
       label = 'Scheduled'
+      icon = <IconClock size={12} color={fg} />
       break
   }
 
   return (
-    <View style={[styles.pill, { backgroundColor: bg }]}>  
-      {status === 'completed' && <IconCheck size={12} color={fg} />}
+    <View style={[styles.pill, { backgroundColor: bg, borderColor: fg + '30' }]}>
+      {icon}
       <Text style={[styles.pillText, { color: fg }]}>{label}</Text>
     </View>
   )
@@ -545,13 +550,14 @@ const styles = StyleSheet.create({
 
   chevron: { fontSize: 20, fontWeight: '300', marginLeft: spacing.xs },
 
-  /* Status pill */
+  /* Status pill — same pill family as the action pills on a call */
   pill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 3,
-    borderRadius: radii.full,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: radii.full, borderWidth: 1,
   },
-  pillText: { fontFamily: FONT, fontSize: 11, fontWeight: '600' },
+  pillText: { fontFamily: FONT, fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
+  pillDot: { width: 5, height: 5, borderRadius: 2.5 },
 
   /* Refresh indicator */
 
