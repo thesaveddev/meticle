@@ -12,7 +12,7 @@ import { UserRole, Plan } from '@meticle/shared';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { OrgRepository } from '../orgs/org.repository';
 import { PermissionsController } from '../permissions/permissions.controller';
-import { blacklistToken } from '../../shared/middleware/tokenBlacklist';
+import { blacklistToken, claimToken } from '../../shared/middleware/tokenBlacklist';
 import { logWarn, default as logger } from '../../shared/utils/logger';
 import { isDisposableEmail, isDisposableEmailByMx } from '../../shared/utils/disposableEmail';
 
@@ -56,8 +56,6 @@ setInterval(() => {
     if (now > entry.lockedUntil) loginLockoutMap.delete(key);
   }
 }, 120_000).unref();
-
-const REGISTRATION_ALLOWED_ROLES = ['CARE_WORKER'];
 
 function sanitizeUser(user: any) {
   const { password_hash, mfa_secret, backup_codes, ...safeUser } = user;
@@ -134,6 +132,13 @@ export class AuthController {
     const validated = registrationSchema.parse(req.body);
     const { email, password, role, name, organizationId } = validated;
 
+    // Public registration may create a new organization, but must never let an
+    // unauthenticated caller choose an existing tenant. Membership is created
+    // only through an invitation flow.
+    if (organizationId) {
+      throw new AppError(403, 'Organization membership requires a valid invitation');
+    }
+
     if (await isDisposableEmailByMx(email)) throw new AppError(400, 'Temporary email addresses are not allowed');
 
     const existingUser = await UserRepository.findByEmail(email);
@@ -142,7 +147,7 @@ export class AuthController {
     }
 
     const hashedPassword = await hashPassword(password);
-    let orgId: string | undefined = organizationId;
+    let orgId: string | undefined;
 
     const userRole = role as UserRole;
 
@@ -292,7 +297,7 @@ export class AuthController {
 
     // Check MFA
     if (user.mfa_enabled) {
-      const mfaToken = generateMfaChallengeToken(tokenPayload);
+      const mfaToken = generateMfaChallengeToken(tokenPayload, 'login');
       res.json({ mfaRequired: true, mfaToken });
       return;
     }
@@ -301,7 +306,7 @@ export class AuthController {
     if (user.organization_id) {
       const org = await OrgRepository.getOrgById(user.organization_id, migrateQuery);
       if (org?.force_mfa) {
-        const setupToken = generateMfaChallengeToken(tokenPayload);
+        const setupToken = generateMfaChallengeToken(tokenPayload, 'setup');
         res.json({ mfaSetupRequired: true, mfaSetupToken: setupToken, message: 'Your organization requires MFA. Please set up MFA to continue.' });
         return;
       }
@@ -330,13 +335,15 @@ export class AuthController {
       throw new AppError(401, 'Invalid or expired refresh token');
     }
 
-    // Blacklist the old refresh token to prevent reuse
-    const remaining = decoded?.exp ? Math.max(0, decoded.exp * 1000 - Date.now()) : 7 * 24 * 60 * 60 * 1000;
-    await blacklistToken(validated.refreshToken, remaining);
-
     const user = await UserRepository.findById(decoded.userId);
-    if (!user) {
-      throw new AppError(401, 'User not found');
+    if (!user || user.status === 'deactivated' || user.role !== decoded.role || user.organization_id !== decoded.organizationId) {
+      throw new AppError(401, 'User session is no longer valid');
+    }
+
+    // Atomically claim the old refresh token to prevent concurrent replay.
+    const remaining = decoded?.exp ? Math.max(0, decoded.exp * 1000 - Date.now()) : 7 * 24 * 60 * 60 * 1000;
+    if (!(await claimToken(validated.refreshToken, remaining))) {
+      throw new AppError(401, 'Refresh token has already been used');
     }
 
     const tokenPayload = {
@@ -512,7 +519,13 @@ export class AuthController {
     const existingUser = await UserRepository.findByEmail(invitation.email);
     if (existingUser) {
       if (existingUser.organization_id === invitation.organization_id) {
-        // Same org — link them and log in
+        // An invitation must not become a login bypass. Existing members must
+        // prove possession of their password before the invitation is accepted.
+        const passwordMatches = await comparePassword(password, existingUser.password_hash);
+        if (!passwordMatches) {
+          throw new AppError(401, 'Invalid email or password');
+        }
+
         await migrateQuery('UPDATE invitations SET status = $1 WHERE id = $2', ['accepted', invitation.id]);
 
         const nameParts = name.trim().split(/\s+/);
@@ -628,7 +641,7 @@ export class AuthController {
 
     let payload: any;
     try {
-      payload = verifyMfaChallengeToken(mfaToken);
+      payload = verifyMfaChallengeToken(mfaToken, 'login');
     } catch {
       throw new AppError(400, 'Invalid or expired MFA challenge token');
     }
@@ -703,7 +716,7 @@ export class AuthController {
 
     let payload: any;
     try {
-      payload = verifyMfaChallengeToken(mfaToken);
+      payload = verifyMfaChallengeToken(mfaToken, 'login');
     } catch {
       throw new AppError(400, 'Invalid or expired MFA challenge token');
     }
@@ -787,7 +800,7 @@ export class AuthController {
 
     let payload: any;
     try {
-      payload = verifyMfaChallengeToken(setupToken);
+      payload = verifyMfaChallengeToken(setupToken, 'setup');
     } catch {
       throw new AppError(400, 'Invalid or expired MFA setup token');
     }

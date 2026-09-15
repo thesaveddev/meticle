@@ -126,8 +126,8 @@ export class MFAController {
     const requesterOrg = req.user!.organizationId;
     const targetUserId = req.params.userId;
 
-    if (requesterRole !== 'ORG_ADMIN' && requesterRole !== 'MANAGER') {
-      return res.status(403).json({ error: { message: 'Only ORG_ADMIN or MANAGER can reset MFA for other users.' } });
+    if (requesterRole !== 'ORG_ADMIN') {
+      return res.status(403).json({ error: { message: 'Only ORG_ADMIN can reset MFA for other users.' } });
     }
 
     const target = await pool.query('SELECT organization_id, email FROM users WHERE id = $1', [targetUserId]);

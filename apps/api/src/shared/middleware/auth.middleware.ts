@@ -53,6 +53,30 @@ export async function setRlsSessionVars(
   await Promise.all(promises);
 }
 
+export const authenticateMfaSetup = async (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ statusCode: 401, message: 'No token provided' });
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, getJwtSecret()) as AuthUser & { tokenType?: string; mfaChallenge?: boolean; mfaChallengePurpose?: string };
+    const validSetupToken = decoded.tokenType === 'mfa-challenge' && decoded.mfaChallenge && decoded.mfaChallengePurpose === 'setup';
+    const validAccessToken = decoded.tokenType === 'access';
+    if (!validSetupToken && !validAccessToken) {
+      return res.status(401).json({ statusCode: 401, message: 'Invalid MFA setup token' });
+    }
+    const ctx = requestDBStorage.getStore();
+    if (ctx) await setRlsSessionVars(ctx.client, decoded);
+    const result = await query('SELECT id, status, role FROM users WHERE id = $1', [decoded.userId]);
+    if (!result.rows[0]) return res.status(401).json({ statusCode: 401, message: 'User no longer exists' });
+    if (result.rows[0].status === 'deactivated') return res.status(403).json({ statusCode: 403, message: 'Your account has been deactivated' });
+    if (result.rows[0].role !== decoded.role) return res.status(401).json({ statusCode: 401, message: 'Your permissions have changed. Please log in again.' });
+    req.user = decoded;
+    next();
+  } catch {
+    return res.status(401).json({ statusCode: 401, message: 'Invalid MFA setup token' });
+  }
+};
+
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -65,7 +89,13 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     if (blacklisted) {
       return res.status(401).json({ statusCode: 401, message: 'Token has been revoked. Please log in again.' });
     }
-    const decoded = jwt.verify(token, getJwtSecret()) as AuthUser;
+    const decoded = jwt.verify(token, getJwtSecret()) as AuthUser & { mfaChallenge?: boolean; tokenType?: string };
+    if (decoded.tokenType !== 'access') {
+      return res.status(401).json({ statusCode: 401, message: 'Invalid access token' });
+    }
+    if (decoded.mfaChallenge) {
+      return res.status(401).json({ statusCode: 401, message: 'MFA verification is required' });
+    }
 
     // Set RLS session variables on the request-scoped client so that all
     // subsequent queries in this request are scoped to the user's org.

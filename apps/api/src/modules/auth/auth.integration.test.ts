@@ -3,6 +3,7 @@ import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import { createOrg, createUser } from '../../test/factories'
+import { UserRepository } from './user.repository'
 
 // Mock rate limiter to no-op for tests
 vi.mock('../../shared/middleware/rateLimit.middleware', () => ({
@@ -43,11 +44,10 @@ describe('Auth Integration — POST /auth/register', () => {
   })
 
   it('should register a new CARE_WORKER user', async () => {
-    const org = await createOrg()
     const email = `worker-${Date.now()}@test.com`
     const res = await request(app)
       .post('/auth/register')
-      .send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: 'Test Worker', organizationId: org.id })
+      .send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: 'Test Worker' })
 
     expect(res.status).toBe(201)
     expect(res.body.user).toBeDefined()
@@ -72,13 +72,23 @@ describe('Auth Integration — POST /auth/register', () => {
   })
 
   it('should reject registration with existing email', async () => {
-    const org = await createOrg()
     const email = `duplicate-${Date.now()}@test.com`
-    await request(app).post('/auth/register').send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: 'First', organizationId: org.id })
-    const res = await request(app).post('/auth/register').send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: 'Second', organizationId: org.id })
+    await request(app).post('/auth/register').send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: 'First' })
+    const res = await request(app).post('/auth/register').send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: 'Second' })
 
     expect(res.status).toBe(400)
     expect(res.body.message).toContain('already exists')
+  }, 30_000)
+
+  it('should never attach an unauthenticated registration to an existing organization', async () => {
+    const org = await createOrg()
+    const email = `joiner-${Date.now()}@test.com`
+    const res = await request(app)
+      .post('/auth/register')
+      .send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: 'Joiner', organizationId: org.id })
+
+    expect(res.status).toBe(403)
+    expect(await UserRepository.findByEmail(email)).toBeFalsy()
   }, 30_000)
 })
 

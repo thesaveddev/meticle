@@ -283,7 +283,7 @@ import jwt from 'jsonwebtoken'
 export function generateToken(user: { id: string; email: string; role: string; organization_id?: string }) {
   const secret = process.env.JWT_SECRET || 'test-jwt-secret'
   return jwt.sign(
-    { userId: user.id, email: user.email, role: user.role, organizationId: user.organization_id },
+    { userId: user.id, email: user.email, role: user.role, organizationId: user.organization_id, tokenType: 'access' },
     secret,
     { expiresIn: '1h' }
   )

@@ -19,6 +19,7 @@ export class SettingsController {
                 daily_shift_audit_enabled, daily_shift_audit_time,
                 reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes,
                 emedication_count_convention,
+                overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes,
                 service_types, primary_service_type
        FROM organizations WHERE id = $1`,
       [orgId]
@@ -41,7 +42,7 @@ export class SettingsController {
     const orgId = user.organizationId;
 
     // MANAGERs may only change medication/alert related safety settings
-    const managerAllowed = new Set(['daily_shift_audit_enabled', 'daily_shift_audit_time', 'reorder_alert_enabled', 'late_med_alert_enabled', 'late_med_alert_delay_minutes', 'emedication_count_convention']);
+    const managerAllowed = new Set(['daily_shift_audit_enabled', 'daily_shift_audit_time', 'reorder_alert_enabled', 'late_med_alert_enabled', 'late_med_alert_delay_minutes', 'overdue_alert_frequency_minutes', 'unassigned_alert_frequency_minutes', 'emedication_count_convention']);
     if (user.role === 'MANAGER') {
       const filtered: any = {};
       for (const k of Object.keys(req.body)) {
@@ -53,7 +54,7 @@ export class SettingsController {
       req.body = filtered;
     }
 
-    const { leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention, service_types, primary_service_type } = req.body;
+    const { leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention, overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes, service_types, primary_service_type } = req.body;
     const result = await pool.query(
       `UPDATE organizations SET
         leave_start_month = COALESCE($1, leave_start_month),
@@ -75,10 +76,12 @@ export class SettingsController {
         late_med_alert_enabled = COALESCE($17, late_med_alert_enabled),
         late_med_alert_delay_minutes = COALESCE($18, late_med_alert_delay_minutes),
         emedication_count_convention = COALESCE($19, emedication_count_convention),
-        service_types = COALESCE($21, service_types),
-        primary_service_type = COALESCE($22, primary_service_type)
-       WHERE id = $20 RETURNING *`,
-      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time || null, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention || null, orgId, service_types || null, primary_service_type || null]
+        overdue_alert_frequency_minutes = COALESCE($20, overdue_alert_frequency_minutes),
+        unassigned_alert_frequency_minutes = COALESCE($21, unassigned_alert_frequency_minutes),
+        service_types = COALESCE($23, service_types),
+        primary_service_type = COALESCE($24, primary_service_type)
+       WHERE id = $22 RETURNING *`,
+      [leave_start_month, leave_calculation_type, default_hours_per_leave_day, base_leave_hours, base_contracted_hours, minimum_compliance_percent, overtime_requires_approval, force_mfa, regulator, compliance_digest_enabled, predictive_alerts_enabled, auto_evidence_pack_enabled, auto_evidence_pack_frequency, daily_shift_audit_enabled, daily_shift_audit_time || null, reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes, emedication_count_convention || null, overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes, orgId, service_types || null, primary_service_type || null]
     );
 
     AuditRepository.log({
@@ -89,6 +92,17 @@ export class SettingsController {
       new_data: req.body,
       ip_address: req.ip,
     }).catch(logWarn('audit update org settings'));
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'overdue_alert_frequency_minutes') || Object.prototype.hasOwnProperty.call(req.body, 'unassigned_alert_frequency_minutes')) {
+      AuditRepository.log({
+        user_id: req.user!.userId,
+        action: 'UPDATE_CALL_ALERT_FREQUENCIES',
+        entity_type: 'organization',
+        entity_id: orgId,
+        new_data: { overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes },
+        ip_address: req.ip,
+      }).catch(logWarn('audit update call alert frequencies'));
+    }
 
     res.json(result.rows[0]);
   }
