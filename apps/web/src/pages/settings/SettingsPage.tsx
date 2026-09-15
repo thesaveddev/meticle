@@ -23,6 +23,7 @@ import {
   LightMode as LightModeIcon,
   TextFields as TextFieldsIcon,
   CalendarMonth as CalendarIcon,
+  Phone as PhoneIcon,
 } from '@mui/icons-material'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -31,6 +32,15 @@ import { useSnackbar } from '../../context/SnackbarContext'
 import { useThemeMode, ZOOM_OPTIONS } from '../../context/ThemeContext'
 import { disablePushNotifications, enablePushNotifications, getPushState, type PushState } from '../../services/push'
 import { EmptyState } from '../../components/design/EmptyState'
+
+// Mirrors the API rule for SOS contact numbers: a number that reaches the mobile
+// dialer must contain nothing but dialable characters.
+function emergencyPhoneError(value?: string | null): string {
+  const trimmed = (value || '').trim()
+  if (!trimmed) return ''
+  if (trimmed.length > 30) return 'Maximum 30 characters'
+  return /^[0-9+()\-\s]+$/.test(trimmed) ? '' : 'Use digits, spaces and + - ( ) only'
+}
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -959,6 +969,56 @@ export default function SettingsPage() {
         </Stack>
         <Button variant="contained" onClick={() => saveOrgSettings({ reorder_alert_enabled: orgSettings.reorder_alert_enabled, late_med_alert_enabled: orgSettings.late_med_alert_enabled, late_med_alert_delay_minutes: orgSettings.late_med_alert_delay_minutes })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Medication Alert Settings
+        </Button>
+      </Paper>
+
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+          <PhoneIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Emergency Contacts
+        </Typography>
+        <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+          Up to two numbers carers can dial from the SOS button in the mobile app, shown after 999 and 111 — for
+          example the office and an on-call supervisor. Leave a number blank to remove it.
+        </Typography>
+        {[1, 2].map(index => {
+          const labelKey = `emergency_contact_${index}_label`
+          const phoneKey = `emergency_contact_${index}_phone`
+          const phoneError = emergencyPhoneError(orgSettings[phoneKey])
+          return (
+            <Stack key={index} direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: index === 1 ? 0 : 2 }}>
+              <TextField
+                label="Label"
+                placeholder={index === 1 ? 'Office' : 'Supervisor'}
+                size="small"
+                sx={{ width: { xs: '100%', sm: 220 } }}
+                value={orgSettings[labelKey] || ''}
+                onChange={e => setOrgSettings((p: any) => ({ ...p, [labelKey]: e.target.value.slice(0, 40) }))}
+              />
+              <TextField
+                label="Phone number"
+                placeholder="e.g. 020 7946 0000"
+                size="small"
+                sx={{ width: { xs: '100%', sm: 260 } }}
+                value={orgSettings[phoneKey] || ''}
+                onChange={e => setOrgSettings((p: any) => ({ ...p, [phoneKey]: e.target.value }))}
+                error={!!phoneError}
+                helperText={phoneError}
+              />
+            </Stack>
+          )
+        })}
+        <Button
+          variant="contained"
+          disabled={!!emergencyPhoneError(orgSettings.emergency_contact_1_phone) || !!emergencyPhoneError(orgSettings.emergency_contact_2_phone)}
+          onClick={() => saveOrgSettings({
+            emergency_contact_1_label: orgSettings.emergency_contact_1_label || '',
+            emergency_contact_1_phone: orgSettings.emergency_contact_1_phone || '',
+            emergency_contact_2_label: orgSettings.emergency_contact_2_label || '',
+            emergency_contact_2_phone: orgSettings.emergency_contact_2_phone || '',
+          })}
+          sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}
+        >
+          <SaveIcon sx={{ mr: 1 }} /> Save Emergency Contacts
         </Button>
       </Paper>
 

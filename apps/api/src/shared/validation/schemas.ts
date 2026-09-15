@@ -689,6 +689,11 @@ export const updateStaffEntitlementSchema = z.object({
 });
 
 // === Settings ===
+// Dialable characters only, so a saved SOS contact can always be handed to the phone dialer.
+const emergencyPhoneSchema = z.string().trim().max(30)
+  .regex(/^[0-9+()\-\s]*$/, 'Use digits, spaces and + - ( ) only')
+  .optional();
+
 export const updateOrgSettingsSchema = z.object({
   leave_start_month: z.number().int().min(1).max(12).optional(),
   leave_calculation_type: z.string().optional(),
@@ -709,6 +714,11 @@ export const updateOrgSettingsSchema = z.object({
   late_med_alert_delay_minutes: z.number().int().min(1).max(1440).optional(),
   overdue_alert_frequency_minutes: z.union([z.literal(30), z.literal(60), z.literal(120), z.literal(240)]).optional(),
   unassigned_alert_frequency_minutes: z.union([z.literal(30), z.literal(60), z.literal(120), z.literal(240)]).optional(),
+  // Organisation-defined SOS contacts. An empty string clears the entry.
+  emergency_contact_1_label: z.string().trim().max(40).optional(),
+  emergency_contact_1_phone: emergencyPhoneSchema,
+  emergency_contact_2_label: z.string().trim().max(40).optional(),
+  emergency_contact_2_phone: emergencyPhoneSchema,
   emedication_count_convention: z.enum(['end_of_day', 'am_pm', 'after_each']).optional(),
   service_types: z.array(z.string()).optional(),
   primary_service_type: z.string().optional(),

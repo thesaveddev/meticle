@@ -163,7 +163,7 @@ PY
   if [ "$http_code" != "200" ]; then
     echo "ERROR: authenticated smoke login for $AUTH_SMOKE_EMAIL failed with HTTP ${http_code:-<none>}" >&2
     case "$http_code" in
-      400|401|404) echo "ERROR: the smoke account does not exist or its password is wrong; set DEPLOY_SMOKE_EMAIL and DEPLOY_SMOKE_PASSWORD to a seeded account" >&2 ;;
+      400|401|404) echo "ERROR: the smoke account does not exist or its password is wrong; point DEPLOY_SMOKE_EMAIL and DEPLOY_SMOKE_PASSWORD at an account that exists in this environment, or seed a new environment with those variables set so the seeded password matches (the seed purges all data, so never re-seed a live one)" >&2 ;;
       403) echo "ERROR: the smoke account is deactivated" >&2 ;;
       429) echo "ERROR: the smoke account is locked out after repeated failed logins" >&2 ;;
     esac

@@ -714,6 +714,8 @@ export function ChatScreen({ session, onBack }: Props) {
         {/* Send button */}
         <Pressable
           onPress={handleSend}
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
           disabled={!canSend || sending || uploadingImage}
           style={[chatStyles.sendBtn, { backgroundColor: canSend ? c.primary : c.surfaceAlt }]}
         >
