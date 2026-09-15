@@ -10,3 +10,10 @@ coverage/
 .nyc_output/
 uploads/
 tmp/
+
+# Generated artefacts that must never be committed
+apps/mobile/.expo/
+apps/mobile/android/
+apps/mobile/ios/
+packages/shared/src/*.js
+packages/shared/src/*.js.map

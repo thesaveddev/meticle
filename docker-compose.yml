@@ -32,8 +32,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    # Keep the service name resolvable: REDIS_URL points at redis://redis:6379.
     networks:
-      - meticle
+      meticle:
+        aliases:
+          - redis
 
   api:
     build:
