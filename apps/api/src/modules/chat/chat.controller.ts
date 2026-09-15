@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { query } from '../../shared/database';
+import { safeIo } from '../../shared/socket';
 
 function orgId(req: Request): string {
   const value = req.user?.organizationId;
@@ -66,14 +67,28 @@ export class ChatController {
         [oid, ch.id]
       );
 
+      const unread = await query(
+        `SELECT COUNT(*)::int AS count
+         FROM org_chat_messages m
+         LEFT JOIN org_chat_read_receipts rr
+           ON rr.organization_id = m.organization_id
+          AND rr.user_id = $3
+          AND rr.channel = $2
+         WHERE m.organization_id = $1
+           AND (m.channel = $2 OR ($4 = 'general' AND m.channel = 'general'))
+           AND m.sender_id != $3
+           AND m.deleted = FALSE
+           AND m.created_at > COALESCE(rr.last_read_at, '1970-01-01'::timestamptz)`,
+        [oid, ch.id, uid, ch.name]
+      );
+
       channels.push({
         id: ch.id,
         name: channelName,
         type: ch.type,
         other_member: otherMember,
         last_message: lastMsg.rows[0] || null,
-        unread_count: 0,
-        member_count: Number(ch.member_count) || 0,
+        unread_count: Number(unread.rows[0]?.count) || 0,
         created_at: ch.created_at,
       });
     }
@@ -110,6 +125,20 @@ export class ChatController {
              ORDER BY m.created_at DESC LIMIT 1`,
             [oid]
           );
+              const unread = await query(
+                `SELECT COUNT(*)::int AS count
+                 FROM org_chat_messages m
+                 LEFT JOIN org_chat_read_receipts rr
+                   ON rr.organization_id = m.organization_id
+                  AND rr.user_id = $2
+                  AND rr.channel = $3
+                 WHERE m.organization_id = $1
+                   AND (m.channel = 'general' OR m.channel = $3)
+                   AND m.sender_id != $2
+                   AND m.deleted = FALSE
+                   AND m.created_at > COALESCE(rr.last_read_at, '1970-01-01'::timestamptz)`,
+                [oid, uid, generalId]
+              );
           if (!channels.find((c: any) => c.id === generalId)) {
             channels.unshift({
               id: generalId,
@@ -117,7 +146,7 @@ export class ChatController {
               type: 'general',
               other_member: null,
               last_message: lastMsg.rows[0] || null,
-              unread_count: 0,
+              unread_count: Number(unread.rows[0]?.count) || 0,
               member_count: 0,
               created_at: null,
             });
@@ -135,6 +164,12 @@ export class ChatController {
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const before = req.query.before as string | undefined;
 
+    const channelInfo = await query(
+      'SELECT name FROM chat_channels WHERE id = $1 AND organization_id = $2',
+      [channel, oid]
+    );
+    const channelName = channelInfo.rows[0]?.name as string | undefined;
+    const channelFilter = channelName === 'general' ? `m.channel = $2 OR m.channel = 'general'` : 'm.channel = $2';
     let sql = `
       SELECT m.*,
              COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS sender_name,
@@ -142,7 +177,9 @@ export class ChatController {
       FROM org_chat_messages m
       JOIN users u ON u.id = m.sender_id
       LEFT JOIN staff_profiles sp ON sp.user_id = u.id
-      WHERE m.organization_id = $1 AND m.channel = $2 AND m.deleted = FALSE
+      WHERE m.organization_id = $1
+        AND (${channelFilter})
+        AND m.deleted = FALSE
     `;
     const params: any[] = [oid, channel];
 
@@ -156,14 +193,41 @@ export class ChatController {
     res.json(result.rows.reverse());
   }
 
+  static async getReadReceipts(req: Request, res: Response) {
+    const oid = orgId(req);
+    const uid = userId(req);
+    const { channelId } = req.params;
+    const channelNameResult = await query(
+      'SELECT name FROM chat_channels WHERE id = $1 AND organization_id = $2',
+      [channelId, oid]
+    );
+    const channelName = channelNameResult.rows[0]?.name || null;
+    const reads = await query(
+      `SELECT rr.user_id, rr.last_read_at,
+              u.email, sp.first_name, sp.last_name
+       FROM org_chat_read_receipts rr
+       JOIN users u ON u.id = rr.user_id
+       LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+       WHERE rr.organization_id = $1
+         AND (rr.channel = $2 OR ($3 IS NOT NULL AND rr.channel = $3))
+         AND rr.user_id != $4`,
+      [oid, channelId, channelName, uid]
+    );
+    res.json({
+      other_last_read_at: reads.rows.length === 1 ? reads.rows[0].last_read_at : null,
+      member_reads: reads.rows,
+    });
+  }
+
   static async sendMessage(req: Request, res: Response) {
     const oid = orgId(req);
     const uid = userId(req);
     const { channel } = req.params;
-    const { message, reply_to_id } = req.body;
+    const messageText = String(req.body.message ?? req.body.content ?? '').trim();
+    const { reply_to_id } = req.body;
 
-    if (!message || !message.trim()) throw new AppError(400, 'Message cannot be empty');
-    if (message.length > 5000) throw new AppError(400, 'Message too long (max 5000 characters)');
+    if (!messageText) throw new AppError(400, 'Message cannot be empty');
+    if (messageText.length > 5000) throw new AppError(400, 'Message too long (max 5000 characters)');
 
     if (reply_to_id) {
       const replyCheck = await query(
@@ -177,7 +241,7 @@ export class ChatController {
       `INSERT INTO org_chat_messages (organization_id, sender_id, channel, message, reply_to_id)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [oid, uid, channel, message.trim(), reply_to_id || null]
+      [oid, uid, channel, messageText, reply_to_id || null]
     );
 
     const msg = result.rows[0];
@@ -212,7 +276,8 @@ export class ChatController {
       for (const member of members.rows) {
         sendPushNotification(member.user_id, {
           title: channelName,
-          body: `${senderName}: ${message.trim().substring(0, 120)}`,
+          body: `${senderName}: ${messageText.substring(0, 120)}`,
+          data: { type: 'chat', channelId: channel },
           url: '/chat',
         }, 'chat').catch(() => {});
       }
@@ -220,8 +285,20 @@ export class ChatController {
       // Notification failure should not block the message send
     }
 
+    // Notify connected clients immediately; push delivery remains best effort.
+    safeIo().to(`channel:${channel}`).emit('chat:message', {
+      ...msg,
+      channel_id: channel,
+      content: msg.message,
+      message: msg.message,
+      sender_name: senderResult.rows[0]?.sender_name || 'Unknown',
+      sender_email: senderResult.rows[0]?.sender_email || '',
+    });
+
     res.status(201).json({
       ...msg,
+      message: msg.message,
+      content: msg.message,
       sender_name: senderResult.rows[0]?.sender_name || 'Unknown',
       sender_email: senderResult.rows[0]?.sender_email || '',
     });
@@ -453,17 +530,20 @@ export class ChatController {
       [channelId, uid]
     );
 
-    // Also update legacy read receipts
-    const channelName = await query('SELECT name FROM chat_channels WHERE id = $1', [channelId]);
-    if (channelName.rows[0]) {
-      await query(
-        `INSERT INTO org_chat_read_receipts (organization_id, user_id, channel, last_read_at)
-         VALUES ($1, $2, $3, NOW())
-         ON CONFLICT (organization_id, user_id, channel)
-         DO UPDATE SET last_read_at = NOW()`,
-        [oid, uid, channelName.rows[0].name]
-      );
-    }
+    const readChannel = channelId;
+    await query(
+      `INSERT INTO org_chat_read_receipts (organization_id, user_id, channel, last_read_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (organization_id, user_id, channel)
+       DO UPDATE SET last_read_at = NOW()`,
+      [oid, uid, readChannel]
+    );
+
+    safeIo().to(`channel:${channelId}`).emit('chat:read', {
+      channelId,
+      userId: uid,
+      lastReadAt: new Date().toISOString(),
+    });
 
     res.json({ ok: true });
   }

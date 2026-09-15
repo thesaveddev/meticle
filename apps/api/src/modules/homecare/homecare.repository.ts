@@ -539,6 +539,36 @@ export async function getMonthlyCarerTotals(orgId: string, from: string, to: str
   return result.rows;
 }
 
+export async function listAvailableStaff(orgId: string, start: string, end: string, excludeVisitId?: string) {
+  const params: any[] = [orgId, start, end];
+  const exclude = excludeVisitId ? ' AND v.id <> $4' : '';
+  if (excludeVisitId) params.push(excludeVisitId);
+  return (await query(`
+    SELECT sp.id, sp.first_name, sp.last_name, u.email,
+      CASE WHEN EXISTS (
+        SELECT 1 FROM staff_availability sa
+        WHERE sa.staff_id = sp.id AND sa.is_available = TRUE
+          AND sa.day_of_week = EXTRACT(DOW FROM $2::timestamptz)::int
+          AND sa.start_time <= $2::timestamptz::time AND sa.end_time >= $3::timestamptz::time
+      ) AND NOT EXISTS (
+        SELECT 1 FROM homecare_visits conflict
+        WHERE conflict.assigned_staff_id = sp.id AND conflict.organization_id = $1
+          AND conflict.status NOT IN ('cancelled', 'missed')
+          AND conflict.scheduled_start < $3::timestamptz + INTERVAL '30 minutes'
+          AND conflict.scheduled_end > $2::timestamptz - INTERVAL '30 minutes'
+          ${excludeVisitId ? 'AND conflict.id <> $4' : ''}
+      ) THEN TRUE ELSE FALSE END AS available_in_window,
+      COALESCE(SUM(EXTRACT(EPOCH FROM (v.scheduled_end - v.scheduled_start)) / 60), 0)::int AS assigned_minutes
+    FROM staff_profiles sp
+    JOIN users u ON u.id = sp.user_id AND u.organization_id = $1 AND u.status = 'active' AND u.role = 'CARE_WORKER'
+    LEFT JOIN homecare_visits v ON v.assigned_staff_id = sp.id AND v.organization_id = $1
+      AND v.status NOT IN ('cancelled', 'missed')
+      AND v.scheduled_start < $3::timestamptz + INTERVAL '30 minutes'
+      AND v.scheduled_end > $2::timestamptz - INTERVAL '30 minutes'${exclude}
+    GROUP BY sp.id, sp.first_name, sp.last_name, u.email
+    ORDER BY available_in_window DESC, assigned_minutes ASC, sp.first_name, sp.last_name`, params)).rows;
+}
+
 export async function listAvailability(orgId: string, staffId?: string) {
   const params: any[] = [orgId];
   const filter = staffId ? ' AND sa.staff_id = $2' : '';

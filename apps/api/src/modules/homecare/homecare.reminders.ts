@@ -153,10 +153,10 @@ export async function runHomecareOverdueAlerts(now = new Date()): Promise<{ sent
   for (const visit of unassigned.rows) {
     // Only alert once per the org-configured frequency to avoid spam
     const orgSettings2 = await migrateQuery(
-      `SELECT overdue_alert_frequency_minutes FROM organizations WHERE id = $1`,
+      `SELECT unassigned_alert_frequency_minutes FROM organizations WHERE id = $1`,
       [visit.organization_id]
     );
-    const unassignedFreqMinutes = orgSettings2.rows[0]?.overdue_alert_frequency_minutes || 120;
+    const unassignedFreqMinutes = orgSettings2.rows[0]?.unassigned_alert_frequency_minutes || 120;
     const recentAlert = await migrateQuery(
       `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'unassigned_alert' AND created_at > NOW() - INTERVAL '1 minute' * $2`,
       [visit.id, unassignedFreqMinutes]

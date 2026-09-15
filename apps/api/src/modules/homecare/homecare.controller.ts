@@ -198,6 +198,15 @@ export class HomecareController {
     res.json(await repo.listAvailability(orgId(req), req.query.staffId as string | undefined));
   }
 
+  static async listAvailableStaff(req: Request, res: Response) {
+    const start = req.query.start as string;
+    const end = req.query.end as string;
+    if (!start || !end || Number.isNaN(new Date(start).getTime()) || Number.isNaN(new Date(end).getTime())) {
+      throw new AppError(400, 'A valid start and end time are required');
+    }
+    res.json(await repo.listAvailableStaff(orgId(req), start, end, req.query.excludeVisitId as string | undefined));
+  }
+
   static async createAvailability(req: Request, res: Response) {
     // Carers can only set their own availability
     const userRole = req.user!.role;
@@ -881,10 +890,16 @@ export class HomecareController {
     const result = await query(
       `SELECT rsr.*,
               hv.label AS visit_label, hv.scheduled_start, hv.scheduled_end,
+              hv2.label AS target_visit_label, hv2.scheduled_start AS target_scheduled_start, hv2.scheduled_end AS target_scheduled_end,
               pe1.first_name || ' ' || pe1.last_name AS client_name,
               pe2.first_name || ' ' || pe2.last_name AS target_client_name,
               sp1.first_name || ' ' || sp1.last_name AS carer_name,
-              sp2.first_name || ' ' || sp2.last_name AS target_carer_name
+              sp2.first_name || ' ' || sp2.last_name AS target_carer_name,
+              COALESCE(ts1.mileage_miles, hv.actual_mileage_miles, 0)::numeric AS mileage_miles,
+              COALESCE(ts2.mileage_miles, hv2.actual_mileage_miles, 0)::numeric AS target_mileage_miles,
+              COALESCE(ts1.mileage_rate_pence, ts2.mileage_rate_pence, hv.mileage_rate_pence, hv2.mileage_rate_pence, 45)::integer AS mileage_rate_pence,
+              l1.latitude AS client_latitude, l1.longitude AS client_longitude,
+              l2.latitude AS target_client_latitude, l2.longitude AS target_client_longitude
        FROM ride_share_requests rsr
        JOIN homecare_visits hv ON hv.id = rsr.visit_id
        JOIN people pe1 ON pe1.id = hv.person_id
@@ -892,12 +907,30 @@ export class HomecareController {
        LEFT JOIN homecare_visits hv2 ON hv2.id = rsr.target_visit_id
        LEFT JOIN people pe2 ON pe2.id = hv2.person_id
        LEFT JOIN staff_profiles sp2 ON sp2.id = hv2.assigned_staff_id
+       LEFT JOIN locations l1 ON l1.id = pe1.location_id
+       LEFT JOIN locations l2 ON l2.id = pe2.location_id
+       LEFT JOIN homecare_timesheets ts1 ON ts1.visit_id = hv.id
+       LEFT JOIN homecare_timesheets ts2 ON ts2.visit_id = hv2.id
        WHERE rsr.organization_id = $1
          AND (rsr.requested_by = $2 OR hv2.assigned_staff_id = $3)
        ORDER BY rsr.created_at DESC LIMIT 50`,
       [oid, uid, staffId]
     );
-    res.json(result.rows);
+    const rows = result.rows.map((row: any) => {
+      const directMiles = (lat1: number | null, lon1: number | null, lat2: number | null, lon2: number | null) => {
+        if ([lat1, lon1, lat2, lon2].some(value => value == null || Number.isNaN(Number(value)))) return 0;
+        const radians = (value: number) => value * Math.PI / 180;
+        const dLat = radians(Number(lat2) - Number(lat1));
+        const dLon = radians(Number(lon2) - Number(lon1));
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(radians(Number(lat1))) * Math.cos(radians(Number(lat2))) * Math.sin(dLon / 2) ** 2;
+        return 3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      };
+      const ownMiles = Number(row.mileage_miles || 0) || directMiles(row.client_latitude, row.client_longitude, row.target_client_latitude, row.target_client_longitude);
+      const targetMiles = Number(row.target_mileage_miles || 0) || directMiles(row.target_client_latitude, row.target_client_longitude, row.client_latitude, row.client_longitude);
+      const estimatedMiles = Math.round((ownMiles + targetMiles) * 0.5 * 100) / 100;
+      return { ...row, estimated_mileage_savings_miles: estimatedMiles, estimated_savings_pence: Math.round(estimatedMiles * Number(row.mileage_rate_pence || 45)) };
+    });
+    res.json(rows);
   }
 
   static async createRideShareRequest(req: Request, res: Response) {
@@ -907,10 +940,15 @@ export class HomecareController {
     if (!visit_id || !target_visit_id) throw new AppError(400, 'visit_id and target_visit_id required');
     if (visit_id === target_visit_id) throw new AppError(400, 'Cannot share a ride with yourself');
 
-    // Verify both visits exist and belong to this org
-    const v1 = await query('SELECT * FROM homecare_visits WHERE id = $1 AND organization_id = $2', [visit_id, oid]);
-    const v2 = await query('SELECT * FROM homecare_visits WHERE id = $1 AND organization_id = $2', [target_visit_id, oid]);
+    const v1 = await query(`SELECT v.*, sp.user_id AS assigned_user_id
+      FROM homecare_visits v LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
+      WHERE v.id = $1 AND v.organization_id = $2`, [visit_id, oid]);
+    const v2 = await query(`SELECT v.*, sp.user_id AS assigned_user_id
+      FROM homecare_visits v LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
+      WHERE v.id = $1 AND v.organization_id = $2`, [target_visit_id, oid]);
     if (!v1.rows.length || !v2.rows.length) throw new AppError(404, 'Visit not found');
+    if (v1.rows[0].assigned_user_id !== uid) throw new AppError(403, 'You can only share one of your own assigned visits');
+    if (!v2.rows[0].assigned_user_id || v2.rows[0].assigned_user_id === uid) throw new AppError(400, 'The target visit must be assigned to another carer');
 
     // Check for existing request on either visit
     const existing = await query(
@@ -956,19 +994,21 @@ export class HomecareController {
     if (!reqResult.rows.length) throw new AppError(404, 'Request not found');
     const rsr = reqResult.rows[0];
     if (rsr.status !== 'pending') throw new AppError(409, 'Request already responded to');
+    const targetStaff = await query(`SELECT sp.user_id FROM homecare_visits v
+      JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
+      WHERE v.id = $1 AND v.organization_id = $2`, [rsr.target_visit_id, oid]);
+    if (!targetStaff.rows[0] || targetStaff.rows[0].user_id !== uid) throw new AppError(403, 'Only the target carer can respond to this request');
 
     await query(
       `UPDATE ride_share_requests SET status = $1, responded_by = $2, responded_at = NOW(), updated_at = NOW() WHERE id = $3`,
       [status, uid, id]
     );
-
     if (status === 'accepted') {
       // Link the visits and split mileage 50/50
       await query('UPDATE homecare_visits SET ride_share_id = $1, ride_share_split_pct = 50 WHERE id = $2', [rsr.id, rsr.visit_id]);
       await query('UPDATE homecare_visits SET ride_share_id = $1, ride_share_split_pct = 50 WHERE id = $2', [rsr.id, rsr.target_visit_id]);
     }
 
-    // Notify requester
     const staffName = await query('SELECT COALESCE(sp.first_name, u.email) as name FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id WHERE u.id = $1', [uid]);
     const msg = `${staffName.rows[0]?.name || 'Someone'} ${status}d your ride share request`;
     const { sendPushToUser } = await import('../notifications/push.service');

@@ -84,6 +84,18 @@ export class EmailQueue {
     return batch.rows.length;
   }
 
+  static async cleanupFailedOlderThan(days = 3) {
+    const result = await query(
+      `DELETE FROM email_queue
+       WHERE status = 'failed'
+         AND created_at < CURRENT_TIMESTAMP - ($1::int * INTERVAL '1 day')
+       RETURNING id`,
+      [days]
+    );
+    if (result.rowCount) logger.info({ deleted: result.rowCount, days }, 'Old failed emails purged');
+    return result.rowCount || 0;
+  }
+
   static startProcessor() {
     if (processorInterval) return;
     logger.info({ pollIntervalMs: POLL_INTERVAL }, 'Email queue processor started');
