@@ -13,4 +13,8 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testMatch: ['<rootDir>/src/**/__tests__/**/*.test.ts?(x)'],
   clearMocks: true,
+  // These are whole-screen renders, so a single test can run several seconds on
+  // a slower (CI) machine. The default 5s budget is a flake waiting to happen;
+  // this matches the API suite's allowance.
+  testTimeout: 30_000,
 };
