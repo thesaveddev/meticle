@@ -448,7 +448,11 @@ export class LeaveController {
       [staffId, leave_type_id, start_date, end_date, reason, hours_requested || null, actualDurationType, defaultReviewerId]
     );
 
-    publishDomainEvent({
+    // Awaited so the event is recorded before the request is reported as done:
+    // the insert auto-commits on this connection, so without the await a client
+    // (and a test) could observe 201 while the event is still in flight, and a
+    // crash in between would silently drop the manager's notification.
+    await publishDomainEvent({
       organizationId: orgId!,
       eventName: 'leave.requested',
       aggregateType: 'leave_request',

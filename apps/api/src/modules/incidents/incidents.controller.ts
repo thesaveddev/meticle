@@ -129,7 +129,10 @@ export class IncidentsController {
     const orgId = IncidentsController.getOrgId(req);
     const userId = IncidentsController.getUserId(req) || '';
     const incident = await IncidentsRepository.create(orgId, req.body, userId);
-    publishDomainEvent({
+    // Awaited so the event is recorded before the request is reported as done:
+    // the insert auto-commits on this connection, so without the await a client
+    // (and a test) could observe 201 while the event is still in flight.
+    await publishDomainEvent({
       organizationId: orgId,
       eventName: 'incident.created',
       aggregateType: 'incident',
