@@ -9,6 +9,15 @@ async function getNotifications() {
   try {
     const mod = await import('expo-notifications')
     if (mod && typeof mod.setNotificationHandler === 'function') {
+      if (Platform.OS === 'android' && typeof mod.setNotificationChannelAsync === 'function') {
+        await mod.setNotificationChannelAsync('default', {
+          name: 'MeticleCare notifications',
+          importance: mod.AndroidImportance?.HIGH,
+          sound: 'default',
+          vibrationPattern: [0, 250, 120, 250],
+          enableVibrate: true,
+        })
+      }
       mod.setNotificationHandler({
         handleNotification: async () => ({
           shouldPlaySound: true,

@@ -12,7 +12,7 @@ import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import {
   ensureGeneralChannel, getChatChannels, getChatMessages, sendChatMessage,
-  deleteChatMessage, markChatRead, getOrgMembers,
+  deleteChatMessage, markChatRead, getChatReadReceipts, getOrgMembers,
   createDMChannel, uploadChatFile,
 } from '../services/api'
 import { hapticLight } from '../services/haptics'
@@ -110,6 +110,8 @@ export function ChatScreen({ session, onBack }: Props) {
   const [refreshing, setRefreshing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
+  const [otherLastRead, setOtherLastRead] = useState<string | null>(null)
+  const [memberReads, setMemberReads] = useState<any[]>([])
 
   const [showNewChat, setShowNewChat] = useState(false)
   const [orgMembers, setOrgMembers] = useState<any[]>([])
@@ -148,8 +150,17 @@ export function ChatScreen({ session, onBack }: Props) {
   const loadMessages = useCallback(async () => {
     if (!token || !activeChannel) return
     try {
-      const msgs = await getChatMessages(token, activeChannel.id, 80)
+      const result = await getChatMessages(token, activeChannel.id, 80)
+      const msgs = Array.isArray(result) ? result : result?.messages
       if (Array.isArray(msgs)) setMessages(msgs)
+      if (!Array.isArray(result)) {
+        setOtherLastRead(result?.other_last_read_at || null)
+        setMemberReads(result?.member_reads || [])
+      } else {
+        const receipts = await getChatReadReceipts(token, activeChannel.id).catch(() => null)
+        setOtherLastRead(receipts?.other_last_read_at || null)
+        setMemberReads(receipts?.member_reads || [])
+      }
       markChatRead(token, activeChannel.id).catch(() => {})
     } catch { /* ignore */ } finally { setLoadingMessages(false) }
   }, [token, activeChannel])
@@ -343,6 +354,7 @@ export function ChatScreen({ session, onBack }: Props) {
     if (item.deleted) return null
     const isMe = item.sender_id === currentUserId
     const avatarColor = getAvatarColor(item.sender_id)
+    const seen = isMe && ((activeChannel?.channel_type === 'dm' && otherLastRead && new Date(item.created_at) <= new Date(otherLastRead)) || (activeChannel?.channel_type !== 'dm' && memberReads.some(r => r.last_read_at && new Date(item.created_at) <= new Date(r.last_read_at))))
 
     return (
       <Pressable
@@ -387,7 +399,7 @@ export function ChatScreen({ session, onBack }: Props) {
           <View style={[msgStyles.footer, isMe && msgStyles.footerMe]}>
             <Text style={[msgStyles.time, { color: c.muted }]}>{formatMsgTime(item.created_at)}</Text>
             {item.edited ? <Text style={[msgStyles.edited, { color: c.muted }]}>edited</Text> : null}
-            {isMe ? <Ionicons name="checkmark-done" size={14} color={c.primary} /> : null}
+            {isMe ? <Ionicons name={seen ? 'checkmark-done' : 'checkmark'} size={14} color={seen ? c.primary : c.muted} /> : null}
           </View>
         </View>
       </Pressable>

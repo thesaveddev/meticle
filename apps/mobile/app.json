@@ -40,7 +40,8 @@
           "sounds": []
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-sharing"
     ],
     "extra": {
       "apiBaseUrl": "https://meticlecare.com/api",
