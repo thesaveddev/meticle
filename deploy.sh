@@ -137,28 +137,90 @@ assert_schema() {
   echo "Post-migration schema assertions passed"
 }
 
+# Proves a real seeded account can authenticate against the released API. Every
+# outcome that is not "logged in and the token works" fails the deploy: a login
+# that silently skips leaves the authenticated path untested, so a release that
+# cannot log anyone in would be reported healthy.
 run_authenticated_smoke() {
-  local login_response access_token http_code
-  login_response=$(AUTH_EMAIL="$AUTH_SMOKE_EMAIL" AUTH_PASSWORD="$AUTH_SMOKE_PASSWORD" python3 - <<'PY' | curl -s -o /dev/stdout -w '%{http_code}' --max-time 20 -H 'Content-Type: application/json' --data-binary @- "$AUTH_LOGIN_URL"
+  local payload response http_code body access_token reason
+  local me_response me_code me_body me_email expected_email
+
+  payload=$(AUTH_EMAIL="$AUTH_SMOKE_EMAIL" AUTH_PASSWORD="$AUTH_SMOKE_PASSWORD" python3 - <<'PY'
 import json
 import os
 print(json.dumps({"email": os.environ["AUTH_EMAIL"], "password": os.environ["AUTH_PASSWORD"]}))
 PY
   )
-  http_code=$(printf '%s' "$login_response" | tail -c 3)
-  login_response=$(printf '%s' "$login_response" | sed 's/[0-9]\{3\}$//')
-  # If the API responds with 401/404 (no such user), that's an empty database — not a deploy failure
-  if [ "$http_code" = "401" ] || [ "$http_code" = "404" ] || [ "$http_code" = "400" ]; then
-    echo "Authenticated smoke: API responding, no test user found (empty database). Skipping login check."
-    return 0
-  fi
-  access_token=$(printf '%s' "$login_response" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("accessToken", ""))' 2>/dev/null)
-  if [ -z "$access_token" ]; then
-    echo "ERROR: authenticated smoke login did not return an access token (HTTP $http_code)" >&2
+
+  # Keep the status code off the body: curl appends -w output after the response.
+  if ! response=$(curl -sS -o - -w $'\n%{http_code}' --max-time 20 -H 'Content-Type: application/json' --data-binary "$payload" "$AUTH_LOGIN_URL"); then
+    echo "ERROR: authenticated smoke could not reach $AUTH_LOGIN_URL" >&2
     return 1
   fi
-  curl -fsS --max-time 20 -H "Authorization: Bearer $access_token" "$AUTH_ME_URL" >/dev/null
-  echo "Authenticated login and /auth/me smoke tests passed"
+  http_code=${response##*$'\n'}
+  body=${response%$'\n'*}
+
+  if [ "$http_code" != "200" ]; then
+    echo "ERROR: authenticated smoke login for $AUTH_SMOKE_EMAIL failed with HTTP ${http_code:-<none>}" >&2
+    case "$http_code" in
+      400|401|404) echo "ERROR: the smoke account does not exist or its password is wrong; set DEPLOY_SMOKE_EMAIL and DEPLOY_SMOKE_PASSWORD to a seeded account" >&2 ;;
+      403) echo "ERROR: the smoke account is deactivated" >&2 ;;
+      429) echo "ERROR: the smoke account is locked out after repeated failed logins" >&2 ;;
+    esac
+    return 1
+  fi
+
+  access_token=$(printf '%s' "$body" | python3 -c 'import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    data = {}
+print(data.get("accessToken", "") if isinstance(data, dict) else "")')
+  if [ -z "$access_token" ]; then
+    reason=$(printf '%s' "$body" | python3 -c 'import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    data = {}
+if not isinstance(data, dict):
+    print("the login response could not be parsed")
+elif data.get("mfaRequired"):
+    print("the account has MFA enabled, which this smoke test cannot complete")
+elif data.get("mfaSetupRequired"):
+    print("the organisation forces MFA setup before login")
+elif data.get("forcePasswordReset"):
+    print("a password reset is pending on the account")
+else:
+    print("the login response contained no access token")')
+    echo "ERROR: authenticated smoke login returned HTTP 200 without an access token: $reason" >&2
+    return 1
+  fi
+
+  if ! me_response=$(curl -sS -o - -w $'\n%{http_code}' --max-time 20 -H "Authorization: Bearer $access_token" "$AUTH_ME_URL"); then
+    echo "ERROR: authenticated smoke could not reach $AUTH_ME_URL" >&2
+    return 1
+  fi
+  me_code=${me_response##*$'\n'}
+  me_body=${me_response%$'\n'*}
+  if [ "$me_code" != "200" ]; then
+    echo "ERROR: authenticated smoke /auth/me failed with HTTP ${me_code:-<none>} using the token issued to $AUTH_SMOKE_EMAIL" >&2
+    return 1
+  fi
+
+  me_email=$(printf '%s' "$me_body" | python3 -c 'import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    data = {}
+user = data.get("user") if isinstance(data, dict) else None
+print(str((user or {}).get("email", "")).strip().lower())')
+  expected_email=$(printf '%s' "$AUTH_SMOKE_EMAIL" | tr '[:upper:]' '[:lower:]')
+  if [ "$me_email" != "$expected_email" ]; then
+    echo "ERROR: authenticated smoke signed in as $expected_email but /auth/me reported '${me_email:-<none>}'" >&2
+    return 1
+  fi
+
+  echo "Authenticated smoke passed: $expected_email authenticated and /auth/me returned the same account"
 }
 
 retain_known_good_releases() {
