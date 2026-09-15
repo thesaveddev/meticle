@@ -11,7 +11,7 @@ import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance, watchDistance, formatDistance } from '../services/location'
 import { getLocationThreshold, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask } from '../services/api'
 import { Ionicons } from '@expo/vector-icons'
-import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate, IconTwoPerson, IconSwap, IconDelay, IconReport } from '../components/Icons'
+import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate, IconTwoPerson, IconSwap, IconDelay, IconReport, IconTransfer } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
 import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
@@ -107,7 +107,7 @@ function ReadOnlyField({ label, value, c }: { label: string; value: string; c: a
   )
 }
 
-export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident, onSwap, onRideShare, previousVisit, nextVisit, onVisitNext }: {
+export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident, onSwap, onTransfer, onRideShare, previousVisit, nextVisit, onVisitNext }: {
   visit: HomecareVisit
   session?: AuthSession
   onBack: () => void
@@ -117,6 +117,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   onClientDetail?: (personId: string) => void
   onReportIncident?: () => void
   onSwap?: () => void
+  onTransfer?: () => void
   onRideShare?: () => void
   previousVisit?: HomecareVisit | null
   nextVisit?: HomecareVisit | null
@@ -206,6 +207,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const isReadonly = isCompleted || isMissed || isCancelled
   const isOpen = !isReadonly
   const canSwap = isOpen && !!onSwap
+  const canTransfer = isOpen && !!onTransfer
   const checkedIn = visit.status === 'checked_in'
   const requiresTwo = !!visit.requires_two_staff
   const [secondCarerCheckedIn, setSecondCarerCheckedIn] = useState(false)
@@ -823,6 +825,12 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                 <Pressable onPress={() => { hapticLight(); onSwap!() }} style={({ pressed }) => [[styles.actionPill, { backgroundColor: c.primarySurface, borderColor: c.primary + '30' }], pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] }]}>
                   <Ionicons name="swap-horizontal-outline" size={15} color={c.primary} />
                   <Text style={[styles.actionPillText, { color: c.primary }]}>Swap</Text>
+                </Pressable>
+              )}
+              {canTransfer && (
+                <Pressable onPress={() => { hapticLight(); onTransfer!() }} style={({ pressed }) => [[styles.actionPill, { backgroundColor: c.infoSurface, borderColor: c.info + '30' }], pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] }]}>
+                  <IconTransfer size={15} color={c.info} />
+                  <Text style={[styles.actionPillText, { color: c.info }]}>Transfer</Text>
                 </Pressable>
               )}
               {onRideShare && (

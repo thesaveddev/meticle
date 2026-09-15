@@ -74,7 +74,7 @@ type Screen =
   | { kind: 'nutrition'; personId: string; personName: string }
   | { kind: 'profile' }
   | { kind: 'availability' }
-  | { kind: 'swap' }
+  | { kind: 'swap'; mode?: 'swap' | 'transfer'; visitId?: string }
   | { kind: 'chat' }
   | { kind: 'notifications' }
   | { kind: 'allVisits'; status?: string; staffName?: string }
@@ -193,6 +193,13 @@ function AppInner() {
     return () => clearInterval(interval)
   }, [session?.accessToken])
 
+  // Refresh the bell badge when returning to the tabs, so it reflects what the
+  // carer has actually read rather than the count they arrived with.
+  useEffect(() => {
+    if (!session?.accessToken || currentScreen.kind !== 'tabs') return
+    getUnreadNotificationCount(session.accessToken).then(setUnreadCount).catch(() => {})
+  }, [currentScreen.kind, session?.accessToken])
+
   async function handleLogin(email: string, password: string) {
     setLoginLoading(true); setLoginError('')
     try {
@@ -276,7 +283,7 @@ function AppInner() {
     const currentIdx = sortedVisits.findIndex(v => v.id === currentScreen.visit.id)
     const prevV = currentIdx > 0 ? sortedVisits[currentIdx - 1] : null
     const nextV = currentIdx >= 0 && currentIdx < sortedVisits.length - 1 ? sortedVisits[currentIdx + 1] : null
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap' })} onRideShare={() => pushScreen({ kind: 'rideShare', visit: currentScreen.visit })} previousVisit={prevV} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></SwipeBack></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} onTransfer={() => pushScreen({ kind: 'swap', mode: 'transfer', visitId: currentScreen.visit.id })} onRideShare={() => pushScreen({ kind: 'rideShare', visit: currentScreen.visit })} previousVisit={prevV} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></SwipeBack></>
   }
   if (currentScreen.kind === 'availability' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AvailabilityScreen session={session} onBack={goBack} /></SwipeBack></>
@@ -285,7 +292,7 @@ function AppInner() {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></SwipeBack></>
   }
   if (currentScreen.kind === 'swap' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><SwapTransferScreen session={session} user={user} visits={visits} onBack={goBack} onRefresh={() => loadVisits(session)} /></SwipeBack></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><SwapTransferScreen session={session} user={user} visits={visits} initialRequestType={currentScreen.mode} initialVisitId={currentScreen.visitId} onBack={goBack} onRefresh={() => loadVisits(session)} /></SwipeBack></>
   }
   if (currentScreen.kind === 'incident' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} /></SwipeBack></>
@@ -323,11 +330,18 @@ function AppInner() {
         {/* Header with notification bell */}
         <View style={[s.header, { backgroundColor: c.bg }]}>  
           <View style={{ flex: 1 }} />
-          <Pressable onPress={() => { hapticLight(); pushScreen({ kind: 'notifications' }); setUnreadCount(0) }} style={s.notifBtn}>
+          <Pressable
+            // The badge tracks the server's unread count, so it is not cleared on
+            // open — marking notifications read is what brings it down.
+            onPress={() => { hapticLight(); pushScreen({ kind: 'notifications' }) }}
+            style={s.notifBtn}
+            accessibilityRole="button"
+            accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          >
             <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={24} color={c.ink} />
             {unreadCount > 0 && (
-              <View style={[s.notifBadge, { backgroundColor: c.danger }]}>
-                <Text style={s.notifBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              <View style={[s.notifBadge, { backgroundColor: c.danger, borderColor: c.bg }]}>
+                <Text style={[s.notifBadgeText, { color: c.inverse }]}>{unreadCount > 99 ? '99+' : String(unreadCount)}</Text>
               </View>
             )}
           </Pressable>
@@ -335,7 +349,7 @@ function AppInner() {
         <View style={[s.body, { backgroundColor: c.bg }]}>
           {/* Carer tabs */}
           {!isManager && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} session={session} />}
-          {!isManager && tab === 'schedule' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap' })} />}
+          {!isManager && tab === 'schedule' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} />}
           {!isManager && tab === 'mileage' && <MileageScreen session={session} />}
 
           {/* Manager tabs */}
@@ -366,7 +380,7 @@ function AppInner() {
               <TabIcon name={tabIconName[t.key]} size={24} color={tab === t.key ? c.primary : c.subtle} />
               {t.key === 'chat' && chatUnreadCount > 0 && (
                 <View style={[s.chatBadge, { backgroundColor: c.danger }]}>
-                  <Text style={s.chatBadgeText}>{chatUnreadCount > 99 ? '99+' : chatUnreadCount}</Text>
+                  <Text style={[s.chatBadgeText, { color: c.inverse }]}>{chatUnreadCount > 99 ? '99+' : String(chatUnreadCount)}</Text>
                 </View>
               )}
               <Text style={[s.tabLabel, { color: tab === t.key ? c.primary : c.subtle }]}>{t.label}</Text>
@@ -391,7 +405,7 @@ const s = StyleSheet.create({
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 4, gap: 2, minHeight: 48 },
   chatBadge: { position: 'absolute', top: 1, right: '50%', marginRight: -20, minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, zIndex: 2 },
-  chatBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', fontFamily: FONT },
+  chatBadgeText: { fontSize: 10, fontWeight: '700', fontFamily: FONT, lineHeight: 13 },
   tabLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '600', letterSpacing: 0.2 },
   tabIndicator: { width: 20, height: 2, borderRadius: 1, marginTop: 3 },
   boot: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -401,6 +415,10 @@ const s = StyleSheet.create({
   bootText: { fontFamily: FONT, fontSize: 16, fontWeight: '600', marginTop: spacing.sm },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
   notifBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center', position: 'relative', borderRadius: 20 },
-  notifBadge: { position: 'absolute', top: 6, right: 6, minWidth: 8, height: 8, borderRadius: 4, backgroundColor: '#DC2626' },
-  notifBadgeText: { fontSize: 0, fontFamily: FONT, fontWeight: '700', color: '#FFFFFF' },
+  notifBadge: {
+    position: 'absolute', top: 3, right: 2,
+    minWidth: 18, height: 18, borderRadius: 9, borderWidth: 2,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
+  },
+  notifBadgeText: { fontFamily: FONT, fontSize: 10, fontWeight: '700', lineHeight: 13 },
 })

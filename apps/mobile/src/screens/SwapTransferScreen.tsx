@@ -7,7 +7,7 @@ import { dyn } from '../utils/dynamicStyles'
 import { SkeletonInline } from '../components/Skeleton'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
-import { getMyVisits, getStaffVisits } from '../services/api'
+import { getMyVisits, getStaffVisits, getTeamMembers } from '../services/api'
 import { IconSwap, IconTransfer } from '../components/Icons'
 import { hapticLight, hapticWarning } from '../services/haptics'
 
@@ -50,9 +50,13 @@ interface Props {
   visits: HomecareVisit[]
   onBack: () => void
   onRefresh: () => void
+  /** Arriving from a Swap/Transfer pill opens that flow immediately. */
+  initialRequestType?: 'swap' | 'transfer'
+  /** The call the carer started from, pre-selected instead of hunted for. */
+  initialVisitId?: string
 }
 
-export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }: Props) {
+export function SwapTransferScreen({ session, user, visits, initialRequestType, initialVisitId, onBack, onRefresh }: Props) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
   const [requests, setRequests] = useState<SwapRequest[]>([])
@@ -62,7 +66,7 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false)
-  const [requestType, setRequestType] = useState<'swap' | 'transfer'>('swap')
+  const [requestType, setRequestType] = useState<'swap' | 'transfer'>(initialRequestType || 'swap')
   const [step, setStep] = useState(1)
   const [selectedVisit, setSelectedVisit] = useState<HomecareVisit | null>(null)
   const [targetStaff, setTargetStaff] = useState<TeamMember | null>(null)
@@ -80,7 +84,7 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
       const to = new Date(now.getTime() + 30 * 86400000).toISOString() // 30 days ahead
       const [reqRes, teamRes, myVisitsRes] = await Promise.all([
         fetch(`${API_BASE}/homecare/swap-requests`, { headers: { Authorization: `Bearer ${session.accessToken}` } }).then(r => r.json()),
-        fetch(`${API_BASE}/homecare/staff`, { headers: { Authorization: `Bearer ${session.accessToken}` } }).then(r => r.json()).catch(() => []),
+        getTeamMembers(session.accessToken).catch(() => []),
         getMyVisits(session.accessToken, from, to).catch(() => []),
       ])
       setRequests(Array.isArray(reqRes) ? reqRes : [])
@@ -103,6 +107,18 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
     setMessage('')
     setModalOpen(true)
   }
+
+  // Opened from a call's Swap/Transfer pill: go straight into that request flow.
+  useEffect(() => {
+    if (initialRequestType) openNewRequest(initialRequestType)
+  }, [])
+
+  // Pre-select the call the carer started from, once their upcoming calls load.
+  useEffect(() => {
+    if (!modalOpen || !initialVisitId || selectedVisit) return
+    const match = myUpcomingVisits.find(v => v.id === initialVisitId)
+    if (match) { setSelectedVisit(match); setStep(2) }
+  }, [modalOpen, initialVisitId, myUpcomingVisits, selectedVisit])
 
   const selectTeamMember = async (member: TeamMember) => {
     hapticLight()
@@ -197,9 +213,9 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
             <Text style={[s.actionTitle, { color: c.primary }]}>Swap a call</Text>
             <Text style={[s.actionDesc, { color: c.muted }]}>Exchange a call with a colleague</Text>
           </Pressable>
-          <Pressable onPress={() => openNewRequest('transfer')} style={({ pressed }) => [[s.actionCard, { backgroundColor: c.accentSurface, borderColor: c.accent + '20' }], pressed && { opacity: 0.8 }]}>
-            <IconTransfer size={24} color={c.accent} />
-            <Text style={[s.actionTitle, { color: c.accent }]}>Transfer a call</Text>
+          <Pressable onPress={() => openNewRequest('transfer')} style={({ pressed }) => [[s.actionCard, { backgroundColor: c.infoSurface, borderColor: c.info + '20' }], pressed && { opacity: 0.8 }]}>
+            <IconTransfer size={24} color={c.info} />
+            <Text style={[s.actionTitle, { color: c.info }]}>Transfer a call</Text>
             <Text style={[s.actionDesc, { color: c.muted }]}>Give a call to a colleague</Text>
           </Pressable>
         </View>
@@ -224,8 +240,8 @@ export function SwapTransferScreen({ session, user, visits, onBack, onRefresh }:
           filtered.map(req => (
             <View key={req.id} style={[s.reqCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
               <View style={s.reqHeader}>
-                <View style={[s.reqTypeBadge, { backgroundColor: req.request_type === 'swap' ? c.primarySurface : c.accentSurface }]}>
-                  <Text style={[s.reqTypeText, { color: req.request_type === 'swap' ? c.primary : c.accent }]}>
+                <View style={[s.reqTypeBadge, { backgroundColor: req.request_type === 'swap' ? c.primarySurface : c.infoSurface }]}>
+                  <Text style={[s.reqTypeText, { color: req.request_type === 'swap' ? c.primary : c.info }]}>
                     {req.request_type === 'swap' ? 'Swap' : 'Transfer'}
                   </Text>
                 </View>
