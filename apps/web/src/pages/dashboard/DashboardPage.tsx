@@ -208,14 +208,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 0.5 }}>
           {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </Typography>
         <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 0.5 }}>
-          {greeting}, {firstName} 👋
+          {greeting}, {firstName}
         </Typography>
         <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
           Here's your overview for today.

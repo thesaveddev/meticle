@@ -5,6 +5,7 @@ import {
   Chip, IconButton, Tooltip, CircularProgress, Alert, Drawer, Divider,
   ToggleButton, ToggleButtonGroup, Snackbar,
 } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import {
   FilterList as FilterIcon, TableChart as CsvIcon, BarChart as BarIcon, PieChart as PieIcon,
   ShowChart as LineIcon, Timeline as AreaIcon, Radar as RadarIcon,
@@ -217,7 +218,8 @@ export default function ReportBuilder() {
   if (!meta) return <Box><Alert severity="error" sx={{ mb: 2 }}>{error || 'Report not found'}</Alert></Box>
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
         <IconButton onClick={() => navigate('/reports')} size="small"><BackIcon /></IconButton>
         <Box sx={{ flex: 1 }}>
@@ -389,6 +391,6 @@ export default function ReportBuilder() {
       </Drawer>
 
       <Snackbar open={!!snackbar} autoHideDuration={3000} message={snackbar} onClose={() => setSnackbar('')} />
-    </Box>
+    </PageContainer>
   )
 }

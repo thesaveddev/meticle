@@ -47,7 +47,7 @@ export default function MyWeekPage() {
   if (loading) return <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
       <Typography variant="h4" fontWeight={700} mb={1}>My week</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>{visits.length} calls · {completed} completed</Typography>
 

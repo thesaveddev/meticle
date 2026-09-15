@@ -505,7 +505,8 @@ export default function PersonProfilePage() {
   }
 
   return (
-    <Box>
+    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+
       {/* Profile Header */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2.5, border: '1px solid', borderColor: 'grey.200', background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} spacing={2}>

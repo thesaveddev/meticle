@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, type ReactNode } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Alert, Card, CardContent, Grid, Tabs, Tab, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControl, InputLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete, Divider } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { HowToReg as ClaimIcon, Schedule as ScheduleIcon, LocationOn as LocationIcon, CheckCircle, Cancel, History, Send as SendIcon, AccessTime as AccessTimeIcon, DateRange as DateRangeIcon, Person as PersonIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material'
 import api from '../../services/api'
 
@@ -348,7 +349,8 @@ export default function ShiftMarketplacePage() {
   }
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1} sx={{ mb: 3 }}>
         <Stack direction="row" spacing={1} alignItems="center">
           <ScheduleIcon sx={{ color: '#0F4C81', fontSize: 28 }} />
@@ -788,6 +790,6 @@ export default function ShiftMarketplacePage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

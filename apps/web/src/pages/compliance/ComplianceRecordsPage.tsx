@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Stack, TablePagination, CircularProgress, Alert } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
@@ -31,7 +32,8 @@ export default function ComplianceRecordsPage() {
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 8 }}><CircularProgress /></Box>
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight={800}>Compliance Records</Typography>
         <Button variant="outlined" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}
@@ -72,6 +74,6 @@ export default function ComplianceRecordsPage() {
         </Table>
         <TablePagination component="div" count={records.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rows} onRowsPerPageChange={e => { setRows(parseInt(e.target.value, 10)); setPage(0) }} rowsPerPageOptions={[5, 10, 25]} />
       </TableContainer>
-    </Box>
+    </PageContainer>
   )
 }

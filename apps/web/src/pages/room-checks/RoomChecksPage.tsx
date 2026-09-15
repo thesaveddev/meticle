@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Stack, TextField, MenuItem, TablePagination, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Alert, Rating, Autocomplete, IconButton } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { Add as AddIcon, CameraAlt, Edit as EditIcon, Delete as DeleteIcon, Close as CloseIcon, OpenInNew as OpenInNewIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -86,7 +87,8 @@ export default function RoomChecksPage() {
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 8 }}><CircularProgress /></Box>
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight={800}>Room Checks</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => { close(); setDialog(true) }} sx={{ bgcolor: '#0F4C81', textTransform: 'none' }}>
@@ -253,6 +255,6 @@ export default function RoomChecksPage() {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }}
       />
-    </Box>
+    </PageContainer>
   )
 }

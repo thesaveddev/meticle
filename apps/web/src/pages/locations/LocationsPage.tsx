@@ -7,6 +7,7 @@ import {
   FormControl, InputLabel, Select, MenuItem, TablePagination,
   CircularProgress, Chip,
 } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import {
   Business as BuildingIcon, Add as AddIcon, Edit as EditIcon,
   Delete as DeleteIcon, Warning as WarningIcon,
@@ -148,7 +149,8 @@ export default function LocationsPage() {
   const noManagerCount = locations.filter(l => !l.manager_id).length
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h4" sx={{ fontWeight: 800 }}><BuildingIcon sx={{ mr: 1, verticalAlign: 'middle', color: NAVY }} />Locations</Typography>
         {isOrgAdmin && (
@@ -331,6 +333,6 @@ export default function LocationsPage() {
         onCancel={() => { if (!deleting) setDeleteTarget(null) }}
         onConfirm={() => deleteTarget && deleteLocation(deleteTarget.id)}
       />
-    </Box>
+    </PageContainer>
   )
 }

@@ -301,7 +301,7 @@ export default function PoliciesPage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
 
       <Paper variant="outlined" sx={{ mb: 4, p: { xs: 2, md: 2.5 }, borderRadius: 2, borderColor: '#C7D7E8', bgcolor: 'info.light' }}>

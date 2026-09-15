@@ -6,6 +6,7 @@ import {
   Alert, FormControl, InputLabel, Select, Tooltip,
   Popover, List, ListItem, ListItemText, Divider, CircularProgress, TablePagination,
 } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import {
   Add as AddIcon, CheckCircle as ApproveIcon,
   Cancel as RejectIcon, CalendarMonth as CalendarIcon, BeachAccess as LeaveIcon,
@@ -398,7 +399,8 @@ export default function LeaveManagerPage() {
   const totalPending = calendarStats.reduce((s, d) => s + d.pending_count, 0)
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={1} alignItems="center">
           <LeaveIcon sx={{ color: '#0F4C81', fontSize: 28 }} />
@@ -1111,6 +1113,6 @@ export default function LeaveManagerPage() {
         onConfirm={() => cancelTarget && handleCancel(cancelTarget.id)}
         onCancel={() => setCancelTarget(null)}
       />
-    </Box>
+    </PageContainer>
   )
 }

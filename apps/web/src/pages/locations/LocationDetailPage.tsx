@@ -286,7 +286,8 @@ export default function LocationDetailPage() {
 
   if (!location) {
     return (
-      <Box>
+      <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
           <Typography color="#9CA3AF">Location not found.</Typography>
         </Paper>

@@ -214,7 +214,8 @@ export default function MissionControlPage() {
 
   if (loading && tab === 0) {
     return (
-      <Box>
+      <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+
         <PageMeta title="Mission Control" description="Operational overview of everything that needs attention across medication, staffing, compliance, and care reviews." />
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>Mission Control</Typography>
         <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>Operational overview of everything that needs attention.</Typography>

@@ -5,6 +5,7 @@ import {
   Stack, Alert, CircularProgress, Tooltip, Chip, Tabs, Tab, Paper, Select, MenuItem, FormControl, InputLabel, Grid, Card, CardContent,
   ToggleButton, ToggleButtonGroup
 } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Business as BusinessIcon,
   People as PeopleIcon, AttachMoney as MoneyIcon, History as HistoryIcon,
@@ -186,7 +187,8 @@ export default function AgenciesPage() {
   const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
         <BusinessIcon sx={{ color: '#0F4C81', fontSize: 28 }} />
         <Typography variant="h5" sx={{ fontWeight: 700 }}>Agency Management</Typography>
@@ -654,6 +656,6 @@ export default function AgenciesPage() {
           )}
         </>
       )}
-    </Box>
+    </PageContainer>
   )
 }

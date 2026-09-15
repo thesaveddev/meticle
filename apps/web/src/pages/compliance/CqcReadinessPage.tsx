@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { Box, Typography, Paper, Grid, Chip, LinearProgress, Stack, Button, Tooltip, CircularProgress, IconButton, Collapse, Alert, Dialog, DialogTitle, DialogContent, List, ListItemButton, ListItemAvatar, Avatar, ListItemText, TextField } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Refresh as RefreshIcon, ExpandMore as ExpandIcon, CheckCircle, Warning, Error as ErrorIcon, Download as DownloadIcon, Print as PrintIcon, Lightbulb as ActionIcon, AutoAwesome as AiIcon, SmartToy as AiIconOutlined, Send as SendIcon, Chat as ChatIcon, PriorityHigh as PriorityIcon, AccessTime as EffortIcon, Star as StarIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import api from '../../services/api'
@@ -344,7 +345,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
   const actions = buildActions(data.gaps || [])
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <PageContainer>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <Typography variant="h4">Readiness</Typography>
@@ -781,6 +782,6 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
           )
         })}
       </Box>
-    </Box>
+    </PageContainer>
   )
 }

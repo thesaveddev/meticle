@@ -400,7 +400,7 @@ export default function CompliancePortalPage() {
         </Stack>
       </Paper>
 
-      <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+      <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
         {/* Overview Cards */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6} md={3}>

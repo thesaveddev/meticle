@@ -6,6 +6,7 @@ import {
   InputAdornment, Select, FormControl, InputLabel,
   TablePagination, TableFooter, Divider,
 } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import {
   Add as AddIcon, Search as SearchIcon,
   Lock as LockIcon, LockOpen as LockOpenIcon,
@@ -82,7 +83,8 @@ export default function IncidentDirectoryPage() {
   const activeFilterCount = [statusFilter, severityFilter, categoryFilter, nearMissFilter, dateFrom, dateTo].filter(Boolean).length
 
   return (
-    <Box>
+    <PageContainer>
+
       <PageHeader
         title="Incidents"
         subtitle={`${stats?.total ?? 0} total · ${stats?.open_actions ?? 0} open actions`}
@@ -343,7 +345,7 @@ export default function IncidentDirectoryPage() {
           </DialogActions>
         </Box>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }
 

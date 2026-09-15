@@ -6,6 +6,7 @@ import {
   TableCell, TableContainer, TableHead, TableRow, IconButton,
   Divider, Autocomplete, LinearProgress,
 } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import {
   Add as AddIcon, CheckCircle as CheckIcon,
   Delete as DeleteIcon, Edit as EditIcon,
@@ -151,7 +152,8 @@ export default function IncidentDetailPage() {
   const overdueActions = incidentActions.filter((a: any) => !a.completed_at && a.status !== 'cancelled' && a.due_date && new Date(a.due_date) < new Date())
 
   return (
-    <Box>
+    <PageContainer>
+
       {/* Header */}
       <PageHeader
         title={incident.title}
@@ -714,6 +716,6 @@ export default function IncidentDetailPage() {
         onConfirm={() => deleteMutation.mutate()}
         onCancel={() => setDeleteOpen(false)}
       />
-    </Box>
+    </PageContainer>
   )
 }

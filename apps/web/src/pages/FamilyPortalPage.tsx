@@ -132,7 +132,7 @@ export default function FamilyPortalPage() {
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
       {/* Header */}
       <Box sx={{ bgcolor: '#0F4C81', color: 'white', p: 4, pb: 6 }}>
-        <Box sx={{ maxWidth: 'var(--container-narrow)', mx: 'auto' }}>
+        <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
           <Stack direction="row" spacing={3} alignItems="center">
             <Avatar src={su.photo_url || undefined}
               sx={{ width: 72, height: 72, bgcolor: 'rgba(255,255,255,0.2)', fontSize: 28, border: '3px solid rgba(255,255,255,0.3)' }}>

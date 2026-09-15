@@ -455,7 +455,7 @@ export default function StaffDirectoryPage() {
   const careWorkerCount = allMembers.filter((m: any) => m.role === 'CARE_WORKER' && m._type !== 'invitation').length
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
       {/* ── Header ── */}
       <PageHeader
         title="Staff directory"
