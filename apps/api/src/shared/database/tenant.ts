@@ -146,6 +146,36 @@ export async function requirePersonInOrg(user: AuthUser, personId: string): Prom
 }
 
 /**
+ * Enforce that a child record linked to a person belongs to the org.
+ * The table name is allow-listed because it is interpolated into SQL.
+ */
+const PERSON_CHILD_TABLES = new Set([
+  'body_map_entries', 'memory_book_entries', 'clinical_scores', 'person_documents',
+  'person_wellbeing', 'person_communication_log', 'person_capacity_assessments',
+  'person_care_pathways', 'person_time_away', 'person_discharge_checklist',
+  'health_observations', 'bowel_movements', 'dental_records', 'fluid_intake',
+  'sleep_records', 'family_contacts', 'care_assessments', 'daily_notes',
+  'risk_assessments',
+]);
+
+export async function requirePersonChildInOrg(
+  user: AuthUser,
+  table: string,
+  childId: string,
+): Promise<void> {
+  if (!PERSON_CHILD_TABLES.has(table)) {
+    throw new AppError(500, 'Unsupported tenant-scoped child table');
+  }
+  const { rows } = await pool.query(
+    `SELECT 1 FROM ${table} child
+     JOIN people person ON person.id = child.person_id
+     WHERE child.id = $1 AND person.organization_id = $2`,
+    [childId, user.organizationId]
+  );
+  if (rows.length === 0) throw new AppError(404, 'Record not found');
+}
+
+/**
  * Enforce that an incident belongs to the org.
  */
 export async function requireIncidentInOrg(user: AuthUser, incidentId: string): Promise<void> {

@@ -145,6 +145,17 @@ export class GoalRepository {
     return result.rows[0];
   }
 
+  static async findGoalByMilestoneId(milestoneId: string, orgId: string) {
+    const result = await query(
+      `SELECT g.id
+       FROM goal_milestones gm
+       JOIN person_goals g ON g.id = gm.goal_id
+       WHERE gm.id = $1 AND g.organization_id = $2`,
+      [milestoneId, orgId]
+    );
+    return result.rows[0] || null;
+  }
+
   static async updateMilestone(milestoneId: string, data: { title?: string; is_completed?: boolean; sort_order?: number }) {
     const fields: string[] = []; const params: any[] = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {

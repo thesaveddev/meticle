@@ -14,8 +14,14 @@ export class EMedicationController {
     return orgId;
   }
 
-  static async getStaffProfileId(userId: string): Promise<string | null> {
-    const result = await query(`SELECT id FROM staff_profiles WHERE user_id = $1`, [userId]);
+  static async getStaffProfileId(userId: string, orgId: string): Promise<string | null> {
+    const result = await query(
+      `SELECT sp.id
+       FROM staff_profiles sp
+       JOIN users u ON u.id = sp.user_id
+       WHERE sp.user_id = $1 AND u.organization_id = $2`,
+      [userId, orgId]
+    );
     return result.rows[0]?.id || null;
   }
 
@@ -31,7 +37,7 @@ export class EMedicationController {
     const orgId = EMedicationController.getOrgId(req);
     const record = await EMedicationRepository.findRecordById(req.params.id, orgId);
     if (!record) throw new AppError(404, 'Medication record not found');
-    const items = await EMedicationRepository.findItems(req.params.id);
+    const items = await EMedicationRepository.findItems(req.params.id, orgId);
     res.json({ ...record, items });
   }
 
@@ -133,10 +139,14 @@ export class EMedicationController {
   }
 
   static async updateItem(req: Request, res: Response) {
-    const item = await EMedicationRepository.updateItem(req.params.itemId, req.body);
+    const orgId = EMedicationController.getOrgId(req);
+    if (req.body.stock_item_id !== undefined && req.body.stock_item_id !== null) {
+      const stock = await EMedicationRepository.findStockById(req.body.stock_item_id, orgId);
+      if (!stock) throw new AppError(400, 'Selected stock item not found in this organization');
+    }
+    const item = await EMedicationRepository.updateItem(req.params.itemId, req.body, orgId);
     if (!item) throw new AppError(404, 'Medication item not found');
 
-    const orgId = EMedicationController.getOrgId(req);
     await EMedicationAuditRepository.log({
       organization_id: orgId, action: 'update_item', entity_type: 'item',
       entity_id: item.id, user_id: req.user!.userId, changes: req.body, ip_address: req.ip
@@ -146,9 +156,8 @@ export class EMedicationController {
   }
 
   static async deleteItem(req: Request, res: Response) {
-    const result = await EMedicationRepository.deleteItem(req.params.itemId);
-
     const orgId = EMedicationController.getOrgId(req);
+    const result = await EMedicationRepository.deleteItem(req.params.itemId, orgId);
     await EMedicationAuditRepository.log({
       organization_id: orgId, action: 'delete_item', entity_type: 'item',
       entity_id: req.params.itemId, user_id: req.user!.userId, changes: { archived: result === 'archived' }, ip_address: req.ip
@@ -160,7 +169,8 @@ export class EMedicationController {
   // ── Administrations ──
   static async getAdministrations(req: Request, res: Response) {
     const { startDate, endDate } = req.query as any;
-    const admins = await EMedicationRepository.findAdministrations(req.params.itemId, startDate, endDate);
+    const orgId = EMedicationController.getOrgId(req);
+    const admins = await EMedicationRepository.findAdministrations(req.params.itemId, startDate, endDate, orgId);
     res.json(admins);
   }
 
@@ -174,7 +184,12 @@ export class EMedicationController {
     }
 
     // Block logging administrations outside the medication's prescribed date range
-    const itemRow = await query(`SELECT stock_item_id, name, start_date, end_date FROM emedication_items WHERE id = $1`, [emedication_item_id]);
+    const orgId = EMedicationController.getOrgId(req);
+    const itemRow = await query(`
+      SELECT i.stock_item_id, i.name, i.start_date, i.end_date
+      FROM emedication_items i
+      JOIN emedication_records r ON r.id = i.emedication_record_id
+      WHERE i.id = $1 AND r.organization_id = $2`, [emedication_item_id, orgId]);
     if (!itemRow.rows[0]) throw new AppError(404, 'Medication item not found');
     const adminDate = String(scheduled_time).slice(0, 10);
     const itemStart = itemRow.rows[0].start_date ? String(itemRow.rows[0].start_date).slice(0, 10) : null;
@@ -186,7 +201,7 @@ export class EMedicationController {
       throw new AppError(409, `Cannot log this administration: ${itemRow.rows[0].name || 'This medication'} finished on ${itemEnd}`);
     }
     const staffUserId = staff_user_id || req.user!.userId;
-    let staffProfileId: string | null = await EMedicationController.getStaffProfileId(staffUserId);
+    let staffProfileId: string | null = await EMedicationController.getStaffProfileId(staffUserId, orgId);
     if (!staffProfileId) {
       if (req.user!.role === 'ORG_ADMIN') {
         const newProfile = await query(
@@ -203,8 +218,11 @@ export class EMedicationController {
     // Check medication competence (skip for ORG_ADMIN who can manage the system)
     if (req.user!.role !== 'ORG_ADMIN') {
       const competent = await query(
-        `SELECT medication_competent FROM staff_profiles WHERE id = $1`,
-        [staffProfileId]
+        `SELECT sp.medication_competent
+         FROM staff_profiles sp
+         JOIN users u ON u.id = sp.user_id
+         WHERE sp.id = $1 AND u.organization_id = $2`,
+        [staffProfileId, orgId]
       );
       if (!competent.rows[0]?.medication_competent) {
         throw new AppError(403, 'Staff member has not passed medication assessment and cannot administer medications');
@@ -244,7 +262,7 @@ export class EMedicationController {
       prn_reason, prn_effectiveness, wastage_amount, wastage_reason, batch_number, expiry_date
     });
 
-    const orgIdAdmin = EMedicationController.getOrgId(req);
+    const orgIdAdmin = orgId;
 
     if (status === 'given' && stockItemId) {
       const stockAfter = await EMedicationRepository.deductStockFromAdministration(stockItemId);
@@ -295,12 +313,14 @@ export class EMedicationController {
   }
 
   static async updateAdministration(req: Request, res: Response) {
+    const orgId = EMedicationController.getOrgId(req);
     if (req.body.status === 'given') {
       const itemResult = await query(
         `SELECT a.emedication_item_id, i.stock_item_id, i.name
          FROM emedication_administrations a
          JOIN emedication_items i ON a.emedication_item_id = i.id
-         WHERE a.id = $1`, [req.params.adminId]);
+         JOIN emedication_records r ON r.id = i.emedication_record_id
+         WHERE a.id = $1 AND r.organization_id = $2`, [req.params.adminId, orgId]);
       if (itemResult.rows[0]?.stock_item_id) {
         const stock = await EMedicationRepository.getStockForItem(itemResult.rows[0].emedication_item_id);
         if (stock && stock.quantity !== null && Number(stock.quantity) <= 0) {
@@ -312,15 +332,19 @@ export class EMedicationController {
     // Fetch the prior row so we can detect a status transition INTO 'missed'
     // without re-emitting the event when an already-missed row is edited.
     const priorResult = await query(
-      `SELECT status FROM emedication_administrations WHERE id = $1`,
-      [req.params.adminId]
+      `SELECT a.status
+       FROM emedication_administrations a
+       JOIN emedication_items i ON i.id = a.emedication_item_id
+       JOIN emedication_records r ON r.id = i.emedication_record_id
+       WHERE a.id = $1 AND r.organization_id = $2`,
+      [req.params.adminId, orgId]
     );
     const priorStatus = priorResult.rows[0]?.status;
 
-    const admin = await EMedicationRepository.updateAdministration(req.params.adminId, req.body);
+    const admin = await EMedicationRepository.updateAdministration(req.params.adminId, req.body, orgId);
     if (!admin) throw new AppError(404, 'Administration record not found');
 
-    const orgIdAdmin = EMedicationController.getOrgId(req);
+    const orgIdAdmin = orgId;
     await EMedicationAuditRepository.log({
       organization_id: orgIdAdmin,
       action: 'update_administration',
@@ -386,6 +410,8 @@ export class EMedicationController {
     const orgId = EMedicationController.getOrgId(req);
     const { personId } = req.body;
     if (!personId) throw new AppError(400, 'personId is required');
+    const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [personId, orgId]);
+    if (person.rows.length === 0) throw new AppError(404, 'Person not found');
     const result = await EMedicationRepository.ensureMonthlyMar(orgId, personId, req.user!.userId);
     res.json(result);
   }
@@ -410,12 +436,20 @@ export class EMedicationController {
     const orgId = EMedicationController.getOrgId(req);
     const includeArchived = req.query.includeArchived === 'true';
     const personId = req.query.personId as string | undefined;
+    if (personId) {
+      const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [personId, orgId]);
+      if (person.rows.length === 0) throw new AppError(404, 'Person not found');
+    }
     const stock = await EMedicationRepository.listStock(orgId, includeArchived, personId);
     res.json(stock);
   }
 
   static async createStock(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
+    if (req.body.person_id) {
+      const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [req.body.person_id, orgId]);
+      if (person.rows.length === 0) throw new AppError(400, 'Person not found in this organization');
+    }
     const item = await EMedicationRepository.createStockItem(orgId, req.body);
 
     await EMedicationAuditRepository.log({
@@ -478,12 +512,16 @@ export class EMedicationController {
     const orgId = EMedicationController.getOrgId(req);
     const { personId } = req.query as any;
     if (!personId) throw new AppError(400, 'personId is required');
+    const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [personId, orgId]);
+    if (person.rows.length === 0) throw new AppError(404, 'Person not found');
     const meds = await EMedicationRepository.getMedicationsForDailyCount(orgId, personId);
     res.json(meds);
   }
 
   static async upsertDailyCount(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
+    const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [req.body.person_id, orgId]);
+    if (person.rows.length === 0) throw new AppError(400, 'Person not found in this organization');
     const count = await EMedicationRepository.upsertDailyCountWithItems(orgId, req.body);
 
     await EMedicationAuditRepository.log({
@@ -517,14 +555,19 @@ export class EMedicationController {
   }
 
   static async listDailyCountItems(req: Request, res: Response) {
+    const orgId = EMedicationController.getOrgId(req);
+    const count = await query(`SELECT id FROM emedication_daily_counts WHERE id = $1 AND organization_id = $2`, [req.params.dailyCountId, orgId]);
+    if (count.rows.length === 0) throw new AppError(404, 'Daily count not found');
     const items = await EMedicationRepository.findDailyCountItems(req.params.dailyCountId);
     res.json(items);
   }
 
   static async upsertDailyCountItem(req: Request, res: Response) {
+    const orgId = EMedicationController.getOrgId(req);
+    const count = await query(`SELECT id FROM emedication_daily_counts WHERE id = $1 AND organization_id = $2`, [req.body.daily_count_id, orgId]);
+    if (count.rows.length === 0) throw new AppError(404, 'Daily count not found');
     const item = await EMedicationRepository.upsertDailyCountItem(req.body);
 
-    const orgId = EMedicationController.getOrgId(req);
     await EMedicationAuditRepository.log({
       organization_id: orgId, action: 'upsert_daily_count_item', entity_type: 'daily_count',
       entity_id: item.daily_count_id, user_id: req.user!.userId,
@@ -550,6 +593,10 @@ export class EMedicationController {
 
   static async createDelivery(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
+    if (req.body.person_id) {
+      const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [req.body.person_id, orgId]);
+      if (person.rows.length === 0) throw new AppError(400, 'Person not found in this organization');
+    }
     const delivery = await EMedicationRepository.createDelivery(orgId, req.body, req.user!.userId);
 
     await EMedicationAuditRepository.log({
@@ -562,6 +609,10 @@ export class EMedicationController {
 
   static async updateDelivery(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
+    if (req.body.person_id) {
+      const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [req.body.person_id, orgId]);
+      if (person.rows.length === 0) throw new AppError(400, 'Person not found in this organization');
+    }
     const delivery = await EMedicationRepository.updateDelivery(orgId, req.params.id, req.body, req.user!.userId);
 
     await EMedicationAuditRepository.log({
@@ -600,13 +651,15 @@ export class EMedicationController {
   // ── Staff medication competence ──
   static async toggleMedicationCompetence(req: Request, res: Response) {
     const { medication_competent } = req.body;
+    const orgId = EMedicationController.getOrgId(req);
     const result = await query(`
-      UPDATE staff_profiles SET medication_competent = $1
-      WHERE id = $2 RETURNING id, first_name, last_name, medication_competent`,
-      [medication_competent, req.params.staffProfileId]);
+      UPDATE staff_profiles sp SET medication_competent = $1
+      FROM users u
+      WHERE sp.id = $2 AND u.id = sp.user_id AND u.organization_id = $3
+      RETURNING sp.id, sp.first_name, sp.last_name, sp.medication_competent`,
+      [medication_competent, req.params.staffProfileId, orgId]);
     if (result.rows.length === 0) throw new AppError(404, 'Staff profile not found');
 
-    const orgId = EMedicationController.getOrgId(req);
     await EMedicationAuditRepository.log({
       organization_id: orgId,
       action: 'toggle_medication_competence',
@@ -630,6 +683,8 @@ export class EMedicationController {
 
   static async createDailyCount(req: Request, res: Response) {
     const orgId = EMedicationController.getOrgId(req);
+    const person = await query('SELECT id FROM people WHERE id = $1 AND organization_id = $2', [req.body.person_id, orgId]);
+    if (person.rows.length === 0) throw new AppError(400, 'Person not found in this organization');
     const count = await EMedicationRepository.createDailyCount(orgId, req.body);
 
     await EMedicationAuditRepository.log({
@@ -642,6 +697,9 @@ export class EMedicationController {
 
   // ── Stock Adjustments ──
   static async listStockAdjustments(req: Request, res: Response) {
+    const orgId = EMedicationController.getOrgId(req);
+    const stock = await query(`SELECT id FROM emedication_stock WHERE id = $1 AND organization_id = $2`, [req.params.stockItemId, orgId]);
+    if (stock.rows.length === 0) throw new AppError(404, 'Stock item not found');
     const adjustments = await EMedicationRepository.findStockAdjustments(req.params.stockItemId);
     res.json(adjustments);
   }

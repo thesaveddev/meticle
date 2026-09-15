@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { GoalRepository } from './goals.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { AuditRepository } from '../audit/audit.repository';
+import { requirePersonInOrg } from '../../shared/database/tenant';
 
 export class GoalController {
   static getOrgId(req: Request): string {
@@ -50,6 +51,7 @@ export class GoalController {
   static async getPersonStats(req: Request, res: Response) {
     const orgId = GoalController.getOrgId(req);
     const { personId } = req.params;
+    await requirePersonInOrg(req.user!, personId);
     const stats = await GoalRepository.getPersonStats(orgId, personId);
     res.json(stats);
   }
@@ -74,6 +76,9 @@ export class GoalController {
   }
 
   static async updateMilestone(req: Request, res: Response) {
+    const orgId = GoalController.getOrgId(req);
+    const milestoneGoal = await GoalRepository.findGoalByMilestoneId(req.params.milestoneId, orgId);
+    if (!milestoneGoal) throw new AppError(404, 'Milestone not found');
     const milestone = await GoalRepository.updateMilestone(req.params.milestoneId, req.body);
     if (!milestone) throw new AppError(404, 'Milestone not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'goal_milestone', entity_id: req.params.milestoneId, ip_address: req.ip }).catch(() => {});
@@ -81,6 +86,9 @@ export class GoalController {
   }
 
   static async deleteMilestone(req: Request, res: Response) {
+    const orgId = GoalController.getOrgId(req);
+    const milestoneGoal = await GoalRepository.findGoalByMilestoneId(req.params.milestoneId, orgId);
+    if (!milestoneGoal) throw new AppError(404, 'Milestone not found');
     await GoalRepository.deleteMilestone(req.params.milestoneId);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'goal_milestone', entity_id: req.params.milestoneId, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Milestone deleted' });

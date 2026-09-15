@@ -122,11 +122,13 @@ export class EMedicationRepository {
   }
 
   // ── Items ──
-  static async findItems(recordId: string) {
+  static async findItems(recordId: string, orgId?: string) {
     const result = await query(`
-      SELECT * FROM emedication_items
-      WHERE emedication_record_id = $1
-      ORDER BY is_prn ASC, name ASC`, [recordId]);
+      SELECT i.* FROM emedication_items i
+      JOIN emedication_records r ON r.id = i.emedication_record_id
+      WHERE i.emedication_record_id = $1
+        AND ($2::uuid IS NULL OR r.organization_id = $2)
+      ORDER BY i.is_prn ASC, i.name ASC`, [recordId, orgId || null]);
     return result.rows;
   }
 
@@ -153,7 +155,7 @@ export class EMedicationRepository {
     return result.rows[0];
   }
 
-  static async updateItem(id: string, data: Partial<EMedicationItem>) {
+  static async updateItem(id: string, data: Partial<EMedicationItem>, orgId?: string) {
     const fields: string[] = [];
     const values: any[] = [];
     let idx = 1;
@@ -175,14 +177,21 @@ export class EMedicationRepository {
     if (data.end_date !== undefined) { fields.push(`end_date = $${idx++}`); values.push(data.end_date || null); }
     fields.push(`updated_at = CURRENT_TIMESTAMP`);
     values.push(id);
+    const orgParam = orgId ? idx + 1 : null;
+    if (orgId) values.push(orgId);
     const result = await query(`
       UPDATE emedication_items SET ${fields.join(', ')}
-      WHERE id = $${idx}
+      WHERE id = $${idx}${orgParam ? ` AND EXISTS (SELECT 1 FROM emedication_records r WHERE r.id = emedication_items.emedication_record_id AND r.organization_id = $${orgParam})` : ''}
       RETURNING *`, values);
     return result.rows[0];
   }
 
-  static async deleteItem(id: string): Promise<'deleted' | 'archived'> {
+  static async deleteItem(id: string, orgId?: string): Promise<'deleted' | 'archived'> {
+    const item = await query(`
+      SELECT i.id FROM emedication_items i
+      JOIN emedication_records r ON r.id = i.emedication_record_id
+      WHERE i.id = $1 AND ($2::uuid IS NULL OR r.organization_id = $2)`, [id, orgId || null]);
+    if (item.rows.length === 0) return 'deleted';
     const adminCount = await query(`SELECT COUNT(*)::int AS cnt FROM emedication_administrations WHERE emedication_item_id = $1`, [id]);
     if (adminCount.rows[0]?.cnt > 0) {
       await query(`UPDATE emedication_items SET is_active = false WHERE id = $1`, [id]);
@@ -194,14 +203,17 @@ export class EMedicationRepository {
   }
 
   // ── Administrations ──
-  static async findAdministrations(itemId: string, startDate?: string, endDate?: string) {
+  static async findAdministrations(itemId: string, startDate?: string, endDate?: string, orgId?: string) {
     let sql = `
       SELECT a.*, sp.first_name, sp.last_name, u.email, u.id AS user_id
       FROM emedication_administrations a
+      JOIN emedication_items i ON i.id = a.emedication_item_id
       LEFT JOIN staff_profiles sp ON a.staff_id = sp.id
       LEFT JOIN users u ON sp.user_id = u.id
-      WHERE a.emedication_item_id = $1`;
-    const params: any[] = [itemId];
+      JOIN emedication_records r ON r.id = i.emedication_record_id
+      WHERE a.emedication_item_id = $1
+        AND ($2::uuid IS NULL OR r.organization_id = $2)`;
+    const params: any[] = [itemId, orgId || null];
     if (startDate) {
       params.push(startDate);
       sql += ` AND a.scheduled_time >= $${params.length}::date`;
@@ -280,7 +292,7 @@ export class EMedicationRepository {
     return result.rows[0];
   }
 
-  static async updateAdministration(id: string, data: Partial<EMedicationAdministration>) {
+  static async updateAdministration(id: string, data: Partial<EMedicationAdministration>, orgId?: string) {
     const fields: string[] = [];
     const values: any[] = [];
     let idx = 1;
@@ -288,9 +300,15 @@ export class EMedicationRepository {
     if (data.status !== undefined) { fields.push(`status = $${idx++}`); values.push(data.status); }
     if (data.notes !== undefined) { fields.push(`notes = $${idx++}`); values.push(data.notes); }
     values.push(id);
+    const orgParam = orgId ? idx + 1 : null;
+    if (orgId) values.push(orgId);
     const result = await query(`
       UPDATE emedication_administrations SET ${fields.join(', ')}
-      WHERE id = $${idx}
+      WHERE id = $${idx}${orgParam ? ` AND EXISTS (
+        SELECT 1 FROM emedication_items i
+        JOIN emedication_records r ON r.id = i.emedication_record_id
+        WHERE i.id = emedication_administrations.emedication_item_id AND r.organization_id = $${orgParam}
+      )` : ''}
       RETURNING *`, values);
     return result.rows[0];
   }

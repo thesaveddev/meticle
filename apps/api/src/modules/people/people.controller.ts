@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { PersonRepository } from './people.repository';
-import { requirePersonInOrg } from '../../shared/database/tenant';
+import { requirePersonChildInOrg, requirePersonInOrg } from '../../shared/database/tenant';
 import { EMedicationRepository } from '../emedication/emedication.repository';
 import { AuditRepository } from '../audit/audit.repository';
 
@@ -351,6 +351,7 @@ export class PersonController {
   static async createBodyMapEntry(req: Request, res: Response) {
     const user = req.user!;
     const { personId } = req.params;
+    await requirePersonInOrg(user, personId);
     const entry = await PersonRepository.createBodyMapEntry({
       ...req.body,
       person_id: personId,
@@ -361,6 +362,7 @@ export class PersonController {
   }
 
   static async updateBodyMapEntry(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'body_map_entries', req.params.entryId);
     const entry = await PersonRepository.updateBodyMapEntry(req.params.entryId, req.body);
     if (!entry) throw new AppError(404, 'Body map entry not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'body_map_entry', entity_id: req.params.entryId, new_data: req.body, ip_address: req.ip }).catch(() => {});
@@ -368,6 +370,7 @@ export class PersonController {
   }
 
   static async deleteBodyMapEntry(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'body_map_entries', req.params.entryId);
     await PersonRepository.deleteBodyMapEntry(req.params.entryId);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'body_map_entry', entity_id: req.params.entryId, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Body map entry deleted' });
@@ -384,6 +387,7 @@ export class PersonController {
   static async createMemoryBookEntry(req: Request, res: Response) {
     const user = req.user!;
     const { personId } = req.params;
+    await requirePersonInOrg(user, personId);
     const files = req.files as Express.Multer.File[] | undefined;
     const image_urls = files && files.length > 0 ? files.map(f => '/files/private/' + f.filename) : [];
     const image_url = image_urls.length > 0 ? image_urls[0] : undefined;
@@ -402,6 +406,7 @@ export class PersonController {
   }
 
   static async updateMemoryBookEntry(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'memory_book_entries', req.params.entryId);
     const entry = await PersonRepository.updateMemoryBookEntry(req.params.entryId, req.body);
     if (!entry) throw new AppError(404, 'Memory book entry not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'memory_book_entry', entity_id: req.params.entryId, new_data: req.body, ip_address: req.ip }).catch(() => {});
@@ -409,6 +414,7 @@ export class PersonController {
   }
 
   static async deleteMemoryBookEntry(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'memory_book_entries', req.params.entryId);
     await PersonRepository.deleteMemoryBookEntry(req.params.entryId);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'memory_book_entry', entity_id: req.params.entryId, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Memory book entry deleted' });
@@ -445,6 +451,7 @@ export class PersonController {
   }
 
   static async deleteClinicalScore(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'clinical_scores', req.params.id);
     await PersonRepository.deleteClinicalScore(req.params.id);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'clinical_score', entity_id: req.params.id, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Clinical score deleted' });
@@ -473,12 +480,14 @@ export class PersonController {
   }
 
   static async deleteDocument(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'person_documents', req.params.id);
     await PersonRepository.deleteDocument(req.params.id);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'person_document', entity_id: req.params.id, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Document deleted' });
   }
 
   static async updateClinicalScore(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'clinical_scores', req.params.id);
     const updated = await PersonRepository.updateClinicalScore(req.params.id, req.body);
     if (!updated) throw new AppError(404, 'Clinical score not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'clinical_score', entity_id: req.params.id, new_data: req.body, ip_address: req.ip }).catch(() => {});
@@ -504,6 +513,7 @@ export class PersonController {
   }
 
   static async deleteWellbeing(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'person_wellbeing', req.params.id);
     await PersonRepository.deleteWellbeing(req.params.id);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'wellbeing', entity_id: req.params.id, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Wellbeing entry deleted' });
@@ -528,12 +538,14 @@ export class PersonController {
   }
 
   static async deleteCommunicationLog(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'person_communication_log', req.params.id);
     await PersonRepository.deleteCommunicationLog(req.params.id);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'communication_log', entity_id: req.params.id, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Communication log deleted' });
   }
 
   static async updateCommunicationLog(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'person_communication_log', req.params.id);
     const updated = await PersonRepository.updateCommunicationLog(req.params.id, req.body);
     if (!updated) throw new AppError(404, 'Communication log entry not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'communication_log', entity_id: req.params.id, new_data: req.body, ip_address: req.ip }).catch(() => {});
@@ -572,6 +584,7 @@ export class PersonController {
   }
 
   static async deleteCapacityAssessment(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'person_capacity_assessments', req.params.id);
     await PersonRepository.deleteCapacityAssessment(req.params.id);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'capacity_assessment', entity_id: req.params.id, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Capacity assessment deleted' });
@@ -609,6 +622,7 @@ export class PersonController {
   }
 
   static async deleteCarePathway(req: Request, res: Response) {
+    await requirePersonChildInOrg(req.user!, 'person_care_pathways', req.params.id);
     await PersonRepository.deleteCarePathway(req.params.id);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'care_pathway', entity_id: req.params.id, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Care pathway deleted' });
