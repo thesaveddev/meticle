@@ -164,15 +164,33 @@ jobs:
             git fetch origin master --quiet
             git cat-file -e "$RELEASE_SHA^{commit}"
             git reset --hard "$RELEASE_SHA" --quiet
-            if [ ! -f "$DEPLOY_SCRIPT" ]; then
-              echo "ERROR: deployment script not found after release sync: $DEPLOY_SCRIPT" >&2
+            # The deploy script must come from the release commit itself.
+            # `git reset --hard` restores tracked files but cannot touch an
+            # untracked leftover, so a stale hand-written script left on the host
+            # would otherwise run silently. Resolve the configured path, then
+            # require it to be tracked at the checked-out release and identical to
+            # the version in that commit.
+            case "$DEPLOY_SCRIPT" in
+              /*) DEPLOY_SCRIPT_PATH="$DEPLOY_SCRIPT" ;;
+              ./*) DEPLOY_SCRIPT_PATH="$DEPLOY_DIR/${DEPLOY_SCRIPT#./}" ;;
+              *) DEPLOY_SCRIPT_PATH="$DEPLOY_DIR/$DEPLOY_SCRIPT" ;;
+            esac
+            if [ ! -f "$DEPLOY_SCRIPT_PATH" ]; then
+              echo "ERROR: deployment script not found after release sync: $DEPLOY_SCRIPT_PATH" >&2
               exit 1
             fi
-            chmod 750 "$DEPLOY_SCRIPT"
-            case "$DEPLOY_SCRIPT" in
-              /*|./*) exec "$DEPLOY_SCRIPT" ;;
-              *) exec "./$DEPLOY_SCRIPT" ;;
-            esac
+            DEPLOY_SCRIPT_RELATIVE=$(git ls-files --full-name --error-unmatch -- "${DEPLOY_SCRIPT_PATH#"$DEPLOY_DIR"/}" 2>/dev/null || true)
+            if [ -z "$DEPLOY_SCRIPT_RELATIVE" ]; then
+              echo "ERROR: $DEPLOY_SCRIPT_PATH is not tracked by git at $RELEASE_SHA; refusing to run an unversioned deploy script" >&2
+              exit 1
+            fi
+            if [ "$(git hash-object -- "$DEPLOY_SCRIPT_RELATIVE")" != "$(git rev-parse "$RELEASE_SHA:$DEPLOY_SCRIPT_RELATIVE")" ]; then
+              echo "ERROR: $DEPLOY_SCRIPT_RELATIVE does not match $RELEASE_SHA; refusing to run a stale deploy script" >&2
+              exit 1
+            fi
+            echo "Running version-controlled deploy script $DEPLOY_SCRIPT_RELATIVE from $RELEASE_SHA"
+            chmod 750 "$DEPLOY_SCRIPT_PATH"
+            exec "$DEPLOY_SCRIPT_PATH"
 
   notify-failure:
     name: Notify failed deployment
