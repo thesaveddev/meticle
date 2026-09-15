@@ -107,8 +107,11 @@ export async function runHomecareOverdueAlerts(now = new Date()): Promise<{ sent
       [visit.organization_id]
     );
     const alertFrequencyMinutes = orgSettings.rows[0]?.overdue_alert_frequency_minutes || 120;
+    // Throttle on updated_at, not created_at. The upsert below uses ON CONFLICT DO NOTHING,
+    // so created_at is written once and never advances — throttling on it re-fires the alert
+    // on every cycle forever once the first window lapses. updated_at is bumped on every attempt.
     const recentAlert = await migrateQuery(
-      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'overdue_alert' AND created_at > NOW() - INTERVAL '1 minute' * $2`,
+      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'overdue_alert' AND updated_at > NOW() - INTERVAL '1 minute' * $2`,
       [visit.id, alertFrequencyMinutes]
     );
     if (recentAlert.rows.length > 0) continue;
@@ -157,8 +160,10 @@ export async function runHomecareOverdueAlerts(now = new Date()): Promise<{ sent
       [visit.organization_id]
     );
     const unassignedFreqMinutes = orgSettings2.rows[0]?.unassigned_alert_frequency_minutes || 120;
+    // See the overdue-alert note above: created_at is frozen by ON CONFLICT DO NOTHING,
+    // so the frequency window must be measured from the last attempt instead.
     const recentAlert = await migrateQuery(
-      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'unassigned_alert' AND created_at > NOW() - INTERVAL '1 minute' * $2`,
+      `SELECT id FROM homecare_visit_reminders WHERE visit_id = $1 AND reminder_type = 'unassigned_alert' AND updated_at > NOW() - INTERVAL '1 minute' * $2`,
       [visit.id, unassignedFreqMinutes]
     );
     if (recentAlert.rows.length > 0) continue;
