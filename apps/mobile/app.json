@@ -46,14 +46,12 @@
     "extra": {
       "apiBaseUrl": "https://meticlecare.com/api",
       "eas": {
-        "projectId": "meticlecare"
+        "projectId": "f32786d5-ad51-45e5-b85b-c3e21a58c50d"
       }
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "updates": {
-      "url": "https://u.expo.dev/meticlecare"
-    }
+    "owner": "thesaveddev"
   }
 }
