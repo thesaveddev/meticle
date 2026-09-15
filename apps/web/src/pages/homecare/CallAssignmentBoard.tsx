@@ -42,6 +42,14 @@ interface VisitTask {
   done: boolean
 }
 
+function useAvailableStaff(visit: Visit, enabled: boolean) {
+  return useQuery({
+    queryKey: ['available-staff', visit.id, visit.scheduled_start, visit.scheduled_end],
+    queryFn: () => api.get('/homecare/available-staff', { params: { start: visit.scheduled_start, end: visit.scheduled_end, excludeVisitId: visit.id } }).then(r => Array.isArray(r.data) ? r.data : []),
+    enabled: enabled && !!visit.id,
+  })
+}
+
 function useVisitTasks(visitId: string | null, enabled: boolean) {
   return useQuery({
     queryKey: ['visit-tasks', visitId],
@@ -232,7 +240,10 @@ export default function CallAssignmentBoard() {
 
 function VisitCard({ visit, isAssigning, selectedCarer, staff, expanded, onAssign, onAssignSubmit, onAssignCancel, onCarerChange, assignVisit }: any) {
   const { data: tasks = [] } = useVisitTasks(visit.id, expanded)
+  const { data: availableStaff = [], isLoading: loadingSuggestions } = useAvailableStaff(visit, isAssigning)
   const doneCount = tasks.filter((t: VisitTask) => t.done).length
+  const suggestedIds = new Set(availableStaff.filter((member: any) => member.available_in_window).map((member: any) => member.id))
+  const orderedStaff = [...staff].sort((a: Staff, b: Staff) => Number(suggestedIds.has(b.id)) - Number(suggestedIds.has(a.id)))
 
   return (
     <Paper elevation={0} sx={{ p: 1.5, border: '1px solid', borderColor: 'grey.200', borderRadius: 1.5, cursor: 'pointer', '&:hover': { borderColor: '#0F4C81' } }} onClick={() => { if (!isAssigning) { onAssign() } }}>
@@ -253,9 +264,9 @@ function VisitCard({ visit, isAssigning, selectedCarer, staff, expanded, onAssig
       </Stack>
       {isAssigning && (
         <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center">
-          <TextField select size="small" value={selectedCarer} onChange={e => onCarerChange(e.target.value)} sx={{ flex: 1, minWidth: 0 }}>
+          <TextField select size="small" value={selectedCarer} onChange={e => onCarerChange(e.target.value)} sx={{ flex: 1, minWidth: 0 }} helperText={loadingSuggestions ? 'Checking availability and travel time…' : 'Suggested carers appear first'}>
             <MenuItem value="">Select carer</MenuItem>
-            {staff.map((s: Staff) => <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</MenuItem>)}
+            {orderedStaff.map((s: Staff) => <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}{suggestedIds.has(s.id) ? ' — available' : ''}</MenuItem>)}
           </TextField>
           <Button size="small" variant="contained" disabled={!selectedCarer} onClick={onAssignSubmit} sx={{ textTransform: 'none', bgcolor: '#0F4C81' }}>
             {assignVisit.isPending ? <CircularProgress size={16} color="inherit" /> : 'Assign'}

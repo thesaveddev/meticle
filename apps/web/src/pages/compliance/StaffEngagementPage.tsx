@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Box, Typography, Paper, Button, Stack, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Card, CardContent, TablePagination, CircularProgress, Tabs, Tab, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, OutlinedInput, Checkbox, ListItemText } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { Add as AddIcon, Group as GroupIcon, Edit as EditIcon, Delete as DeleteIcon, Send as SendIcon, RemoveCircleOutline as RemoveIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -96,7 +97,8 @@ export default function StaffEngagementPage() {
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}><CircularProgress /></Box>
 
   return (
-    <Box>
+    <PageContainer>
+
       {feedback && <Alert severity={feedback.type} onClose={() => setFeedback(null)} sx={{ mb: 2 }}>{feedback.message}</Alert>}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4">Staff Engagement Surveys</Typography>
@@ -362,6 +364,6 @@ export default function StaffEngagementPage() {
           <Button onClick={() => setSendOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

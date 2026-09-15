@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { Box, Typography, Paper, Button, Chip, Stack, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControlLabel, Switch, TextField, MenuItem, TablePagination, CircularProgress } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { Download as DownloadIcon, Print as PrintIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -198,7 +199,8 @@ export default function EvidencePacksPage() {
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}><CircularProgress /></Box>
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4">Audit-Ready Evidence Packs</Typography>
           <Stack direction="row" spacing={1}>
@@ -556,6 +558,6 @@ export default function EvidencePacksPage() {
           <EmptyState title="No compliance data" description="No data found for the selected filters" variant="search" />
         )}
       </Box>
-    </Box>
+    </PageContainer>
   )
 }

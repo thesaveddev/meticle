@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Box, Typography, Paper, Stack, Chip, Autocomplete, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, IconButton, Tooltip, Collapse, Button } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowBack, Medication as MedIcon, Schedule as ScheduleIcon, Check as CheckIcon, Close as CloseIcon, ExpandMore, ExpandLess, Search as SearchIcon, Unarchive as UnarchiveIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
@@ -112,7 +113,8 @@ export default function ArchivedMarPage() {
   }
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
         <IconButton onClick={() => navigate('/emedication')}><ArrowBack /></IconButton>
         <Typography variant="h4">Archived Medication Charts</Typography>
@@ -278,6 +280,6 @@ export default function ArchivedMarPage() {
           })}
         </Stack>
       )}
-    </Box>
+    </PageContainer>
   )
 }

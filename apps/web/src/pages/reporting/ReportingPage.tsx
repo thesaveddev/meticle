@@ -4,6 +4,7 @@ import {
   Box, Typography, Grid, Card, CardContent, Stack, TextField, InputAdornment, Chip,
   CircularProgress, Alert, Avatar, Paper, Divider, Button,
 } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import {
   Search as SearchIcon,
   People as PeopleIcon, Group as GroupIcon, CalendarMonth as CalendarIcon,
@@ -72,7 +73,8 @@ export default function ReportingPage() {
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
 
   return (
-    <Box>
+    <PageContainer>
+
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 800 }}>Reporting Suite</Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -181,6 +183,6 @@ export default function ReportingPage() {
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Try a different search term</Typography>
         </Box>
       )}
-    </Box>
+    </PageContainer>
   )
 }

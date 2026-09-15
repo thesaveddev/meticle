@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Box, Typography, Paper, Button, Stack, Chip, Alert, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControl, InputLabel, Select, MenuItem, CircularProgress, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { CheckCircle, Cancel, WarningAmber as WarningIcon, Schedule, Person, Undo as UndoIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material'
 import api from '../../services/api'
 
@@ -160,7 +161,8 @@ export default function OvertimeClaimsPage() {
     : allClaims
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={1} alignItems="center">
           <Schedule sx={{ color: '#0F4C81', fontSize: 28 }} />
@@ -484,6 +486,6 @@ export default function OvertimeClaimsPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

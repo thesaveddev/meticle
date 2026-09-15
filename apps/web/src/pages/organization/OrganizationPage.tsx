@@ -16,7 +16,8 @@ function getOrgId(): string {
 export default function OrganizationPage() {
   const [tab, setTab] = useState(0)
   return (
-    <Box>
+    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+
       <Typography variant="h4" sx={{ mb: 4 }}>Organization</Typography>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
         <Tab label="Details" />

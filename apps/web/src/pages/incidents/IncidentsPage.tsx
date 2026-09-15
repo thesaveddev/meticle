@@ -143,7 +143,7 @@ export default function IncidentsPage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 0.5 }}>

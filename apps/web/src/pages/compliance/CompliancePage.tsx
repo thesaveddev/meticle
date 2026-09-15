@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Stack, Autocomplete, Grid, Alert, TablePagination, LinearProgress, Collapse, IconButton, InputAdornment, Tooltip } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { useTheme } from '@mui/material/styles'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -125,7 +126,7 @@ export default function CompliancePage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <PageContainer>
       {/* ── Header ── */}
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mb: 3, gap: 2 }}>
         <Box>
@@ -390,7 +391,7 @@ export default function CompliancePage() {
       />
 
       <AuditTrailDialog open={auditOpen} onClose={() => setAuditOpen(false)} />
-    </Box>
+    </PageContainer>
   )
 }
 

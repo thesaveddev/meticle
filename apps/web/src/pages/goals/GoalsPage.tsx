@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Box, Typography, Paper, Grid, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, IconButton, LinearProgress, CircularProgress, Autocomplete, Alert, Collapse, Divider, Tooltip, Checkbox, FormControlLabel } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ExpandMore as ExpandIcon, Warning as WarningIcon, CheckCircle as CheckIcon } from '@mui/icons-material'
 import { useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
@@ -223,7 +224,8 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
   if (loading) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
 
   return (
-    <Box>
+    <PageContainer>
+
       {fetchError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFetchError('')}>{fetchError}</Alert>}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <FormControl size="small" sx={{ width: 180 }}>
@@ -480,6 +482,6 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
           <Button variant="contained" color="error" onClick={() => deleteGoalId && handleDelete(deleteGoalId)}>Delete</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

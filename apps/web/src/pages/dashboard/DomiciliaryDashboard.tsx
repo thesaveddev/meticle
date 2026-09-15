@@ -73,7 +73,7 @@ export default function DomiciliaryDashboard() {
   })()
 
   return (
-    <Box sx={{ maxWidth: 'var(--container-standard)', mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 0.5 }}>

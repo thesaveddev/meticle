@@ -5,6 +5,7 @@ import {
   Divider, List, ListItem, ListItemText, ListItemSecondaryAction,
   Switch, FormControlLabel, Tooltip,  CircularProgress, Alert
 } from '@mui/material';
+import PageContainer from '../../components/design/PageContainer'
 import {
   Restaurant as MealIcon, Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
   ContentCopy as CloneIcon, ExpandMore as ExpandIcon, ExpandLess as CollapseIcon,
@@ -145,7 +146,8 @@ export default function MealPlanPage() {
   const groups = groupByMeal(templates as any[]);
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800 }}>Meal Plans</Typography>
@@ -508,6 +510,6 @@ export default function MealPlanPage() {
           <Button onClick={() => setAiDlg(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   );
 }

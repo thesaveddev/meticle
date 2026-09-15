@@ -967,24 +967,38 @@ export default function SettingsPage() {
           <NotificationsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Call Alert Frequency
         </Typography>
         <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
-          Control how often managers are notified about overdue and unassigned calls. Managers receive a repeat alert
-          at this interval until the call is resolved or completed.
+          Choose the repeat interval independently for calls that are overdue and calls that still have no carer assigned.
         </Typography>
-        <TextField
-          select
-          label="Alert frequency"
-          size="small"
-          sx={{ width: 300 }}
-          value={String(orgSettings.overdue_alert_frequency_minutes ?? 120)}
-          onChange={e => setOrgSettings((p: any) => ({ ...p, overdue_alert_frequency_minutes: Number(e.target.value) }))}
-        >
-          <MenuItem value="30">Every 30 minutes</MenuItem>
-          <MenuItem value="60">Every 1 hour</MenuItem>
-          <MenuItem value="120">Every 2 hours (default)</MenuItem>
-          <MenuItem value="240">Every 4 hours</MenuItem>
-        </TextField>
-        <Button variant="contained" onClick={() => saveOrgSettings({ overdue_alert_frequency_minutes: orgSettings.overdue_alert_frequency_minutes })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
-          <SaveIcon sx={{ mr: 1 }} /> Save Alert Frequency
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <TextField
+            select
+            label="Overdue calls"
+            size="small"
+            sx={{ width: { xs: '100%', sm: 260 } }}
+            value={String(orgSettings.overdue_alert_frequency_minutes ?? 120)}
+            onChange={e => setOrgSettings((p: any) => ({ ...p, overdue_alert_frequency_minutes: Number(e.target.value) }))}
+          >
+            <MenuItem value="30">Every 30 minutes</MenuItem>
+            <MenuItem value="60">Every 1 hour</MenuItem>
+            <MenuItem value="120">Every 2 hours</MenuItem>
+            <MenuItem value="240">Every 4 hours</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="Unassigned calls"
+            size="small"
+            sx={{ width: { xs: '100%', sm: 260 } }}
+            value={String(orgSettings.unassigned_alert_frequency_minutes ?? 120)}
+            onChange={e => setOrgSettings((p: any) => ({ ...p, unassigned_alert_frequency_minutes: Number(e.target.value) }))}
+          >
+            <MenuItem value="30">Every 30 minutes</MenuItem>
+            <MenuItem value="60">Every 1 hour</MenuItem>
+            <MenuItem value="120">Every 2 hours</MenuItem>
+            <MenuItem value="240">Every 4 hours</MenuItem>
+          </TextField>
+        </Stack>
+        <Button variant="contained" onClick={() => saveOrgSettings({ overdue_alert_frequency_minutes: orgSettings.overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes: orgSettings.unassigned_alert_frequency_minutes })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          <SaveIcon sx={{ mr: 1 }} /> Save Call Alert Frequencies
         </Button>
       </Paper>
 

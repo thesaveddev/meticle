@@ -4,6 +4,7 @@ import {
   TableContainer, TableHead, TableRow, CircularProgress, Alert,
   LinearProgress, Divider,
 } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import {
   People as PeopleIcon, CheckCircle as CheckIcon, EventBusy as LeaveIcon,
   Schedule as ShiftIcon, TrendingUp as TrendIcon, Psychology as OutcomeIcon,
@@ -111,7 +112,8 @@ export default function InsightsPage() {
   if (error) return <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>
 
   return (
-    <Box>
+    <PageContainer>
+
       <Typography variant="h5" sx={{ fontWeight: 800, mb: 3 }}>Insights</Typography>
 
       {/* Overview Cards */}
@@ -520,6 +522,6 @@ export default function InsightsPage() {
           </Paper>
         </Grid>
       </Grid>
-    </Box>
+    </PageContainer>
   )
 }

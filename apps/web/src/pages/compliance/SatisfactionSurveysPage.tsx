@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Box, Typography, Paper, Button, Stack, Grid, TextField, MenuItem, Rating, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Card, CardContent, TablePagination, CircularProgress, Alert, FormControl, InputLabel, Select } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { Add as AddIcon, Favorite as HeartIcon, Send as SendIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -110,7 +111,8 @@ export default function SatisfactionSurveysPage() {
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}><CircularProgress /></Box>
 
   return (
-    <Box>
+    <PageContainer>
+
       {feedback && <Alert severity={feedback.type} onClose={() => setFeedback(null)} sx={{ mb: 2 }}>{feedback.message}</Alert>}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4">Satisfaction Feedback</Typography>
@@ -349,6 +351,6 @@ export default function SatisfactionSurveysPage() {
           </>
         )}
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

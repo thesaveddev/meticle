@@ -199,7 +199,31 @@ export default function EmailQueueDashboard() {
             </Paper>
           )}
 
-          {/* Top recipients + Hourly trend */}
+          {/* Failure trend */}
+          <Paper sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+            <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
+              <ErrorIcon sx={{ color: failed > 0 ? 'error.main' : 'text.secondary' }} />
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Failure Trend (7d)</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary', ml: 'auto' }}>Hourly failed deliveries</Typography>
+            </Stack>
+            {(() => {
+              const failures = stats.hourlyTrend.filter(point => point.status === 'failed').slice(0, 24).reverse()
+              const max = Math.max(1, ...failures.map(point => point.count))
+              return failures.length === 0 ? (
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>No failed deliveries in the last seven days.</Typography>
+              ) : (
+                <Stack direction="row" alignItems="flex-end" spacing={0.5} sx={{ height: 96, overflow: 'hidden' }}>
+                  {failures.map(point => (
+                    <Tooltip key={`${point.hour}-${point.status}`} title={`${new Date(point.hour).toLocaleString()}: ${point.count} failed`}>
+                      <Box sx={{ flex: 1, minWidth: 6, maxWidth: 28, height: `${Math.max(8, (point.count / max) * 80)}px`, bgcolor: 'error.main', borderRadius: '4px 4px 0 0', opacity: 0.8 }} />
+                    </Tooltip>
+                  ))}
+                </Stack>
+              )
+            })()}
+          </Paper>
+
+          {/* Top recipients + Recent failures */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             {/* Top recipients */}
             <Grid item xs={12} md={6}>

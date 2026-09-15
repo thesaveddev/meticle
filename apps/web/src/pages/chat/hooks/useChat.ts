@@ -139,10 +139,12 @@ export function useChat() {
     try {
       setLoading(true)
       const res = await api.get(`/chat/channels/${channelId}/messages`)
-      setMessages(res.data.messages || res.data)
-      setOtherLastRead(res.data.other_last_read_at || null)
-      setMemberReads(res.data.member_reads || [])
-      setHasOlder((res.data.messages || res.data).length >= 50)
+      const loadedMessages = Array.isArray(res.data) ? res.data : (res.data.messages || [])
+      setMessages(loadedMessages)
+      const receipts = await api.get(`/chat/channels/${channelId}/read-receipts`).catch(() => ({ data: { other_last_read_at: null, member_reads: [] } }))
+      setOtherLastRead(receipts.data.other_last_read_at || null)
+      setMemberReads(receipts.data.member_reads || [])
+      setHasOlder(loadedMessages.length >= 50)
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }, [])
@@ -153,7 +155,7 @@ export function useChat() {
       setOlderLoading(true)
       const oldest = messages[0]
       const res = await api.get(`/chat/channels/${channelId}/messages`, { params: { before: oldest.created_at, limit: 50 } })
-      const older = res.data.messages || res.data
+      const older = Array.isArray(res.data) ? res.data : (res.data.messages || [])
       if (older.length > 0) {
         setMessages(prev => {
           const existing = new Set(prev.map((m: any) => m.id))

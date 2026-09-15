@@ -226,10 +226,21 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         setUnreadCount(res.data.count)
       } catch { /* silent */ }
     }
+    const fetchChatUnreadCount = async () => {
+      try {
+        const res = await api.get('/chat/unread')
+        const counts = res.data && typeof res.data === 'object' ? res.data : {}
+        setChatUnreadCount(Object.values(counts).reduce((sum: number, value: any) => sum + Number(value || 0), 0))
+      } catch { /* silent */ }
+    }
     fetchNotifications()
     fetchUnreadCount()
-    // Poll fallback so the bell stays accurate even if the socket is down.
-    const unreadPoll = setInterval(fetchUnreadCount, 60000)
+    fetchChatUnreadCount()
+    // Poll fallback so the bell and chat badge stay accurate even if the socket is down.
+    const unreadPoll = setInterval(() => {
+      fetchUnreadCount()
+      fetchChatUnreadCount()
+    }, 60000)
 
     const fetchPermissions = async () => {
       try {
@@ -460,7 +471,11 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                   }}
                 >
                   <ListItemIcon sx={{ minWidth: 40, color: theme.palette.text.secondary }}>
-                    {item.icon}
+                    {item.text === 'Communication' ? (
+                      <Badge badgeContent={chatUnreadCount > 99 ? '99+' : chatUnreadCount} color="error" max={99} invisible={chatUnreadCount === 0}>
+                        {item.icon}
+                      </Badge>
+                    ) : item.icon}
                   </ListItemIcon>
                   <ListItemText primary={labelOverride[item.text] || item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} />
                   {item.text === 'Communication' && chatUnreadCount > 0 && (

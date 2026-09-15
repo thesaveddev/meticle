@@ -4,6 +4,7 @@ import {
   DialogContent, DialogTitle, Divider, MenuItem, Paper, Stack, Table, TableBody,
   TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField, Typography,
 } from '@mui/material'
+import PageContainer from '../../components/design/PageContainer'
 import { Add as AddIcon, CheckCircle as CheckCircleIcon, Visibility as VisibilityIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -84,7 +85,8 @@ export default function TasksPage() {
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 8 }}><CircularProgress sx={{ color: NAVY }} /></Box>
 
   return (
-    <Box>
+    <PageContainer>
+
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box><Typography variant="h5" fontWeight={800}>Tasks</Typography><Typography variant="body2" color="text.secondary">Keep recurring and one-off work visible, owned, and closed.</Typography></Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Add task</Button>
@@ -166,6 +168,6 @@ export default function TasksPage() {
           </Stack>
         </DialogContent><DialogActions sx={{ p: 2.5 }}><Button onClick={closeDialog}>Cancel</Button><Button type="submit" variant="contained" disabled={saveMutation.isPending} sx={{ bgcolor: NAVY, textTransform: 'none' }}>{saveMutation.isPending ? <CircularProgress size={20} /> : 'Save task'}</Button></DialogActions></Box>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }
