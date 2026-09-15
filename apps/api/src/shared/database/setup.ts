@@ -2620,6 +2620,33 @@ const MIGRATION_089: Migration = {
   statements: [fs.readFileSync(path.join(__dirname, 'migrations', '089_org_chat_reactions.sql'), 'utf8')],
 };
 
+const MIGRATION_090: Migration = {
+  name: '090_overdue_alert_frequency',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '090_overdue_alert_frequency.sql'), 'utf8')],
+};
+
+const MIGRATION_091: Migration = {
+  name: '091_device_push_tokens',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '091_device_push_tokens.sql'), 'utf8')],
+};
+
+const MIGRATION_092: Migration = {
+  name: '092_separate_call_alert_frequencies',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '092_separate_call_alert_frequencies.sql'), 'utf8')],
+};
+
+// Location coordinates are required by address geocoding on the location
+// screens. This shipped as an unapplied 088 file, which the runner forbids
+// applying once later versions exist, so it is reissued as 093.
+const MIGRATION_093: Migration = {
+  name: '093_location_coordinates',
+  strict: true,
+  statements: [fs.readFileSync(path.join(__dirname, 'migrations', '093_location_coordinates.sql'), 'utf8')],
+};
+
 async function isFreshDatabase(): Promise<boolean> {
   try {
     const result = await query(`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '_migrations') AS exists`);
@@ -2649,7 +2676,7 @@ export const setupDatabase = async () => {
 
     // Run versioned migrations (tracks applied ones in _migrations table)
     await runMigrations([INITIAL_MIGRATION, RLS_MIGRATION, MIGRATION_003, APP_ROLE_MIGRATION, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016, MIGRATION_017, MIGRATION_018,            MIGRATION_019, MIGRATION_020, MIGRATION_021, MIGRATION_022, MIGRATION_023, MIGRATION_024, MIGRATION_025,
-           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043, MIGRATION_044, MIGRATION_045, MIGRATION_046, MIGRATION_047, MIGRATION_048, MIGRATION_049, MIGRATION_050, MIGRATION_051, MIGRATION_052, MIGRATION_053, MIGRATION_054, MIGRATION_055, MIGRATION_056, MIGRATION_057, MIGRATION_058, MIGRATION_059, MIGRATION_060, MIGRATION_061, MIGRATION_062, MIGRATION_065, MIGRATION_066, MIGRATION_067, MIGRATION_068, MIGRATION_069, MIGRATION_070, MIGRATION_071, MIGRATION_072, MIGRATION_073, MIGRATION_074, MIGRATION_075, MIGRATION_076, MIGRATION_077, MIGRATION_078, MIGRATION_079, MIGRATION_080, MIGRATION_081, MIGRATION_082, MIGRATION_083, MIGRATION_084, MIGRATION_085, MIGRATION_086, MIGRATION_087, MIGRATION_089]);
+           MIGRATION_026, MIGRATION_027, MIGRATION_028, MIGRATION_029, MIGRATION_030, MIGRATION_031, MIGRATION_032, MIGRATION_033, MIGRATION_034, MIGRATION_035, MIGRATION_036, MIGRATION_037, MIGRATION_038, MIGRATION_039, MIGRATION_040, MIGRATION_041, MIGRATION_042, MIGRATION_043, MIGRATION_044, MIGRATION_045, MIGRATION_046, MIGRATION_047, MIGRATION_048, MIGRATION_049, MIGRATION_050, MIGRATION_051, MIGRATION_052, MIGRATION_053, MIGRATION_054, MIGRATION_055, MIGRATION_056, MIGRATION_057, MIGRATION_058, MIGRATION_059, MIGRATION_060, MIGRATION_061, MIGRATION_062, MIGRATION_065, MIGRATION_066, MIGRATION_067, MIGRATION_068, MIGRATION_069, MIGRATION_070, MIGRATION_071, MIGRATION_072, MIGRATION_073, MIGRATION_074, MIGRATION_075, MIGRATION_076, MIGRATION_077, MIGRATION_078, MIGRATION_079, MIGRATION_080, MIGRATION_081, MIGRATION_082, MIGRATION_083, MIGRATION_084, MIGRATION_085, MIGRATION_086, MIGRATION_087, MIGRATION_089, MIGRATION_090, MIGRATION_091, MIGRATION_092, MIGRATION_093]);
     logger.info('Migrations completed.');
 
     // Ensure meticle_app role has correct password (init script only runs on first DB init)
