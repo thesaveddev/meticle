@@ -67,7 +67,6 @@ import shiftAuditRoutes from './modules/shift-audit/shift-audit.routes';
 import contactRoutes from './modules/contact/contact.routes';
 import eventRoutes from './modules/events/events.routes';
 import missionControlRoutes from './modules/mission-control/mission-control.routes';
-import demoRoutes from './modules/demo/demo.routes';
 import homecareRoutes from './modules/homecare/homecare.routes';
 import { BillingController } from './modules/billing/billing.controller';
 import { ComplianceController } from './modules/compliance/compliance.controller';
@@ -315,7 +314,6 @@ app.use('/mobile', mobileRoutes);
 app.use('/shift-audit', shiftAuditRoutes);
 app.use('/events', eventRoutes);
 app.use('/contact', contactRoutes); // public — website contact form
-app.use('/demo', demoRoutes); // public — demo account access
 app.use('/homecare', homecareRoutes); // Phase 2 domiciliary-care operations
 // chat routes already registered above
 

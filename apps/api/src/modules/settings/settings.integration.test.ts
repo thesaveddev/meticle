@@ -129,6 +129,71 @@ describe('Settings — org, locations, compliance, delegations', () => {
     expect(res.status).toBe(403)
   })
 
+  it('should store, read back, preserve and clear the two organisation SOS contacts', async () => {
+    const org = await createOrg()
+    const admin = await createUser({ email: `sos-${Date.now()}@test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const token = generateToken(admin)
+
+    const saved = await request(app)
+      .patch('/settings/org')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ emergency_contact_1_label: 'Office', emergency_contact_1_phone: '020 7946 0000', emergency_contact_2_label: 'Supervisor', emergency_contact_2_phone: '07700 900123' })
+    expect(saved.status).toBe(200)
+
+    const read = await request(app).get('/settings/org').set('Authorization', `Bearer ${token}`)
+    expect(read.body.emergency_contact_1_label).toBe('Office')
+    expect(read.body.emergency_contact_1_phone).toBe('020 7946 0000')
+    expect(read.body.emergency_contact_2_label).toBe('Supervisor')
+    expect(read.body.emergency_contact_2_phone).toBe('07700 900123')
+
+    // Saving a different settings section must not wipe the contacts, and the
+    // numbers travel with the session so the mobile SOS sheet has them.
+    await request(app).patch('/settings/org').set('Authorization', `Bearer ${token}`).send({ minimum_compliance_percent: 85 })
+    const afterOtherSection = await request(app).get('/settings/org').set('Authorization', `Bearer ${token}`)
+    expect(afterOtherSection.body.emergency_contact_1_phone).toBe('020 7946 0000')
+    const me = await request(app).get('/auth/me').set('Authorization', `Bearer ${token}`)
+    expect(me.body.organization.emergency_contact_1_phone).toBe('020 7946 0000')
+    expect(me.body.organization.emergency_contact_2_label).toBe('Supervisor')
+
+    // An empty value removes a contact so it stops appearing on the SOS button.
+    const cleared = await request(app)
+      .patch('/settings/org')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ emergency_contact_1_phone: '' })
+    expect(cleared.status).toBe(200)
+    expect(cleared.body.emergency_contact_1_phone).toBeNull()
+    expect(cleared.body.emergency_contact_2_phone).toBe('07700 900123')
+  })
+
+  it('should reject SOS contacts that are not dialable (400)', async () => {
+    const org = await createOrg()
+    const admin = await createUser({ email: `sos2-${Date.now()}@test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+
+    const res = await request(app)
+      .patch('/settings/org')
+      .set('Authorization', `Bearer ${generateToken(admin)}`)
+      .send({ emergency_contact_1_phone: 'call the office' })
+    expect(res.status).toBe(400)
+  })
+
+  it('should refuse SOS contacts from managers and carers', async () => {
+    const org = await createOrg()
+    const manager = await createUser({ email: `sos3-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    const worker = await createUser({ email: `sos4-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+
+    const asManager = await request(app)
+      .patch('/settings/org')
+      .set('Authorization', `Bearer ${generateToken(manager)}`)
+      .send({ emergency_contact_1_phone: '07700 900456' })
+    expect(asManager.status).toBe(403)
+
+    const asWorker = await request(app)
+      .patch('/settings/org')
+      .set('Authorization', `Bearer ${generateToken(worker)}`)
+      .send({ emergency_contact_1_phone: '07700 900456' })
+    expect(asWorker.status).toBe(403)
+  })
+
   it('should reject without auth (401)', async () => {
     const res = await request(app).get('/settings/org')
     expect(res.status).toBe(401)

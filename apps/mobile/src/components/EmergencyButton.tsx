@@ -4,20 +4,55 @@ import { Ionicons } from '@expo/vector-icons'
 import { Linking } from 'react-native'
 import { elevation, radii, spacing, FONT } from '../theme'
 import { hapticWarning } from '../services/haptics'
+import type { SessionOrganisation } from '../types'
 
 const BTN_SIZE = 56
 const PADDING = 12
 const MIN_Y = 60
 
+export interface SosContact {
+  label: string
+  phone: string
+}
+
 interface Props {
+  /** Organisation-defined numbers, shown after 999 and 111. */
+  contacts?: SosContact[]
   managerPhone?: string
+}
+
+/**
+ * Maps the organisation payload delivered with the session into SOS contacts.
+ * A number without a label still appears, under an office/supervisor default,
+ * because an unlabelled number a carer can dial beats a number they cannot see.
+ */
+export function organisationSosContacts(organization: SessionOrganisation | null | undefined): SosContact[] {
+  if (!organization) return []
+  const pairs = [
+    { label: organization.emergency_contact_1_label || 'Office', phone: organization.emergency_contact_1_phone },
+    { label: organization.emergency_contact_2_label || 'Supervisor', phone: organization.emergency_contact_2_phone },
+  ]
+  return pairs.filter(p => !!p.phone).map(p => ({ label: p.label, phone: String(p.phone) }))
+}
+
+/**
+ * The dial options offered by the SOS button, in order. The emergency services
+ * come first so organisation numbers are additions to them, never a substitute.
+ */
+export function sosTargets(contacts: SosContact[], managerPhone?: string): SosContact[] {
+  return [
+    { label: '999 — Emergency', phone: '999' },
+    { label: '111 — NHS', phone: '111' },
+    ...contacts,
+    ...(managerPhone ? [{ label: 'Manager', phone: managerPhone }] : []),
+  ]
 }
 
 function clamp(val: number, min: number, max: number) {
   return Math.max(min, Math.min(max, val))
 }
 
-export function EmergencyButton({ managerPhone }: Props) {
+export function EmergencyButton({ contacts = [], managerPhone }: Props) {
   const { width: screenW, height: screenH } = useWindowDimensions()
   const [pressed, setPressed] = useState(false)
   const isDragging = useRef(false)
@@ -88,27 +123,29 @@ export function EmergencyButton({ managerPhone }: Props) {
   const handlePress = () => {
     if (isDragging.current) return
     hapticWarning()
+
+    const targets = sosTargets(contacts, managerPhone)
+
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Call 999 (Emergency)', 'Call 111 (NHS)', managerPhone ? 'Call Manager' : null].filter(Boolean) as string[],
+          options: ['Cancel', ...targets.map(t => `Call ${t.label}`)],
           cancelButtonIndex: 0,
           destructiveButtonIndex: 1,
         },
         (buttonIndex) => {
-          if (buttonIndex === 1) dialNumber('999')
-          else if (buttonIndex === 2) dialNumber('111')
-          else if (buttonIndex === 3 && managerPhone) dialNumber(managerPhone)
+          const target = targets[buttonIndex - 1]
+          if (target) dialNumber(target.phone)
         }
       )
     } else {
-      const options = ['Cancel', 'Call 999 (Emergency)', 'Call 111 (NHS)']
-      if (managerPhone) options.push('Call Manager')
       Alert.alert('Emergency Call', 'Who do you need to call?', [
         { text: 'Cancel', style: 'cancel' },
-        { text: '999 — Emergency', style: 'destructive', onPress: () => dialNumber('999') },
-        { text: '111 — NHS', onPress: () => dialNumber('111') },
-        ...(managerPhone ? [{ text: 'Manager', onPress: () => dialNumber(managerPhone) }] : []),
+        ...targets.map(t => ({
+          text: t.label,
+          ...(t.phone === '999' ? { style: 'destructive' as const } : {}),
+          onPress: () => dialNumber(t.phone),
+        })),
       ])
     }
   }

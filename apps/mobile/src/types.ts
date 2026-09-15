@@ -10,11 +10,23 @@ export interface MobileUser {
   organization?: { id?: string; name?: string } | null
 }
 
+/** The organisation fields the app reads directly from the session payload. */
+export interface SessionOrganisation {
+  id?: string
+  name?: string
+  logo_url?: string | null
+  emergency_contact_1_label?: string | null
+  emergency_contact_1_phone?: string | null
+  emergency_contact_2_label?: string | null
+  emergency_contact_2_phone?: string | null
+  [key: string]: unknown
+}
+
 export interface AuthSession {
   accessToken: string
   refreshToken: string
   user: MobileUser
-  organization?: Record<string, unknown> | null
+  organization?: SessionOrganisation | null
 }
 
 export interface HomecareVisit {

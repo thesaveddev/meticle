@@ -35,7 +35,7 @@ import { TimesheetsScreen } from './src/screens/TimesheetsScreen'
 import { CarerTotalsScreen } from './src/screens/CarerTotalsScreen'
 import { RideShareScreen } from './src/screens/RideShareScreen'
 import { SwipeBack } from './src/components/SwipeBack'
-import { EmergencyButton } from './src/components/EmergencyButton'
+import { EmergencyButton, organisationSosContacts } from './src/components/EmergencyButton'
 
 type TabKey = 'today' | 'schedule' | 'chat' | 'mileage' | 'settings' | 'team' | 'clients' | 'visits'
 
@@ -125,6 +125,10 @@ function AppInner() {
   }, [screenStack.length, popScreen])
 
   const loadQueue = useCallback(async () => setQueue(await getQueue()), [])
+
+  // Organisation SOS contacts, taken from the session so the emergency sheet
+  // still has them when the device is offline.
+  const sosContacts = useMemo(() => organisationSosContacts(session?.organization), [session?.organization])
 
   const loadVisits = useCallback(async (activeSession: AuthSession, refresh = false) => {
     if (refresh) setRefreshing(true)
@@ -388,7 +392,7 @@ function AppInner() {
             </Pressable>
           ))}
         </View>
-        <EmergencyButton />
+        <EmergencyButton contacts={sosContacts} />
       </SafeAreaView>
     </>
   )

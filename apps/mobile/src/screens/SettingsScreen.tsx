@@ -7,7 +7,7 @@ import type { MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { requestReminderPermission } from '../services/notifications'
 import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
-import { IconProfile, IconSyncSmall, IconWarning, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
+import { IconProfile, IconSyncSmall, IconBell, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
 export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailability }: {
@@ -94,7 +94,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
               style={s.menuRow}
             >
               <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
-                <IconWarning size={18} color={c.warning} />
+                <IconBell size={18} color={c.primary} />
               </View>
               <View style={s.menuContent}>
                 <Text style={[s.menuTitle, { color: c.ink }]}>Visit reminders</Text>

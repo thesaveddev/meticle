@@ -1,6 +1,7 @@
 // Clean Care LTD — complete seed
 // Purges ALL data and creates a fresh org with realistic homecare data.
-// Password for all users: Password123$
+// Password for the seeded users: Password123$, except the deployment smoke
+// account, which takes DEPLOY_SMOKE_PASSWORD instead — see below.
 
 import { Client } from 'pg'
 const uuid = () => crypto.randomUUID()
@@ -15,7 +16,51 @@ const DAY = 86400000
 const ago = (n: number) => new Date(Date.now() - n * DAY).toISOString()
 const dateAgo = (n: number) => ago(n).split('T')[0]
 const dateIn = (n: number) => new Date(Date.now() + n * DAY).toISOString().split('T')[0]
-const PW = bcrypt.hashSync('Password123$', 10)
+const DEFAULT_PASSWORD = 'Password123$'
+
+// ── Deployment smoke credential ──────────────────────────────────────────────
+// The deploy pipeline signs in as one seeded account (AUTH_SMOKE_EMAIL /
+// AUTH_SMOKE_PASSWORD in .github/workflows/deploy.yml, fed from the
+// DEPLOY_SMOKE_EMAIL / DEPLOY_SMOKE_PASSWORD environment) and fails the release
+// when it cannot. A freshly provisioned environment therefore has to seed that
+// account with the password the pipeline holds, so it is read from the
+// environment rather than hard-coded:
+//
+//   DEPLOY_SMOKE_EMAIL=contact.techville@gmail.com \
+//   DEPLOY_SMOKE_PASSWORD=<the pipeline's value> \
+//   npx ts-node src/scripts/seed-clean-care.ts
+//
+// Both are optional. Unset means the smoke account keeps the documented default,
+// which only satisfies the smoke test while the pipeline uses that same default.
+const SMOKE_EMAIL =
+  (process.env.DEPLOY_SMOKE_EMAIL ?? '').trim().toLowerCase() || 'contact.techville@gmail.com'
+const SMOKE_PASSWORD = (process.env.DEPLOY_SMOKE_PASSWORD ?? '').trim()
+
+const USERS = [
+  { email: 'itsopeyemi@gmail.com', first: 'Opeyemi', last: 'Olorunfemi', role: 'ORG_ADMIN', phone: '07586215433' },
+  { email: 'opeyemi@gmail.com', first: 'Opeyemi', last: 'Adebayo', role: 'MANAGER', phone: '07700900101' },
+  { email: 'toye.adenuga@gmail.com', first: 'Toye', last: 'Adenuga', role: 'MANAGER', phone: '07700900102' },
+  { email: 'opeyemiolorunfemy@gmail.com', first: 'Opeyemi', last: 'Femi', role: 'CARE_WORKER', phone: '07700900103' },
+  { email: 'nirocarts@gmail.com', first: 'Niro', last: 'Carter', role: 'CARE_WORKER', phone: '07700900104' },
+  { email: 'gistline2@gmail.com', first: 'Grace', last: 'Roberts', role: 'CARE_WORKER', phone: '07700900105' },
+  { email: 'smart.iwallet@gmail.com', first: 'Samuel', last: 'Ibrahim', role: 'CARE_WORKER', phone: '07700900106' },
+  { email: 'contact.techville@gmail.com', first: 'Tunde', last: 'Oladele', role: 'CARE_WORKER', phone: '07700900107' },
+  { email: 'faithhopey@gmail.com', first: 'Faith', last: 'Okafor', role: 'CARE_WORKER', phone: '07700900108' },
+]
+
+// Checked before anything is purged: the pipeline can only sign in as an account
+// this seed creates, so a mismatch is a hard error rather than a release that
+// deploys and then rolls back on a smoke failure.
+if (!USERS.some(u => u.email.toLowerCase() === SMOKE_EMAIL)) {
+  throw new Error(
+    `DEPLOY_SMOKE_EMAIL=${SMOKE_EMAIL} is not one of the seeded accounts, so the deployment smoke test ` +
+      `could not sign in. Point DEPLOY_SMOKE_EMAIL at a seeded address (${USERS.map(u => u.email).join(', ')}) ` +
+      `or add that address to the USERS list above.`,
+  )
+}
+
+const PW = bcrypt.hashSync(DEFAULT_PASSWORD, 10)
+const SMOKE_PW = SMOKE_PASSWORD ? bcrypt.hashSync(SMOKE_PASSWORD, 10) : PW
 let rows = 0
 const ins = async (t: string, p?: any[]) => { await q(t, p); rows++ }
 
@@ -32,34 +77,23 @@ async function seed() {
   // ═══ ORG ═══
   const orgId = uuid()
   await ins(`INSERT INTO organizations (id,name,status,plan,subscription_status,regulator,primary_color,secondary_color,accent_color,
-    minimum_compliance_percent,compliance_alert_threshold,onboarding_completed,onboarding_step,is_demo,
+    minimum_compliance_percent,compliance_alert_threshold,onboarding_completed,onboarding_step,
     location_threshold_meters,require_photo_on_checkout,default_hourly_rate,primary_service_type,service_types,
     created_at) VALUES ($1,'Clean Care LTD','active','professional','active','cqc','#0F4C81','#6B7280','#F8FAFC',
-    70,70,true,6,false,500,false,13.50,'domiciliary','{"domiciliary","supported_living"}'::text[],$2)`,
+    70,70,true,6,500,false,13.50,'domiciliary','{"domiciliary","supported_living"}'::text[],$2)`,
     [orgId, ago(430)])
   console.log('✓ Organisation created')
 
   // ═══ USERS ═══
-  const USERS = [
-    { email: 'itsopeyemi@gmail.com', first: 'Opeyemi', last: 'Olorunfemi', role: 'ORG_ADMIN', phone: '07586215433' },
-    { email: 'opeyemi@gmail.com', first: 'Opeyemi', last: 'Adebayo', role: 'MANAGER', phone: '07700900101' },
-    { email: 'toye.adenuga@gmail.com', first: 'Toye', last: 'Adenuga', role: 'MANAGER', phone: '07700900102' },
-    { email: 'opeyemiolorunfemy@gmail.com', first: 'Opeyemi', last: 'Femi', role: 'CARE_WORKER', phone: '07700900103' },
-    { email: 'nirocarts@gmail.com', first: 'Niro', last: 'Carter', role: 'CARE_WORKER', phone: '07700900104' },
-    { email: 'gistline2@gmail.com', first: 'Grace', last: 'Roberts', role: 'CARE_WORKER', phone: '07700900105' },
-    { email: 'smart.iwallet@gmail.com', first: 'Samuel', last: 'Ibrahim', role: 'CARE_WORKER', phone: '07700900106' },
-    { email: 'contact.techville@gmail.com', first: 'Tunde', last: 'Oladele', role: 'CARE_WORKER', phone: '07700900107' },
-    { email: 'faithhopey@gmail.com', first: 'Faith', last: 'Okafor', role: 'CARE_WORKER', phone: '07700900108' },
-  ]
-
   const userIds: string[] = []
   const staffIds: string[] = []
   for (let i = 0; i < USERS.length; i++) {
     const u = USERS[i]
     const uid = uuid()
     userIds.push(uid)
+    const passwordHash = u.email.toLowerCase() === SMOKE_EMAIL ? SMOKE_PW : PW
     await ins(`INSERT INTO users (id,organization_id,email,role,status,password_hash,email_verified,created_at) VALUES ($1,$2,$3,$4,'active',$5,true,$6)`,
-      [uid, orgId, u.email, u.role, PW, ago(420 - i * 5)])
+      [uid, orgId, u.email, u.role, passwordHash, ago(420 - i * 5)])
 
     const spId = uuid()
     staffIds.push(spId)
@@ -270,8 +304,23 @@ async function seed() {
   console.log('✓ 6 compliance requirements')
 
   console.log(`\n=== DONE: ${rows} rows inserted ===\n`)
-  console.log('Login credentials (password: Password123$):')
+  console.log('Login credentials:')
   for (const u of USERS) console.log(`  ${u.email} — ${u.role}`)
+  console.log(
+    '\nPasswords:\n' +
+      `  ${SMOKE_EMAIL} (deployment smoke account): ${
+        SMOKE_PASSWORD
+          ? 'the DEPLOY_SMOKE_PASSWORD value'
+          : `${DEFAULT_PASSWORD} — DEPLOY_SMOKE_PASSWORD was not set`
+      }\n` +
+      `  all other accounts: ${DEFAULT_PASSWORD}`,
+  )
 }
 
-seed().then(() => client.end()).catch(e => { console.error('SEED FAILED:', e); process.exit(1) })
+// Exported so the seed can be driven programmatically and awaited.
+export const seedDone = seed()
+  .then(() => client.end())
+  .catch(e => {
+    console.error('SEED FAILED:', e)
+    process.exit(1)
+  })
