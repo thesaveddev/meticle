@@ -166,7 +166,7 @@ function AppInner() {
     let disposed = false
     addNotificationListeners((type, data) => {
       if (type !== 'chat' || disposed) return
-      hapticMedium().catch(() => {})
+      hapticMedium()
       setChatUnreadCount(count => count + 1)
     }, (type) => {
       if (type === 'chat') setChatUnreadCount(0)
@@ -330,9 +330,9 @@ function AppInner() {
         {/* Header with notification bell */}
         <View style={[s.header, { backgroundColor: c.bg }]}>  
           <View style={{ flex: 1 }} />
+          {/* The badge tracks the server's unread count, so it is not cleared on
+              open — marking notifications read is what brings it down. */}
           <Pressable
-            // The badge tracks the server's unread count, so it is not cleared on
-            // open — marking notifications read is what brings it down.
             onPress={() => { hapticLight(); pushScreen({ kind: 'notifications' }) }}
             style={s.notifBtn}
             accessibilityRole="button"
