@@ -550,6 +550,25 @@ databaseReadyPromise.then(() => {
   cleanupTimer.unref();
 });
 
+// End-of-period payslips. Carers are emailed their payslip as a PDF attachment on the
+// 1st of each month, covering the calendar month that just closed. A period that has
+// already been queued is skipped, so a restart cannot double-send a payslip.
+import { sendMonthlyPayslips } from './modules/homecare/payslip.service';
+let lastPayslipPeriod = '';
+function checkMonthlyPayslips() {
+  const now = new Date();
+  if (now.getDate() !== 1) return;
+  const period = now.toISOString().slice(0, 7);
+  if (lastPayslipPeriod === period) return;
+  lastPayslipPeriod = period;
+  sendMonthlyPayslips(now)
+    .then(result => logger.info(result, 'Payslip emails queued for closed period'))
+    .catch(err => logger.error(err, 'Payslip email run failed'));
+}
+setInterval(() => {
+  if (databaseReady) checkMonthlyPayslips();
+}, 60 * 60 * 1000);
+
 // Warn if SMTP is not configured — emails will silently fail
 if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
   logger.warn('SMTP not configured — emails will NOT be delivered. Set SMTP_HOST, SMTP_USER, SMTP_PASS in .env');

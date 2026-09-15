@@ -222,8 +222,13 @@ export async function createMealRecord(token: string, personId: string, data: {
 /* ─── Team (for managers) ──────────────────────────────────── */
 import type { TeamMember } from '../types'
 
+/**
+ * Colleagues a carer can swap, transfer or share a ride with. The manager-only
+ * `/homecare/staff` directory is not readable by carers, so this uses the
+ * carer-accessible colleagues endpoint instead.
+ */
 export async function getTeamMembers(token: string): Promise<TeamMember[]> {
-  return request<TeamMember[]>('/homecare/staff', {}, token)
+  return request<TeamMember[]>('/homecare/colleagues', {}, token)
 }
 
 /* ─── Visit update with new fields ─────────────────────────── */
@@ -401,6 +406,15 @@ export async function deleteVisitTask(token: string, visitId: string, taskId: st
 // ── Earnings ──
 export async function getMyEarnings(token: string, from: string, to: string): Promise<any> {
   return request(`/homecare/my-earnings?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {}, token)
+}
+
+/** Absolute URL of the carer's payslip PDF, for downloading to a file. */
+export function myPayslipUrl(from: string, to: string): string {
+  return `${API_BASE_URL}/homecare/my-payslip?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+}
+
+export function authHeader(token: string): Record<string, string> {
+  return { Authorization: `Bearer ${token}` }
 }
 
 // ── Manager endpoints ──
