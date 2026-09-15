@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import {
-  Box, Typography, Stack, Paper, Chip, CircularProgress, LinearProgress
+  Box, Typography, Stack, Paper, Chip, CircularProgress, LinearProgress, Button
 } from '@mui/material'
+import DownloadIcon from '@mui/icons-material/Download'
 import api from '../../services/api'
 
 function fmtPence(p: number | null | undefined) {
@@ -26,6 +27,8 @@ export default function EarningsPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState(monthRange())
+  const [downloading, setDownloading] = useState(false)
+  const [payslipError, setPayslipError] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -34,6 +37,31 @@ export default function EarningsPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [period.from, period.to])
+
+  // The payslip is generated server-side so the browser, the mobile app and the
+  // emailed copy are all the same document.
+  async function downloadPayslip() {
+    setDownloading(true)
+    setPayslipError(null)
+    try {
+      const res = await api.get('/homecare/my-payslip', {
+        params: { from: period.from, to: period.to },
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `payslip-${period.from.slice(0, 7)}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      setPayslipError('Could not create your payslip. Please try again.')
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   if (loading) {
     return <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>
@@ -56,11 +84,24 @@ export default function EarningsPage() {
             {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
           </Typography>
         </Box>
-        <Box display="flex" gap={1}>
+        <Box display="flex" gap={1} alignItems="center">
           <input type="date" value={period.from} onChange={e => setPeriod(p => ({ ...p, from: e.target.value }))} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid', borderColor: 'grey.200', fontSize: 13 }} />
           <input type="date" value={period.to} onChange={e => setPeriod(p => ({ ...p, to: e.target.value }))} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid', borderColor: 'grey.200', fontSize: 13 }} />
+          <Button
+            variant="outlined"
+            startIcon={downloading ? <CircularProgress size={14} /> : <DownloadIcon />}
+            onClick={downloadPayslip}
+            disabled={downloading || !s?.visit_count}
+            sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+          >
+            {downloading ? 'Preparing…' : 'Download payslip'}
+          </Button>
         </Box>
       </Box>
+      {payslipError && <Typography variant="caption" color="error">{payslipError}</Typography>}
+      {!s?.visit_count && !loading && (
+        <Typography variant="caption" color="text.secondary">A payslip becomes available once this period has completed calls.</Typography>
+      )}
 
       {/* Hero card */}
       <Paper sx={{ p: 3, background: 'linear-gradient(135deg, #1A2332 0%, #2D3A5C 100%)', color: '#fff', borderRadius: 3 }}>
@@ -114,6 +155,30 @@ export default function EarningsPage() {
           <Box><Typography variant="caption" color="text.secondary">Travel paid</Typography><Typography variant="body2" fontWeight={700}>{s.total_paid_travel_minutes > 0 ? 'Yes' : 'No'}</Typography></Box>
         </Box>
       </Paper>
+
+      {/* Year to date — the same figures that appear on the payslip */}
+      {data?.ytd && (
+        <>
+          <Typography variant="overline" fontWeight={700} color="text.secondary" letterSpacing={1}>Year to date · {data.ytd.year}</Typography>
+          <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+            <Box display="flex" gap={4} mb={(data.ytd.months || []).length ? 2 : 0}>
+              <Box><Typography variant="caption" color="text.secondary">Gross pay</Typography><Typography variant="h6" fontWeight={800}>{fmtPence(data.ytd.total_gross_pay_pence)}</Typography></Box>
+              <Box><Typography variant="caption" color="text.secondary">Calls</Typography><Typography variant="h6" fontWeight={700}>{data.ytd.visit_count || 0}</Typography></Box>
+              <Box><Typography variant="caption" color="text.secondary">Work</Typography><Typography variant="h6" fontWeight={700}>{fmtMins(data.ytd.total_work_minutes)}</Typography></Box>
+              <Box><Typography variant="caption" color="text.secondary">Mileage</Typography><Typography variant="h6" fontWeight={700}>{Number(data.ytd.total_mileage_miles || 0).toFixed(1)}mi</Typography></Box>
+            </Box>
+            {(data.ytd.months || []).map((m: any) => (
+              <Box key={m.month} display="flex" justifyContent="space-between" alignItems="center" sx={{ py: 0.75, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="body2">{new Date(`${m.month}-01T00:00:00`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</Typography>
+                <Box display="flex" gap={3} alignItems="center">
+                  <Typography variant="caption" color="text.secondary">{m.visit_count} calls · {fmtMins(m.work_minutes)}</Typography>
+                  <Typography variant="body2" fontWeight={600}>{fmtPence(m.gross_pay_pence)}</Typography>
+                </Box>
+              </Box>
+            ))}
+          </Paper>
+        </>
+      )}
 
       {/* Completed visits */}
       <Typography variant="overline" fontWeight={700} color="text.secondary" letterSpacing={1}>Completed calls</Typography>

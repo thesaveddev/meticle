@@ -47,7 +47,9 @@ describe('Auth Integration — POST /auth/register', () => {
     const email = `worker-${Date.now()}@test.com`
     const res = await request(app)
       .post('/auth/register')
-      .send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: 'Test Worker' })
+      // Registration derives the auto-created organisation name from this, so it
+      // must be unique per run when tests are pointed at a persistent database.
+      .send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: `Test Worker ${Date.now()}` })
 
     expect(res.status).toBe(201)
     expect(res.body.user).toBeDefined()
@@ -73,8 +75,8 @@ describe('Auth Integration — POST /auth/register', () => {
 
   it('should reject registration with existing email', async () => {
     const email = `duplicate-${Date.now()}@test.com`
-    await request(app).post('/auth/register').send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: 'First' })
-    const res = await request(app).post('/auth/register').send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: 'Second' })
+    await request(app).post('/auth/register').send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: `First ${Date.now()}` })
+    const res = await request(app).post('/auth/register').send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: `Second ${Date.now()}` })
 
     expect(res.status).toBe(400)
     expect(res.body.message).toContain('already exists')

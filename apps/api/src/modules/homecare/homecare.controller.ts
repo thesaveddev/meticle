@@ -5,6 +5,8 @@ import { AuditRepository } from '../audit/audit.repository';
 import { EmailService } from '../../shared/utils/email.service';
 import { sendPushToUser } from '../notifications/push.service';
 import * as repo from './homecare.repository';
+import { summariseEarnings, getYearToDateTotals, buildPayslipData, renderPayslipPdf } from './payslip.service';
+import { UserRole } from '@meticle/shared';
 
 function orgId(req: Request): string {
   const value = req.user?.organizationId;
@@ -799,42 +801,20 @@ export class HomecareController {
   /* ─── Earnings summary ────────────────────────────────────── */
   static async getMyEarnings(req: Request, res: Response) {
     const oid = orgId(req); const uid = userId(req);
-    const staffResult = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [uid]);
-    if (!staffResult.rows.length) return res.json({ summary: {}, visits: [] });
-    const staffId = staffResult.rows[0].id;
+    const staffId = await repo.getStaffProfileIdForUser(oid, uid);
+    if (!staffId) return res.json({ summary: {}, visits: [], ytd: null });
     const from = req.query.from as string;
     const to = req.query.to as string;
     if (!from || !to) throw new AppError(400, 'from and to date parameters are required');
 
-    // Get all completed visits in the period with timesheet data
-    const result = await query(
-      `SELECT hv.id, hv.label, hv.visit_type, hv.scheduled_start, hv.scheduled_end,
-              hv.status, hv.check_in_at, hv.check_out_at,
-              hv.actual_travel_minutes, hv.actual_mileage_miles, hv.mileage_status,
-              pe.first_name || ' ' || pe.last_name AS person_name,
-              t.work_minutes, t.travel_minutes, t.paid_travel_minutes,
-              t.mileage_miles, t.mileage_rate_pence, t.hourly_rate_pence, t.gross_pay_pence,
-              t.status AS timesheet_status,
-              (SELECT COUNT(*)::int FROM homecare_visit_tasks WHERE visit_id = hv.id) AS tasks_total,
-              (SELECT COUNT(*)::int FROM homecare_visit_tasks WHERE visit_id = hv.id AND done) AS tasks_completed
-       FROM homecare_visits hv
-       JOIN people pe ON pe.id = hv.person_id
-       LEFT JOIN homecare_timesheets t ON t.visit_id = hv.id
-       WHERE hv.organization_id = $1 AND hv.assigned_staff_id = $2
-         AND hv.scheduled_start >= $3 AND hv.scheduled_start <= $4
-         AND hv.status IN ('completed', 'checked_in')
-       ORDER BY hv.scheduled_start`,
-      [oid, staffId, from, to]
-    );
-
-    const visits = result.rows;
-    const totalWorkMinutes = visits.reduce((s: number, v: any) => s + (Number(v.work_minutes) || 0), 0);
-    const totalPaidTravelMinutes = visits.reduce((s: number, v: any) => s + (Number(v.paid_travel_minutes) || 0), 0);
-    const totalTravelMinutes = visits.reduce((s: number, v: any) => s + (Number(v.travel_minutes) || 0), 0);
-    const totalMileageMiles = visits.reduce((s: number, v: any) => s + (Number(v.mileage_miles) || 0), 0);
-    const totalGrossPay = visits.reduce((s: number, v: any) => s + (Number(v.gross_pay_pence) || 0), 0);
-    const avgHourlyRate = visits.find((v: any) => v.hourly_rate_pence)?.hourly_rate_pence || null;
-    const avgMileageRate = visits.find((v: any) => v.mileage_rate_pence)?.mileage_rate_pence || null;
+    // Completed visits and their timesheet figures for the period. The same
+    // repository query and the same totals function build the carer's payslip,
+    // so the screen and the payslip can never disagree.
+    const visits = await repo.getStaffPeriodEarnings(oid, staffId, from, to);
+    const totals = summariseEarnings(visits);
+    const ytd = await getYearToDateTotals(oid, staffId, to);
+    const avgHourlyRate = totals.hourly_rate_pence;
+    const avgMileageRate = totals.mileage_rate_pence;
 
     // Also get upcoming scheduled visits for the same period to show projected earnings
     const scheduled = await query(
@@ -862,24 +842,80 @@ export class HomecareController {
 
     res.json({
       summary: {
-        total_work_minutes: totalWorkMinutes,
-        total_paid_travel_minutes: totalPaidTravelMinutes,
-        total_travel_minutes: totalTravelMinutes,
-        total_mileage_miles: totalMileageMiles,
-        total_gross_pay_pence: totalGrossPay,
-        hourly_rate_pence: avgHourlyRate,
-        mileage_rate_pence: avgMileageRate,
-        visit_count: visits.length,
+        ...totals,
         scheduled_count: scheduled.rows.length,
         projected_work_minutes: projectedWorkMinutes,
         projected_gross_pay_pence: projectedWorkPay + projectedMileagePay,
       },
       visits,
       scheduled: scheduled.rows,
+      ytd,
     });
   }
 
+  /**
+   * Download a payslip as a PDF. Carers get their own payslip; managers and
+   * admins may request any carer in their own organisation with `staffId`.
+   * Payroll data is sensitive, so every download is audited.
+   */
+  static async downloadPayslip(req: Request, res: Response) {
+    const oid = orgId(req);
+    const uid = userId(req);
+    const rawFrom = req.query.from as string;
+    const rawTo = req.query.to as string;
+    if (!rawFrom || !rawTo) throw new AppError(400, 'from and to date parameters are required');
+    // Accept either a date or a full ISO timestamp (the mobile app sends the
+    // latter); the period is a calendar day range either way.
+    const from = rawFrom.slice(0, 10);
+    const to = rawTo.slice(0, 10);
+
+    const requestedStaffId = (req.query.staffId as string) || undefined;
+    let staffId: string | null;
+    if (requestedStaffId) {
+      const role = req.user!.role;
+      if (role !== UserRole.ORG_ADMIN && role !== UserRole.MANAGER) {
+        throw new AppError(403, 'Only managers can download another carer\u2019s payslip');
+      }
+      staffId = requestedStaffId;
+    } else {
+      staffId = await repo.getStaffProfileIdForUser(oid, uid);
+    }
+    if (!staffId) throw new AppError(404, 'No staff profile found for this account');
+
+    // buildPayslipData refuses a staff member outside the caller's organisation.
+    const data = await buildPayslipData(oid, staffId, from, to);
+    if (!data) throw new AppError(404, 'Staff member not found');
+
+    const pdf = await renderPayslipPdf(data);
+    const namePart = data.userName.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'carer';
+    audit(req, 'download_payslip', 'staff_profile', staffId, { from, to });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="payslip-${namePart}-${from}.pdf"`);
+    res.send(pdf);
+  }
+
   /* ─── Ride Sharing ─────────────────────────────────────── */
+
+  /**
+   * Colleagues a carer can swap, transfer or share a ride with. Returns only what
+   * those flows need — the staff profile id (what `/staff-visits/:staffId` takes)
+   * and a display name — so carers do not need access to the manager-only staff
+   * directory, which carries contact and employment details.
+   */
+  static async listColleagues(req: Request, res: Response) {
+    const oid = orgId(req);
+    const uid = userId(req);
+    const result = await query(
+      `SELECT sp.id, sp.user_id, sp.first_name, sp.last_name, u.role,
+              COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS name
+       FROM staff_profiles sp
+       JOIN users u ON u.id = sp.user_id
+       WHERE u.organization_id = $1 AND u.id <> $2 AND u.status = 'active'
+       ORDER BY COALESCE(sp.first_name, u.email)`,
+      [oid, uid]
+    );
+    res.json(result.rows);
+  }
 
   static async listRideShareRequests(req: Request, res: Response) {
     const oid = orgId(req);

@@ -249,6 +249,27 @@ export class EmailService {
         { label: 'Open my visits', url: `${baseUrl()}/homecare` }), 'notifications');
   }
 
+  /**
+   * Payslip delivery at the end of a pay period. The PDF is generated from the
+   * same timesheet data the carer sees in the app, and is sent from the billing
+   * sender because it is a financial statement.
+   */
+  static async sendPayslipEmail(
+    email: string,
+    name: string,
+    orgName: string,
+    periodLabel: string,
+    attachments: { filename: string; content: Buffer; contentType?: string }[],
+  ) {
+    await sendMail(email, `Your payslip — ${periodLabel}`,
+      buildEmailHtml('Payslip', `Your payslip for ${periodLabel}`,
+        `<p>Hi ${name || 'there'},</p>` +
+        `<p>Your payslip for <strong>${periodLabel}</strong> is attached as a PDF. It shows your pay for the period and your year-to-date earnings for ${orgName}.</p>` +
+        `<p>The figures are calculated from your completed calls and approved timesheets. If anything looks wrong, speak to your manager before payday.</p>` +
+        `<p style="font-size:13px;color:#9CA3AF">Payments and statutory deductions are handled by payroll, so the amounts here are estimates of your care earnings.</p>`,
+        { label: 'View my earnings', url: `${baseUrl()}/homecare/earnings` }), 'billing', attachments);
+  }
+
   // ── Homecare exception notifications ──
   static async sendMissedCallEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string, scheduledTime: string, lateReason?: string) {
     await sendMail(managerEmail, `Missed call — ${personName}`,

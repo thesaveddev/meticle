@@ -8,7 +8,7 @@ import type { AuthSession } from '../types'
 import { getMyEarnings } from '../services/api'
 import { Ionicons } from '@expo/vector-icons'
 import { IconCheck, IconClock, IconMiles, IconWarning } from '../components/Icons'
-import { generateAndSharePayslip } from '../services/payslip'
+import { downloadAndSharePayslip } from '../services/payslip'
 import { hapticLight } from '../services/haptics'
 
 interface Props {
@@ -55,6 +55,7 @@ export function MileageScreen({ session }: Props) {
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'completed' | 'upcoming'>('overview')
   const [downloading, setDownloading] = useState(false)
+  const [payslipError, setPayslipError] = useState<string | null>(null)
 
   const load = async (refresh = false) => {
     if (refresh) setRefreshing(true)
@@ -71,24 +72,16 @@ export function MileageScreen({ session }: Props) {
   const handleDownloadPayslip = async () => {
     hapticLight()
     setDownloading(true)
+    setPayslipError(null)
     try {
-      const now = new Date()
-      const orgName = (session as any).organization?.name || 'MeticleCare'
-      const userName = session.user?.first_name ? `${session.user.first_name} ${session.user.last_name || ''}`.trim() : session.user?.email || 'Carer'
-      const monthLabel = now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
-      const ok = await generateAndSharePayslip({
-        userName,
-        userEmail: session.user?.email || '',
-        orgName,
-        monthLabel,
-        summary,
-        completedVisits: completed,
-      })
-      if (!ok) {
-        // Silent failure — expo-print may not work in Expo Go
-      }
-    } catch { /* ignore */ }
-    finally { setDownloading(false) }
+      const range = monthRange()
+      const ok = await downloadAndSharePayslip(session.accessToken, range.from, range.to)
+      if (!ok) setPayslipError('Could not create your payslip. Please try again.')
+    } catch {
+      setPayslipError('Could not create your payslip. Please try again.')
+    } finally {
+      setDownloading(false)
+    }
   }
 
   const summary = data?.summary || {}
@@ -157,6 +150,9 @@ export function MileageScreen({ session }: Props) {
             </>
           )}
         </Pressable>
+        {payslipError && (
+          <Text style={[styles.downloadError, { color: c.danger || '#991B1B' }]}>{payslipError}</Text>
+        )}
 
         {/* Tab bar */}
         <View style={[s.tabBar, { borderBottomColor: c.borderLight }]}>
@@ -387,6 +383,7 @@ const styles = StyleSheet.create({
   /* Download button */
   downloadBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md, borderRadius: radii.md, borderWidth: 1, marginBottom: spacing.base },
   downloadText: { fontFamily: FONT, fontSize: 14, fontWeight: '600' },
+  downloadError: { fontFamily: FONT, fontSize: 12, textAlign: 'center', marginTop: -spacing.sm, marginBottom: spacing.base },
 
   /* Header */
   pageTitle: { ...typography.title, marginBottom: spacing.xs },

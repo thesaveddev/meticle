@@ -539,6 +539,111 @@ export async function getMonthlyCarerTotals(orgId: string, from: string, to: str
   return result.rows;
 }
 
+/**
+ * Staff profile for a user, restricted to the caller's organisation so a user
+ * can never resolve a profile belonging to another tenant.
+ */
+export async function getStaffProfileIdForUser(orgId: string, userId: string): Promise<string | null> {
+  const result = await query(
+    `SELECT sp.id
+     FROM staff_profiles sp
+     JOIN users u ON u.id = sp.user_id
+     WHERE sp.user_id = $1 AND u.organization_id = $2`,
+    [userId, orgId]
+  );
+  return result.rows[0]?.id || null;
+}
+
+/**
+ * Completed visits with their timesheet figures for one carer and period.
+ * `to` is inclusive of the whole end day, so a call on the final day of a pay
+ * period is never dropped from the total.
+ */
+export async function getStaffPeriodEarnings(orgId: string, staffId: string, from: string, to: string) {
+  const result = await query(
+    `SELECT hv.id, hv.label, hv.visit_type, hv.scheduled_start, hv.scheduled_end,
+            hv.status, hv.check_in_at, hv.check_out_at,
+            hv.actual_travel_minutes, hv.actual_mileage_miles, hv.mileage_status,
+            pe.first_name || ' ' || pe.last_name AS person_name,
+            t.work_minutes, t.travel_minutes, t.paid_travel_minutes,
+            t.mileage_miles, t.mileage_rate_pence, t.hourly_rate_pence, t.gross_pay_pence,
+            t.status AS timesheet_status,
+            (SELECT COUNT(*)::int FROM homecare_visit_tasks WHERE visit_id = hv.id) AS tasks_total,
+            (SELECT COUNT(*)::int FROM homecare_visit_tasks WHERE visit_id = hv.id AND done) AS tasks_completed
+     FROM homecare_visits hv
+     JOIN people pe ON pe.id = hv.person_id
+     LEFT JOIN homecare_timesheets t ON t.visit_id = hv.id
+     WHERE hv.organization_id = $1 AND hv.assigned_staff_id = $2
+       AND hv.scheduled_start >= $3::date
+       AND hv.scheduled_start < ($4::date + INTERVAL '1 day')
+       AND hv.status IN ('completed', 'checked_in')
+     ORDER BY hv.scheduled_start`,
+    [orgId, staffId, from, to]
+  );
+  return result.rows;
+}
+
+/**
+ * Per-month earnings totals for one carer, used to build the year-to-date
+ * summary on a payslip. Month buckets come from the same timesheet rows the
+ * payslip itself is calculated from.
+ */
+export async function getStaffYearToDateMonths(orgId: string, staffId: string, yearStart: string, throughDate: string) {
+  const result = await query(
+    `SELECT to_char(date_trunc('month', v.scheduled_start), 'YYYY-MM') AS month,
+            COUNT(t.id)::int AS visit_count,
+            COALESCE(SUM(t.work_minutes), 0)::int AS work_minutes,
+            COALESCE(SUM(t.mileage_miles), 0)::numeric AS mileage_miles,
+            COALESCE(SUM(t.gross_pay_pence), 0)::int AS gross_pay_pence
+     FROM homecare_timesheets t
+     JOIN homecare_visits v ON v.id = t.visit_id
+     WHERE t.organization_id = $1 AND t.staff_id = $2
+       AND v.scheduled_start >= $3::date
+       AND v.scheduled_start < ($4::date + INTERVAL '1 day')
+       AND v.status IN ('completed', 'checked_in')
+     GROUP BY 1
+     ORDER BY 1`,
+    [orgId, staffId, yearStart, throughDate]
+  );
+  return result.rows as { month: string; visit_count: number; work_minutes: number; mileage_miles: string | number; gross_pay_pence: number }[];
+}
+
+/** Carer identity plus organisation name for a payslip, scoped to the tenant. */
+export async function getPayslipStaffContext(orgId: string, staffId: string) {
+  const result = await query(
+    `SELECT sp.id, sp.first_name, sp.last_name, u.email, o.name AS org_name
+     FROM staff_profiles sp
+     JOIN users u ON u.id = sp.user_id
+     JOIN organizations o ON o.id = u.organization_id
+     WHERE sp.id = $1 AND u.organization_id = $2`,
+    [staffId, orgId]
+  );
+  return result.rows[0] || null;
+}
+
+/**
+ * Every carer with timesheet rows in a period, across all organisations. Used
+ * by the end-of-period payslip run; each row is scoped back to its own org when
+ * the payslip is built.
+ */
+export async function listCarersWithEarningsForPeriod(from: string, to: string) {
+  const result = await query(
+    `SELECT DISTINCT t.organization_id AS org_id, t.staff_id, u.email
+     FROM homecare_timesheets t
+     JOIN homecare_visits v ON v.id = t.visit_id
+     JOIN staff_profiles sp ON sp.id = t.staff_id
+     JOIN users u ON u.id = sp.user_id
+     WHERE v.scheduled_start >= $1::date
+       AND v.scheduled_start < ($2::date + INTERVAL '1 day')
+       AND v.status IN ('completed', 'checked_in')
+       AND u.email IS NOT NULL
+       AND u.status = 'active'
+     ORDER BY t.organization_id, t.staff_id`,
+    [from, to]
+  );
+  return result.rows as { org_id: string; staff_id: string; email: string }[];
+}
+
 export async function listAvailableStaff(orgId: string, start: string, end: string, excludeVisitId?: string) {
   const params: any[] = [orgId, start, end];
   const exclude = excludeVisitId ? ' AND v.id <> $4' : '';

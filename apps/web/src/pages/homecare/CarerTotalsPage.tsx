@@ -136,6 +136,7 @@ export default function CarerTotalsPage() {
   // Pagination
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [payslipBusy, setPayslipBusy] = useState(false)
 
   const load = async () => {
     setLoading(true); setError('')
@@ -148,6 +149,29 @@ export default function CarerTotalsPage() {
   }
 
   useEffect(() => { load() }, [])
+
+  /** Manager download of the selected carer's payslip for the period in view. */
+  const downloadCarerPayslip = async () => {
+    if (!selectedCarer) return
+    setPayslipBusy(true); setError('')
+    try {
+      const res = await api.get('/homecare/my-payslip', {
+        params: { from, to, staffId: selectedCarer.staff_id },
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `payslip-${selectedCarer.staff_name.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase()}-${from.slice(0, 7)}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      // An error body arrives as a Blob on a blob request, so only JSON errors carry a message.
+      setError(err.response?.data instanceof Blob ? 'Could not create this payslip' : err.response?.data?.message || 'Could not create this payslip')
+    } finally { setPayslipBusy(false) }
+  }
 
   const grandWork = totals.reduce((s, t) => s + Number(t.total_work_minutes || 0), 0)
   const grandTravel = totals.reduce((s, t) => s + Number(t.total_paid_travel_minutes || 0), 0)
@@ -237,6 +261,17 @@ export default function CarerTotalsPage() {
         {view === 'overview' && (
           <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv} disabled={!totals.length} sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: 'text.primary' }}>
             Export CSV
+          </Button>
+        )}
+        {view === 'carer-detail' && selectedCarer && (
+          <Button
+            variant="outlined"
+            startIcon={payslipBusy ? <CircularProgress size={16} /> : <DownloadIcon />}
+            onClick={downloadCarerPayslip}
+            disabled={payslipBusy || !selectedCarer.visit_count}
+            sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: 'text.primary' }}
+          >
+            {payslipBusy ? 'Preparing\u2026' : 'Download payslip'}
           </Button>
         )}
       </Stack>

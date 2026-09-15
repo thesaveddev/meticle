@@ -104,6 +104,9 @@ router.post('/packages', requireRole(...managerRoles), validate(packageSchema), 
 router.patch('/packages/:id', requireRole(...managerRoles), validate(packagePatchSchema), asyncHandler(HomecareController.updatePackage));
 router.get('/staff', requireRole(...managerRoles), asyncHandler(HomecareController.listStaff));
 router.get('/staff-visits/:staffId', requireRole(...fieldRoles), asyncHandler(HomecareController.getStaffVisits));
+// Colleagues a carer can swap, transfer or share a ride with. Carer-accessible by design:
+// the manager-only `/staff` directory carries contact and employment details.
+router.get('/colleagues', requireRole(...fieldRoles), asyncHandler(HomecareController.listColleagues));
 router.get('/my-availability', requireRole(...fieldRoles), asyncHandler(HomecareController.getMyAvailability));
 router.get('/availability', requireRole(...managerRoles), asyncHandler(HomecareController.listAvailability));
 router.get('/available-staff', requireRole(...managerRoles), asyncHandler(HomecareController.listAvailableStaff));
@@ -141,6 +144,8 @@ router.post('/visit-plans/:planId/generate', requireRole(...managerRoles), valid
 router.get('/visits', requireRole(...managerRoles), asyncHandler(HomecareController.listVisits));
 router.get('/my-visits', requireRole(...fieldRoles), asyncHandler(HomecareController.myVisits));
 router.get('/my-earnings', requireRole(...fieldRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getMyEarnings));
+// Payslip PDF. Carers download their own; managers/admins may pass `staffId` (checked in the controller).
+router.get('/my-payslip', requireRole(...fieldRoles), asyncHandler(HomecareController.downloadPayslip));
 router.post('/visits', requireRole(...managerRoles), validate(visitSchema), asyncHandler(HomecareController.createVisit));
 router.patch('/visits/:id', requireRole(...managerRoles), validate(visitPatchSchema), asyncHandler(HomecareController.updateVisit));
 router.get('/exceptions', requireRole(...managerRoles), asyncHandler(HomecareController.listExceptions));
