@@ -88,8 +88,13 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    # REDIS_URL is redis://redis:6379, so the service name must always be a
+    # resolvable alias. Containers created outside this Compose project can
+    # otherwise lose it and every Redis-backed request stalls on DNS.
     networks:
-      - meticle
+      meticle:
+        aliases:
+          - redis
 
   backup:
     image: postgres@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f
