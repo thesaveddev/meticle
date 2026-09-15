@@ -539,6 +539,17 @@ databaseReadyPromise.then(() => setTimeout(() => {
 // Start email queue processor only after the database is ready.
 databaseReadyPromise.then(() => EmailQueue.startProcessor());
 
+// Clean permanently failed email jobs daily. Failed rows older than three days no longer
+// need to remain in the operational queue, while recent failures stay available for review/retry.
+const FAILED_EMAIL_CLEANUP_INTERVAL = 24 * 60 * 60 * 1000;
+databaseReadyPromise.then(() => {
+  EmailQueue.cleanupFailedOlderThan(3).catch(err => logger.error(err, 'Initial failed email cleanup failed'));
+  const cleanupTimer = setInterval(() => {
+    EmailQueue.cleanupFailedOlderThan(3).catch(err => logger.error(err, 'Scheduled failed email cleanup failed'));
+  }, FAILED_EMAIL_CLEANUP_INTERVAL);
+  cleanupTimer.unref();
+});
+
 // Warn if SMTP is not configured — emails will silently fail
 if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
   logger.warn('SMTP not configured — emails will NOT be delivered. Set SMTP_HOST, SMTP_USER, SMTP_PASS in .env');

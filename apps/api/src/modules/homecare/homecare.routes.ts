@@ -106,6 +106,7 @@ router.get('/staff', requireRole(...managerRoles), asyncHandler(HomecareControll
 router.get('/staff-visits/:staffId', requireRole(...fieldRoles), asyncHandler(HomecareController.getStaffVisits));
 router.get('/my-availability', requireRole(...fieldRoles), asyncHandler(HomecareController.getMyAvailability));
 router.get('/availability', requireRole(...managerRoles), asyncHandler(HomecareController.listAvailability));
+router.get('/available-staff', requireRole(...managerRoles), asyncHandler(HomecareController.listAvailableStaff));
 router.post('/availability', requireRole(...fieldRoles), validate(availabilitySchema), asyncHandler(HomecareController.createAvailability));
 router.delete('/availability/:id', requireRole(...fieldRoles), asyncHandler(HomecareController.deleteAvailability));
 router.get('/disruptions', requireRole(...managerRoles), asyncHandler(HomecareController.listDisruptions));
@@ -119,6 +120,7 @@ router.get('/payroll/reconciliations', requireRole(...managerRoles), asyncHandle
 // Swap / Transfer
 const swapSchema = z.object({ visit_id: uuid, target_staff_id: uuid.nullish(), target_visit_id: uuid.nullish(), request_type: z.enum(['swap', 'transfer']), message: z.string().max(500).nullish() });
 const swapResponseSchema = z.object({ status: z.enum(['accepted', 'rejected']), response_message: z.string().max(500).nullish() });
+const rideShareResponseSchema = z.object({ status: z.enum(['accepted', 'declined']), response_message: z.string().max(500).nullish() });
 router.post('/swap-requests', requireRole(...fieldRoles), validate(swapSchema), asyncHandler(HomecareController.createSwapRequest));
 router.get('/swap-requests', requireRole(...fieldRoles), asyncHandler(HomecareController.listSwapRequests));
 router.patch('/swap-requests/:id/respond', requireRole(...fieldRoles), validate(swapResponseSchema), asyncHandler(HomecareController.respondSwapRequest));
@@ -127,7 +129,7 @@ router.patch('/swap-requests/:id/respond', requireRole(...fieldRoles), validate(
 const rideShareSchema = z.object({ visit_id: uuid, target_visit_id: uuid, message: z.string().max(500).nullish() });
 router.post('/ride-share-requests', requireRole(...fieldRoles), validate(rideShareSchema), asyncHandler(HomecareController.createRideShareRequest));
 router.get('/ride-share-requests', requireRole(...fieldRoles), asyncHandler(HomecareController.listRideShareRequests));
-router.patch('/ride-share-requests/:id/respond', requireRole(...fieldRoles), validate(swapResponseSchema), asyncHandler(HomecareController.respondRideShareRequest));
+router.patch('/ride-share-requests/:id/respond', requireRole(...fieldRoles), validate(rideShareResponseSchema), asyncHandler(HomecareController.respondRideShareRequest));
 
 router.get('/notifications', requireRole(...fieldRoles), asyncHandler(HomecareController.getCarerNotifications));
 router.post('/notifications/read', requireRole(...fieldRoles), asyncHandler(HomecareController.markNotificationsRead));
