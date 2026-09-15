@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { ActivityIndicator, BackHandler, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter'
 import { ThemeProvider, useTheme, elevation, radii, spacing, FONT } from './src/theme'
 import { TabIcon } from './src/components/TabIcons'
 import { Ionicons } from '@expo/vector-icons'
-import { hapticLight } from './src/services/haptics'
+import { hapticLight, hapticMedium } from './src/services/haptics'
 import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitAction } from './src/types'
 import { readSession } from './src/services/storage'
-import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount } from './src/services/api'
+import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount, getChatUnread } from './src/services/api'
 import { enqueueVisitAction, flushQueue, getQueue } from './src/services/visitQueue'
 import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners } from './src/services/notifications'
 import { LoginScreen } from './src/screens/LoginScreen'
@@ -37,6 +38,15 @@ import { SwipeBack } from './src/components/SwipeBack'
 import { EmergencyButton } from './src/components/EmergencyButton'
 
 type TabKey = 'today' | 'schedule' | 'chat' | 'mileage' | 'settings' | 'team' | 'clients' | 'visits'
+
+/** Provides the status-bar inset for stack screens that render their own root View. */
+function SubScreenFrame({ children, backgroundColor }: { children: ReactNode; backgroundColor: string }) {
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['top', 'left', 'right', 'bottom']}>
+      {children}
+    </SafeAreaView>
+  )
+}
 
 const carerTabs: { key: TabKey; label: string }[] = [
   { key: 'today', label: 'Today' },
@@ -98,6 +108,7 @@ function AppInner() {
   const [refreshing, setRefreshing] = useState(false)
   const [screenStack, setScreenStack] = useState<Screen[]>([{ kind: 'tabs' }])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [chatUnreadCount, setChatUnreadCount] = useState(0)
 
   const isManager = session?.user?.role === 'ORG_ADMIN' || session?.user?.role === 'MANAGER'
   const tabs = isManager ? managerTabs : carerTabs
@@ -142,12 +153,36 @@ function AppInner() {
         setSession(active); await loadQueue(); await loadVisits(active)
         registerForPushNotifications(active.accessToken).catch(() => {})
         getUnreadNotificationCount(active.accessToken).then(setUnreadCount).catch(() => {})
+        getChatUnread(active.accessToken).then(counts => setChatUnreadCount(Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0))).catch(() => {})
       } catch { setSession(null) }
       finally { setBooting(false) }
     })
-    addNotificationListeners(() => {}, () => {})
     return () => { removeNotificationListeners() }
   }, [loadQueue, loadVisits])
+
+  // Keep push registration and chat notification handling tied to the authenticated session.
+  useEffect(() => {
+    if (!session?.accessToken) return
+    let disposed = false
+    addNotificationListeners((type, data) => {
+      if (type !== 'chat' || disposed) return
+      hapticMedium().catch(() => {})
+      setChatUnreadCount(count => count + 1)
+    }, (type) => {
+      if (type === 'chat') setChatUnreadCount(0)
+    })
+    return () => { disposed = true; removeNotificationListeners() }
+  }, [session?.accessToken])
+
+  useEffect(() => {
+    if (!session?.accessToken) return
+    const interval = setInterval(() => {
+      getChatUnread(session.accessToken)
+        .then(counts => setChatUnreadCount(Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0)))
+        .catch(() => {})
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [session?.accessToken])
 
   // Poll unread notification count every 30 seconds
   useEffect(() => {
@@ -233,7 +268,7 @@ function AppInner() {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><NutritionScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></SwipeBack></>
   }
   if (currentScreen.kind === 'clientDetail' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} /></SwipeBack></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'visit' && session) {
     // Find next visit after this one
@@ -256,10 +291,10 @@ function AppInner() {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} /></SwipeBack></>
   }
   if (currentScreen.kind === 'chat' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ChatScreen session={session} onBack={goBack} /></SwipeBack></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><ChatScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'notifications' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} /></SwipeBack></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'allVisits' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AllVisitsScreen session={session} onBack={goBack} initialStatus={currentScreen.status} initialStaffName={currentScreen.staffName} onSelect={(visitId) => {
@@ -271,10 +306,10 @@ function AppInner() {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><StaffDirectoryScreen session={session} onBack={goBack} /></SwipeBack></>
   }
   if (currentScreen.kind === 'timesheets' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><TimesheetsScreen session={session} onBack={goBack} /></SwipeBack></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><TimesheetsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'carerTotals' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><CarerTotalsScreen session={session} onBack={goBack} /></SwipeBack></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><CarerTotalsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'rideShare' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><RideShareScreen session={session} currentVisit={currentScreen.visit} onBack={goBack} /></SwipeBack></>
@@ -325,10 +360,15 @@ function AppInner() {
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>
           {tabs.map(t => (
             <Pressable key={t.key} accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: tab === t.key }}
-              onPress={() => { setTab(t.key); setScreenStack([{ kind: 'tabs' }]) }}
+              onPress={() => { setTab(t.key); if (t.key === 'chat') setChatUnreadCount(0); setScreenStack([{ kind: 'tabs' }]) }}
               style={({ pressed }) => [s.tab, pressed && { opacity: 0.5 }]}
             >
               <TabIcon name={tabIconName[t.key]} size={24} color={tab === t.key ? c.primary : c.subtle} />
+              {t.key === 'chat' && chatUnreadCount > 0 && (
+                <View style={[s.chatBadge, { backgroundColor: c.danger }]}>
+                  <Text style={s.chatBadgeText}>{chatUnreadCount > 99 ? '99+' : chatUnreadCount}</Text>
+                </View>
+              )}
               <Text style={[s.tabLabel, { color: tab === t.key ? c.primary : c.subtle }]}>{t.label}</Text>
               {tab === t.key && <View style={[s.tabIndicator, { backgroundColor: c.primary }]} />}
             </Pressable>
@@ -350,6 +390,8 @@ const s = StyleSheet.create({
     paddingTop: spacing.xs,
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 4, gap: 2, minHeight: 48 },
+  chatBadge: { position: 'absolute', top: 1, right: '50%', marginRight: -20, minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, zIndex: 2 },
+  chatBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', fontFamily: FONT },
   tabLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '600', letterSpacing: 0.2 },
   tabIndicator: { width: 20, height: 2, borderRadius: 1, marginTop: 3 },
   boot: { flex: 1, alignItems: 'center', justifyContent: 'center' },

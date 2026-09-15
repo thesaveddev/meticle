@@ -302,7 +302,7 @@ export async function getChatChannels(token: string): Promise<any[]> {
   return request('/chat/channels', {}, token)
 }
 
-export async function getChatMessages(token: string, channel: string, limit = 50, before?: string): Promise<any[]> {
+export async function getChatMessages(token: string, channel: string, limit = 50, before?: string): Promise<any> {
   const params = new URLSearchParams({ limit: String(limit) })
   if (before) params.set('before', before)
   return request(`/chat/channels/${encodeURIComponent(channel)}/messages?${params}`, {}, token)
@@ -338,6 +338,10 @@ export async function editChatMessage(token: string, messageId: string, message:
 
 export async function deleteChatMessage(token: string, messageId: string): Promise<any> {
   return request(`/chat/messages/${messageId}`, { method: 'DELETE' }, token)
+}
+
+export async function getChatReadReceipts(token: string, channel: string): Promise<{ other_last_read_at: string | null; member_reads: any[] }> {
+  return request(`/chat/channels/${encodeURIComponent(channel)}/read-receipts`, {}, token)
 }
 
 export async function markChatRead(token: string, channel: string): Promise<any> {
