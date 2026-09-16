@@ -17,6 +17,7 @@ import { TodayScreen, dayRange } from './src/screens/TodayScreen'
 import { VisitScreen } from './src/screens/VisitScreen'
 import { SettingsScreen } from './src/screens/SettingsScreen'
 import { AvailabilityScreen } from './src/screens/AvailabilityScreen'
+import { AnnualLeaveScreen } from './src/screens/AnnualLeaveScreen'
 import { ClientDetailScreen } from './src/screens/ClientDetailScreen'
 import { MileageScreen } from './src/screens/MileageScreen'
 import { BodyMapScreen } from './src/screens/BodyMapScreen'
@@ -74,10 +75,11 @@ type Screen =
   | { kind: 'nutrition'; personId: string; personName: string }
   | { kind: 'profile' }
   | { kind: 'availability' }
+  | { kind: 'annualLeave' }
   | { kind: 'swap'; mode?: 'swap' | 'transfer'; visitId?: string }
   | { kind: 'chat' }
   | { kind: 'notifications' }
-  | { kind: 'allVisits'; status?: string; staffName?: string }
+  | { kind: 'allVisits'; status?: string; staffName?: string; staffId?: string }
   | { kind: 'staffDirectory' }
   | { kind: 'timesheets' }
   | { kind: 'carerTotals' }
@@ -291,6 +293,9 @@ function AppInner() {
   if (currentScreen.kind === 'availability' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AvailabilityScreen session={session} onBack={goBack} /></SwipeBack></>
   }
+  if (currentScreen.kind === 'annualLeave' && session) {
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AnnualLeaveScreen session={session} onBack={goBack} /></SwipeBack></>
+  }
   if (currentScreen.kind === 'profile' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></SwipeBack></>
   }
@@ -307,7 +312,7 @@ function AppInner() {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'allVisits' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AllVisitsScreen session={session} onBack={goBack} initialStatus={currentScreen.status} initialStaffName={currentScreen.staffName} onSelect={(visitId) => {
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AllVisitsScreen session={session} onBack={goBack} initialStatus={currentScreen.status} initialStaffName={currentScreen.staffName} initialStaffId={currentScreen.staffId} onSelect={(visitId) => {
       const v = visits.find((vv: any) => vv.id === visitId)
       if (v) { popScreen(); pushScreen({ kind: 'visit', visit: v }) }
     }} /></SwipeBack></>
@@ -371,7 +376,7 @@ function AppInner() {
 
           {/* Shared tabs */}
           {tab === 'chat' && <ChatScreen session={session} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>

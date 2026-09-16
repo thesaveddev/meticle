@@ -680,28 +680,37 @@ export async function listAvailability(orgId: string, staffId?: string) {
   if (staffId) params.push(staffId);
   return (await query(`SELECT sa.*, sp.first_name || ' ' || sp.last_name AS staff_name
     FROM staff_availability sa JOIN staff_profiles sp ON sp.id = sa.staff_id JOIN users u ON u.id = sp.user_id
-    WHERE u.organization_id = $1${filter} ORDER BY sa.staff_id, sa.day_of_week, sa.start_time`, params)).rows;
+    WHERE u.organization_id = $1${filter} ORDER BY sa.staff_id, sa.availability_date NULLS FIRST, sa.day_of_week, sa.start_time`, params)).rows;
 }
 
 export async function upsertAvailability(orgId: string, input: import('./homecare.types').HomecareAvailabilityInput) {
   await assertStaff(input.staff_id, orgId);
   if (input.day_of_week < 0 || input.day_of_week > 6 || input.start_time >= input.end_time) throw new AppError(400, 'Availability day or time range is invalid');
-  // Check for existing slot on the same day — update it instead of blocking
+  if (input.availability_date) {
+    const selected = new Date(`${input.availability_date}T00:00:00`);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const maximum = new Date(today); maximum.setMonth(maximum.getMonth() + 4);
+    if (Number.isNaN(selected.getTime()) || selected < today || selected > maximum) {
+      throw new AppError(400, 'Dated availability must be from today up to four months ahead');
+    }
+  }
+  // Dated entries override a single calendar date; undated entries remain recurring weekly slots.
   const existing = await query(
     `SELECT id FROM staff_availability
-     WHERE staff_id = $1 AND day_of_week = $2`,
-    [input.staff_id, input.day_of_week]
+     WHERE staff_id = $1 AND day_of_week = $2
+       AND availability_date IS NOT DISTINCT FROM $3::date`,
+    [input.staff_id, input.day_of_week, input.availability_date || null]
   );
   if (existing.rows.length > 0) {
     const result = await query(
-      `UPDATE staff_availability SET start_time = $3, end_time = $4, is_available = $5, updated_at = NOW()
+      `UPDATE staff_availability SET start_time = $3, end_time = $4, is_available = $5, availability_date = $6, updated_at = NOW()
        WHERE id = $1 AND staff_id = $2 RETURNING *`,
-      [existing.rows[0].id, input.staff_id, input.start_time, input.end_time, input.is_available ?? true]
+      [existing.rows[0].id, input.staff_id, input.start_time, input.end_time, input.is_available ?? true, input.availability_date || null]
     );
     return result.rows[0];
   }
-  const result = await query(`INSERT INTO staff_availability (staff_id, day_of_week, start_time, end_time, is_available)
-    VALUES ($1,$2,$3,$4,$5) RETURNING *`, [input.staff_id, input.day_of_week, input.start_time, input.end_time, input.is_available ?? true]);
+  const result = await query(`INSERT INTO staff_availability (staff_id, day_of_week, start_time, end_time, is_available, availability_date)
+    VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`, [input.staff_id, input.day_of_week, input.start_time, input.end_time, input.is_available ?? true, input.availability_date || null]);
   return result.rows[0];
 }
 

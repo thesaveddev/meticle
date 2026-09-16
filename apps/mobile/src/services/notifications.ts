@@ -1,4 +1,5 @@
 import { Platform } from 'react-native'
+import Constants from 'expo-constants'
 import type { HomecareVisit } from '../types'
 
 // Lazy-load expo-notifications to avoid remote push initialization on Android SDK 53+.
@@ -100,10 +101,13 @@ export async function registerForPushNotifications(accessToken: string): Promise
     const permitted = await requestReminderPermission()
     if (!permitted) return null
 
-    // Get existing token
-    const existingToken = await N.getExpoPushTokenAsync({
-      projectId: 'meticlecare', // Update with actual project ID
-    })
+    // Expo requires the EAS project UUID here, not the app slug.
+    // Expo Go cannot register remote push tokens on Android SDK 53+;
+    // local reminders still work there, while dev/prod builds use FCM.
+    if (Constants.appOwnership === 'expo') return null
+    const projectId = Constants.easConfig?.projectId || Constants.expoConfig?.extra?.eas?.projectId
+    if (!projectId) return null
+    const existingToken = await N.getExpoPushTokenAsync({ projectId })
     pushToken = existingToken.data
 
     // Register with server

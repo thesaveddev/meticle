@@ -270,6 +270,19 @@ export class EmailService {
         { label: 'View my earnings', url: `${baseUrl()}/homecare/earnings` }), 'billing', attachments);
   }
 
+  static async sendHomecareDigestEmail(email: string, name: string, digestType: 'morning' | 'midday' | 'evening', date: string, summary: any) {
+    const labels = { morning: 'Morning schedule', midday: 'Midday progress report', evening: 'End-of-day shift summary' };
+    const heading = labels[digestType];
+    const rows = (summary.visits || []).map((visit: any) => {
+      const status = String(visit.status || '').replace('_', ' ');
+      return `<li style="margin:0 0 8px 0"><strong>${visit.person_name}</strong> — ${visit.label} at ${fmtTime(visit.scheduled_start)} · ${status}${summary.managerView ? ` · ${visit.carer_name}` : ''}${visit.late_reason ? ` · late: ${visit.late_reason}` : ''}</li>`;
+    }).join('');
+    const incidents = (summary.incidents || []).map((incident: any) => `<li>${incident.title} · ${incident.severity} · ${incident.status}</li>`).join('');
+    const progress = `<p><strong>${summary.completed}</strong> completed of <strong>${summary.total}</strong> calls (${summary.completionRate}% completion). ${summary.covered} covered, ${summary.missed} missed, ${summary.overdue} overdue, ${summary.late} late.</p>`;
+    const content = `<p>Hi ${name || 'there'},</p>${digestType === 'morning' ? '<p>Here is the schedule for today.</p>' : progress}${digestType !== 'morning' ? '<p>Review the details below and follow up on any exceptions.</p>' : ''}${rows ? `<p><strong>Calls</strong></p><ul>${rows}</ul>` : '<p>No calls are scheduled for this period.</p>'}${incidents ? `<p><strong>Incidents</strong></p><ul>${incidents}</ul>` : ''}`;
+    await sendMail(email, `${heading} — ${date}`, buildEmailHtml('Homecare digest', heading, content, { label: 'Open Homecare', url: `${baseUrl()}/homecare` }), 'notifications');
+  }
+
   // ── Homecare exception notifications ──
   static async sendMissedCallEmail(managerEmail: string, managerName: string, personName: string, visitLabel: string, scheduledTime: string, lateReason?: string) {
     await sendMail(managerEmail, `Missed call — ${personName}`,

@@ -9,12 +9,13 @@ import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
 import { IconSyncSmall, IconBell, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
-export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailability }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailability, onAnnualLeave }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
   onProfile?: () => void
   onAvailability?: () => void
+  onAnnualLeave?: () => void
 }) {
   const { mode, scheme, setMode, colors: c } = useTheme()
   const s = useDynamicStyles(styles)
@@ -154,7 +155,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
           </View>
         </View>
 
-        <View style={s.group}>
+        {onAvailability ? <View style={s.group}>
           <Text style={[s.groupLabel, { color: c.subtle }]}>AVAILABILITY</Text>
           <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
             <Pressable onPress={() => { hapticLight(); onAvailability?.() }} style={s.menuRow}>
@@ -167,8 +168,15 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
               </View>
               <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
             </Pressable>
+            {onAnnualLeave ? (
+              <Pressable onPress={() => { hapticLight(); onAnnualLeave() }} style={[s.menuRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.borderLight }]}>
+                <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}><IconSchedule size={18} color={c.primary} /></View>
+                <View style={s.menuContent}><Text style={[s.menuTitle, { color: c.ink }]}>Annual leave</Text><Text style={[s.menuDesc, { color: c.muted }]}>Request leave and check your balance</Text></View>
+                <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
+              </Pressable>
+            ) : null}
           </View>
-        </View>
+        </View> : null}
 
 
 

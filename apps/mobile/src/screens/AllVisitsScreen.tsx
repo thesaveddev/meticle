@@ -6,7 +6,7 @@ import { spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
-import { getAllVisits } from '../services/api'
+import { getAllVisits, getOpenHomecareExceptions } from '../services/api'
 import { IconWarning } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
@@ -16,6 +16,7 @@ interface Props {
   onSelect?: (visitId: string) => void
   initialStatus?: string
   initialStaffName?: string
+  initialStaffId?: string
 }
 
 function dateRange(daysBack = 0, daysForward = 7) {
@@ -62,31 +63,41 @@ function getAvatarColor(name: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
-export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, initialStaffName }: Props) {
+export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, initialStaffName, initialStaffId }: Props) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
   const insets = useSafeAreaInsets()
   const isTab = !onBack
   const [visits, setVisits] = useState<any[]>([])
+  const [exceptionVisits, setExceptionVisits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [filter, setFilter] = useState(initialStatus || 'all')
-  const [daysBack] = useState(0)
+  // Keep recent history available so a missed call is not hidden after midnight.
+  const [daysBack] = useState(30)
 
   const load = useCallback(async (refresh = false) => {
     if (refresh) setRefreshing(true)
     try {
       const range = dateRange(daysBack, daysBack === 0 ? 7 : 0)
-      const data = await getAllVisits(session.accessToken, range.from, range.to)
+      const data = await getAllVisits(session.accessToken, range.from, range.to, initialStaffId)
       setVisits(Array.isArray(data) ? data : [])
+      if (initialStatus === 'exception') {
+        const exceptions = await getOpenHomecareExceptions(session.accessToken)
+        setExceptionVisits(Array.isArray(exceptions) ? exceptions : [])
+      } else {
+        setExceptionVisits([])
+      }
     } catch {} finally { setLoading(false); setRefreshing(false) }
-  }, [session.accessToken, daysBack])
+  }, [session.accessToken, daysBack, initialStaffId, initialStatus])
 
   useEffect(() => { load() }, [load])
 
-  const filtered = visits.filter((v: any) => {
-    if (filter !== 'all' && v.status !== filter) return false
-    if (initialStaffName && v.assigned_staff_name !== initialStaffName) return false
+  const sourceVisits = filter === 'exception' ? exceptionVisits : visits
+  const filtered = sourceVisits.filter((v: any) => {
+    if (filter !== 'exception' && filter !== 'all' && v.status !== filter) return false
+    if (initialStaffId && v.assigned_staff_id !== initialStaffId) return false
+    if (!initialStaffId && initialStaffName && v.assigned_staff_name !== initialStaffName) return false
     return true
   })
 
@@ -117,7 +128,7 @@ export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, init
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={[s.headerTitle, { color: c.ink }]}>All Visits</Text>
-          <Text style={[s.headerSub, { color: c.muted }]}>{visits.length} total · {completed} done · {missed} missed</Text>
+          <Text style={[s.headerSub, { color: c.muted }]}>{sourceVisits.length} total · {completed} done · {missed} missed</Text>
         </View>
         <View style={{ width: 44 }} />
       </View>
@@ -156,8 +167,8 @@ export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, init
             <View>
               <Text style={[s.dateHeader, { color: c.subtle }]}>{date}</Text>
               {items.map((v: any) => {
-                const sc = STATUS_STYLE[v.status] || STATUS_STYLE.scheduled
-                const hasOverdue = v.status === 'scheduled' && new Date(v.scheduled_end) < new Date()
+                const hasOverdue = ['scheduled', 'en_route'].includes(v.status) && new Date(v.scheduled_end) < new Date()
+                const sc = hasOverdue ? { bg: '#FEE2E2', text: '#991B1B' } : (STATUS_STYLE[v.status] || STATUS_STYLE.scheduled)
                 return (
                   <Pressable
                     key={v.id}
@@ -185,7 +196,7 @@ export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, init
                     {/* Status */}
                     <View style={[s.statusBadge, { backgroundColor: sc.bg }]}>
                       {hasOverdue ? <IconWarning size={10} color={sc.text} /> : null}
-                      <Text style={[s.statusText, { color: sc.text }]}>{v.status === 'checked_in' ? 'Active' : v.status?.replace('_', ' ')}</Text>
+                      <Text style={[s.statusText, { color: sc.text }]}>{hasOverdue ? 'Overdue' : v.status === 'checked_in' ? 'Active' : v.status?.replace('_', ' ')}</Text>
                     </View>
                   </Pressable>
                 )

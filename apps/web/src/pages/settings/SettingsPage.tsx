@@ -2116,13 +2116,15 @@ function PushNotificationsSection() {
 
 function NotificationPreferencesSection() {
   const [prefs, setPrefs] = useState<any[]>([])
+  const [digest, setDigest] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [digestLoading, setDigestLoading] = useState(false)
   const [prefError, setPrefError] = useState('')
 
   useEffect(() => {
     let mounted = true
-    api.get('/notifications/preferences')
-      .then(r => { if (mounted) setPrefs(Array.isArray(r.data) ? r.data : []) })
+    Promise.all([api.get('/notifications/preferences'), api.get('/notifications/homecare-digests')])
+      .then(([preferences, digestResponse]) => { if (mounted) { setPrefs(Array.isArray(preferences.data) ? preferences.data : []); setDigest(digestResponse.data) } })
       .catch(() => { if (mounted) setPrefError('Could not load your notification preferences. Please try again.') })
     return () => { mounted = false }
   }, [])
@@ -2137,6 +2139,17 @@ function NotificationPreferencesSection() {
       setPrefError(`Could not update "${labels[type] || type}". Please try again.`)
     }
     finally { setLoading(false) }
+  }
+
+  const updateDigest = async (patch: Record<string, unknown>) => {
+    try {
+      setDigestLoading(true)
+      setPrefError('')
+      const response = await api.patch('/notifications/homecare-digests', patch)
+      setDigest(response.data)
+    } catch {
+      setPrefError('Could not update homecare digest preferences. Please try again.')
+    } finally { setDigestLoading(false) }
   }
 
   const labels: Record<string, string> = {
@@ -2172,6 +2185,25 @@ function NotificationPreferencesSection() {
           ))
         )}
       </Grid>
+      <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #E5E7EB' }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>Domiciliary care summary emails</Typography>
+        <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+          Receive one summary for your own calls or organisation each day instead of an email for every call. Times use the production system clock (UTC).
+        </Typography>
+        {digest && <Grid container spacing={1.5}>
+          {[['morning', 'Morning schedule', 'morning_time'], ['midday', 'Midday progress report', 'midday_time'], ['evening', 'End-of-day summary', 'evening_time']].map(([key, label, timeKey]) => (
+            <Grid item xs={12} md={4} key={key}>
+              <Paper variant="outlined" sx={{ p: 1.5 }}>
+                <FormControlLabel
+                  control={<Switch checked={Boolean(digest[`${key}_enabled`])} disabled={digestLoading} onChange={e => updateDigest({ [`${key}_enabled`]: e.target.checked })} />}
+                  label={label}
+                />
+                <TextField label="Send at" type="time" size="small" fullWidth value={digest[timeKey] || ''} disabled={digestLoading} onChange={e => setDigest((d: any) => ({ ...d, [timeKey]: e.target.value }))} onBlur={e => updateDigest({ [timeKey]: e.target.value })} InputLabelProps={{ shrink: true }} />
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>}
+      </Box>
     </Paper>
   )
 }

@@ -12,7 +12,7 @@ import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import {
   ensureGeneralChannel, getChatChannels, getChatMessages, sendChatMessage,
-  deleteChatMessage, markChatRead, getChatReadReceipts, getOrgMembers,
+  deleteChatMessage, markChatRead, getChatReadReceipts, getOrgMembers, getChatChannelMembers,
   createDMChannel, uploadChatFile,
 } from '../services/api'
 import { hapticLight } from '../services/haptics'
@@ -117,6 +117,10 @@ export function ChatScreen({ session, onBack }: Props) {
   const [orgMembers, setOrgMembers] = useState<any[]>([])
   const [memberSearch, setMemberSearch] = useState('')
   const [loadingMembers, setLoadingMembers] = useState(false)
+  const [showChannelMembers, setShowChannelMembers] = useState(false)
+  const [channelMembers, setChannelMembers] = useState<any[]>([])
+  const [channelMemberSearch, setChannelMemberSearch] = useState('')
+  const [loadingChannelMembers, setLoadingChannelMembers] = useState(false)
 
   const [showContact, setShowContact] = useState(false)
   const [contactInfo, setContactInfo] = useState<{ name: string; email: string; role?: string } | null>(null)
@@ -254,6 +258,20 @@ export function ChatScreen({ session, onBack }: Props) {
     } catch { /* ignore */ } finally { setLoadingMembers(false) }
   }
 
+  const openChannelMembers = async () => {
+    if (!activeChannel) return
+    hapticLight()
+    setShowChannelMembers(true)
+    setChannelMemberSearch('')
+    setLoadingChannelMembers(true)
+    try {
+      const members = await getChatChannelMembers(token, activeChannel.id)
+      if (Array.isArray(members)) setChannelMembers(members)
+    } catch (e: any) {
+      Alert.alert('Could not load members', e.message || 'Please try again')
+    } finally { setLoadingChannelMembers(false) }
+  }
+
   const startDM = async (member: any) => {
     hapticLight()
     setShowNewChat(false)
@@ -285,7 +303,13 @@ export function ChatScreen({ session, onBack }: Props) {
   const filteredMembers = orgMembers.filter((m: any) => {
     if (!memberSearch.trim()) return true
     const q = memberSearch.toLowerCase()
-    return (m.name || '').toLowerCase().includes(q) || m.email.toLowerCase().includes(q)
+    return (m.name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q)
+  })
+
+  const filteredChannelMembers = channelMembers.filter((m: any) => {
+    if (!channelMemberSearch.trim()) return true
+    const q = channelMemberSearch.toLowerCase()
+    return (m.name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q) || (m.role || '').toLowerCase().includes(q)
   })
 
   // ─── Image Picker ───────────────────────────────────────
@@ -444,6 +468,62 @@ export function ChatScreen({ session, onBack }: Props) {
     </Modal>
   )
 
+  const renderChannelMembers = () => (
+    <Modal visible={showChannelMembers} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={[listStyles.container, { backgroundColor: c.bg }]} edges={['top']}>
+        <View style={[listStyles.header, { backgroundColor: c.bg }]}>
+          <Pressable onPress={() => setShowChannelMembers(false)} style={listStyles.headerBtn}>
+            <Text style={[listStyles.cancelText, { color: c.primary }]}>Close</Text>
+          </Pressable>
+          <Text style={[listStyles.headerTitle, { color: c.ink }]} numberOfLines={1}>{activeChannel?.name || 'Group'} members</Text>
+          <Text style={[memberDirectoryStyles.count, { color: c.muted }]}>{channelMembers.length}</Text>
+        </View>
+        <View style={[listStyles.searchWrap, { backgroundColor: c.surfaceAlt, borderColor: c.border, borderWidth: 1 }]}>
+          <Ionicons name="search" size={16} color={c.muted} />
+          <TextInput
+            style={[listStyles.searchInput, { color: c.ink }]}
+            placeholder="Search members..."
+            placeholderTextColor={c.muted}
+            value={channelMemberSearch}
+            onChangeText={setChannelMemberSearch}
+            autoFocus
+          />
+        </View>
+        {loadingChannelMembers ? (
+          <View style={listStyles.centered}><ActivityIndicator size="large" color={c.primary} /></View>
+        ) : (
+          <FlatList
+            data={filteredChannelMembers}
+            keyExtractor={item => item.id}
+            ItemSeparatorComponent={() => <View style={[listStyles.separator, { backgroundColor: c.borderLight, marginLeft: 76 }]} />}
+            ListEmptyComponent={<View style={listStyles.centered}><Text style={[listStyles.emptySub, { color: c.muted }]}>No members found</Text></View>}
+            renderItem={({ item: member }) => {
+              const name = member.name || member.email || 'Unknown member'
+              const isCurrentUser = member.id === currentUserId
+              return (
+                <Pressable
+                  onPress={() => { if (!isCurrentUser) { setShowChannelMembers(false); startDM(member) } }}
+                  style={({ pressed }) => [listStyles.row, { backgroundColor: pressed ? c.surfaceAlt : 'transparent' }]}
+                  accessibilityRole={isCurrentUser ? undefined : 'button'}
+                  accessibilityLabel={isCurrentUser ? `${name}, you` : `Message ${name}`}
+                >
+                  <View style={[listStyles.avatar, { backgroundColor: getAvatarColor(member.id) }]}>
+                    <Text style={listStyles.avatarText}>{getInitials(name)}</Text>
+                  </View>
+                  <View style={listStyles.rowContent}>
+                    <Text style={[listStyles.name, { color: c.ink }]}>{name}{isCurrentUser ? ' (You)' : ''}</Text>
+                    <Text style={[listStyles.roleText, { color: c.muted }]}>{member.role ? member.role.replaceAll('_', ' ') : member.email}</Text>
+                  </View>
+                  {!isCurrentUser ? <Ionicons name="chatbubble-outline" size={19} color={c.primary} /> : null}
+                </Pressable>
+              )
+            }}
+          />
+        )}
+      </SafeAreaView>
+    </Modal>
+  )
+
   const renderContextMenu = () => (
     <Modal visible={contextMenu.visible} transparent animationType="fade">
       <Pressable style={ctxStyles.overlay} onPress={() => setContextMenu({ visible: false, message: null })}>
@@ -590,6 +670,7 @@ export function ChatScreen({ session, onBack }: Props) {
 
         {renderContactModal()}
         {renderContextMenu()}
+        {renderChannelMembers()}
       </View>
     )
   }
@@ -615,7 +696,7 @@ export function ChatScreen({ session, onBack }: Props) {
           style={chatStyles.headerInfo}
           onPress={() => {
             if (channelMember) showContactDetails(channelMember.name, channelMember.email)
-            else if (activeChannel) showContactDetails(activeChannel.name, `${activeChannel.name} (group)`)
+            else if (activeChannel) openChannelMembers()
           }}
         >
           <View style={[chatStyles.headerAvatar, { backgroundColor: channelColor }]}>
@@ -624,7 +705,7 @@ export function ChatScreen({ session, onBack }: Props) {
           <View>
             <Text style={[chatStyles.headerName, { color: c.ink }]} numberOfLines={1}>{activeChannel?.name}</Text>
             <Text style={[chatStyles.headerSub, { color: c.muted }]}>
-              {activeChannel?.channel_type === 'dm' ? (channelMember?.email || 'Online') : `${activeChannel?.member_count || 0} members`}
+              {activeChannel?.channel_type === 'dm' ? (channelMember?.email || 'Online') : `${activeChannel?.member_count ?? channelMembers.length} members`}
             </Text>
           </View>
         </Pressable>
@@ -729,6 +810,7 @@ export function ChatScreen({ session, onBack }: Props) {
 
       {renderContactModal()}
       {renderContextMenu()}
+      {renderChannelMembers()}
     </KeyboardAvoidingView>
   )
 }
@@ -849,6 +931,10 @@ const emojiStyles = StyleSheet.create({
 })
 
 // ─── Styles: Contact Details ──────────────────────────────
+
+const memberDirectoryStyles = StyleSheet.create({
+  count: { fontSize: 13, fontFamily: FONT, minWidth: 28, textAlign: 'right' },
+})
 
 const contactStyles = StyleSheet.create({
   avatar: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },

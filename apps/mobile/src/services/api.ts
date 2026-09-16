@@ -108,17 +108,38 @@ export interface AvailabilityRecord {
   start_time: string
   end_time: string
   is_available: boolean
+  availability_date?: string | null
 }
 
 export async function getMyAvailability(token: string): Promise<AvailabilityRecord[]> {
   return request<AvailabilityRecord[]>('/homecare/my-availability', {}, token)
 }
 
-export async function addAvailability(token: string, dayOfWeek: number, startTime: string, endTime: string): Promise<AvailabilityRecord> {
+export async function addAvailability(token: string, dayOfWeek: number, startTime: string, endTime: string, isAvailable = true, availabilityDate?: string): Promise<AvailabilityRecord> {
   return request<AvailabilityRecord>('/homecare/availability', {
     method: 'POST',
-    body: JSON.stringify({ day_of_week: dayOfWeek, start_time: startTime, end_time: endTime }),
+    body: JSON.stringify({ day_of_week: dayOfWeek, start_time: startTime, end_time: endTime, is_available: isAvailable, availability_date: availabilityDate || undefined }),
   }, token)
+}
+
+export async function getLeaveTypes(token: string): Promise<any[]> {
+  return request<any[]>('/leave/types', {}, token)
+}
+
+export async function getMyLeaveRequests(token: string): Promise<any[]> {
+  return request<any[]>('/leave/my-requests', {}, token)
+}
+
+export async function getLeaveBalances(token: string): Promise<any[]> {
+  return request<any[]>('/leave/balances', {}, token)
+}
+
+export async function createLeaveRequest(token: string, data: { leave_type_id: string; start_date: string; end_date: string; reason?: string; hours_requested?: number; duration_type?: 'days' | 'hours' }): Promise<any> {
+  return request<any>('/leave/my-requests', { method: 'POST', body: JSON.stringify(data) }, token)
+}
+
+export async function cancelLeaveRequest(token: string, id: string): Promise<any> {
+  return request<any>(`/leave/requests/${id}/cancel`, { method: 'PATCH' }, token)
 }
 
 export async function deleteAvailability(token: string, id: string): Promise<void> {
@@ -363,6 +384,10 @@ export async function getOrgMembers(token: string): Promise<any[]> {
   return request('/chat/org-members', {}, token)
 }
 
+export async function getChatChannelMembers(token: string, channelId: string): Promise<any[]> {
+  return request(`/chat/channels/${encodeURIComponent(channelId)}/members`, {}, token)
+}
+
 export async function createDMChannel(token: string, targetUserId: string): Promise<any> {
   return request(`/chat/channels/dm/${targetUserId}`, { method: 'POST' }, token)
 }
@@ -446,6 +471,10 @@ export async function getAllVisits(token: string, from: string, to: string, staf
   if (staffId) params += `&staffId=${encodeURIComponent(staffId)}`
   if (status) params += `&status=${encodeURIComponent(status)}`
   return request(`/homecare/visits?${params}`, {}, token)
+}
+
+export async function getOpenHomecareExceptions(token: string): Promise<any[]> {
+  return request('/homecare/exceptions', {}, token)
 }
 
 export async function updateVisitStatus(token: string, visitId: string, data: any): Promise<any> {
