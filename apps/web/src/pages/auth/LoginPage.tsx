@@ -66,7 +66,7 @@ export default function LoginPage() {
     }
   }
 
-  usePageMeta({ title: 'Login | MeticleCare', description: 'Log in to your MeticleCare care management account.', noindex: true })
+  usePageMeta({ title: 'Login | Meticle Care', description: 'Log in to your Meticle Care care management account.', noindex: true })
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'white' }}>
@@ -74,7 +74,7 @@ export default function LoginPage() {
         <Container maxWidth="xs" sx={{ mx: 'auto' }}>
           <Box sx={{ mb: 6 }}>
             <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
-              Meticle
+              Meticle Care
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>Welcome back</Typography>
             <Typography sx={{ color: 'text.secondary' }}>Care operations, unified.</Typography>
@@ -156,7 +156,7 @@ export default function LoginPage() {
         borderLeft: '1px solid #E5E7EB'
       }}>
         <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
-          <img src={LOGIN_ILLUSTRATION} alt="MeticleCare dashboard" style={{ width: '100%', marginBottom: '32px', borderRadius: 8 }} />
+          <img src={LOGIN_ILLUSTRATION} alt="Meticle Care dashboard" style={{ width: '100%', marginBottom: '32px', borderRadius: 8 }} />
           <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>
             Care records, medication, staffing and compliance — one working view.
           </Typography>

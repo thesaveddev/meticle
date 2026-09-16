@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MeticleCare",
+    "name": "Meticle Care",
     "slug": "meticlecare",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -13,8 +13,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.meticlecare.mobile",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "MeticleCare uses your location only when you check in or out of an assigned visit.",
-        "NSUserNotificationsUsageDescription": "MeticleCare sends reminders for your assigned care visits and urgent operational updates."
+        "NSLocationWhenInUseUsageDescription": "Meticle Care uses your location only when you check in or out of an assigned visit.",
+        "NSUserNotificationsUsageDescription": "Meticle Care sends reminders for your assigned care visits and urgent operational updates."
       }
     },
     "android": {
@@ -29,7 +29,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "MeticleCare uses your location only while you check in or out of an assigned visit."
+          "locationAlwaysAndWhenInUsePermission": "Meticle Care uses your location only while you check in or out of an assigned visit."
         }
       ],
       [

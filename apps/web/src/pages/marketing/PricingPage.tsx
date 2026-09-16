@@ -210,7 +210,7 @@ const FAQ = [
   },
   {
     q: 'How does this interact with CQC, CIW, CIS and RQIA?',
-    a: 'MeticleCare supports all four UK care regulators and produces inspection-ready evidence packs aligned to the CQC single assessment framework, CIW and Care Inspectorate quality frameworks. The same readiness score, audit log and KLOE evidence packs apply — there is no per-regulator surcharge.',
+    a: 'Meticle Care supports all four UK care regulators and produces inspection-ready evidence packs aligned to the CQC single assessment framework, CIW and Care Inspectorate quality frameworks. The same readiness score, audit log and KLOE evidence packs apply — there is no per-regulator surcharge.',
   },
   {
     q: 'Where is data hosted? Is it UK-only?',
@@ -547,8 +547,8 @@ export default function PricingPage() {
   return (
     <MarketingLayout>
       <PageMeta
-        title="Pricing | MeticleCare"
-        description="MeticleCare pricing for UK care providers. Three plans from £99 / month — Essential, Care Service and Multi-Site. 14-day free trial, no credit card required."
+        title="Pricing | Meticle Care"
+        description="Meticle Care pricing for UK care providers. Three plans from £99 / month — Essential, Care Service and Multi-Site. 14-day free trial, no credit card required."
         canonicalPath="/pricing"
       />
 
@@ -719,7 +719,7 @@ export default function PricingPage() {
       {/* TRUST STRIP */}
       <Box
         component="section"
-        aria-label="Standards MeticleCare is built for"
+        aria-label="Standards Meticle Care is built for"
         sx={{ bgcolor: 'background.paper', borderTop: `1px solid ${HAIRLINE}`, borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}
       >
         <Container maxWidth="lg">
@@ -775,7 +775,7 @@ export default function PricingPage() {
               What every role in your service gets.
             </Typography>
             <Typography sx={{ color: MIST, fontSize: '1rem' }}>
-              MeticleCare is shaped for each part of the day, so the time spent in front of the screen never feels like the work.
+              Meticle Care is shaped for each part of the day, so the time spent in front of the screen never feels like the work.
             </Typography>
           </Stack>
           <Grid container spacing={{ xs: 2, md: 3 }}>
@@ -863,7 +863,7 @@ export default function PricingPage() {
       <Box component="section" sx={{ py: { xs: 11, md: 15 }, bgcolor: INK_DARK, color: '#FFFFFF', textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}>
-            Try MeticleCare for 14 days, on us.
+            Try Meticle Care for 14 days, on us.
           </Typography>
           <Typography sx={{ opacity: 0.92, fontSize: '1.12rem', lineHeight: 1.7, mb: 5, maxWidth: 560, mx: 'auto' }}>
             Full Care Service functionality. No credit card. Migrate from any existing system for free in your first 30 days.

@@ -476,7 +476,7 @@ export default function ShoppingList({ weeklyPlan, filteredWeek, selectionSummar
               Quantities are estimates for a care home kitchen — adjust as needed.
             </Typography>
             <Typography variant="caption" color="#9CA3AF" sx={{ whiteSpace: 'nowrap', ml: 2 }}>
-              MeticleCare © {new Date().getFullYear()}
+              Meticle Care © {new Date().getFullYear()}
             </Typography>
           </Box>
         </Box>

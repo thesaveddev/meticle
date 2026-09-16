@@ -16,11 +16,11 @@ self.addEventListener('push', event => {
   try {
     data = event.data?.json() || {}
   } catch {
-    data = { title: 'MeticleCare', body: event.data?.text() || 'You have a new notification.' }
+    data = { title: 'Meticle Care', body: event.data?.text() || 'You have a new notification.' }
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'MeticleCare', {
+    self.registration.showNotification(data.title || 'Meticle Care', {
       body: data.body || 'You have a new notification.',
       icon: '/icons/icon-192.svg',
       badge: '/icons/icon-192.svg',

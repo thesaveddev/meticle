@@ -130,8 +130,8 @@ const badges: Badge[] = [
     logo: '/logos/nhs.svg',
     color: '#005EB8',
     region: 'United Kingdom',
-    description: 'The National Health Service provides the framework for healthcare standards across the UK. MeticleCare integrates with NHS workflows and supports NHS-aligned care delivery.',
-    whatItDoes: 'NHS standards ensure care is delivered safely, effectively, and equitably. MeticleCare supports NHS-aligned medication management, health records, and clinical documentation.',
+    description: 'The National Health Service provides the framework for healthcare standards across the UK. Meticle Care integrates with NHS workflows and supports NHS-aligned care delivery.',
+    whatItDoes: 'NHS standards ensure care is delivered safely, effectively, and equitably. Meticle Care supports NHS-aligned medication management, health records, and clinical documentation.',
     howMeticleHelps: [
       'eMAR system aligned with NHS medication administration standards',
       'Clinical records following NHS documentation guidelines',
@@ -184,8 +184,8 @@ export default function ComplianceBadgesPage() {
   return (
     <MarketingLayout>
       <PageMeta
-        title="Regulatory Compliance & Standards | MeticleCare"
-        description="MeticleCare is built for UK care regulators including CQC, CIW, CIS, RQIA, NHS, and UK GDPR. See how we help you stay compliant."
+        title="Regulatory Compliance & Standards | Meticle Care"
+        description="Meticle Care is built for UK care regulators including CQC, CIW, CIS, RQIA, NHS, and UK GDPR. See how we help you stay compliant."
       />
 
       {/* Hero */}
@@ -196,7 +196,7 @@ export default function ComplianceBadgesPage() {
             Built for the regulators that matter
           </Typography>
           <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '1.1rem', maxWidth: 600, mx: 'auto', lineHeight: 1.7 }}>
-            MeticleCare is designed from the ground up to meet UK care regulations.
+            Meticle Care is designed from the ground up to meet UK care regulations.
             Every record, every audit trail, every report is aligned to the standards
             your inspectors expect.
           </Typography>
@@ -294,10 +294,10 @@ export default function ComplianceBadgesPage() {
                       </Typography>
                     </Grid>
 
-                    {/* How MeticleCare helps */}
+                    {/* How Meticle Care helps */}
                     <Grid item xs={12} md={4} sx={{ px: { xs: 3, md: 4 }, py: 3, borderRight: { md: `1px solid ${HAIRLINE}` }, borderBottom: { xs: `1px solid ${HAIRLINE}`, md: 'none' } }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 800, color: badge.color, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.7rem', mb: 1.5 }}>
-                        How MeticleCare helps
+                        How Meticle Care helps
                       </Typography>
                       <Stack spacing={0.75}>
                         {badge.howMeticleHelps.map((item, i) => (
@@ -342,7 +342,7 @@ export default function ComplianceBadgesPage() {
             Ready to simplify compliance?
           </Typography>
           <Typography color={MIST} sx={{ mb: 4, lineHeight: 1.7 }}>
-            Start a free 14-day trial and see how MeticleCare keeps your records inspection-ready across every regulatory framework.
+            Start a free 14-day trial and see how Meticle Care keeps your records inspection-ready across every regulatory framework.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button

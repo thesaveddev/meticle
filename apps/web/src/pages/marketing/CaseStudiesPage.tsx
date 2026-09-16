@@ -29,9 +29,9 @@ const caseStudies = [
       { icon: <People sx={{ color: EMERALD_DEEP, fontSize: 22 }} />, label: 'Staff retention', value: '+25%' },
       { icon: <Speed sx={{ color: EMERALD_DEEP, fontSize: 22 }} />, label: 'Hours saved / week', value: '12h' },
     ],
-    quote: 'Meticle has completely transformed how we manage our staff compliance. We no longer worry about missing renewals.',
+    quote: 'Meticle Care has completely transformed how we manage our staff compliance. We no longer worry about missing renewals.',
     quoteAuthor: 'Sarah Jenkins · Operations Director',
-    body: 'Brightside Care was managing rosters across 8 locations using spreadsheets and email. Compliance tracking was manual, leading to missed DBS renewals and inspection scares. After implementing Meticle, they gained real-time visibility into staffing across all sites, automated their compliance workflows, and filled 60% more shifts internally through the Shift Marketplace.',
+    body: 'Brightside Care was managing rosters across 8 locations using spreadsheets and email. Compliance tracking was manual, leading to missed DBS renewals and inspection scares. After implementing Meticle Care, they gained real-time visibility into staffing across all sites, automated their compliance workflows, and filled 60% more shifts internally through the Shift Marketplace.',
   },
   {
     company: 'Maple Leaf Housing',
@@ -46,7 +46,7 @@ const caseStudies = [
     ],
     quote: 'The readiness dashboard showed us exactly where we were falling short. We fixed our training gaps before the next inspection.',
     quoteAuthor: 'David Okonkwo · Registered Manager',
-    body: 'Maple Leaf Housing received a "Requires Improvement" rating from CQC with compliance flagged as a key concern. They deployed Meticle across all three homes, used the Training Matrix to close gaps in mandatory training, and leveraged the evidence pack feature to prepare for re-inspection. Six months later they achieved a "Good" rating across all five key questions.',
+    body: 'Maple Leaf Housing received a "Requires Improvement" rating from CQC with compliance flagged as a key concern. They deployed Meticle Care across all three homes, used the Training Matrix to close gaps in mandatory training, and leveraged the evidence pack feature to prepare for re-inspection. Six months later they achieved a "Good" rating across all five key questions.',
   },
   {
     company: 'Prestige Care Group',
@@ -61,7 +61,7 @@ const caseStudies = [
     ],
     quote: 'We doubled our locations without hiring extra managers. The platform gives us central control with local flexibility.',
     quoteAuthor: 'James Cooper · CEO',
-    body: "Prestige Care Group was planning to expand from 1 to 5 homes but worried about the administrative overhead. Meticle's multi-site dashboard, unified compliance tracking, and cross-location shift marketplace allowed them to scale seamlessly. Each home maintains local scheduling autonomy while head office gets consolidated reporting and oversight.",
+    body: "Prestige Care Group was planning to expand from 1 to 5 homes but worried about the administrative overhead. Meticle Care's multi-site dashboard, unified compliance tracking, and cross-location shift marketplace allowed them to scale seamlessly. Each home maintains local scheduling autonomy while head office gets consolidated reporting and oversight.",
   },
 ]
 
@@ -71,8 +71,8 @@ export default function CaseStudiesPage() {
   return (
     <MarketingLayout>
       <PageMeta
-        title="Case Studies | MeticleCare"
-        description="Read how UK supported living providers use MeticleCare to manage rotas, medication, care plans and compliance. Real stories from care services."
+        title="Case Studies | Meticle Care"
+        description="Read how UK supported living providers use Meticle Care to manage rotas, medication, care plans and compliance. Real stories from care services."
         canonicalPath="/case-studies"
       />
 
@@ -238,7 +238,7 @@ export default function CaseStudiesPage() {
       ))}
 
       {/* TRUST STRIP — pre-final CTA, mirrors landing/pricing/how-it-works */}
-      <Box component="section" aria-label="Standards MeticleCare is built for" sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
+      <Box component="section" aria-label="Standards Meticle Care is built for" sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
             <Grid item xs={12} md={3}>
@@ -291,7 +291,7 @@ export default function CaseStudiesPage() {
             Be our next case study.
           </Typography>
           <Typography sx={{ opacity: 0.92, fontSize: '1.12rem', lineHeight: 1.7, mb: 5, maxWidth: 560, mx: 'auto' }}>
-            We're happy to talk through what a MeticleCare rollout would look like for your service — your regional account manager will share what similar providers measured in their first 90 days.
+            We're happy to talk through what a Meticle Care rollout would look like for your service — your regional account manager will share what similar providers measured in their first 90 days.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button

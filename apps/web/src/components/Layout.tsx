@@ -269,7 +269,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       // Show browser notification when tab is not focused
       if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
         try {
-          new Notification(notif.title || 'Meticle', {
+          new Notification(notif.title || 'Meticle Care', {
             body: notif.message || '',
             icon: '/icons/icon-192.svg',
           })
@@ -389,11 +389,11 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.paper }}>
       <Toolbar sx={{ px: 3, flexDirection: 'column', alignItems: 'flex-start', pt: 2 }}>
         {logoUrl ? (
-          <Box component="img" src={logoUrl} alt={orgName || 'Meticle'}
+          <Box component="img" src={logoUrl} alt={orgName || 'Meticle Care'}
             sx={{ height: 40, maxWidth: 180, objectFit: 'contain', mb: 0.5 }} />
         ) : (
           <Typography variant="h5" sx={{ fontWeight: 900, color: branding.primary_color, letterSpacing: '-1.5px' }}>
-            Meticle
+            Meticle Care
           </Typography>
         )}
         {orgName && (

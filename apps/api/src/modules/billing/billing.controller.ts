@@ -150,7 +150,7 @@ export class BillingController {
     }
     if (stripe) {
       try {
-        const customerId = await getOrCreateCustomer(orgId, userEmail, 'Meticle organisation');
+        const customerId = await getOrCreateCustomer(orgId, userEmail, 'Meticle Care organisation');
         if (customerId) {
           const price = await getOrCreatePrice(plan);
           if (price) {
@@ -270,7 +270,7 @@ export class BillingController {
         for (const inv of stripeInvoices.data) {
           const amount = (inv.amount_paid || inv.amount_due || 0) / 100;
           const status = inv.status === 'paid' ? 'paid' : inv.status === 'open' ? 'open' : inv.status;
-          const description = inv.lines?.data?.[0]?.description || inv.description || 'Meticle subscription';
+          const description = inv.lines?.data?.[0]?.description || inv.description || 'Meticle Care subscription';
           const existing = await pool.query(
             'SELECT id FROM invoices WHERE organization_id = $1 AND stripe_invoice_id = $2',
             [orgId, inv.id]
@@ -311,7 +311,7 @@ export class BillingController {
       `SELECT name, primary_color FROM organizations WHERE id = $1`,
       [orgId]
     );
-    const orgName = org.rows[0]?.name || 'Meticle customer';
+    const orgName = org.rows[0]?.name || 'Meticle Care customer';
     const primaryColor = org.rows[0]?.primary_color || '#0F4C81';
     const invoiceStatus = inv.rows[0].status || 'open';
     const pdf = await generatePdf(buildInvoiceHtml({ ...inv.rows[0], status: invoiceStatus }, { name: orgName, primary_color: primaryColor }));
@@ -340,7 +340,7 @@ export class BillingController {
       return;
     }
     try {
-      const customerId = await getOrCreateCustomer(orgId, userEmail, 'Meticle organisation');
+      const customerId = await getOrCreateCustomer(orgId, userEmail, 'Meticle Care organisation');
       if (!customerId) {
         res.json({ clientSecret: null, ephemeral: true });
         return;
@@ -605,7 +605,7 @@ export class BillingController {
                 amount,
                 currency,
                 invoiceNumber: invoice.number || invoice.id,
-                planName: invoice.lines?.data?.[0]?.description || 'Meticle subscription',
+                planName: invoice.lines?.data?.[0]?.description || 'Meticle Care subscription',
                 nextBillingDate: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
                 organizationId: orgId,
               }).catch(logWarn('payment receipt email'));
@@ -765,7 +765,7 @@ export class BillingController {
         if (orgIdFin && finInvoice.id && (finInvoice.amount_due || 0) > 0) {
           const amount = (finInvoice.amount_due || 0) / 100;
           const currency = (finInvoice.currency || 'gbp').toUpperCase();
-          const description = finInvoice.lines?.data?.[0]?.description || finInvoice.description || 'Meticle subscription';
+          const description = finInvoice.lines?.data?.[0]?.description || finInvoice.description || 'Meticle Care subscription';
           const dueDate = finInvoice.due_date ? new Date(finInvoice.due_date * 1000).toISOString().split('T')[0] : null;
           const existing = await pool.query(
             'SELECT id, status FROM invoices WHERE organization_id = $1 AND stripe_invoice_id = $2',
@@ -892,11 +892,11 @@ export class BillingController {
         const html = buildEmailHtml(
           'Payment Action Required',
           'Your bank needs you to confirm a payment',
-          `<p>To keep your Meticle subscription running, your bank needs you to confirm the payment of <strong>${currency} ${amount.toFixed(2)}</strong>.</p>` +
+          `<p>To keep your Meticle Care subscription running, your bank needs you to confirm the payment of <strong>${currency} ${amount.toFixed(2)}</strong>.</p>` +
           `<p>Open the Billing page and click <strong>Retry Payment</strong> to complete the confirmation pop-up.</p>`,
           { label: 'Complete Payment', url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/billing` }
         );
-        await notifyAdminsOfResult('Action required: confirm your Meticle payment', html);
+        await notifyAdminsOfResult('Action required: confirm your Meticle Care payment', html);
       }
       res.json({ requiresAction: true, clientSecret, message: 'Your bank requires you to confirm this payment.' });
       return;
@@ -921,7 +921,7 @@ export class BillingController {
         amount: (paid.amount_paid || amount) / 100,
         currency,
         invoiceNumber: paid.number || paid.id,
-        planName: paid.lines?.data?.[0]?.description || 'Meticle subscription',
+        planName: paid.lines?.data?.[0]?.description || 'Meticle Care subscription',
         nextBillingDate: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
         isRetry: true,
       }).catch(logWarn('payment retry receipt email'));

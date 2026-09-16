@@ -97,7 +97,7 @@ function AddCardModal({ open, onClose, onAdded, stripeAvailable }: { open: boole
       <DialogTitle sx={{ fontWeight: 800, fontSize: '1.1rem' }}>Add Payment Card</DialogTitle>
       <DialogContent sx={{ pt: '8px !important' }}>
         {stripeAvailable ? <StripeCardForm cardholderName={cardholderName} setCardholderName={setCardholderName} onSuccess={onAdded} /> : <Alert severity="error">Secure card collection is unavailable. Configure Stripe Elements before adding a payment method.</Alert>}
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>Your card details are collected by Stripe and never handled or stored by Meticle.</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>Your card details are collected by Stripe and never handled or stored by Meticle Care.</Typography>
       </DialogContent>
     </Dialog>
   )
@@ -342,7 +342,7 @@ function BillingPageInner() {
               <Typography variant="body2" color="#991B1B">
                 {subStatus === 'past_due' || subscription?.hasUnpaidInvoice
                   ? 'There is an unpaid invoice. Update your payment method and retry to restore access.'
-                  : 'Add a payment card and switch your plan to restore full access to Meticle.'}
+                  : 'Add a payment card and switch your plan to restore full access to Meticle Care.'}
               </Typography>
               {subscription?.hasUnpaidInvoice && (
                 <Typography variant="caption" color="#B91C1C" sx={{ mt: 0.5, display: 'block' }}>

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 const SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL || 'https://meticlecare.com'
-const SITE_NAME = 'MeticleCare'
+const SITE_NAME = 'Meticle Care'
 const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`
 const TWITTER_HANDLE = '@meticlecare'
 
@@ -18,7 +18,7 @@ export interface PageMetaProps {
 }
 
 const titleTemplate = (title: string) =>
-  title.includes('MeticleCare') ? title : `${title} | ${SITE_NAME}`
+  title.includes('Meticle Care') ? title : `${title} | ${SITE_NAME}`
 
 function upsertMeta(selector: string, attributes: Record<string, string>) {
   let el = document.querySelector(selector) as HTMLMetaElement | null

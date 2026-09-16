@@ -37,7 +37,7 @@ export default function VerifyEmailPage() {
     verify()
   }, [token])
 
-  usePageMeta({ title: 'Verify Email | MeticleCare', description: 'Verify your email address for MeticleCare.', noindex: true })
+  usePageMeta({ title: 'Verify Email | Meticle Care', description: 'Verify your email address for Meticle Care.', noindex: true })
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', bgcolor: '#020617' }}>
@@ -55,7 +55,7 @@ export default function VerifyEmailPage() {
               <CheckCircleIcon sx={{ fontSize: 80, color: '#10b981', mb: 3 }} />
               <Typography variant="h4" sx={{ fontWeight: 800, color: 'white', mb: 2 }}>Account Verified!</Typography>
               <Typography sx={{ color: 'text.secondary', mb: 4 }}>
-                Your email has been successfully verified. You can now log in to your Meticle dashboard.
+                Your email has been successfully verified. You can now log in to your Meticle Care dashboard.
               </Typography>
               <Button variant="contained" fullWidth sx={{ bgcolor: '#10b981', py: 1.5, fontWeight: 700 }} onClick={() => navigate('/login')}>
                 Go to Login

@@ -145,7 +145,7 @@ export default function LearningCenterPage() {
 
   return (
     <>
-      <PageMeta title="Learning Center | MeticleCare" description="Learn how to use MeticleCare for care planning, staff management, medication records, compliance and daily operations. Guides and resources for care providers." canonicalPath="/learn" />
+      <PageMeta title="Learning Center | Meticle Care" description="Learn how to use Meticle Care for care planning, staff management, medication records, compliance and daily operations. Guides and resources for care providers." canonicalPath="/learn" />
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'grey.50' }}>
       {/* Mobile app bar */}
       {isMobile && (
@@ -154,7 +154,7 @@ export default function LearningCenterPage() {
             <IconButton edge="start" color="inherit" onClick={() => setDrawerOpen(true)} sx={{ mr: 1 }}>
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" sx={{ flex: 1, fontSize: '1rem' }}>Meticle Learning Center</Typography>
+            <Typography variant="h6" sx={{ flex: 1, fontSize: '1rem' }}>Meticle Care Learning Center</Typography>
           </Toolbar>
         </AppBar>
       )}
@@ -249,10 +249,10 @@ export default function LearningCenterPage() {
           <Box sx={{ textAlign: 'center', py: 10 }}>
             <LearnIcon sx={{ fontSize: 64, color: '#D1D5DB', mb: 2 }} />
             <Typography variant="h5" fontWeight={700} color="#0F4C81" sx={{ mb: 1 }}>
-              Welcome to the Meticle Learning Center
+              Welcome to the Meticle Care Learning Center
             </Typography>
             <Typography color="#6B7280" sx={{ maxWidth: 500, mx: 'auto' }}>
-              Select a topic from the sidebar to learn about Meticle features, workflows, and best practices.
+              Select a topic from the sidebar to learn about Meticle Care features, workflows, and best practices.
               Use the search bar to quickly find what you're looking for.
             </Typography>
           </Box>

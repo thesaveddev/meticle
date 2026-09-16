@@ -43,7 +43,7 @@ const STEPS: Step[] = [
     icon: <SetupMuiIcon sx={{ fontSize: 36 }} />,
     timeEstimate: 'About 10 minutes',
     description:
-      'Add your organisation details and select your regulator. MeticleCare activates framework-aware scoring and the right KLOE evidence template automatically — no integrator, no manual mapping.',
+      'Add your organisation details and select your regulator. Meticle Care activates framework-aware scoring and the right KLOE evidence template automatically — no integrator, no manual mapping.',
     details: [
       'Create organisation and pick the regulator you report to',
       'Framework-aware compliance scoring switches on immediately',
@@ -126,8 +126,8 @@ export default function HowItWorksPage() {
   return (
     <MarketingLayout>
       <PageMeta
-        title="How MeticleCare Works | MeticleCare"
-        description="See how MeticleCare connects care planning, staff rotas, medication records and compliance into one platform for UK care providers."
+        title="How Meticle Care Works | Meticle Care"
+        description="See how Meticle Care connects care planning, staff rotas, medication records and compliance into one platform for UK care providers."
         canonicalPath="/how-it-works"
       />
 
@@ -293,7 +293,7 @@ export default function HowItWorksPage() {
           >
             <img
               src={TIMELINE_IMAGE}
-              alt="A five-step flow showing how one care action travels through MeticleCare: care given, MAR updated, note recorded, family informed, compliance scored"
+              alt="A five-step flow showing how one care action travels through Meticle Care: care given, MAR updated, note recorded, family informed, compliance scored"
               width="1280"
               height="360"
               loading="lazy"

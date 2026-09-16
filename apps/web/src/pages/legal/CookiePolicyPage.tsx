@@ -13,7 +13,7 @@ function S({ title, children }: { title: string; children: React.ReactNode }) {
 export default function CookiePolicyPage() {
   return (
     <>
-      <PageMeta title="Cookie Policy | MeticleCare" description="How MeticleCare uses cookies. Our care management platform uses only essential cookies to keep your data secure and your experience reliable." canonicalPath="/cookies" />
+      <PageMeta title="Cookie Policy | Meticle Care" description="How Meticle Care uses cookies. Our care management platform uses only essential cookies to keep your data secure and your experience reliable." canonicalPath="/cookies" />
     <Container maxWidth="md" sx={{ py: 8 }}>
       <Typography variant="h3" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Cookie Policy</Typography>
       <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: August 2026</Typography>
@@ -23,7 +23,7 @@ export default function CookiePolicyPage() {
       </S>
 
       <S title="2. Cookies We Use">
-        <p>MeticleCare uses only <strong>essential cookies</strong>:</p>
+        <p>Meticle Care uses only <strong>essential cookies</strong>:</p>
         <ul>
           <li><strong>Authentication token</strong> — stored in your browser to keep you logged in. Required for the Service to function.</li>
           <li><strong>CSRF token</strong> — prevents cross-site request forgery attacks.</li>
@@ -43,7 +43,7 @@ export default function CookiePolicyPage() {
       </S>
 
       <S title="4. Managing Cookies">
-        <p>Most browsers allow you to block or delete cookies. However, MeticleCare requires essential cookies to function — blocking them will prevent you from logging in.</p>
+        <p>Most browsers allow you to block or delete cookies. However, Meticle Care requires essential cookies to function — blocking them will prevent you from logging in.</p>
       </S>
 
       <S title="5. Changes">

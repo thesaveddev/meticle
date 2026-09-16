@@ -11,7 +11,7 @@ export class ContactController {
     const recipient = process.env.CONTACT_EMAIL || 'hello@meticlecare.com';
     const replyTo = escapeHtml(email);
     const body = `
-      <p>New contact form submission from the MeticleCare website.</p>
+      <p>New contact form submission from the Meticle Care website.</p>
       <table role="presentation" cellpadding="8" cellspacing="0" style="border:1px solid #E5E7EB;border-collapse:collapse;width:100%">
         <tr>
           <td style="border:1px solid #E5E7EB;background:#F9FAFB;font-weight:700;width:120px">Name</td>

@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/icon-192.svg', 'icons/icon-512.svg'],
       manifest: {
-        name: 'Meticle',
-        short_name: 'Meticle',
-        description: 'Meticle — Compliance-first care management for supported living',
+        name: 'Meticle Care',
+        short_name: 'Meticle Care',
+        description: 'Meticle Care — Compliance-first care management for supported living',
         theme_color: '#0F4C81',
         background_color: '#FFFFFF',
         display: 'standalone',

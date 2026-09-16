@@ -330,7 +330,7 @@ export default function FeaturesPage() {
   return (
     <MarketingLayout>
       <PageMeta
-        title="Care Management Software Features | MeticleCare"
+        title="Care Management Software Features | Meticle Care"
         description="eMAR, care notes, support plans, staff rotas, incidents, training matrix, compliance and audit — all in one UK care platform."
         canonicalPath="/features"
       />
@@ -361,7 +361,7 @@ export default function FeaturesPage() {
               Everything you need to run your service.
             </Typography>
             <Typography sx={{ color: MIST, fontSize: { xs: '1rem', md: '1.12rem' }, lineHeight: 1.7, mb: 4 }}>
-              MeticleCare brings together care management, staff operations, and compliance reporting in one platform. Every feature is designed so inspection-ready evidence is a byproduct of daily work — not a separate paper exercise.
+              Meticle Care brings together care management, staff operations, and compliance reporting in one platform. Every feature is designed so inspection-ready evidence is a byproduct of daily work — not a separate paper exercise.
             </Typography>
             <Typography sx={{ color: MIST, fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
               {TOTAL_SECTIONS} features across {featureGroups.length} modules

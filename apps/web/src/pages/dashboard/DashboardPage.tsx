@@ -229,7 +229,7 @@ export default function DashboardPage() {
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Welcome — let's get you set up</Typography>
               <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                A few quick steps to make Meticle ready for your team. {onboardDone} of {onboardSteps.length} complete.
+                A few quick steps to make Meticle Care ready for your team. {onboardDone} of {onboardSteps.length} complete.
               </Typography>
             </Box>
             <Button size="small" sx={{ color: theme.palette.text.secondary, fontWeight: 600, whiteSpace: 'nowrap' }} onClick={handleOnboardingDismiss}>

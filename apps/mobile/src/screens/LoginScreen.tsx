@@ -113,7 +113,7 @@ export function LoginScreen({ onLogin, error, loading }: Props) {
             <View style={s.logoMark}>
               <Text style={s.logoText}>M</Text>
             </View>
-            <Text style={s.kicker}>METICLECARE</Text>
+            <Text style={s.kicker}>METICLE CARE</Text>
             <Text style={s.headline}>Your working day,{'\n'}in hand.</Text>
             <Text style={s.sub}>
               Sign in to see your assigned calls and record care at the point it happens.
@@ -193,7 +193,7 @@ export function LoginScreen({ onLogin, error, loading }: Props) {
             ) : invalid ? (
               <Text style={s.helper}>Enter a valid work email and password.</Text>
             ) : (
-              <Text style={s.helper}>Same account as MeticleCare on the web.</Text>
+              <Text style={s.helper}>Same account as Meticle Care on the web.</Text>
             )}
 
             <PrimaryButton

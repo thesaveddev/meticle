@@ -95,7 +95,7 @@ export async function buildPayslipData(orgId: string, staffId: string, from: str
   const name = [context.first_name, context.last_name].filter(Boolean).join(' ').trim()
 
   return {
-    orgName: context.org_name || 'MeticleCare',
+    orgName: context.org_name || 'Meticle Care',
     userName: name || context.email,
     userEmail: context.email,
     periodFrom: from,

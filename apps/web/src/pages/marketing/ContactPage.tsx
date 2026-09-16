@@ -64,8 +64,8 @@ export default function ContactPage() {
   return (
     <MarketingLayout>
       <PageMeta
-        title="Contact MeticleCare | MeticleCare"
-        description="Get in touch with the MeticleCare team. Ask about our care management platform for UK supported living providers."
+        title="Contact Meticle Care | Meticle Care"
+        description="Get in touch with the Meticle Care team. Ask about our care management platform for UK supported living providers."
         canonicalPath="/contact"
       />
 
@@ -218,7 +218,7 @@ export default function ContactPage() {
                       multiline
                       rows={5}
                       fullWidth
-                      placeholder="A couple of sentences about your service and what you'd like to know about MeticleCare…"
+                      placeholder="A couple of sentences about your service and what you'd like to know about Meticle Care…"
                       value={form.message}
                       onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
                     />
@@ -306,7 +306,7 @@ export default function ContactPage() {
       </Box>
 
       {/* TRUST STRIP — same as the rest of the marketing site */}
-      <Box component="section" aria-label="Standards MeticleCare is built for" sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
+      <Box component="section" aria-label="Standards Meticle Care is built for" sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
             <Grid item xs={12} md={3}>
