@@ -105,6 +105,7 @@ export interface HomecareAvailabilityInput {
   start_time: string;
   end_time: string;
   is_available?: boolean;
+  availability_date?: string | null;
 }
 
 export interface HomecareDisruptionInput {

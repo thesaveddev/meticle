@@ -2,10 +2,8 @@ import { Request, Response } from 'express';
 import { AppError } from '../../shared/middleware/error.middleware';
 import pool, { query } from '../../shared/database';
 import { AuditRepository } from '../audit/audit.repository';
-import { EmailService } from '../../shared/utils/email.service';
 import { sendPushToUser } from '../notifications/push.service';
 
-const HOMECARE_EMAILS_ENABLED = process.env.HOMECARE_EMAILS_ENABLED === 'true';
 import * as repo from './homecare.repository';
 import { summariseEarnings, getYearToDateTotals, buildPayslipData, renderPayslipPdf } from './payslip.service';
 import { UserRole } from '@meticle/shared';
@@ -321,7 +319,6 @@ export class HomecareController {
 
       if (visit) {
         const { sendPushToUser } = await import('../notifications/push.service');
-        const { EmailService } = await import('../../shared/utils/email.service');
         const managers = await query(`
           SELECT u.id, u.email, COALESCE(sp.first_name, u.email) AS name
           FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id
@@ -334,10 +331,7 @@ export class HomecareController {
             body: `${carerName} reported a ${req.body.disruption_type || 'disruption'} during ${visit.label}`,
             url: '/homecare',
           }, 'homecare');
-          await EmailService.sendDisruptionReportedEmail(
-            m.email, m.name, carerName, visit.person_name,
-            visit.label, req.body.disruption_type || 'other', req.body.description || ''
-          );
+          // Disruptions remain immediate push notifications and are included in the digest email.
         }
       }
     } catch { /* notification failure should not block response */ }
@@ -539,9 +533,7 @@ export class HomecareController {
         [orgId]
       );
       for (const m of managers.rows) {
-        if (HOMECARE_EMAILS_ENABLED) {
-          EmailService.sendMissedCallEmail(m.email, m.name, personName, visit.label || visit.visit_type, visit.scheduled_start, visit.late_reason).catch(() => {});
-        }
+          // Missed calls are included in the next digest; keep the immediate push alert.
         sendPushToUser(m.id, { type: 'missed_call', title: `Missed call — ${personName}`, body: `${visit.label || visit.visit_type} was marked missed`, url: '/homecare' }, 'homecare').catch(() => {});
       }
 
@@ -582,9 +574,8 @@ export class HomecareController {
       );
       const personResult = await query('SELECT first_name, last_name FROM people WHERE id = $1', [visit.person_id]);
       const personName = personResult.rows[0] ? `${personResult.rows[0].first_name} ${personResult.rows[0].last_name}` : 'Unknown';
-      for (const m of managers.rows) {
-        EmailService.sendCallCompletedEmail(m.email, m.name, personName, visit.label || visit.visit_type).catch(() => {});
-      }
+      // Completion is reported in the midday/evening digest rather than by email per call.
+      void managers;
     } catch (e: any) { /* notification failure should not block */ }
   }
 

@@ -78,18 +78,20 @@ function VisitStatusTimeline({ status }: { status: string }) {
   )
 }
 
-function StatusPill({ status }: { status: string }) {
+function StatusPill({ status, overdue }: { status: string; overdue?: boolean }) {
   const map: Record<string, { color: string; bg: string }> = {
     completed: { color: colors.success, bg: colors.successSurface },
     checked_in: { color: colors.primary, bg: colors.primarySurface },
     en_route: { color: colors.warning, bg: colors.warningSurface },
     missed: { color: colors.danger, bg: colors.dangerSurface },
   }
-  const { color, bg } = map[status] || { color: colors.subtle, bg: colors.surfaceAlt }
+  const { color, bg } = overdue
+    ? { color: colors.danger, bg: colors.dangerSurface }
+    : map[status] || { color: colors.subtle, bg: colors.surfaceAlt }
   return (
     <View style={[styles.pill, { backgroundColor: bg }]}>
       <View style={[styles.pillDot, { backgroundColor: color }]} />
-      <Text style={[styles.pillText, { color }]}>{status.replace('_', ' ')}</Text>
+      <Text style={[styles.pillText, { color }]}>{overdue ? 'Overdue' : status.replace('_', ' ')}</Text>
     </View>
   )
 }
@@ -408,7 +410,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
               <IconBack size={18} color={c.primary} />
               <Text style={[styles.backText, { color: c.primary }]}>Today</Text>
             </Pressable>
-            <StatusPill status={visit.status} />
+            <StatusPill status={visit.status} overdue={isOverdue(visit)} />
           </View>
 
           {/* Status timeline — only for open visits */}

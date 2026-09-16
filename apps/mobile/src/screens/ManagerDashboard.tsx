@@ -197,7 +197,10 @@ export function ManagerDashboard({ session, onNavigate }: Props) {
                 return (
                   <Pressable
                     key={name}
-                    onPress={() => onNavigate?.('allVisits', { staffName: name })}
+                    onPress={() => {
+                      const staffId = carerVisits[0]?.assigned_staff_id
+                      onNavigate?.('allVisits', { staffName: name, staffId })
+                    }}
                     style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md, borderBottomWidth: i < carersWorking.length - 1 ? 1 : 0, borderBottomColor: c.borderLight }, pressed && { backgroundColor: c.surfaceAlt }]}
                   >
                     <View style={[s.carerAvatar, { backgroundColor: getAvatarColor(name) }]}>

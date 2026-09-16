@@ -1,9 +1,6 @@
 import { query, migrateQuery } from '../../shared/database';
-import { EmailService } from '../../shared/utils/email.service';
 import logger from '../../shared/utils/logger';
 import { isWebPushConfigured, sendPushToUser } from '../notifications/push.service';
-
-const HOMECARE_EMAILS_ENABLED = process.env.HOMECARE_EMAILS_ENABLED === 'true';
 
 /**
  * Creates one reminder ledger row per assigned visit when the travel buffer
@@ -48,10 +45,8 @@ export async function runHomecareVisitReminders(now = new Date()): Promise<{ sen
 
     if (['pending', 'failed'].includes(row.status) && Number(row.attempt_count || 0) < 3) {
       try {
-        if (HOMECARE_EMAILS_ENABLED) {
-          await EmailService.sendHomecareVisitReminderEmail(visit.carer_email, 'carer', visit.person_name, visit.label, visit.scheduled_start);
-          sent++;
-        }
+        // Per-call email reminders are intentionally disabled. The digest worker
+        // sends one configurable morning, midday, and evening summary instead.
         await migrateQuery(`UPDATE homecare_visit_reminders SET status = 'sent', attempt_count = attempt_count + 1, sent_at = NOW(), updated_at = NOW() WHERE id = $1`, [row.id]);
       } catch (error: any) {
         await migrateQuery(`UPDATE homecare_visit_reminders SET status = 'failed', attempt_count = attempt_count + 1, last_error = $2, updated_at = NOW() WHERE id = $1`, [row.id, String(error?.message || 'Email failed').slice(0, 1000)]);
@@ -134,9 +129,7 @@ export async function runHomecareOverdueAlerts(now = new Date()): Promise<{ sent
         [visit.organization_id]
       );
       for (const m of managers.rows) {
-        if (HOMECARE_EMAILS_ENABLED) {
-          await EmailService.sendOverdueCallEmail(m.email, m.name, visit.person_name, visit.label || visit.visit_type, visit.scheduled_start, overdueMinutes);
-        }
+        // Keep urgent push alerts, but never send one email per overdue call.
         await sendPushToUser(m.id, { type: 'overdue_call', title: `Overdue call — ${visit.person_name}`, body: `${visit.label || visit.visit_type} is ${overdueMinutes} min overdue`, url: '/homecare' }, 'homecare');
       }
       await migrateQuery(`UPDATE homecare_visit_reminders SET status = 'sent', attempt_count = attempt_count + 1, sent_at = NOW(), updated_at = NOW() WHERE visit_id = $1 AND reminder_type = 'overdue_alert'`, [visit.id]);
@@ -188,7 +181,7 @@ export async function runHomecareOverdueAlerts(now = new Date()): Promise<{ sent
         [visit.organization_id]
       );
       for (const m of managers.rows) {
-        await EmailService.sendUnassignedCallAlertEmail(m.email, m.name, visit.person_name, visit.label || visit.visit_type, visit.scheduled_start);
+        // Keep urgent push alerts, but include unassigned calls in the digest email.
         await sendPushToUser(m.id, { type: 'unassigned_call', title: `Unassigned call — ${visit.person_name}`, body: `${visit.label || visit.visit_type} has no carer assigned`, url: '/call-assignment' }, 'homecare');
       }
       await migrateQuery(`UPDATE homecare_visit_reminders SET status = 'sent', attempt_count = attempt_count + 1, sent_at = NOW(), updated_at = NOW() WHERE visit_id = $1 AND reminder_type = 'unassigned_alert'`, [visit.id]);

@@ -84,13 +84,18 @@ function TimelineDot({ kind, overdue, c }: { kind: string; overdue?: boolean; c:
 }
 
 /* ─── Status pill ───────────────────────────────────────────── */
-function StatusPill({ status, c }: { status: string; c: any }) {
+function StatusPill({ status, overdue, c }: { status: string; overdue?: boolean; c: any }) {
   let bg = c.surfaceAlt
   let fg = c.muted
   let label = status
   let icon = <View style={[styles.pillDot, { backgroundColor: fg }]} />
 
-  switch (status) {
+  if (overdue) {
+    bg = c.dangerSurface
+    fg = c.danger
+    label = 'Overdue'
+    icon = <IconAlert size={12} color={fg} />
+  } else switch (status) {
     case 'completed':
       bg = c.successSurface
       fg = c.successDeep
@@ -324,7 +329,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
                       <Text style={[styles.timelineName, { color: isPast ? c.muted : ov ? c.danger : c.ink }]} numberOfLines={1}>
                         {tv.visit.label}
                       </Text>
-                      <StatusPill status={tv.visit.status} c={c} />
+                      <StatusPill status={tv.visit.status} overdue={ov} c={c} />
                     </View>
                     {tv.visit.person_name && (
                       <View style={styles.infoRow}>  

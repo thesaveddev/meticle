@@ -85,6 +85,7 @@ export interface AvailabilityRecord {
   start_time: string
   end_time: string
   is_available: boolean
+  availability_date?: string | null
 }
 
 /* ─── Body Map ───────────────────────────────────────────── */

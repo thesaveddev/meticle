@@ -12,6 +12,9 @@ router.get('/channels/:channel/messages', ChatController.listMessages);
 router.post('/channels/:channel/messages', ChatController.sendMessage);
 router.patch('/messages/:id', ChatController.editMessage);
 router.delete('/messages/:id', ChatController.deleteMessage);
+// Keep channel-scoped aliases used by the web client.
+router.patch('/channels/:channel/messages/:id', ChatController.editMessage);
+router.delete('/channels/:channel/messages/:id', ChatController.deleteMessage);
 
 // Channel management
 router.post('/ensure-general', ChatController.ensureGeneral);

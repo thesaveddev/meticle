@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
@@ -32,6 +32,8 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
   const [selectedDay, setSelectedDay] = useState(new Date().getDay())
   const [start, setStart] = useState('09:00')
   const [end, setEnd] = useState('17:00')
+  const [availabilityDate, setAvailabilityDate] = useState('')
+  const [specificUnavailable, setSpecificUnavailable] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [refreshing, setRefreshing] = useState(false)
@@ -65,17 +67,24 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
   }
 
   const handleSave = async () => {
-    if (!isValidTime(start)) { setError('Start time must be HH:MM format'); return }
-    if (!isValidTime(end)) { setError('End time must be HH:MM format'); return }
-    if (start >= end) { setError('Start time must be before end time'); return }
+    const dated = availabilityDate.trim()
+    if (dated && !/^\d{4}-\d{2}-\d{2}$/.test(dated)) { setError('Specific date must use YYYY-MM-DD format'); return }
+    const saveStart = specificUnavailable ? '00:00' : start
+    const saveEnd = specificUnavailable ? '23:59' : end
+    if (!isValidTime(saveStart)) { setError('Start time must be HH:MM format'); return }
+    if (!isValidTime(saveEnd)) { setError('End time must be HH:MM format'); return }
+    if (saveStart >= saveEnd) { setError('Start time must be before end time'); return }
 
     setSaving(true); setError(''); setSuccess('')
     try {
-      await addAvailability(session.accessToken, selectedDay, start, end)
+      const day = dated ? new Date(`${dated}T00:00:00`).getDay() : selectedDay
+      await addAvailability(session.accessToken, day, saveStart, saveEnd, !specificUnavailable, dated || undefined)
       setSuccess(editingId ? `${FULL_DAYS[selectedDay]} availability updated` : `${FULL_DAYS[selectedDay]} availability saved`)
       setEditingId(null)
       setStart('09:00')
       setEnd('17:00')
+      setAvailabilityDate('')
+      setSpecificUnavailable(false)
       await load()
     } catch (e: any) { setError(e.message || 'Could not save') }
     finally { setSaving(false) }
@@ -120,6 +129,8 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
     setEditingId(null)
     setStart('09:00')
     setEnd('17:00')
+    setAvailabilityDate('')
+    setSpecificUnavailable(false)
     setError('')
   }
 
@@ -241,6 +252,21 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
           <Text style={[s.hint, { color: c.subtle }]}>Tap a slot to edit. Long-press to remove.</Text>
         )}
 
+        {/* Date-specific overrides */}
+        {records.some(record => record.availability_date) && (
+          <>
+            <Text style={[s.sectionHead, { color: c.subtle, marginTop: spacing.lg }]}>DATE-SPECIFIC CHANGES</Text>
+            <View style={[s.formCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+              {records.filter(record => record.availability_date).map(record => (
+                <View key={record.id} style={s.dateOverrideRow}>
+                  <View style={{ flex: 1 }}><Text style={[s.slotText, { color: c.ink }]}>{record.availability_date}</Text><Text style={[s.noSlots, { color: record.is_available ? c.success : c.danger }]}>{record.is_available ? formatTimeRange(record.start_time, record.end_time) : 'Unavailable all day'}</Text></View>
+                  <Pressable onPress={() => handleDelete(record.id, record.availability_date || 'date')}><Ionicons name="trash-outline" size={18} color={c.danger} /></Pressable>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
         {/* Add / Edit form */}
         <View style={s.formHeader}>
           <Text style={[s.sectionHead, { color: c.subtle, marginTop: spacing.xl, marginBottom: 0 }]}>
@@ -255,6 +281,10 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
         </View>
 
         <View style={[s.formCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+          <Text style={[s.fieldLabel, { color: c.inkLight }]}>Specific date (optional)</Text>
+          <TextInput value={availabilityDate} onChangeText={setAvailabilityDate} placeholder="YYYY-MM-DD · up to 4 months ahead" placeholderTextColor={c.subtle} style={[s.dateInput, { color: c.ink, backgroundColor: c.surfaceAlt, borderColor: c.border }]} />
+          <Text style={[s.dateHint, { color: c.subtle }]}>Leave this blank for a recurring weekly availability pattern.</Text>
+          <View style={s.unavailableRow}><View style={{ flex: 1 }}><Text style={[s.fieldLabel, { color: c.ink }]}>Unavailable all day</Text><Text style={[s.dateHint, { color: c.muted }]}>Use this for a whole day or a one-off date you cannot work.</Text></View><Switch value={specificUnavailable} onValueChange={setSpecificUnavailable} trackColor={{ false: c.border, true: c.primarySurface }} thumbColor={specificUnavailable ? c.primary : c.subtle} /></View>
           {/* Day picker */}
           <Text style={[s.fieldLabel, { color: c.inkLight }]}>Day</Text>
           <View style={s.dayPicker}>
@@ -402,4 +432,8 @@ const styles = StyleSheet.create({
 
   durationHint: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, padding: spacing.sm, borderRadius: radii.sm },
   durationText: { fontFamily: FONT, fontSize: 12, fontWeight: '500', flex: 1 },
+  dateInput: { borderWidth: 1, borderRadius: radii.sm, padding: spacing.md, fontFamily: FONT, fontSize: 13 },
+  dateHint: { fontFamily: FONT, fontSize: 11, lineHeight: 16 },
+  unavailableRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+  dateOverrideRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D1D5DB' },
 })

@@ -14,6 +14,7 @@ jest.mock('../../services/api', () => ({
   deleteChatMessage: jest.fn(async () => ({})),
   markChatRead: jest.fn(async () => ({})),
   getOrgMembers: jest.fn(async () => []),
+  getChatChannelMembers: jest.fn(async () => []),
   createDMChannel: jest.fn(),
   uploadChatFile: jest.fn(),
 }))
@@ -29,6 +30,7 @@ const mockGetChatChannels = api.getChatChannels as jest.MockedFunction<typeof ap
 const mockGetChatMessages = api.getChatMessages as jest.MockedFunction<typeof api.getChatMessages>
 const mockSendChatMessage = api.sendChatMessage as jest.MockedFunction<typeof api.sendChatMessage>
 const mockDeleteChatMessage = api.deleteChatMessage as jest.MockedFunction<typeof api.deleteChatMessage>
+const mockGetChatChannelMembers = api.getChatChannelMembers as jest.MockedFunction<typeof api.getChatChannelMembers>
 
 const session: AuthSession = {
   accessToken: 'token-1',
@@ -108,6 +110,27 @@ describe('ChatScreen composer', () => {
       expect(mockSendChatMessage).toHaveBeenCalledWith('token-1', 'chan-1', 'Hello team', undefined, undefined, undefined)
     )
     await waitFor(() => expect(screen.getByText('Hello team')).toBeTruthy())
+  })
+})
+
+describe('ChatScreen group member directory', () => {
+  it('shows the accurate member count and filters group members', async () => {
+    const group = { ...channel, id: 'group-1', name: 'Night team', channel_type: 'group' as const, other_member: null, member_count: 3 }
+    mockGetChatChannels.mockResolvedValue([group] as any)
+    mockGetChatChannelMembers.mockResolvedValue([
+      { id: 'me', name: 'Test Carer', email: 'me@example.com', role: 'CARE_WORKER' },
+      { id: 'u2', name: 'Alex Morgan', email: 'alex@example.com', role: 'MANAGER' },
+      { id: 'u3', name: 'Sam Lee', email: 'sam@example.com', role: 'CARE_WORKER' },
+    ] as any)
+    const screen = render(<ChatScreen session={session} />)
+    fireEvent.press(await waitFor(() => screen.getByText('Night team')))
+    await waitFor(() => expect(screen.getByText('3 members')).toBeTruthy())
+    fireEvent.press(screen.getByText('3 members'))
+    await waitFor(() => expect(screen.getByPlaceholderText('Search members...')).toBeTruthy())
+    expect(screen.getByText('Alex Morgan')).toBeTruthy()
+    fireEvent.changeText(screen.getByPlaceholderText('Search members...'), 'Sam')
+    expect(screen.getByText('Sam Lee')).toBeTruthy()
+    expect(screen.queryByText('Alex Morgan')).toBeNull()
   })
 })
 

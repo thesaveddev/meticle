@@ -13,6 +13,16 @@ function userId(req: Request): string {
   return req.user!.userId;
 }
 
+async function requireChannelMember(organizationId: string, channelId: string, userIdValue: string): Promise<void> {
+  const access = await query(
+    `SELECT 1 FROM chat_channels cc
+     JOIN chat_members cm ON cm.channel_id = cc.id AND cm.user_id = $2
+     WHERE cc.id = $1 AND cc.organization_id = $3`,
+    [channelId, userIdValue, organizationId]
+  );
+  if (!access.rows.length) throw new AppError(403, 'You are not a member of this channel');
+}
+
 export class ChatController {
   static async listChannels(req: Request, res: Response) {
     const oid = orgId(req);
@@ -82,13 +92,26 @@ export class ChatController {
         [oid, ch.id, uid, ch.name]
       );
 
+      const members = await query(
+        `SELECT cm2.user_id, sp.first_name, sp.last_name, u.email, sp.profile_picture_url
+         FROM chat_members cm2
+         JOIN users u ON u.id = cm2.user_id
+         LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+         WHERE cm2.channel_id = $1
+         ORDER BY COALESCE(sp.first_name, u.email)`,
+        [ch.id]
+      );
+
       channels.push({
         id: ch.id,
         name: channelName,
         type: ch.type,
+        channel_type: ch.type,
         other_member: otherMember,
         last_message: lastMsg.rows[0] || null,
         unread_count: Number(unread.rows[0]?.count) || 0,
+        member_count: Number(ch.member_count) || 0,
+        members: members.rows,
         created_at: ch.created_at,
       });
     }
@@ -144,10 +167,11 @@ export class ChatController {
               id: generalId,
               name: 'general',
               type: 'general',
+              channel_type: 'general',
               other_member: null,
               last_message: lastMsg.rows[0] || null,
               unread_count: Number(unread.rows[0]?.count) || 0,
-              member_count: 0,
+              member_count: Number((await query('SELECT COUNT(*)::int AS count FROM chat_members WHERE channel_id = $1', [generalId])).rows[0]?.count) || 0,
               created_at: null,
             });
           }
@@ -160,7 +184,9 @@ export class ChatController {
 
   static async listMessages(req: Request, res: Response) {
     const oid = orgId(req);
+    const uid = userId(req);
     const { channel } = req.params;
+    await requireChannelMember(oid, channel, uid);
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const before = req.query.before as string | undefined;
 
@@ -223,10 +249,11 @@ export class ChatController {
     const oid = orgId(req);
     const uid = userId(req);
     const { channel } = req.params;
+    await requireChannelMember(oid, channel, uid);
     const messageText = String(req.body.message ?? req.body.content ?? '').trim();
-    const { reply_to_id } = req.body;
+    const { reply_to_id, file_url, file_name } = req.body;
 
-    if (!messageText) throw new AppError(400, 'Message cannot be empty');
+    if (!messageText && !file_url) throw new AppError(400, 'Message cannot be empty');
     if (messageText.length > 5000) throw new AppError(400, 'Message too long (max 5000 characters)');
 
     if (reply_to_id) {
@@ -238,10 +265,10 @@ export class ChatController {
     }
 
     const result = await query(
-      `INSERT INTO org_chat_messages (organization_id, sender_id, channel, message, reply_to_id)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO org_chat_messages (organization_id, sender_id, channel, message, reply_to_id, file_url, file_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [oid, uid, channel, messageText, reply_to_id || null]
+      [oid, uid, channel, messageText, reply_to_id || null, file_url || null, file_name || null]
     );
 
     const msg = result.rows[0];
@@ -276,7 +303,7 @@ export class ChatController {
       for (const member of members.rows) {
         sendPushNotification(member.user_id, {
           title: channelName,
-          body: `${senderName}: ${messageText.substring(0, 120)}`,
+          body: `${senderName}: ${(messageText || file_name || 'shared a file').substring(0, 120)}`,
           data: { type: 'chat', channelId: channel },
           url: '/chat',
         }, 'chat').catch(() => {});
@@ -318,6 +345,7 @@ export class ChatController {
     );
     if (!existing.rows.length) throw new AppError(404, 'Message not found');
     if (existing.rows[0].sender_id !== uid) throw new AppError(403, 'Can only edit your own messages');
+    await requireChannelMember(oid, existing.rows[0].channel, uid);
 
     const result = await query(
       `UPDATE org_chat_messages SET message = $1, edited = TRUE, updated_at = NOW() WHERE id = $2 RETURNING *`,
@@ -337,6 +365,7 @@ export class ChatController {
     );
     if (!existing.rows.length) throw new AppError(404, 'Message not found');
     if (existing.rows[0].sender_id !== uid) throw new AppError(403, 'Can only delete your own messages');
+    await requireChannelMember(oid, existing.rows[0].channel, uid);
 
     await query(
       `UPDATE org_chat_messages SET deleted = TRUE, message = '', updated_at = NOW() WHERE id = $1`,
@@ -428,7 +457,9 @@ export class ChatController {
 
   static async listChannelMembers(req: Request, res: Response) {
     const oid = orgId(req);
+    const uid = userId(req);
     const { channelId } = req.params;
+    await requireChannelMember(oid, channelId, uid);
     const result = await query(
       `SELECT u.id, COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS name,
               u.email, u.role, sp.profile_picture_url
@@ -444,7 +475,15 @@ export class ChatController {
 
   static async removeChannelMember(req: Request, res: Response) {
     const oid = orgId(req);
+    const uid = userId(req);
     const { channelId, userId: targetUserId } = req.params;
+    const channel = await query('SELECT created_by, type FROM chat_channels WHERE id = $1 AND organization_id = $2', [channelId, oid]);
+    if (!channel.rows.length) throw new AppError(404, 'Channel not found');
+    await requireChannelMember(oid, channelId, uid);
+    if (channel.rows[0].type === 'dm') throw new AppError(400, 'Members cannot be removed from a direct message');
+    if (channel.rows[0].created_by !== uid && !['MANAGER', 'ADMIN', 'OWNER'].includes(req.user!.role)) {
+      throw new AppError(403, 'Only the group creator or a manager can remove members');
+    }
     await query('DELETE FROM chat_members WHERE channel_id = $1 AND user_id = $2', [channelId, targetUserId]);
     res.json({ removed: true });
   }
@@ -453,6 +492,7 @@ export class ChatController {
     const oid = orgId(req);
     const uid = userId(req);
     const { channelId } = req.params;
+    await requireChannelMember(oid, channelId, uid);
     await query('DELETE FROM chat_members WHERE channel_id = $1 AND user_id = $2', [channelId, uid]);
     res.json({ left: true });
   }
@@ -463,6 +503,9 @@ export class ChatController {
     const { targetUserId } = req.params;
 
     if (targetUserId === uid) throw new AppError(400, 'Cannot create DM with yourself');
+
+    const targetOrg = await query('SELECT id FROM users WHERE id = $1 AND organization_id = $2 AND status = \'active\'', [targetUserId, oid]);
+    if (!targetOrg.rows.length) throw new AppError(404, 'User is not an active member of this organization');
 
     // Check if DM already exists between these two users
     const existing = await query(
@@ -509,10 +552,14 @@ export class ChatController {
 
     // Add creator
     await query('INSERT INTO chat_members (channel_id, user_id) VALUES ($1, $2)', [channelId, uid]);
-    // Add other members
-    for (const mid of memberIds) {
-      if (mid !== uid) {
-        await query('INSERT INTO chat_members (channel_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [channelId, mid]);
+    // Add only active members from the same organization; never trust client-supplied IDs.
+    const validMembers = await query(
+      `SELECT id FROM users WHERE organization_id = $1 AND status = 'active' AND id = ANY($2::uuid[])`,
+      [oid, memberIds.filter((id: unknown) => typeof id === 'string')]
+    );
+    for (const mid of validMembers.rows) {
+      if (mid.id !== uid) {
+        await query('INSERT INTO chat_members (channel_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [channelId, mid.id]);
       }
     }
 
@@ -569,8 +616,16 @@ export class ChatController {
   }
 
   static async addReaction(req: Request, res: Response) {
+    const oid = orgId(req);
     const uid = userId(req);
     const { channel, messageId } = req.params;
+    const access = await query(
+      `SELECT 1 FROM chat_channels cc
+       JOIN chat_members cm ON cm.channel_id = cc.id AND cm.user_id = $2
+       WHERE cc.id = $1 AND cc.organization_id = $3`,
+      [channel, uid, oid]
+    );
+    if (!access.rows.length) throw new AppError(403, 'You are not a member of this channel');
     const { emoji } = req.body;
     if (!emoji || !emoji.trim()) throw new AppError(400, 'Emoji is required');
 
