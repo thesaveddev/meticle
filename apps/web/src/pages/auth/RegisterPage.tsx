@@ -164,7 +164,7 @@ export default function RegisterPage() {
   }
 
 
-  usePageMeta({ title: 'Create Account | MeticleCare', description: 'Register for a MeticleCare account. Start your 14-day free trial for UK care providers.', noindex: true })
+  usePageMeta({ title: 'Create Account | Meticle Care', description: 'Register for a Meticle Care account. Start your 14-day free trial for UK care providers.', noindex: true })
   if (invitationLoading) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'white' }}>
@@ -219,7 +219,7 @@ export default function RegisterPage() {
         <Container maxWidth="xs" sx={{ mx: 'auto' }}>
           <Box sx={{ mb: 6 }}>
             <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
-              Meticle
+              Meticle Care
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
               {invitation ? 'Complete Your Registration' : 'Create Your Account'}

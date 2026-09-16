@@ -50,8 +50,8 @@ export default function AboutPage() {
   return (
     <MarketingLayout>
       <PageMeta
-        title="About MeticleCare | MeticleCare"
-        description="MeticleCare was built for UK supported living providers. Our team combines care-sector experience with technology to simplify operations."
+        title="About Meticle Care | Meticle Care"
+        description="Meticle Care was built for UK supported living providers. Our team combines care-sector experience with technology to simplify operations."
         canonicalPath="/about"
       />
 
@@ -84,7 +84,7 @@ export default function AboutPage() {
               </Typography>
               <Stack spacing={2.5} sx={{ color: MIST, fontSize: '1.05rem', lineHeight: 1.75 }}>
                 <Typography>
-                  MeticleCare was founded by a team of care operators and software engineers who saw first-hand how fragmented tools
+                  Meticle Care was founded by a team of care operators and software engineers who saw first-hand how fragmented tools
                   were hurting care quality. Spreadsheets for rotas. WhatsApp for communication. Paper for compliance.
                   A unified platform built specifically for supported living was overdue.
                 </Typography>
@@ -144,7 +144,7 @@ export default function AboutPage() {
       </Box>
 
       {/* TRUST STRIP */}
-      <Box component="section" aria-label="Standards MeticleCare is built for" sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
+      <Box component="section" aria-label="Standards Meticle Care is built for" sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${HAIRLINE}`, py: { xs: 5, md: 6 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
             <Grid item xs={12} md={3}>
@@ -307,7 +307,7 @@ export default function AboutPage() {
             variant="h2"
             sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}
           >
-            Try MeticleCare for 14 days, on us.
+            Try Meticle Care for 14 days, on us.
           </Typography>
           <Typography sx={{ opacity: 0.92, fontSize: '1.12rem', lineHeight: 1.7, mb: 5, maxWidth: 560, mx: 'auto' }}>
             Full Care Service functionality. No credit card. UK-only data centres. We pull migration data from your existing system for free in the first 30 days.

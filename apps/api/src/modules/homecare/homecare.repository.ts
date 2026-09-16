@@ -62,7 +62,7 @@ export async function getSupplierInfo(orgId: string) {
   const org = result.rows[0] || {};
   const config = (org.billing_config || {}) as any;
   return {
-    name: org.name || 'Meticle Provider',
+    name: org.name || 'Meticle Care Provider',
     address: config?.registered_address || 'United Kingdom',
     vat_number: config?.vat_number || null,
     company_number: config?.company_number || null,
@@ -79,7 +79,7 @@ export async function getCustomerInfo(orgId: string, run: any) {
   // Use the org name as the customer (the provider is billing on behalf of funders)
   const result = await query(`SELECT name FROM organizations WHERE id = $1`, [orgId]);
   return {
-    name: result.rows[0]?.name || 'Meticle Client',
+    name: result.rows[0]?.name || 'Meticle Care Client',
     address: null,
     contact_email: null,
   };

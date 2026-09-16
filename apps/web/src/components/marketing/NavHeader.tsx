@@ -7,7 +7,6 @@ const INK = '#1B2430'
 const NAVY = '#0F4C81'
 const NAVY_DEEP = '#0A3A63'
 const EMERALD = '#10B981'
-const EMERALD_INK = '#047857'
 const MIST = '#5B6672'
 const HAIRLINE = '#E7E1D6'
 const BONE = '#F7F4EE'
@@ -124,7 +123,7 @@ export default function NavHeader() {
             }}
           >
             <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, letterSpacing: '-1.5px', cursor: 'pointer', fontSize: '1.35rem' }} onClick={() => navigate('/')}>
-              Meticle<span style={{ color: EMERALD_INK }}>Care</span>
+              Meticle Care
             </Typography>
 
             {/* Desktop Nav */}
@@ -212,7 +211,7 @@ export default function NavHeader() {
       <Drawer anchor="right" open={mobileOpen} onClose={() => setMobileOpen(false)}>
         <Box sx={{ width: 300, pt: 2 }}>
           <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, letterSpacing: '-1.5px', px: 2, mb: 2, cursor: 'pointer', fontSize: '1.35rem' }} onClick={() => { navigate('/'); setMobileOpen(false) }}>
-            Meticle<span style={{ color: EMERALD_INK }}>Care</span>
+            Meticle Care
           </Typography>
           <Divider />
           <List>

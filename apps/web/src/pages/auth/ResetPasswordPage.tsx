@@ -49,7 +49,7 @@ export default function ResetPasswordPage() {
     }
   }
 
-  usePageMeta({ title: 'Reset Password | MeticleCare', description: 'Set a new password for your MeticleCare account.', noindex: true })
+  usePageMeta({ title: 'Reset Password | Meticle Care', description: 'Set a new password for your Meticle Care account.', noindex: true })
 
   if (!token) {
     return (
@@ -58,7 +58,7 @@ export default function ResetPasswordPage() {
           <Container maxWidth="xs" sx={{ mx: 'auto' }}>
             <Box sx={{ mb: 6 }}>
               <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
-                Meticle
+                Meticle Care
               </Typography>
             </Box>
             <Box sx={{ p: 3, borderRadius: 2, bgcolor: 'error.light', border: '1px solid #FECACA' }}>
@@ -90,9 +90,7 @@ export default function ResetPasswordPage() {
       <Box sx={{ flex: { xs: 1, md: 0.8, lg: 0.6 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
         <Container maxWidth="xs" sx={{ mx: 'auto' }}>
           <Box sx={{ mb: 6 }}>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
-              Meticle
-            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>Meticle Care</Typography>
             <Box sx={{
               width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
               borderRadius: '50%', bgcolor: '#EAF2F8', color: '#0F4C81', mb: 3,
@@ -168,7 +166,7 @@ export default function ResetPasswordPage() {
           </Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>A private moment for your account</Typography>
           <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
-            This reset link is single-use and expires after one hour. Your password is never shown to anyone at Meticle.
+            This reset link is single-use and expires after one hour. Your password is never shown to anyone at Meticle Care.
           </Typography>
         </Box>
       </Box>

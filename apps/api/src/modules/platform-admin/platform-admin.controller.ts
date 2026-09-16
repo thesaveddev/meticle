@@ -373,7 +373,7 @@ export class PlatformAdminController {
     const contact = recipient.rows[0];
     const safeSubject = typeof subject === 'string' && subject.trim().length > 0
       ? subject.trim().slice(0, 160)
-      : 'Checking in about your Meticle trial';
+      : 'Checking in about your Meticle Care trial';
     const html = EmailService.buildTrialFollowupEmailHtml(contact.name, contact.org_name, trimmedMessage);
     await EmailService.sendQueued(contact.email, safeSubject, html, 'support');
 

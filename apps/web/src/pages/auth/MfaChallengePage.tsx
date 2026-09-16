@@ -15,7 +15,7 @@ export default function MfaChallengePage() {
   const [error, setError] = useState('')
   const [showLostAccess, setShowLostAccess] = useState(false)
 
-  usePageMeta({ title: 'Two-Factor Authentication | MeticleCare', description: 'Enter your MeticleCare verification code.', noindex: true })
+  usePageMeta({ title: 'Two-Factor Authentication | Meticle Care', description: 'Enter your Meticle Care verification code.', noindex: true })
 
   if (!mfaToken) {
     navigate('/login')
@@ -51,7 +51,7 @@ export default function MfaChallengePage() {
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
       <Container maxWidth="xs">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle Care</Typography>
           <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>Two-Factor Authentication</Typography>
           <Typography sx={{ color: 'text.secondary', mt: 1 }}>
             Enter the code from your authenticator app{email ? ` (${email})` : ''}.

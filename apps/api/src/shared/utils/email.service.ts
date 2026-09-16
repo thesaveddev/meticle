@@ -68,19 +68,19 @@ const fmtDate = (date?: string | null) =>
 export class EmailService {
   static async sendVerificationEmail(email: string, token: string) {
     const url = `${baseUrl()}/verify-email?token=${token}`;
-    await sendMail(email, 'Verify your Meticle account',
+    await sendMail(email, 'Verify your Meticle Care account',
       buildEmailHtml('Verify Email', 'Verify your email address',
         `<p>Click the button below to verify your email address and activate your account.</p>`,
         { label: 'Verify Email', url }), 'security');
   }
 
   static async sendVerificationCode(email: string, code: string) {
-    await sendMail(email, 'Your Meticle Verification Code', buildCodeEmailHtml(code), 'security');
+    await sendMail(email, 'Your Meticle Care Verification Code', buildCodeEmailHtml(code), 'security');
   }
 
   static async sendPasswordResetEmail(email: string, token: string) {
     const url = `${baseUrl()}/reset-password?token=${token}`;
-    await sendMail(email, 'Reset your Meticle password',
+    await sendMail(email, 'Reset your Meticle Care password',
       buildEmailHtml('Reset Password', 'Reset your password',
         `<p>Click the button below to reset your password. This link expires in 1 hour.</p>`,
         { label: 'Reset Password', url }), 'security');
@@ -88,24 +88,24 @@ export class EmailService {
 
   static async sendInviteEmail(email: string, orgName: string, token: string) {
     const url = `${baseUrl()}/register?token=${token}`;
-    await sendMail(email, `You've been invited to join ${orgName} on Meticle`,
+    await sendMail(email, `You've been invited to join ${orgName} on Meticle Care`,
       buildEmailHtml('Invitation', `You've been invited to ${orgName}`,
-        `<p>Click below to create your account and join ${orgName} on Meticle.</p>`,
+        `<p>Click below to create your account and join ${orgName} on Meticle Care.</p>`,
         { label: 'Accept Invitation', url }), 'team');
   }
 
   static async sendWelcomeEmail(email: string, name: string, orgName?: string, isAdmin?: boolean) {
     const url = `${baseUrl()}/dashboard`;
-    const subject = 'Welcome To Meticle';
+    const subject = 'Welcome To Meticle Care';
     const org = orgName || 'your organisation';
 
     if (isAdmin) {
       await sendMail(email, subject,
         buildEmailHtml('Welcome',
-          'Welcome To Meticle',
+          'Welcome To Meticle Care',
           `<p style="margin:0 0 20px 0">Hi ${name},</p>` +
-          `<p style="margin:0 0 16px 0">You've just taken the first step toward running a smarter, safer care organisation. <strong>Meticle</strong> is the all-in-one platform that unifies your entire care operation — from scheduling and compliance to clinical records and family communication.</p>` +
-          `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:#1F2937">What you can do with Meticle:</p>` +
+          `<p style="margin:0 0 16px 0">You've just taken the first step toward running a smarter, safer care organisation. <strong>Meticle Care</strong> is the all-in-one platform that unifies your entire care operation — from scheduling and compliance to clinical records and family communication.</p>` +
+          `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:#1F2937">What you can do with Meticle Care:</p>` +
           `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0">` +
           `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Smart Scheduling &amp; Rota Planning</strong> — Drag-and-drop rota, shift swaps, overtime claims, and minimum-staff alerts. Reduce agency spend by up to 40%.</td></tr>` +
           `<tr><td style="padding:6px 12px 6px 0;vertical-align:top;font-size:15px;color:#0F4C81;font-weight:700;width:24px">\u2713</td><td style="padding:6px 0;font-size:14px;color:#4B5563"><strong>Compliance &amp; CQC Readiness</strong> — Real-time compliance dashboards, automated training reminders, DBS tracking, and one-click CQC evidence packs. Know your score before the inspector arrives.</td></tr>` +
@@ -121,14 +121,14 @@ export class EmailService {
           `<p style="margin:0 0 4px 0;font-size:14px;color:#1F2937"><strong>4.</strong> Build your rota and invite staff to claim shifts</p>` +
           `<p style="margin:0 0 16px 0;font-size:14px;color:#1F2937"><strong>5.</strong> Run your first CQC readiness assessment</p>` +
           `<p style="margin:0;font-size:14px;color:#4B5563">If you need anything, just reply to this email — we're here to help.</p>` +
-          `<p style="margin:16px 0 0 0;font-size:13px;color:#9CA3AF">The Meticle Team</p>`,
+          `<p style="margin:16px 0 0 0;font-size:13px;color:#9CA3AF">The Meticle Care Team</p>`,
           { label: 'Go to Dashboard', url }), 'team');
     } else {
       await sendMail(email, subject,
         buildEmailHtml('Welcome',
-          'Welcome To Meticle',
+          'Welcome To Meticle Care',
           `<p style="margin:0 0 20px 0">Hi ${name},</p>` +
-          `<p style="margin:0 0 16px 0">Welcome to <strong>${org}</strong> on Meticle. You now have access to everything your organisation uses to run care operations — scheduling, compliance, clinical records, and more.</p>` +
+          `<p style="margin:0 0 16px 0">Welcome to <strong>${org}</strong> on Meticle Care. You now have access to everything your organisation uses to run care operations — scheduling, compliance, clinical records, and more.</p>` +
           `<p style="margin:0 0 12px 0;font-weight:700;font-size:15px;color:#1F2937">Here's what you can do right away:</p>` +
           `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0">` +
           `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">View your shifts and rota</td></tr>` +
@@ -138,7 +138,7 @@ export class EmailService {
           `<tr><td style="padding:4px 10px 4px 0;vertical-align:top;font-size:14px;color:#0F4C81;font-weight:700;width:22px">\u2022</td><td style="padding:4px 0;font-size:14px;color:#4B5563">Chat with colleagues in real-time</td></tr>` +
           `</table>` +
           `<p style="margin:0 0 16px 0;font-size:14px;color:#4B5563">Your manager will assign your shifts and set up any training you need. If you have questions, reach out to your team lead or reply to this email.</p>` +
-          `<p style="margin:0;font-size:13px;color:#9CA3AF">The Meticle Team</p>`,
+          `<p style="margin:0;font-size:13px;color:#9CA3AF">The Meticle Care Team</p>`,
           { label: 'Go to Dashboard', url }), 'team');
     }
   }
@@ -237,7 +237,7 @@ export class EmailService {
     await sendMail(email, 'Manager Delegation Assigned',
       buildEmailHtml('Delegation', `Hi ${delegateName},`,
         `<p>You have been assigned as a delegate for ${primaryName}.${endsAt ? ` This delegation ends on ${new Date(endsAt).toLocaleDateString()}.` : ''}</p>`,
-        { label: 'Open Meticle', url: `${baseUrl()}/leave` }));
+        { label: 'Open Meticle Care', url: `${baseUrl()}/leave` }));
   }
 
   // ── Homecare ──
@@ -442,7 +442,7 @@ export class EmailService {
     await sendMail(email, `${orgName} — Access to ${personName}'s care information`,
       buildEmailHtml('Family Portal', `You've been invited to stay connected`,
         `<p>Hi ${memberName},</p>` +
-        `<p><strong>${orgName}</strong> has invited you to view care information for <strong>${personName}</strong> through the Meticle Family Portal.</p>` +
+        `<p><strong>${orgName}</strong> has invited you to view care information for <strong>${personName}</strong> through the Meticle Care Family Portal.</p>` +
         `<p>Through this secure portal you can see:</p>` +
         `<ul><li>Daily care notes</li><li>Care plans</li><li>Goals and progress</li><li>Health observations</li></ul>` +
         `<p style="margin-top:16px">This link expires in <strong>14 days</strong> and is unique to you. Do not share it.</p>`,
@@ -469,8 +469,8 @@ export class EmailService {
   static buildTrialFollowupEmailHtml(name: string, orgName: string, message: string) {
     const url = `${baseUrl()}/billing`;
     return buildEmailHtml(
-      'A note from Meticle',
-      'Checking in about your Meticle trial',
+      'A note from Meticle Care',
+      'Checking in about your Meticle Care trial',
       `<p>Hi ${name},</p><p>${message.replace(/\n/g, '<br>')}</p><p>Your organisation, <strong>${orgName}</strong>, can review its plan and reactivate access from Billing.</p>`,
       { label: 'Review billing', url }
     );
@@ -482,8 +482,8 @@ export class EmailService {
     const url = `${baseUrl()}/billing`;
     const timing = daysLeft === 1 ? 'tomorrow' : `in ${daysLeft} days`;
     const subject = hasCard
-      ? `Your Meticle trial ends ${timing}`
-      : `Your Meticle trial ends ${timing} — payment method needed`;
+      ? `Your Meticle Care trial ends ${timing}`
+      : `Your Meticle Care trial ends ${timing} — payment method needed`;
     const body = hasCard
       ? `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> ends ${timing}. We will charge the payment method on file when the trial ends.</p><p>You can review your plan or update your payment method from Billing.</p>`
       : `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> ends ${timing}. Add a payment method before then if you want uninterrupted access after the trial.</p><p>Your account and data will remain available for reactivation if you decide not to continue.</p>`;
@@ -495,7 +495,7 @@ export class EmailService {
   static async sendTrialExpiredEmail(email: string, name: string, orgName: string, hasCard: boolean) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    const subject = hasCard ? 'Your Meticle trial has ended — action required' : 'Your Meticle trial has ended — choose whether to continue';
+    const subject = hasCard ? 'Your Meticle Care trial has ended — action required' : 'Your Meticle Care trial has ended — choose whether to continue';
     const body = hasCard
       ? `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> has ended. A card is saved, but we could not confirm a paid subscription or successful charge for this organisation.</p><p>Open Billing to confirm the plan and payment method. Your data has been retained while you reactivate service.</p>`
       : `<p>Hi ${name},</p><p>Your trial for <strong>${org}</strong> has ended. No payment was taken because no payment method was on file.</p><p>Your data has been retained. Add a payment method if you want to reactivate the service.</p>`;
@@ -511,10 +511,10 @@ export class EmailService {
     const plural = daysLeft !== 1;
     const headline = plural ? `Your subscription ends in ${daysLeft} days` : 'Your subscription ends tomorrow';
     await sendMail(email,
-      plural ? `Your Meticle subscription ends in ${daysLeft} days` : 'Your Meticle subscription ends tomorrow',
+      plural ? `Your Meticle Care subscription ends in ${daysLeft} days` : 'Your Meticle Care subscription ends tomorrow',
       buildEmailHtml('Subscription Renewal', headline,
         `<p>Hi ${name},</p>` +
-        `<p>Your Meticle subscription for <strong>${org}</strong> ${plural ? `ends in <strong>${daysLeft} days</strong>` : '<strong>ends tomorrow</strong>'}.</p>` +
+        `<p>Your Meticle Care subscription for <strong>${org}</strong> ${plural ? `ends in <strong>${daysLeft} days</strong>` : '<strong>ends tomorrow</strong>'}.</p>` +
         `<p>After this date, access to operational changes will be restricted. Your data will be retained.</p>` +
         `<p>${hasCard ? 'Review your payment method if anything has changed.' : 'Add a payment method before the end date if you want service to continue.'}</p>`,
         { label: hasCard ? 'View Billing' : 'Add Payment Card', url }), 'billing');
@@ -523,10 +523,10 @@ export class EmailService {
   static async sendSubscriptionExpiredEmail(email: string, name: string, orgName: string) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    await sendMail(email, 'Your Meticle subscription has ended — reactivate to restore access',
+    await sendMail(email, 'Your Meticle Care subscription has ended — reactivate to restore access',
       buildEmailHtml('Subscription Ended', `Your subscription for ${org} has ended`,
         `<p>Hi ${name},</p>` +
-        `<p>Your Meticle subscription for <strong>${org}</strong> has ended, so your team's access has been paused.</p>` +
+        `<p>Your Meticle Care subscription for <strong>${org}</strong> has ended, so your team's access has been paused.</p>` +
         `<p>Your data has been retained. Renewing restores access for your organisation.</p>` +
         `<p>Open Billing to choose a plan or update your payment method.</p>`,
         { label: 'Reactivate Now', url }), 'billing');
@@ -536,8 +536,8 @@ export class EmailService {
   static async sendWinbackDay3Email(email: string, name: string, orgName: string) {
     const org = orgName || 'your organisation';
     const url = `${baseUrl()}/billing`;
-    await sendMail(email, `We miss you at Meticle — your data is still safe`,
-      buildEmailHtml('We miss you', `${org} is still on Meticle`,
+    await sendMail(email, `We miss you at Meticle Care — your data is still safe`,
+      buildEmailHtml('We miss you', `${org} is still on Meticle Care`,
         `<p>Hi ${name},</p>` +
         `<p>It's been 3 days since your ${org} trial ended. We wanted to let you know that <strong>all your data is still here</strong> — care plans, daily notes, staff records, everything.</p>` +
         `<p>Your team can get back to work in minutes. Just add a payment method and choose a plan.</p>` +
@@ -551,13 +551,13 @@ export class EmailService {
     await sendMail(email, `${org} — your data is waiting for you`,
       buildEmailHtml('Still thinking?', `${org} data is preserved`,
         `<p>Hi ${name},</p>` +
-        `<p>A week has passed since your Meticle trial ended. We know choosing care management software is a big decision.</p>` +
+        `<p>A week has passed since your Meticle Care trial ended. We know choosing care management software is a big decision.</p>` +
         `<p>Here's what's still available for ${org}:<br>` +
         `• All care plans and daily notes<br>` +
         `• Staff records and training matrix<br>` +
         `• Compliance documents and audit trail<br>` +
         `• Incident reports and risk assessments</p>` +
-        `<p>We'd love to show you how Meticle can work for your service. Book a free 15-minute walkthrough with our team.</p>`,
+        `<p>We'd love to show you how Meticle Care can work for your service. Book a free 15-minute walkthrough with our team.</p>`,
         { label: 'Book a Free Walkthrough', url }), 'billing');
   }
 
@@ -567,7 +567,7 @@ export class EmailService {
     await sendMail(email, `Important: ${org} data retention notice`,
       buildEmailHtml('Data Retention', `Your ${org} data will be removed in 76 days`,
         `<p>Hi ${name},</p>` +
-        `<p>It's been two weeks since your Meticle subscription for <strong>${org}</strong> ended.</p>` +
+        `<p>It's been two weeks since your Meticle Care subscription for <strong>${org}</strong> ended.</p>` +
         `<p>Per our data retention policy, your organisation's data will be permanently deleted <strong>90 days after expiry</strong> (approximately 76 days from now).</p>` +
         `<p>If you'd like to keep your data, reactivate before then. After deletion, data cannot be recovered.</p>`,
         { label: 'Reactivate Before Deletion', url }), 'billing');
@@ -579,9 +579,9 @@ export class EmailService {
     await sendMail(email, `Final notice: ${org} data expires in 60 days`,
       buildEmailHtml('Final Notice', `${org} data deletion approaching`,
         `<p>Hi ${name},</p>` +
-        `<p>This is a final reminder that <strong>${org}</strong>'s data on Meticle will be permanently deleted in approximately <strong>60 days</strong>.</p>` +
+        `<p>This is a final reminder that <strong>${org}</strong>'s data on Meticle Care will be permanently deleted in approximately <strong>60 days</strong>.</p>` +
         `<p>After deletion, all care records, compliance documents, staff data, and audit trails will be irrecoverable.</p>` +
-        `<p>If you've decided to move forward with Meticle, now is the time to reactivate.</p>`,
+        `<p>If you've decided to move forward with Meticle Care, now is the time to reactivate.</p>`,
         { label: 'Reactivate Now', url }), 'billing');
   }
 
@@ -591,7 +591,7 @@ export class EmailService {
     await sendMail(email, `Last chance: ${org} data will be deleted tomorrow`,
       buildEmailHtml('Last Chance', `${org} data deletion tomorrow`,
         `<p>Hi ${name},</p>` +
-        `<p>This is your final notification. <strong>${org}</strong>'s data on Meticle will be <strong>permanently deleted tomorrow</strong>.</p>` +
+        `<p>This is your final notification. <strong>${org}</strong>'s data on Meticle Care will be <strong>permanently deleted tomorrow</strong>.</p>` +
         `<p>After deletion, this data cannot be recovered under any circumstances.</p>` +
         `<p>If you want to preserve your care records and compliance documents, reactivate today.</p>`,
         { label: 'Reactivate Before Deletion', url }), 'billing');
@@ -637,7 +637,7 @@ export class EmailService {
     }
 
     await sendMail(email,
-      `Receipt for ${opts.currency} ${opts.amount.toFixed(2)} — Meticle`,
+      `Receipt for ${opts.currency} ${opts.amount.toFixed(2)} — Meticle Care`,
       buildEmailHtml('Payment Receipt', `${opts.isRetry ? 'Payment received' : 'Thank you for your payment'}`,
         `<p>Hi ${name},</p>` +
         `<p>Your payment for <strong>${org}</strong> went through successfully.</p>` +
@@ -672,7 +672,7 @@ export class EmailService {
     let subject: string;
     if (opts.daysSinceFirstFailure >= 14) {
       heading = 'Final notice: your subscription will pause';
-      subject = `Final notice: your Meticle subscription will pause`;
+      subject = `Final notice: your Meticle Care subscription will pause`;
       body = `<p>Hi ${name},</p>` +
         `<p>It's been two weeks since our first failed attempt to charge <strong>${currency} ${amount}</strong> for <strong>${org}</strong>. Your access will be paused soon unless the payment goes through.</p>` +
         `<p>Your data will be retained, and you can reactivate the service from Billing.</p>`;
@@ -690,7 +690,7 @@ export class EmailService {
         `<p>The bank may have declined the charge because the card is expired, restricted, or temporarily unavailable. ${retryStr}</p>` +
         `<p>Your subscription remains active for now. Review the payment method before the next attempt.</p><p>If the billing period ends while payment remains unresolved, the seven-day restricted grace period will begin.</p>`;
     } else {
-      subject = `Quick update: your Meticle payment didn't go through`;
+      subject = `Quick update: your Meticle Care payment didn't go through`;
       body = `<p>Hi ${name},</p>` +
         `<p>Our charge of <strong>${currency} ${amount}</strong> for <strong>${org}</strong> didn't go through (${opts.cardInfo}).</p>` +
         `<p>The bank may have declined the charge because the card is expired, restricted, or temporarily unavailable. ${retryStr}</p>` +
@@ -731,7 +731,7 @@ export class EmailService {
     const url = `${baseUrl()}/billing`;
     const org = orgName || 'your organisation';
     await sendMail(email,
-      `Action required: confirm your ${opts.currency} ${opts.amount.toFixed(2)} Meticle payment`,
+      `Action required: confirm your ${opts.currency} ${opts.amount.toFixed(2)} Meticle Care payment`,
       buildEmailHtml('Payment Action Required', 'Your bank needs you to confirm a payment',
         `<p>Hi ${name},</p>` +
         `<p>To keep your <strong>${org}</strong> subscription running, your bank needs you to confirm a recent payment of <strong>${opts.currency} ${opts.amount.toFixed(2)}</strong> (3D Secure authentication).</p>` +
@@ -744,7 +744,7 @@ export class EmailService {
     const symbol = currency === 'GBP' ? '£' : currency === 'USD' ? '$' : currency + ' ';
     return buildEmailHtml('Invoice', 'Your invoice is ready',
       `<p>Hi ${name},</p>` +
-      `<p>A new invoice has been generated for your Meticle subscription:</p>` +
+      `<p>A new invoice has been generated for your Meticle Care subscription:</p>` +
       `<table border="0" cellpadding="0" cellspacing="0" style="margin:12px 0;background:#F9FAFB;border-radius:12px;padding:16px;width:100%">` +
       `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Description</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#111827;text-align:right">${description}</td></tr>` +
       `<tr><td style="padding:6px 12px;font-size:14px;color:#6B7280">Amount</td><td style="padding:6px 12px;font-size:16px;font-weight:800;color:#0F4C81;text-align:right">${symbol}${amount.toFixed(2)}</td></tr>` +
@@ -772,19 +772,19 @@ export class EmailService {
       heading = 'Payment due tomorrow';
       subject = `Payment due tomorrow for ${org}`;
       body = `<p>Hi ${name},</p>` +
-        `<p>Your Meticle invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due <strong>tomorrow</strong> (${dueDateStr}).</p>` +
+        `<p>Your Meticle Care invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due <strong>tomorrow</strong> (${dueDateStr}).</p>` +
         `<p>If a payment method is on file, it will be charged automatically. Review it in Billing before the due date if anything has changed.</p>`;
     } else if (opts.daysUntilDue <= 3) {
       heading = `Payment due in ${opts.daysUntilDue} days`;
       subject = `Payment due in ${opts.daysUntilDue} days for ${org}`;
       body = `<p>Hi ${name},</p>` +
-        `<p>Your Meticle invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due on <strong>${dueDateStr}</strong>.</p>` +
+        `<p>Your Meticle Care invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due on <strong>${dueDateStr}</strong>.</p>` +
         `<p>If a payment method is on file, it will be charged automatically. You can review it in Billing.</p>`;
     } else {
       heading = `Payment due in ${opts.daysUntilDue} days`;
       subject = `Upcoming payment for ${org} — ${dueDateStr}`;
       body = `<p>Hi ${name},</p>` +
-        `<p>This is a friendly reminder that your Meticle invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due on <strong>${dueDateStr}</strong>.</p>` +
+        `<p>This is a friendly reminder that your Meticle Care invoice of <strong>${symbol}${opts.amount.toFixed(2)}</strong> for <strong>${org}</strong> is due on <strong>${dueDateStr}</strong>.</p>` +
         `<p>No action is needed if your payment method is up to date.</p>`;
     }
     await sendMail(email, subject,

@@ -114,7 +114,7 @@ function buildOpenApiSpec(routes: RouteEntry[]): OpenAPIV3.Document {
   return {
     openapi: '3.0.0',
     info: {
-      title: 'Meticle API',
+      title: 'Meticle Care API',
       version: '1.0.0',
       description: 'Healthcare workforce management platform API',
     },

@@ -226,41 +226,41 @@ function getNotificationMessage(orgName: string, oldStatus: string | null, newSt
 }
 
 function getEmailSubject(oldStatus: string | null, newStatus: string): string {
-  if (oldStatus === 'canceled' && newStatus === 'active') return 'Your Meticle subscription is active again';
-  if (oldStatus === 'active' && newStatus === 'canceled') return 'Your Meticle subscription has been canceled';
-  if (oldStatus === 'trial' && newStatus === 'canceled') return 'Your Meticle trial has ended';
-  return 'Meticle subscription update';
+  if (oldStatus === 'canceled' && newStatus === 'active') return 'Your Meticle Care subscription is active again';
+  if (oldStatus === 'active' && newStatus === 'canceled') return 'Your Meticle Care subscription has been canceled';
+  if (oldStatus === 'trial' && newStatus === 'canceled') return 'Your Meticle Care trial has ended';
+  return 'Meticle Care subscription update';
 }
 
 function getEmailHtml(name: string, orgName: string, oldStatus: string | null, newStatus: string): string {
   if (oldStatus === 'canceled' && newStatus === 'active') {
     return `
       <p>Hi ${name},</p>
-      <p><strong>${orgName}</strong>'s Meticle subscription is now <strong>active</strong>.</p>
+      <p><strong>${orgName}</strong>'s Meticle Care subscription is now <strong>active</strong>.</p>
       <p>Full access has been restored. You can continue managing your care home as usual.</p>
       <p>If you have any questions, reply to this email.</p>
-      <p>The Meticle Team</p>`;
+      <p>The Meticle Care Team</p>`;
   }
   if (oldStatus === 'active' && newStatus === 'canceled') {
     return `
       <p>Hi ${name},</p>
-      <p><strong>${orgName}</strong>'s Meticle subscription has been <strong>canceled</strong>.</p>
+      <p><strong>${orgName}</strong>'s Meticle Care subscription has been <strong>canceled</strong>.</p>
       <p>Your data will be retained for 30 days. To restore access, visit the Billing page and renew your subscription.</p>
       <p><a href="${process.env.FRONTEND_URL || 'https://meticlecare.com'}/billing" style="display:inline-block;padding:12px 24px;background:#0F4C81;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">Renew Subscription</a></p>
-      <p>The Meticle Team</p>`;
+      <p>The Meticle Care Team</p>`;
   }
   if (oldStatus === 'trial' && newStatus === 'canceled') {
     return `
       <p>Hi ${name},</p>
-      <p>Your Meticle trial for <strong>${orgName}</strong> has ended. The paid-subscription grace period does not apply to trial accounts.</p>
-      <p>To keep using Meticle, please add a payment method and choose a plan on the Billing page.</p>
+      <p>Your Meticle Care trial for <strong>${orgName}</strong> has ended. The paid-subscription grace period does not apply to trial accounts.</p>
+      <p>To keep using Meticle Care, please add a payment method and choose a plan on the Billing page.</p>
       <p><a href="${process.env.FRONTEND_URL || 'https://meticlecare.com'}/billing" style="display:inline-block;padding:12px 24px;background:#0F4C81;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">Add Payment Method</a></p>
-      <p>The Meticle Team</p>`;
+      <p>The Meticle Care Team</p>`;
   }
   return `
     <p>Hi ${name},</p>
-    <p>Your Meticle subscription for <strong>${orgName}</strong> has been updated.</p>
+    <p>Your Meticle Care subscription for <strong>${orgName}</strong> has been updated.</p>
     <p>Status: <strong>${newStatus}</strong></p>
     <p>If you have questions, reply to this email.</p>
-    <p>The Meticle Team</p>`;
+    <p>The Meticle Care Team</p>`;
 }

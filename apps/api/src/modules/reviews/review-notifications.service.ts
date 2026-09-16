@@ -268,7 +268,7 @@ export class ReviewNotificationService {
         </p>
         <p style="color: #6B7280; font-size: 14px;">
           Please review and update this item at your earliest convenience.
-          Log in to <a href="https://meticlecare.com" style="color: #0F4C81;">Meticle</a> to take action.
+          Log in to <a href="https://meticlecare.com" style="color: #0F4C81;">Meticle Care</a> to take action.
         </p>
       </div>`;
     try {

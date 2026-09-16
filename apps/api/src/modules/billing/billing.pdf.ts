@@ -299,10 +299,10 @@ export function buildInvoiceHtml(invoice: any, org: { name?: string; primary_col
   <!-- Header -->
   <div class="header">
     <div class="brand-block">
-      <div class="brand-name">Meticle</div>
+      <div class="brand-name">Meticle Care</div>
       <div class="brand-tagline">Care Platform</div>
       <div class="brand-details">
-        Meticle Ltd<br>
+        Meticle Care Ltd<br>
         United Kingdom<br>
         hello@meticlecare.com
       </div>
@@ -323,7 +323,7 @@ export function buildInvoiceHtml(invoice: any, org: { name?: string; primary_col
   <div class="info-grid">
     <div class="info-block">
       <div class="info-label">Bill To</div>
-      <div class="info-value">${org.name || 'Meticle Customer'}</div>
+      <div class="info-value">${org.name || 'Meticle Care Customer'}</div>
     </div>
     <div class="info-block">
       <div class="info-label">Invoice Date</div>
@@ -360,7 +360,7 @@ export function buildInvoiceHtml(invoice: any, org: { name?: string; primary_col
     <tbody>
       <tr>
         <td>
-          <div class="item-name">${invoice.description || 'Meticle Subscription'}</div>
+          <div class="item-name">${invoice.description || 'Meticle Care Subscription'}</div>
           <div class="item-desc">Care management platform access</div>
         </td>
         <td>
@@ -412,7 +412,7 @@ export function buildInvoiceHtml(invoice: any, org: { name?: string; primary_col
     <div class="terms-title">Terms &amp; Conditions</div>
     <div class="terms-text">
       Payment is due within 30 days of the invoice date. Late payments may incur interest at 3% above the Bank of England base rate.
-      This invoice is issued by Meticle Ltd. For billing enquiries, contact billing@meticlecare.com.
+      This invoice is issued by Meticle Care Ltd. For billing enquiries, contact billing@meticlecare.com.
       All amounts are in ${currency} and are inclusive of VAT where applicable.
     </div>
   </div>
@@ -420,7 +420,7 @@ export function buildInvoiceHtml(invoice: any, org: { name?: string; primary_col
   <!-- Footer -->
   <div class="footer">
     <div class="footer-left">
-      <span class="footer-brand">Meticle</span> — Supported living care platform<br>
+      <span class="footer-brand">Meticle Care</span> — Supported living care platform<br>
       Generated ${generatedAt} &bull; This is a system-generated invoice
     </div>
     <div class="footer-right">

@@ -44,7 +44,7 @@ export class MFAController {
     // (each /mfa/setup call would mint a new secret and invalidate the last QR).
     let secret = existing.rows[0]?.mfa_secret;
     if (!secret) {
-      const generated = speakeasy.generateSecret({ name: `Meticle (${req.user!.email})` });
+      const generated = speakeasy.generateSecret({ name: `Meticle Care (${req.user!.email})` });
       secret = generated.base32;
       await pool.query('UPDATE users SET mfa_secret = $1 WHERE id = $2', [secret, userId]);
     }
@@ -52,7 +52,7 @@ export class MFAController {
     const otpauthUrl = speakeasy.otpauthURL({
       secret,
       encoding: 'base32',
-      label: `Meticle (${req.user!.email})`,
+      label: `Meticle Care (${req.user!.email})`,
     });
 
     const qrCode = await qrcode.toDataURL(otpauthUrl);

@@ -91,7 +91,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <Box sx={{ borderTop: `1px solid ${FOOT_HAIRLINE}`, py: { xs: 2.5, md: 3 }, bgcolor: INK_DEEP }}>
           <Container maxWidth="lg">
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-              <Typography variant="body2" sx={{ color: FOOT_MUTED, fontSize: '0.85rem' }}>© 2026 MeticleCare Technologies. All rights reserved.</Typography>
+              <Typography variant="body2" sx={{ color: FOOT_MUTED, fontSize: '0.85rem' }}>© 2026 Meticle Care Technologies. All rights reserved.</Typography>
               <Stack direction="row" spacing={3}>
                 <Link component={RouterLink} to="/privacy" underline="hover" sx={{ color: FOOT_MUTED, fontSize: '0.75rem', transition: 'color 0.15s ease', '&:hover': { color: '#FFFFFF' } }}>Privacy Policy</Link>
                 <Link component={RouterLink} to="/terms" underline="hover" sx={{ color: FOOT_MUTED, fontSize: '0.75rem', transition: 'color 0.15s ease', '&:hover': { color: '#FFFFFF' } }}>Terms of Use</Link>

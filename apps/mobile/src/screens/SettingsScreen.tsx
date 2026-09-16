@@ -203,7 +203,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
           <Text style={[s.signOutText, { color: c.danger }]}>Sign out</Text>
         </Pressable>
 
-        <Text style={[s.version, { color: c.subtle }]}>MeticleCare v1.0</Text>
+        <Text style={[s.version, { color: c.subtle }]}>Meticle Care v1.0</Text>
 
         <View style={{ height: spacing.xxxl }} />
       </ScrollView>

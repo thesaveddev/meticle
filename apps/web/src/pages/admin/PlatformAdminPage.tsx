@@ -38,7 +38,7 @@ export default function PlatformAdminPage() {
   const [userStatusFilter, setUserStatusFilter] = useState('')
   const [trialFollowups, setTrialFollowups] = useState<any[]>([])
   const [followupMessage, setFollowupMessage] = useState('')
-  const [followupSubject, setFollowupSubject] = useState('Checking in about your Meticle trial')
+  const [followupSubject, setFollowupSubject] = useState('Checking in about your Meticle Care trial')
   const [followupSending, setFollowupSending] = useState<string | null>(null)
   const [followupNotice, setFollowupNotice] = useState('')
 

@@ -9,7 +9,7 @@ export default function MfaSetupPage() {
   const navigate = useNavigate()
   const setupToken = (location.state as any)?.mfaSetupToken
   const email = (location.state as any)?.email
-  usePageMeta({ title: 'Set Up Two-Factor Authentication | MeticleCare', description: 'Configure two-factor authentication for your MeticleCare account.', noindex: true })
+  usePageMeta({ title: 'Set Up Two-Factor Authentication | Meticle Care', description: 'Configure two-factor authentication for your Meticle Care account.', noindex: true })
 
   const [qrCode, setQrCode] = useState('')
   const [secret, setSecret] = useState('')
@@ -106,7 +106,7 @@ export default function MfaSetupPage() {
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
       <Container maxWidth="sm">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle Care</Typography>
           <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>Set Up Multi-Factor Authentication</Typography>
           <Typography sx={{ color: 'text.secondary', mt: 1 }}>
             Your organisation requires MFA. Scan the QR code with your authenticator app{email ? ` (${email})` : ''}.

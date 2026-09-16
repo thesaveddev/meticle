@@ -15,13 +15,13 @@ function emailLayout(title: string, body: string) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6F8"><tr><td align="center" style="padding:32px 16px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
 <tr><td style="padding:0 0 24px 0;text-align:left">
-<span style="font-size:22px;font-weight:700;color:#0F4C81;letter-spacing:-0.3px">Meticle</span>
+<span style="font-size:22px;font-weight:700;color:#0F4C81;letter-spacing:-0.3px">Meticle Care</span>
 </td></tr>
 <tr><td style="background:#ffffff;border:1px solid #E5E7EB;border-radius:10px;padding:32px">
 ${body}
 </td></tr>
 <tr><td style="padding:24px 4px 0;text-align:left;font-size:12px;color:#6B7280;line-height:1.6">
-Meticle · Care operations<br>
+Meticle Care · Care operations<br>
 <a href="${escapeUrl(process.env.FRONTEND_URL || `https://${domain}`)}" style="color:#0F4C81;text-decoration:underline">${domain}</a>
 </td></tr>
 </table>
@@ -44,7 +44,7 @@ export function buildEmailHtml(title: string, heading: string, content: string, 
 <tr><td style="font-size:15px;color:#4B5563;line-height:1.65">${content}</td></tr>
 ${ctaHtml}
 <tr><td style="padding:20px 0 0 0;border-top:1px solid #E5E7EB;margin-top:20px;font-size:12px;color:#6B7280;line-height:1.5">
-This message was sent by Meticle because it relates to your account or subscription.
+This message was sent by Meticle Care because it relates to your account or subscription.
 </td></tr>
 </table>`
   )
@@ -55,7 +55,7 @@ export function buildCodeEmailHtml(code: string) {
     'Your Verification Code',
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><td style="font-size:22px;font-weight:800;color:#111827;padding:0 0 16px 0;letter-spacing:-0.3px">Verify your email address</td></tr>
-<tr><td style="font-size:15px;color:#4B5563;line-height:1.7">Use the code below to verify your email and complete your Meticle registration. This code expires in 10 minutes.</td></tr>
+<tr><td style="font-size:15px;color:#4B5563;line-height:1.7">Use the code below to verify your email and complete your Meticle Care registration. This code expires in 10 minutes.</td></tr>
 <tr><td style="padding:28px 0;text-align:center">
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr>
 <td style="background:#F3F4F6;border-radius:12px;padding:18px 40px;text-align:center">

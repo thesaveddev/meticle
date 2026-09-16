@@ -36,7 +36,7 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  usePageMeta({ title: 'Reset Password | MeticleCare', description: 'Reset your MeticleCare account password.', noindex: true })
+  usePageMeta({ title: 'Reset Password | Meticle Care', description: 'Reset your Meticle Care account password.', noindex: true })
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'white' }}>
@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
               sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }}
               onClick={() => navigate('/')}
             >
-              Meticle
+              Meticle Care
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
               Reset your password

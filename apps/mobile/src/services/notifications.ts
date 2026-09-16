@@ -11,7 +11,7 @@ async function getNotifications() {
     if (mod && typeof mod.setNotificationHandler === 'function') {
       if (Platform.OS === 'android' && typeof mod.setNotificationChannelAsync === 'function') {
         await mod.setNotificationChannelAsync('default', {
-          name: 'MeticleCare notifications',
+          name: 'Meticle Care notifications',
           importance: mod.AndroidImportance?.HIGH,
           sound: 'default',
           vibrationPattern: [0, 250, 120, 250],

@@ -16,13 +16,13 @@ const structuredData = {
   '@graph': [
     {
       '@type': 'Organization',
-      name: 'MeticleCare',
+      name: 'Meticle Care',
       url: 'https://meticlecare.com',
-      description: 'MeticleCare is care management software for UK supported living providers, bringing daily records, medication, staffing and compliance together.',
+      description: 'Meticle Care is care management software for UK supported living providers, bringing daily records, medication, staffing and compliance together.',
     },
     {
       '@type': 'SoftwareApplication',
-      name: 'MeticleCare',
+      name: 'Meticle Care',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web',
       description: 'Care management software for UK supported living providers. Manage care plans, daily notes, medication, rotas, incidents and compliance in one place.',
@@ -36,7 +36,7 @@ const structuredData = {
     },
     {
       '@type': 'WebSite',
-      name: 'MeticleCare',
+      name: 'Meticle Care',
       url: 'https://meticlecare.com',
       potentialAction: { '@type': 'SearchAction', target: 'https://meticlecare.com/blog?search={search_term_string}', 'query-input': 'required name=search_term_string' },
     },
@@ -107,7 +107,7 @@ export default function LandingPage() {
   return (
     <MarketingLayout>
       <PageMeta
-        title="Supported Living Care Management Software | MeticleCare"
+        title="Supported Living Care Management Software | Meticle Care"
         description="Care plans, daily notes, medication, staffing and compliance in one platform for UK supported living providers. 14-day free trial."
         canonicalPath="/"
         structuredData={structuredData}
@@ -169,7 +169,7 @@ Keep care records, medication, staffing and compliance in one working view — b
                   }}
               >
                 <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E0D9CA`, bgcolor: 'background.paper' }}>
-                  <img src={HERO_IMAGE} alt="MeticleCare dashboard showing a person's daily support plan and medication administration chart" width="1280" height="854" fetchPriority="high" style={{ display: 'block', width: '100%', height: 'auto' }} />
+                  <img src={HERO_IMAGE} alt="Meticle Care dashboard showing a person's daily support plan and medication administration chart" width="1280" height="854" fetchPriority="high" style={{ display: 'block', width: '100%', height: 'auto' }} />
                 </Box>
               </Box>
 
@@ -184,7 +184,7 @@ A clear working record for the people you support — and a calmer day for the t
       {/* TRUST STRIP — regulators & standards · Hallmark T2 logo-wall-hairline */}
       <Box
         component="section"
-        aria-label="Standards MeticleCare is built for"
+        aria-label="Standards Meticle Care is built for"
         sx={{ bgcolor: 'background.paper', py: { xs: 5, md: 5.5 }, borderTop: `1px solid ${HAIRLINE}`, borderBottom: `1px solid ${HAIRLINE}` }}
       >
         <Container maxWidth="lg">
@@ -265,7 +265,7 @@ A clear working record for the people you support — and a calmer day for the t
   The work is connected. Your records should be too.
               </Typography>
               <Typography sx={{ color: MIST, lineHeight: 1.75 }}>
-A medication round, a care note, a staffing decision and an incident review belong to the same day of care. MeticleCare keeps them together, so managers can act on the same information their teams record.
+A medication round, a care note, a staffing decision and an incident review belong to the same day of care. Meticle Care keeps them together, so managers can act on the same information their teams record.
               </Typography>
             </Grid>
             <Grid item xs={12} md={7}>
@@ -549,9 +549,9 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
               <Grid item xs={12} md={7}>
               <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E0D9CA`, bgcolor: 'background.paper', boxShadow: '0 32px 64px -28px rgba(20, 32, 45, 0.35)' }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid #F0EBE1`, bgcolor: 'grey.50' }}>
-                  <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.85rem' }}>MeticleCare · Today's care</Typography>
+                  <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.85rem' }}>Meticle Care · Today's care</Typography>
                 </Stack>
-                <img src={SHOWCASE_IMAGE} alt="Mobile view of a care note being recorded in MeticleCare with family and manager receiving the update" width="1280" height="800" loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
+                <img src={SHOWCASE_IMAGE} alt="Mobile view of a care note being recorded in Meticle Care with family and manager receiving the update" width="1280" height="800" loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
               </Box>
             </Grid>
             <Grid item xs={12} md={5}>
@@ -592,7 +592,7 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
   Inspection readiness should come from good care records.
               </Typography>
               <Typography sx={{ opacity: 0.88, lineHeight: 1.75, mb: 4 }}>
-When records are complete and current, compliance work becomes easier to evidence. MeticleCare supports teams working with CQC, CIW, the Care Inspectorate and RQIA.
+When records are complete and current, compliance work becomes easier to evidence. Meticle Care supports teams working with CQC, CIW, the Care Inspectorate and RQIA.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <Button
