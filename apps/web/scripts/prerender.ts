@@ -38,9 +38,9 @@ function escapeHtml(str: string): string {
 
 function generatePageHtml(indexHtml: string, page: (typeof SEO_PAGES)[0]): string {
   const canonical = `${SITE_URL}${page.path === '/' ? '/' : page.path}`
-  const fullTitle = page.title.includes('MeticleCare')
+  const fullTitle = page.title.includes('Meticle Care')
     ? page.title
-    : `${page.title} | MeticleCare`
+    : `${page.title} | Meticle Care`
 
   let html = indexHtml
 
