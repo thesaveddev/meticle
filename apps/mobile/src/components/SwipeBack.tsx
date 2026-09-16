@@ -1,6 +1,5 @@
 import React, { useRef } from 'react'
-import { Animated, PanResponder, StyleSheet, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Animated, PanResponder, StyleSheet } from 'react-native'
 
 type Props = {
   onBack: () => void
@@ -14,7 +13,6 @@ type Props = {
  * Swipe from the left edge (within 25px of the bezel) to trigger onBack.
  */
 export function SwipeBack({ onBack, children, enabled = true, threshold = 100 }: Props) {
-  const insets = useSafeAreaInsets()
   const translateX = useRef(new Animated.Value(0)).current
   const opacity = useRef(new Animated.Value(1)).current
   const responding = useRef(false)

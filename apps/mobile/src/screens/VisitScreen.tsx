@@ -3,15 +3,13 @@ import { Alert, Animated, Image, KeyboardAvoidingView, Modal, Platform, Pressabl
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
-import { useDynamicStyles } from '../utils/patchStaticStyles'
-import { dyn } from '../utils/dynamicStyles'
+import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance, watchDistance, formatDistance } from '../services/location'
 import { getLocationThreshold, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask } from '../services/api'
 import { Ionicons } from '@expo/vector-icons'
-import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconIncident, IconNavigate, IconTwoPerson, IconSwap, IconDelay, IconReport, IconTransfer } from '../components/Icons'
+import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconNavigate, IconTwoPerson, IconTransfer } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
 import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
@@ -107,7 +105,7 @@ function ReadOnlyField({ label, value, c }: { label: string; value: string; c: a
   )
 }
 
-export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident, onSwap, onTransfer, onRideShare, previousVisit, nextVisit, onVisitNext }: {
+export function VisitScreen({ visit, session, onBack, onAction, onDisruption, queue, onClientDetail, onReportIncident, onSwap, onTransfer, onRideShare, nextVisit, onVisitNext }: {
   visit: HomecareVisit
   session?: AuthSession
   onBack: () => void
@@ -119,12 +117,10 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   onSwap?: () => void
   onTransfer?: () => void
   onRideShare?: () => void
-  previousVisit?: HomecareVisit | null
   nextVisit?: HomecareVisit | null
   onVisitNext?: (visit: HomecareVisit) => void
 }) {
   const c = useAppColors()
-  const s = useDynamicStyles(styles)
   const isManager = session?.user?.role === 'ORG_ADMIN' || session?.user?.role === 'MANAGER'
   const [note, setNote] = useState('')
   const [travelMinutes, setTravelMinutes] = useState('')
@@ -211,7 +207,6 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const checkedIn = visit.status === 'checked_in'
   const requiresTwo = !!visit.requires_two_staff
   const [secondCarerCheckedIn, setSecondCarerCheckedIn] = useState(false)
-  const canCheckIn = !requiresTwo || secondCarerCheckedIn
 
   // Real-time distance tracking before check-in
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Animated, Easing, StyleSheet, View } from 'react-native'
-import { colors, elevation, radii, spacing, useAppColors } from '../theme'
+import { elevation, radii, spacing, useAppColors } from '../theme'
 
 interface SkeletonProps {
   width?: number | string

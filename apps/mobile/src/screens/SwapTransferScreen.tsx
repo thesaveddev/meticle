@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
-import { dyn } from '../utils/dynamicStyles'
 import { SkeletonInline } from '../components/Skeleton'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -61,7 +60,6 @@ export function SwapTransferScreen({ session, user, visits, initialRequestType, 
   const s = useDynamicStyles(styles)
   const [requests, setRequests] = useState<SwapRequest[]>([])
   const [team, setTeam] = useState<TeamMember[]>([])
-  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'sent' | 'received'>('all')
 
   // Modal state
@@ -91,7 +89,6 @@ export function SwapTransferScreen({ session, user, visits, initialRequestType, 
       setTeam(Array.isArray(teamRes) ? teamRes : [])
       setMyUpcomingVisits((Array.isArray(myVisitsRes) ? myVisitsRes : []).filter((v: HomecareVisit) => ['scheduled', 'en_route'].includes(v.status)))
     } catch { /* ignore */ }
-    finally { setLoading(false) }
   }
 
   useEffect(() => { load() }, [])
@@ -135,7 +132,9 @@ export function SwapTransferScreen({ session, user, visits, initialRequestType, 
       } catch { setTargetVisits([]) }
       finally { setLoadingTargetVisits(false) }
     }
-    setStep(requestType === 'swap' ? 3 : 2)
+    // Step 3 covers both cases: a swap still has to pick the colleague's call,
+    // while a transfer is done and goes straight to review.
+    setStep(3)
   }
 
   const handleSubmit = async () => {
@@ -161,7 +160,7 @@ export function SwapTransferScreen({ session, user, visits, initialRequestType, 
       await load()
     } catch (e: any) {
       hapticWarning()
-      alert(e.message || 'Could not submit request')
+      Alert.alert('Error', e.message || 'Could not submit request')
     } finally { setSaving(false) }
   }
 
@@ -176,7 +175,7 @@ export function SwapTransferScreen({ session, user, visits, initialRequestType, 
       await load()
       onRefresh()
     } catch (e: any) {
-      alert(e.message || 'Could not respond')
+      Alert.alert('Error', e.message || 'Could not respond')
     }
   }
 
@@ -188,7 +187,6 @@ export function SwapTransferScreen({ session, user, visits, initialRequestType, 
 
   const pendingCount = requests.filter(r => r.status === 'pending').length
   const myVisits = myUpcomingVisits.length > 0 ? myUpcomingVisits : visits.filter(v => ['scheduled', 'en_route'].includes(v.status))
-  const totalSteps = requestType === 'swap' ? 3 : 2
 
   const stepLabels = requestType === 'swap'
     ? ['Your call', 'Team member', 'Their call']
@@ -446,7 +444,7 @@ export function SwapTransferScreen({ session, user, visits, initialRequestType, 
             {/* Navigation buttons */}
             <View style={s.navRow}>
               {step > 1 && (
-                <Pressable onPress={() => { hapticLight(); setStep(s => s - 1) }} style={s.navBack}>
+                <Pressable onPress={() => { hapticLight(); setStep(prev => prev - 1) }} style={s.navBack}>
                   <Text style={[s.navBackText, { color: c.primary }]}>← Back</Text>
                 </Pressable>
               )}

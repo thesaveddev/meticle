@@ -4,6 +4,8 @@ import pool, { query } from '../../shared/database';
 import { AuditRepository } from '../audit/audit.repository';
 import { EmailService } from '../../shared/utils/email.service';
 import { sendPushToUser } from '../notifications/push.service';
+
+const HOMECARE_EMAILS_ENABLED = process.env.HOMECARE_EMAILS_ENABLED === 'true';
 import * as repo from './homecare.repository';
 import { summariseEarnings, getYearToDateTotals, buildPayslipData, renderPayslipPdf } from './payslip.service';
 import { UserRole } from '@meticle/shared';
@@ -537,7 +539,9 @@ export class HomecareController {
         [orgId]
       );
       for (const m of managers.rows) {
-        EmailService.sendMissedCallEmail(m.email, m.name, personName, visit.label || visit.visit_type, visit.scheduled_start, visit.late_reason).catch(() => {});
+        if (HOMECARE_EMAILS_ENABLED) {
+          EmailService.sendMissedCallEmail(m.email, m.name, personName, visit.label || visit.visit_type, visit.scheduled_start, visit.late_reason).catch(() => {});
+        }
         sendPushToUser(m.id, { type: 'missed_call', title: `Missed call — ${personName}`, body: `${visit.label || visit.visit_type} was marked missed`, url: '/homecare' }, 'homecare').catch(() => {});
       }
 

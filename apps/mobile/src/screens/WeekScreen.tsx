@@ -4,16 +4,15 @@ import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import { SkeletonCalendar } from '../components/Skeleton'
-import type { AuthSession, HomecareVisit, MobileUser } from '../types'
+import type { AuthSession, HomecareVisit } from '../types'
 import { getMyVisits } from '../services/api'
-import { IconCheck, IconClock, IconAlert, IconForward, IconNavigate, IconTwoPerson } from '../components/Icons'
+import { IconCheck, IconForward, IconNavigate, IconTwoPerson } from '../components/Icons'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { MapPickerModal } from '../components/MapPickerModal'
 
 interface Props {
   session: AuthSession
-  user: MobileUser
   onVisit: (visit: HomecareVisit) => void
   onSwap: () => void
 }
@@ -37,15 +36,6 @@ function getFirstDayOfMonth(year: number, month: number) {
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
-function StatusDot({ status, overdue, c, s }: { status: string; overdue?: boolean; c: any; s: any }) {
-  if (overdue) return <IconAlert size={12} color={c.danger} />
-  const color = status === 'completed' ? c.success
-    : status === 'checked_in' ? c.primary
-    : status === 'missed' ? c.danger
-    : c.subtle
-  return <View style={[s.statusDot, { backgroundColor: color }]} />
-}
-
 function StatusPill({ status, overdue, c }: { status: string; overdue?: boolean; c: any }) {
   let bg = c.surfaceAlt
   let fg = c.muted
@@ -64,7 +54,7 @@ function StatusPill({ status, overdue, c }: { status: string; overdue?: boolean;
   )
 }
 
-export function WeekScreen({ session, user, onVisit, onSwap }: Props) {
+export function WeekScreen({ session, onVisit, onSwap }: Props) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
   const [visits, setVisits] = useState<HomecareVisit[]>([])

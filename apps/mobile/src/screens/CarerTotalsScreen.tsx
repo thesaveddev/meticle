@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useAppColors, typography, spacing, radii, elevation } from '../theme'
+import { useAppColors, typography, spacing, radii } from '../theme'
 import { getMonthlyCarerTotals, getCarerTimesheetDetail, getPendingTimesheets, approveTimesheet, rejectTimesheet } from '../services/api'
 import { hapticLight, hapticSuccess, hapticWarning } from '../services/haptics'
 
@@ -66,8 +66,8 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
   const [approving, setApproving] = useState<string | null>(null)
 
   const range = useMemo(() => getMonthRange(), [])
-  const [from, setFrom] = useState(range.from)
-  const [to, setTo] = useState(range.to)
+  const [from] = useState(range.from)
+  const [to] = useState(range.to)
 
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
@@ -270,10 +270,6 @@ export function CarerTotalsScreen({ session, onBack }: Props) {
               const durationMin = v.scheduled_end && v.scheduled_start
                 ? Math.round((new Date(v.scheduled_end).getTime() - new Date(v.scheduled_start).getTime()) / 60000)
                 : null
-              const actualMin = v.check_in_at && v.check_out_at
-                ? Math.round((new Date(v.check_out_at).getTime() - new Date(v.check_in_at).getTime()) / 60000)
-                : null
-
               return (
                 <View key={v.id} style={{ backgroundColor: c.surface, borderRadius: radii.lg, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: c.border }}>
                   {/* Visit header */}

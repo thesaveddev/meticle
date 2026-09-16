@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native'
 import { useTheme, spacing, FONT } from '../theme'
 import type { AuthSession } from '../types'
-import { getMyNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead } from '../services/api'
+import { getMyNotifications, markNotificationRead, markAllNotificationsRead } from '../services/api'
 import { hapticLight } from '../services/haptics'
 import { Ionicons } from '@expo/vector-icons'
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Image, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { detectMapApps, openMapApp, type MapApp } from '../services/navigation'
 import { hapticLight } from '../services/haptics'

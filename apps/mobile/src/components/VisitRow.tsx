@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { colors, elevation, radii, spacing, FONT } from '../theme'
+import { colors, radii, spacing, FONT } from '../theme'
 import { IconCheck, IconClock, IconAlert } from './Icons'
 import { hapticLight } from '../services/haptics'
 
@@ -28,7 +28,6 @@ function StatusIcon({ status }: { status: string }) {
 
 export function VisitRow({ label, personName, scheduledStart, scheduledEnd, status, mileage, onPress }: Props) {
   const isCompleted = status === 'completed'
-  const isMissed = status === 'missed'
   const isActive = status === 'checked_in'
 
   return (

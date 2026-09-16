@@ -1,5 +1,5 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
-import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
+import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native'
+import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { hapticLight } from '../services/haptics'
 
 type Tone = 'primary' | 'success' | 'danger' | 'outline'

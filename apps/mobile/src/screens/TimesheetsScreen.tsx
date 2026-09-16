@@ -74,7 +74,6 @@ export function TimesheetsScreen({ session, onBack }: Props) {
   const totalPay = filtered.reduce((s, t) => s + Number(t.gross_pay_pence || 0), 0)
   const totalWork = filtered.reduce((s, t) => s + Number(t.work_minutes || 0), 0)
   const totalTravel = filtered.reduce((s, t) => s + Number(t.paid_travel_minutes || 0), 0)
-  const totalMiles = filtered.reduce((s, t) => s + Number(t.mileage_miles || 0), 0)
 
   /* ── Approve ── */
   const handleApprove = useCallback(async (ts: any) => {
@@ -84,7 +83,7 @@ export function TimesheetsScreen({ session, onBack }: Props) {
       await approveTimesheet(session.accessToken, ts.timesheet_id || ts.id)
       hapticSuccess()
       setTimesheets(prev => prev.map(t => (t.timesheet_id || t.id) === (ts.timesheet_id || ts.id) ? { ...t, timesheet_status: 'approved' } : t))
-    } catch (e: any) {
+    } catch {
       /* silent */ 
     } finally { setProcessing(null) }
   }, [session.accessToken])
@@ -100,7 +99,7 @@ export function TimesheetsScreen({ session, onBack }: Props) {
       setTimesheets(prev => prev.map(t => (t.timesheet_id || t.id) === rejectModal.id ? { ...t, timesheet_status: 'rejected' } : t))
       setRejectModal(null)
       setRejectReason('')
-    } catch (e: any) {
+    } catch {
       /* silent */
     } finally { setProcessing(null) }
   }, [session.accessToken, rejectModal, rejectReason])

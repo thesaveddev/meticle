@@ -28,7 +28,6 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
   const c = useAppColors()
   const s = useDynamicStyles(styles)
   const [records, setRecords] = useState<AvailabilityRecord[]>([])
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [selectedDay, setSelectedDay] = useState(new Date().getDay())
   const [start, setStart] = useState('09:00')
@@ -46,7 +45,7 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
       const data = await getMyAvailability(session.accessToken)
       setRecords(data)
     } catch { /* ignore */ }
-    finally { setLoading(false); setRefreshing(false) }
+    finally { setRefreshing(false) }
   }, [session.accessToken])
 
   useEffect(() => { load() }, [load])

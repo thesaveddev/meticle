@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text } from 'react-native'
 import { useAppColors } from '../theme'
 
 /** Google Maps logo — multicolored pin with map grid */
@@ -51,7 +51,6 @@ export function GoogleMapsLogo({ size = 40 }: { size?: number }) {
 export function AppleMapsLogo({ size = 40 }: { size?: number }) {
   const s = size
   const pinW = s * 0.28
-  const pinH = s * 0.5
   const c = useAppColors()
   const isDark = c.bg === '#0F172A'
 
@@ -158,7 +157,7 @@ export function WazeLogo({ size = 40 }: { size?: number }) {
 }
 
 /** Fallback for unknown map apps */
-export function FallbackMapLogo({ size = 40, color = '#6B7280' }: { size?: number; color?: string }) {
+export function FallbackMapLogo({ size = 40 }: { size?: number }) {
   const s = size
   const c = useAppColors()
   return (

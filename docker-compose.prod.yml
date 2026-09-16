@@ -43,6 +43,8 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
       - STRIPE_PRICE_STARTER=${STRIPE_PRICE_STARTER:-}
       - STRIPE_PRICE_PROFESSIONAL=${STRIPE_PRICE_PROFESSIONAL:-}
+      # Domiciliary-care emails are paused until explicitly enabled.
+      - HOMECARE_EMAILS_ENABLED=${HOMECARE_EMAILS_ENABLED:-false}
     depends_on:
       db:
         condition: service_healthy

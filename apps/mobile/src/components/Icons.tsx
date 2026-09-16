@@ -7,13 +7,6 @@ interface IconProps {
   strokeWidth?: number
 }
 
-// Helper: rounded line segment
-function Line({ x1, y1, x2, y2, stroke, strokeWidth = 2, strokeLinecap = 'round' }: {
-  x1: number; y1: number; x2: number; y2: number; stroke: string; strokeWidth?: number; strokeLinecap?: string
-}) {
-  return <View style={{ position: 'absolute', left: x1, top: y1, width: Math.abs(x2 - x1) || strokeWidth, height: Math.abs(y2 - y1) || strokeWidth, backgroundColor: stroke, borderRadius: strokeWidth / 2 }} />
-}
-
 // ─── Tab Icons ───────────────────────────────────────────────
 
 export function IconToday({ size = 24, color = '#1C1917' }: IconProps) {

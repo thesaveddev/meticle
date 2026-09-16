@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { colors, radii, spacing, typography, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
-import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { hapticLight, hapticWarning } from '../services/haptics'
@@ -128,10 +127,10 @@ export function ReportIncidentScreen({ session, visitId, personId, personName, o
         {/* Category */}
         <Text style={s.fieldLabel}>Category</Text>
         <View style={s.chipGrid}>
-          {INCIDENT_CATEGORIES.map(c => (
-            <Pressable key={c.key} onPress={() => { hapticLight(); setCategory(c.key) }} style={[s.chip, category === c.key && s.chipActive]}>
-              <c.IconComponent size={14} color={c.color} />
-              <Text style={[s.chipText, category === c.key && s.chipTextActive]}>{c.label}</Text>
+          {INCIDENT_CATEGORIES.map(cat => (
+            <Pressable key={cat.key} onPress={() => { hapticLight(); setCategory(cat.key) }} style={[s.chip, category === cat.key && s.chipActive]}>
+              <cat.IconComponent size={14} color={cat.color} />
+              <Text style={[s.chipText, category === cat.key && s.chipTextActive]}>{cat.label}</Text>
             </Pressable>
           ))}
         </View>

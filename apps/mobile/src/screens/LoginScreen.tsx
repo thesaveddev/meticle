@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, typography, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
-import { dyn } from '../utils/dynamicStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
 import {
   isBiometricAvailable,

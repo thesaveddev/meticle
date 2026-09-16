@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, typography, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
-import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, BodyMapEntry, BodyMapStats } from '../types'
 import { getBodyMapEntries, getBodyMapStats, createBodyMapEntry, updateBodyMapEntry } from '../services/api'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -100,12 +99,12 @@ export function BodyMapScreen({ personId, personName, session, onBack }: Props) 
 
   const load = async () => {
     try {
-      const [e, s] = await Promise.all([
+      const [e, bmStats] = await Promise.all([
         getBodyMapEntries(session.accessToken, personId),
         getBodyMapStats(session.accessToken, personId),
       ])
       setEntries(e)
-      setStats(s)
+      setStats(bmStats)
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }
