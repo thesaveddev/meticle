@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from 'react'
-import { RefreshControl, FlatList, StyleSheet, Text, View, Pressable, TextInput, ActivityIndicator } from 'react-native'
+import { RefreshControl, FlatList, StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import { getAllVisits } from '../services/api'
-import { IconClock, IconWarning, IconCheck, IconIncident } from '../components/Icons'
+import { IconWarning } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
 interface Props {
@@ -71,7 +71,7 @@ export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, init
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [filter, setFilter] = useState(initialStatus || 'all')
-  const [daysBack, setDaysBack] = useState(0)
+  const [daysBack] = useState(0)
 
   const load = useCallback(async (refresh = false) => {
     if (refresh) setRefreshing(true)

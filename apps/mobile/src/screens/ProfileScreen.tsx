@@ -4,9 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import { Ionicons } from '@expo/vector-icons'
 
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
-import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { hapticLight } from '../services/haptics'
@@ -34,7 +33,6 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
   const [saving, setSaving] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [message, setMessage] = useState('')
-  const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
   const loadProfile = useCallback(() => {
@@ -53,7 +51,7 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
         if (data.profile_picture_url) setProfilePhoto(data.profile_picture_url)
       })
       .catch(() => {})
-      .finally(() => { setLoading(false); setRefreshing(false) })
+      .finally(() => { setRefreshing(false) })
   }, [session.accessToken])
 
   useEffect(() => { loadProfile() }, [loadProfile])

@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { colors, elevation, radii, spacing, typography, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
-import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession, DietaryProfile, MealRecord } from '../types'
-import { getDietaryProfile, getMealRecords, getDailySummary, createMealRecord } from '../services/api'
+import { getDietaryProfile, getMealRecords, createMealRecord } from '../services/api'
 import { PrimaryButton } from '../components/PrimaryButton'
-import { IconBreakfast, IconSnack, IconPlate, IconCup, IconSupplement, IconMoon } from '../components/Icons'
+import { IconBreakfast, IconSnack, IconPlate, IconCup, IconSupplement } from '../components/Icons'
 
 const MEAL_TYPES = [
   { key: 'breakfast', label: 'Breakfast', IconComponent: IconBreakfast },
@@ -26,8 +25,6 @@ const APPETITE_LEVELS = [
   { key: 'excellent', label: 'Excellent', color: '#059669' },
 ] as const
 
-const FLUID_PRESETS = [0, 50, 100, 150, 200, 250, 300, 500]
-
 interface Props {
   personId: string
   personName: string
@@ -40,8 +37,6 @@ export function NutritionScreen({ personId, personName, session, onBack }: Props
   const s = useDynamicStyles(styles)
   const [profile, setProfile] = useState<DietaryProfile | null>(null)
   const [meals, setMeals] = useState<MealRecord[]>([])
-  const [summary, setSummary] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
   const [mealType, setMealType] = useState('lunch')
   const [appetite, setAppetite] = useState('good')
@@ -57,16 +52,13 @@ export function NutritionScreen({ personId, personName, session, onBack }: Props
 
   const load = async () => {
     try {
-      const [p, m, s] = await Promise.all([
+      const [p, m] = await Promise.all([
         getDietaryProfile(session.accessToken, personId).catch(() => null),
         getMealRecords(session.accessToken, personId, today, today).catch(() => []),
-        getDailySummary(session.accessToken, personId).catch(() => null),
       ])
       setProfile(p)
       setMeals(m)
-      setSummary(s)
     } catch { /* ignore */ }
-    finally { setLoading(false) }
   }
 
   useEffect(() => { load() }, [])
@@ -107,7 +99,7 @@ export function NutritionScreen({ personId, personName, session, onBack }: Props
   }
 
   const fluidTarget = profile?.fluid_daily_target_ml || 2000
-  const fluidSoFar = meals.reduce((s, m) => s + (m.fluid_ml || 0), 0)
+  const fluidSoFar = meals.reduce((acc, m) => acc + (m.fluid_ml || 0), 0)
   const fluidPercent = Math.min(100, Math.round((fluidSoFar / fluidTarget) * 100))
 
   const allergyFlags = profile ? [

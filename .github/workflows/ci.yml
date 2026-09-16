@@ -60,6 +60,9 @@ jobs:
       - name: Type check mobile
         run: npx tsc --noEmit
         working-directory: apps/mobile
+      - name: Lint mobile
+        run: npm run lint
+        working-directory: apps/mobile
       - name: Run mobile tests
         run: npm test -- --ci
         working-directory: apps/mobile

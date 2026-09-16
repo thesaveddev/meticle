@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { colors, elevation, radii, spacing, typography, FONT, useTheme } from '../theme'
+import { colors, elevation, radii, spacing, FONT, useTheme } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { MobileUser } from '../types'
-import { PrimaryButton } from '../components/PrimaryButton'
 import { requestReminderPermission } from '../services/notifications'
 import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
-import { IconProfile, IconSyncSmall, IconBell, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
+import { IconSyncSmall, IconBell, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
 export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailability }: {
@@ -29,13 +28,6 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
       .catch(() => setReminders('disabled'))
     isHapticEnabled().then(setHapticOn)
   }, [])
-
-  async function enableReminders() {
-    hapticLight()
-    const enabled = await requestReminderPermission()
-    setReminders(enabled ? 'enabled' : 'disabled')
-    setMessage(enabled ? 'Visit reminders enabled.' : 'Permission not granted.')
-  }
 
   const initials = (user.first_name?.[0] || user.email[0]).toUpperCase()
   const displayName = user.first_name

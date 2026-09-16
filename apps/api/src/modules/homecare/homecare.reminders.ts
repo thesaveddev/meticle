@@ -3,6 +3,8 @@ import { EmailService } from '../../shared/utils/email.service';
 import logger from '../../shared/utils/logger';
 import { isWebPushConfigured, sendPushToUser } from '../notifications/push.service';
 
+const HOMECARE_EMAILS_ENABLED = process.env.HOMECARE_EMAILS_ENABLED === 'true';
+
 /**
  * Creates one reminder ledger row per assigned visit when the travel buffer
  * window opens, then queues email and push independently. The unique visit/type
@@ -46,9 +48,11 @@ export async function runHomecareVisitReminders(now = new Date()): Promise<{ sen
 
     if (['pending', 'failed'].includes(row.status) && Number(row.attempt_count || 0) < 3) {
       try {
-        await EmailService.sendHomecareVisitReminderEmail(visit.carer_email, 'carer', visit.person_name, visit.label, visit.scheduled_start);
+        if (HOMECARE_EMAILS_ENABLED) {
+          await EmailService.sendHomecareVisitReminderEmail(visit.carer_email, 'carer', visit.person_name, visit.label, visit.scheduled_start);
+          sent++;
+        }
         await migrateQuery(`UPDATE homecare_visit_reminders SET status = 'sent', attempt_count = attempt_count + 1, sent_at = NOW(), updated_at = NOW() WHERE id = $1`, [row.id]);
-        sent++;
       } catch (error: any) {
         await migrateQuery(`UPDATE homecare_visit_reminders SET status = 'failed', attempt_count = attempt_count + 1, last_error = $2, updated_at = NOW() WHERE id = $1`, [row.id, String(error?.message || 'Email failed').slice(0, 1000)]);
         failed++;
@@ -130,7 +134,9 @@ export async function runHomecareOverdueAlerts(now = new Date()): Promise<{ sent
         [visit.organization_id]
       );
       for (const m of managers.rows) {
-        await EmailService.sendOverdueCallEmail(m.email, m.name, visit.person_name, visit.label || visit.visit_type, visit.scheduled_start, overdueMinutes);
+        if (HOMECARE_EMAILS_ENABLED) {
+          await EmailService.sendOverdueCallEmail(m.email, m.name, visit.person_name, visit.label || visit.visit_type, visit.scheduled_start, overdueMinutes);
+        }
         await sendPushToUser(m.id, { type: 'overdue_call', title: `Overdue call — ${visit.person_name}`, body: `${visit.label || visit.visit_type} is ${overdueMinutes} min overdue`, url: '/homecare' }, 'homecare');
       }
       await migrateQuery(`UPDATE homecare_visit_reminders SET status = 'sent', attempt_count = attempt_count + 1, sent_at = NOW(), updated_at = NOW() WHERE visit_id = $1 AND reminder_type = 'overdue_alert'`, [visit.id]);

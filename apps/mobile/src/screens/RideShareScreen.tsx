@@ -56,7 +56,7 @@ export function RideShareScreen({ session, currentVisit, onBack }: Props) {
   const [todayVisits, setTodayVisits] = useState<HomecareVisit[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [selectedVisit, setSelectedVisit] = useState<HomecareVisit | null>(currentVisit || null)
+  const [selectedVisit] = useState<HomecareVisit | null>(currentVisit || null)
   const [showPicker, setShowPicker] = useState(false)
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)

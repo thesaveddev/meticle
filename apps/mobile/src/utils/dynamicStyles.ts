@@ -1,5 +1,3 @@
-import { StyleSheet } from 'react-native'
-import { radii, spacing, FONT, elevation } from '../theme'
 
 type Colors = Record<string, string>
 

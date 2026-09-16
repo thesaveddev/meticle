@@ -168,7 +168,7 @@ function AppInner() {
   useEffect(() => {
     if (!session?.accessToken) return
     let disposed = false
-    addNotificationListeners((type, data) => {
+    addNotificationListeners((type, _data) => {
       if (type !== 'chat' || disposed) return
       hapticMedium()
       setChatUnreadCount(count => count + 1)
@@ -285,9 +285,8 @@ function AppInner() {
     // Find next visit after this one
     const sortedVisits = [...visits].sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())
     const currentIdx = sortedVisits.findIndex(v => v.id === currentScreen.visit.id)
-    const prevV = currentIdx > 0 ? sortedVisits[currentIdx - 1] : null
     const nextV = currentIdx >= 0 && currentIdx < sortedVisits.length - 1 ? sortedVisits[currentIdx + 1] : null
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} onTransfer={() => pushScreen({ kind: 'swap', mode: 'transfer', visitId: currentScreen.visit.id })} onRideShare={() => pushScreen({ kind: 'rideShare', visit: currentScreen.visit })} previousVisit={prevV} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></SwipeBack></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} onTransfer={() => pushScreen({ kind: 'swap', mode: 'transfer', visitId: currentScreen.visit.id })} onRideShare={() => pushScreen({ kind: 'rideShare', visit: currentScreen.visit })} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></SwipeBack></>
   }
   if (currentScreen.kind === 'availability' && session) {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AvailabilityScreen session={session} onBack={goBack} /></SwipeBack></>
@@ -353,7 +352,7 @@ function AppInner() {
         <View style={[s.body, { backgroundColor: c.bg }]}>
           {/* Carer tabs */}
           {!isManager && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} session={session} />}
-          {!isManager && tab === 'schedule' && <WeekScreen session={session} user={user} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} />}
+          {!isManager && tab === 'schedule' && <WeekScreen session={session} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} />}
           {!isManager && tab === 'mileage' && <MileageScreen session={session} />}
 
           {/* Manager tabs */}

@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect } from 'react'
-import { Animated, Dimensions, PanResponder, Pressable, StyleSheet, Text, View, ActionSheetIOS, Platform, Alert, useWindowDimensions } from 'react-native'
+import { Animated, PanResponder, Pressable, StyleSheet, Text, ActionSheetIOS, Platform, Alert, useWindowDimensions } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Linking } from 'react-native'
-import { elevation, radii, spacing, FONT } from '../theme'
+import { elevation, FONT } from '../theme'
 import { hapticWarning } from '../services/haptics'
 import type { SessionOrganisation } from '../types'
 

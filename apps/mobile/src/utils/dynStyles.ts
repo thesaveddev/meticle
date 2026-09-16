@@ -17,6 +17,5 @@ type StyleFn<T> = (colors: AppColors) => T
  */
 export function useDynStyles<T extends Record<string, any>>(styleFn: StyleFn<T>): T {
   const c = useAppColors()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => StyleSheet.create(styleFn(c) as any), [c])
 }

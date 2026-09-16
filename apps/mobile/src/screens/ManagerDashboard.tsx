@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
@@ -14,24 +14,11 @@ interface Props {
   onNavigate?: (screen: string, params?: any) => void
 }
 
-function time(value: string) {
-  return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-}
-
 function todayRange() {
   const now = new Date()
   const from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).toISOString()
   const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
   return { from, to }
-}
-
-const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> = {
-  scheduled: { bg: '#FEF3C7', text: '#92400E', label: 'Scheduled' },
-  en_route: { bg: '#DBEAFE', text: '#1E40AF', label: 'En route' },
-  checked_in: { bg: '#D1FAE5', text: '#065F46', label: 'Checked in' },
-  completed: { bg: '#DCFCE7', text: '#166534', label: 'Done' },
-  missed: { bg: '#FEE2E2', text: '#991B1B', label: 'Missed' },
-  cancelled: { bg: '#F3F4F6', text: '#6B7280', label: 'Cancelled' },
 }
 
 export function ManagerDashboard({ session, onNavigate }: Props) {
@@ -60,7 +47,6 @@ export function ManagerDashboard({ session, onNavigate }: Props) {
 
   const visits = data?.visits || []
   const exceptions = data?.exceptions || []
-  const staff = data?.staff || []
   const disruptions = data?.disruptions || []
 
   const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })

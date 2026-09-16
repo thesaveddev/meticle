@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { colors, elevation, radii, spacing, FONT } from '../theme'
+import { colors, radii, spacing, FONT } from '../theme'
 import { IconSyncSmall, IconOffline } from './Icons'
 
 export function SyncRail({ queue, onSync }: { queue: { state: string; action: string; visitId: string }[]; onSync: () => void }) {

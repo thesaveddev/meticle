@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useAppColors, type AppColors, colors as staticColors } from '../theme'
+import { useAppColors, colors as staticColors } from '../theme'
 
 /**
  * Patches all static color references in a StyleSheet at render time.
@@ -24,19 +24,17 @@ export function useDynamicStyles(staticStyles: Record<string, any>): Record<stri
       }
     }
     // Also map partial color + opacity patterns like "#1A233240"
-    for (const [staticVal, dynamicVal] of Object.entries(colorMap)) {
-      // Map staticVal + 'XX' opacity suffixes
-      for (const key of Object.keys(staticColors) as (keyof typeof staticColors)[]) {
-        const sv = staticColors[key] as string
-        const dv = (c as any)[key] as string
-        if (sv && dv && sv.startsWith('#') && sv.length === 7) {
-          // Map hex + alpha like "#1A2332" + "20" → dynamic equivalent
-          colorMap[(sv + '20').toLowerCase()] = (dv + '20')
-          colorMap[(sv + '30').toLowerCase()] = (dv + '30')
-          colorMap[(sv + '40').toLowerCase()] = (dv + '40')
-          colorMap[(sv + '15').toLowerCase()] = (dv + '15')
-          colorMap[(sv + '25').toLowerCase()] = (dv + '25')
-        }
+    // Map static color + 'XX' opacity suffixes
+    for (const key of Object.keys(staticColors) as (keyof typeof staticColors)[]) {
+      const sv = staticColors[key] as string
+      const dv = (c as any)[key] as string
+      if (sv && dv && sv.startsWith('#') && sv.length === 7) {
+        // Map hex + alpha like "#1A2332" + "20" → dynamic equivalent
+        colorMap[(sv + '20').toLowerCase()] = (dv + '20')
+        colorMap[(sv + '30').toLowerCase()] = (dv + '30')
+        colorMap[(sv + '40').toLowerCase()] = (dv + '40')
+        colorMap[(sv + '15').toLowerCase()] = (dv + '15')
+        colorMap[(sv + '25').toLowerCase()] = (dv + '25')
       }
     }
 

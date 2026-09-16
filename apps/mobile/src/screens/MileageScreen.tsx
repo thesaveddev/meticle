@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native'
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
+import { elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { SkeletonScreen } from '../components/Skeleton'
 import { dyn } from '../utils/dynamicStyles'

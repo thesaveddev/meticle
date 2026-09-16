@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
+import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../types'
 import { listRideShareRequests, respondRideShareRequest } from '../services/api'
-import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconNavigate, IconTwoPerson } from '../components/Icons'
+import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconTwoPerson } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
 
@@ -33,7 +33,6 @@ function classifyVisits(visits: HomecareVisit[]): TimelineVisit[] {
   const now = new Date()
   const sorted = [...visits].sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())
 
-  let foundCurrent = false
   let foundNext = false
 
   return sorted.map(v => {
@@ -44,11 +43,9 @@ function classifyVisits(visits: HomecareVisit[]): TimelineVisit[] {
       return { visit: v, kind: 'past' as const }
     }
     if (v.status === 'checked_in') {
-      foundCurrent = true
       return { visit: v, kind: 'current' as const }
     }
     if (now >= start && now <= end) {
-      foundCurrent = true
       return { visit: v, kind: 'current' as const }
     }
     if (!foundNext && now < start) {

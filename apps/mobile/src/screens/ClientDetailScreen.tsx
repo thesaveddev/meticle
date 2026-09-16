@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, elevation, radii, spacing, typography, FONT, useAppColors } from '../theme'
-import { useDynamicStyles } from '../utils/patchStaticStyles'
-import { dyn } from '../utils/dynamicStyles'
+import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { SkeletonScreen } from '../components/Skeleton'
 import { MapPickerModal } from '../components/MapPickerModal'
 import type { AuthSession } from '../types'
-import { getPersonDetail, getMedicationsForPerson, getBodyMapStats, getDailySummary, getDailyNotes, getPersonAssessments, getPersonDocuments } from '../services/api'
+import { getPersonDetail, getMedicationsForPerson, getBodyMapStats, getDailySummary, getDailyNotes } from '../services/api'
 
 type TabKey = 'overview' | 'care' | 'notes' | 'risks' | 'meds' | 'personal' | 'contacts'
 
@@ -31,14 +29,11 @@ interface Props {
 
 export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNutrition }: Props) {
   const c = useAppColors()
-  const s = useDynamicStyles(styles)
   const [person, setPerson] = useState<any>(null)
   const [medications, setMedications] = useState<any[]>([])
   const [bodyMapStats, setBodyMapStats] = useState<any>(null)
   const [nutritionSummary, setNutritionSummary] = useState<any>(null)
   const [dailyNotes, setDailyNotes] = useState<any[]>([])
-  const [assessments, setAssessments] = useState<any[]>([])
-  const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [tab, setTab] = useState<TabKey>('overview')
@@ -48,22 +43,18 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
 
   const loadData = useCallback(async () => {
     try {
-      const [personData, medData, bmStats, nutSummary, notesData, assessData, docsData] = await Promise.all([
+      const [personData, medData, bmStats, nutSummary, notesData] = await Promise.all([
         getPersonDetail(session.accessToken, personId),
         getMedicationsForPerson(session.accessToken, personId).catch(() => []),
         getBodyMapStats(session.accessToken, personId).catch(() => null),
         getDailySummary(session.accessToken, personId).catch(() => null),
         getDailyNotes(session.accessToken, personId).catch(() => []),
-        getPersonAssessments(session.accessToken, personId).catch(() => []),
-        getPersonDocuments(session.accessToken, personId).catch(() => []),
       ])
       setPerson(personData)
       setMedications(medData)
       setBodyMapStats(bmStats)
       setNutritionSummary(nutSummary)
       setDailyNotes(notesData)
-      setAssessments(assessData)
-      setDocuments(docsData)
     } catch (e: any) {
       setError(e.message || 'Could not load details')
     } finally {
@@ -219,7 +210,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
         {tab === 'risks' && <RisksTab risks={riskAssessments} c={c} />}
         {tab === 'meds' && <MedsTab medications={medications} c={c} />}
         {tab === 'personal' && <PersonalTab person={person} c={c} />}
-        {tab === 'contacts' && <ContactsTab emergencyContacts={emergencyContacts} otherContacts={otherContacts} person={person} c={c} />}
+        {tab === 'contacts' && <ContactsTab emergencyContacts={emergencyContacts} otherContacts={otherContacts} c={c} />}
       </ScrollView>
 
       <MapPickerModal
@@ -541,7 +532,7 @@ function PersonalTab({ person, c }: any) {
 
 /* ─── Tab: Contacts ──────────────────────────────────────── */
 
-function ContactsTab({ emergencyContacts, otherContacts, person, c }: any) {
+function ContactsTab({ emergencyContacts, otherContacts, c }: any) {
   return (
     <View>
       {emergencyContacts.length > 0 && (
