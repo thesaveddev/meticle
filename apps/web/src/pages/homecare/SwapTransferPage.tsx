@@ -68,8 +68,8 @@ export default function SwapTransferPage() {
   }
 
   const filtered = requests.filter(r => {
-    if (filter === 'sent') return r.requested_by_name !== 'You'
-    if (filter === 'received') return r.target_name !== 'You'
+    if (filter === 'sent') return r.is_requested_by_me === true
+    if (filter === 'received') return r.is_target_for_me === true
     return true
   })
 
@@ -128,7 +128,7 @@ export default function SwapTransferPage() {
               </Typography>
               {req.message && <Typography variant="body2" fontStyle="italic" mt={0.5}>{req.message}</Typography>}
 
-              {req.status === 'pending' && req.target_name === 'You' && (
+              {req.status === 'pending' && req.is_target_for_me === true && (
                 <Box display="flex" gap={1} mt={1.5}>
                   <Button variant="contained" size="small" color="success" onClick={() => handleRespond(req.id, 'accepted')}>Accept</Button>
                   <Button variant="outlined" size="small" color="error" onClick={() => handleRespond(req.id, 'rejected')}>Decline</Button>

@@ -35,8 +35,9 @@ export default function WeeklyCallPlanner() {
   const today = new Date()
   today.setDate(today.getDate() + weekOffset * 7)
   const monday = new Date(today)
-  monday.setDate(monday.getDate() - monday.getDay() + 1)
-  if (monday.getDay() === 0) monday.setDate(monday.getDate() - 6)
+  const dayOfWeek = monday.getDay()
+  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  monday.setDate(monday.getDate() - daysSinceMonday)
   const sunday = new Date(monday)
   sunday.setDate(sunday.getDate() + 6)
 
@@ -87,7 +88,7 @@ export default function WeeklyCallPlanner() {
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Weekly Call Planner</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            {dayName(weekFrom)} {dayNum(weekFrom)} - {dayName(weekTo)} {dayNum(weekTo)} · {totalCalls} calls · {assignedCalls} assigned · {unassignedCalls} unassigned
+            {dayName(weekFrom)} {dayNum(weekFrom)} - {dayName(weekDays[6])} {dayNum(weekDays[6])} · {totalCalls} calls · {assignedCalls} assigned · {unassignedCalls} unassigned
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>

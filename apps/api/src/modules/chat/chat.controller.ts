@@ -201,8 +201,26 @@ export class ChatController {
     );
     const channelName = channelInfo.rows[0]?.name as string | undefined;
     const channelFilter = channelName === 'general' ? `m.channel = $2 OR m.channel = 'general'` : 'm.channel = $2';
+
+    // A message is delivered when the recipient has successfully received the
+    // message list (or the realtime event and calls the same endpoint). Keep
+    // this separate from read receipts so one tick and two ticks remain distinct.
+    await query(
+      `INSERT INTO org_chat_message_deliveries (message_id, organization_id, user_id)
+       SELECT m.id, $1, $2
+       FROM org_chat_messages m
+       WHERE m.organization_id = $1
+         AND (${channelName === 'general' ? "m.channel = $3 OR m.channel = 'general'" : 'm.channel = $3'})
+         AND m.sender_id != $2
+         AND m.deleted = FALSE
+       ON CONFLICT (message_id, user_id) DO NOTHING`,
+      [oid, uid, channel]
+    );
+
     let sql = `
       SELECT m.*,
+             (SELECT MIN(d.delivered_at) FROM org_chat_message_deliveries d
+              WHERE d.message_id = m.id AND d.user_id <> m.sender_id) AS delivered_at,
              COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS sender_name,
              u.email AS sender_email
       FROM org_chat_messages m
@@ -222,6 +240,39 @@ export class ChatController {
     sql += ` ORDER BY m.created_at DESC LIMIT ${limit}`;
     const result = await query(sql, params);
     res.json(result.rows.reverse());
+  }
+
+  static async markDelivered(req: Request, res: Response) {
+    const oid = orgId(req);
+    const uid = userId(req);
+    const { channelId } = req.params;
+    await requireChannelMember(oid, channelId, uid);
+    const channelInfo = await query('SELECT name FROM chat_channels WHERE id = $1 AND organization_id = $2', [channelId, oid]);
+    const channelName = channelInfo.rows[0]?.name;
+
+    const messageIds = Array.isArray(req.body?.messageIds) ? req.body.messageIds.filter((id: unknown) => typeof id === 'string').slice(0, 100) : [];
+    if (messageIds.length > 0) {
+      await query(
+        `INSERT INTO org_chat_message_deliveries (message_id, organization_id, user_id)
+         SELECT m.id, $1, $2
+         FROM org_chat_messages m
+         WHERE m.organization_id = $1
+           AND (${channelName === 'general' ? "m.channel = $3 OR m.channel = 'general'" : 'm.channel = $3'})
+           AND m.id = ANY($4::uuid[])
+           AND m.sender_id != $2
+           AND m.deleted = FALSE
+         ON CONFLICT (message_id, user_id) DO NOTHING`,
+        [oid, uid, channelId, messageIds]
+      );
+
+      safeIo().to(`channel:${channelId}`).emit('chat:delivered', {
+        channelId,
+        userId: uid,
+        messageIds,
+        deliveredAt: new Date().toISOString(),
+      });
+    }
+    res.json({ ok: true, messageIds });
   }
 
   static async getReadReceipts(req: Request, res: Response) {

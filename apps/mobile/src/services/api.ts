@@ -1,5 +1,5 @@
 import Constants from 'expo-constants'
-import { File } from 'expo-file-system'
+import { File, Paths } from 'expo-file-system'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { clearSession, readSession, writeSession } from './storage'
 
@@ -169,6 +169,30 @@ export async function getPersonTimeline(token: string, personId: string): Promis
 
 export async function getPersonDocuments(token: string, personId: string): Promise<any[]> {
   return request<any[]>(`/people/${encodeURIComponent(personId)}/documents`, {}, token)
+}
+
+export async function getPersonClinicalScores(token: string, personId: string): Promise<any[]> {
+  return request<any[]>(`/people/${encodeURIComponent(personId)}/clinical-scores`, {}, token)
+}
+
+export async function getPersonWellbeing(token: string, personId: string): Promise<any[]> {
+  return request<any[]>(`/people/${encodeURIComponent(personId)}/wellbeing`, {}, token)
+}
+
+export async function getPersonCapacityAssessments(token: string, personId: string): Promise<any[]> {
+  return request<any[]>(`/people/${encodeURIComponent(personId)}/capacity`, {}, token)
+}
+
+export async function getPersonCarePathways(token: string, personId: string): Promise<any[]> {
+  return request<any[]>(`/people/${encodeURIComponent(personId)}/care-pathways`, {}, token)
+}
+
+export async function getPersonCommunicationLog(token: string, personId: string): Promise<any[]> {
+  return request<any[]>(`/people/${encodeURIComponent(personId)}/communication-log`, {}, token)
+}
+
+export async function getPersonTimeAway(token: string, personId: string): Promise<any[]> {
+  return request<any[]>(`/people/${encodeURIComponent(personId)}/time-away`, {}, token)
 }
 
 /* ─── Body Map ───────────────────────────────────────────── */
@@ -386,6 +410,32 @@ export async function markChatRead(token: string, channel: string): Promise<any>
   return request(`/chat/channels/${encodeURIComponent(channel)}/read`, {
     method: 'POST',
   }, token)
+}
+
+export async function markChatDelivered(token: string, channel: string, messageIds: string[]): Promise<any> {
+  return request(`/chat/channels/${encodeURIComponent(channel)}/delivered`, {
+    method: 'POST',
+    body: JSON.stringify({ messageIds }),
+  }, token)
+}
+
+export function getApiOrigin(): string {
+  return API_BASE_URL.replace(/\/api$/, '')
+}
+
+export function getApiFileUrl(fileUrl: string): string {
+  if (/^https?:\/\//i.test(fileUrl)) return fileUrl
+  const origin = API_BASE_URL.replace(/\/api$/, '')
+  return `${origin}${fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`}`
+}
+
+export async function downloadChatFile(token: string, fileUrl: string, fileName: string): Promise<File> {
+  const safeName = (fileName || 'chat-file').replace(/[^a-zA-Z0-9._-]/g, '_')
+  const destination = new File(Paths.cache, `${Date.now()}-${safeName}`)
+  return File.downloadFileAsync(getApiFileUrl(fileUrl), destination, {
+    headers: authHeader(token),
+    idempotent: true,
+  })
 }
 
 export async function getChatUnread(token: string): Promise<Record<string, number>> {

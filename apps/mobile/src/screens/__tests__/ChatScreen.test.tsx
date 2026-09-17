@@ -13,10 +13,27 @@ jest.mock('../../services/api', () => ({
   sendChatMessage: jest.fn(),
   deleteChatMessage: jest.fn(async () => ({})),
   markChatRead: jest.fn(async () => ({})),
+  markChatDelivered: jest.fn(async () => ({})),
+  getApiFileUrl: jest.fn((url: string) => url),
+  downloadChatFile: jest.fn(async () => ({ uri: 'file:///cache/image.jpg' })),
   getOrgMembers: jest.fn(async () => []),
   getChatChannelMembers: jest.fn(async () => []),
   createDMChannel: jest.fn(),
   uploadChatFile: jest.fn(),
+}))
+
+jest.mock('../../services/chatSocket', () => ({
+  connectChatSocket: jest.fn(() => ({
+    connected: false,
+    emit: jest.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+    disconnect: jest.fn(),
+  })),
+}))
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn(async () => true),
+  shareAsync: jest.fn(async () => undefined),
 }))
 
 jest.mock('expo-image-picker', () => ({
@@ -131,6 +148,18 @@ describe('ChatScreen group member directory', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Search members...'), 'Sam')
     expect(screen.getByText('Sam Lee')).toBeTruthy()
     expect(screen.queryByText('Alex Morgan')).toBeNull()
+  })
+})
+
+describe('ChatScreen attachments and delivery', () => {
+  it('previews a received image and offers save/share download', async () => {
+    mockGetChatMessages.mockResolvedValue([message({ file_url: '/files/private/photo.jpg', file_name: 'photo.jpg', message: 'Shared photo.jpg' })] as any)
+
+    const screen = await openChannel()
+    fireEvent.press(screen.getByLabelText('Preview photo.jpg'))
+
+    await waitFor(() => expect(screen.getByText('Save or share image')).toBeTruthy())
+    expect(screen.getByLabelText('Download image')).toBeTruthy()
   })
 })
 

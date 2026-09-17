@@ -8,6 +8,7 @@ import type { AuthSession } from '../types'
 import { getManagerDashboard } from '../services/api'
 import { IconCheck, IconClock, IconWarning, IconIncident } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
+import { localDateTimeStart, localDateTimeEnd } from '../utils/dateRange'
 
 interface Props {
   session: AuthSession
@@ -16,8 +17,8 @@ interface Props {
 
 function todayRange() {
   const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).toISOString()
-  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
+  const from = localDateTimeStart(now)
+  const to = localDateTimeEnd(now)
   return { from, to }
 }
 

@@ -9,11 +9,12 @@ import type { AuthSession } from '../types'
 import { getAllVisits, getOpenHomecareExceptions } from '../services/api'
 import { IconWarning } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
+import { localDateTimeStart, localDateTimeEnd } from '../utils/dateRange'
 
 interface Props {
   session: AuthSession
   onBack?: () => void
-  onSelect?: (visitId: string) => void
+  onSelect?: (visit: any) => void
   initialStatus?: string
   initialStaffName?: string
   initialStaffId?: string
@@ -21,8 +22,10 @@ interface Props {
 
 function dateRange(daysBack = 0, daysForward = 7) {
   const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack, 0, 0, 0).toISOString()
-  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysForward, 23, 59, 59).toISOString()
+  const fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack)
+  const toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysForward)
+  const from = localDateTimeStart(fromDate)
+  const to = localDateTimeEnd(toDate)
   return { from, to }
 }
 
@@ -157,9 +160,7 @@ export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, init
             initialStaffName ? (
               <View style={[s.staffBanner, { backgroundColor: c.primarySurface }]}>
                 <Text style={[s.staffBannerText, { color: c.primary }]}>Showing visits for {initialStaffName}</Text>
-                <Pressable onPress={() => { /* clear filter */ setFilter('all') }}>
-                  <Ionicons name="close-circle" size={18} color={c.primary} />
-                </Pressable>
+                <Ionicons name="filter" size={18} color={c.primary} />
               </View>
             ) : null
           }
@@ -172,7 +173,7 @@ export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, init
                 return (
                   <Pressable
                     key={v.id}
-                    onPress={() => { hapticLight(); onSelect?.(v.id) }}
+                    onPress={() => { hapticLight(); onSelect?.(v) }}
                     style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', padding: spacing.base, gap: spacing.md, borderBottomWidth: 1, borderBottomColor: c.borderLight, borderLeftWidth: hasOverdue ? 3 : 0, borderLeftColor: hasOverdue ? (c.danger || '#DC2626') : 'transparent' }, pressed && { backgroundColor: c.surfaceAlt }]}
                   >
                     {/* Time */}

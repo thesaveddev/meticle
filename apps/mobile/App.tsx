@@ -312,9 +312,8 @@ function AppInner() {
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'allVisits' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AllVisitsScreen session={session} onBack={goBack} initialStatus={currentScreen.status} initialStaffName={currentScreen.staffName} initialStaffId={currentScreen.staffId} onSelect={(visitId) => {
-      const v = visits.find((vv: any) => vv.id === visitId)
-      if (v) { popScreen(); pushScreen({ kind: 'visit', visit: v }) }
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AllVisitsScreen session={session} onBack={goBack} initialStatus={currentScreen.status} initialStaffName={currentScreen.staffName} initialStaffId={currentScreen.staffId} onSelect={(visit) => {
+      if (visit) { popScreen(); pushScreen({ kind: 'visit', visit }) }
     }} /></SwipeBack></>
   }
   if (currentScreen.kind === 'staffDirectory' && session) {
@@ -369,9 +368,8 @@ function AppInner() {
             else if (screen === 'carerTotals') { pushScreen({ kind: 'carerTotals' }) }
           }} />}
           {isManager && tab === 'clients' && <ClientListScreen session={session!} onSelect={(personId) => pushScreen({ kind: 'clientDetail', personId })} />}
-          {isManager && tab === 'visits' && <AllVisitsScreen session={session!} onSelect={(visitId) => {
-            const v = visits.find((vv: any) => vv.id === visitId)
-            if (v) pushScreen({ kind: 'visit', visit: v })
+          {isManager && tab === 'visits' && <AllVisitsScreen session={session!} onSelect={(visit) => {
+            if (visit) pushScreen({ kind: 'visit', visit })
           }} />}
 
           {/* Shared tabs */}

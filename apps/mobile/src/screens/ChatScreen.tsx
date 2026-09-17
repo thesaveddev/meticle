@@ -7,13 +7,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
+import * as Sharing from 'expo-sharing'
+import { connectChatSocket } from '../services/chatSocket'
 import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import {
   ensureGeneralChannel, getChatChannels, getChatMessages, sendChatMessage,
-  deleteChatMessage, markChatRead, getChatReadReceipts, getOrgMembers, getChatChannelMembers,
-  createDMChannel, uploadChatFile,
+  deleteChatMessage, markChatRead, markChatDelivered, getChatReadReceipts, getOrgMembers, getChatChannelMembers,
+  createDMChannel, uploadChatFile, getApiFileUrl, downloadChatFile,
 } from '../services/api'
 import { hapticLight } from '../services/haptics'
 
@@ -61,6 +63,7 @@ interface ChatMessage {
   edited: boolean
   deleted: boolean
   created_at: string
+  delivered_at?: string | null
 }
 
 interface Props {
@@ -112,6 +115,7 @@ export function ChatScreen({ session, onBack }: Props) {
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [otherLastRead, setOtherLastRead] = useState<string | null>(null)
   const [memberReads, setMemberReads] = useState<any[]>([])
+  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null)
 
   const [showNewChat, setShowNewChat] = useState(false)
   const [orgMembers, setOrgMembers] = useState<any[]>([])
@@ -156,7 +160,11 @@ export function ChatScreen({ session, onBack }: Props) {
     try {
       const result = await getChatMessages(token, activeChannel.id, 80)
       const msgs = Array.isArray(result) ? result : result?.messages
-      if (Array.isArray(msgs)) setMessages(msgs)
+      if (Array.isArray(msgs)) {
+        setMessages(msgs)
+        const incomingIds = msgs.filter((m: ChatMessage) => m.sender_id !== currentUserId).map((m: ChatMessage) => m.id)
+        if (incomingIds.length > 0) await markChatDelivered(token, activeChannel.id, incomingIds).catch(() => {})
+      }
       if (!Array.isArray(result)) {
         setOtherLastRead(result?.other_last_read_at || null)
         setMemberReads(result?.member_reads || [])
@@ -167,18 +175,49 @@ export function ChatScreen({ session, onBack }: Props) {
       }
       await markChatRead(token, activeChannel.id).catch(() => {})
       setChannels(prev => prev.map(channel => channel.id === activeChannel.id ? { ...channel, unread_count: 0 } : channel))
+      void loadChannels()
     } catch { /* ignore */ } finally { setLoadingMessages(false) }
-  }, [token, activeChannel])
+  }, [token, activeChannel, currentUserId, loadChannels])
 
   useEffect(() => {
     if (activeChannel) { setLoadingMessages(true); loadMessages() }
   }, [activeChannel, loadMessages])
 
   useEffect(() => {
-    if (view !== 'chat' || !activeChannel) return
-    const interval = setInterval(loadMessages, 8000)
-    return () => clearInterval(interval)
-  }, [view, activeChannel, loadMessages])
+    if (view !== 'chat' || !activeChannel || !token) return
+    const socket = connectChatSocket(token)
+    const join = () => socket.emit('chat:join', activeChannel.id)
+    const onMessage = (incoming: ChatMessage & { channel_id?: string }) => {
+      if (incoming.channel_id !== activeChannel.id && incoming.channel !== activeChannel.id) return
+      setMessages(prev => prev.some(message => message.id === incoming.id) ? prev : [...prev, incoming])
+      if (incoming.sender_id !== currentUserId) {
+        void markChatDelivered(token, activeChannel.id, [incoming.id]).catch(() => {})
+        void markChatRead(token, activeChannel.id).catch(() => {})
+      }
+    }
+    const onDelivered = (data: { channelId: string; messageIds?: string[]; deliveredAt?: string }) => {
+      if (data.channelId !== activeChannel.id || !data.messageIds?.length) return
+      setMessages(prev => prev.map(message => data.messageIds!.includes(message.id) ? { ...message, delivered_at: message.delivered_at || data.deliveredAt || new Date().toISOString() } : message))
+    }
+    const onRead = (data: { channelId: string; userId: string; lastReadAt?: string }) => {
+      if (data.channelId === activeChannel.id && data.userId !== currentUserId && data.lastReadAt) setOtherLastRead(data.lastReadAt)
+    }
+    socket.on('connect', join)
+    socket.on('chat:message', onMessage)
+    socket.on('chat:delivered', onDelivered)
+    socket.on('chat:read', onRead)
+    if (socket.connected) join()
+    const interval = setInterval(loadMessages, 15000)
+    return () => {
+      clearInterval(interval)
+      socket.emit('chat:leave', activeChannel.id)
+      socket.off('connect', join)
+      socket.off('chat:message', onMessage)
+      socket.off('chat:delivered', onDelivered)
+      socket.off('chat:read', onRead)
+      socket.disconnect()
+    }
+  }, [view, activeChannel, token, currentUserId, loadMessages])
 
   const openChannel = (ch: ChatChannel) => {
     hapticLight()
@@ -381,6 +420,7 @@ export function ChatScreen({ session, onBack }: Props) {
     const isMe = item.sender_id === currentUserId
     const avatarColor = getAvatarColor(item.sender_id)
     const seen = isMe && ((activeChannel?.channel_type === 'dm' && otherLastRead && new Date(item.created_at) <= new Date(otherLastRead)) || (activeChannel?.channel_type !== 'dm' && memberReads.some(r => r.last_read_at && new Date(item.created_at) <= new Date(r.last_read_at))))
+    const delivered = isMe && (Boolean(item.delivered_at) || Boolean(seen))
 
     return (
       <Pressable
@@ -400,9 +440,9 @@ export function ChatScreen({ session, onBack }: Props) {
             <Text style={[msgStyles.senderName, { color: avatarColor }]}>{item.sender_name}</Text>
           ) : null}
           {item.file_url ? (
-            <Pressable onPress={() => {}}>
+            <Pressable onPress={() => setPreviewImage({ url: item.file_url!, name: item.file_name || 'Chat image' })} accessibilityRole="button" accessibilityLabel={`Preview ${item.file_name || 'image'}`}>
               <Image
-                source={{ uri: item.file_url }}
+                source={{ uri: getApiFileUrl(item.file_url), headers: { Authorization: `Bearer ${token}` } }}
                 style={[msgStyles.image, isMe ? msgStyles.imageMe : msgStyles.imageOther]}
                 resizeMode="cover"
               />
@@ -425,7 +465,7 @@ export function ChatScreen({ session, onBack }: Props) {
           <View style={[msgStyles.footer, isMe && msgStyles.footerMe]}>
             <Text style={[msgStyles.time, { color: c.muted }]}>{formatMsgTime(item.created_at)}</Text>
             {item.edited ? <Text style={[msgStyles.edited, { color: c.muted }]}>edited</Text> : null}
-            {isMe ? <Ionicons name={seen ? 'checkmark-done' : 'checkmark'} size={14} color={seen ? c.primary : c.muted} /> : null}
+            {isMe ?            <Ionicons name={seen || delivered ? 'checkmark-done' : 'checkmark'} size={14} color={seen ? c.primary : c.muted} /> : null}
           </View>
         </View>
       </Pressable>
@@ -433,6 +473,41 @@ export function ChatScreen({ session, onBack }: Props) {
   }
 
   // ─── Modals ─────────────────────────────────────────────
+
+  const downloadPreviewImage = async () => {
+    if (!previewImage) return
+    try {
+      const file = await downloadChatFile(token, previewImage.url, previewImage.name)
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert('Downloaded', 'The image was downloaded to the app cache.')
+        return
+      }
+      await Sharing.shareAsync(file.uri, { mimeType: 'image/*', dialogTitle: 'Save or share image' })
+    } catch (e: any) {
+      Alert.alert('Download failed', e.message || 'Could not download this image')
+    }
+  }
+
+  const renderImagePreview = () => (
+    <Modal visible={Boolean(previewImage)} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => setPreviewImage(null)}>
+      <SafeAreaView style={[previewStyles.container, { backgroundColor: '#000000' }]}>
+        <View style={previewStyles.header}>
+          <Pressable onPress={() => setPreviewImage(null)} accessibilityRole="button" accessibilityLabel="Close image preview">
+            <Ionicons name="close" size={28} color="#FFFFFF" />
+          </Pressable>
+          <Text style={previewStyles.title} numberOfLines={1}>{previewImage?.name || 'Image'}</Text>
+          <Pressable onPress={downloadPreviewImage} accessibilityRole="button" accessibilityLabel="Download image">
+            <Ionicons name="download-outline" size={25} color="#FFFFFF" />
+          </Pressable>
+        </View>
+        {previewImage ? <Image source={{ uri: getApiFileUrl(previewImage.url), headers: { Authorization: `Bearer ${token}` } }} style={previewStyles.image} resizeMode="contain" /> : null}
+        <Pressable onPress={downloadPreviewImage} style={[previewStyles.downloadButton, { backgroundColor: c.primary }]} accessibilityRole="button" accessibilityLabel="Save or share image">
+          <Ionicons name="download-outline" size={18} color="#FFFFFF" />
+          <Text style={previewStyles.downloadText}>Save or share image</Text>
+        </Pressable>
+      </SafeAreaView>
+    </Modal>
+  )
 
   const renderContactModal = () => (
     <Modal visible={showContact} animationType="slide" presentationStyle="pageSheet">
@@ -813,6 +888,7 @@ export function ChatScreen({ session, onBack }: Props) {
       {renderContactModal()}
       {renderContextMenu()}
       {renderChannelMembers()}
+      {renderImagePreview()}
     </KeyboardAvoidingView>
   )
 }
@@ -936,6 +1012,15 @@ const emojiStyles = StyleSheet.create({
 
 const memberDirectoryStyles = StyleSheet.create({
   count: { fontSize: 13, fontFamily: FONT, minWidth: 28, textAlign: 'right' },
+})
+
+const previewStyles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.base, paddingVertical: spacing.md },
+  title: { color: '#FFFFFF', fontSize: 15, fontWeight: '600', fontFamily: FONT, flex: 1, textAlign: 'center', marginHorizontal: spacing.md },
+  image: { flex: 1, width: '100%' },
+  downloadButton: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radii.lg, marginVertical: spacing.lg },
+  downloadText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600', fontFamily: FONT },
 })
 
 const contactStyles = StyleSheet.create({

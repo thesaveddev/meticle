@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useState, useRef } from 'react'
-import { Alert, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -30,6 +29,19 @@ function parseDateInput(value: string) {
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
 }
 
+function monthLabel(date: Date) {
+  return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+}
+
+function calendarDays(month: Date): Array<Date | null> {
+  const first = new Date(month.getFullYear(), month.getMonth(), 1)
+  const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()
+  return [
+    ...Array.from({ length: first.getDay() }, () => null),
+    ...Array.from({ length: count }, (_, index) => new Date(month.getFullYear(), month.getMonth(), index + 1)),
+  ]
+}
+
 const TIME_PRESETS = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00']
 
 function formatTimeRange(start: string, end: string) {
@@ -47,7 +59,7 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
   const [start, setStart] = useState('09:00')
   const [end, setEnd] = useState('17:00')
   const [availabilityDate, setAvailabilityDate] = useState('')
-  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [specificUnavailable, setSpecificUnavailable] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -86,9 +98,32 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
   const maximumAvailabilityDate = new Date(minimumAvailabilityDate)
   maximumAvailabilityDate.setMonth(maximumAvailabilityDate.getMonth() + 4)
 
-  const handleDatePickerChange = (event: DateTimePickerEvent, date?: Date) => {
-    if (Platform.OS !== 'ios' || event.type === 'dismissed') setShowDatePicker(false)
-    if (event.type !== 'dismissed' && date) setAvailabilityDate(formatDateInput(date))
+  const days = useMemo(() => calendarDays(calendarMonth), [calendarMonth])
+  const currentMonth = new Date(minimumAvailabilityDate.getFullYear(), minimumAvailabilityDate.getMonth(), 1)
+  const maximumMonth = new Date(maximumAvailabilityDate.getFullYear(), maximumAvailabilityDate.getMonth(), 1)
+  const canGoPreviousMonth = calendarMonth.getTime() > currentMonth.getTime()
+  const canGoNextMonth = calendarMonth.getTime() < maximumMonth.getTime()
+
+  const selectCalendarDate = (date: Date) => {
+    const selected = new Date(date)
+    selected.setHours(0, 0, 0, 0)
+    if (selected < minimumAvailabilityDate || selected > maximumAvailabilityDate) return
+    const dateKey = formatDateInput(selected)
+    const existing = records.find(record => record.availability_date === dateKey)
+    setAvailabilityDate(dateKey)
+    setSelectedDay(selected.getDay())
+    setEditingId(existing?.id || null)
+    if (existing) {
+      setSpecificUnavailable(!existing.is_available)
+      setStart(existing.start_time.slice(0, 5))
+      setEnd(existing.end_time.slice(0, 5))
+    } else {
+      setSpecificUnavailable(false)
+      setStart('09:00')
+      setEnd('17:00')
+    }
+    setError('')
+    setSuccess('')
   }
 
   const handleSave = async () => {
@@ -306,36 +341,39 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
         </View>
 
         <View style={[s.formCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-          <Text style={[s.fieldLabel, { color: c.inkLight }]}>Specific date (optional)</Text>
-          <View style={s.datePickerRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={availabilityDate ? `Selected date ${availabilityDate}` : 'Choose a specific date'}
-              onPress={() => { hapticLight(); setShowDatePicker(true) }}
-              style={[s.datePickerButton, { backgroundColor: c.surfaceAlt, borderColor: c.border }]}
-            >
-              <Ionicons name="calendar-outline" size={18} color={availabilityDate ? c.primary : c.muted} />
-              <Text style={[s.datePickerText, { color: availabilityDate ? c.ink : c.subtle }]}>
-                {availabilityDate || 'Choose a date · up to 4 months ahead'}
-              </Text>
-            </Pressable>
-            {availabilityDate && (
-              <Pressable accessibilityRole="button" accessibilityLabel="Clear selected date" onPress={() => setAvailabilityDate('')} hitSlop={8}>
-                <Ionicons name="close-circle" size={20} color={c.muted} />
-              </Pressable>
-            )}
+          <View style={s.calendarHeading}>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.fieldLabel, { color: c.inkLight }]}>Choose a date</Text>
+              <Text style={[s.dateHint, { color: c.subtle }]}>Select a date up to four months ahead, or leave it unselected for a weekly pattern.</Text>
+            </View>
+            {availabilityDate && <Pressable accessibilityRole="button" accessibilityLabel="Clear selected date" onPress={() => { setAvailabilityDate(''); setEditingId(null); setSpecificUnavailable(false) }} hitSlop={8}><Ionicons name="close-circle" size={20} color={c.muted} /></Pressable>}
           </View>
-          {showDatePicker && (
-            <DateTimePicker
-              value={parseDateInput(availabilityDate)}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              minimumDate={minimumAvailabilityDate}
-              maximumDate={maximumAvailabilityDate}
-              onChange={handleDatePickerChange}
-            />
-          )}
-          <Text style={[s.dateHint, { color: c.subtle }]}>Leave this blank for a recurring weekly availability pattern.</Text>
+          <View style={[s.calendarCard, { backgroundColor: c.surfaceAlt, borderColor: c.border }]}>
+            <View style={s.calendarToolbar}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Previous month" disabled={!canGoPreviousMonth} onPress={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))} style={s.calendarArrow}>
+                <Ionicons name="chevron-back" size={20} color={canGoPreviousMonth ? c.ink : c.border} />
+              </Pressable>
+              <Text style={[s.calendarMonth, { color: c.ink }]}>{monthLabel(calendarMonth)}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Next month" disabled={!canGoNextMonth} onPress={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))} style={s.calendarArrow}>
+                <Ionicons name="chevron-forward" size={20} color={canGoNextMonth ? c.ink : c.border} />
+              </Pressable>
+            </View>
+            <View style={s.calendarWeekRow}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => <Text key={`${day}-${index}`} style={[s.calendarWeekDay, { color: c.subtle }]}>{day}</Text>)}</View>
+            <View style={s.calendarGrid}>
+              {days.map((date, index) => {
+                if (!date) return <View key={`empty-${index}`} style={s.calendarDay} />
+                const key = formatDateInput(date)
+                const disabled = date < minimumAvailabilityDate || date > maximumAvailabilityDate
+                const selected = availabilityDate === key
+                const existing = records.find(record => record.availability_date === key)
+                return <Pressable key={key} accessibilityRole="button" accessibilityLabel={`${key}${existing ? existing.is_available ? ', available' : ', unavailable' : ''}`} disabled={disabled} onPress={() => { hapticLight(); selectCalendarDate(date) }} style={[s.calendarDay, disabled && s.calendarDayDisabled, selected && { backgroundColor: c.primary }]}>
+                  <Text style={[s.calendarDayText, { color: disabled ? c.border : selected ? c.inverse : c.ink }]}>{date.getDate()}</Text>
+                  {existing && <View style={[s.calendarMarker, { backgroundColor: selected ? c.inverse : existing.is_available ? c.success : c.danger }]} />}
+                </Pressable>
+              })}
+            </View>
+          </View>
+          {availabilityDate && <View style={[s.selectedDateBanner, { backgroundColor: c.primarySurface }]}><Ionicons name="calendar" size={16} color={c.primary} /><Text style={[s.selectedDateText, { color: c.primary }]}>Selected {parseDateInput(availabilityDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</Text></View>}
           <View style={s.unavailableRow}><View style={{ flex: 1 }}><Text style={[s.fieldLabel, { color: c.ink }]}>Unavailable all day</Text><Text style={[s.dateHint, { color: c.muted }]}>Use this for a whole day or a one-off date you cannot work.</Text></View><Switch value={specificUnavailable} onValueChange={setSpecificUnavailable} trackColor={{ false: c.border, true: c.primarySurface }} thumbColor={specificUnavailable ? c.primary : c.subtle} /></View>
           {/* Day picker */}
           <Text style={[s.fieldLabel, { color: c.inkLight }]}>Day</Text>
@@ -484,9 +522,20 @@ const styles = StyleSheet.create({
 
   durationHint: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, padding: spacing.sm, borderRadius: radii.sm },
   durationText: { fontFamily: FONT, fontSize: 12, fontWeight: '500', flex: 1 },
-  datePickerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  datePickerButton: { flex: 1, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: spacing.md },
-  datePickerText: { fontFamily: FONT, fontSize: 13, flex: 1 },
+  calendarHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  calendarCard: { borderWidth: 1, borderRadius: radii.md, padding: spacing.sm },
+  calendarToolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 40 },
+  calendarArrow: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  calendarMonth: { fontFamily: FONT, fontSize: 15, fontWeight: '700' },
+  calendarWeekRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: spacing.xs },
+  calendarWeekDay: { width: 36, textAlign: 'center', fontFamily: FONT, fontSize: 11, fontWeight: '700' },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calendarDay: { width: '14.285%', height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: radii.sm },
+  calendarDayDisabled: { opacity: 0.45 },
+  calendarDayText: { fontFamily: FONT, fontSize: 13, fontWeight: '600' },
+  calendarMarker: { width: 5, height: 5, borderRadius: 3, marginTop: 2 },
+  selectedDateBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, padding: spacing.sm, borderRadius: radii.sm },
+  selectedDateText: { fontFamily: FONT, fontSize: 12, fontWeight: '600', flex: 1 },
   dateHint: { fontFamily: FONT, fontSize: 11, lineHeight: 16 },
   unavailableRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   dateOverrideRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D1D5DB' },

@@ -34,6 +34,7 @@ router.post('/groups', ChatController.createGroup);
 router.post('/read-receipts', ChatController.markRead);
 router.get('/channels/:channelId/read-receipts', ChatController.getReadReceipts);
 router.post('/channels/:channelId/read', ChatController.markChannelRead);
+router.post('/channels/:channelId/delivered', ChatController.markDelivered);
 router.get('/unread', ChatController.getUnreadCounts);
 
 // Search
