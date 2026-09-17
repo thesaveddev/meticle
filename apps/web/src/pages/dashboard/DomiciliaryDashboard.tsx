@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Box, Button, CircularProgress, Container, Grid, LinearProgress, Stack, Typography, Chip } from '@mui/material'
+import { useEffect, useState, useCallback } from 'react'
+import { Box, Button, CircularProgress, Container, Grid, IconButton, LinearProgress, Stack, Typography, Chip } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@mui/material/styles'
 import {
@@ -12,12 +12,17 @@ import {
   ArrowForward as ArrowIcon,
   TrendingUp as CoverageIcon,
   Assignment as UnassignedIcon,
+  ChevronLeft as PrevIcon,
+  ChevronRight as NextIcon,
+  CalendarToday as CalendarIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
 import { PremiumCard, StatCard, SectionHeader, StatusBadge } from '../../components/design/PremiumCard'
 import { EmptyState } from '../../components/design/EmptyState'
 
 interface DomiciliaryData {
+  selected_date: string
+  is_today: boolean
   calls_today: number
   calls_completed: number
   calls_in_progress: number
@@ -48,20 +53,23 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
 export default function DomiciliaryDashboard() {
   const navigate = useNavigate()
   const theme = useTheme()
+  const today = new Date().toISOString().split('T')[0]
+  const [selectedDate, setSelectedDate] = useState(today)
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<DomiciliaryData | null>(null)
   const [error, setError] = useState('')
 
-  const load = async () => {
+  const load = useCallback(async (date: string) => {
+    setLoading(true)
     try {
-      const res = await api.get('/dashboard/domiciliary')
+      const res = await api.get('/dashboard/domiciliary', { params: { date } })
       setData(res.data)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load dashboard')
     } finally { setLoading(false) }
-  }
+  }, [])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(selectedDate) }, [selectedDate, load])
   const [showAllCalls, setShowAllCalls] = useState(false)
   const VISIBLE_CALLS = 8
 
@@ -69,22 +77,47 @@ export default function DomiciliaryDashboard() {
   if (error) return <Container maxWidth="lg" sx={{ py: 4 }}><Typography color="error">{error}</Typography></Container>
   if (!data) return null
 
+  const dateLabel = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const isToday = selectedDate === today
   const greeting = (() => {
+    if (!isToday) return 'Dashboard'
     const h = new Date().getHours()
     return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
   })()
+
+  const navigateDate = (offset: number) => {
+    const d = new Date(selectedDate + 'T12:00:00')
+    d.setDate(d.getDate() + offset)
+    setSelectedDate(d.toISOString().split('T')[0])
+  }
+
   return (
     <Box sx={{ width: '100%' }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 0.5 }}>
-          {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-        </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 0.5 }}>
-          {greeting}
-        </Typography>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+            {greeting}
+          </Typography>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <IconButton size="small" onClick={() => navigateDate(-1)} sx={{ color: theme.palette.text.secondary }}>
+              <PrevIcon fontSize="small" />
+            </IconButton>
+            <Chip
+              icon={<CalendarIcon sx={{ fontSize: 14 }} />}
+              label={dateLabel}
+              onClick={() => setSelectedDate(today)}
+              variant={isToday ? 'filled' : 'outlined'}
+              color={isToday ? 'primary' : 'default'}
+              sx={{ fontWeight: 600, cursor: isToday ? 'default' : 'pointer' }}
+            />
+            <IconButton size="small" onClick={() => navigateDate(1)} disabled={isToday} sx={{ color: theme.palette.text.secondary }}>
+              <NextIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        </Stack>
         <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-          {data.calls_today} calls scheduled across {data.carers_working_today} carers today
+          {data.calls_today} calls scheduled across {data.carers_working_today} carers{isToday ? ' today' : ` on ${dateLabel}`}
         </Typography>
       </Box>
 
@@ -202,12 +235,12 @@ export default function DomiciliaryDashboard() {
         {/* Call Timeline */}
         <Grid item xs={12} md={8}>
           <PremiumCard noBorder sx={{ p: 4 }}>
-            <SectionHeader title="Call Schedule" subtitle={`${data.call_timeline.length} calls today`} />
+            <SectionHeader title="Call Schedule" subtitle={`${data.call_timeline.length} calls${isToday ? ' today' : ''}`} />
             {data.call_timeline.length === 0 ? (
               <EmptyState
                 icon={<CallIcon />}
-                title="No calls today"
-                description="No calls scheduled today."
+                title={isToday ? 'No calls today' : `No calls on ${dateLabel}`}
+                description={isToday ? 'No calls scheduled today.' : 'No calls scheduled for this date.'}
               />
             ) : (
               <>
@@ -302,7 +335,7 @@ export default function DomiciliaryDashboard() {
               <EmptyState
                 icon={<CarerIcon />}
                 title="No carers assigned"
-                description="No carers assigned to calls today."
+                description={isToday ? 'No carers assigned to calls today.' : 'No carers assigned to calls for this date.'}
               />
             ) : (
               <Stack spacing={2}>
