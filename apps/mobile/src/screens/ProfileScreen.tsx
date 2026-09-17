@@ -8,6 +8,7 @@ import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import type { AuthSession, MobileUser } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
+import { uploadFile } from '../services/api'
 import { hapticLight } from '../services/haptics'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://meticlecare.com/api'
@@ -119,26 +120,7 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
     setUploadingPhoto(true)
     try {
       const filename = uri.split('/').pop() || 'photo.jpg'
-      const ext = filename.split('.').pop()?.toLowerCase() || 'jpg'
-      const mimeType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`
-
-      const formData = new FormData()
-      formData.append('file', {
-        uri,
-        name: filename,
-        type: mimeType,
-      } as any)
-
-      const res = await fetch(`${API_BASE}/staff/me/photo`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-        body: formData,
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.message || 'Upload failed')
-      }
-      const data = await res.json()
+      const data = await uploadFile(session.accessToken, '/staff/me/photo', uri, filename)
       setProfilePhoto(data.url)
       setMessage('Photo updated')
     } catch (e: any) {

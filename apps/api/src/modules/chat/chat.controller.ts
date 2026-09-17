@@ -24,6 +24,11 @@ async function requireChannelMember(organizationId: string, channelId: string, u
 }
 
 export class ChatController {
+  static async uploadFile(req: Request, res: Response) {
+    if (!req.file) throw new AppError(400, 'No file provided');
+    res.json({ url: `/files/private/${req.file.filename}`, originalName: req.file.originalname });
+  }
+
   static async listChannels(req: Request, res: Response) {
     const oid = orgId(req);
     const uid = userId(req);
@@ -570,8 +575,10 @@ export class ChatController {
     const oid = orgId(req);
     const uid = userId(req);
     const { channelId } = req.params;
+    await requireChannelMember(oid, channelId, uid);
 
-    // Update the chat_members unread_count
+    // Keep both read stores in sync: legacy messages use the receipt table,
+    // while the channel model uses chat_members.last_read_at.
     await query(
       'UPDATE chat_members SET unread_count = 0 WHERE channel_id = $1 AND user_id = $2',
       [channelId, uid]

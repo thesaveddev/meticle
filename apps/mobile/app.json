@@ -41,7 +41,8 @@
         }
       ],
       "expo-font",
-      "expo-sharing"
+      "expo-sharing",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "apiBaseUrl": "https://meticlecare.com/api",

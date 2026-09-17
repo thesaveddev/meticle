@@ -105,13 +105,15 @@ export class NotificationsController {
       `SELECT morning_enabled, midday_enabled, evening_enabled,
               TO_CHAR(morning_time, 'HH24:MI') AS morning_time,
               TO_CHAR(midday_time, 'HH24:MI') AS midday_time,
-              TO_CHAR(evening_time, 'HH24:MI') AS evening_time
+              TO_CHAR(evening_time, 'HH24:MI') AS evening_time,
+              COALESCE(timezone, 'Europe/London') AS timezone
        FROM homecare_digest_preferences WHERE user_id = $1`,
       [userId]
     );
     res.json(result.rows[0] || {
       morning_enabled: true, midday_enabled: true, evening_enabled: true,
       morning_time: '08:00', midday_time: '13:00', evening_time: '19:00',
+      timezone: 'Europe/London',
     });
   }
 
@@ -124,8 +126,13 @@ export class NotificationsController {
         throw new AppError(400, `${field} must use HH:MM format`);
       }
     }
+    const timezone = body.timezone === undefined ? undefined : String(body.timezone);
+    if (timezone) {
+      try { new Intl.DateTimeFormat('en-GB', { timeZone: timezone }).format(); }
+      catch { throw new AppError(400, 'timezone must be a valid IANA timezone'); }
+    }
     const existing = await pool.query('SELECT * FROM homecare_digest_preferences WHERE user_id = $1', [userId]);
-    const current = existing.rows[0] || { morning_enabled: true, midday_enabled: true, evening_enabled: true, morning_time: '08:00', midday_time: '13:00', evening_time: '19:00' };
+    const current = existing.rows[0] || { morning_enabled: true, midday_enabled: true, evening_enabled: true, morning_time: '08:00', midday_time: '13:00', evening_time: '19:00', timezone: 'Europe/London' };
     const values = {
       morning_enabled: body.morning_enabled === undefined ? current.morning_enabled : Boolean(body.morning_enabled),
       midday_enabled: body.midday_enabled === undefined ? current.midday_enabled : Boolean(body.midday_enabled),
@@ -133,13 +140,14 @@ export class NotificationsController {
       morning_time: body.morning_time || current.morning_time,
       midday_time: body.midday_time || current.midday_time,
       evening_time: body.evening_time || current.evening_time,
+      timezone: timezone || current.timezone || 'Europe/London',
     };
     const result = await pool.query(
-      `INSERT INTO homecare_digest_preferences (user_id, morning_enabled, midday_enabled, evening_enabled, morning_time, midday_time, evening_time, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-       ON CONFLICT (user_id) DO UPDATE SET morning_enabled = EXCLUDED.morning_enabled, midday_enabled = EXCLUDED.midday_enabled, evening_enabled = EXCLUDED.evening_enabled, morning_time = EXCLUDED.morning_time, midday_time = EXCLUDED.midday_time, evening_time = EXCLUDED.evening_time, updated_at = NOW()
-       RETURNING morning_enabled, midday_enabled, evening_enabled, TO_CHAR(morning_time, 'HH24:MI') AS morning_time, TO_CHAR(midday_time, 'HH24:MI') AS midday_time, TO_CHAR(evening_time, 'HH24:MI') AS evening_time`,
-      [userId, values.morning_enabled, values.midday_enabled, values.evening_enabled, values.morning_time, values.midday_time, values.evening_time]
+      `INSERT INTO homecare_digest_preferences (user_id, morning_enabled, midday_enabled, evening_enabled, morning_time, midday_time, evening_time, timezone, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+       ON CONFLICT (user_id) DO UPDATE SET morning_enabled = EXCLUDED.morning_enabled, midday_enabled = EXCLUDED.midday_enabled, evening_enabled = EXCLUDED.evening_enabled, morning_time = EXCLUDED.morning_time, midday_time = EXCLUDED.midday_time, evening_time = EXCLUDED.evening_time, timezone = EXCLUDED.timezone, updated_at = NOW()
+       RETURNING morning_enabled, midday_enabled, evening_enabled, TO_CHAR(morning_time, 'HH24:MI') AS morning_time, TO_CHAR(midday_time, 'HH24:MI') AS midday_time, TO_CHAR(evening_time, 'HH24:MI') AS evening_time, timezone`,
+      [userId, values.morning_enabled, values.midday_enabled, values.evening_enabled, values.morning_time, values.midday_time, values.evening_time, values.timezone]
     );
     res.json(result.rows[0]);
   }

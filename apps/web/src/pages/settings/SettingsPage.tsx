@@ -2188,9 +2188,23 @@ function NotificationPreferencesSection() {
       <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #E5E7EB' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>Domiciliary care summary emails</Typography>
         <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
-          Receive one summary for your own calls or organisation each day instead of an email for every call. Times use the production system clock (UTC).
+          Receive one summary for your own calls or organisation each day instead of an email for every call. Each summary can be switched on or off independently. Times use your selected timezone; UK users should use Europe/London.
         </Typography>
         {digest && <Grid container spacing={1.5}>
+          <Grid item xs={12} md={4}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="homecare-digest-timezone-label">Timezone</InputLabel>
+              <Select
+                labelId="homecare-digest-timezone-label"
+                label="Timezone"
+                value={digest.timezone || 'Europe/London'}
+                disabled={digestLoading}
+                onChange={e => updateDigest({ timezone: e.target.value })}
+              >
+                {['Europe/London', 'Europe/Dublin', 'UTC', 'America/New_York', 'America/Los_Angeles', 'Asia/Dubai', 'Asia/Kolkata', 'Australia/Sydney'].map(zone => <MenuItem key={zone} value={zone}>{zone}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Grid>
           {[['morning', 'Morning schedule', 'morning_time'], ['midday', 'Midday progress report', 'midday_time'], ['evening', 'End-of-day summary', 'evening_time']].map(([key, label, timeKey]) => (
             <Grid item xs={12} md={4} key={key}>
               <Paper variant="outlined" sx={{ p: 1.5 }}>

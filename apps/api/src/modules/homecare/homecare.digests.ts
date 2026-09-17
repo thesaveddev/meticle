@@ -1,28 +1,54 @@
-import { query, migrateQuery } from '../../shared/database';
+import { migrateQuery } from '../../shared/database';
 import { EmailService } from '../../shared/utils/email.service';
 import logger from '../../shared/utils/logger';
 
 const DIGEST_EMAILS_ENABLED = process.env.HOMECARE_DIGEST_EMAILS_ENABLED !== 'false';
-type DigestType = 'morning' | 'midday' | 'evening';
+export const DEFAULT_DIGEST_TIMEZONE = 'Europe/London';
+const DIGEST_WINDOW_GRACE_MINUTES = 10;
+export type DigestType = 'morning' | 'midday' | 'evening';
 
-function dateKey(now: Date) {
-  return now.toISOString().slice(0, 10);
+type ZonedParts = { year: string; month: string; day: string; hour: string; minute: string };
+
+export function getLocalParts(now: Date, timezone = DEFAULT_DIGEST_TIMEZONE): ZonedParts {
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: timezone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(now);
+    const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+    return { year: values.year, month: values.month, day: values.day, hour: values.hour, minute: values.minute };
+  } catch {
+    return getLocalParts(now, DEFAULT_DIGEST_TIMEZONE);
+  }
 }
 
-function dateBounds(now: Date) {
-  const date = dateKey(now);
-  return { start: `${date}T00:00:00.000Z`, end: `${date}T23:59:59.999Z` };
+export function localDateKey(now: Date, timezone = DEFAULT_DIGEST_TIMEZONE): string {
+  const local = getLocalParts(now, timezone);
+  return `${local.year}-${local.month}-${local.day}`;
 }
 
-function isDue(now: Date, time: string) {
-  const current = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`;
-  return current >= String(time).slice(0, 5);
+/**
+ * A digest is due only during its configured send window. We deliberately do
+ * not use `current >= configuredTime`: that would send missed afternoon and
+ * evening digests together when the API restarts in the morning.
+ */
+export function isDigestDue(now: Date, time: string, timezone = DEFAULT_DIGEST_TIMEZONE): boolean {
+  const local = getLocalParts(now, timezone);
+  const configured = String(time || '').slice(0, 5);
+  const match = /^(\d{2}):(\d{2})$/.exec(configured);
+  if (!match) return false;
+  const currentMinutes = Number(local.hour) * 60 + Number(local.minute);
+  const configuredMinutes = Number(match[1]) * 60 + Number(match[2]);
+  const elapsed = currentMinutes - configuredMinutes;
+  return elapsed >= 0 && elapsed < DIGEST_WINDOW_GRACE_MINUTES;
 }
 
 /**
  * Sends operational summaries rather than one email per visit. Push/in-app
  * alerts remain independent and continue to handle urgent exceptions.
- * Digest times are interpreted in UTC, matching the production VPS clock.
+ * Digest times and dates are interpreted in each user's timezone; new users
+ * default to Europe/London.
  */
 export async function runHomecareDigestEmails(now = new Date()): Promise<{ sent: number; failed: number }> {
   if (!DIGEST_EMAILS_ENABLED) return { sent: 0, failed: 0 };
@@ -35,7 +61,8 @@ export async function runHomecareDigestEmails(now = new Date()): Promise<{ sent:
            COALESCE(dp.evening_enabled, TRUE) AS evening_enabled,
            COALESCE(dp.morning_time, '08:00'::time) AS morning_time,
            COALESCE(dp.midday_time, '13:00'::time) AS midday_time,
-           COALESCE(dp.evening_time, '19:00'::time) AS evening_time
+           COALESCE(dp.evening_time, '19:00'::time) AS evening_time,
+           COALESCE(dp.timezone, 'Europe/London') AS timezone
     FROM users u
     LEFT JOIN staff_profiles sp ON sp.user_id = u.id
     LEFT JOIN homecare_digest_preferences dp ON dp.user_id = u.id
@@ -46,9 +73,9 @@ export async function runHomecareDigestEmails(now = new Date()): Promise<{ sent:
 
   let sent = 0;
   let failed = 0;
-  const date = dateKey(now);
 
   for (const recipient of recipients.rows) {
+    const timezone = recipient.timezone || DEFAULT_DIGEST_TIMEZONE;
     const windows: Array<{ type: DigestType; enabled: boolean; time: string }> = [
       { type: 'morning', enabled: recipient.morning_enabled, time: recipient.morning_time },
       { type: 'midday', enabled: recipient.midday_enabled, time: recipient.midday_time },
@@ -56,8 +83,9 @@ export async function runHomecareDigestEmails(now = new Date()): Promise<{ sent:
     ];
 
     for (const window of windows) {
-      if (!window.enabled || !isDue(now, window.time)) continue;
+      if (!window.enabled || !isDigestDue(now, window.time, timezone)) continue;
 
+      const date = localDateKey(now, timezone);
       const delivery = await migrateQuery(`
         INSERT INTO homecare_digest_deliveries (user_id, organization_id, digest_date, digest_type, status, attempt_count)
         VALUES ($1, $2, $3, $4, 'pending', 0)
@@ -70,7 +98,7 @@ export async function runHomecareDigestEmails(now = new Date()): Promise<{ sent:
       if (!delivery.rows[0]) continue;
 
       try {
-        const summary = await buildDigestSummary(recipient, window.type, now);
+        const summary = await buildDigestSummary(recipient, window.type, now, date, timezone);
         await EmailService.sendHomecareDigestEmail(recipient.email, recipient.name, window.type, date, summary);
         await migrateQuery(`
           UPDATE homecare_digest_deliveries
@@ -93,13 +121,16 @@ export async function runHomecareDigestEmails(now = new Date()): Promise<{ sent:
   return { sent, failed };
 }
 
-async function buildDigestSummary(recipient: any, type: DigestType, now: Date) {
-  const { start, end } = dateBounds(now);
+async function buildDigestSummary(recipient: any, type: DigestType, now: Date, date: string, timezone: string) {
   const isManager = recipient.role === 'ORG_ADMIN' || recipient.role === 'MANAGER';
   const filter = isManager
     ? `v.organization_id = $1`
     : `v.organization_id = $1 AND v.assigned_staff_id = (SELECT id FROM staff_profiles WHERE user_id = $2)`;
-  const params = isManager ? [recipient.organization_id, start, end] : [recipient.organization_id, recipient.id, start, end];
+  const params = isManager
+    ? [recipient.organization_id, date, timezone]
+    : [recipient.organization_id, recipient.id, date, timezone];
+  const dateParam = isManager ? 2 : 3;
+  const timezoneParam = isManager ? 3 : 4;
   const visits = await migrateQuery(`
     SELECT v.label, v.visit_type, v.status, v.scheduled_start, v.scheduled_end,
            v.late_reason, v.assigned_staff_id,
@@ -108,7 +139,9 @@ async function buildDigestSummary(recipient: any, type: DigestType, now: Date) {
     FROM homecare_visits v
     JOIN people pe ON pe.id = v.person_id
     LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
-    WHERE ${filter} AND v.scheduled_start >= $${isManager ? 2 : 3} AND v.scheduled_start <= $${isManager ? 3 : 4}
+    WHERE ${filter}
+      AND v.scheduled_start >= ($${dateParam}::date AT TIME ZONE $${timezoneParam})
+      AND v.scheduled_start < (($${dateParam}::date + INTERVAL '1 day') AT TIME ZONE $${timezoneParam})
     ORDER BY v.scheduled_start
   `, params);
 
@@ -125,10 +158,12 @@ async function buildDigestSummary(recipient: any, type: DigestType, now: Date) {
     FROM incidents i
     WHERE i.organization_id = $1 AND i.incident_date = $2::date
     ORDER BY i.created_at DESC LIMIT 20
-  `, [recipient.organization_id, dateKey(now)]);
+  `, [recipient.organization_id, date]);
 
   return {
     type,
+    date,
+    timezone,
     total: rows.length,
     completed,
     missed,

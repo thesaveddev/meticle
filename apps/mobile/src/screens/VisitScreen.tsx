@@ -7,7 +7,7 @@ import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance, watchDistance, formatDistance } from '../services/location'
-import { getLocationThreshold, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask } from '../services/api'
+import { getLocationThreshold, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask, uploadFile } from '../services/api'
 import { Ionicons } from '@expo/vector-icons'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconNavigate, IconTwoPerson, IconTransfer } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
@@ -243,22 +243,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
     setUploadingPhoto(true)
     try {
       const filename = uri.split('/').pop() || 'photo.jpg'
-      const ext = filename.split('.').pop()?.toLowerCase() || 'jpg'
-      const mimeType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`
-      const formData = new FormData()
-      formData.append('file', {
-        uri,
-        name: filename,
-        type: mimeType,
-      } as any)
-      const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://meticlecare.com/api'
-      const res = await fetch(`${API_BASE}/settings/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session?.accessToken || ''}` },
-        body: formData,
-      })
-      if (!res.ok) throw new Error('Upload failed')
-      const data = await res.json()
+      const data = await uploadFile(session?.accessToken || '', '/staff/me/upload', uri, filename)
       setPhotos(prev => [...prev, data.url])
     } catch (e: any) { Alert.alert('Error', e.message || 'Could not upload photo') }
     finally { setUploadingPhoto(false) }
