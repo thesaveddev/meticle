@@ -44,7 +44,7 @@ export class DashboardController {
     const orgId = req.user?.organizationId;
     if (!orgId) throw new AppError(403, 'Organization required');
     const { getDomiciliaryDashboard } = await import('./dashboard.domiciliary');
-    const data = await getDomiciliaryDashboard(orgId);
+    const data = await getDomiciliaryDashboard(orgId, req.query.date as string | undefined);
     res.json(data);
   }
 

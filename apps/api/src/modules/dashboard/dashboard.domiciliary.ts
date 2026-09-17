@@ -1,6 +1,8 @@
 import { query } from '../../shared/database';
 
 export interface DomiciliaryDashboardData {
+  selected_date: string
+  is_today: boolean
   calls_today: number;
   calls_completed: number;
   calls_in_progress: number;
@@ -17,10 +19,10 @@ export interface DomiciliaryDashboardData {
   exceptions: { id: string; label: string; person_name: string; scheduled_start: string; status: string; carer_name: string | null; exception_type: string | null }[];
 }
 
-export async function getDomiciliaryDashboard(orgId: string): Promise<DomiciliaryDashboardData> {
-  const today = new Date().toISOString().split('T')[0];
+export async function getDomiciliaryDashboard(orgId: string, dateStr?: string): Promise<DomiciliaryDashboardData> {
+  const today = (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) ? dateStr : new Date().toISOString().split('T')[0];
   const now = new Date().toISOString();
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const tomorrow = new Date(new Date(today).getTime() + 86400000).toISOString().split('T')[0];
 
   const [visitsResult, tasksResult, exceptionsResult, packagesResult] = await Promise.all([
     query(`
@@ -131,6 +133,8 @@ export async function getDomiciliaryDashboard(orgId: string): Promise<Domiciliar
       exception_type: v.exception_type,
     }));
 
+  const isToday = today === new Date().toISOString().split('T')[0];
+
   return {
     calls_today: total,
     calls_completed: completed,
@@ -142,12 +146,14 @@ export async function getDomiciliaryDashboard(orgId: string): Promise<Domiciliar
     coverage_percent: coveragePercent,
     carers_working_today: carerBreakdown.length,
     carers_with_calls: carerBreakdown.filter(c => c.calls_assigned > 0).length,
-    next_call: nextCall ? {
+    next_call: isToday && nextCall ? {
       label: nextCall.label,
       person_name: nextCall.person_name,
       scheduled_start: nextCall.scheduled_start,
       carer_name: nextCall.carer_name,
     } : null,
+    selected_date: today,
+    is_today: isToday,
     call_timeline: callTimeline,
     carer_breakdown: carerBreakdown,
     exceptions,
