@@ -62,6 +62,8 @@ export default function DomiciliaryDashboard() {
   }
 
   useEffect(() => { load() }, [])
+  const [showAllCalls, setShowAllCalls] = useState(false)
+  const VISIBLE_CALLS = 8
 
   if (loading) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
   if (error) return <Container maxWidth="lg" sx={{ py: 4 }}><Typography color="error">{error}</Typography></Container>
@@ -71,9 +73,8 @@ export default function DomiciliaryDashboard() {
     const h = new Date().getHours()
     return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
   })()
-
   return (
-    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+    <Box sx={{ width: '100%' }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 0.5 }}>
@@ -127,9 +128,9 @@ export default function DomiciliaryDashboard() {
           </Box>
           {data.coverage_percent >= 90 ? (
             <Chip
-              icon={<CompletedIcon sx={{ fontSize: 16 }} />}
+              icon={<CompletedIcon sx={{ fontSize: 16, color: '#fff' }} />}
               label="All covered!"
-              sx={{ bgcolor: 'success.light', color: '#047857', fontWeight: 700, borderRadius: '12px', px: 1 }}
+              sx={{ bgcolor: '#047857', color: '#fff', fontWeight: 700, borderRadius: '12px', px: 1 }}
             />
           ) : (
             <Chip
@@ -137,7 +138,7 @@ export default function DomiciliaryDashboard() {
               label={`${data.coverage_percent}% covered`}
               sx={{
                 bgcolor: data.coverage_percent >= 70 ? '#FFF5D9' : '#FDECEC',
-                color: data.coverage_percent >= 70 ? '#D97706' : '#DC2626',
+                color: data.coverage_percent >= 70 ? '#92400E' : '#DC2626',
                 fontWeight: 700,
                 borderRadius: '12px',
                 px: 1,
@@ -157,7 +158,13 @@ export default function DomiciliaryDashboard() {
           { label: 'Unassigned', value: data.calls_unassigned, color: '#D97706', icon: <UnassignedIcon /> },
         ].map(card => (
           <Grid item xs={6} sm={4} md={2.4} key={card.label}>
-            <StatCard label={card.label} value={card.value} icon={card.icon} color={card.color} />
+            <StatCard
+              label={card.label}
+              value={card.value}
+              icon={card.icon}
+              color={card.color}
+              onClick={() => navigate('/homecare')}
+            />
           </Grid>
         ))}
       </Grid>
@@ -203,17 +210,25 @@ export default function DomiciliaryDashboard() {
                 description="No calls scheduled today."
               />
             ) : (
+              <>
               <Stack spacing={0}>
-                {data.call_timeline.map((call, i) => {
+                {(showAllCalls ? data.call_timeline : data.call_timeline.slice(0, VISIBLE_CALLS)).map((call, i) => {
                   const cfg = statusConfig[call.status] || statusConfig.scheduled
                   return (
                     <Box
                       key={call.id}
+                      onClick={() => navigate('/homecare')}
                       sx={{
                         display: 'flex',
                         gap: 'var(--card-gap)',
                         py: 2,
-                        borderBottom: i < data.call_timeline.length - 1 ? `1px solid ${theme.palette.divider}` : 'none',
+                        borderBottom: i < (showAllCalls ? data.call_timeline.length : Math.min(VISIBLE_CALLS, data.call_timeline.length)) - 1 ? `1px solid ${theme.palette.divider}` : 'none',
+                        cursor: 'pointer',
+                        borderRadius: '8px',
+                        mx: -1,
+                        px: 1,
+                        transition: 'background-color 0.15s',
+                        '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' },
                       }}
                     >
                       <Box sx={{ width: 64, flexShrink: 0, textAlign: 'right' }}>
@@ -259,6 +274,17 @@ export default function DomiciliaryDashboard() {
                   )
                 })}
               </Stack>
+              {data.call_timeline.length > VISIBLE_CALLS && (
+                <Button
+                  size="small"
+                  endIcon={<ArrowIcon sx={{ fontSize: 16, transform: showAllCalls ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />}
+                  onClick={() => setShowAllCalls(!showAllCalls)}
+                  sx={{ mt: 2, color: '#0F4C81', fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', justifyContent: 'flex-start' }}
+                >
+                  {showAllCalls ? 'Show less' : `View all ${data.call_timeline.length} calls`}
+                </Button>
+              )}
+              </>
             )}
           </PremiumCard>
         </Grid>
@@ -267,8 +293,8 @@ export default function DomiciliaryDashboard() {
         <Grid item xs={12} md={4}>
           <PremiumCard noBorder sx={{ p: 4, mb: 3 }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 3 }}>
-              <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: 'success.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CarerIcon sx={{ color: '#10B981', fontSize: 18 }} />
+              <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CarerIcon sx={{ color: '#047857', fontSize: 18 }} />
               </Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Carer Coverage</Typography>
             </Stack>
@@ -312,7 +338,7 @@ export default function DomiciliaryDashboard() {
 
           {/* Exceptions */}
           {data.exceptions.length > 0 && (
-            <PremiumCard noBorder sx={{ p: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFBFB' }}>
+            <PremiumCard noBorder sx={{ p: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFBFB', cursor: 'pointer', '&:hover': { boxShadow: 2 }, transition: 'box-shadow 0.15s' }} onClick={() => navigate('/homecare')}>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
                 <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: 'error.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <MissedIcon sx={{ color: '#DC2626', fontSize: 18 }} />
