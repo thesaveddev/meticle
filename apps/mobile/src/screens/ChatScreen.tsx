@@ -165,7 +165,8 @@ export function ChatScreen({ session, onBack }: Props) {
         setOtherLastRead(receipts?.other_last_read_at || null)
         setMemberReads(receipts?.member_reads || [])
       }
-      markChatRead(token, activeChannel.id).catch(() => {})
+      await markChatRead(token, activeChannel.id).catch(() => {})
+      setChannels(prev => prev.map(channel => channel.id === activeChannel.id ? { ...channel, unread_count: 0 } : channel))
     } catch { /* ignore */ } finally { setLoadingMessages(false) }
   }, [token, activeChannel])
 
@@ -181,6 +182,7 @@ export function ChatScreen({ session, onBack }: Props) {
 
   const openChannel = (ch: ChatChannel) => {
     hapticLight()
+    setChannels(prev => prev.map(channel => channel.id === ch.id ? { ...channel, unread_count: 0 } : channel))
     setActiveChannel(ch)
     setView('chat')
     setShowEmoji(false)
@@ -412,7 +414,7 @@ export function ChatScreen({ session, onBack }: Props) {
               ) : null}
             </Pressable>
           ) : null}
-          {item.message && item.message !== `Shared ${item.file_name}` ? (
+          {typeof item.message === 'string' && item.message.length > 0 && item.message !== `Shared ${item.file_name}` ? (
             <View style={[
               msgStyles.bubble,
               isMe ? [msgStyles.bubbleMe, { backgroundColor: c.primary }] : [msgStyles.bubbleOther, { backgroundColor: c.surface, borderColor: c.borderLight }]
@@ -512,7 +514,7 @@ export function ChatScreen({ session, onBack }: Props) {
                   </View>
                   <View style={listStyles.rowContent}>
                     <Text style={[listStyles.name, { color: c.ink }]}>{name}{isCurrentUser ? ' (You)' : ''}</Text>
-                    <Text style={[listStyles.roleText, { color: c.muted }]}>{member.role ? member.role.replaceAll('_', ' ') : member.email}</Text>
+                    <Text style={[listStyles.roleText, { color: c.muted }]}>{member.role ? member.role.replace(/_/g, ' ') : member.email}</Text>
                   </View>
                   {!isCurrentUser ? <Ionicons name="chatbubble-outline" size={19} color={c.primary} /> : null}
                 </Pressable>

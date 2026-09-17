@@ -1,4 +1,5 @@
 import Constants from 'expo-constants'
+import { File } from 'expo-file-system'
 import type { AuthSession, HomecareVisit, MobileUser } from '../types'
 import { clearSession, readSession, writeSession } from './storage'
 
@@ -341,18 +342,29 @@ export async function sendChatMessage(token: string, channel: string, message: s
   }, token)
 }
 
-export async function uploadChatFile(token: string, uri: string, fileName: string): Promise<{ url: string }> {
+/**
+ * Upload a native image as a real Blob/File. React Native 0.86 no longer
+ * accepts the old `{ uri, name, type }` FormData part on every Android
+ * runtime, which caused "unsupported FormDataPart implementation" errors.
+ */
+export async function uploadFile(token: string, endpoint: string, uri: string, fileName: string): Promise<{ url: string }> {
   const formData = new FormData()
-  const ext = fileName.split('.').pop() || 'jpg'
-  const mimeType = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
-  formData.append('file', { uri, name: fileName, type: mimeType } as any)
-  const response = await fetch(`${API_BASE_URL}/settings/upload`, {
+  const file = new File(uri)
+  formData.append('file', file, fileName)
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
   })
-  if (!response.ok) throw new ApiError(response.status, 'Upload failed')
-  return response.json()
+  const raw = await response.text()
+  let data: any = null
+  try { data = raw ? JSON.parse(raw) : null } catch { data = raw }
+  if (!response.ok) throw new ApiError(response.status, data?.message || data?.error?.message || 'Upload failed', data)
+  return data
+}
+
+export async function uploadChatFile(token: string, uri: string, fileName: string): Promise<{ url: string }> {
+  return uploadFile(token, '/chat/upload', uri, fileName)
 }
 
 export async function editChatMessage(token: string, messageId: string, message: string): Promise<any> {
@@ -371,7 +383,7 @@ export async function getChatReadReceipts(token: string, channel: string): Promi
 }
 
 export async function markChatRead(token: string, channel: string): Promise<any> {
-  return request(`/chat/channels/${channel}/read`, {
+  return request(`/chat/channels/${encodeURIComponent(channel)}/read`, {
     method: 'POST',
   }, token)
 }

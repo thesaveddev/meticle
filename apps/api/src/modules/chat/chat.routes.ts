@@ -1,12 +1,15 @@
 import { Router } from 'express';
 import { ChatController } from './chat.controller';
 import { authenticate } from '../../shared/middleware/auth.middleware';
+import { uploadWithScan } from '../../shared/middleware/upload.middleware';
+import { asyncHandler } from '../../shared/middleware/asyncHandler';
 
 const router = Router();
 
 router.use(authenticate);
 
 // Channels
+router.post('/upload', ...uploadWithScan('file'), asyncHandler(ChatController.uploadFile));
 router.get('/channels', ChatController.listChannels);
 router.get('/channels/:channel/messages', ChatController.listMessages);
 router.post('/channels/:channel/messages', ChatController.sendMessage);

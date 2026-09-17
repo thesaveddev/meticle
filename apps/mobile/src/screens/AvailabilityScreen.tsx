@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
+import { Alert, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -14,6 +15,19 @@ const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 function isValidTime(t: string) {
   return /^\d{2}:\d{2}$/.test(t) && Number(t.slice(0, 2)) <= 23 && Number(t.slice(3, 5)) <= 59
+}
+
+function formatDateInput(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function parseDateInput(value: string) {
+  const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value)
+  if (!match) return new Date()
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
 }
 
 const TIME_PRESETS = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00']
@@ -33,6 +47,7 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
   const [start, setStart] = useState('09:00')
   const [end, setEnd] = useState('17:00')
   const [availabilityDate, setAvailabilityDate] = useState('')
+  const [showDatePicker, setShowDatePicker] = useState(false)
   const [specificUnavailable, setSpecificUnavailable] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -64,6 +79,16 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
   for (const rec of records) {
     byDay[rec.day_of_week] = byDay[rec.day_of_week] || []
     byDay[rec.day_of_week].push(rec)
+  }
+
+  const minimumAvailabilityDate = new Date()
+  minimumAvailabilityDate.setHours(0, 0, 0, 0)
+  const maximumAvailabilityDate = new Date(minimumAvailabilityDate)
+  maximumAvailabilityDate.setMonth(maximumAvailabilityDate.getMonth() + 4)
+
+  const handleDatePickerChange = (event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS !== 'ios' || event.type === 'dismissed') setShowDatePicker(false)
+    if (event.type !== 'dismissed' && date) setAvailabilityDate(formatDateInput(date))
   }
 
   const handleSave = async () => {
@@ -282,7 +307,34 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
 
         <View style={[s.formCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
           <Text style={[s.fieldLabel, { color: c.inkLight }]}>Specific date (optional)</Text>
-          <TextInput value={availabilityDate} onChangeText={setAvailabilityDate} placeholder="YYYY-MM-DD · up to 4 months ahead" placeholderTextColor={c.subtle} style={[s.dateInput, { color: c.ink, backgroundColor: c.surfaceAlt, borderColor: c.border }]} />
+          <View style={s.datePickerRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={availabilityDate ? `Selected date ${availabilityDate}` : 'Choose a specific date'}
+              onPress={() => { hapticLight(); setShowDatePicker(true) }}
+              style={[s.datePickerButton, { backgroundColor: c.surfaceAlt, borderColor: c.border }]}
+            >
+              <Ionicons name="calendar-outline" size={18} color={availabilityDate ? c.primary : c.muted} />
+              <Text style={[s.datePickerText, { color: availabilityDate ? c.ink : c.subtle }]}>
+                {availabilityDate || 'Choose a date · up to 4 months ahead'}
+              </Text>
+            </Pressable>
+            {availabilityDate && (
+              <Pressable accessibilityRole="button" accessibilityLabel="Clear selected date" onPress={() => setAvailabilityDate('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={20} color={c.muted} />
+              </Pressable>
+            )}
+          </View>
+          {showDatePicker && (
+            <DateTimePicker
+              value={parseDateInput(availabilityDate)}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              minimumDate={minimumAvailabilityDate}
+              maximumDate={maximumAvailabilityDate}
+              onChange={handleDatePickerChange}
+            />
+          )}
           <Text style={[s.dateHint, { color: c.subtle }]}>Leave this blank for a recurring weekly availability pattern.</Text>
           <View style={s.unavailableRow}><View style={{ flex: 1 }}><Text style={[s.fieldLabel, { color: c.ink }]}>Unavailable all day</Text><Text style={[s.dateHint, { color: c.muted }]}>Use this for a whole day or a one-off date you cannot work.</Text></View><Switch value={specificUnavailable} onValueChange={setSpecificUnavailable} trackColor={{ false: c.border, true: c.primarySurface }} thumbColor={specificUnavailable ? c.primary : c.subtle} /></View>
           {/* Day picker */}
@@ -432,7 +484,9 @@ const styles = StyleSheet.create({
 
   durationHint: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, padding: spacing.sm, borderRadius: radii.sm },
   durationText: { fontFamily: FONT, fontSize: 12, fontWeight: '500', flex: 1 },
-  dateInput: { borderWidth: 1, borderRadius: radii.sm, padding: spacing.md, fontFamily: FONT, fontSize: 13 },
+  datePickerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  datePickerButton: { flex: 1, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: spacing.md },
+  datePickerText: { fontFamily: FONT, fontSize: 13, flex: 1 },
   dateHint: { fontFamily: FONT, fontSize: 11, lineHeight: 16 },
   unavailableRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   dateOverrideRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D1D5DB' },

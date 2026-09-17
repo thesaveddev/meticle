@@ -585,4 +585,11 @@ export class StaffController {
 
     res.json({ url });
   }
+
+  /** POST /staff/me/upload — upload a staff-owned visit attachment. */
+  static async uploadOwnFile(req: Request, res: Response) {
+    const file = req.file;
+    if (!file) throw new AppError(400, 'No file uploaded');
+    res.json({ url: `/uploads/${file.filename}`, originalName: file.originalname });
+  }
 }

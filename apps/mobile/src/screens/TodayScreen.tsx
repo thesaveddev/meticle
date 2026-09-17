@@ -60,7 +60,7 @@ function classifyVisits(visits: HomecareVisit[]): TimelineVisit[] {
 function TimelineDot({ kind, overdue, c }: { kind: string; overdue?: boolean; c: any }) {
   if (overdue) {
     return (
-      <View style={[styles.dot, { backgroundColor: c.danger }]}>  
+      <View style={[styles.dot, { backgroundColor: c.danger }]}>
         <IconAlert size={10} color={c.inverse} />
       </View>
     )
@@ -68,13 +68,13 @@ function TimelineDot({ kind, overdue, c }: { kind: string; overdue?: boolean; c:
   switch (kind) {
     case 'past':
       return (
-        <View style={[styles.dot, { backgroundColor: c.success }]}>  
+        <View style={[styles.dot, { backgroundColor: c.success }]}>
           <IconCheck size={10} color={c.inverse} />
         </View>
       )
     case 'current':
       return (
-        <View style={[styles.dot, styles.dotCurrent, { borderColor: c.primary }]}>  
+        <View style={[styles.dot, styles.dotCurrent, { borderColor: c.primary }]}>
           <View style={[styles.dotInner, { backgroundColor: c.primary }]} />
         </View>
       )
@@ -100,7 +100,9 @@ function StatusPill({ status, overdue, c }: { status: string; overdue?: boolean;
       bg = c.successSurface
       fg = c.successDeep
       label = 'Completed'
-      icon = <IconCheck size={12} color={fg} />
+      icon = <View style={[styles.completedIcon, { backgroundColor: c.success }]}>
+        <IconCheck size={9} color={c.inverse} />
+      </View>
       break
     case 'checked_in':
       bg = c.primarySurface
@@ -211,7 +213,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
       }
     >
       {/* Header */}
-      <View style={styles.header}>  
+      <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.dateText, { color: c.muted }]}>{dateLabel()}</Text>
           <Text style={[styles.userName, { color: c.ink }]}>
@@ -224,14 +226,14 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
             <Text style={[styles.subtitle, { color: c.muted }]}>{completed} of {total} calls completed</Text>
           )}
         </View>
-        <View style={styles.headerActions}>  
+        <View style={styles.headerActions}>
           {queue.length > 0 ? (
-            <Pressable onPress={() => { hapticLight(); onSync() }} style={[styles.syncBadge, { backgroundColor: c.warningSurface }]}>  
+            <Pressable onPress={() => { hapticLight(); onSync() }} style={[styles.syncBadge, { backgroundColor: c.warningSurface }]}>
               <IconOffline size={14} color={c.warning} />
               <Text style={[styles.syncBadgeText, { color: c.warning }]}>{queue.length}</Text>
             </Pressable>
           ) : (
-            <View style={[styles.syncBadgeOk, { backgroundColor: c.surfaceAlt }]}>  
+            <View style={[styles.syncBadgeOk, { backgroundColor: c.surfaceAlt }]}>
               <IconSyncSmall size={14} color={c.success} />
             </View>
           )}
@@ -240,11 +242,11 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
 
       {/* Progress card */}
       {total > 0 && (
-        <View style={[styles.progressCard, { backgroundColor: allDone ? c.successSurface : c.surface }]}>  
-          <View style={styles.progressLeft}>  
+        <View style={[styles.progressCard, { backgroundColor: allDone ? c.successSurface : c.surface }]}>
+          <View style={styles.progressLeft}>
             {/* Circular progress */}
-            <View style={[styles.progressCircle, { borderColor: allDone ? c.success : c.border }]}>  
-              <View style={[styles.progressCircleInner, { borderColor: allDone ? c.success : c.border }]}>  
+            <View style={[styles.progressCircle, { borderColor: allDone ? c.success : c.border }]}>
+              <View style={[styles.progressCircleInner, { borderColor: allDone ? c.success : c.border }]}>
                 {allDone ? (
                   <IconCheck size={24} color={c.success} />
                 ) : (
@@ -253,7 +255,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
               </View>
             </View>
           </View>
-          <View style={styles.progressRight}>  
+          <View style={styles.progressRight}>
             <Text style={[styles.progressTitle, { color: c.ink }]}>Today's progress</Text>
             <Text style={[styles.progressPct, { color: allDone ? c.success : c.primary }]}>
               {total > 0 ? Math.round(progress * 100) : 0}%
@@ -261,7 +263,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
             <Text style={[styles.progressMeta, { color: c.muted }]}>{completed} of {total} calls completed</Text>
           </View>
           {allDone && (
-            <View style={[styles.doneBadge, { backgroundColor: c.successSurface }]}>  
+            <View style={[styles.doneBadge, { backgroundColor: c.successSurface }]}>
               <IconCheck size={14} color={c.success} />
               <Text style={[styles.doneBadgeText, { color: c.success }]}>All done!</Text>
             </View>
@@ -271,7 +273,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
 
       {/* Section heading */}
       {allTimeline.length > 0 && (
-        <View style={styles.sectionHeader}>  
+        <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: c.ink }]}>Today's calls</Text>
           {completedVisits.length > 0 && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -284,7 +286,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
 
       {/* Timeline */}
       {allTimeline.length > 0 && (
-        <View style={styles.timeline}>  
+        <View style={styles.timeline}>
           {allTimeline.map((tv, i) => {
             const ov = isOverdue(tv.visit)
             const isLast = i === allTimeline.length - 1
@@ -293,9 +295,9 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
             const lineColor = isPast ? c.success : isCurrent ? c.primary : ov ? c.danger : c.border
 
             return (
-              <View key={tv.visit.id} style={styles.timelineRow}>  
+              <View key={tv.visit.id} style={styles.timelineRow}>
                 {/* Left: dot + line */}
-                <View style={styles.timelineLeft}>  
+                <View style={styles.timelineLeft}>
                   <TimelineDot kind={tv.kind} overdue={ov} c={c} />
                   {!isLast && <View style={[styles.timelineLine, { backgroundColor: lineColor }]} />}
                 </View>
@@ -307,13 +309,14 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
                     styles.timelineCard,
                     { backgroundColor: c.surface },
                     isCurrent && !ov && { backgroundColor: c.primarySurface },
-                    isPast && { opacity: 0.7 },
+                    isPast && tv.visit.status !== 'completed' && { opacity: 0.7 },
+                    tv.visit.status === 'completed' && { backgroundColor: c.surface },
                     ov && { backgroundColor: c.dangerSurface },
                     pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
                   ]}
-                >  
+                >
                   {/* Time column */}
-                  <View style={[styles.timeBadge, { backgroundColor: isPast ? c.surfaceAlt : isCurrent ? c.primarySurface : ov ? c.dangerSurface : c.surfaceAlt }]}>  
+                  <View style={[styles.timeBadge, { backgroundColor: isPast ? c.surfaceAlt : isCurrent ? c.primarySurface : ov ? c.dangerSurface : c.surfaceAlt }]}>
                     <Text style={[styles.timeBadgeText, { color: isPast ? c.muted : isCurrent ? c.primary : ov ? c.danger : c.muted }]}>
                       {time(tv.visit.scheduled_start)}
                     </Text>
@@ -324,15 +327,15 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
                   </View>
 
                   {/* Content */}
-                  <View style={styles.timelineContent}>  
-                    <View style={styles.timelineNameRow}>  
+                  <View style={styles.timelineContent}>
+                    <View style={styles.timelineNameRow}>
                       <Text style={[styles.timelineName, { color: isPast ? c.muted : ov ? c.danger : c.ink }]} numberOfLines={1}>
                         {tv.visit.label}
                       </Text>
                       <StatusPill status={tv.visit.status} overdue={ov} c={c} />
                     </View>
                     {tv.visit.person_name && (
-                      <View style={styles.infoRow}>  
+                      <View style={styles.infoRow}>
                         <Text style={[styles.infoIcon, { color: c.subtle }]}>👤</Text>
                         <Text style={[styles.timelinePerson, { color: isPast ? c.subtle : c.muted }]} numberOfLines={1}>
                           {tv.visit.person_name}
@@ -340,7 +343,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
                       </View>
                     )}
                     {tv.visit.person_address && (
-                      <View style={styles.infoRow}>  
+                      <View style={styles.infoRow}>
                         <Text style={[styles.infoIcon, { color: c.subtle }]}>📍</Text>
                         <Text style={[styles.timelineAddr, { color: c.subtle }]} numberOfLines={1}>
                           {tv.visit.person_address}
@@ -348,8 +351,8 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
                       </View>
                     )}
                     {ov && <Text style={[styles.overdueTag, { color: c.danger }]}>{overdueLabel(tv.visit)}</Text>}
-                    {tv.visit.requires_two_staff && (
-                      <View style={[styles.twoPersonBadge, { backgroundColor: c.warningSurface }]}>  
+                    {Boolean(tv.visit.requires_two_staff) && (
+                      <View style={[styles.twoPersonBadge, { backgroundColor: c.warningSurface }]}>
                         <IconTwoPerson size={12} color={c.warning} />
                         <Text style={[styles.twoPersonText, { color: c.warning }]}>2-person</Text>
                       </View>
@@ -367,8 +370,8 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
 
       {/* Missed calls alert */}
       {missedVisits.length > 0 && (
-        <View style={[styles.missedCard, { backgroundColor: c.dangerSurface }]}>  
-          <View style={styles.missedHeader}>  
+        <View style={[styles.missedCard, { backgroundColor: c.dangerSurface }]}>
+          <View style={styles.missedHeader}>
             <IconAlert size={18} color={c.danger} />
             <Text style={[styles.missedTitle, { color: c.danger }]}>{missedVisits.length} missed call{missedVisits.length !== 1 ? 's' : ''}</Text>
           </View>
@@ -388,19 +391,19 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
 
       {/* Ride share requests */}
       {rideRequests.length > 0 && (
-        <View style={[styles.rideSection, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }]}>  
-          <View style={styles.rideHeader}>  
+        <View style={[styles.rideSection, { backgroundColor: c.primarySurface, borderColor: c.primary + '20' }]}>
+          <View style={styles.rideHeader}>
             <Ionicons name="car" size={18} color={c.primary} />
             <Text style={[styles.rideTitle, { color: c.primary }]}>{rideRequests.length} ride share request{rideRequests.length !== 1 ? 's' : ''}</Text>
           </View>
           {rideRequests.map(req => (
-            <View key={req.id} style={[styles.rideCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>  
-              <View style={styles.rideInfo}>  
+            <View key={req.id} style={[styles.rideCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+              <View style={styles.rideInfo}>
                 <Text style={[styles.rideName, { color: c.ink }]}>{req.carer_name || 'Carer'}</Text>
                 <Text style={[styles.rideSub, { color: c.muted }]}>{req.visit_label} · {time(req.scheduled_start)}</Text>
                 {req.message && <Text style={[styles.rideMsg, { color: c.subtle }]}>"{req.message}"</Text>}
               </View>
-              <View style={styles.rideActions}>  
+              <View style={styles.rideActions}>
                 <Pressable
                   onPress={() => handleRideResponse(req.id, 'declined')}
                   disabled={processingRide === req.id}
@@ -423,8 +426,8 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
 
       {/* Empty state */}
       {visits.length === 0 && !refreshing && (
-        <View style={styles.empty}>  
-          <View style={[styles.emptyIconWrap, { backgroundColor: c.successSurface }]}>  
+        <View style={styles.empty}>
+          <View style={[styles.emptyIconWrap, { backgroundColor: c.successSurface }]}>
             <Text style={{ fontSize: 28 }}>🎉</Text>
           </View>
           <Text style={[styles.emptyTitle, { color: c.ink }]}>You're all set for today!</Text>
@@ -560,6 +563,7 @@ const styles = StyleSheet.create({
   },
   pillText: { fontFamily: FONT, fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
   pillDot: { width: 5, height: 5, borderRadius: 2.5 },
+  completedIcon: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 
   /* Refresh indicator */
 

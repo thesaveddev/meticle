@@ -15,6 +15,7 @@ router.use(authenticate);
 // Self-service endpoints (any authenticated user)
 router.patch('/me/profile', asyncHandler(StaffController.updateOwnProfile));
 router.post('/me/photo', SettingsController.uploadMiddleware, asyncHandler(StaffController.uploadOwnPhoto));
+router.post('/me/upload', SettingsController.uploadMiddleware, asyncHandler(StaffController.uploadOwnFile));
 
 router.post('/', requireRole(UserRole.ORG_ADMIN), validate(createStaffProfileSchema), asyncHandler(StaffController.createProfile));
 router.get('/org-members', asyncHandler(StaffController.getOrgMembers));
