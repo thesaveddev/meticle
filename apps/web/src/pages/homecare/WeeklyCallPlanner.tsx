@@ -95,9 +95,9 @@ export default function WeeklyCallPlanner() {
           <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCreateDialog(true)} sx={{ textTransform: 'none', borderColor: '#0F4C81', color: '#0F4C81', fontWeight: 600 }}>
             Add call
           </Button>
-          <Button size="small" onClick={() => setWeekOffset(w => w - 1)} sx={{ minWidth: 'auto' }}><ChevronLeftIcon /></Button>
-          <Button size="small" variant="outlined" onClick={() => setWeekOffset(0)} sx={{ textTransform: 'none' }}>Today</Button>
-          <Button size="small" onClick={() => setWeekOffset(w => w + 1)} sx={{ minWidth: 'auto' }}><ChevronRightIcon /></Button>
+          <Button aria-label="Previous week" size="small" onClick={() => setWeekOffset(w => w - 1)} sx={{ minWidth: 'auto' }}><ChevronLeftIcon /></Button>
+          <Button aria-label="Current week" size="small" variant="outlined" onClick={() => setWeekOffset(0)} sx={{ textTransform: 'none' }}>Today</Button>
+          <Button aria-label="Next week" size="small" onClick={() => setWeekOffset(w => w + 1)} sx={{ minWidth: 'auto' }}><ChevronRightIcon /></Button>
         </Stack>
       </Stack>
 

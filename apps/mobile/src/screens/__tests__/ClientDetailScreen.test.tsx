@@ -16,7 +16,9 @@ jest.mock('../../services/api', () => ({
   getDailySummary: jest.fn(async () => null),
   getPersonAssessments: jest.fn(async () => [{ id: 'assessment-1', assessment_type: 'Initial assessment', assessment_date: '2026-09-01', findings: 'Requires person-centred support' }]),
   getPersonTimeline: jest.fn(async () => []),
-  getPersonDocuments: jest.fn(async () => [{ id: 'doc-1', title: 'Support plan', document_type: 'Care document', upload_date: '2026-09-02' }]),
+  getPersonDocuments: jest.fn(async () => [{ id: 'doc-1', title: 'Support plan', document_type: 'Care document', file_url: '/files/private/support-plan.pdf', file_name: 'support-plan.pdf', upload_date: '2026-09-02' }]),
+  getApiFileUrl: jest.fn((url: string) => `https://meticlecare.com${url}`),
+  downloadPersonDocument: jest.fn(async () => ({ uri: 'file:///cache/support-plan.pdf' })),
   getPersonClinicalScores: jest.fn(async () => []),
   getPersonWellbeing: jest.fn(async () => []),
   getPersonCapacityAssessments: jest.fn(async () => []),
@@ -44,6 +46,7 @@ describe('ClientDetailScreen', () => {
     fireEvent.press(screen.getByText('Records'))
     expect(screen.getByText('Initial assessment')).toBeTruthy()
     expect(screen.getByText('Support plan')).toBeTruthy()
+    expect(screen.getByText('Open / save')).toBeTruthy()
     expect(screen.getByText('Read-only client records. Use the web app for clinical updates and document management.')).toBeTruthy()
     expect((api.getPersonDocuments as jest.Mock)).toHaveBeenCalledWith('token', 'person-1')
   })
