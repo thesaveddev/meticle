@@ -72,6 +72,12 @@ export function ClientListScreen({ session, onBack, onSelect }: Props) {
           <Text style={[s.meta, { color: c.muted }]} numberOfLines={1}>
             {item.nhs_number ? `NHS ${item.nhs_number}` : item.date_of_birth ? `DOB ${item.date_of_birth}` : 'No NHS number'}
           </Text>
+          {(Number(item.active_care_plans) > 0 || Number(item.open_risks) > 0) && (
+            <View style={s.recordMetaRow}>
+              {Number(item.active_care_plans) > 0 && <Text style={[s.recordMeta, { color: c.primary }]}>{item.active_care_plans} care plan{Number(item.active_care_plans) === 1 ? '' : 's'}</Text>}
+              {Number(item.open_risks) > 0 && <Text style={[s.recordMeta, { color: c.danger }]}>{item.open_risks} high risk{Number(item.open_risks) === 1 ? '' : 's'}</Text>}
+            </View>
+          )}
         </View>
         <View style={[s.statusBadge, { backgroundColor: sc.bg }]}>
           <Text style={[s.statusText, { color: sc.text }]}>{item.status || 'Active'}</Text>
@@ -151,6 +157,8 @@ const styles = StyleSheet.create({
   avatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', fontFamily: FONT },
   name: { fontSize: 15, fontWeight: '600', fontFamily: FONT },
   meta: { fontSize: 12, fontFamily: FONT, marginTop: 2 },
+  recordMetaRow: { flexDirection: 'row', gap: spacing.sm, marginTop: 4, flexWrap: 'wrap' },
+  recordMeta: { fontSize: 11, fontFamily: FONT, fontWeight: '600' },
   statusBadge: { borderRadius: 10, paddingHorizontal: spacing.sm, paddingVertical: 3 },
   statusText: { fontFamily: FONT, fontSize: 11, fontWeight: '600' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },

@@ -718,9 +718,11 @@ export class HomecareController {
 
     const result = await query(
       `SELECT sr.*, hv.label as visit_label, hv.visit_type, hv.scheduled_start, hv.scheduled_end,
-              p.first_name || ' ' || p.last_name as client_name,
-              COALESCE(sp_req.first_name, u_req.email) as requested_by_name,
-              COALESCE(sp_tgt.first_name, u_tgt.email) as target_name
+              p.first_name || ' ' || p.last_name as client_name,               COALESCE(NULLIF(TRIM(sp_req.first_name || ' ' || sp_req.last_name), ''), u_req.email) as requested_by_name,
+               COALESCE(NULLIF(TRIM(sp_tgt.first_name || ' ' || sp_tgt.last_name), ''), u_tgt.email) as target_name,
+               (sr.requested_by = $2) AS is_requested_by_me,
+               (sr.target_staff_id = $3) AS is_target_for_me
+
        FROM visit_swap_requests sr
        JOIN homecare_visits hv ON hv.id = sr.visit_id
        LEFT JOIN people p ON p.id = hv.person_id

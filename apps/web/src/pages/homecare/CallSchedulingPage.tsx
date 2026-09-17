@@ -5,7 +5,13 @@ import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
 
 const timeLabel = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-const dateLabel = (d: string) => new Date(d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+const dateLabel = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+const localDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 const statusColor = (s: string) => {
   if (s === 'completed') return { bg: '#E9F7F0', color: '#047857' }
@@ -21,8 +27,10 @@ export default function CallSchedulingPage() {
 
   const today = new Date()
   today.setDate(today.getDate() + offset)
-  const dayStr = today.toISOString().slice(0, 10)
-  const nextDayStr = new Date(today.getTime() + 86400000).toISOString().slice(0, 10)
+  const dayStr = localDate(today)
+  const nextDay = new Date(today)
+  nextDay.setDate(nextDay.getDate() + 1)
+  const nextDayStr = localDate(nextDay)
 
   const { data: visits = [], isLoading } = useQuery({
     queryKey: ['homecare-visits-schedule', dayStr, isManager],

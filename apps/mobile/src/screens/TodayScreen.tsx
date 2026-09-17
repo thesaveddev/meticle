@@ -8,6 +8,7 @@ import { listRideShareRequests, respondRideShareRequest } from '../services/api'
 import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconTwoPerson } from '../components/Icons'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
+import { localDateTimeStart } from '../utils/dateRange'
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -443,9 +444,8 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
 /* ─── dayRange helper (exported for App.tsx) ─────────────────── */
 export function dayRange() {
   const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString()
-  return { from, to }
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  return { from: localDateTimeStart(now), to: localDateTimeStart(tomorrow) }
 }
 
 const styles = StyleSheet.create({

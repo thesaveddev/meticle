@@ -5,16 +5,30 @@ import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { SkeletonScreen } from '../components/Skeleton'
 import { MapPickerModal } from '../components/MapPickerModal'
 import type { AuthSession } from '../types'
-import { getPersonDetail, getMedicationsForPerson, getBodyMapStats, getDailySummary, getDailyNotes } from '../services/api'
+import {
+  getPersonDetail,
+  getMedicationsForPerson,
+  getBodyMapStats,
+  getDailySummary,
+  getPersonAssessments,
+  getPersonTimeline,
+  getPersonDocuments,
+  getPersonClinicalScores,
+  getPersonWellbeing,
+  getPersonCapacityAssessments,
+  getPersonCarePathways,
+  getPersonCommunicationLog,
+  getPersonTimeAway,
+} from '../services/api'
 
-type TabKey = 'overview' | 'care' | 'notes' | 'risks' | 'meds' | 'personal' | 'contacts'
+type TabKey = 'overview' | 'care' | 'risks' | 'meds' | 'records' | 'personal' | 'contacts'
 
 const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'overview', label: 'Overview', icon: 'document-text-outline' },
   { key: 'care', label: 'Care Plans', icon: 'clipboard-outline' },
-  { key: 'notes', label: 'Notes', icon: 'create-outline' },
   { key: 'risks', label: 'Risks', icon: 'shield-outline' },
   { key: 'meds', label: 'Meds', icon: 'medkit-outline' },
+  { key: 'records', label: 'Records', icon: 'library-outline' },
   { key: 'personal', label: 'Personal', icon: 'person-outline' },
   { key: 'contacts', label: 'Contacts', icon: 'call-outline' },
 ]
@@ -33,7 +47,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
   const [medications, setMedications] = useState<any[]>([])
   const [bodyMapStats, setBodyMapStats] = useState<any>(null)
   const [nutritionSummary, setNutritionSummary] = useState<any>(null)
-  const [dailyNotes, setDailyNotes] = useState<any[]>([])
+  const [records, setRecords] = useState<Record<string, any[]>>({ assessments: [], timeline: [], documents: [], clinicalScores: [], wellbeing: [], capacity: [], pathways: [], communications: [], timeAway: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [tab, setTab] = useState<TabKey>('overview')
@@ -43,18 +57,26 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
 
   const loadData = useCallback(async () => {
     try {
-      const [personData, medData, bmStats, nutSummary, notesData] = await Promise.all([
+      const [personData, medData, bmStats, nutSummary, assessments, timeline, documents, clinicalScores, wellbeing, capacity, pathways, communications, timeAway] = await Promise.all([
         getPersonDetail(session.accessToken, personId),
         getMedicationsForPerson(session.accessToken, personId).catch(() => []),
         getBodyMapStats(session.accessToken, personId).catch(() => null),
         getDailySummary(session.accessToken, personId).catch(() => null),
-        getDailyNotes(session.accessToken, personId).catch(() => []),
+        getPersonAssessments(session.accessToken, personId).catch(() => []),
+        getPersonTimeline(session.accessToken, personId).catch(() => []),
+        getPersonDocuments(session.accessToken, personId).catch(() => []),
+        getPersonClinicalScores(session.accessToken, personId).catch(() => []),
+        getPersonWellbeing(session.accessToken, personId).catch(() => []),
+        getPersonCapacityAssessments(session.accessToken, personId).catch(() => []),
+        getPersonCarePathways(session.accessToken, personId).catch(() => []),
+        getPersonCommunicationLog(session.accessToken, personId).catch(() => []),
+        getPersonTimeAway(session.accessToken, personId).catch(() => []),
       ])
       setPerson(personData)
       setMedications(medData)
       setBodyMapStats(bmStats)
       setNutritionSummary(nutSummary)
-      setDailyNotes(notesData)
+      setRecords({ assessments, timeline, documents, clinicalScores, wellbeing, capacity, pathways, communications, timeAway })
     } catch (e: any) {
       setError(e.message || 'Could not load details')
     } finally {
@@ -204,11 +226,11 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
 
       {/* Tab content */}
       <ScrollView contentContainerStyle={styles.tabContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData() }} tintColor="transparent" />}>
-        {tab === 'overview' && <OverviewTab person={person} bodyMapStats={bodyMapStats} nutritionSummary={nutritionSummary} dailyNotes={dailyNotes} onBodyMap={() => onBodyMap?.(personId, personName)} onNutrition={() => onNutrition?.(personId, personName)} c={c} />}
+        {tab === 'overview' && <OverviewTab person={person} bodyMapStats={bodyMapStats} nutritionSummary={nutritionSummary} onBodyMap={() => onBodyMap?.(personId, personName)} onNutrition={() => onNutrition?.(personId, personName)} c={c} />}
         {tab === 'care' && <CareTab carePlans={carePlans} allCarePlans={allCarePlans} c={c} />}
-        {tab === 'notes' && <NotesTab notes={dailyNotes} c={c} />}
         {tab === 'risks' && <RisksTab risks={riskAssessments} c={c} />}
         {tab === 'meds' && <MedsTab medications={medications} c={c} />}
+        {tab === 'records' && <RecordsTab records={records} c={c} />}
         {tab === 'personal' && <PersonalTab person={person} c={c} />}
         {tab === 'contacts' && <ContactsTab emergencyContacts={emergencyContacts} otherContacts={otherContacts} c={c} />}
       </ScrollView>
@@ -241,7 +263,7 @@ function Header({ onBack, title, c }: { onBack: () => void; title: string; c: an
 
 /* ─── Tab: Overview ──────────────────────────────────────── */
 
-function OverviewTab({ person, bodyMapStats, nutritionSummary, dailyNotes, onBodyMap, onNutrition, c }: any) {
+function OverviewTab({ person, bodyMapStats, nutritionSummary, onBodyMap, onNutrition, c }: any) {
   return (
     <View>
       {/* Address */}
@@ -323,18 +345,7 @@ function OverviewTab({ person, bodyMapStats, nutritionSummary, dailyNotes, onBod
         </Pressable>
       </View>
 
-      {/* Recent notes preview */}
-      {dailyNotes.length > 0 && (
-        <Card title={`Recent Notes (${dailyNotes.length})`} c={c}>
-          {dailyNotes.slice(0, 3).map((note: any) => (
-            <View key={note.id} style={styles.notePreview}>
-              <Text style={[styles.noteDate, { color: c.muted }]}>{new Date(note.note_date || note.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</Text>
-              <Text style={[styles.noteText, { color: c.ink }]} numberOfLines={2}>{note.content || note.summary || 'No content'}</Text>
-              {note.author_name && <Text style={[styles.noteAuthor, { color: c.muted }]}>by {note.author_name}</Text>}
-            </View>
-          ))}
-        </Card>
-      )}
+
     </View>
   )
 }
@@ -377,27 +388,122 @@ function CareTab({ carePlans, allCarePlans, c }: any) {
   )
 }
 
-/* ─── Tab: Notes ─────────────────────────────────────────── */
+/* ─── Tab: Records ───────────────────────────────────────── */
 
-function NotesTab({ notes, c }: any) {
-  if (notes.length === 0) {
-    return <EmptyState icon="create-outline" title="No care notes" subtitle="No daily notes have been recorded yet" c={c} />
+function RecordsTab({ records, c }: any) {
+  const total = Object.values(records).reduce((count: number, items: any) => count + (Array.isArray(items) ? items.length : 0), 0)
+  if (total === 0) {
+    return <EmptyState icon="library-outline" title="No additional records" subtitle="Assessments, documents and other records will appear here" c={c} />
   }
   return (
     <View>
-      {notes.map((note: any) => (
-        <View key={note.id} style={[styles.noteCard, { backgroundColor: c.surface }]}>
-          <View style={styles.noteHeader}>
-            <View style={[styles.noteDot, { backgroundColor: c.primary }]} />
-            <Text style={[styles.noteDate, { color: c.muted }]}>{new Date(note.note_date || note.created_at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+      <View style={[styles.recordsIntro, { backgroundColor: c.primarySurface }]}>
+        <Ionicons name="information-circle-outline" size={18} color={c.primary} />
+        <Text style={[styles.recordsIntroText, { color: c.primary }]}>Read-only client records. Use the web app for clinical updates and document management.</Text>
+      </View>
+
+      <RecordSection title="Care assessments" icon="clipboard-outline" items={records.assessments} c={c} empty="No care assessments" renderItem={(item: any) => (
+        <RecordCard key={item.id} title={item.assessment_type || 'Care assessment'} meta={formatDate(item.assessment_date)} c={c}>
+          {item.assessor_name && <InfoRow icon="person-outline" label="Assessor" value={item.assessor_name} c={c} />}
+          {item.findings && <Text style={[styles.recordBody, { color: c.ink }]}>{item.findings}</Text>}
+          {item.recommendations && <Text style={[styles.recordBody, { color: c.ink }]}>Recommendations: {item.recommendations}</Text>}
+          {item.next_review_date && <InfoRow icon="calendar-outline" label="Next review" value={formatDate(item.next_review_date)} c={c} />}
+        </RecordCard>
+      )} />
+
+      <RecordSection title="Capacity assessments" icon="people-outline" items={records.capacity} c={c} empty="No capacity assessments" renderItem={(item: any) => (
+        <RecordCard key={item.id} title={item.decision_to_be_made || 'Capacity assessment'} meta={formatDate(item.assessment_date)} c={c}>
+          {item.capacity_status && <InfoRow icon="checkmark-circle-outline" label="Status" value={item.capacity_status} c={c} />}
+          {item.capacity_found !== null && item.capacity_found !== undefined && <InfoRow icon="shield-checkmark-outline" label="Capacity found" value={item.capacity_found ? 'Yes' : 'No'} c={c} />}
+          {item.best_interest_decision && <Text style={[styles.recordBody, { color: c.ink }]}>Best-interest decision: {item.best_interest_decision}</Text>}
+          {item.review_date && <InfoRow icon="calendar-outline" label="Review" value={formatDate(item.review_date)} c={c} />}
+        </RecordCard>
+      )} />
+
+      <RecordSection title="Care pathways" icon="git-branch-outline" items={records.pathways} c={c} empty="No care pathways" renderItem={(item: any) => (
+        <RecordCard key={item.id} title={item.title || item.pathway_type || 'Care pathway'} meta={`${item.status || 'active'}${item.start_date ? ` · ${formatDate(item.start_date)}` : ''}`} c={c}>
+          {item.location_name && <InfoRow icon="location-outline" label="Location" value={item.location_name} c={c} />}
+          {item.referral_reason && <Text style={[styles.recordBody, { color: c.ink }]}>Reason: {item.referral_reason}</Text>}
+          {item.discharge_notes && <Text style={[styles.recordBody, { color: c.ink }]}>Notes: {item.discharge_notes}</Text>}
+        </RecordCard>
+      )} />
+
+      <RecordSection title="Clinical scores" icon="pulse-outline" items={records.clinicalScores} c={c} empty="No clinical scores" renderItem={(item: any) => (
+        <RecordCard key={item.id} title={item.score_type || 'Clinical score'} meta={formatDate(item.recorded_date)} c={c}>
+          <InfoRow icon="analytics-outline" label="Score" value={String(item.score ?? 'Not recorded')} c={c} />
+          {item.risk_level && <InfoRow icon="warning-outline" label="Risk" value={item.risk_level} c={c} />}
+          {item.notes && <Text style={[styles.recordBody, { color: c.ink }]}>{item.notes}</Text>}
+        </RecordCard>
+      )} />
+
+      <RecordSection title="Documents" icon="document-attach-outline" items={records.documents} c={c} empty="No documents" renderItem={(item: any) => (
+        <RecordCard key={item.id} title={item.title || 'Untitled document'} meta={`${item.document_type || 'Document'}${item.upload_date ? ` · ${formatDate(item.upload_date)}` : ''}`} c={c}>
+          {item.description && <Text style={[styles.recordBody, { color: c.ink }]}>{item.description}</Text>}
+          {item.uploaded_by_name && <Text style={[styles.recordMeta, { color: c.muted }]}>Uploaded by {item.uploaded_by_name}</Text>}
+        </RecordCard>
+      )} />
+
+      <RecordSection title="Recent wellbeing" icon="happy-outline" items={records.wellbeing} c={c} empty="No wellbeing records" renderItem={(item: any) => (
+        <RecordCard key={item.id} title={item.domain || 'Wellbeing check'} meta={formatDate(item.recorded_date)} c={c}>
+          <InfoRow icon="star-outline" label="Score" value={String(item.score ?? 'Not recorded')} c={c} />
+          {item.notes && <Text style={[styles.recordBody, { color: c.ink }]}>{item.notes}</Text>}
+        </RecordCard>
+      )} />
+
+      <RecordSection title="Communication history" icon="chatbubbles-outline" items={records.communications} c={c} empty="No communication history" renderItem={(item: any) => (
+        <RecordCard key={item.id} title={item.contact_name || 'Communication'} meta={formatDate(item.recorded_date)} c={c}>
+          {item.relationship && <InfoRow icon="people-outline" label="Relationship" value={item.relationship} c={c} />}
+          {item.contact_method && <InfoRow icon="call-outline" label="Method" value={item.contact_method} c={c} />}
+          {item.summary && <Text style={[styles.recordBody, { color: c.ink }]}>{item.summary}</Text>}
+          {item.follow_up_actions && <Text style={[styles.recordBody, { color: c.ink }]}>Follow-up: {item.follow_up_actions}</Text>}
+        </RecordCard>
+      )} />
+
+      <RecordSection title="Time away & discharge" icon="exit-outline" items={records.timeAway} c={c} empty="No time-away records" renderItem={(item: any) => (
+        <RecordCard key={item.id} title={item.title || item.time_away_type || 'Time away'} meta={`${item.start_date ? formatDate(item.start_date) : ''}${item.end_date ? ` – ${formatDate(item.end_date)}` : ''}`} c={c}>
+          {item.destination && <InfoRow icon="location-outline" label="Destination" value={item.destination} c={c} />}
+          {item.notes && <Text style={[styles.recordBody, { color: c.ink }]}>{item.notes}</Text>}
+          {Array.isArray(item.items) && item.items.length > 0 && <Text style={[styles.recordMeta, { color: c.muted }]}>{item.items.filter((i: any) => i.is_complete).length} of {item.items.length} checklist items complete</Text>}
+        </RecordCard>
+      )} />
+
+      {records.timeline.length > 0 && (
+        <RecordSection title="Activity timeline" icon="time-outline" items={records.timeline.slice(0, 20)} c={c} empty="No activity" renderItem={(item: any) => (
+          <View key={item.id || `${item.event_type}-${item.created_at}`} style={styles.timelineRow}>
+            <View style={[styles.timelineDot, { backgroundColor: c.primary }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.recordTitle, { color: c.ink }]}>{item.title || item.description || item.event_type || 'Activity'}</Text>
+              <Text style={[styles.recordMeta, { color: c.muted }]}>{formatDate(item.created_at || item.event_date)}</Text>
+            </View>
           </View>
-          <Text style={[styles.noteContent, { color: c.ink }]}>{note.content || note.summary || 'No content'}</Text>
-          {note.note_type && <View style={[styles.planCategory, { backgroundColor: c.primarySurface, alignSelf: 'flex-start', marginTop: spacing.xs }]}><Text style={[styles.planCategoryText, { color: c.primary }]}>{note.note_type}</Text></View>}
-          {note.author_name && <Text style={[styles.noteAuthor, { color: c.muted, marginTop: spacing.xs }]}>Recorded by {note.author_name}</Text>}
-        </View>
-      ))}
+        )} />
+      )}
     </View>
   )
+}
+
+function RecordSection({ title, icon: _icon, items, empty, renderItem, c }: any) {
+  return (
+    <Card title={title} c={c}>
+      {items.length === 0 ? <Text style={[styles.emptyText, { color: c.muted }]}>{empty}</Text> : items.map(renderItem)}
+    </Card>
+  )
+}
+
+function RecordCard({ title, meta, children, c }: any) {
+  return (
+    <View style={[styles.recordCard, { borderTopColor: c.borderLight }]}>
+      <Text style={[styles.recordTitle, { color: c.ink }]}>{title}</Text>
+      {meta ? <Text style={[styles.recordMeta, { color: c.muted }]}>{meta}</Text> : null}
+      {children}
+    </View>
+  )
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return 'Date not recorded'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 /* ─── Tab: Risks ─────────────────────────────────────────── */
@@ -704,6 +810,16 @@ const styles = StyleSheet.create({
   noteAuthor: { fontSize: 12, fontFamily: FONT },
   notePreview: { paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderLight },
   noteText: { fontSize: 14, fontFamily: FONT, lineHeight: 20, marginTop: 2 },
+
+  /* Records */
+  recordsIntro: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, padding: spacing.md, borderRadius: radii.md, marginBottom: spacing.md },
+  recordsIntroText: { flex: 1, fontSize: 13, fontFamily: FONT, lineHeight: 18 },
+  recordCard: { paddingTop: spacing.sm, marginTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
+  recordTitle: { fontSize: 14, fontWeight: '600', fontFamily: FONT },
+  recordMeta: { fontSize: 12, fontFamily: FONT, marginTop: 2 },
+  recordBody: { fontSize: 13, fontFamily: FONT, lineHeight: 19, marginTop: spacing.xs },
+  timelineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderLight },
+  timelineDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
 
   /* Risks */
   riskCard: { borderRadius: radii.lg, padding: spacing.base, marginBottom: spacing.md, ...elevation.sm },

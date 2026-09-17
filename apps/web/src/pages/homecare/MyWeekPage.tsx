@@ -8,6 +8,14 @@ function time(v: string) {
   return new Date(v).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
+function localDateKey(value: Date | string) {
+  const date = typeof value === 'string' ? new Date(value) : value
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function statusColor(s: string) {
   switch (s) {
     case 'completed': return 'success'
@@ -21,27 +29,27 @@ function statusColor(s: string) {
 export default function MyWeekPage() {
   const [visits, setVisits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [error] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
     const now = new Date()
     const from = new Date(now); from.setHours(0, 0, 0, 0)
     const to = new Date(now); to.setDate(to.getDate() + 7); to.setHours(23, 59, 59)
     api.get('/homecare/week-visits', { params: { from: from.toISOString(), to: to.toISOString() } })
-      .then(res => setVisits(res.data))
-      .catch(() => {})
+      .then(res => setVisits(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setError('Could not load your week. Please try again.'))
       .finally(() => setLoading(false))
   }, [])
 
   // Group by day
   const grouped: Record<string, any[]> = {}
   for (const v of visits) {
-    const key = new Date(v.scheduled_start).toISOString().split('T')[0]
+    const key = localDateKey(v.scheduled_start)
     if (!grouped[key]) grouped[key] = []
     grouped[key].push(v)
   }
   const days = Object.keys(grouped).sort()
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateKey(new Date())
   const completed = visits.filter(v => v.status === 'completed').length
 
   if (loading) return <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>

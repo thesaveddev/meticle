@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { Add as AddIcon, Schedule as ScheduleIcon } from '@mui/icons-material'
 import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
@@ -34,6 +34,7 @@ export default function AvailabilityPage() {
   const [selectedStaff, setSelectedStaff] = useState(isCarer ? '' : '')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const [day, setDay] = useState('1')
   const [start, setStart] = useState('09:00')
   const [end, setEnd] = useState('17:00')
@@ -52,14 +53,16 @@ export default function AvailabilityPage() {
         setAvailability(availRes.data)
         setStaff(staffRes.data)
       }
-    } catch { /* ignore */ }
+    } catch { setError('Could not load availability. Please try again.') }
     finally { setLoading(false) }
   }
 
   useEffect(() => { load() }, [])
 
   const addAvailability = async () => {
+    if (end <= start) { setError('The end time must be after the start time.'); return }
     setSaving(true)
+    setError('')
     try {
       const staffId = isCarer ? undefined : selectedStaff
       await api.post('/homecare/availability', {
@@ -70,12 +73,19 @@ export default function AvailabilityPage() {
       })
       setDialogOpen(false)
       await load()
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Could not save availability. Please try again.')
     } finally { setSaving(false) }
   }
 
   const deleteAvailability = async (id: string) => {
-    await api.delete(`/homecare/availability/${id}`)
-    await load()
+    setError('')
+    try {
+      await api.delete(`/homecare/availability/${id}`)
+      await load()
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Could not remove availability. Please try again.')
+    }
   }
 
   // Group availability by day
@@ -99,6 +109,7 @@ export default function AvailabilityPage() {
         <ScheduleIcon sx={{ color: '#10b981', fontSize: 28 }} />
         <Typography variant="h4" sx={{ fontWeight: 800 }}>{isCarer ? 'My Availability' : 'Carer Availability'}</Typography>
       </Stack>
+      {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {isCarer
           ? 'Set the days and times you are available for care calls. Your manager will use this to assign visits.'

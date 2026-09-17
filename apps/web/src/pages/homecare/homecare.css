@@ -88,6 +88,7 @@
 .homecare-package__name { font-weight: 700 !important; letter-spacing: -0.02em; }
 .homecare-visit__person { margin-top: 4px !important; font-weight: 600 !important; }
 .homecare-visit__address { margin-top: 4px !important; color: var(--homecare-muted); font-size: 0.82rem !important; }
+.homecare-visit__carer { margin-top: 6px !important; color: var(--homecare-navy); font-size: 0.82rem !important; font-weight: 650 !important; }
 .homecare-visit__meta { color: var(--homecare-muted); font-size: 0.78rem; line-height: 1.8; }
 .homecare-visit__meta strong { color: var(--homecare-ink); }
 .homecare-visit__meta svg { vertical-align: -3px; margin-right: 4px; color: var(--homecare-navy); }

@@ -42,7 +42,8 @@
     "expo-sharing": "~57.0.20",
     "react": "19.2.3",
     "react-native": "^0.86.3",
-    "react-native-safe-area-context": "~5.7.0"
+    "react-native-safe-area-context": "~5.7.0",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@react-native/eslint-config": "^0.86.3",

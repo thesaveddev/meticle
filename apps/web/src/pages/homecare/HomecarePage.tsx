@@ -10,6 +10,12 @@ import './homecare.css'
 const money = (pence: number | null | undefined) => pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
 const dateLabel = (value: string) => new Date(value).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 const statusLabel = (status: string) => status.replace(/_/g, ' ')
+const localDateOnly = (date = new Date()) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 export default function HomecarePage() {
   const [tab, setTab] = useState(0)
@@ -17,9 +23,9 @@ export default function HomecarePage() {
   const [syncState, setSyncState] = useState<'online' | 'syncing' | 'offline' | 'failed'>(navigator.onLine ? 'online' : 'offline')
   const [queuedActions, setQueuedActions] = useState<HomecareOfflineAction[]>(getHomecareOfflineQueue())
   const [packageDialogOpen, setPackageDialogOpen] = useState(false)
-  const [payrollFrom, setPayrollFrom] = useState(new Date().toISOString().slice(0, 8) + '01')
-  const [payrollTo, setPayrollTo] = useState(new Date().toISOString().slice(0, 10))
-  const [packageForm, setPackageForm] = useState({ person_id: '', name: '', start_date: new Date().toISOString().slice(0, 10), funding_type: 'private', hourly_rate_pence: '', client_rate_pence: '', travel_time_paid: true, mileage_rate_pence: '' })
+  const [payrollFrom, setPayrollFrom] = useState(() => localDateOnly(new Date(new Date().getFullYear(), new Date().getMonth(), 1)))
+  const [payrollTo, setPayrollTo] = useState(() => localDateOnly())
+  const [packageForm, setPackageForm] = useState({ person_id: '', name: '', start_date: localDateOnly(), funding_type: 'private', hourly_rate_pence: '', client_rate_pence: '', travel_time_paid: true, mileage_rate_pence: '' })
   const qc = useQueryClient()
   const user = useMemo(() => { try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} } }, [])
   const isManager = user.role === 'ORG_ADMIN' || user.role === 'MANAGER'
@@ -174,6 +180,7 @@ function OperationsSummary() {
 
 function VisitList({ visits, loading, execute }: any) {
   const [disruptionVisit, setDisruptionVisit] = useState<any>(null)
+  const [error, setError] = useState('')
   const [disruption, setDisruption] = useState({ disruption_type: 'traffic', severity: 'medium', delay_minutes: 15, description: '' })
   const [saving, setSaving] = useState(false)
   const reportDisruption = async () => {
@@ -183,18 +190,21 @@ function VisitList({ visits, loading, execute }: any) {
       await api.post(`/homecare/visits/${disruptionVisit.id}/disruptions`, { ...disruption, delay_minutes: Number(disruption.delay_minutes) })
       setDisruptionVisit(null)
       setDisruption({ disruption_type: 'traffic', severity: 'medium', delay_minutes: 15, description: '' })
-    } catch { /* surfaced through the next visit refresh in the shell */ }
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Could not report the travel issue. Please try again.')
+    }
     finally { setSaving(false) }
   }
   if (loading) return <Box className="homecare-loading"><CircularProgress /><Typography>Loading your visit plan…</Typography></Box>
   if (!visits.length) return <Paper className="homecare-empty"><Typography variant="h6">No visits assigned in the next two days</Typography><Typography color="text.secondary">When a manager assigns a call, it will appear here with time to travel.</Typography></Paper>
   return <>
+    {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
     <Stack spacing={1.5}>{visits.map((visit: any) => {
       const open = ['scheduled', 'en_route', 'checked_in'].includes(visit.status)
       const checkedIn = visit.status === 'checked_in'
       return <Paper key={visit.id} className={`homecare-visit homecare-visit--${visit.status}`}>
         <Box className="homecare-visit__time"><Typography className="homecare-visit__date">{dateLabel(visit.scheduled_start)}</Typography><Chip size="small" label={statusLabel(visit.status)} variant="outlined" /></Box>
-        <Box className="homecare-visit__main"><Typography className="homecare-visit__name">{visit.label}</Typography><Typography className="homecare-visit__person">{visit.person_name}</Typography><Typography className="homecare-visit__address">{visit.person_address || 'Address recorded in the person profile'}</Typography></Box>
+        <Box className="homecare-visit__main"><Typography className="homecare-visit__name">{visit.label}</Typography><Typography className="homecare-visit__person">{visit.person_name}</Typography><Typography className="homecare-visit__address">{visit.person_address || 'Address recorded in the person profile'}</Typography>{visit.carer_name && <Typography className="homecare-visit__carer">Carer: {visit.carer_name}</Typography>}</Box>
         <Box className="homecare-visit__meta"><Typography><strong>{Math.max(0, Math.round((new Date(visit.scheduled_end).getTime() - new Date(visit.scheduled_start).getTime()) / 60000))} min</strong> scheduled</Typography><Typography><DirectionsCarIcon fontSize="inherit" /> Allow travel before arrival</Typography></Box>
         {open && <Stack spacing={1}><Button className="homecare-action" variant="contained" onClick={() => execute.mutate({ id: visit.id, action: checkedIn ? 'check-out' : 'check-in' })} disabled={execute.isPending}>{execute.isPending ? <CircularProgress size={18} color="inherit" /> : checkedIn ? 'Check out' : 'Check in'}</Button><Button size="small" variant="text" onClick={() => setDisruptionVisit(visit)}>Report travel issue</Button></Stack>}
       </Paper>
@@ -217,7 +227,7 @@ function PackageList({ packages, onMessage }: any) {
   const [plan, setPlan] = useState({ visit_type: 'routine', label: 'Routine call', days_of_week: [1, 2, 3, 4, 5], start_time: '09:00', duration_minutes: 30, travel_buffer_minutes: 15, default_staff_id: '', default_tasks: [] as { label: string; sort_order: number }[], hourly_rate_pence: '', mileage_rate_pence: '', use_default_rate: true })
   const [newTaskLabel, setNewTaskLabel] = useState('')
   const { data: staff = [] } = useQuery({ queryKey: ['homecare-staff'], queryFn: () => api.get('/homecare/staff').then(r => Array.isArray(r.data) ? r.data : []), enabled: true })
-  const [range, setRange] = useState({ from: new Date().toISOString().slice(0, 10), to: new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 10) })
+  const [range, setRange] = useState({ from: localDateOnly(), to: localDateOnly(new Date(Date.now() + 6 * 86400000)) })
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const createPlan = async () => {
