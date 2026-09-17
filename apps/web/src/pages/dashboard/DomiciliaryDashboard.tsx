@@ -151,11 +151,11 @@ export default function DomiciliaryDashboard() {
       {/* Call Stats */}
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
         {[
-          { label: 'Completed', value: data.calls_completed, color: '#10B981', icon: <CompletedIcon /> },
-          { label: 'In Progress', value: data.calls_in_progress, color: '#0F4C81', icon: <CallIcon /> },
-          { label: 'Upcoming', value: data.calls_scheduled, color: 'text.secondary', icon: <PendingIcon /> },
-          { label: 'Missed', value: data.calls_missed, color: '#DC2626', icon: <MissedIcon /> },
-          { label: 'Unassigned', value: data.calls_unassigned, color: '#D97706', icon: <UnassignedIcon /> },
+          { label: 'Completed', value: data.calls_completed, color: '#10B981', icon: <CompletedIcon />, filter: 'completed' },
+          { label: 'In Progress', value: data.calls_in_progress, color: '#0F4C81', icon: <CallIcon />, filter: 'checked_in' },
+          { label: 'Upcoming', value: data.calls_scheduled, color: 'text.secondary', icon: <PendingIcon />, filter: 'scheduled' },
+          { label: 'Missed', value: data.calls_missed, color: '#DC2626', icon: <MissedIcon />, filter: 'missed' },
+          { label: 'Unassigned', value: data.calls_unassigned, color: '#D97706', icon: <UnassignedIcon />, filter: '' },
         ].map(card => (
           <Grid item xs={6} sm={4} md={2.4} key={card.label}>
             <StatCard
@@ -163,7 +163,7 @@ export default function DomiciliaryDashboard() {
               value={card.value}
               icon={card.icon}
               color={card.color}
-              onClick={() => navigate('/homecare')}
+              onClick={() => navigate(card.filter ? `/homecare?status=${card.filter}` : '/homecare')}
             />
           </Grid>
         ))}
@@ -217,7 +217,7 @@ export default function DomiciliaryDashboard() {
                   return (
                     <Box
                       key={call.id}
-                      onClick={() => navigate('/homecare')}
+                      onClick={() => navigate(`/homecare?status=${call.status}`)}
                       sx={{
                         display: 'flex',
                         gap: 'var(--card-gap)',
@@ -338,7 +338,7 @@ export default function DomiciliaryDashboard() {
 
           {/* Exceptions */}
           {data.exceptions.length > 0 && (
-            <PremiumCard noBorder sx={{ p: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFBFB', cursor: 'pointer', '&:hover': { boxShadow: 2 }, transition: 'box-shadow 0.15s' }} onClick={() => navigate('/homecare')}>
+            <PremiumCard noBorder sx={{ p: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFBFB', cursor: 'pointer', '&:hover': { boxShadow: 2 }, transition: 'box-shadow 0.15s' }} onClick={() => navigate('/homecare?status=missed')}>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
                 <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: 'error.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <MissedIcon sx={{ color: '#DC2626', fontSize: 18 }} />
