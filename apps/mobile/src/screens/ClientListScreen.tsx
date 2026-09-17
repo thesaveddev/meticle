@@ -7,6 +7,7 @@ import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
 import { getClientList } from '../services/api'
 import { hapticLight } from '../services/haptics'
+import { formatDateOnly } from '../utils/dateFormat'
 
 interface Props {
   session: AuthSession
@@ -70,7 +71,7 @@ export function ClientListScreen({ session, onBack, onSelect }: Props) {
         <View style={{ flex: 1 }}>
           <Text style={[s.name, { color: c.ink }]} numberOfLines={1}>{name}</Text>
           <Text style={[s.meta, { color: c.muted }]} numberOfLines={1}>
-            {item.nhs_number ? `NHS ${item.nhs_number}` : item.date_of_birth ? `DOB ${item.date_of_birth}` : 'No NHS number'}
+            {item.nhs_number ? `NHS ${item.nhs_number}` : item.date_of_birth ? `DOB ${formatDateOnly(item.date_of_birth)}` : 'No NHS number'}
           </Text>
           {(Number(item.active_care_plans) > 0 || Number(item.open_risks) > 0) && (
             <View style={s.recordMetaRow}>

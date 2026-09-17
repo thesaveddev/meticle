@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import * as Sharing from 'expo-sharing'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
+import { formatDateOnly } from '../utils/dateFormat'
 import { SkeletonScreen } from '../components/Skeleton'
 import { MapPickerModal } from '../components/MapPickerModal'
 import type { AuthSession } from '../types'
 import {
   getPersonDetail,
   getMedicationsForPerson,
+  logMedicationAdministration,
   getBodyMapStats,
   getDailySummary,
   getPersonAssessments,
@@ -22,6 +24,8 @@ import {
   getPersonTimeAway,
   downloadPersonDocument,
   getApiFileUrl,
+  createMedicationItem,
+  updateMedicationItem,
 } from '../services/api'
 
 type TabKey = 'overview' | 'care' | 'risks' | 'meds' | 'records' | 'personal' | 'contacts'
@@ -42,9 +46,12 @@ interface Props {
   onBack: () => void
   onBodyMap?: (personId: string, personName: string) => void
   onNutrition?: (personId: string, personName: string) => void
+  onOpenSection?: (personId: string, section: TabKey) => void
+  initialTab?: TabKey
+  sectionOnly?: boolean
 }
 
-export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNutrition }: Props) {
+export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNutrition, onOpenSection, initialTab = 'overview', sectionOnly = false }: Props) {
   const c = useAppColors()
   const [person, setPerson] = useState<any>(null)
   const [medications, setMedications] = useState<any[]>([])
@@ -53,16 +60,19 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
   const [records, setRecords] = useState<Record<string, any[]>>({ assessments: [], timeline: [], documents: [], clinicalScores: [], wellbeing: [], capacity: [], pathways: [], communications: [], timeAway: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [tab, setTab] = useState<TabKey>('overview')
+  const [tab] = useState<TabKey>(initialTab)
   const [mapPickerOpen, setMapPickerOpen] = useState(false)
   const [navDest, setNavDest] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
   const [refreshing, setRefreshing] = useState(false)
 
   const loadData = useCallback(async () => {
     try {
+      const isDomiciliary = (session.organization?.service_types || []).some(type => ['domiciliary', 'live_in'].includes(type))
+      const medicationSupport = (session.organization?.capabilities as any)?.medication_support === true
+      const medicationEnabled = !isDomiciliary || medicationSupport
       const [personData, medData, bmStats, nutSummary, assessments, timeline, documents, clinicalScores, wellbeing, capacity, pathways, communications, timeAway] = await Promise.all([
         getPersonDetail(session.accessToken, personId),
-        getMedicationsForPerson(session.accessToken, personId).catch(() => []),
+        medicationEnabled ? getMedicationsForPerson(session.accessToken, personId).catch(() => []) : Promise.resolve([]),
         getBodyMapStats(session.accessToken, personId).catch(() => null),
         getDailySummary(session.accessToken, personId).catch(() => null),
         getPersonAssessments(session.accessToken, personId).catch(() => []),
@@ -108,6 +118,8 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
   }
 
   const personName = `${person.first_name} ${person.last_name}`
+  const isDomiciliary = (session.organization?.service_types || []).some(type => ['domiciliary', 'live_in'].includes(type))
+  const visibleTabs = isDomiciliary ? TABS.filter(item => item.key !== 'meds') : TABS
   const allergies = typeof person.allergies === 'string' ? JSON.parse(person.allergies || '[]') : (person.allergies || [])
   const carePlans = (person.care_plans || []).filter((cp: any) => cp.status === 'active')
   const allCarePlans = person.care_plans || []
@@ -116,6 +128,28 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
   const otherContacts = contacts.filter((ct: any) => !ct.is_emergency_contact)
   const riskAssessments = person.risk_assessments || []
   const highRisks = riskAssessments.filter((r: any) => r.risk_level === 'high' || r.risk_level === 'critical')
+  const activeTabLabel = visibleTabs.find(item => item.key === tab)?.label || 'Overview'
+
+  if (sectionOnly) {
+    return (
+      <View style={[styles.screen, { backgroundColor: c.bg }]}>
+        <Header onBack={onBack} title={activeTabLabel} c={c} />
+        <View style={[styles.sectionPageHeader, { backgroundColor: c.surface, borderBottomColor: c.borderLight }]}>
+          <Text style={[styles.sectionPageClient, { color: c.muted }]}>{personName}</Text>
+          <Text style={[styles.sectionPageTitle, { color: c.ink }]}>{activeTabLabel}</Text>
+        </View>
+        <ScrollView contentContainerStyle={styles.tabContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData() }} tintColor="transparent" />}>
+          {tab === 'overview' && <OverviewTab person={person} bodyMapStats={bodyMapStats} nutritionSummary={nutritionSummary} onBodyMap={() => onBodyMap?.(personId, personName)} onNutrition={() => onNutrition?.(personId, personName)} c={c} />}
+          {tab === 'care' && <CareTab carePlans={carePlans} allCarePlans={allCarePlans} c={c} />}
+          {tab === 'risks' && <RisksTab risks={riskAssessments} c={c} />}
+          {tab === 'meds' && <MedsTab medications={medications} c={c} />}
+          {tab === 'records' && <RecordsTab records={records} c={c} token={session.accessToken} domiciliary={isDomiciliary} />}
+          {tab === 'personal' && <PersonalTab person={person} c={c} />}
+          {tab === 'contacts' && <ContactsTab emergencyContacts={emergencyContacts} otherContacts={otherContacts} c={c} />}
+        </ScrollView>
+      </View>
+    )
+  }
 
   return (
     <View style={[styles.screen, { backgroundColor: c.bg }]}>
@@ -155,7 +189,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
           {person.date_of_birth && (
             <View style={styles.quickStat}>
               <Ionicons name="calendar-outline" size={14} color={c.muted} />
-              <Text style={[styles.quickStatText, { color: c.muted }]}>{new Date(person.date_of_birth).toLocaleDateString('en-GB')}</Text>
+              <Text style={[styles.quickStatText, { color: c.muted }]}>{formatDateOnly(person.date_of_birth)}</Text>
             </View>
           )}
           {person.nhs_number && (
@@ -211,32 +245,40 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
           <View style={[styles.alertCard, { backgroundColor: person.dnacpr_status === 'active' ? c.dangerSurface : c.successSurface }]}>
             <Ionicons name="heart-dislike-outline" size={16} color={person.dnacpr_status === 'active' ? c.danger : c.success} />
             <Text style={[styles.alertText, { color: person.dnacpr_status === 'active' ? c.danger : c.success }]}>
-              DNACPR: {person.dnacpr_status}{person.dnacpr_date ? ` (${new Date(person.dnacpr_date).toLocaleDateString('en-GB')})` : ''}
+              DNACPR: {person.dnacpr_status}{person.dnacpr_date ? ` (${formatDateOnly(person.dnacpr_date)})` : ''}
             </Text>
           </View>
         )}
       </View>
 
-      {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tabBar, { backgroundColor: c.surface }]}>
-        {TABS.map(t => (
-          <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, tab === t.key && { backgroundColor: c.primarySurface }, { backgroundColor: c.surfaceAlt }]}>
-            <Ionicons name={t.icon as any} size={16} color={tab === t.key ? c.primary : c.muted} />
-            <Text style={[styles.tabLabel, { color: tab === t.key ? c.primary : c.muted }]}>{t.label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {/* Tab content */}
-      <ScrollView contentContainerStyle={styles.tabContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData() }} tintColor="transparent" />}>
-        {tab === 'overview' && <OverviewTab person={person} bodyMapStats={bodyMapStats} nutritionSummary={nutritionSummary} onBodyMap={() => onBodyMap?.(personId, personName)} onNutrition={() => onNutrition?.(personId, personName)} c={c} />}
-        {tab === 'care' && <CareTab carePlans={carePlans} allCarePlans={allCarePlans} c={c} />}
-        {tab === 'risks' && <RisksTab risks={riskAssessments} c={c} />}
-        {tab === 'meds' && <MedsTab medications={medications} c={c} />}
-        {tab === 'records' && <RecordsTab records={records} c={c} token={session.accessToken} />}
-        {tab === 'personal' && <PersonalTab person={person} c={c} />}
-        {tab === 'contacts' && <ContactsTab emergencyContacts={emergencyContacts} otherContacts={otherContacts} c={c} />}
-      </ScrollView>
+      {/* Client sections — cards are more reliable than a horizontal tab strip on small screens. */}
+      <View style={[styles.sectionPicker, { backgroundColor: c.surface }]}>
+        <Text style={[styles.sectionPickerTitle, { color: c.ink }]}>Client information</Text>
+        <Text style={[styles.sectionPickerHint, { color: c.muted }]}>Choose a section to view the latest records.</Text>
+        <View style={styles.sectionCardGrid}>
+          {visibleTabs.map(t => {
+            const count = t.key === 'care' ? allCarePlans.length : t.key === 'risks' ? riskAssessments.length : t.key === 'meds' ? medications.length : undefined
+            return (
+              <Pressable
+                key={t.key}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${t.label}`}
+                onPress={() => onOpenSection?.(personId, t.key)}
+                style={({ pressed }) => [styles.sectionCard, { backgroundColor: tab === t.key ? c.primarySurface : c.surfaceAlt, borderColor: tab === t.key ? c.primary + '55' : c.borderLight }, pressed && { opacity: 0.78, transform: [{ scale: 0.98 }] }]}
+              >
+                <View style={[styles.sectionCardIcon, { backgroundColor: tab === t.key ? c.surface : c.surface }]}>
+                  <Ionicons name={t.icon as any} size={19} color={tab === t.key ? c.primary : c.muted} />
+                </View>
+                <View style={styles.sectionCardCopy}>
+                  <Text style={[styles.sectionCardLabel, { color: tab === t.key ? c.primary : c.ink }]}>{t.label}</Text>
+                  {count !== undefined && <Text style={[styles.sectionCardCount, { color: c.muted }]}>{count} {count === 1 ? 'record' : 'records'}</Text>}
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={tab === t.key ? c.primary : c.subtle} />
+              </Pressable>
+            )
+          })}
+        </View>
+      </View>
 
       <MapPickerModal
         visible={mapPickerOpen}
@@ -378,7 +420,7 @@ function CareTab({ carePlans, allCarePlans, c }: any) {
           {cp.personal_goals && <InfoRow icon="flag-outline" label="Goals" value={cp.personal_goals} c={c} />}
           {cp.likes_dislikes && <InfoRow icon="heart-outline" label="Likes/Dislikes" value={cp.likes_dislikes} c={c} />}
           {cp.cultural_needs && <InfoRow icon="globe-outline" label="Cultural" value={cp.cultural_needs} c={c} />}
-          {cp.review_date && <InfoRow icon="calendar-outline" label="Review" value={new Date(cp.review_date).toLocaleDateString('en-GB')} c={c} />}
+          {cp.review_date && <InfoRow icon="calendar-outline" label="Review" value={formatDateOnly(cp.review_date)} c={c} />}
         </Card>
       ))}
       {allCarePlans.filter((cp: any) => cp.status !== 'active').length > 0 && (
@@ -393,7 +435,7 @@ function CareTab({ carePlans, allCarePlans, c }: any) {
 
 /* ─── Tab: Records ───────────────────────────────────────── */
 
-function RecordsTab({ records, c, token }: any) {
+function RecordsTab({ records, c, token, domiciliary }: any) {
   const total = Object.values(records).reduce((count: number, items: any) => count + (Array.isArray(items) ? items.length : 0), 0)
   if (total === 0) {
     return <EmptyState icon="library-outline" title="No additional records" subtitle="Assessments, documents and other records will appear here" c={c} />
@@ -405,23 +447,23 @@ function RecordsTab({ records, c, token }: any) {
         <Text style={[styles.recordsIntroText, { color: c.primary }]}>Read-only client records. Use the web app for clinical updates and document management.</Text>
       </View>
 
-      <RecordSection title="Care assessments" icon="clipboard-outline" items={records.assessments} c={c} empty="No care assessments" renderItem={(item: any) => (
+      {!domiciliary && <RecordSection title="Care assessments" icon="clipboard-outline" items={records.assessments} c={c} empty="No care assessments" renderItem={(item: any) => (
         <RecordCard key={item.id} title={item.assessment_type || 'Care assessment'} meta={formatDate(item.assessment_date)} c={c}>
           {item.assessor_name && <InfoRow icon="person-outline" label="Assessor" value={item.assessor_name} c={c} />}
           {item.findings && <Text style={[styles.recordBody, { color: c.ink }]}>{item.findings}</Text>}
           {item.recommendations && <Text style={[styles.recordBody, { color: c.ink }]}>Recommendations: {item.recommendations}</Text>}
           {item.next_review_date && <InfoRow icon="calendar-outline" label="Next review" value={formatDate(item.next_review_date)} c={c} />}
         </RecordCard>
-      )} />
+      )} />}
 
-      <RecordSection title="Capacity assessments" icon="people-outline" items={records.capacity} c={c} empty="No capacity assessments" renderItem={(item: any) => (
+      {!domiciliary && <RecordSection title="Capacity assessments" icon="people-outline" items={records.capacity} c={c} empty="No capacity assessments" renderItem={(item: any) => (
         <RecordCard key={item.id} title={item.decision_to_be_made || 'Capacity assessment'} meta={formatDate(item.assessment_date)} c={c}>
           {item.capacity_status && <InfoRow icon="checkmark-circle-outline" label="Status" value={item.capacity_status} c={c} />}
           {item.capacity_found !== null && item.capacity_found !== undefined && <InfoRow icon="shield-checkmark-outline" label="Capacity found" value={item.capacity_found ? 'Yes' : 'No'} c={c} />}
           {item.best_interest_decision && <Text style={[styles.recordBody, { color: c.ink }]}>Best-interest decision: {item.best_interest_decision}</Text>}
           {item.review_date && <InfoRow icon="calendar-outline" label="Review" value={formatDate(item.review_date)} c={c} />}
         </RecordCard>
-      )} />
+      )} />}
 
       <RecordSection title="Care pathways" icon="git-branch-outline" items={records.pathways} c={c} empty="No care pathways" renderItem={(item: any) => (
         <RecordCard key={item.id} title={item.title || item.pathway_type || 'Care pathway'} meta={`${item.status || 'active'}${item.start_date ? ` · ${formatDate(item.start_date)}` : ''}`} c={c}>
@@ -431,22 +473,22 @@ function RecordsTab({ records, c, token }: any) {
         </RecordCard>
       )} />
 
-      <RecordSection title="Clinical scores" icon="pulse-outline" items={records.clinicalScores} c={c} empty="No clinical scores" renderItem={(item: any) => (
+      {!domiciliary && <RecordSection title="Clinical scores" icon="pulse-outline" items={records.clinicalScores} c={c} empty="No clinical scores" renderItem={(item: any) => (
         <RecordCard key={item.id} title={item.score_type || 'Clinical score'} meta={formatDate(item.recorded_date)} c={c}>
           <InfoRow icon="analytics-outline" label="Score" value={String(item.score ?? 'Not recorded')} c={c} />
           {item.risk_level && <InfoRow icon="warning-outline" label="Risk" value={item.risk_level} c={c} />}
           {item.notes && <Text style={[styles.recordBody, { color: c.ink }]}>{item.notes}</Text>}
         </RecordCard>
-      )} />
+      )} />}
 
       <RecordSection title="Documents" icon="document-attach-outline" items={records.documents} c={c} empty="No documents" renderItem={(item: any) => <DocumentCard key={item.id} item={item} c={c} token={token} />} />
 
-      <RecordSection title="Recent wellbeing" icon="happy-outline" items={records.wellbeing} c={c} empty="No wellbeing records" renderItem={(item: any) => (
+      {!domiciliary && <RecordSection title="Recent wellbeing" icon="happy-outline" items={records.wellbeing} c={c} empty="No wellbeing records" renderItem={(item: any) => (
         <RecordCard key={item.id} title={item.domain || 'Wellbeing check'} meta={formatDate(item.recorded_date)} c={c}>
           <InfoRow icon="star-outline" label="Score" value={String(item.score ?? 'Not recorded')} c={c} />
           {item.notes && <Text style={[styles.recordBody, { color: c.ink }]}>{item.notes}</Text>}
         </RecordCard>
-      )} />
+      )} />}
 
       <RecordSection title="Communication history" icon="chatbubbles-outline" items={records.communications} c={c} empty="No communication history" renderItem={(item: any) => (
         <RecordCard key={item.id} title={item.contact_name || 'Communication'} meta={formatDate(item.recorded_date)} c={c}>
@@ -550,6 +592,7 @@ function RecordCard({ title, meta, children, c }: any) {
 
 function formatDate(value?: string | null) {
   if (!value) return 'Date not recorded'
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return formatDateOnly(value, 'Date not recorded')
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
@@ -586,7 +629,7 @@ function RisksTab({ risks, c }: any) {
                 <Text style={[styles.riskMitigationText, { color: c.ink }]}>{risk.mitigation_actions}</Text>
               </View>
             )}
-            {risk.review_date && <Text style={[styles.riskReview, { color: c.muted }]}>Review: {new Date(risk.review_date).toLocaleDateString('en-GB')}</Text>}
+            {risk.review_date && <Text style={[styles.riskReview, { color: c.muted }]}>Review: {formatDateOnly(risk.review_date)}</Text>}
           </View>
         )
       })}
@@ -620,6 +663,103 @@ function MedsTab({ medications, c }: any) {
   )
 }
 
+function _MedicationRecordCard({ record, token, c, onChanged }: any) {
+  const [busyItem, setBusyItem] = useState<string | null>(null)
+  const [editingItem, setEditingItem] = useState<any | null>(null)
+  const [editor, setEditor] = useState({ name: '', dosage: '', unit: '', route: '', frequency: '', instructions: '', start_date: '', end_date: '', reason_for_change: '' })
+  const [editorSaving, setEditorSaving] = useState(false)
+  const items = Array.isArray(record.items) ? record.items.filter((item: any) => item.is_active !== false) : []
+
+  const recordDose = (item: any, status: 'given' | 'refused' | 'missed') => {
+    const label = status === 'given' ? 'given' : status === 'refused' ? 'refused' : 'not given'
+    Alert.alert(`Mark ${label}`, `${item.name || item.medication_name} — ${item.dosage || ''}`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: `Mark ${label}`, style: status === 'given' ? 'default' : 'destructive', onPress: async () => {
+        setBusyItem(item.id)
+        try {
+          await logMedicationAdministration(token, {
+            emedication_item_id: item.id,
+            scheduled_time: new Date().toISOString(),
+            status,
+          })
+          Alert.alert('Saved', `Medication marked ${label}.`)
+        } catch (error: any) {
+          Alert.alert('Could not save', error?.message || 'Check medication competency and try again.')
+        } finally {
+          setBusyItem(null)
+        }
+      } },
+    ])
+  }
+
+  const publishChange = () => {
+    if (!editor.name.trim() || !editor.dosage.trim() || !editor.frequency.trim() || !editor.start_date || !editor.end_date || !editor.reason_for_change.trim()) {
+      Alert.alert('Complete the change', 'Name, dosage, frequency, effective dates and a reason are required before publishing.')
+      return
+    }
+    if (editor.end_date < editor.start_date) {
+      Alert.alert('Check the dates', 'The end date cannot be before the effective start date.')
+      return
+    }
+    const action = editingItem?.isNew ? 'add this medication to' : 'publish these changes to'
+    Alert.alert('Confirm MAR change', `Are you sure you want to ${action} ${record.title || 'the MAR'}? This will be audited under your account.`, [
+      { text: 'Review again', style: 'cancel' },
+      { text: 'Publish change', onPress: async () => {
+        setEditorSaving(true)
+        try {
+          const payload = { ...editor, name: editor.name.trim(), dosage: editor.dosage.trim(), reason_for_change: editor.reason_for_change.trim() }
+          if (editingItem?.isNew) await createMedicationItem(token, record.id, payload)
+          else await updateMedicationItem(token, editingItem.id, payload)
+          setEditingItem(null)
+          Alert.alert('MAR updated', 'The medication change was published and recorded in the audit trail.')
+          await onChanged?.()
+        } catch (error: any) {
+          Alert.alert('Could not publish', error?.message || 'The MAR was not changed.')
+        } finally { setEditorSaving(false) }
+      } },
+    ])
+  }
+
+  return (
+    <Card title={record.title || 'Medication record'} c={c}>
+      <Text style={[styles.recordMeta, { color: c.muted }]}>{record.status || 'active'}{record.start_date ? ` · ${formatDate(record.start_date)}` : ''}{record.end_date ? ` – ${formatDate(record.end_date)}` : ''}</Text>
+      {items.length === 0 ? <Text style={[styles.emptyText, { color: c.muted }]}>No medication items on this record.</Text> : items.map((item: any) => (
+        <View key={item.id} style={[styles.medItem, { borderTopColor: c.borderLight }]}>
+          <View style={[styles.medIcon, { backgroundColor: c.primarySurface }]}><Ionicons name="medkit" size={18} color={c.primary} /></View>
+          <View style={styles.medItemCopy}>
+            <Text style={[styles.medName, { color: c.ink }]}>{item.name || item.medication_name}</Text>
+            <Text style={[styles.medDetail, { color: c.muted }]}>{item.dosage || 'Dose not recorded'}{item.unit ? ` ${item.unit}` : ''}{item.frequency ? ` · ${item.frequency}` : ''}</Text>
+            {item.route && <Text style={[styles.medDetail, { color: c.muted }]}>Route: {item.route}</Text>}
+            {item.instructions && <Text style={[styles.medDetail, { color: c.muted }]}>{item.instructions}</Text>}
+            <View style={styles.medActions}>
+              <Pressable disabled={busyItem === item.id} onPress={() => recordDose(item, 'given')} style={[styles.medAction, { backgroundColor: c.successSurface }]}><Ionicons name="checkmark" size={14} color={c.successDeep} /><Text style={[styles.medActionText, { color: c.successDeep }]}>{busyItem === item.id ? 'Saving…' : 'Given'}</Text></Pressable>
+              <Pressable disabled={busyItem === item.id} onPress={() => recordDose(item, 'refused')} style={[styles.medAction, { backgroundColor: c.warningSurface }]}><Ionicons name="close" size={14} color={c.warning} /><Text style={[styles.medActionText, { color: c.warning }]}>Refused</Text></Pressable>
+              <Pressable disabled={busyItem === item.id} onPress={() => recordDose(item, 'missed')} style={[styles.medAction, { backgroundColor: c.dangerSurface }]}><Ionicons name="alert-outline" size={14} color={c.danger} /><Text style={[styles.medActionText, { color: c.danger }]}>Not given</Text></Pressable>
+
+            </View>
+          </View>
+        </View>
+      ))}
+
+      {editingItem && <Modal visible animationType="slide" transparent onRequestClose={() => !editorSaving && setEditingItem(null)}>
+        <View style={styles.modalBackdrop}><View style={[styles.editorSheet, { backgroundColor: c.surface }]}>
+          <View style={styles.editorHeader}><View style={{ flex: 1 }}><Text style={[styles.editorTitle, { color: c.ink }]}>{editingItem.isNew ? 'Add medication' : 'Edit medication'}</Text><Text style={[styles.editorSubtitle, { color: c.muted }]}>Manager-only · changes are audited</Text></View><Pressable disabled={editorSaving} onPress={() => setEditingItem(null)}><Ionicons name="close" size={24} color={c.ink} /></Pressable></View>
+          <ScrollView contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled">
+            <Text style={[styles.editorLabel, { color: c.ink }]}>Medication name</Text><TextInput value={editor.name} onChangeText={value => setEditor(prev => ({ ...prev, name: value }))} placeholder="e.g. Paracetamol" placeholderTextColor={c.subtle} style={[styles.editorInput, { color: c.ink, backgroundColor: c.surfaceAlt, borderColor: c.border }]} />
+            <View style={styles.editorRow}><View style={{ flex: 1 }}><Text style={[styles.editorLabel, { color: c.ink }]}>Dosage</Text><TextInput value={editor.dosage} onChangeText={value => setEditor(prev => ({ ...prev, dosage: value }))} placeholder="e.g. 500" placeholderTextColor={c.subtle} style={[styles.editorInput, { color: c.ink, backgroundColor: c.surfaceAlt, borderColor: c.border }]} /></View><View style={{ flex: 1 }}><Text style={[styles.editorLabel, { color: c.ink }]}>Unit</Text><TextInput value={editor.unit} onChangeText={value => setEditor(prev => ({ ...prev, unit: value }))} placeholder="mg" placeholderTextColor={c.subtle} style={[styles.editorInput, { color: c.ink, backgroundColor: c.surfaceAlt, borderColor: c.border }]} /></View></View>
+            <View style={styles.editorRow}><View style={{ flex: 1 }}><Text style={[styles.editorLabel, { color: c.ink }]}>Route</Text><TextInput value={editor.route} onChangeText={value => setEditor(prev => ({ ...prev, route: value }))} placeholder="oral" placeholderTextColor={c.subtle} style={[styles.editorInput, { color: c.ink, backgroundColor: c.surfaceAlt, borderColor: c.border }]} /></View><View style={{ flex: 1 }}><Text style={[styles.editorLabel, { color: c.ink }]}>Frequency</Text><TextInput value={editor.frequency} onChangeText={value => setEditor(prev => ({ ...prev, frequency: value }))} placeholder="once daily" placeholderTextColor={c.subtle} style={[styles.editorInput, { color: c.ink, backgroundColor: c.surfaceAlt, borderColor: c.border }]} /></View></View>
+            <View style={styles.editorRow}><View style={{ flex: 1 }}><Text style={[styles.editorLabel, { color: c.ink }]}>Effective from</Text><TextInput value={editor.start_date} onChangeText={value => setEditor(prev => ({ ...prev, start_date: value }))} placeholder="YYYY-MM-DD" placeholderTextColor={c.subtle} style={[styles.editorInput, { color: c.ink, backgroundColor: c.surfaceAlt, borderColor: c.border }]} /></View><View style={{ flex: 1 }}><Text style={[styles.editorLabel, { color: c.ink }]}>Effective until</Text><TextInput value={editor.end_date} onChangeText={value => setEditor(prev => ({ ...prev, end_date: value }))} placeholder="YYYY-MM-DD" placeholderTextColor={c.subtle} style={[styles.editorInput, { color: c.ink, backgroundColor: c.surfaceAlt, borderColor: c.border }]} /></View></View>
+            <Text style={[styles.editorLabel, { color: c.ink }]}>Instructions</Text><TextInput value={editor.instructions} onChangeText={value => setEditor(prev => ({ ...prev, instructions: value }))} placeholder="Administration instructions" placeholderTextColor={c.subtle} multiline style={[styles.editorInput, styles.editorNotes, { color: c.ink, backgroundColor: c.surfaceAlt, borderColor: c.border }]} />
+            <Text style={[styles.editorLabel, { color: c.ink }]}>Reason for change <Text style={{ color: c.danger }}>*</Text></Text><TextInput value={editor.reason_for_change} onChangeText={value => setEditor(prev => ({ ...prev, reason_for_change: value }))} placeholder="Why is this medication being changed?" placeholderTextColor={c.subtle} multiline style={[styles.editorInput, styles.editorNotes, { color: c.ink, backgroundColor: c.surfaceAlt, borderColor: c.border }]} />
+            <View style={[styles.auditNotice, { backgroundColor: c.warningSurface }]}><Ionicons name="shield-checkmark-outline" size={17} color={c.warning} /><Text style={[styles.auditNoticeText, { color: c.warning }]}>Publishing records the effective dates and your reason in the medication audit trail.</Text></View>
+            <Pressable disabled={editorSaving} onPress={publishChange} style={[styles.publishButton, { backgroundColor: c.primary, opacity: editorSaving ? 0.6 : 1 }]}><Text style={[styles.publishButtonText, { color: c.inverse }]}>{editorSaving ? 'Publishing…' : 'Review and publish'}</Text></Pressable>
+          </ScrollView>
+        </View></View>
+      </Modal>}
+    </Card>
+  )
+}
+
 /* ─── Tab: Personal ──────────────────────────────────────── */
 
 function PersonalTab({ person, c }: any) {
@@ -636,7 +776,7 @@ function PersonalTab({ person, c }: any) {
       </Card>
 
       <Card title="Admission" c={c}>
-        {person.admission_date && <InfoRow icon="calendar-outline" label="Admitted" value={new Date(person.admission_date).toLocaleDateString('en-GB')} c={c} />}
+        {person.admission_date && <InfoRow icon="calendar-outline" label="Admitted" value={formatDateOnly(person.admission_date)} c={c} />}
         {person.admission_source && <InfoRow icon="arrow-down-outline" label="Source" value={person.admission_source} c={c} />}
         {person.funding_type && <InfoRow icon="cash-outline" label="Funding" value={person.funding_type} c={c} />}
         {person.funding_details && <InfoRow icon="document-text-outline" label="Details" value={person.funding_details} c={c} />}
@@ -665,7 +805,7 @@ function PersonalTab({ person, c }: any) {
       </Card>
 
       <Card title="Discharge" c={c}>
-        {person.discharge_date && <InfoRow icon="calendar-outline" label="Date" value={new Date(person.discharge_date).toLocaleDateString('en-GB')} c={c} />}
+        {person.discharge_date && <InfoRow icon="calendar-outline" label="Date" value={formatDateOnly(person.discharge_date)} c={c} />}
         {person.discharge_reason && <InfoRow icon="alert-circle-outline" label="Reason" value={person.discharge_reason} c={c} />}
         {person.discharge_destination && <InfoRow icon="location-outline" label="Destination" value={person.discharge_destination} c={c} />}
         {person.discharge_summary && <Text style={[styles.cardBody, { color: c.ink, marginTop: spacing.xs }]}>{person.discharge_summary}</Text>}
@@ -674,9 +814,9 @@ function PersonalTab({ person, c }: any) {
 
       <Card title="Advance Decisions" c={c}>
         {person.advance_decision && <InfoRow icon="document-text-outline" label="Decision" value={person.advance_decision} c={c} />}
-        {person.advance_decision_date && <InfoRow icon="calendar-outline" label="Date" value={new Date(person.advance_decision_date).toLocaleDateString('en-GB')} c={c} />}
-        {person.dnacpr_status && <InfoRow icon="heart-dislike-outline" label="DNACPR" value={`${person.dnacpr_status}${person.dnacpr_date ? ` (${new Date(person.dnacpr_date).toLocaleDateString('en-GB')})` : ''}`} c={c} />}
-        {person.dnacpr_review_date && <InfoRow icon="calendar-outline" label="DNACPR review" value={new Date(person.dnacpr_review_date).toLocaleDateString('en-GB')} c={c} />}
+        {person.advance_decision_date && <InfoRow icon="calendar-outline" label="Date" value={formatDateOnly(person.advance_decision_date)} c={c} />}
+        {person.dnacpr_status && <InfoRow icon="heart-dislike-outline" label="DNACPR" value={`${person.dnacpr_status}${person.dnacpr_date ? ` (${formatDateOnly(person.dnacpr_date)})` : ''}`} c={c} />}
+        {person.dnacpr_review_date && <InfoRow icon="calendar-outline" label="DNACPR review" value={formatDateOnly(person.dnacpr_review_date)} c={c} />}
         {person.dnacpr_details && <Text style={[styles.cardBody, { color: c.ink, marginTop: spacing.xs }]}>{person.dnacpr_details}</Text>}
         {!person.advance_decision && !person.dnacpr_status && <Text style={[styles.emptyText, { color: c.muted }]}>No advance decisions recorded</Text>}
       </Card>
@@ -823,10 +963,19 @@ const styles = StyleSheet.create({
   alertCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.md },
   alertText: { fontSize: 13, fontWeight: '600', fontFamily: FONT, flex: 1 },
 
-  /* Tabs */
-  tabBar: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, gap: spacing.xs, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderLight },
-  tab: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2, borderRadius: radii.md },
-  tabLabel: { fontSize: 12, fontWeight: '600', fontFamily: FONT },
+  /* Section picker */
+  sectionPicker: { paddingHorizontal: spacing.base, paddingTop: spacing.md, paddingBottom: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderLight },
+  sectionPageHeader: { paddingHorizontal: spacing.base, paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth },
+  sectionPageClient: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
+  sectionPageTitle: { fontFamily: FONT, fontSize: 22, fontWeight: '800', marginTop: 2 },
+  sectionPickerTitle: { fontSize: 16, fontWeight: '700', fontFamily: FONT },
+  sectionPickerHint: { fontSize: 12, fontFamily: FONT, marginTop: 3, marginBottom: spacing.sm },
+  sectionCardGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.sm },
+  sectionCard: { width: '48%', minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: radii.lg, borderWidth: 1 },
+  sectionCardIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  sectionCardCopy: { flex: 1, minWidth: 0 },
+  sectionCardLabel: { fontSize: 12, fontWeight: '700', fontFamily: FONT },
+  sectionCardCount: { fontSize: 10, fontFamily: FONT, marginTop: 2 },
 
   /* Tab content */
   tabContent: { padding: spacing.base, paddingBottom: spacing.xxxl },
@@ -890,9 +1039,30 @@ const styles = StyleSheet.create({
 
   /* Meds */
   medCard: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, borderRadius: radii.lg, padding: spacing.base, marginBottom: spacing.md, ...elevation.sm },
+  medItem: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, paddingTop: spacing.md, marginTop: spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
+  medItemCopy: { flex: 1, minWidth: 0 },
   medIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   medName: { fontSize: 15, fontWeight: '600', fontFamily: FONT },
   medDetail: { fontSize: 13, fontFamily: FONT, marginTop: 2 },
+  medActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
+  medAction: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radii.sm },
+  medActionText: { fontSize: 11, fontWeight: '700', fontFamily: FONT },
+  addMedicationButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, borderWidth: 1, borderRadius: radii.md, paddingVertical: spacing.sm, marginTop: spacing.md },
+  addMedicationText: { fontFamily: FONT, fontSize: 12, fontWeight: '700' },
+  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
+  editorSheet: { maxHeight: '92%', borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, paddingTop: spacing.base },
+  editorHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.base, paddingBottom: spacing.sm },
+  editorTitle: { fontFamily: FONT, fontSize: 18, fontWeight: '800' },
+  editorSubtitle: { fontFamily: FONT, fontSize: 12, marginTop: 3 },
+  editorContent: { padding: spacing.base, paddingBottom: spacing.xxxl },
+  editorRow: { flexDirection: 'row', gap: spacing.sm },
+  editorLabel: { fontFamily: FONT, fontSize: 12, fontWeight: '700', marginTop: spacing.md, marginBottom: spacing.xs },
+  editorInput: { borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontFamily: FONT, fontSize: 14 },
+  editorNotes: { minHeight: 74, textAlignVertical: 'top' },
+  auditNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, padding: spacing.md, borderRadius: radii.md, marginTop: spacing.md },
+  auditNoticeText: { flex: 1, fontFamily: FONT, fontSize: 12, lineHeight: 17 },
+  publishButton: { alignItems: 'center', borderRadius: radii.md, paddingVertical: spacing.md, marginTop: spacing.lg },
+  publishButtonText: { fontFamily: FONT, fontSize: 14, fontWeight: '800' },
 
   /* Contacts */
   contactBlock: { paddingVertical: spacing.md },

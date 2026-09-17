@@ -6,8 +6,9 @@ import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
 import type { AuthSession, AvailabilityRecord } from '../types'
-import { getMyAvailability, addAvailability, deleteAvailability } from '../services/api'
+import { getMyAvailability, addAvailability, deleteAvailability, getMyLeaveRequests } from '../services/api'
 import { hapticLight, hapticMedium, hapticWarning } from '../services/haptics'
+import { formatDateOnly, formatTimeOnly, localDateInput } from '../utils/dateFormat'
 
 const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -17,14 +18,11 @@ function isValidTime(t: string) {
 }
 
 function formatDateInput(date: Date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return localDateInput(date)
 }
 
 function parseDateInput(value: string) {
-  const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value)
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!match) return new Date()
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
 }
@@ -45,15 +43,23 @@ function calendarDays(month: Date): Array<Date | null> {
 const TIME_PRESETS = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00']
 
 function formatTimeRange(start: string, end: string) {
-  const s = start.replace(':00', '').replace(/^0/, '')
-  const e = end.replace(':00', '').replace(/^0/, '')
-  return `${s} - ${e}`
+  return `${formatTimeOnly(start)} – ${formatTimeOnly(end)}`
+}
+
+type AvailabilityDraft = {
+  id: string
+  date: string
+  start: string
+  end: string
+  unavailable: boolean
 }
 
 export function AvailabilityScreen({ session, onBack }: { session: AuthSession; onBack?: () => void }) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
   const [records, setRecords] = useState<AvailabilityRecord[]>([])
+  const [leaveRequests, setLeaveRequests] = useState<any[]>([])
+  const [activeView, setActiveView] = useState<'schedule' | 'submit'>('schedule')
   const [saving, setSaving] = useState(false)
   const [selectedDay, setSelectedDay] = useState(new Date().getDay())
   const [start, setStart] = useState('09:00')
@@ -66,13 +72,18 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
   const [refreshing, setRefreshing] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [draftEntries, setDraftEntries] = useState<AvailabilityDraft[]>([])
 
   const successTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const load = useCallback(async () => {
     try {
-      const data = await getMyAvailability(session.accessToken)
+      const [data, leave] = await Promise.all([
+        getMyAvailability(session.accessToken),
+        getMyLeaveRequests(session.accessToken).catch(() => []),
+      ])
       setRecords(data)
+      setLeaveRequests(leave)
     } catch { /* ignore */ }
     finally { setRefreshing(false) }
   }, [session.accessToken])
@@ -88,7 +99,7 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
   }, [success])
 
   const byDay: Record<number, AvailabilityRecord[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
-  for (const rec of records) {
+  for (const rec of records.filter(record => !record.availability_date)) {
     byDay[rec.day_of_week] = byDay[rec.day_of_week] || []
     byDay[rec.day_of_week].push(rec)
   }
@@ -126,27 +137,46 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
     setSuccess('')
   }
 
-  const handleSave = async () => {
+  const resetDraftForm = () => {
+    setStart('09:00')
+    setEnd('17:00')
+    setSpecificUnavailable(false)
+    setEditingId(null)
+  }
+
+  const addDraft = () => {
     const dated = availabilityDate.trim()
-    if (dated && !/^\d{4}-\d{2}-\d{2}$/.test(dated)) { setError('Specific date must use YYYY-MM-DD format'); return }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dated)) { setError('Choose a date from the calendar first'); return }
     const saveStart = specificUnavailable ? '00:00' : start
     const saveEnd = specificUnavailable ? '23:59' : end
-    if (!isValidTime(saveStart)) { setError('Start time must be HH:MM format'); return }
-    if (!isValidTime(saveEnd)) { setError('End time must be HH:MM format'); return }
+    if (!isValidTime(saveStart) || !isValidTime(saveEnd)) { setError('Choose valid start and end times'); return }
     if (saveStart >= saveEnd) { setError('Start time must be before end time'); return }
+    if (specificUnavailable && draftEntries.some(entry => entry.date === dated && !entry.unavailable)) {
+      setDraftEntries(prev => prev.filter(entry => entry.date !== dated))
+    }
+    setDraftEntries(prev => [
+      ...prev.filter(entry => !(entry.date === dated && specificUnavailable) && !(entry.date === dated && !specificUnavailable && entry.unavailable)),
+      { id: `${dated}-${Date.now()}`, date: dated, start: saveStart, end: saveEnd, unavailable: specificUnavailable },
+    ])
+    setError('')
+    setSuccess(`${formatDateOnly(dated)} added to your submission`)
+    resetDraftForm()
+  }
 
+  const submitBatch = async () => {
+    if (draftEntries.length === 0) { setError('Add at least one date before submitting'); return }
     setSaving(true); setError(''); setSuccess('')
     try {
-      const day = dated ? new Date(`${dated}T00:00:00`).getDay() : selectedDay
-      await addAvailability(session.accessToken, day, saveStart, saveEnd, !specificUnavailable, dated || undefined)
-      setSuccess(editingId ? `${FULL_DAYS[selectedDay]} availability updated` : `${FULL_DAYS[selectedDay]} availability saved`)
-      setEditingId(null)
-      setStart('09:00')
-      setEnd('17:00')
+      for (const entry of draftEntries) {
+        const day = new Date(`${entry.date}T00:00:00`).getDay()
+        await addAvailability(session.accessToken, day, entry.start, entry.end, !entry.unavailable, entry.date)
+      }
+      setDraftEntries([])
       setAvailabilityDate('')
-      setSpecificUnavailable(false)
+      resetDraftForm()
+      setSuccess('Availability submitted for all selected dates')
       await load()
-    } catch (e: any) { setError(e.message || 'Could not save') }
+    } catch (e: any) { setError(e.message || 'Could not submit availability') }
     finally { setSaving(false) }
   }
 
@@ -241,11 +271,23 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
           </View>
         ) : null}
 
+        <View style={[s.tabs, { backgroundColor: c.surfaceAlt }]}>
+          <Pressable accessibilityRole="tab" accessibilityState={{ selected: activeView === 'schedule' }} onPress={() => setActiveView('schedule')} style={[s.tab, activeView === 'schedule' && { backgroundColor: c.surface, ...elevation.sm }]}><Ionicons name="calendar-outline" size={16} color={activeView === 'schedule' ? c.primary : c.muted} /><Text style={[s.tabText, { color: activeView === 'schedule' ? c.primary : c.muted }]}>Schedule</Text></Pressable>
+          <Pressable accessibilityRole="tab" accessibilityState={{ selected: activeView === 'submit' }} onPress={() => setActiveView('submit')} style={[s.tab, activeView === 'submit' && { backgroundColor: c.surface, ...elevation.sm }]}><Ionicons name="add-circle-outline" size={16} color={activeView === 'submit' ? c.primary : c.muted} /><Text style={[s.tabText, { color: activeView === 'submit' ? c.primary : c.muted }]}>Submit availability</Text></Pressable>
+        </View>
+
+        {activeView === 'schedule' && <>
+        {leaveRequests.filter(request => ['pending', 'approved'].includes(String(request.status).toLowerCase())).length > 0 && <View style={[s.leaveNotice, { backgroundColor: c.warningSurface, borderColor: c.warning + '30' }]}><Ionicons name="airplane-outline" size={16} color={c.warning} /><View style={{ flex: 1 }}><Text style={[s.leaveNoticeTitle, { color: c.ink }]}>Booked time away</Text><Text style={[s.leaveNoticeText, { color: c.muted }]}>{leaveRequests.filter(request => ['pending', 'approved'].includes(String(request.status).toLowerCase())).slice(0, 3).map(request => `${formatDateOnly(request.start_date)} – ${formatDateOnly(request.end_date)}`).join(' · ')}</Text><Text style={[s.leaveNoticeHint, { color: c.warning }]}>These dates override your usual availability.</Text></View></View>}
         {/* Weekly overview */}
-        <Text style={[s.sectionHead, { color: c.subtle }]}>WEEKLY SCHEDULE</Text>
+        <View style={s.sectionTitleRow}>
+          <Text style={[s.sectionHead, { color: c.subtle, marginBottom: 0 }]}>THIS WEEK</Text>
+          <Text style={[s.weekHint, { color: c.muted }]}>Your recurring pattern</Text>
+        </View>
         <View style={[s.weekCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
           {FULL_DAYS.map((dayName, dayIndex) => {
             const slots = byDay[dayIndex] || []
+            const availableSlots = slots.filter(slot => slot.is_available !== false)
+            const unavailableAllDay = slots.length === 0 || (availableSlots.length === 0 && slots.some(slot => slot.is_available === false))
             const isToday = dayIndex === new Date().getDay()
             const isSelected = dayIndex === selectedDay
             return (
@@ -268,15 +310,20 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
               >
                 <View style={[s.dayLabelWrap, isToday && { backgroundColor: c.primarySurface }]}>
                   <Text style={[s.dayLabel, { color: isToday ? c.primary : c.muted }, isToday && { fontWeight: '700' }]}>
-                    {SHORT_DAYS[dayIndex]}
+                    {dayName}
                   </Text>
                   {isToday && <View style={[s.todayDot, { backgroundColor: c.primary }]} />}
                 </View>
                 <View style={s.daySlots}>
-                  {slots.length === 0 ? (
-                    <Text style={[s.noSlots, { color: c.subtle }]}>—</Text>
+                  {unavailableAllDay ? (
+                    <View style={[s.availabilitySummary, { backgroundColor: c.surfaceAlt }]}>
+                      <Ionicons name="close-circle-outline" size={14} color={c.subtle} />
+                      <Text style={[s.availabilitySummaryText, { color: c.muted }]}>Unavailable all day</Text>
+                    </View>
                   ) : (
-                    slots.map(rec => (
+                    <>
+                      <Text style={[s.availabilitySummaryText, { color: c.success }]}>Available</Text>
+                      {availableSlots.map(rec => (
                       <Pressable
                         key={rec.id}
                         onPress={() => handleSlotTap(rec)}
@@ -301,7 +348,8 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
                           {formatTimeRange(rec.start_time, rec.end_time)}
                         </Text>
                       </Pressable>
-                    ))
+                      ))}
+                    </>
                   )}
                 </View>
               </Pressable>
@@ -319,7 +367,7 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
             <View style={[s.formCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
               {records.filter(record => record.availability_date).map(record => (
                 <View key={record.id} style={s.dateOverrideRow}>
-                  <View style={{ flex: 1 }}><Text style={[s.slotText, { color: c.ink }]}>{record.availability_date}</Text><Text style={[s.noSlots, { color: record.is_available ? c.success : c.danger }]}>{record.is_available ? formatTimeRange(record.start_time, record.end_time) : 'Unavailable all day'}</Text></View>
+                  <View style={{ flex: 1 }}><Text style={[s.slotText, { color: c.ink }]}>{formatDateOnly(record.availability_date)}</Text><Text style={[s.noSlots, { color: record.is_available ? c.success : c.danger }]}>{record.is_available ? formatTimeRange(record.start_time, record.end_time) : 'Unavailable all day'}</Text></View>
                   <Pressable onPress={() => handleDelete(record.id, record.availability_date || 'date')}><Ionicons name="trash-outline" size={18} color={c.danger} /></Pressable>
                 </View>
               ))}
@@ -327,6 +375,9 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
           </>
         )}
 
+        </>}
+
+        {activeView === 'submit' && <>
         {/* Add / Edit form */}
         <View style={s.formHeader}>
           <Text style={[s.sectionHead, { color: c.subtle, marginTop: spacing.xl, marginBottom: 0 }]}>
@@ -344,7 +395,7 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
           <View style={s.calendarHeading}>
             <View style={{ flex: 1 }}>
               <Text style={[s.fieldLabel, { color: c.inkLight }]}>Choose a date</Text>
-              <Text style={[s.dateHint, { color: c.subtle }]}>Select a date up to four months ahead, or leave it unselected for a weekly pattern.</Text>
+              <Text style={[s.dateHint, { color: c.subtle }]}>Choose each date you want to submit, add its availability, then send everything together.</Text>
             </View>
             {availabilityDate && <Pressable accessibilityRole="button" accessibilityLabel="Clear selected date" onPress={() => { setAvailabilityDate(''); setEditingId(null); setSpecificUnavailable(false) }} hitSlop={8}><Ionicons name="close-circle" size={20} color={c.muted} /></Pressable>}
           </View>
@@ -375,6 +426,7 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
           </View>
           {availabilityDate && <View style={[s.selectedDateBanner, { backgroundColor: c.primarySurface }]}><Ionicons name="calendar" size={16} color={c.primary} /><Text style={[s.selectedDateText, { color: c.primary }]}>Selected {parseDateInput(availabilityDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</Text></View>}
           <View style={s.unavailableRow}><View style={{ flex: 1 }}><Text style={[s.fieldLabel, { color: c.ink }]}>Unavailable all day</Text><Text style={[s.dateHint, { color: c.muted }]}>Use this for a whole day or a one-off date you cannot work.</Text></View><Switch value={specificUnavailable} onValueChange={setSpecificUnavailable} trackColor={{ false: c.border, true: c.primarySurface }} thumbColor={specificUnavailable ? c.primary : c.subtle} /></View>
+          {!specificUnavailable && <>
           {/* Day picker */}
           <Text style={[s.fieldLabel, { color: c.inkLight }]}>Day</Text>
           <View style={s.dayPicker}>
@@ -464,13 +516,27 @@ export function AvailabilityScreen({ session, onBack }: { session: AuthSession; 
             </View>
           )}
 
+          </>}
           <PrimaryButton
-            label={saving ? 'Saving...' : editingId ? `Update ${FULL_DAYS[selectedDay]}` : `Save ${FULL_DAYS[selectedDay]}`}
-            onPress={handleSave}
-            loading={saving}
+            label="Add to submission"
+            onPress={addDraft}
+            loading={false}
             disabled={saving}
           />
+          {draftEntries.length > 0 && (
+            <View style={[s.batchCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '25' }]}>
+              <View style={s.batchHeader}><Text style={[s.batchTitle, { color: c.ink }]}>Ready to submit</Text><Text style={[s.batchCount, { color: c.primary }]}>{draftEntries.length} {draftEntries.length === 1 ? 'entry' : 'entries'}</Text></View>
+              {draftEntries.map(entry => (
+                <View key={entry.id} style={s.batchRow}>
+                  <View style={{ flex: 1 }}><Text style={[s.slotText, { color: c.ink }]}>{formatDateOnly(entry.date)}</Text><Text style={[s.noSlots, { color: entry.unavailable ? c.muted : c.primary }]}>{entry.unavailable ? 'Unavailable all day' : formatTimeRange(entry.start, entry.end)}</Text></View>
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${entry.date}`} onPress={() => setDraftEntries(prev => prev.filter(item => item.id !== entry.id))}><Ionicons name="close-circle-outline" size={19} color={c.danger} /></Pressable>
+                </View>
+              ))}
+              <PrimaryButton label={saving ? 'Submitting…' : `Submit ${draftEntries.length} ${draftEntries.length === 1 ? 'entry' : 'entries'}`} onPress={submitBatch} loading={saving} disabled={saving} />
+            </View>
+          )}
         </View>
+        </>}
       </ScrollView>
     </SafeAreaView>
   )
@@ -490,15 +556,26 @@ const styles = StyleSheet.create({
 
   banner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radii.md, marginBottom: spacing.base, borderWidth: 1 },
   bannerText: { fontFamily: FONT, fontSize: 13, fontWeight: '500' },
+  tabs: { flexDirection: 'row', borderRadius: radii.md, padding: 3, marginBottom: spacing.lg },
+  tab: { flex: 1, minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, borderRadius: radii.sm },
+  tabText: { fontFamily: FONT, fontSize: 12, fontWeight: '700' },
+  leaveNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, padding: spacing.md, borderWidth: 1, borderRadius: radii.md, marginBottom: spacing.md },
+  leaveNoticeTitle: { fontFamily: FONT, fontSize: 13, fontWeight: '700' },
+  leaveNoticeText: { fontFamily: FONT, fontSize: 12, marginTop: 3 },
+  leaveNoticeHint: { fontFamily: FONT, fontSize: 11, marginTop: 4, fontWeight: '600' },
 
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: spacing.sm, marginBottom: spacing.sm },
   sectionHead: { fontFamily: FONT, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: spacing.sm },
+  weekHint: { fontFamily: FONT, fontSize: 11 },
 
   weekCard: { borderRadius: radii.lg, borderWidth: 1, overflow: 'hidden', marginBottom: spacing.xs, ...elevation.sm },
   dayRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.md },
   dayLabelWrap: { width: 48, alignItems: 'center', gap: 2 },
   dayLabel: { fontFamily: FONT, fontSize: 13, fontWeight: '600' },
   todayDot: { width: 4, height: 4, borderRadius: 2 },
-  daySlots: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  daySlots: { flex: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.xs },
+  availabilitySummary: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.sm },
+  availabilitySummaryText: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
   noSlots: { fontFamily: FONT, fontSize: 13 },
   slotChip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   slotText: { fontFamily: FONT, fontSize: 12, fontWeight: '600' },
@@ -539,4 +616,9 @@ const styles = StyleSheet.create({
   dateHint: { fontFamily: FONT, fontSize: 11, lineHeight: 16 },
   unavailableRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   dateOverrideRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D1D5DB' },
+  batchCard: { borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: spacing.sm },
+  batchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  batchTitle: { fontFamily: FONT, fontSize: 14, fontWeight: '800' },
+  batchCount: { fontFamily: FONT, fontSize: 12, fontWeight: '700' },
+  batchRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#CBD5E1' },
 })

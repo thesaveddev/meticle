@@ -16,6 +16,7 @@ import { LoginScreen } from './src/screens/LoginScreen'
 import { TodayScreen, dayRange } from './src/screens/TodayScreen'
 import { VisitScreen } from './src/screens/VisitScreen'
 import { SettingsScreen } from './src/screens/SettingsScreen'
+import { LearnScreen } from './src/screens/LearnScreen'
 import { AvailabilityScreen } from './src/screens/AvailabilityScreen'
 import { AnnualLeaveScreen } from './src/screens/AnnualLeaveScreen'
 import { ClientDetailScreen } from './src/screens/ClientDetailScreen'
@@ -41,12 +42,17 @@ import { EmergencyButton, organisationSosContacts } from './src/components/Emerg
 type TabKey = 'today' | 'schedule' | 'chat' | 'mileage' | 'settings' | 'team' | 'clients' | 'visits'
 
 /** Provides the status-bar inset for stack screens that render their own root View. */
-function SubScreenFrame({ children, backgroundColor }: { children: ReactNode; backgroundColor: string }) {
+function SubScreenFrame({ children, backgroundColor, contacts = [] }: { children: ReactNode; backgroundColor: string; contacts?: ReturnType<typeof organisationSosContacts> }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['top', 'left', 'right', 'bottom']}>
       {children}
+      <EmergencyButton contacts={contacts} />
     </SafeAreaView>
   )
+}
+
+function EmergencyLayer({ children, contacts }: { children: ReactNode; contacts: ReturnType<typeof organisationSosContacts> }) {
+  return <View style={{ flex: 1 }}>{children}<EmergencyButton contacts={contacts} /></View>
 }
 
 const carerTabs: { key: TabKey; label: string }[] = [
@@ -71,6 +77,7 @@ type Screen =
   | { kind: 'tabs' }
   | { kind: 'visit'; visit: HomecareVisit }
   | { kind: 'clientDetail'; personId: string }
+  | { kind: 'clientSection'; personId: string; section: 'overview' | 'care' | 'risks' | 'meds' | 'records' | 'personal' | 'contacts' }
   | { kind: 'bodyMap'; personId: string; personName: string }
   | { kind: 'nutrition'; personId: string; personName: string }
   | { kind: 'profile' }
@@ -84,6 +91,7 @@ type Screen =
   | { kind: 'timesheets' }
   | { kind: 'carerTotals' }
   | { kind: 'rideShare'; visit?: HomecareVisit }
+  | { kind: 'learn' }
 
 export default function App() {
   return (
@@ -275,58 +283,65 @@ function AppInner() {
 
   /* ─── Sub-screens ────────────────────────────────────────── */
   if (currentScreen.kind === 'bodyMap' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><BodyMapScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></SwipeBack></>
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><BodyMapScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
   }
   if (currentScreen.kind === 'nutrition' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><NutritionScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></SwipeBack></>
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><NutritionScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
   }
   if (currentScreen.kind === 'clientDetail' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} /></SwipeBack></SubScreenFrame></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} onOpenSection={(id, section) => pushScreen({ kind: 'clientSection', personId: id, section })} /></SwipeBack></SubScreenFrame></>
+  }
+  if (currentScreen.kind === 'clientSection' && session) {
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} initialTab={currentScreen.section} sectionOnly onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'visit' && session) {
     // Find next visit after this one
     const sortedVisits = [...visits].sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())
     const currentIdx = sortedVisits.findIndex(v => v.id === currentScreen.visit.id)
     const nextV = currentIdx >= 0 && currentIdx < sortedVisits.length - 1 ? sortedVisits[currentIdx + 1] : null
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} onTransfer={() => pushScreen({ kind: 'swap', mode: 'transfer', visitId: currentScreen.visit.id })} onRideShare={() => pushScreen({ kind: 'rideShare', visit: currentScreen.visit })} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></SwipeBack></>
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} onTransfer={() => pushScreen({ kind: 'swap', mode: 'transfer', visitId: currentScreen.visit.id })} onRideShare={() => pushScreen({ kind: 'rideShare', visit: currentScreen.visit })} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></SwipeBack></EmergencyLayer>
   }
   if (currentScreen.kind === 'availability' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AvailabilityScreen session={session} onBack={goBack} /></SwipeBack></>
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AvailabilityScreen session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
   }
   if (currentScreen.kind === 'annualLeave' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AnnualLeaveScreen session={session} onBack={goBack} /></SwipeBack></>
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AnnualLeaveScreen session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
   }
   if (currentScreen.kind === 'profile' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></SwipeBack></>
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></SwipeBack></EmergencyLayer>
   }
   if (currentScreen.kind === 'swap' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><SwapTransferScreen session={session} user={user} visits={visits} initialRequestType={currentScreen.mode} initialVisitId={currentScreen.visitId} onBack={goBack} onRefresh={() => loadVisits(session)} /></SwipeBack></>
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><SwapTransferScreen session={session} user={user} visits={visits} initialRequestType={currentScreen.mode} initialVisitId={currentScreen.visitId} onBack={goBack} onRefresh={() => loadVisits(session)} /></SwipeBack></EmergencyLayer>
   }
   if (currentScreen.kind === 'incident' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} /></SwipeBack></>
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} /></SwipeBack></EmergencyLayer>
   }
   if (currentScreen.kind === 'chat' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><ChatScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><ChatScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'notifications' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'allVisits' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AllVisitsScreen session={session} onBack={goBack} initialStatus={currentScreen.status} initialStaffName={currentScreen.staffName} initialStaffId={currentScreen.staffId} onSelect={(visit) => {
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AllVisitsScreen session={session} onBack={goBack} initialStatus={currentScreen.status} initialStaffName={currentScreen.staffName} initialStaffId={currentScreen.staffId} onSelect={(visit) => {
       if (visit) { popScreen(); pushScreen({ kind: 'visit', visit }) }
-    }} /></SwipeBack></>
+    }} /></SwipeBack></EmergencyLayer>
   }
   if (currentScreen.kind === 'staffDirectory' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><StaffDirectoryScreen session={session} onBack={goBack} /></SwipeBack></>
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><StaffDirectoryScreen session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
   }
   if (currentScreen.kind === 'timesheets' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><TimesheetsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><TimesheetsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'carerTotals' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg}><SwipeBack onBack={goBack}><CarerTotalsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><CarerTotalsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
   if (currentScreen.kind === 'rideShare' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><RideShareScreen session={session} currentVisit={currentScreen.visit} onBack={goBack} /></SwipeBack></>
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><RideShareScreen session={session} currentVisit={currentScreen.visit} onBack={goBack} /></SwipeBack></EmergencyLayer>
+  }
+  if (currentScreen.kind === 'learn' && session) {
+    const isDomiciliary = (session.organization?.service_types || []).some(type => ['domiciliary', 'live_in'].includes(type))
+    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><LearnScreen user={user} isDomiciliary={isDomiciliary} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
 
   /* ─── Main tab view ──────────────────────────────────────── */
@@ -374,7 +389,7 @@ function AppInner() {
 
           {/* Shared tabs */}
           {tab === 'chat' && <ChatScreen session={session} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>

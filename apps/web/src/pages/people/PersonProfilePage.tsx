@@ -27,6 +27,8 @@ import api from '../../services/api'
 import { useSnackbar } from '../../context/SnackbarContext'
 import { ConfirmDialog, SectionHeader, EmptyRow } from '../../components/ui'
 import { EmptyState } from '../../components/design/EmptyState'
+import { formatDateOnly } from '../../utils/dateFormat'
+import ContextualLearnLink from '../../components/ContextualLearnLink'
 import HealthTab from './HealthTab'
 import NutritionTab from './NutritionTab'
 import BodyMapTab from './BodyMapTab'
@@ -181,6 +183,12 @@ export default function PersonProfilePage() {
     queryKey: ['locations'],
     queryFn: () => api.get('/settings/locations').then(r => r.data),
   })
+
+  const { data: organisationSettings } = useQuery({
+    queryKey: ['organisation-settings'],
+    queryFn: () => api.get('/settings/org').then(r => r.data),
+  })
+  const isDomiciliary = (organisationSettings?.service_types || []).some((type: string) => ['domiciliary', 'live_in'].includes(type))
 
   const { data: portalMembers = [] } = useQuery({
     queryKey: ['family-members', id],
@@ -484,10 +492,20 @@ export default function PersonProfilePage() {
     aiRecognitionRef.current?.stop()
   }
 
+  useEffect(() => {
+    if (isDomiciliary && ![0, 1, 2, 4, 5, 7, 8, 9, 13, 15, 17, 18, 20].includes(tab)) handleTabChange(0)
+  }, [isDomiciliary, tab])
+
   if (isLoading) return <Box sx={{ textAlign: 'center', py: 8 }}><CircularProgress /></Box>
   if (!user) return <Alert severity="error">Person not found</Alert>
 
-  const CATEGORIES = [
+  const CATEGORIES = isDomiciliary ? [
+    { label: 'Overview', tabs: [0] },
+    { label: 'Care', tabs: [2, 4, 9, 17] },
+    { label: 'People', tabs: [5, 15] },
+    { label: 'Safety', tabs: [7] },
+    { label: 'Records', tabs: [13, 8, 1, 18, 20] },
+  ] : [
     { label: 'Overview', tabs: [0] },
     { label: 'Care', tabs: [2, 3, 4, 9, 10, 17] },
     { label: 'Clinical', tabs: [6, 12, 14, 19, 21] },
@@ -546,12 +564,14 @@ export default function PersonProfilePage() {
               </Stack>
               {user.date_of_birth && (
                 <Typography variant="caption" color="#6B7280">
-                  DOB: {new Date(user.date_of_birth).toLocaleDateString('en-GB')}
+                  DOB: {formatDateOnly(user.date_of_birth)}
                   {user.date_of_birth && ` (${Math.floor((Date.now() - new Date(user.date_of_birth).getTime()) / 31557600000)} yrs)`}
                 </Typography>
               )}
             </Box>
           </Stack>
+          <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1}>
+            {isDomiciliary && <ContextualLearnLink topic="dom-carer-web" label="Learn about client files" />}
           <Button startIcon={<EditIcon />} variant="outlined" size="small" onClick={() => {
             const f: any = { ...user }
             for (const k of EDIT_DATE_FIELDS) f[k] = toDateInput(f[k])
@@ -560,6 +580,7 @@ export default function PersonProfilePage() {
             sx={{ textTransform: 'none', borderRadius: 1.5, whiteSpace: 'nowrap' }}>
             Edit Profile
           </Button>
+          </Stack>
         </Stack>
       </Paper>
 
@@ -637,7 +658,7 @@ export default function PersonProfilePage() {
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Personal Details</Typography>
               </Stack>
               <Stack spacing={1}>
-                {[{ label: 'DOB', value: user.date_of_birth ? new Date(user.date_of_birth).toLocaleDateString('en-GB') + ' (' + Math.floor((Date.now() - new Date(user.date_of_birth).getTime()) / 31557600000) + ' yrs)' : '—' },
+                {[{ label: 'DOB', value: user.date_of_birth ? `${formatDateOnly(user.date_of_birth)} (${Math.floor((Date.now() - new Date(user.date_of_birth).getTime()) / 31557600000)} yrs)` : '—' },
                   { label: 'Gender', value: user.gender || '—' },
                   { label: 'Pronouns', value: user.pronouns || '—' },
                   { label: 'Marital Status', value: user.marital_status ? user.marital_status.replace(/_/g, ' ') : '—' },

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Box, Typography, Paper, Stack, TextField, InputAdornment, IconButton,
   ListItemButton, ListItemText, ListItemIcon, Collapse,
@@ -9,6 +9,7 @@ import {
   ExpandMore, ExpandLess, School as LearnIcon, } from '@mui/icons-material'
 import { getLearnSections, type LearnSection } from '../../data/learn-content'
 import PageMeta from '../../components/PageMeta'
+import { useSearchParams } from 'react-router-dom'
 
 const DRAWER_WIDTH = 300
 
@@ -20,8 +21,20 @@ export default function LearningCenterPage() {
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const [activeSubsection, setActiveSubsection] = useState<string | null>(null)
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
+  const [searchParams] = useSearchParams()
 
   const sections = useMemo(() => getLearnSections(), [])
+
+  useEffect(() => {
+    const topic = searchParams.get('topic')
+    if (!topic) return
+    const match = sections.find(section => section.subsections.some(subsection => subsection.id === topic))
+    if (match) {
+      setActiveSection(match.id)
+      setActiveSubsection(topic)
+      setExpandedCategories(previous => ({ ...previous, [match.id]: true }))
+    }
+  }, [searchParams, sections])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return sections

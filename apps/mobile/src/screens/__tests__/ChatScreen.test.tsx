@@ -1,5 +1,5 @@
 import React from 'react'
-import { Alert } from 'react-native'
+import { Alert, Image } from 'react-native'
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native'
 import { ChatScreen } from '../ChatScreen'
 import type { AuthSession } from '../../types'
@@ -48,6 +48,7 @@ const mockGetChatMessages = api.getChatMessages as jest.MockedFunction<typeof ap
 const mockSendChatMessage = api.sendChatMessage as jest.MockedFunction<typeof api.sendChatMessage>
 const mockDeleteChatMessage = api.deleteChatMessage as jest.MockedFunction<typeof api.deleteChatMessage>
 const mockGetChatChannelMembers = api.getChatChannelMembers as jest.MockedFunction<typeof api.getChatChannelMembers>
+const mockDownloadChatFile = api.downloadChatFile as jest.MockedFunction<typeof api.downloadChatFile>
 
 const session: AuthSession = {
   accessToken: 'token-1',
@@ -152,12 +153,16 @@ describe('ChatScreen group member directory', () => {
 })
 
 describe('ChatScreen attachments and delivery', () => {
-  it('previews a received image and offers save/share download', async () => {
+  it('downloads a private attachment for a stable thumbnail before opening preview', async () => {
     mockGetChatMessages.mockResolvedValue([message({ file_url: '/files/private/photo.jpg', file_name: 'photo.jpg', message: 'Shared photo.jpg' })] as any)
 
     const screen = await openChannel()
-    fireEvent.press(screen.getByLabelText('Preview photo.jpg'))
 
+    await waitFor(() => expect(mockDownloadChatFile).toHaveBeenCalledWith('token-1', '/files/private/photo.jpg', 'photo.jpg'))
+    const images = screen.UNSAFE_getAllByType(Image)
+    expect(images.some(node => node.props.source?.uri === 'file:///cache/image.jpg')).toBe(true)
+
+    fireEvent.press(screen.getByLabelText('Preview photo.jpg'))
     await waitFor(() => expect(screen.getByText('Save or share image')).toBeTruthy())
     expect(screen.getByLabelText('Download image')).toBeTruthy()
   })

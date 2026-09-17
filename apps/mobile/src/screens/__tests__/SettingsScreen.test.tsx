@@ -35,6 +35,7 @@ function renderScreen() {
       onSignOut={jest.fn()}
       onSync={jest.fn()}
       onProfile={jest.fn()}
+      onLearn={jest.fn()}
       onAvailability={jest.fn()}
     />
   )
@@ -117,6 +118,13 @@ describe('SettingsScreen', () => {
     fireEvent.press(screen.getByText('Haptic feedback'))
 
     await waitFor(() => expect(setHapticEnabled).toHaveBeenCalledWith(false))
+  })
+
+  it('offers the learning centre for a carer', async () => {
+    const screen = renderScreen()
+    expect(screen.getByText('Learn how to use Meticle Care')).toBeTruthy()
+    expect(screen.getByText('Find features, steps, and field guidance')).toBeTruthy()
+    await settleMountPermissionCheck()
   })
 
   it('offers availability and sign out for a carer', async () => {

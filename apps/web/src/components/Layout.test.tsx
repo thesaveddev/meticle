@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { ThemeModeProvider } from '../context/ThemeContext'
 import Layout from './Layout'
@@ -102,6 +102,29 @@ describe('Layout sidebar navigation', () => {
       expect(stored).toContain('Care')
     })
     expect(screen.getByRole('button', { name: /Care/i })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('hides supported-living navigation and keeps notifications in the top bar for domiciliary organisations', async () => {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (url === '/settings/org') return Promise.resolve({ data: { service_types: ['domiciliary'] } })
+      if (url.includes('/notifications/unread-count')) return Promise.resolve({ data: { count: 0 } })
+      if (url.includes('/chat/unread')) return Promise.resolve({ data: {} })
+      if (url.includes('/permissions/')) return Promise.resolve({ data: { permissions: [] } })
+      if (url.includes('/auth/me')) return Promise.resolve({ data: { user: ORG_ADMIN, organization: { name: 'Homecare Org' } } })
+      return Promise.resolve({ data: {} })
+    })
+
+    renderLayout('/dashboard')
+    await waitFor(() => expect(screen.getByTestId('page-dashboard')).toBeInTheDocument())
+
+    const sidebar = within(screen.getByRole('navigation'))
+    expect(sidebar.queryByText('Mission Control')).not.toBeInTheDocument()
+    expect(sidebar.queryByText('Appointments')).not.toBeInTheDocument()
+    expect(sidebar.queryByText('Expenses')).not.toBeInTheDocument()
+    expect(sidebar.queryByText('Tasks')).not.toBeInTheDocument()
+    expect(sidebar.queryByText('My Profile')).not.toBeInTheDocument()
+    expect(sidebar.queryByText('Notifications')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Notifications/ })).toBeInTheDocument()
   })
 
   it('expands a previously collapsed group when toggled again', async () => {

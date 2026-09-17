@@ -784,7 +784,7 @@ export class AuthController {
     if (user.organization_id) {
       // The SOS contacts ride along with the session so the mobile emergency sheet
       // has them without a second request (and still has them offline).
-      organization = (await migrateQuery('SELECT id, name, plan, subscription_status, logo_url, primary_color, secondary_color, accent_color, onboarding_completed, service_types, primary_service_type, emergency_contact_1_label, emergency_contact_1_phone, emergency_contact_2_label, emergency_contact_2_phone FROM organizations WHERE id = $1', [user.organization_id])).rows[0] || null;
+      organization = (await migrateQuery('SELECT id, name, plan, subscription_status, logo_url, primary_color, secondary_color, accent_color, onboarding_completed, service_types, primary_service_type, care_capabilities, emergency_contact_1_label, emergency_contact_1_phone, emergency_contact_2_label, emergency_contact_2_phone FROM organizations WHERE id = $1', [user.organization_id])).rows[0] || null;
     }
 
     res.json({

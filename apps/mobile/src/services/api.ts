@@ -131,6 +131,17 @@ export async function getMyLeaveRequests(token: string): Promise<any[]> {
   return request<any[]>('/leave/my-requests', {}, token)
 }
 
+export async function getLeaveRequests(token: string, status = 'pending'): Promise<any[]> {
+  return request<any[]>(`/leave/requests?status=${encodeURIComponent(status)}`, {}, token)
+}
+
+export async function reviewLeaveRequest(token: string, id: string, status: 'approved' | 'rejected', notes?: string): Promise<any> {
+  return request<any>(`/leave/requests/${encodeURIComponent(id)}/review`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, notes: notes || undefined }),
+  }, token)
+}
+
 export async function getLeaveBalances(token: string): Promise<any[]> {
   return request<any[]>('/leave/balances', {}, token)
 }
@@ -152,7 +163,65 @@ export async function getPersonDetail(token: string, personId: string): Promise<
 }
 
 export async function getMedicationsForPerson(token: string, personId: string): Promise<any[]> {
-  return request<any[]>(`/emedication/records?personId=${encodeURIComponent(personId)}`, {}, token)
+  const records = await request<any[]>(`/emedication/records?personId=${encodeURIComponent(personId)}`, {}, token)
+  return Promise.all(records.map(async record => {
+    if (Array.isArray(record.items)) return record
+    try {
+      return await request<any>(`/emedication/records/${encodeURIComponent(record.id)}`, {}, token)
+    } catch {
+      return record
+    }
+  }))
+}
+
+export async function getMedicationAdministrations(token: string, itemId: string, startDate?: string, endDate?: string): Promise<any[]> {
+  const params = new URLSearchParams()
+  if (startDate) params.set('startDate', startDate)
+  if (endDate) params.set('endDate', endDate)
+  const queryString = params.toString()
+  return request<any[]>(`/emedication/items/${encodeURIComponent(itemId)}/administrations${queryString ? `?${queryString}` : ''}`, {}, token)
+}
+
+export async function createMedicationItem(token: string, recordId: string, data: {
+  name: string
+  dosage: string
+  unit?: string
+  route?: string
+  frequency: string
+  times?: string[]
+  instructions?: string
+  is_prn?: boolean
+  is_active?: boolean
+  start_date?: string
+  end_date?: string
+  reason_for_change: string
+}): Promise<any> {
+  return request(`/emedication/records/${encodeURIComponent(recordId)}/items`, { method: 'POST', body: JSON.stringify(data) }, token)
+}
+
+export async function updateMedicationItem(token: string, itemId: string, data: {
+  name?: string
+  dosage?: string
+  unit?: string
+  route?: string
+  frequency?: string
+  instructions?: string
+  is_prn?: boolean
+  is_active?: boolean
+  start_date?: string
+  end_date?: string
+  reason_for_change: string
+}): Promise<any> {
+  return request(`/emedication/items/${encodeURIComponent(itemId)}`, { method: 'PATCH', body: JSON.stringify(data) }, token)
+}
+
+export async function logMedicationAdministration(token: string, data: {
+  emedication_item_id: string
+  scheduled_time: string
+  status: 'given' | 'refused' | 'missed'
+  notes?: string
+}): Promise<any> {
+  return request('/emedication/administrations', { method: 'POST', body: JSON.stringify(data) }, token)
 }
 
 export async function getDailyNotes(token: string, personId: string): Promise<any[]> {

@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Button, Stack, Chip, Alert, Card, CardContent, 
 import PageContainer from '../../components/design/PageContainer'
 import { HowToReg as ClaimIcon, Schedule as ScheduleIcon, LocationOn as LocationIcon, CheckCircle, Cancel, History, Send as SendIcon, AccessTime as AccessTimeIcon, DateRange as DateRangeIcon, Person as PersonIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material'
 import api from '../../services/api'
+import ContextualLearnLink from '../../components/ContextualLearnLink'
 
 const shiftTypeLabel = (t?: string) =>
   ({ day: 'Day', sleep: 'Sleep-in', wake_night: 'Wake Night' } as Record<string, string>)[t || 'day'] || t || 'Day'
@@ -66,6 +67,9 @@ export default function ShiftMarketplacePage() {
   const [reassignDialog, setReassignDialog] = useState({ open: false, shiftId: '', staffId: '', staffName: '', start_time: '', end_time: '', location_name: '', date_label: '' })
   const [reassignStaff, setReassignStaff] = useState('')
   const [reassigning, setReassigning] = useState(false)
+  const [openCallDialog, setOpenCallDialog] = useState(false)
+  const [openCallSaving, setOpenCallSaving] = useState(false)
+  const [openCall, setOpenCall] = useState({ location_id: '', start_time: '', end_time: '', shift_type: 'day' })
 
   const fetchOpenShifts = async () => {
     setShiftsLoading(true)
@@ -118,6 +122,40 @@ export default function ShiftMarketplacePage() {
     Promise.all(calls).finally(() => setClaimsLoading(false))
   }, [tab])
   useEffect(() => { const t = setInterval(fetchOpenShifts, 60000); return () => clearInterval(t) }, [selectedLocation, openDateFrom, openDateTo])
+
+  const resetOpenCall = () => {
+    setOpenCallDialog(false)
+    setOpenCall({ location_id: '', start_time: '', end_time: '', shift_type: 'day' })
+  }
+
+  const handlePostOpenCall = async () => {
+    if (!openCall.location_id || !openCall.start_time || !openCall.end_time) {
+      setError('Choose an area and both start and end times')
+      return
+    }
+    const start = new Date(openCall.start_time)
+    const end = new Date(openCall.end_time)
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
+      setError('The end time must be after the start time')
+      return
+    }
+    setError(''); setSuccess(''); setOpenCallSaving(true)
+    try {
+      await api.post('/shifts', {
+        location_id: openCall.location_id,
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+        shift_type: openCall.shift_type,
+        assigned_staff_ids: [],
+      })
+      setSuccess('Open call posted for carers to claim')
+      resetOpenCall()
+      setTab(0)
+      fetchOpenShifts()
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Could not post the open call')
+    } finally { setOpenCallSaving(false) }
+  }
 
   const handleClaim = async (shiftId: string) => {
     setError(''); setSuccess(''); setClaimingId(shiftId)
@@ -357,10 +395,12 @@ export default function ShiftMarketplacePage() {
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800 }}>Shift Marketplace</Typography>
             <Typography variant="caption" color="#6B7280">Find, claim and manage unclaimed overtime</Typography>
+            <ContextualLearnLink topic="dom-manager-web" label="Learn how open calls work" />
           </Box>
         </Stack>
         <Box sx={{ flexGrow: 1 }} />
         {tab === 0 && <Chip label={`${shifts.length} available`} color="primary" variant="outlined" sx={{ fontWeight: 700 }} />}
+        {isAdminOrManager && <Button variant="contained" onClick={() => setOpenCallDialog(true)} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A63' }, textTransform: 'none', fontWeight: 700 }}>Post open call</Button>}
         {tab === 1 && isAdminOrManager && reviewCount > 0 && <Chip label={`${reviewCount} to review`} color="warning" sx={{ fontWeight: 700 }} />}
       </Stack>
 
@@ -591,6 +631,40 @@ export default function ShiftMarketplacePage() {
           )}
         </>
       )}
+
+      {/* ── Manager open-call dialog ── */}
+      <Dialog open={openCallDialog} onClose={resetOpenCall} maxWidth="sm" fullWidth>
+        <DialogTitle>Post an open call</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Publish an unassigned call to the marketplace so an eligible carer can pick it up. The call remains open until it is claimed or managed from Claims.
+          </Typography>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <FormControl fullWidth required>
+              <InputLabel id="open-call-location-label">Area</InputLabel>
+              <Select labelId="open-call-location-label" label="Area" value={openCall.location_id} onChange={e => setOpenCall(p => ({ ...p, location_id: e.target.value }))}>
+                {locations.map((location: any) => <MenuItem key={location.id} value={location.id}>{location.name}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <TextField label="Starts" type="datetime-local" required value={openCall.start_time} onChange={e => setOpenCall(p => ({ ...p, start_time: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
+            <TextField label="Ends" type="datetime-local" required value={openCall.end_time} onChange={e => setOpenCall(p => ({ ...p, end_time: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
+            <FormControl fullWidth>
+              <InputLabel id="open-call-type-label">Call type</InputLabel>
+              <Select labelId="open-call-type-label" label="Call type" value={openCall.shift_type} onChange={e => setOpenCall(p => ({ ...p, shift_type: e.target.value }))}>
+                <MenuItem value="day">Day call</MenuItem>
+                <MenuItem value="sleep">Sleep-in</MenuItem>
+                <MenuItem value="wake_night">Wake night</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={resetOpenCall}>Cancel</Button>
+          <Button variant="contained" onClick={handlePostOpenCall} disabled={openCallSaving} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A63' } }}>
+            {openCallSaving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Post open call'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── Shift detail dialog (read-only) ── */}
       <Dialog open={!!detail} onClose={() => setDetail(null)} maxWidth="sm" fullWidth>
