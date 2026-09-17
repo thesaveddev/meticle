@@ -557,13 +557,13 @@ const styles = StyleSheet.create({
 
   /* Status pill — same pill family as the action pills on a call */
   pill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: radii.full, borderWidth: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    paddingHorizontal: 7, paddingVertical: 2,
+    borderRadius: radii.full, borderWidth: 1, alignSelf: 'flex-start',
   },
-  pillText: { fontFamily: FONT, fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
+  pillText: { fontFamily: FONT, fontSize: 10, fontWeight: '600', letterSpacing: 0.1 },
   pillDot: { width: 5, height: 5, borderRadius: 2.5 },
-  completedIcon: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  completedIcon: { width: 13, height: 13, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
 
   /* Refresh indicator */
 

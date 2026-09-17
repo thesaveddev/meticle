@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Medication as MedIcon, Warning as WarningIcon, Check as CheckIcon, Close as CloseIcon, Print as PrintIcon, ArrowBack as PrevIcon, ArrowForward as NextIcon, Inventory as InventoryIcon, LocalShipping as DeliveryIcon, History as AuditIcon, ArchiveOutlined, Unarchive as UnarchiveIcon, ArrowDropDown as ArrowDropDownIcon, Schedule as ScheduleIcon, WarningAmberOutlined } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import { formatDateOnly, parseDateOnly } from '../../utils/dateFormat'
 
 const ROUTES = ['oral', 'topical', 'injection', 'inhalation', 'rectal', 'sublingual', 'other']
 const FREQUENCIES = ['once daily', 'twice daily', 'three times daily', 'four times daily', 'as required (PRN)', 'weekly', 'monthly']
@@ -729,8 +730,8 @@ export default function EMedicationPage() {
     const su = (people || []).find((u: any) => u.id === chartData.record.person_id)
     const suName = chartData.record.person_name
     const nhsNumber = su?.nhs_number || 'N/A'
-    const dob = su?.date_of_birth ? new Date(su.date_of_birth).toLocaleDateString() : 'N/A'
-    const age = su?.date_of_birth ? Math.floor((Date.now() - new Date(su.date_of_birth).getTime()) / 31557600000) : ''
+    const dob = su?.date_of_birth ? formatDateOnly(su.date_of_birth, 'N/A') : 'N/A'
+    const age = su?.date_of_birth ? Math.floor((Date.now() - parseDateOnly(su.date_of_birth).getTime()) / 31557600000) : ''
     const room = su?.room_number || ''
     const allergiesRaw = su?.allergies
     const normAllergies = (raw: any): { name: string; reaction: string; severity: string; date: string }[] => {
@@ -1375,7 +1376,7 @@ export default function EMedicationPage() {
     const days = chartData.days
 
     const su = (people || []).find((u: any) => u.id === chartData.record.person_id)
-    const age = su?.date_of_birth ? Math.floor((Date.now() - new Date(su.date_of_birth).getTime()) / 31557600000) : ''
+    const age = su?.date_of_birth ? Math.floor((Date.now() - parseDateOnly(su.date_of_birth).getTime()) / 31557600000) : ''
 
     const topicalRoutes = new Set(['topical', 'cream', 'ointment', 'gel', 'lotion'])
     const injectionRoutes = new Set(['im', 'intramuscular', 'iv', 'intravenous', 'sc', 'subcutaneous'])

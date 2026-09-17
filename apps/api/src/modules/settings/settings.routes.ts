@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { validate } from '../../shared/middleware/validate.middleware';
@@ -13,6 +14,7 @@ router.use(authenticate);
 
 // Read routes (any authenticated user)
 router.get('/org', asyncHandler(SettingsController.getOrgSettings));
+router.get('/capabilities', asyncHandler(SettingsController.getCareCapabilities));
 router.get('/locations', asyncHandler(SettingsController.getLocations));
 router.get('/staff', asyncHandler(SettingsController.getStaffList));
 router.get('/compliance-config', asyncHandler(SettingsController.getComplianceConfig));
@@ -23,6 +25,7 @@ router.get('/my-teams', asyncHandler(SettingsController.getMyTeams));
 
 // Mutation routes (ORG_ADMIN, plus MANAGER for medication/alert toggles)
 router.patch('/org', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateOrgSettingsSchema), asyncHandler(SettingsController.updateOrgSettings));
+router.patch('/capabilities', requireRole(UserRole.ORG_ADMIN), validate(z.object({ medication_support: z.boolean().optional(), nutrition_support: z.boolean().optional() })), asyncHandler(SettingsController.updateCareCapabilities));
 router.post('/locations', requireRole(UserRole.ORG_ADMIN), validate(createLocationSchema), asyncHandler(SettingsController.createLocation));
 router.put('/locations/:id', requireRole(UserRole.ORG_ADMIN), validate(updateLocationSchema), asyncHandler(SettingsController.updateLocation));
 router.delete('/locations/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(SettingsController.deleteLocation));

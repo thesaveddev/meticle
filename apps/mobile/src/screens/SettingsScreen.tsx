@@ -9,11 +9,12 @@ import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
 import { IconSyncSmall, IconBell, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
-export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailability, onAnnualLeave }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onAvailability, onAnnualLeave }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
   onProfile?: () => void
+  onLearn?: () => void
   onAvailability?: () => void
   onAnnualLeave?: () => void
 }) {
@@ -68,6 +69,20 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onAvailabil
         </Pressable>
 
         {/* Settings groups */}
+        {onLearn ? <View style={s.group}>
+          <Text style={[s.groupLabel, { color: c.subtle }]}>HELP</Text>
+          <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Pressable onPress={() => { hapticLight(); onLearn() }} style={s.menuRow}>
+              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}><Text style={{ fontSize: 18 }}>?</Text></View>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Learn how to use Meticle Care</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>Find features, steps, and field guidance</Text>
+              </View>
+              <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
+            </Pressable>
+          </View>
+        </View> : null}
+
         <View style={s.group}>
           <Text style={[s.groupLabel, { color: c.subtle }]}>NOTIFICATIONS</Text>
           <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>

@@ -15,6 +15,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import { formatDateOnly } from '../../utils/dateFormat'
 import { useSnackbar } from '../../context/SnackbarContext'
 import PersonAvatar from '../../components/PersonAvatar'
 import { PremiumCard, StatusBadge } from '../../components/design/PremiumCard'
@@ -308,7 +309,7 @@ export default function PersonDirectoryPage() {
                       {u.nhs_number || '—'}
                     </TableCell>
                     <TableCell onClick={() => navigate(`/people/${u.id}`)} sx={{ borderBottom: `1px solid ${theme.palette.divider}`, color: theme.palette.text.secondary, fontSize: '0.85rem' }}>
-                      {u.date_of_birth ? new Date(u.date_of_birth).toLocaleDateString('en-GB') : '—'}
+                      {formatDateOnly(u.date_of_birth)}
                     </TableCell>
                     <TableCell onClick={() => navigate(`/people/${u.id}`)} sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
                       <StatusBadge variant={STATUS_VARIANT[u.status] || 'pending'} label={STATUS_LABEL[u.status] || u.status} />

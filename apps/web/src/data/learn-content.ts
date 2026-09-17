@@ -855,7 +855,85 @@ const s: LearnSection[] = [
 }
 ]},
 
-// ═══════════ 13. ADVANCED ═══════════
+// ═══════════ 13. DOMICILIARY CARE ═══════════
+{ id:'domiciliary-care', category:'Domiciliary Care', title:'Domiciliary Care Guide', icon:'🏠', subsections:[
+{ id:'dom-overview', title:'What is different in domiciliary care?',
+  content:
+    h2('A field-first way to work') +
+    p('Domiciliary care supports people in their own homes. The workflow is organised around visits, travel, care plans, call notes, availability, and communication with families — not residential rooms, in-house rotas, or clinical ward routines.') +
+    h3('Domiciliary modules you will use') +
+    ul(['<strong>People / Clients:</strong> Find each person, read their care plan, risks, body map, documents, family contacts, and communication history.','<strong>Visits & Packages:</strong> View the care packages and scheduled calls assigned to your service.','<strong>Call Schedule:</strong> See the visits you need to complete, check in/out, complete tasks, and write the call note.','<strong>Availability & Leave:</strong> Submit availability and leave so managers can plan safe cover.','<strong>Shift Marketplace:</strong> Managers post open calls; eligible carers can claim them.','<strong>Areas:</strong> Managers see the carers and active clients attached to each geographic area.','<strong>Communication:</strong> Use team chat and the person/family communication record where your role permits.']) +
+    h3('Modules you will not normally use') +
+    p('Domiciliary organisations do not see residential rota planning, room checks, eMAR, meal plans, agencies, or MCA/capacity and clinical record sections. If your organisation later needs a capability, an administrator should enable it deliberately rather than recording unrelated information in call notes.') +
+    tip('Care plan information is the source of truth for how support should be delivered. The call note records what happened during that visit — it does not replace the care plan.')
+},
+{ id:'dom-manager-web', title:'Manager: run domiciliary care on the web',
+  content:
+    h2('Daily manager workflow') +
+    ol(['<strong>Dashboard:</strong> Start at Dashboard to review today\'s visits, open calls, exceptions, and operational alerts.','<strong>Visits & Packages:</strong> Open Homecare → Visits & Packages to review the day\'s workload and care packages.','<strong>Call Assignment:</strong> Use Homecare → Call Assignment to assign or reassign visits. Check the carer\'s submitted availability and booked leave before confirming cover.','<strong>Weekly Planner:</strong> Use Homecare → Weekly Planner to review the week, move visits, and identify gaps.','<strong>Exceptions:</strong> Open the exceptions view for missed, overdue, late, disrupted, or unassigned calls. Resolve the operational issue and record the outcome.','<strong>Communication:</strong> Use Communication for internal coordination and the client communication area for family feedback and follow-up.']) +
+    h2('Where to manage each thing') +
+    ul(['<strong>People → client → Care Plans:</strong> Read or update person-centred support plans.','<strong>People → client → Risks:</strong> Review risk assessments and mitigations.','<strong>People → client → Body Map:</strong> Record and review skin or wound observations.','<strong>People → client → Family & Contacts:</strong> Maintain family and emergency contact details.','<strong>People → client → Communication:</strong> Record feedback, calls, visits, and follow-up actions.','<strong>Homecare → Availability:</strong> Review a carer\'s working pattern and leave-aware schedule.','<strong>Homecare → Areas:</strong> Compare active carers and clients by geographic area.','<strong>Staffing → Shift Marketplace:</strong> Post an open call when a visit or cover slot needs a carer.','<strong>Leave Manager:</strong> Review pending leave and check the balance and availability context before approving.']) +
+    h2('Posting an open call') +
+    step(1,'Open <strong>Staffing → Shift Marketplace</strong>.') +
+    step(2,'Click <strong>Post open call</strong>.') +
+    step(3,'Choose the care area, start time, end time, and call type.') +
+    step(4,'Click <strong>Post open call</strong>. It appears in Available Shifts for eligible carers.') +
+    step(5,'Use Claims to review or manage the claim. Reassign or cancel it if circumstances change.') +
+    warn('Posting an open call creates cover work; it does not replace assigning the actual client visit. Confirm that the visit is assigned in Call Assignment or the Weekly Planner after cover is accepted.')
+},
+{ id:'dom-carer-web', title:'Carer: work a visit on the web',
+  content:
+    h2('Before your shift') +
+    ol(['<strong>My Week:</strong> Review your assigned visits and travel time.','<strong>People:</strong> Open the client before the visit and read the current care plan, risks, body map, important documents, and relevant family communication.','<strong>Availability:</strong> Keep your availability accurate for future planning. Submit whole-day unavailable periods when needed.','<strong>Leave Manager:</strong> Check your leave balance and view applied leave.']) +
+    h2('During and after a call') +
+    ol(['Open the call from Homecare → Visits & Packages or Call Schedule.','Use the visit actions to check in, record the required tasks, and report disruptions or incidents.','Write the call note based on what you observed and what support was delivered. Keep it factual, time-relevant, and person-centred.','Check out when the visit is complete. If the call is overdue, follow the overdue workflow and tell the manager if cover or support is needed.']) +
+    h2('Finding client information') +
+    ul(['Care Plan: People → select the client → Care Plans','Risks: People → select the client → Risks','Body Map: People → select the client → Body Map','Family and contacts: People → select the client → Family & Contacts','Feedback and follow-up: People → select the client → Communication','Documents: People → select the client → Documents']) +
+    tip('Do not create a separate clinical or medication record for a domiciliary client when the module is not enabled. Record visit-specific work in the call tasks and call note, and escalate changes to the manager.')
+},
+{ id:'dom-mobile-manager', title:'Manager: use the mobile app',
+  content:
+    h2('Manager mobile starting points') +
+    ul(['<strong>Team:</strong> Review the manager dashboard, exceptions, missed/overdue calls, and progress.','<strong>Clients:</strong> Find a client and open the client information cards.','<strong>Visits:</strong> Review all visits and open a visit to inspect its status and notes.','<strong>Chat:</strong> Coordinate with carers and teams.','<strong>Settings:</strong> Open your profile, notifications, and organisation preferences.']) +
+    h2('Client detail on mobile') +
+    p('The client page uses section cards rather than a fragile horizontal tab strip. Open Care Plans, Risks, Records, Personal, or Contacts by tapping the relevant card. Domiciliary users do not see Meds or unsupported clinical sections.') +
+    h2('What managers can do in the field') +
+    ul(['Review a care plan and current risks before speaking with a carer or family member.','Open body-map information when checking a concern.','Read documents and communication history.','Review visit status and exceptions.','Use Chat for immediate coordination; use the client Communication section for a formal feedback or follow-up record.']) +
+    warn('Mobile client records are primarily for reference in the field. Use the web application for full management, configuration, and detailed record administration.')
+},
+{ id:'dom-mobile-carer', title:'Carer: use the mobile app',
+  content:
+    h2('Your mobile workflow') +
+    ol(['<strong>Today:</strong> Start from Today to see the next calls and their status.','<strong>Schedule:</strong> Open Schedule to review upcoming visits.','<strong>Visit:</strong> Tap a call to read the client context, complete tasks, check in/out, and write the call note.','<strong>Client:</strong> Open the client detail cards to reference Care Plans, Risks, Body Map, Documents, Personal details, and Contacts.','<strong>Chat:</strong> Use one-to-one or group chat for operational communication and confirm important instructions through the correct manager workflow.','<strong>Settings → Submit availability:</strong> Submit or update future availability.','<strong>Settings → Annual leave:</strong> Check balances and apply for leave.']) +
+    h2('When a call is overdue') +
+    p('The mobile schedule changes a scheduled call to Overdue once its start time has passed and it has not been completed. Open the call, follow the available visit actions, and notify the manager if you cannot safely attend or complete it.') +
+    h2('Offline work') +
+    p('Visit actions can be queued when the connection is unavailable. The app shows pending sync work; reconnect and use Settings → Sync before relying on the action being visible to the manager.') +
+    tip('Read the care plan and risks before starting support. Keep call notes factual: what happened, what support was provided, the person\'s response, and anything that needs escalation.')
+},
+{ id:'dom-availability-areas', title:'Availability, leave and areas',
+  content:
+    h2('Carer availability') +
+    p('Availability is a planning signal, not a guaranteed shift. Managers use it with leave, existing assignments, travel time, skills, and client needs.') +
+    ul(['Web: open <strong>Homecare → Availability</strong>. Use Weekly pattern to review your schedule and Add a time window to submit availability.','Mobile: open <strong>Settings → Submit availability</strong>. Use the schedule view to review existing windows and the submit flow to add future availability.','Submit whole days or dates as unavailable when you cannot work. Do not leave a day blank if you need to explicitly say you are unavailable.']) +
+    h2('Leave-aware planning') +
+    p('Booked leave appears as time away and overrides the normal availability pattern for the affected dates. Pending leave is shown as pending so managers can see the planning risk before approval.') +
+    ul(['Web: use Leave Manager to view balances, apply for leave, and review applied leave.','Mobile: use Settings → Annual leave. Applied leave is shown first, with balances and the application action available separately.','Managers: check availability and leave together before assigning calls or approving leave.']) +
+    h2('Areas') +
+    p('Domiciliary areas represent geographic coverage rather than residential buildings. Managers can open Staffing → Areas to see active carers and active clients in each area and use that context when planning cover.')
+},
+{ id:'dom-standards', title:'Good domiciliary practice and escalation',
+  content:
+    h2('The record should tell the story of care') +
+    ul(['Care plans describe agreed support, preferences, outcomes, and risks.','Call notes describe what happened on a specific visit.','Incidents record safety events and follow-up.','Communication logs record feedback, contact, and actions.','Body-map entries show the location and progress of skin concerns.']) +
+    h2('Escalate promptly') +
+    ul(['A missed or overdue call that may affect safety','A new or worsening risk','A change in the person\'s needs or ability to make a decision','A safeguarding concern or incident','A family complaint or urgent feedback','A technical problem that prevents check-in, call notes, or synchronisation']) +
+    p('Use the visit disruption or incident workflow where appropriate, notify the manager, and keep the record factual. Meticle Care supports documentation and coordination; it does not replace your provider\'s safeguarding, medication, incident, or emergency procedures.') +
+    warn('Always follow your organisation\'s policy and local regulator requirements. If there is an immediate risk to life or safety, use the emergency procedure first.')
+}
+]},
+
+// ═══════════ 14. ADVANCED ═══════════
 { id:'advanced', category:'Advanced', title:'Insights & Best Practices', icon:'📊', subsections:[
 { id:'insights', title:'Insights Dashboard',
   content:

@@ -15,6 +15,7 @@ export interface SessionOrganisation {
   id?: string
   name?: string
   logo_url?: string | null
+  service_types?: string[]
   emergency_contact_1_label?: string | null
   emergency_contact_1_phone?: string | null
   emergency_contact_2_label?: string | null

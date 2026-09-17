@@ -42,6 +42,7 @@ export default function LocationsPage() {
   const [saving, setSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
   const [deleting, setDeleting] = useState(false)
+  const [orgServiceTypes, setOrgServiceTypes] = useState<string[]>([])
   const rowsPerPage = 10
 
   const userStr = localStorage.getItem('user')
@@ -62,10 +63,15 @@ export default function LocationsPage() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    api.get('/settings/org').then(res => setOrgServiceTypes(Array.isArray(res.data?.service_types) ? res.data.service_types : [])).catch(() => {})
+  }, [])
+
+  const isDomiciliary = orgServiceTypes.some(type => ['domiciliary', 'live_in'].includes(type))
 
   const openAdd = () => {
-    setEditLoc({ ...EMPTY_LOC })
+    setEditLoc({ ...EMPTY_LOC, ...(isDomiciliary ? { service_type: 'domiciliary' } : {}) })
     setError('')
     setLocDialog(true)
   }
@@ -152,7 +158,7 @@ export default function LocationsPage() {
     <PageContainer>
 
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}><BuildingIcon sx={{ mr: 1, verticalAlign: 'middle', color: NAVY }} />Locations</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 800 }}><BuildingIcon sx={{ mr: 1, verticalAlign: 'middle', color: NAVY }} />{isDomiciliary ? 'Care areas' : 'Locations'}</Typography>
         {isOrgAdmin && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}
             sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>Add Location</Button>
@@ -167,6 +173,17 @@ export default function LocationsPage() {
         </Alert>
       )}
 
+      {isDomiciliary && <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 0.5 }}>Area coverage</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>A practical view of the carers and active clients attached to each domiciliary area.</Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
+          {locations.map(location => <Paper key={location.id} variant="outlined" sx={{ p: 1.5, minWidth: 180, flex: '1 1 180px' }}>
+            <Typography variant="body2" sx={{ fontWeight: 800 }}>{location.name}</Typography>
+            <Stack direction="row" spacing={2} sx={{ mt: 1 }}><Box><Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1 }}>{location.carer_count ?? 0}</Typography><Typography variant="caption" color="text.secondary">active carers</Typography></Box><Box><Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1 }}>{location.client_count ?? 0}</Typography><Typography variant="caption" color="text.secondary">active clients</Typography></Box></Stack>
+          </Paper>)}
+        </Stack>
+      </Paper>}
+
       <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
         {loading ? (
           <Box sx={{ p: 8, textAlign: 'center' }}><CircularProgress /></Box>
@@ -175,19 +192,22 @@ export default function LocationsPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Address</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Service Type</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Capacity</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Min Staff/Day</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Max Off/Leave</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Manager</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{isDomiciliary ? 'Area' : 'Name'}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{isDomiciliary ? 'Active carers' : 'Address'}</TableCell>
+                  {isDomiciliary ? <TableCell sx={{ fontWeight: 700 }}>Active clients</TableCell> : <>
+                    <TableCell sx={{ fontWeight: 700 }}>Service Type</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Capacity</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Min Staff/Day</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Max Off/Leave</TableCell>
+                  </>}
+                  {!isDomiciliary && <TableCell sx={{ fontWeight: 700 }}>Manager</TableCell>}
+                  {isDomiciliary && <TableCell sx={{ fontWeight: 700 }}>Area manager</TableCell>}
                   {isOrgAdmin && <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {locations.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} sx={{ borderBottom: 'none' }}><EmptyState title="No locations yet" description="Create your first location to get started" variant="default" action={{ label: 'Add location', onClick: () => setLocDialog(true) }} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={isDomiciliary ? (isOrgAdmin ? 5 : 4) : (isOrgAdmin ? 8 : 7)} sx={{ borderBottom: 'none' }}><EmptyState title="No locations yet" description="Create your first location to get started" variant="default" action={{ label: 'Add location', onClick: () => setLocDialog(true) }} /></TableCell></TableRow>
                 ) : locations.slice(locPage * rowsPerPage, locPage * rowsPerPage + rowsPerPage).map(loc => (
                   <TableRow key={loc.id} hover sx={{
                     cursor: 'pointer',
@@ -195,14 +215,19 @@ export default function LocationsPage() {
                     '&:hover': { bgcolor: !loc.manager_id ? 'rgba(217, 119, 6, 0.12)' : 'action.hover' },
                   }} onClick={() => navigate(`/locations/${loc.id}`)}>
                     <TableCell sx={{ fontWeight: 600 }}>{loc.name}</TableCell>
-                    <TableCell>{loc.address || '—'}</TableCell>
-                    <TableCell>{loc.service_type ? SERVICE_TYPE_LABEL[loc.service_type] || loc.service_type : '—'}</TableCell>
-                    <TableCell>{loc.service_capacity ?? '—'}</TableCell>
-                    <TableCell>{loc.minimum_staff_per_day ?? 1}</TableCell>
-                    <TableCell>{loc.max_staff_on_leave ?? '—'}</TableCell>
+                    {isDomiciliary ? <>
+                      <TableCell>{loc.carer_count ?? 0}</TableCell>
+                      <TableCell>{loc.client_count ?? 0}</TableCell>
+                    </> : <>
+                      <TableCell>{loc.address || '—'}</TableCell>
+                      <TableCell>{loc.service_type ? SERVICE_TYPE_LABEL[loc.service_type] || loc.service_type : '—'}</TableCell>
+                      <TableCell>{loc.service_capacity ?? '—'}</TableCell>
+                      <TableCell>{loc.minimum_staff_per_day ?? 1}</TableCell>
+                      <TableCell>{loc.max_staff_on_leave ?? '—'}</TableCell>
+                    </>}
                     <TableCell>
                       {loc.manager_first_name ? `${loc.manager_first_name} ${loc.manager_last_name}` : (
-                        <Chip label="No manager" size="small" sx={{ bgcolor: 'warning.light', color: '#B45309', fontWeight: 700, fontSize: 12, height: 22 }} />
+                        <Chip label={isDomiciliary ? 'No area manager' : 'No manager'} size="small" sx={{ bgcolor: 'warning.light', color: '#B45309', fontWeight: 700, fontSize: 12, height: 22 }} />
                       )}
                     </TableCell>
                     {isOrgAdmin && (
@@ -246,36 +271,42 @@ export default function LocationsPage() {
                 } catch {}
               }} sx={{ whiteSpace: 'nowrap', textTransform: 'none' }}>Auto-locate</Button>
             </Stack>
-            <Stack direction="row" spacing={2}>
-              <FormControl size="small" sx={{ minWidth: 180 }}>
-                <InputLabel>Service Type</InputLabel>
-                <Select label="Service Type" value={editLoc.service_type || ''} onChange={e => setEditLoc((p: any) => ({ ...p, service_type: e.target.value }))}>
-                  <MenuItem value=""><em>None</em></MenuItem>
-                  <MenuItem value="supported_living">Supported Living</MenuItem>
-                  <MenuItem value="residential">Residential</MenuItem>
-                  <MenuItem value="domiciliary">Domiciliary</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField label="Service Capacity" type="number" fullWidth size="small" value={editLoc.service_capacity ?? ''}
-                onChange={e => setEditLoc((p: any) => ({ ...p, service_capacity: e.target.value }))} />
-            </Stack>
+            {isDomiciliary ? (
+              <Alert severity="info">This organisation uses areas rather than residential locations. Carers and clients are counted against each area.</Alert>
+            ) : (
+              <Stack direction="row" spacing={2}>
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <InputLabel>Service Type</InputLabel>
+                  <Select label="Service Type" value={editLoc.service_type || ''} onChange={e => setEditLoc((p: any) => ({ ...p, service_type: e.target.value }))}>
+                    <MenuItem value=""><em>None</em></MenuItem>
+                    <MenuItem value="supported_living">Supported Living</MenuItem>
+                    <MenuItem value="residential">Residential</MenuItem>
+                    <MenuItem value="domiciliary">Domiciliary</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField label="Service Capacity" type="number" fullWidth size="small" value={editLoc.service_capacity ?? ''}
+                  onChange={e => setEditLoc((p: any) => ({ ...p, service_capacity: e.target.value }))} />
+              </Stack>
+            )}
             <Stack direction="row" spacing={2}>
               <TextField label="Phone" fullWidth size="small" value={editLoc.phone || ''} onChange={e => setEditLoc((p: any) => ({ ...p, phone: e.target.value }))} />
               <TextField label="Email" fullWidth size="small" value={editLoc.email || ''} onChange={e => setEditLoc((p: any) => ({ ...p, email: e.target.value }))} />
             </Stack>
-            <TextField label="Minimum Staff Required Per Day" type="number" fullWidth size="small"
-              value={editLoc.minimum_staff_per_day ?? 1}
-              onChange={e => setEditLoc((p: any) => ({ ...p, minimum_staff_per_day: Number(e.target.value) }))}
-              helperText="Minimum safe staffing level for this location each day" />
-            <TextField label="Max Staff On Leave At Once" type="number" inputProps={{ min: 0 }} fullWidth size="small"
-              value={editLoc.max_staff_on_leave ?? ''}
-              onChange={e => setEditLoc((p: any) => ({ ...p, max_staff_on_leave: e.target.value }))}
-              helperText="Maximum number of staff from this location allowed on leave at the same time. Leave blank for no limit." />
-            <Stack direction="row" spacing={2}>
-              <TextField label="Min Day Staff" type="number" fullWidth size="small" value={editLoc.min_day_staff ?? ''} onChange={e => setEditLoc((p: any) => ({ ...p, min_day_staff: e.target.value }))} />
-              <TextField label="Min Night Staff" type="number" fullWidth size="small" value={editLoc.min_night_staff ?? ''} onChange={e => setEditLoc((p: any) => ({ ...p, min_night_staff: e.target.value }))} />
-              <TextField label="Min Sleep Staff" type="number" fullWidth size="small" value={editLoc.min_sleep_staff ?? ''} onChange={e => setEditLoc((p: any) => ({ ...p, min_sleep_staff: e.target.value }))} />
-            </Stack>
+            {!isDomiciliary && <>
+              <TextField label="Minimum Staff Required Per Day" type="number" fullWidth size="small"
+                value={editLoc.minimum_staff_per_day ?? 1}
+                onChange={e => setEditLoc((p: any) => ({ ...p, minimum_staff_per_day: Number(e.target.value) }))}
+                helperText="Minimum safe staffing level for this location each day" />
+              <TextField label="Max Staff On Leave At Once" type="number" inputProps={{ min: 0 }} fullWidth size="small"
+                value={editLoc.max_staff_on_leave ?? ''}
+                onChange={e => setEditLoc((p: any) => ({ ...p, max_staff_on_leave: e.target.value }))}
+                helperText="Maximum number of staff from this location allowed on leave at the same time. Leave blank for no limit." />
+              <Stack direction="row" spacing={2}>
+                <TextField label="Min Day Staff" type="number" fullWidth size="small" value={editLoc.min_day_staff ?? ''} onChange={e => setEditLoc((p: any) => ({ ...p, min_day_staff: e.target.value }))} />
+                <TextField label="Min Night Staff" type="number" fullWidth size="small" value={editLoc.min_night_staff ?? ''} onChange={e => setEditLoc((p: any) => ({ ...p, min_night_staff: e.target.value }))} />
+                <TextField label="Min Sleep Staff" type="number" fullWidth size="small" value={editLoc.min_sleep_staff ?? ''} onChange={e => setEditLoc((p: any) => ({ ...p, min_sleep_staff: e.target.value }))} />
+              </Stack>
+            </>}
             <FormControl size="small" fullWidth>
               <InputLabel>Manager</InputLabel>
               <Select label="Manager" value={editLoc.manager_id || ''} onChange={e => setEditLoc((p: any) => ({ ...p, manager_id: e.target.value }))}>

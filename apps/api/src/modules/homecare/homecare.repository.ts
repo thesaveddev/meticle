@@ -533,7 +533,7 @@ export async function getMonthlyCarerTotals(orgId: string, from: string, to: str
     JOIN users u ON u.id = sp.user_id
     JOIN homecare_visits v ON v.id = t.visit_id
     WHERE t.organization_id = $1 AND v.scheduled_start >= $2::date
-      AND v.scheduled_start < ($3::date + INTERVAL '1 month')
+      AND v.scheduled_start < ($3::date + INTERVAL '1 day')
     GROUP BY sp.id, sp.first_name, sp.last_name
     ORDER BY sp.first_name, sp.last_name`, [orgId, from, to]);
   return result.rows;

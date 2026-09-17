@@ -3,6 +3,7 @@ import { Box, Button, Checkbox, Chip, CircularProgress, IconButton, MenuItem, Pa
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Add as AddIcon, Delete as DeleteIcon, Assignment as TaskIcon } from '@mui/icons-material'
 import api from '../../services/api'
+import ContextualLearnLink from '../../components/ContextualLearnLink'
 
 const time = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 const dateStr = (d: string) => new Date(d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
@@ -140,6 +141,7 @@ export default function CallAssignmentBoard() {
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Call Assignment Board</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Assign carers to today's calls and manage tasks</Typography>
+          <ContextualLearnLink topic="dom-manager-web" />
         </Box>
         <Stack direction="row" spacing={1}>
           <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() - 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>←</Button>

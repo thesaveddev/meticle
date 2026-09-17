@@ -18,6 +18,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { fetchUserPermissions, updateUserPermissions, MODULE_LABELS, LEVEL_LABELS } from '../../utils/permissions'
+import { formatDateOnly } from '../../utils/dateFormat'
 import { LoadingState, StatusBadge, EmptyRow, NAVY } from '../../components/ui'
 import { EmptyState } from '../../components/design/EmptyState'
 
@@ -408,7 +409,7 @@ export default function StaffProfilePage() {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="caption" color="text.secondary">Date of birth</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{profile.birth_date ? new Date(profile.birth_date).toLocaleDateString() : '—'}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatDateOnly(profile.birth_date)}</Typography>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="caption" color="text.secondary">Address</Typography>

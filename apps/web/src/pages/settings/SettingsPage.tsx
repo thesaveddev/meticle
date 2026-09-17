@@ -210,6 +210,16 @@ export default function SettingsPage() {
     }
   }
 
+  const saveCareCapabilities = async (next: any) => {
+    try {
+      const res = await api.patch('/settings/capabilities', next)
+      setOrgSettings((prev: any) => ({ ...prev, care_capabilities: res.data.care_capabilities }))
+      showSnackbar('Care capabilities saved.', 'success')
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to save care capabilities')
+    }
+  }
+
   const saveComplianceConfig = async () => {
     setActionLoading('compliance-config')
     try {
@@ -767,6 +777,35 @@ export default function SettingsPage() {
           </Button>
         </Paper>
       )}
+
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}><MedicationIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Care capabilities</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Choose which optional workflows your organisation actually provides. These controls are separate from the service type, so domiciliary medication support can be enabled with the appropriate training, competency checks, and audit process.
+        </Typography>
+        <FormControlLabel
+          control={<Switch checked={orgSettings.care_capabilities?.medication_support === true} onChange={e => {
+            const next = { ...(orgSettings.care_capabilities || {}), medication_support: e.target.checked }
+            setOrgSettings((p: any) => ({ ...p, care_capabilities: next }))
+            saveCareCapabilities(next)
+          }} />}
+          label="Medication support during visits"
+        />
+        <Typography variant="caption" display="block" color="text.secondary" sx={{ ml: 4, mb: 1.5 }}>
+          Enables medication records, MAR administration, stock, competence controls, overdue alerts, and medication audit routes for domiciliary clients.
+        </Typography>
+        <FormControlLabel
+          control={<Switch checked={orgSettings.care_capabilities?.nutrition_support === true} onChange={e => {
+            const next = { ...(orgSettings.care_capabilities || {}), nutrition_support: e.target.checked }
+            setOrgSettings((p: any) => ({ ...p, care_capabilities: next }))
+            saveCareCapabilities(next)
+          }} />}
+          label="Nutrition support during visits"
+        />
+        <Typography variant="caption" display="block" color="text.secondary" sx={{ ml: 4 }}>
+          Enables nutrition and hydration recording where this is part of the commissioned care plan.
+        </Typography>
+      </Paper>
 
       {/* Branding */}
       <Paper sx={{ p: 4 }}>

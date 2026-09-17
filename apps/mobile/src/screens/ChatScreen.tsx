@@ -15,7 +15,7 @@ import type { AuthSession } from '../types'
 import {
   ensureGeneralChannel, getChatChannels, getChatMessages, sendChatMessage,
   deleteChatMessage, markChatRead, markChatDelivered, getChatReadReceipts, getOrgMembers, getChatChannelMembers,
-  createDMChannel, uploadChatFile, getApiFileUrl, downloadChatFile,
+  createDMChannel, uploadChatFile, downloadChatFile,
 } from '../services/api'
 import { hapticLight } from '../services/haptics'
 
@@ -64,6 +64,12 @@ interface ChatMessage {
   deleted: boolean
   created_at: string
   delivered_at?: string | null
+}
+
+interface PreviewImage {
+  messageId: string
+  url: string
+  name: string
 }
 
 interface Props {
@@ -115,7 +121,9 @@ export function ChatScreen({ session, onBack }: Props) {
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [otherLastRead, setOtherLastRead] = useState<string | null>(null)
   const [memberReads, setMemberReads] = useState<any[]>([])
-  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null)
+  const [imageUris, setImageUris] = useState<Record<string, string>>({})
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
+  const [previewImage, setPreviewImage] = useState<PreviewImage | null>(null)
 
   const [showNewChat, setShowNewChat] = useState(false)
   const [orgMembers, setOrgMembers] = useState<any[]>([])
@@ -180,8 +188,34 @@ export function ChatScreen({ session, onBack }: Props) {
   }, [token, activeChannel, currentUserId, loadChannels])
 
   useEffect(() => {
-    if (activeChannel) { setLoadingMessages(true); loadMessages() }
+    if (activeChannel) {
+      setLoadingMessages(true)
+      setImageUris({})
+      setImageErrors({})
+      setPreviewImage(null)
+      loadMessages()
+    }
   }, [activeChannel, loadMessages])
+
+  // Private chat files require authentication, which is unreliable as a direct
+  // Image URI on some Android builds. Download them into the app cache first so
+  // thumbnails and full-screen previews use a stable local URI.
+  useEffect(() => {
+    if (!token) return
+    const attachments = messages.filter(message => Boolean(message.file_url && !imageUris[message.id] && !imageErrors[message.id]))
+    if (!attachments.length) return
+    let cancelled = false
+    attachments.forEach(message => {
+      void downloadChatFile(token, message.file_url!, message.file_name || 'chat-image')
+        .then(file => {
+          if (!cancelled) setImageUris(prev => ({ ...prev, [message.id]: file.uri }))
+        })
+        .catch(() => {
+          if (!cancelled) setImageErrors(prev => ({ ...prev, [message.id]: true }))
+        })
+    })
+    return () => { cancelled = true }
+  }, [messages, token, imageUris, imageErrors])
 
   useEffect(() => {
     if (view !== 'chat' || !activeChannel || !token) return
@@ -439,14 +473,28 @@ export function ChatScreen({ session, onBack }: Props) {
           {!isMe ? (
             <Text style={[msgStyles.senderName, { color: avatarColor }]}>{item.sender_name}</Text>
           ) : null}
-          {item.file_url ? (
-            <Pressable onPress={() => setPreviewImage({ url: item.file_url!, name: item.file_name || 'Chat image' })} accessibilityRole="button" accessibilityLabel={`Preview ${item.file_name || 'image'}`}>
-              <Image
-                source={{ uri: getApiFileUrl(item.file_url), headers: { Authorization: `Bearer ${token}` } }}
-                style={[msgStyles.image, isMe ? msgStyles.imageMe : msgStyles.imageOther]}
-                resizeMode="cover"
-              />
-              {item.file_name ? (
+          {item.file_url ? (              <Pressable onPress={() => setPreviewImage({ messageId: item.id, url: item.file_url!, name: item.file_name || 'Chat image' })} accessibilityRole="button" accessibilityLabel={`Preview ${item.file_name || 'image'}`}>
+                <View style={[msgStyles.imageFrame, isMe ? msgStyles.imageMe : msgStyles.imageOther, { backgroundColor: isMe ? c.primarySurface : c.surfaceAlt }]}>
+                  {imageUris[item.id] ? (
+                    <Image
+                      source={{ uri: imageUris[item.id] }}
+                      style={msgStyles.image}
+                      resizeMode="cover"
+                    />
+                  ) : imageErrors[item.id] ? (
+                    <View style={msgStyles.imageState}>
+                      <Ionicons name="image-outline" size={28} color={c.muted} />
+                      <Text style={[msgStyles.imageStateText, { color: c.muted }]}>Image unavailable</Text>
+                    </View>
+                  ) : (
+                    <View style={msgStyles.imageState}>
+                      <ActivityIndicator size="small" color={c.primary} />
+                      <Text style={[msgStyles.imageStateText, { color: c.muted }]}>Loading image…</Text>
+                    </View>
+                  )}
+                </View>
+                {item.file_name ? (
+
                 <View style={[msgStyles.fileLabel, { backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : c.surfaceAlt }]}>
                   <Ionicons name="document-text-outline" size={14} color={isMe ? '#FFFFFF' : c.muted} />
                   <Text style={[msgStyles.fileLabelText, { color: isMe ? '#FFFFFF' : c.ink }]} numberOfLines={1}>{item.file_name}</Text>
@@ -478,6 +526,7 @@ export function ChatScreen({ session, onBack }: Props) {
     if (!previewImage) return
     try {
       const file = await downloadChatFile(token, previewImage.url, previewImage.name)
+      setImageUris(prev => ({ ...prev, [previewImage.messageId]: file.uri }))
       if (!(await Sharing.isAvailableAsync())) {
         Alert.alert('Downloaded', 'The image was downloaded to the app cache.')
         return
@@ -500,7 +549,25 @@ export function ChatScreen({ session, onBack }: Props) {
             <Ionicons name="download-outline" size={25} color="#FFFFFF" />
           </Pressable>
         </View>
-        {previewImage ? <Image source={{ uri: getApiFileUrl(previewImage.url), headers: { Authorization: `Bearer ${token}` } }} style={previewStyles.image} resizeMode="contain" /> : null}
+        {previewImage ? (
+          imageUris[previewImage.messageId] ? (
+            <Image source={{ uri: imageUris[previewImage.messageId] }} style={previewStyles.image} resizeMode="contain" />
+          ) : imageErrors[previewImage.messageId] ? (
+            <View style={previewStyles.emptyState}>
+              <Ionicons name="image-outline" size={48} color="#9CA3AF" />
+              <Text style={previewStyles.emptyTitle}>Image unavailable</Text>
+              <Text style={previewStyles.emptySub}>This image could not be loaded. Try downloading it again.</Text>
+              <Pressable onPress={downloadPreviewImage} style={[previewStyles.retryButton, { backgroundColor: c.primary }]}>
+                <Text style={previewStyles.retryText}>Try again</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={previewStyles.emptyState}>
+              <ActivityIndicator size="large" color="#FFFFFF" />
+              <Text style={previewStyles.emptyTitle}>Preparing image preview…</Text>
+            </View>
+          )
+        ) : null}
         <Pressable onPress={downloadPreviewImage} style={[previewStyles.downloadButton, { backgroundColor: c.primary }]} accessibilityRole="button" accessibilityLabel="Save or share image">
           <Ionicons name="download-outline" size={18} color="#FFFFFF" />
           <Text style={previewStyles.downloadText}>Save or share image</Text>
@@ -986,9 +1053,12 @@ const msgStyles = StyleSheet.create({
   footerMe: { justifyContent: 'flex-end' },
   time: { fontSize: 11, fontFamily: FONT },
   edited: { fontSize: 11, fontFamily: FONT },
-  image: { width: 200, height: 150, borderRadius: radii.md },
+  imageFrame: { width: 220, height: 165, borderRadius: radii.md, overflow: 'hidden' },
+  image: { width: '100%', height: '100%' },
   imageMe: { borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
   imageOther: { borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
+  imageState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  imageStateText: { fontSize: 12, fontFamily: FONT },
   fileLabel: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderBottomLeftRadius: 18, borderBottomRightRadius: 18 },
   fileLabelText: { fontSize: 12, fontFamily: FONT, flex: 1 },
 })
@@ -1019,6 +1089,11 @@ const previewStyles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.base, paddingVertical: spacing.md },
   title: { color: '#FFFFFF', fontSize: 15, fontWeight: '600', fontFamily: FONT, flex: 1, textAlign: 'center', marginHorizontal: spacing.md },
   image: { flex: 1, width: '100%' },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, gap: spacing.sm },
+  emptyTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '600', fontFamily: FONT, textAlign: 'center' },
+  emptySub: { color: '#9CA3AF', fontSize: 13, fontFamily: FONT, textAlign: 'center', lineHeight: 19 },
+  retryButton: { marginTop: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radii.lg },
+  retryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600', fontFamily: FONT },
   downloadButton: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radii.lg, marginVertical: spacing.lg },
   downloadText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600', fontFamily: FONT },
 })

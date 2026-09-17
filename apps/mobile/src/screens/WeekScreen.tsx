@@ -47,9 +47,9 @@ function StatusPill({ status, overdue, c }: { status: string; overdue?: boolean;
   else if (status === 'missed') { bg = c.dangerSurface; fg = c.danger; label = 'Missed' }
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: bg }}>
-      {status === 'completed' && <IconCheck size={12} color={fg} />}
-      <Text style={{ fontFamily: FONT, fontSize: 11, fontWeight: '600', color: fg, textTransform: 'capitalize' }}>{label}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, backgroundColor: bg, alignSelf: 'flex-start' }}>
+      {status === 'completed' && <IconCheck size={11} color={fg} />}
+      <Text style={{ fontFamily: FONT, fontSize: 10, fontWeight: '600', color: fg, textTransform: 'capitalize' }}>{label}</Text>
     </View>
   )
 }

@@ -11,7 +11,8 @@ jest.mock('../../services/api', () => ({
     risk_assessments: [{ id: 'risk-1', type: 'Falls', risk_level: 'high', details: 'Needs supervision', mitigation_actions: 'Use walking aid' }],
     family_contacts: [], allergies: [],
   })),
-  getMedicationsForPerson: jest.fn(async () => []),
+  getMedicationsForPerson: jest.fn(async () => [{ id: 'mar-1', title: 'September MAR', status: 'active', items: [{ id: 'med-1', name: 'Medicine', dosage: '10', unit: 'mg', frequency: 'Daily', is_active: true }] }]),
+  logMedicationAdministration: jest.fn(async () => ({ id: 'admin-1', status: 'given' })),
   getBodyMapStats: jest.fn(async () => null),
   getDailySummary: jest.fn(async () => null),
   getPersonAssessments: jest.fn(async () => [{ id: 'assessment-1', assessment_type: 'Initial assessment', assessment_date: '2026-09-01', findings: 'Requires person-centred support' }]),
@@ -32,22 +33,36 @@ const session: AuthSession = {
   accessToken: 'token', refreshToken: 'refresh',
   user: { id: 'carer-1', email: 'carer@example.com', role: 'CARE_WORKER', first_name: 'Test', last_name: 'Carer' },
 }
+const domiciliarySession: AuthSession = { ...session, organization: { service_types: ['domiciliary'] } }
 
 describe('ClientDetailScreen', () => {
+  beforeEach(() => jest.clearAllMocks())
   it('keeps domiciliary notes out of the client record and exposes care records', async () => {
-    const screen = render(<ClientDetailScreen personId="person-1" session={session} onBack={jest.fn()} />)
+    const onOpenSection = jest.fn()
+    const screen = render(<ClientDetailScreen personId="person-1" session={session} onBack={jest.fn()} onOpenSection={onOpenSection} />)
 
     await waitFor(() => expect(screen.getByText('Ada Lovelace')).toBeTruthy())
     expect(screen.getByText('Care Plans')).toBeTruthy()
+    expect(screen.queryByText('Personal care')).toBeNull()
     expect(screen.queryByText('Notes')).toBeNull()
 
     fireEvent.press(screen.getByText('Care Plans'))
-    expect(screen.getByText('Personal care')).toBeTruthy()
-    fireEvent.press(screen.getByText('Records'))
-    expect(screen.getByText('Initial assessment')).toBeTruthy()
-    expect(screen.getByText('Support plan')).toBeTruthy()
-    expect(screen.getByText('Open / save')).toBeTruthy()
-    expect(screen.getByText('Read-only client records. Use the web app for clinical updates and document management.')).toBeTruthy()
+    expect(onOpenSection).toHaveBeenCalledWith('person-1', 'care')
+
+    const carePage = render(<ClientDetailScreen personId="person-1" session={session} onBack={jest.fn()} initialTab="care" sectionOnly />)
+    await waitFor(() => expect(carePage.getByText('Personal care')).toBeTruthy())
+    expect(carePage.getAllByText('Care Plans').length).toBeGreaterThan(0)
+    expect(carePage.queryByText('Read-only client records. Use the web app for clinical updates and document management.')).toBeNull()
     expect((api.getPersonDocuments as jest.Mock)).toHaveBeenCalledWith('token', 'person-1')
   })
+
+  it('hides the clinical MAR tab and does not request medication data for domiciliary care', async () => {
+    const screen = render(<ClientDetailScreen personId="person-1" session={domiciliarySession} onBack={jest.fn()} />)
+    await waitFor(() => expect(screen.getByText('Ada Lovelace')).toBeTruthy())
+    expect(screen.queryByText('Meds')).toBeNull()
+    expect(api.getMedicationsForPerson).not.toHaveBeenCalled()
+    const recordsPage = render(<ClientDetailScreen personId="person-1" session={domiciliarySession} onBack={jest.fn()} initialTab="records" sectionOnly />)
+    await waitFor(() => expect(recordsPage.getByText('Read-only client records. Use the web app for clinical updates and document management.')).toBeTruthy())
+  })
+
 })

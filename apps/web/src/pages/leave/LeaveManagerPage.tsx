@@ -36,6 +36,7 @@ interface LeaveBalance {
 }
 
 interface Location { id: string; name: string }
+interface AvailabilityRecord { id: string; staff_id: string; day_of_week: number; availability_date?: string | null; start_time: string; end_time: string; staff_name?: string }
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
 // Build a YYYY-MM-DD string from a local Date (timezone-safe).
@@ -90,6 +91,7 @@ export default function LeaveManagerPage() {
   const [myRequests, setMyRequests] = useState<LeaveRequest[]>([])
   const [allRequests, setAllRequests] = useState<LeaveRequest[]>([])
   const [balances, setBalances] = useState<LeaveBalance[]>([])
+  const [availabilityRecords, setAvailabilityRecords] = useState<AvailabilityRecord[]>([])
   const [locations, setLocations] = useState<Location[]>([])
   const [openDialog, setOpenDialog] = useState(false)
   const [formData, setFormData] = useState({
@@ -136,18 +138,20 @@ export default function LeaveManagerPage() {
     setLoading(true)
     setFetchError('')
     try {
-      const [typesRes, myReqRes, balRes, locRes, staffRes] = await Promise.all([
+      const [typesRes, myReqRes, balRes, locRes, staffRes, availabilityRes] = await Promise.all([
         api.get('/leave/types'),
         api.get('/leave/my-requests'),
         api.get('/leave/balances'),
         api.get('/leave/locations'),
         api.get('/settings/staff'),
+        api.get(isAdminOrManager ? '/homecare/availability' : '/homecare/my-availability').catch(() => ({ data: [] })),
       ])
       setLeaveTypes(typesRes.data)
       setMyRequests(myReqRes.data)
       setBalances(balRes.data)
       setLocations(locRes.data)
       setStaffMembers(staffRes.data)
+      setAvailabilityRecords(availabilityRes.data || [])
     } catch (err: any) {
       setFetchError(err.response?.data?.message || 'Failed to load leave data')
     } finally {
@@ -373,6 +377,12 @@ export default function LeaveManagerPage() {
       return events
     })
 
+  const availabilityForDate = (date: Date) => {
+    const dateKey = toYMD(date)
+    const dated = availabilityRecords.filter(record => record.availability_date && String(record.availability_date).slice(0, 10) === dateKey)
+    return dated.length > 0 ? dated : availabilityRecords.filter(record => !record.availability_date && record.day_of_week === date.getDay())
+  }
+
   const getDayRequests = (date: Date) => {
     const allReqs = isAdminOrManager ? [...myRequests, ...allRequests] : myRequests
     return allReqs.filter(r => {
@@ -397,71 +407,52 @@ export default function LeaveManagerPage() {
   const totalOnLeave = uniqueOnLeave
   const totalApproved = calendarStats.reduce((s, d) => s + d.approved_count, 0)
   const totalPending = calendarStats.reduce((s, d) => s + d.pending_count, 0)
+  const totalAllocatedHours = balances.reduce((s, b) => s + Number(b.effective_hours_allocated || 0), 0)
+  const totalTakenHours = balances.reduce((s, b) => s + Number(b.hours_taken || 0), 0)
+  const totalRemainingHours = balances.reduce((s, b) => s + Number(b.hours_remaining || 0), 0)
+  const pendingHoursTotal = myRequests
+    .filter(r => r.status === 'pending')
+    .reduce((s, r) => s + (r.duration_type === 'hours' ? Number(r.hours_requested || 0) : requestDays(r) * HOURS_PER_DAY), 0)
+  const takenPercentage = totalAllocatedHours > 0 ? Math.min(100, Math.round((totalTakenHours / totalAllocatedHours) * 100)) : 0
 
   return (
     <PageContainer>
 
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Stack direction="row" spacing={1} alignItems="center">
+      <Stack direction="row" justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={2} sx={{ mb: 2.5 }}>
+        <Stack direction="row" spacing={1.25} alignItems="center">
           <LeaveIcon sx={{ color: '#0F4C81', fontSize: 28 }} />
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Leave Manager</Typography>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Leave Manager</Typography>
+            <Typography variant="body2" color="text.secondary">Plan time away and keep your balance visible.</Typography>
+          </Box>
         </Stack>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          {balances.length > 0 ? (() => {
-            const totalAllocatedHours = balances.reduce((s, b) => s + Number(b.effective_hours_allocated || 0), 0)
-            const totalTakenHours = balances.reduce((s, b) => s + Number(b.hours_taken || 0), 0)
-            const totalRemainingHours = balances.reduce((s, b) => s + Number(b.hours_remaining || 0), 0)
-            const pendingHoursTotal = myRequests
-              .filter(r => r.status === 'pending')
-              .reduce((s, r) => s + (r.duration_type === 'hours' ? Number(r.hours_requested || 0) : requestDays(r) * HOURS_PER_DAY), 0)
-
-            const fmt = fmtDaysHours
-
-            return (
-              <>
-                <Box sx={{ textAlign: 'right', lineHeight: 1.2 }}>
-                  <Typography variant="caption" color="#0F4C81" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
-                    Total {fmt(totalAllocatedHours)}
-                  </Typography>
-                  <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', fontSize: '0.6rem' }}>
-                    {totalAllocatedHours.toFixed(1)}h
-                  </Typography>
-                </Box>
-                <Box sx={{ textAlign: 'right', lineHeight: 1.2 }}>
-                  <Typography variant="caption" color="#DC2626" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
-                    Used {fmt(totalTakenHours)}
-                  </Typography>
-                  <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', fontSize: '0.6rem' }}>
-                    {totalTakenHours.toFixed(1)}h
-                  </Typography>
-                </Box>
-                <Box sx={{ textAlign: 'right', lineHeight: 1.2 }}>
-                  <Typography variant="caption" color="#D97706" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
-                    Pending {fmt(pendingHoursTotal)}
-                  </Typography>
-                  <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', fontSize: '0.6rem' }}>
-                    {pendingHoursTotal.toFixed(1)}h
-                  </Typography>
-                </Box>
-                <Box sx={{ textAlign: 'right', lineHeight: 1.2 }}>
-                  <Typography variant="caption" color="#16A34A" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
-                    Left {fmt(totalRemainingHours)}
-                  </Typography>
-                  <Typography variant="caption" color="#9CA3AF" sx={{ display: 'block', fontSize: '0.6rem' }}>
-                    {totalRemainingHours.toFixed(1)}h
-                  </Typography>
-                </Box>
-              </>
-            )
-          })() : (
-            <Typography variant="body2" color="#9CA3AF">No leave balances configured.</Typography>
-          )}
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)}
-            sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' }, ml: 1 }}>
-            Request Leave
-          </Button>
-        </Stack>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
+          Apply for leave
+        </Button>
       </Stack>
+
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, mb: 2.5, borderRadius: 2.5, borderColor: '#D9E6F2', bgcolor: '#F8FBFD' }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5} alignItems={{ xs: 'flex-start', md: 'center' }}>
+          <Box sx={{ position: 'relative', width: 104, height: 104, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+            <CircularProgress variant="determinate" value={100} size={104} thickness={4} sx={{ color: '#E5EEF5', position: 'absolute' }} />
+            <CircularProgress variant="determinate" value={takenPercentage} size={104} thickness={4} sx={{ color: '#0F4C81', position: 'absolute', transform: 'rotate(-90deg)' }} />
+            <Box sx={{ textAlign: 'center' }}><Typography variant="h6" sx={{ fontWeight: 800, color: '#0F4C81' }}>{takenPercentage}%</Typography><Typography variant="caption" color="text.secondary">used</Typography></Box>
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="overline" sx={{ color: '#0F4C81', fontWeight: 800, letterSpacing: '0.08em' }}>Your leave balance</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.25 }}>{fmtDaysHours(totalRemainingHours)} left</Typography>
+            <Typography variant="body2" color="text.secondary">{fmtDaysHours(totalTakenHours)} taken from {fmtDaysHours(totalAllocatedHours)} allocated · {fmtDaysHours(pendingHoursTotal)} pending</Typography>
+          </Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(72px, 1fr))', gap: 1, width: { xs: '100%', md: 330 } }}>
+            {[
+              ['Allocated', fmtDaysHours(totalAllocatedHours), '#0F4C81'],
+              ['Taken', fmtDaysHours(totalTakenHours), '#B91C1C'],
+              ['Remaining', fmtDaysHours(totalRemainingHours), '#047857'],
+            ].map(([label, value, color]) => <Box key={label} sx={{ p: 1.25, bgcolor: '#FFFFFF', borderRadius: 1.75, border: '1px solid #E5E7EB' }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="body2" sx={{ fontWeight: 800, color }}>{value}</Typography></Box>)}
+          </Box>
+        </Stack>
+        {balances.length === 0 && <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>No leave balances configured.</Typography>}
+      </Paper>
 
       {!openDialog && error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {!openDialog && success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
@@ -517,7 +508,18 @@ export default function LeaveManagerPage() {
           </Box>
         ) : (<>
         {tab === 0 && (
-          <TableContainer>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(230px, 0.32fr) minmax(0, 1fr)' }, gap: 0, alignItems: 'stretch' }}>
+            <Box sx={{ p: { xs: 2, lg: 3 }, bgcolor: '#F8FBFD', borderRight: { lg: '1px solid #E5E7EB' }, borderBottom: { xs: '1px solid #E5E7EB', lg: 0 } }}>
+              <Typography variant="overline" sx={{ color: '#0F4C81', fontWeight: 800, letterSpacing: '0.08em' }}>New request</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, mt: 0.25, mb: 1 }}>Need time away?</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Choose your dates and leave type. Your current balance will be shown before you submit.</Typography>
+              <Button fullWidth variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Apply for leave</Button>
+              <Stack spacing={1} sx={{ mt: 3 }}>
+                <Stack direction="row" justifyContent="space-between"><Typography variant="caption" color="text.secondary">Pending</Typography><Typography variant="body2" sx={{ fontWeight: 800, color: '#B45309' }}>{fmtDaysHours(pendingHoursTotal)}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography variant="caption" color="text.secondary">Available</Typography><Typography variant="body2" sx={{ fontWeight: 800, color: '#047857' }}>{fmtDaysHours(totalRemainingHours)}</Typography></Stack>
+              </Stack>
+            </Box>
+            <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
@@ -573,7 +575,8 @@ export default function LeaveManagerPage() {
                 onPageChange={(_e, p) => setMyPage(p)} rowsPerPage={10} rowsPerPageOptions={[10]}
                 onRowsPerPageChange={undefined} />
             )}
-          </TableContainer>
+            </TableContainer>
+          </Box>
         )}
 
         {tab === 1 && isAdminOrManager && (
@@ -717,6 +720,7 @@ export default function LeaveManagerPage() {
                 const events = calendarEvents.filter(e => e.date.toDateString() === day.toDateString())
                 const isToday = day.toDateString() === new Date().toDateString()
                 const stats = calendarStats.find(s => s.date === toYMD(day))
+                const dayAvailability = availabilityForDate(day)
                 return (
                   <Box key={i} sx={{
                     width: '14.285%', minHeight: 90, p: 0.5, borderRadius: 0,
@@ -752,6 +756,11 @@ export default function LeaveManagerPage() {
                     <Typography variant="caption" sx={{ fontWeight: isToday ? 800 : 400, color: isToday ? '#0F4C81' : '#6B7280' }}>
                       {day.getDate()}
                     </Typography>
+                    {dayAvailability.length > 0 && (
+                      <Typography variant="caption" sx={{ fontSize: '0.5rem', display: 'block', color: '#0F4C81', fontWeight: 700, lineHeight: 1.2 }}>
+                        {isAdminOrManager ? `${new Set(dayAvailability.map(record => record.staff_id)).size} available` : 'Available'}
+                      </Typography>
+                    )}
                     {stats && isAdminOrManager && (
                       <Box sx={{ mt: 0.3 }}>
                         <Typography variant="caption" sx={{ fontSize: '0.5rem', display: 'block', color: '#16A34A', fontWeight: 700, lineHeight: 1.2 }}>
@@ -796,6 +805,11 @@ export default function LeaveManagerPage() {
               {new Date(dayPopover.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </Typography>
             <Divider sx={{ mb: 1 }} />
+            {availabilityForDate(parseYMD(dayPopover.date)).length > 0 && (
+              <Typography variant="caption" color="#0F4C81" sx={{ display: 'block', mb: 1, fontWeight: 700 }}>
+                {isAdminOrManager ? `${new Set(availabilityForDate(parseYMD(dayPopover.date)).map(record => record.staff_id)).size} staff with availability recorded` : 'Availability recorded for this day'}
+              </Typography>
+            )}
             {dayPopover.stats && isAdminOrManager && (
               <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
                 <Typography variant="caption" color="#16A34A" sx={{ fontWeight: 700 }}>

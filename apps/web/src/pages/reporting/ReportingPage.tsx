@@ -46,29 +46,62 @@ export default function ReportingPage() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isDomiciliary, setIsDomiciliary] = useState(false)
+  const [domiciliarySnapshot, setDomiciliarySnapshot] = useState<any>(null)
 
   useEffect(() => {
-    Promise.all([api.get('/reporting/reports'), api.get('/reporting/overview')])
-      .then(([reportsResponse, overviewResponse]) => {
+    Promise.all([api.get('/reporting/reports'), api.get('/reporting/overview'), api.get('/settings/org')])
+      .then(([reportsResponse, overviewResponse, orgResponse]) => {
+        const serviceTypes = orgResponse.data?.service_types || []
+        const dom = serviceTypes.some((type: string) => ['domiciliary', 'live_in'].includes(type))
+        setIsDomiciliary(dom)
         setReports(reportsResponse.data.reports)
         setCategories(reportsResponse.data.categories)
         setOverview(overviewResponse.data)
+        if (dom) {
+          api.get('/dashboard/domiciliary').then(response => setDomiciliarySnapshot(response.data)).catch(() => {})
+        }
       })
       .catch(e => setError(e.response?.data?.message || 'Failed to load reports'))
       .finally(() => setLoading(false))
   }, [])
 
+  const domiciliaryReportIds = new Set([
+    'staff-directory', 'staff-by-location', 'staff-compliance', 'staff-documents',
+    'su-directory', 'su-by-location', 'su-care-plans', 'satisfaction-surveys',
+    'leave-by-type', 'leave-by-month', 'leave-balances', 'incident-summary',
+    'incident-trends', 'compliance-overall', 'compliance-by-staff',
+    'compliance-expiring', 'training-completion', 'training-overdue',
+  ])
+
+  const reportForOrganisation = (report: ReportDef): ReportDef => {
+    if (!isDomiciliary) return report
+    const labels: Record<string, [string, string]> = {
+      'staff-by-location': ['Carers by area', 'See active carer coverage across geographic care areas.'],
+      'su-by-location': ['Clients by area', 'Understand where clients are served across your care areas.'],
+      'su-care-plans': ['Care plan review status', 'Find care plans that need review or follow-up.'],
+      'satisfaction-surveys': ['Client and family feedback', 'Track feedback from clients, families and visitors.'],
+      'staff-compliance': ['Carer compliance readiness', 'Monitor checks and training that protect safe visits.'],
+    }
+    const override = labels[report.id]
+    return override ? { ...report, title: override[0], description: override[1] } : report
+  }
+
   const filtered = useMemo(() => {
-    if (!search) return reports
+    const source = isDomiciliary ? reports.filter(r => domiciliaryReportIds.has(r.id)) : reports
+    if (!search) return source
     const q = search.toLowerCase()
-    return reports.filter(r => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q) || r.category.includes(q))
-  }, [reports, search])
+    return source.filter(r => {
+      const report = reportForOrganisation(r)
+      return report.title.toLowerCase().includes(q) || report.description.toLowerCase().includes(q) || report.category.includes(q)
+    })
+  }, [reports, search, isDomiciliary])
 
   const grouped = useMemo(() => {
     const map: Record<string, ReportDef[]> = {}
-    filtered.forEach(r => { (map[r.category] = map[r.category] || []).push(r) })
+    filtered.forEach(r => { (map[r.category] = map[r.category] || []).push(reportForOrganisation(r)) })
     return map
-  }, [filtered])
+  }, [filtered, isDomiciliary])
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
 
@@ -76,13 +109,41 @@ export default function ReportingPage() {
     <PageContainer>
 
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}>Reporting Suite</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 800 }}>{isDomiciliary ? 'Domiciliary operations reporting' : 'Reporting Suite'}</Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-          Explore your data with interactive charts, filters, and exports
+          {isDomiciliary
+            ? 'A practical view of visit delivery, area coverage, client safety and workforce readiness.'
+            : 'Explore your data with interactive charts, filters, and exports'}
         </Typography>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
+
+      {isDomiciliary && domiciliarySnapshot && (
+        <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 4, borderRadius: 2, borderColor: 'divider', bgcolor: 'primary.50' }}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems={{ md: 'center' }}>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="overline" color="primary" sx={{ fontWeight: 800, letterSpacing: '0.12em' }}>Today’s operational pulse</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Are visits covered and delivered safely?</Typography>
+              <Typography variant="body2" color="text.secondary">Use the report cards below for trends and evidence; use the live dashboard for immediate action.</Typography>
+            </Box>
+            <Stack direction="row" spacing={3} flexWrap="wrap" useFlexGap>
+              {[
+                ['Coverage', `${domiciliarySnapshot.coverage_percent ?? 0}%`],
+                ['Completed', domiciliarySnapshot.calls_completed ?? 0],
+                ['Missed', domiciliarySnapshot.calls_missed ?? 0],
+                ['Unassigned', domiciliarySnapshot.calls_unassigned ?? 0],
+              ].map(([label, value]) => (
+                <Box key={label as string} sx={{ minWidth: 72 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 900, color: label === 'Missed' || label === 'Unassigned' ? 'error.main' : 'primary.main' }}>{value}</Typography>
+                  <Typography variant="caption" color="text.secondary">{label}</Typography>
+                </Box>
+              ))}
+            </Stack>
+            <Button variant="outlined" onClick={() => navigate('/dashboard')} sx={{ whiteSpace: 'nowrap' }}>Open live dashboard</Button>
+          </Stack>
+        </Paper>
+      )}
 
       {overview && <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 4, borderRadius: 2, borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>

@@ -33,7 +33,6 @@ import {
   Restaurant as MealIcon,
   HomeWork as HomecareIcon,
   DirectionsCar as DirectionsCarIcon,
-  Person as PersonIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
@@ -110,7 +109,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Overview',
       items: [
         { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-        { text: 'Mission Control', icon: <RadarIcon />, path: '/mission-control', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
+        { text: 'Mission Control', icon: <RadarIcon />, path: '/mission-control', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER], serviceTypes: ['supported_living', 'residential'] },
       ],
     },
     {
@@ -126,7 +125,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       items: [
         { text: 'Staff Directory', icon: <PeopleIcon />, path: '/staff', module: 'staff_directory', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
         { text: 'Rota Planner', icon: <ScheduleIcon />, path: '/scheduling', module: 'scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['supported_living', 'residential'] },
-        { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['supported_living', 'residential'] },
+        { text: 'Shift Marketplace', icon: <MarketplaceIcon />, path: '/shift-marketplace', module: 'marketplace', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['supported_living', 'residential', 'domiciliary', 'live_in'] },
         { text: 'Agencies', icon: <BusinessIcon />, path: '/agencies', module: 'agencies', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['residential', 'supported_living'] },
         { text: 'Leave Manager', icon: <LeaveIcon />, path: '/leave', module: 'leave', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Locations', icon: <LocationOnIcon />, path: '/locations', module: 'settings', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
@@ -149,7 +148,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     {
       label: 'My Space',
       items: [
-        { text: 'My Profile', icon: <PersonIcon />, path: '/my-profile', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'My Week', icon: <ScheduleIcon />, path: '/my-week', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Swap & Transfer', icon: <SwapHorizIcon />, path: '/swap-transfer', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
       ],
@@ -158,7 +156,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Communication',
       items: [
         { text: 'Communication', icon: <ChatIcon />, path: '/chat', module: 'chat', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-        { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
         { text: 'Tasks', icon: <TaskIcon />, path: '/tasks', module: 'tasks', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
         { text: 'Appointments', icon: <EventIcon />, path: '/appointments', module: 'appointments', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER], serviceTypes: ['residential', 'supported_living'] },
         { text: 'Expenses', icon: <ReceiptIcon />, path: '/expenses', module: 'expenses', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },

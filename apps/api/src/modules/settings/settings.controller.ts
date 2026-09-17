@@ -20,7 +20,7 @@ export class SettingsController {
                 reorder_alert_enabled, late_med_alert_enabled, late_med_alert_delay_minutes,
                 emedication_count_convention,
                 overdue_alert_frequency_minutes, unassigned_alert_frequency_minutes,
-                service_types, primary_service_type,
+                service_types, primary_service_type, care_capabilities,
                 emergency_contact_1_label, emergency_contact_1_phone,
                 emergency_contact_2_label, emergency_contact_2_phone
        FROM organizations WHERE id = $1`,
@@ -28,6 +28,41 @@ export class SettingsController {
     );
     if (result.rows.length === 0) throw new AppError(404, 'Organization not found');
     res.json(result.rows[0]);
+  }
+
+  static async getCareCapabilities(req: Request, res: Response) {
+    const orgId = req.user!.organizationId;
+    const result = await pool.query(
+      `SELECT service_types, care_capabilities FROM organizations WHERE id = $1`,
+      [orgId]
+    );
+    if (!result.rows[0]) throw new AppError(404, 'Organization not found');
+    const serviceTypes: string[] = result.rows[0].service_types || [];
+    const stored = result.rows[0].care_capabilities || {};
+    res.json({
+      service_types: serviceTypes,
+      care_capabilities: {
+        medication_support: stored.medication_support === true,
+        nutrition_support: stored.nutrition_support === true,
+      },
+    });
+  }
+
+  static async updateCareCapabilities(req: Request, res: Response) {
+    const orgId = req.user!.organizationId;
+    const current = await pool.query('SELECT care_capabilities FROM organizations WHERE id = $1', [orgId]);
+    if (!current.rows[0]) throw new AppError(404, 'Organization not found');
+    const next = {
+      ...(current.rows[0].care_capabilities || {}),
+      medication_support: req.body.medication_support === true,
+      nutrition_support: req.body.nutrition_support === true,
+    };
+    const result = await pool.query(
+      'UPDATE organizations SET care_capabilities = $1::jsonb WHERE id = $2 RETURNING care_capabilities',
+      [JSON.stringify(next), orgId]
+    );
+    await AuditRepository.log({ user_id: req.user!.userId, action: 'UPDATE_CARE_CAPABILITIES', entity_type: 'organization', entity_id: orgId, new_data: next, ip_address: req.ip });
+    res.json({ care_capabilities: result.rows[0].care_capabilities });
   }
 
   static async getMyTeams(req: Request, res: Response) {
@@ -118,7 +153,12 @@ export class SettingsController {
     const orgId = req.user!.organizationId;
     const result = await pool.query(
       `SELECT l.*, u.email as manager_email,
-              sp.first_name as manager_first_name, sp.last_name as manager_last_name
+              sp.first_name as manager_first_name, sp.last_name as manager_last_name,
+              (SELECT COUNT(*)::int FROM staff_profiles coverage_sp
+               JOIN users coverage_u ON coverage_u.id = coverage_sp.user_id
+               WHERE coverage_sp.location_id = l.id AND coverage_u.status = 'active') AS carer_count,
+              (SELECT COUNT(*)::int FROM people coverage_people
+               WHERE coverage_people.location_id = l.id AND coverage_people.status = 'active') AS client_count
        FROM locations l
        LEFT JOIN users u ON l.manager_id = u.id
        LEFT JOIN staff_profiles sp ON u.id = sp.user_id
