@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, MenuItem, Paper, Stack, Tab, Tabs, TextField, Typography } from '@mui/material'
 import { CheckCircle as CheckCircleIcon, DirectionsCar as DirectionsCarIcon, Download as DownloadIcon, ErrorOutline as ErrorOutlineIcon, HomeWork as HomeWorkIcon, Schedule as ScheduleIcon } from '@mui/icons-material'
+import { useSearchParams } from 'react-router-dom'
 import { EmptyState } from '../../components/design/EmptyState'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -18,7 +19,10 @@ const localDateOnly = (date = new Date()) => {
 }
 
 export default function HomecarePage() {
-  const [tab, setTab] = useState(0)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const statusFilter = searchParams.get('status') || ''
+  const initialTab = statusFilter ? 0 : 0
+  const [tab, setTab] = useState(initialTab)
   const [message, setMessage] = useState('')
   const [syncState, setSyncState] = useState<'online' | 'syncing' | 'offline' | 'failed'>(navigator.onLine ? 'online' : 'offline')
   const [queuedActions, setQueuedActions] = useState<HomecareOfflineAction[]>(getHomecareOfflineQueue())
@@ -124,6 +128,7 @@ export default function HomecarePage() {
   }
 
   const todayVisits = visits.filter((v: any) => new Date(v.scheduled_start).toDateString() === new Date().toDateString())
+  const filteredVisits = statusFilter ? visits.filter((v: any) => v.status === statusFilter) : visits
   const pendingTimesheets = timesheets.filter((t: any) => t.status === 'submitted')
   const canCreatePackage = isManager && people.length > 0
 
@@ -140,7 +145,7 @@ export default function HomecarePage() {
       {isManager && <Tab icon={<CheckCircleIcon />} iconPosition="start" label={`Timesheets${pendingTimesheets.length ? ` · ${pendingTimesheets.length}` : ''}`} />}
       {isManager && <Tab icon={<ErrorOutlineIcon />} iconPosition="start" label={`Exceptions${exceptions.length ? ` · ${exceptions.length}` : ''}`} />}
     </Tabs>
-    {tab === 0 && <VisitList visits={visits} loading={visitsLoading} execute={execute} />}
+    {tab === 0 && <VisitList visits={filteredVisits} loading={visitsLoading} execute={execute} statusFilter={statusFilter} onClearFilter={() => { searchParams.delete('status'); setSearchParams(searchParams) }} />}
     {tab === 1 && isManager && <PackageList packages={packages} onMessage={setMessage} />}
     {tab === 2 && isManager && <Box><TimesheetList timesheets={timesheets} approve={approve} /><Paper className="homecare-export"><Typography variant="subtitle1">Export approved payroll inputs</Typography><Typography variant="body2" color="text.secondary">Only manager-approved rows are included. This file is an input for payroll review, not a payslip or statutory payroll calculation.</Typography><Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} sx={{ mt: 1.5 }}><TextField size="small" type="date" label="From" InputLabelProps={{ shrink: true }} value={payrollFrom} onChange={e => setPayrollFrom(e.target.value)} /><TextField size="small" type="date" label="To" InputLabelProps={{ shrink: true }} value={payrollTo} onChange={e => setPayrollTo(e.target.value)} /><Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportPayroll} disabled={!payrollFrom || !payrollTo}>Download CSV</Button></Stack></Paper></Box>}
     {tab === 3 && isManager && <ExceptionList exceptions={exceptions} resolve={resolveException} />}
@@ -178,7 +183,7 @@ function OperationsSummary() {
   return <Paper className="homecare-ops"><Typography variant="h6">Operations controls</Typography><Typography variant="body2" color="text.secondary">Availability and travel exceptions are manager-owned records. Mileage rates are stored by tax year, vehicle and fuel category; confirm the current approved rate before use.</Typography><Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}><TextField select size="small" label="Carer" value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)}><MenuItem value="">Select carer</MenuItem>{staff.map(member => <MenuItem key={member.id} value={member.id}>{member.first_name} {member.last_name}</MenuItem>)}</TextField><TextField select size="small" label="Day" value={day} onChange={e => setDay(e.target.value)}>{['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((label, index) => <MenuItem key={label} value={index}>{label}</MenuItem>)}</TextField><TextField size="small" type="time" label="From" InputLabelProps={{ shrink: true }} value={start} onChange={e => setStart(e.target.value)} /><TextField size="small" type="time" label="To" InputLabelProps={{ shrink: true }} value={end} onChange={e => setEnd(e.target.value)} /><Button variant="outlined" onClick={saveAvailability} disabled={saving || !selectedStaff}>Save availability</Button></Stack><Typography variant="subtitle2" sx={{ mt: 2 }}>Recorded availability: {availability.length}</Typography><Typography variant="subtitle2">Open travel disruptions: {disruptions.length}</Typography><Typography variant="subtitle2">Mileage policy rows: {policies.length}</Typography></Paper>
 }
 
-function VisitList({ visits, loading, execute }: any) {
+function VisitList({ visits, loading, execute, statusFilter, onClearFilter }: any) {
   const [disruptionVisit, setDisruptionVisit] = useState<any>(null)
   const [error, setError] = useState('')
   const [disruption, setDisruption] = useState({ disruption_type: 'traffic', severity: 'medium', delay_minutes: 15, description: '' })
@@ -196,9 +201,23 @@ function VisitList({ visits, loading, execute }: any) {
     finally { setSaving(false) }
   }
   if (loading) return <Box className="homecare-loading"><CircularProgress /><Typography>Loading your visit plan…</Typography></Box>
-  if (!visits.length) return <Paper className="homecare-empty"><Typography variant="h6">No visits assigned in the next two days</Typography><Typography color="text.secondary">When a manager assigns a call, it will appear here with time to travel.</Typography></Paper>
+  if (!visits.length) return <Paper className="homecare-empty"><Typography variant="h6">{statusFilter ? `No ${statusFilter.replace(/_/g, ' ')} visits` : 'No visits assigned in the next two days'}</Typography><Typography color="text.secondary">{statusFilter ? <><>No visits with status &quot;{statusFilter.replace(/_/g, ' ')}&quot; found.</><Button size="small" onClick={onClearFilter} sx={{ ml: 1 }}>Show all visits</Button></> : 'When a manager assigns a call, it will appear here with time to travel.'}</Typography></Paper>
   return <>
     {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
+    {statusFilter && (
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+        <Chip
+          label={`Filtered: ${statusFilter.replace(/_/g, ' ')}`}
+          onDelete={onClearFilter}
+          color="primary"
+          variant="outlined"
+          size="small"
+        />
+        <Typography variant="caption" color="text.secondary">
+          {visits.length} visit{visits.length === 1 ? '' : 's'}
+        </Typography>
+      </Stack>
+    )}
     <Stack spacing={1.5}>{visits.map((visit: any) => {
       const open = ['scheduled', 'en_route', 'checked_in'].includes(visit.status)
       const checkedIn = visit.status === 'checked_in'
