@@ -33,7 +33,9 @@ export default function SwapTransferPage() {
       setRequests(reqRes)
       setMyVisits(visitsRes.filter((v: any) => v.status === 'scheduled'))
       setTeam(teamRes)
-    } catch { /* ignore */ }
+    } catch (e: any) {
+      setError(e.response?.data?.message || e.message || 'Could not load swap and transfer requests. Please try again.')
+    }
     finally { setLoading(false) }
   }
 

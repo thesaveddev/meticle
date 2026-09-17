@@ -438,6 +438,16 @@ export async function downloadChatFile(token: string, fileUrl: string, fileName:
   })
 }
 
+/** Download a client document through the authenticated private-file endpoint. */
+export async function downloadPersonDocument(token: string, fileUrl: string, fileName: string): Promise<File> {
+  const safeName = (fileName || 'client-document').replace(/[^a-zA-Z0-9._-]/g, '_')
+  const destination = new File(Paths.cache, `${Date.now()}-${safeName}`)
+  return File.downloadFileAsync(getApiFileUrl(fileUrl), destination, {
+    headers: authHeader(token),
+    idempotent: true,
+  })
+}
+
 export async function getChatUnread(token: string): Promise<Record<string, number>> {
   return request('/chat/unread', {}, token)
 }

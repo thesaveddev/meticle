@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import * as Sharing from 'expo-sharing'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { SkeletonScreen } from '../components/Skeleton'
@@ -19,6 +20,8 @@ import {
   getPersonCarePathways,
   getPersonCommunicationLog,
   getPersonTimeAway,
+  downloadPersonDocument,
+  getApiFileUrl,
 } from '../services/api'
 
 type TabKey = 'overview' | 'care' | 'risks' | 'meds' | 'records' | 'personal' | 'contacts'
@@ -230,7 +233,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
         {tab === 'care' && <CareTab carePlans={carePlans} allCarePlans={allCarePlans} c={c} />}
         {tab === 'risks' && <RisksTab risks={riskAssessments} c={c} />}
         {tab === 'meds' && <MedsTab medications={medications} c={c} />}
-        {tab === 'records' && <RecordsTab records={records} c={c} />}
+        {tab === 'records' && <RecordsTab records={records} c={c} token={session.accessToken} />}
         {tab === 'personal' && <PersonalTab person={person} c={c} />}
         {tab === 'contacts' && <ContactsTab emergencyContacts={emergencyContacts} otherContacts={otherContacts} c={c} />}
       </ScrollView>
@@ -390,7 +393,7 @@ function CareTab({ carePlans, allCarePlans, c }: any) {
 
 /* ─── Tab: Records ───────────────────────────────────────── */
 
-function RecordsTab({ records, c }: any) {
+function RecordsTab({ records, c, token }: any) {
   const total = Object.values(records).reduce((count: number, items: any) => count + (Array.isArray(items) ? items.length : 0), 0)
   if (total === 0) {
     return <EmptyState icon="library-outline" title="No additional records" subtitle="Assessments, documents and other records will appear here" c={c} />
@@ -436,12 +439,7 @@ function RecordsTab({ records, c }: any) {
         </RecordCard>
       )} />
 
-      <RecordSection title="Documents" icon="document-attach-outline" items={records.documents} c={c} empty="No documents" renderItem={(item: any) => (
-        <RecordCard key={item.id} title={item.title || 'Untitled document'} meta={`${item.document_type || 'Document'}${item.upload_date ? ` · ${formatDate(item.upload_date)}` : ''}`} c={c}>
-          {item.description && <Text style={[styles.recordBody, { color: c.ink }]}>{item.description}</Text>}
-          {item.uploaded_by_name && <Text style={[styles.recordMeta, { color: c.muted }]}>Uploaded by {item.uploaded_by_name}</Text>}
-        </RecordCard>
-      )} />
+      <RecordSection title="Documents" icon="document-attach-outline" items={records.documents} c={c} empty="No documents" renderItem={(item: any) => <DocumentCard key={item.id} item={item} c={c} token={token} />} />
 
       <RecordSection title="Recent wellbeing" icon="happy-outline" items={records.wellbeing} c={c} empty="No wellbeing records" renderItem={(item: any) => (
         <RecordCard key={item.id} title={item.domain || 'Wellbeing check'} meta={formatDate(item.recorded_date)} c={c}>
@@ -479,6 +477,56 @@ function RecordsTab({ records, c }: any) {
         )} />
       )}
     </View>
+  )
+}
+
+function DocumentCard({ item, c, token }: { item: any; c: any; token: string }) {
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const fileName = item.file_name || item.file_url?.split('/').pop() || 'client-document'
+  const mimeType = item.mime_type || ''
+  const isImage = mimeType.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|tiff?)$/i.test(fileName)
+
+  const download = async () => {
+    if (!item.file_url) return
+    setBusy(true)
+    try {
+      const file = await downloadPersonDocument(token, item.file_url, fileName)
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert('Document downloaded', 'The document is available in the app cache, but sharing is not available on this device.')
+        return
+      }
+      await Sharing.shareAsync(file.uri, { mimeType: mimeType || (isImage ? 'image/*' : 'application/octet-stream'), dialogTitle: 'Open or save document' })
+    } catch (error: any) {
+      Alert.alert('Document unavailable', error?.message || 'Could not download this document.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <RecordCard title={item.title || 'Untitled document'} meta={`${item.document_type || 'Document'}${item.upload_date ? ` · ${formatDate(item.upload_date)}` : ''}`} c={c}>
+        {item.description && <Text style={[styles.recordBody, { color: c.ink }]}>{item.description}</Text>}
+        {item.uploaded_by_name && <Text style={[styles.recordMeta, { color: c.muted }]}>Uploaded by {item.uploaded_by_name}</Text>}
+        {item.file_url ? (
+          <View style={styles.documentActions}>
+            {isImage && <Pressable onPress={() => setPreviewOpen(true)} disabled={busy} style={[styles.documentButton, { backgroundColor: c.primarySurface }]}><Ionicons name="eye-outline" size={15} color={c.primary} /><Text style={[styles.documentButtonText, { color: c.primary }]}>Preview</Text></Pressable>}
+            <Pressable onPress={download} disabled={busy} style={[styles.documentButton, { backgroundColor: c.surfaceAlt }]}><Ionicons name="download-outline" size={15} color={c.ink} /><Text style={[styles.documentButtonText, { color: c.ink }]}>{busy ? 'Opening…' : isImage ? 'Save' : 'Open / save'}</Text></Pressable>
+          </View>
+        ) : <Text style={[styles.recordMeta, { color: c.muted }]}>No file attached</Text>}
+      </RecordCard>
+      <Modal visible={previewOpen} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => setPreviewOpen(false)}>
+        <View style={styles.documentPreview}>
+          <View style={styles.documentPreviewHeader}>
+            <Pressable onPress={() => setPreviewOpen(false)} accessibilityRole="button" accessibilityLabel="Close document preview"><Ionicons name="close" size={28} color="#FFFFFF" /></Pressable>
+            <Text style={styles.documentPreviewTitle} numberOfLines={1}>{fileName}</Text>
+            <Pressable onPress={download} disabled={busy} accessibilityRole="button" accessibilityLabel="Save document"><Ionicons name="download-outline" size={24} color="#FFFFFF" /></Pressable>
+          </View>
+          <Image source={{ uri: getApiFileUrl(item.file_url), headers: { Authorization: `Bearer ${token}` } }} style={styles.documentPreviewImage} resizeMode="contain" />
+        </View>
+      </Modal>
+    </>
   )
 }
 
@@ -818,6 +866,13 @@ const styles = StyleSheet.create({
   recordTitle: { fontSize: 14, fontWeight: '600', fontFamily: FONT },
   recordMeta: { fontSize: 12, fontFamily: FONT, marginTop: 2 },
   recordBody: { fontSize: 13, fontFamily: FONT, lineHeight: 19, marginTop: spacing.xs },
+  documentActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  documentButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.md },
+  documentButtonText: { fontSize: 12, fontWeight: '600', fontFamily: FONT },
+  documentPreview: { flex: 1, backgroundColor: '#000000' },
+  documentPreviewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.base, paddingVertical: spacing.md },
+  documentPreviewTitle: { flex: 1, marginHorizontal: spacing.md, color: '#FFFFFF', fontSize: 15, fontWeight: '600', fontFamily: FONT, textAlign: 'center' },
+  documentPreviewImage: { flex: 1, width: '100%' },
   timelineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderLight },
   timelineDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
 
