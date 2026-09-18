@@ -16,6 +16,7 @@ export const IntelligenceResponseSchema = z.object({
     priority: z.enum(['high', 'medium', 'low']).default('low'),
     source_type: z.string(),
     source_id: z.string(),
+    source_url: z.string().optional(),
   })).default([]),
   suggested_follow_up: z.array(z.string()).default([]),
   limitations: z.array(z.string()).default([]),

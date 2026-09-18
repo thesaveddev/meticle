@@ -21,6 +21,11 @@ router.post('/risk-signals', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), 
 router.post('/compliance-copilot', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER), validate(aiIntelligenceSchema), asyncHandler(AIController.intelligence));
 router.post('/assistant', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(aiIntelligenceSchema), asyncHandler(AIController.intelligence));
 router.post('/end-of-day', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(aiIntelligenceSchema), asyncHandler(AIController.intelligence));
+router.post('/operations-copilot', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(aiIntelligenceSchema), asyncHandler(AIController.intelligence));
+router.post('/anomaly-detection', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(aiIntelligenceSchema), asyncHandler(AIController.intelligence));
+router.post('/rota-alternatives', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(aiIntelligenceSchema), asyncHandler(AIController.intelligence));
+router.post('/competency-coaching', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(aiIntelligenceSchema), asyncHandler(AIController.intelligence));
+router.post('/family-communication-draft', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(aiIntelligenceSchema), asyncHandler(AIController.intelligence));
 router.post('/triage/incident', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.triageIncident));
 router.post('/analyze/rota', requireRole(UserRole.ORG_ADMIN), validate(aiRotaAnalysisSchema), asyncHandler(AIController.analyzeRota));
 router.post('/generate/rota', requireRole(UserRole.ORG_ADMIN), validate(aiRotaGenerateSchema), asyncHandler(AIController.generateRota));

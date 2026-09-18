@@ -34,6 +34,11 @@ This matrix is the working source of truth for the public-site repositioning. â€
 | AI compliance copilot | First source-linked version implemented | Authenticated `/intelligence` | Training/evidence attention signals | Requires broader competency/review/action sources before public claim. |
 | AI Manager Briefing | First end-to-end version implemented | `/manager-briefing`, `/intelligence` | Source-linked manager summary | Requires organisation AI configuration and manager/admin role. |
 | AI end-of-day intelligence | First source-linked version implemented | Authenticated `/intelligence` | Date-bounded review with source IDs | Does not replace existing operational digests or make regulatory judgements. |
+| Domiciliary operations copilot | First source-linked version implemented | Authenticated `/intelligence` | Missed/overdue/medication/action signals | Manager-only; does not modify calls. |
+| Rules-first anomaly detection | First source-linked version implemented | Authenticated `/intelligence` | Deterministic operational signals plus AI explanation | Signals require human review. |
+| Explainable rota alternatives | Advisory version implemented | Authenticated `/intelligence` | Shift sources and constraint explanation | No automatic rota publication. |
+| Competency coaching | Advisory version implemented | Authenticated `/intelligence` | Training and competency sources | Does not grade staff or change employment records. |
+| Family communication drafting | Manager-reviewed draft version implemented | Authenticated `/intelligence` | Person records and family contact source | Never sends automatically. |
 
 ## Public route architecture implemented
 

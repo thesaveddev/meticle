@@ -9,6 +9,33 @@ import logger from '../../shared/utils/logger';
  * Centralised AI call helper with budget enforcement and provider fallback.
  * All AI calls should go through this function.
  */
+function sourceUrl(sourceType: string, sourceId: string, record?: any): string | undefined {
+  switch (sourceType) {
+    case 'daily_note':
+      return record?.person_id ? `/people/${record.person_id}?tab=daily-notes&source=${sourceId}` : undefined;
+    case 'homecare_visit':
+      return `/homecare?visitId=${sourceId}`;
+    case 'incident':
+      return `/incidents/${sourceId}`;
+    case 'training_record':
+      return `/training?recordId=${sourceId}`;
+    case 'medication_administration':
+      return record?.person_id ? `/emedication?personId=${record.person_id}&administrationId=${sourceId}` : '/emedication';
+    case 'risk_assessment':
+      return record?.person_id ? `/people/${record.person_id}?tab=risk-assessments&source=${sourceId}` : undefined;
+    case 'incident_action':
+      return record?.incident_id ? `/incidents/${record.incident_id}?action=${sourceId}` : undefined;
+    case 'competency_assessment':
+      return `/compliance/competency?assessmentId=${sourceId}`;
+    case 'shift':
+      return `/scheduling?shiftId=${sourceId}`;
+    case 'family_contact':
+      return record?.person_id ? `/people/${record.person_id}?tab=family-contacts&source=${sourceId}` : undefined;
+    default:
+      return undefined;
+  }
+}
+
 async function aiCall(
   orgId: string,
   config: AIConfig,
@@ -1211,6 +1238,11 @@ export class AIController {
       '/compliance-copilot': 'compliance_copilot',
       '/assistant': 'natural_language_assistant',
       '/end-of-day': 'end_of_day_intelligence',
+      '/operations-copilot': 'domiciliary_operations_copilot',
+      '/anomaly-detection': 'operational_anomaly_detection',
+      '/rota-alternatives': 'rota_alternatives',
+      '/competency-coaching': 'competency_coaching',
+      '/family-communication-draft': 'family_communication_draft',
     };
     const capability = capabilityByPath[req.path] || 'manager_briefing';
     const config = await AIRepository.getConfig(orgId);
@@ -1219,12 +1251,13 @@ export class AIController {
 
     const pool = (await import('../../shared/database')).default;
     const today = new Date().toISOString().slice(0, 10);
-    const from = req.body.from || (capability === 'end_of_day_intelligence' ? today : new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10));
+    const windowDays = ['7', '14', '30'].includes(String(req.body.window)) ? Number(req.body.window) : 7;
+    const from = req.body.from || (capability === 'end_of_day_intelligence' ? today : new Date(Date.now() - (windowDays - 1) * 86400000).toISOString().slice(0, 10));
     const to = req.body.to || today;
     const personId = req.body.personId;
     const question = req.body.question || '';
     if (from > to) return res.status(400).json({ error: { message: 'from must be on or before to' } });
-    if (capability === 'care_summary' && !personId) return res.status(400).json({ error: { message: 'personId is required for a care summary' } });
+    if (['care_summary', 'family_communication_draft'].includes(capability) && !personId) return res.status(400).json({ error: { message: 'personId is required for this capability' } });
 
     try {
       const personFilter = personId ? ' AND p.id = $4' : '';
@@ -1252,30 +1285,77 @@ export class AIController {
         ...visits.rows.map((r: any) => ({ source_type: 'homecare_visit', source_id: String(r.id), ...r })),
         ...notes.rows.map((r: any) => ({ source_type: 'daily_note', source_id: String(r.id), ...r })),
         ...incidents.rows.map((r: any) => ({ source_type: 'incident', source_id: String(r.id), ...r })),
-        ...(capability === 'compliance_copilot' ? training.rows.map((r: any) => ({ source_type: 'training_record', source_id: String(r.id), ...r })) : []),
+        ...(capability === 'compliance_copilot' || capability === 'competency_coaching' ? training.rows.map((r: any) => ({ source_type: 'training_record', source_id: String(r.id), ...r })) : []),
       ];
-      const sourceIds = records.map((r: any) => ({ type: r.source_type, id: r.source_id }));
+
+      if (['change_detection', 'risk_signals', 'operational_anomaly_detection', 'care_summary'].includes(capability)) {
+        const medication = await pool.query(`SELECT a.id, a.status, a.scheduled_time, a.administered_time, a.notes, i.name AS medication_name, r.person_id
+          FROM emedication_administrations a JOIN emedication_items i ON i.id = a.emedication_item_id
+          JOIN emedication_records r ON r.id = i.emedication_record_id
+          WHERE r.organization_id = $1 AND a.scheduled_time::date BETWEEN $2::date AND $3::date
+            AND ($4::uuid IS NULL OR r.person_id = $4) ORDER BY a.scheduled_time DESC LIMIT 300`, [orgId, from, to, personId || null]);
+        records.push(...medication.rows.map((r: any) => ({ source_type: 'medication_administration', source_id: String(r.id), ...r })));
+      }
+
+      if (capability === 'compliance_copilot' || capability === 'operational_anomaly_detection') {
+        const [risks, actions, competencies] = await Promise.all([
+          pool.query(`SELECT ra.id, ra.type, ra.risk_level, ra.review_date, LEFT(ra.details, 400) AS details, ra.person_id
+            FROM risk_assessments ra JOIN people p ON p.id = ra.person_id
+            WHERE p.organization_id = $1 AND (ra.review_date BETWEEN $2::date AND $3::date OR ra.review_date < CURRENT_DATE)
+            LIMIT 200`, [orgId, from, to]),
+          pool.query(`SELECT ia.id, ia.incident_id, ia.action, ia.due_date, ia.status
+            FROM incident_actions ia JOIN incidents i ON i.id = ia.incident_id
+            WHERE i.organization_id = $1 AND (ia.due_date BETWEEN $2::date AND $3::date OR (ia.due_date < CURRENT_DATE AND ia.status != 'completed'))
+            LIMIT 200`, [orgId, from, to]),
+          pool.query(`SELECT ca.id, ca.staff_id, ca.passed, ca.assessed_at, ca.reassessment_date, ct.name AS competency_name
+            FROM competency_assessments ca JOIN competency_templates ct ON ct.id = ca.template_id
+            WHERE ct.organization_id = $1 AND (ca.reassessment_date BETWEEN $2::date AND $3::date OR ca.reassessment_date < CURRENT_DATE OR ca.passed = false)
+            LIMIT 200`, [orgId, from, to]),
+        ]);
+        records.push(...risks.rows.map((r: any) => ({ source_type: 'risk_assessment', source_id: String(r.id), ...r })));
+        records.push(...actions.rows.map((r: any) => ({ source_type: 'incident_action', source_id: String(r.id), ...r })));
+        records.push(...competencies.rows.map((r: any) => ({ source_type: 'competency_assessment', source_id: String(r.id), ...r })));
+      }
+
+      if (capability === 'rota_alternatives') {
+        const shifts = await pool.query(`SELECT s.id, s.start_time, s.end_time, s.status, s.shift_type, l.name AS location_name
+          FROM shifts s JOIN locations l ON l.id = s.location_id
+          WHERE l.organization_id = $1 AND s.start_time::date BETWEEN $2::date AND $3::date
+          ORDER BY s.start_time LIMIT 300`, [orgId, from, to]);
+        records.push(...shifts.rows.map((r: any) => ({ source_type: 'shift', source_id: String(r.id), ...r })));
+      }
+
+      if (capability === 'family_communication_draft' && personId) {
+        const family = await pool.query(`SELECT id, name, relationship, email FROM family_contacts WHERE person_id = $1`, [personId]);
+        records.push(...family.rows.map((r: any) => ({ source_type: 'family_contact', source_id: String(r.id), ...r })));
+      }
+      const sourceIds = records.map((r: any) => ({ type: r.source_type, id: r.source_id, url: sourceUrl(r.source_type, r.source_id, r) })).filter((source: any) => source.url);
+      const sourceUrlByKey = new Map(records.map((r: any) => [`${r.source_type}:${r.source_id}`, sourceUrl(r.source_type, r.source_id, r)]));
+      const withSourceUrl = (item: any) => ({ ...item, source_url: sourceUrlByKey.get(`${item.source_type}:${item.source_id}`) });
       const deterministicItems: any[] = [];
       if (capability === 'change_detection') {
         const midpoint = new Date(`${from}T00:00:00Z`).getTime() + (new Date(`${to}T23:59:59Z`).getTime() - new Date(`${from}T00:00:00Z`).getTime()) / 2;
         const before = records.filter((r: any) => new Date(r.note_date || r.incident_date || r.scheduled_start || r.expires_at || 0).getTime() <= midpoint).length;
         const after = records.length - before;
-        deterministicItems.push(...records.filter((r: any) => r.source_type === 'incident' || r.status === 'missed' || r.status === 'overdue').slice(0, 20).map((r: any) => ({ title: 'Record may need review', detail: `The source record is marked ${r.status || r.severity || 'noted'}.`, priority: r.severity === 'critical' || r.status === 'missed' ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
-        if (before !== after) deterministicItems.push({ title: 'Record volume changed across the period', detail: `There are ${before} records in the earlier half and ${after} in the later half. This is a signal for review, not a conclusion.`, priority: 'low', source_type: sourceIds[0]?.type || 'period', source_id: sourceIds[0]?.id || 'period' });
+        deterministicItems.push(...records.filter((r: any) => r.source_type === 'incident' || r.status === 'missed' || r.status === 'overdue').slice(0, 20).map((r: any) => withSourceUrl({ title: 'Record may need review', detail: `The source record is marked ${r.status || r.severity || 'noted'}.`, priority: r.severity === 'critical' || r.status === 'missed' ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
+        if (before !== after && records[0]) deterministicItems.push(withSourceUrl({ title: 'Record volume changed across the period', detail: `There are ${before} records in the earlier half and ${after} in the later half. This is a signal for review, not a conclusion.`, priority: 'low', source_type: records[0].source_type, source_id: records[0].source_id }));
       }
       if (capability === 'risk_signals') {
-        deterministicItems.push(...records.filter((r: any) => r.source_type === 'incident' || ['missed', 'overdue'].includes(r.status)).slice(0, 30).map((r: any) => ({ title: r.source_type === 'incident' ? `Incident: ${r.title}` : `Visit status: ${r.status}`, detail: 'This operational record may require human review.', priority: r.severity === 'critical' || r.status === 'missed' ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
+        deterministicItems.push(...records.filter((r: any) => r.source_type === 'incident' || ['missed', 'overdue'].includes(r.status)).slice(0, 30).map((r: any) => withSourceUrl({ title: r.source_type === 'incident' ? `Incident: ${r.title}` : `Visit status: ${r.status}`, detail: 'This operational record may require human review.', priority: r.severity === 'critical' || r.status === 'missed' ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
       }
       if (capability === 'compliance_copilot') {
-        deterministicItems.push(...records.filter((r: any) => r.source_type === 'training_record' || r.status === 'expired').slice(0, 30).map((r: any) => ({ title: 'Training record may need attention', detail: `${r.staff_name || 'Staff member'} — ${r.module_name || 'training'} is ${r.status || 'expiring'}.`, priority: r.status === 'expired' ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
+        deterministicItems.push(...records.filter((r: any) => ['training_record', 'risk_assessment', 'incident_action', 'competency_assessment'].includes(r.source_type) || r.status === 'expired').slice(0, 50).map((r: any) => withSourceUrl({ title: `${r.source_type.replace(/_/g, ' ')} may need attention`, detail: r.staff_name ? `${r.staff_name} — ${r.module_name || r.competency_name || 'record'} is ${r.status || (r.passed === false ? 'not passed' : 'due for review')}.` : (r.action || r.details || 'Review this source record.'), priority: r.status === 'expired' || r.passed === false ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
       }
-      const { system, user } = renderPrompt('unified_intelligence', { capability, from, to, question, records: JSON.stringify(records) });
+      if (['domiciliary_operations_copilot', 'operational_anomaly_detection'].includes(capability)) {
+        deterministicItems.push(...records.filter((r: any) => r.status === 'missed' || r.status === 'overdue' || r.source_type === 'incident_action' || r.source_type === 'medication_administration').slice(0, 50).map((r: any) => withSourceUrl({ title: 'Operational pattern may need attention', detail: r.source_type === 'medication_administration' ? `${r.medication_name || 'Medication'} administration is ${r.status}.` : (r.action || `Source record is marked ${r.status || 'noted'}.`), priority: ['missed', 'overdue', 'refused'].includes(r.status) ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
+      }
+      const { system, user } = renderPrompt('unified_intelligence', { capability, from, to, question, audience: req.body.audience || 'internal manager', tone: req.body.tone || 'professional and cautious', records: JSON.stringify(records) });
       const start = Date.now();
       const result = await aiCall(orgId, config, [{ role: 'system', content: system }, { role: 'user', content: user }], { model: config.model, temperature: 0.2, maxTokens: 2200 });
       const validated = (await import('./ai.schemas')).validateAIResponse((await import('./ai.schemas')).IntelligenceResponseSchema, result.content, 'Intelligence response');
       const parsed = validated.data || { headline: capability.replace(/_/g, ' '), summary: 'The AI response could not be validated. Review the source records directly.', items: [], suggested_follow_up: [], limitations: [validated.error || 'Validation failed'] };
-      const items = [...deterministicItems, ...parsed.items].filter((item, index, all) => all.findIndex(other => other.source_type === item.source_type && other.source_id === item.source_id) === index).slice(0, 50);
-      await AIRepository.logAudit({ organizationId: orgId, feature: capability, promptKey: 'unified_intelligence', promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens, model: config.model, provider: result.provider, durationMs: Date.now() - start, createdBy: userId, requestData: { from, to, personId, question, sourceIds }, responseSummary: parsed.headline });
+      const items = [...deterministicItems, ...parsed.items.map((item: any) => ({ ...item, source_url: sourceUrlByKey.get(`${item.source_type}:${item.source_id}`) }))].filter((item, index, all) => all.findIndex(other => other.source_type === item.source_type && other.source_id === item.source_id) === index).slice(0, 50);
+      await AIRepository.logAudit({ organizationId: orgId, feature: capability, promptKey: 'unified_intelligence', promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens, model: config.model, provider: result.provider, durationMs: Date.now() - start, createdBy: userId, requestData: { from, to, windowDays, personId, question, sourceIds }, responseSummary: parsed.headline });
       res.json({ capability, result: { ...parsed, items, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString() }, sources: sourceIds, period: { from, to }, counts: { visits: visits.rowCount, notes: notes.rowCount, incidents: incidents.rowCount, training: training.rowCount } });
     } catch (err: any) {
       await AIRepository.logAudit({ organizationId: orgId, feature: capability, promptKey: 'unified_intelligence', success: false, errorMessage: err.message, createdBy: userId, requestData: { from, to, personId, question } }).catch(() => {});
