@@ -11,17 +11,24 @@ const FOOT_HAIRLINE = 'rgba(255,255,255,0.12)'
 
 const footerLinks = {
   Product: [
-    { name: 'Features', path: '/features' },
-    { name: 'How It Works', path: '/how-it-works' },
-    { name: 'Pricing', path: '/pricing' },
-    { name: 'Compliance', path: '/features#compliance' },
-    { name: 'Blog', path: '/blog' },
+    { name: 'Platform', path: '/platform' },
+    { name: 'Care management', path: '/features/care-management' },
+    { name: 'Medication', path: '/features/medication' },
+    { name: 'Workforce & scheduling', path: '/features/workforce' },
+    { name: 'AI & Intelligence', path: '/features/ai' },
   ],
   Solutions: [
-    { name: 'Supported Living', path: '/features' },
-    { name: 'CQC Compliance', path: '/features#compliance' },
-    { name: 'Multi-site Management', path: '/features' },
-    { name: 'Staff Rostering', path: '/features#rota' },
+    { name: 'Domiciliary care', path: '/solutions/domiciliary-care' },
+    { name: 'Supported living', path: '/solutions/supported-living' },
+    { name: 'Family Portal', path: '/features/family-portal' },
+    { name: 'Mobile app', path: '/download' },
+  ],
+  Compliance: [
+    { name: 'Compliance overview', path: '/compliance' },
+    { name: 'CQC · England', path: '/compliance/cqc' },
+    { name: 'Care Inspectorate · Scotland', path: '/compliance/care-inspectorate' },
+    { name: 'CIW · Wales', path: '/compliance/ciw' },
+    { name: 'RQIA · Northern Ireland', path: '/compliance/rqia' },
   ],
   Company: [
     { name: 'Our Story', path: '/about' },
@@ -31,6 +38,7 @@ const footerLinks = {
   Resources: [
     { name: 'Learning Center', path: '/learn' },
     { name: 'Blog & Guides', path: '/blog' },
+    { name: 'Download the app', path: '/download' },
   ],
   Legal: [
     { name: 'Privacy Policy', path: '/privacy' },
@@ -60,10 +68,10 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 Meticle<span style={{ color: EMERALD }}>Care</span>
               </Typography>
               <Typography variant="body2" sx={{ color: FOOT_MUTED, mb: 4, maxWidth: 280, lineHeight: 1.7 }}>
-                A connected care management platform for UK supported living providers.
+                Care operations software for domiciliary and supported living providers across the UK.
               </Typography>
               <Typography variant="caption" sx={{ color: FOOT_MUTED, fontWeight: 600, letterSpacing: '0.04em' }}>
-                CQC · CIW · Care Inspectorate · RQIA
+                England · Scotland · Wales · Northern Ireland
               </Typography>
             </Grid>
             {Object.entries(footerLinks).map(([category, links]) => (

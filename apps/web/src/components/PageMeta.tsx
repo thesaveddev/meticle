@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 const SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL || 'https://meticlecare.com'
-const SITE_NAME = 'Meticle Care'
+const SITE_NAME = 'MeticleCare'
 const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`
 const TWITTER_HANDLE = '@meticlecare'
 

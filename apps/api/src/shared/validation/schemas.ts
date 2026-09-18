@@ -80,6 +80,20 @@ export const aiAnalysisRequestSchema = z.object({
   keyIssues: z.string().optional(),
 });
 
+const aiDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD');
+
+export const aiManagerBriefingSchema = z.object({
+  from: aiDate,
+  to: aiDate,
+});
+
+export const aiIntelligenceSchema = z.object({
+  from: aiDate.optional(),
+  to: aiDate.optional(),
+  personId: z.string().uuid().optional(),
+  question: z.string().min(3).max(500).optional(),
+});
+
 export const aiRotaAnalysisSchema = z.object({
   weekRange: z.string(),
   locationName: z.string(),

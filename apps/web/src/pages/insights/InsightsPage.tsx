@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react'
 import {
   Box, Grid, Paper, Typography, Stack, Chip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, CircularProgress, Alert,
-  LinearProgress, Divider,
+  LinearProgress, Divider, Button,
 } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
 import {
   People as PeopleIcon, CheckCircle as CheckIcon, EventBusy as LeaveIcon,
   Schedule as ShiftIcon, TrendingUp as TrendIcon, Psychology as OutcomeIcon,
-  WarningAmber as WarningAmberIcon,
+  WarningAmber as WarningAmberIcon, AutoAwesome as AutoAwesomeIcon,
 } from '@mui/icons-material'
+import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 
 interface Overview {
@@ -52,6 +53,7 @@ const roleLabels: Record<string, string> = {
 }
 
 export default function InsightsPage() {
+  const navigate = useNavigate()
   const [overview, setOverview] = useState<Overview | null>(null)
   const [staffingByRole, setStaffingByRole] = useState<StaffingRole[]>([])
   const [staffingByLocation, setStaffingByLocation] = useState<StaffingLocation[]>([])
@@ -114,7 +116,17 @@ export default function InsightsPage() {
   return (
     <PageContainer>
 
-      <Typography variant="h5" sx={{ fontWeight: 800, mb: 3 }}>Insights</Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 800 }}>Insights</Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={() => navigate('/intelligence')} sx={{ color: '#7C3AED', borderColor: '#C4B5FD' }}>
+            Open Intelligence
+          </Button>
+          <Button variant="text" onClick={() => navigate('/manager-briefing')} sx={{ color: '#7C3AED' }}>
+            Manager Briefing
+          </Button>
+        </Stack>
+      </Stack>
 
       {/* Overview Cards */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
