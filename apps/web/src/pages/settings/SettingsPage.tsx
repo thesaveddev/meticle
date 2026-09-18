@@ -96,6 +96,13 @@ export default function SettingsPage() {
     { key: 'meal_plan_generation', label: 'AI Meal Plans', desc: 'Generate person-centred meal plans based on dietary requirements, allergies, and texture modifications' },
     { key: 'care_plan_gap_analysis', label: 'Care Plan Gap Analysis', desc: 'Compare visit notes against care plans and nutrition records to identify gaps and contradictions' },
     { key: 'competency_assessment_assistant', label: 'Competency Assessment Generator', desc: 'Generate CQC-aligned assessment questions for staff competency evaluations' },
+    { key: 'manager_briefing', label: 'Manager Briefing', desc: 'Summarise authorised records into source-linked priorities and follow-up suggestions' },
+    { key: 'care_summary', label: 'Person Care Summary', desc: 'Summarise a person\'s selected-period records with source references' },
+    { key: 'change_detection', label: 'Change Detection', desc: 'Identify meaningful changes across authorised care and operational records' },
+    { key: 'risk_signals', label: 'Risk Signals', desc: 'Surface potential missed, overdue and incident patterns for human review' },
+    { key: 'compliance_copilot', label: 'Compliance Copilot', desc: 'Highlight authorised evidence and training records that may need attention' },
+    { key: 'natural_language_assistant', label: 'Natural-language Assistant', desc: 'Answer operational questions using only authorised records' },
+    { key: 'end_of_day_intelligence', label: 'End-of-day Intelligence', desc: 'Create a transparent source-linked review of the day' },
   ]
 
   // Pagination state

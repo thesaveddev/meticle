@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import Layout from './components/Layout'
 import AuthGuard from './components/AuthGuard'
@@ -13,7 +13,9 @@ const MarketplacePage = lazy(() => import('./pages/marketplace/MarketplacePage')
 const ReportingPage = lazy(() => import('./pages/reporting/ReportingPage'))
 const ReportBuilder = lazy(() => import('./pages/reporting/ReportBuilder'))
 const InsightsPage = lazy(() => import('./pages/insights/InsightsPage'))
-const LandingPage = lazy(() => import('./pages/LandingPage'))
+const ManagerBriefingPage = lazy(() => import('./pages/insights/ManagerBriefingPage'))
+const IntelligencePage = lazy(() => import('./pages/insights/IntelligencePage'))
+const PublicSitePage = lazy(() => import('./pages/marketing/PublicSitePage'))
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'))
 const VerifyEmailPage = lazy(() => import('./pages/auth/VerifyEmailPage'))
@@ -26,12 +28,11 @@ const LocationDetailPage = lazy(() => import('./pages/locations/LocationDetailPa
 const LocationsPage = lazy(() => import('./pages/locations/LocationsPage'))
 // Lazy-loaded marketing and application pages for code splitting
 const FeaturesPage = lazy(() => import('./pages/marketing/FeaturesPage'))
-const PricingPage = lazy(() => import('./pages/marketing/PricingPage'))
-const AboutPage = lazy(() => import('./pages/marketing/AboutPage'))
+
 const CaseStudiesPage = lazy(() => import('./pages/marketing/CaseStudiesPage'))
 const ContactPage = lazy(() => import('./pages/marketing/ContactPage'))
 const HowItWorksPage = lazy(() => import('./pages/marketing/HowItWorksPage'))
-const BlogPage = lazy(() => import('./pages/marketing/BlogPage'))
+const PublicBlogPage = lazy(() => import('./pages/marketing/PublicBlogPage'))
 const ComplianceBadgesPage = lazy(() => import('./pages/marketing/ComplianceBadgesPage'))
 const LearningCenterPage = lazy(() => import('./pages/learn/LearningCenterPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'))
@@ -110,14 +111,24 @@ function App() {
   return (
     <Suspense fallback={<RouteLoading />}>
       <Routes>
-      <Route path="/" element={<ErrorBoundary><LandingPage /></ErrorBoundary>} />
+      <Route path="/" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="home" /></Suspense></ErrorBoundary>} />
+      <Route path="/platform" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="platform" /></Suspense></ErrorBoundary>} />
+      <Route path="/compliance" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="compliance" /></Suspense></ErrorBoundary>} />
+      <Route path="/compliance/:slug" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="regulator" /></Suspense></ErrorBoundary>} />
+      <Route path="/solutions/:slug" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="solution" /></Suspense></ErrorBoundary>} />
+      <Route path="/features/:slug" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="feature" /></Suspense></ErrorBoundary>} />
+      <Route path="/security" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="security" /></Suspense></ErrorBoundary>} />
+      <Route path="/mobile" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="download" /></Suspense></ErrorBoundary>} />
+      <Route path="/app" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="download" /></Suspense></ErrorBoundary>} />
+      <Route path="/download" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="download" /></Suspense></ErrorBoundary>} />
       <Route path="/features" element={<ErrorBoundary><Suspense fallback={null}><FeaturesPage /></Suspense></ErrorBoundary>} />
       <Route path="/how-it-works" element={<ErrorBoundary><Suspense fallback={null}><HowItWorksPage /></Suspense></ErrorBoundary>} />
-      <Route path="/pricing" element={<ErrorBoundary><Suspense fallback={null}><PricingPage /></Suspense></ErrorBoundary>} />
-      <Route path="/about" element={<ErrorBoundary><Suspense fallback={null}><AboutPage /></Suspense></ErrorBoundary>} />
+      <Route path="/pricing" element={<Navigate to="/contact" replace />} />
+      <Route path="/about" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="about" /></Suspense></ErrorBoundary>} />
       <Route path="/case-studies" element={<ErrorBoundary><Suspense fallback={null}><CaseStudiesPage /></Suspense></ErrorBoundary>} />
       <Route path="/contact" element={<ErrorBoundary><Suspense fallback={null}><ContactPage /></Suspense></ErrorBoundary>} />
-      <Route path="/blog" element={<ErrorBoundary><Suspense fallback={null}><BlogPage /></Suspense></ErrorBoundary>} />
+      <Route path="/blog" element={<ErrorBoundary><Suspense fallback={null}><PublicBlogPage /></Suspense></ErrorBoundary>} />
+      <Route path="/blog/:slug" element={<ErrorBoundary><Suspense fallback={null}><PublicBlogPage /></Suspense></ErrorBoundary>} />
       <Route path="/compliance-badges" element={<ErrorBoundary><Suspense fallback={null}><ComplianceBadgesPage /></Suspense></ErrorBoundary>} />
       <Route path="/login" element={<ErrorBoundary><MeticleThemeProvider><LoginPage /></MeticleThemeProvider></ErrorBoundary>} />
       <Route path="/register" element={<ErrorBoundary><MeticleThemeProvider><RegisterPage /></MeticleThemeProvider></ErrorBoundary>} />
@@ -164,6 +175,8 @@ function App() {
           <Route path="/reports/:reportId" element={<ModuleGuard module="reporting"><ReportBuilder /></ModuleGuard>} />
           <Route path="/reporting" element={<ModuleGuard module="reporting"><ReportingPage /></ModuleGuard>} />
           <Route path="/insights" element={<ModuleGuard module="reporting"><InsightsPage /></ModuleGuard>} />
+          <Route path="/manager-briefing" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="reporting"><ManagerBriefingPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/intelligence" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="reporting"><IntelligencePage /></ModuleGuard></AuthGuard>} />
           <Route path="/organizations" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN]}><OrganizationPage /></AuthGuard>} />
           <Route path="/settings" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="settings"><SettingsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/locations" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="settings"><LocationsPage /></ModuleGuard></AuthGuard>} />

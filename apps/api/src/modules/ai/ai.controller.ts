@@ -91,6 +91,60 @@ export class AIController {
     res.json({ config: sanitized });
   }
 
+  static async managerBriefing(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    if (!orgId || !userId) return res.status(400).json({ error: { message: 'Organization and user required' } });
+
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
+    if (!config.enabledFeatures?.includes('manager_briefing')) return res.status(403).json({ error: { message: 'Manager Briefing is not enabled for your organization.' } });
+
+    const { from, to } = req.body;
+    const pool = (await import('../../shared/database')).default;
+    const [visits, notes, incidents, leave, training] = await Promise.all([
+      pool.query(`SELECT v.id, v.status, v.label, v.scheduled_start, v.scheduled_end, p.first_name || ' ' || p.last_name AS person_name
+        FROM homecare_visits v JOIN people p ON p.id = v.person_id
+        WHERE v.organization_id = $1 AND v.scheduled_start::date BETWEEN $2::date AND $3::date
+        ORDER BY v.scheduled_start LIMIT 500`, [orgId, from, to]),
+      pool.query(`SELECT n.id, n.note_date, n.category, LEFT(n.content, 600) AS content, p.first_name || ' ' || p.last_name AS person_name
+        FROM daily_notes n JOIN people p ON p.id = n.person_id
+        WHERE p.organization_id = $1 AND n.note_date BETWEEN $2::date AND $3::date
+        ORDER BY n.note_date DESC, n.created_at DESC LIMIT 200`, [orgId, from, to]),
+      pool.query(`SELECT i.id, i.title, i.severity, i.status, i.incident_date, LEFT(i.description, 500) AS description
+        FROM incidents i WHERE i.organization_id = $1 AND i.incident_date BETWEEN $2::date AND $3::date
+        ORDER BY i.incident_date DESC LIMIT 200`, [orgId, from, to]),
+      pool.query(`SELECT lr.id, lr.status, lr.start_date, lr.end_date, lt.name AS leave_type, sp.first_name || ' ' || sp.last_name AS staff_name
+        FROM leave_requests lr JOIN leave_types lt ON lt.id = lr.leave_type_id JOIN staff_profiles sp ON sp.id = lr.staff_id
+        JOIN users u ON u.id = sp.user_id WHERE u.organization_id = $1 AND lr.start_date <= $3::date AND lr.end_date >= $2::date
+        ORDER BY lr.start_date LIMIT 200`, [orgId, from, to]),
+      pool.query(`SELECT tr.id, tm.name AS module_name, tr.status, tr.expires_at, sp.first_name || ' ' || sp.last_name AS staff_name
+        FROM training_records tr JOIN training_modules tm ON tm.id = tr.module_id JOIN staff_profiles sp ON sp.id = tr.staff_id
+        JOIN users u ON u.id = sp.user_id WHERE u.organization_id = $1 AND (tr.expires_at BETWEEN $2::date AND $3::date OR tr.status = 'expired')
+        LIMIT 200`, [orgId, from, to]),
+    ]);
+
+    const records = JSON.stringify({
+      visits: visits.rows.map((r: any) => ({ source_type: 'homecare_visit', source_id: r.id, ...r })),
+      notes: notes.rows.map((r: any) => ({ source_type: 'daily_note', source_id: r.id, ...r })),
+      incidents: incidents.rows.map((r: any) => ({ source_type: 'incident', source_id: r.id, ...r })),
+      leave: leave.rows.map((r: any) => ({ source_type: 'leave_request', source_id: r.id, ...r })),
+      training: training.rows.map((r: any) => ({ source_type: 'training_record', source_id: r.id, ...r })),
+    });
+    const { system, user } = renderPrompt('manager_briefing', { from, to, records });
+    const start = Date.now();
+    try {
+      const result = await aiCall(orgId, config, [{ role: 'system', content: system }, { role: 'user', content: user }], { model: config.model, temperature: 0.2, maxTokens: 2500 });
+      const { data: parsed, error: validationError } = (await import('./ai.schemas')).validateAIResponse((await import('./ai.schemas')).ManagerBriefingSchema, result.content, 'Manager briefing');
+      await AIRepository.logAudit({ organizationId: orgId, feature: 'manager_briefing', promptKey: 'manager_briefing', promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens, model: config.model, provider: result.provider, durationMs: Date.now() - start, createdBy: userId, requestData: { from, to, sourceCounts: { visits: visits.rowCount, notes: notes.rowCount, incidents: incidents.rowCount, leave: leave.rowCount, training: training.rowCount } }, responseSummary: parsed?.headline || validationError || 'Generated' });
+      res.json({ briefing: parsed ? { ...parsed, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString() } : { headline: 'Briefing could not be validated', attention: [], follow_up: [], validationWarning: validationError, generated_by_ai: true }, sources: { visits: visits.rowCount, notes: notes.rowCount, incidents: incidents.rowCount, leave: leave.rowCount, training: training.rowCount }, period: { from, to } });
+    } catch (err: any) {
+      await AIRepository.logAudit({ organizationId: orgId, feature: 'manager_briefing', promptKey: 'manager_briefing', success: false, errorMessage: err.message, durationMs: Date.now() - start, createdBy: userId, requestData: { from, to } }).catch(() => {});
+      logger.error(err, 'Manager briefing failed');
+      res.status(500).json({ error: { message: 'Manager briefing failed' } });
+    }
+  }
+
   static async analyzeComplianceGap(req: Request, res: Response) {
     const orgId = req.user?.organizationId;
     if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
@@ -1141,6 +1195,92 @@ export class AIController {
     } catch (err: any) {
       logger.error(err, 'Competency question generation failed');
       res.status(500).json({ error: { message: 'Competency question generation failed' } });
+    }
+  }
+
+  /** Shared, source-linked intelligence surface. Each route selects one capability while the data boundary remains identical. */
+  static async intelligence(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    if (!orgId || !userId) return res.status(400).json({ error: { message: 'Organization and user required' } });
+
+    const capabilityByPath: Record<string, string> = {
+      '/care-summary': 'care_summary',
+      '/change-detection': 'change_detection',
+      '/risk-signals': 'risk_signals',
+      '/compliance-copilot': 'compliance_copilot',
+      '/assistant': 'natural_language_assistant',
+      '/end-of-day': 'end_of_day_intelligence',
+    };
+    const capability = capabilityByPath[req.path] || 'manager_briefing';
+    const config = await AIRepository.getConfig(orgId);
+    if (!config || !config.enabled || !config.apiKey) return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
+    if (!config.enabledFeatures?.includes(capability)) return res.status(403).json({ error: { message: `${capability} is not enabled for your organization.` } });
+
+    const pool = (await import('../../shared/database')).default;
+    const today = new Date().toISOString().slice(0, 10);
+    const from = req.body.from || (capability === 'end_of_day_intelligence' ? today : new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10));
+    const to = req.body.to || today;
+    const personId = req.body.personId;
+    const question = req.body.question || '';
+    if (from > to) return res.status(400).json({ error: { message: 'from must be on or before to' } });
+    if (capability === 'care_summary' && !personId) return res.status(400).json({ error: { message: 'personId is required for a care summary' } });
+
+    try {
+      const personFilter = personId ? ' AND p.id = $4' : '';
+      const params = personId ? [orgId, from, to, personId] : [orgId, from, to];
+      const [visits, notes, incidents, training] = await Promise.all([
+        pool.query(`SELECT v.id, v.status, v.label, v.scheduled_start, v.scheduled_end, p.id AS person_id, p.first_name || ' ' || p.last_name AS person_name
+          FROM homecare_visits v JOIN people p ON p.id = v.person_id
+          WHERE v.organization_id = $1 AND v.scheduled_start::date BETWEEN $2::date AND $3::date${personFilter}
+          ORDER BY v.scheduled_start LIMIT 500`, params),
+        pool.query(`SELECT n.id, n.note_date, n.category, LEFT(n.content, 600) AS content, p.id AS person_id, p.first_name || ' ' || p.last_name AS person_name
+          FROM daily_notes n JOIN people p ON p.id = n.person_id
+          WHERE p.organization_id = $1 AND n.note_date BETWEEN $2::date AND $3::date${personFilter}
+          ORDER BY n.note_date DESC, n.created_at DESC LIMIT 300`, params),
+        pool.query(`SELECT DISTINCT i.id, i.title, i.severity, i.status, i.incident_date, LEFT(i.description, 500) AS description, iir.person_id
+          FROM incidents i LEFT JOIN incident_involved_residents iir ON iir.incident_id = i.id
+          WHERE i.organization_id = $1 AND i.incident_date BETWEEN $2::date AND $3::date
+            AND ($4::uuid IS NULL OR iir.person_id = $4)
+          ORDER BY i.incident_date DESC LIMIT 300`, [orgId, from, to, personId || null]),
+        pool.query(`SELECT tr.id, tm.name AS module_name, tr.status, tr.expires_at, sp.first_name || ' ' || sp.last_name AS staff_name
+          FROM training_records tr JOIN training_modules tm ON tm.id = tr.module_id JOIN staff_profiles sp ON sp.id = tr.staff_id
+          JOIN users u ON u.id = sp.user_id WHERE u.organization_id = $1 AND (tr.expires_at BETWEEN $2::date AND $3::date OR tr.status = 'expired') LIMIT 200`, [orgId, from, to]),
+      ]);
+
+      const records = [
+        ...visits.rows.map((r: any) => ({ source_type: 'homecare_visit', source_id: String(r.id), ...r })),
+        ...notes.rows.map((r: any) => ({ source_type: 'daily_note', source_id: String(r.id), ...r })),
+        ...incidents.rows.map((r: any) => ({ source_type: 'incident', source_id: String(r.id), ...r })),
+        ...(capability === 'compliance_copilot' ? training.rows.map((r: any) => ({ source_type: 'training_record', source_id: String(r.id), ...r })) : []),
+      ];
+      const sourceIds = records.map((r: any) => ({ type: r.source_type, id: r.source_id }));
+      const deterministicItems: any[] = [];
+      if (capability === 'change_detection') {
+        const midpoint = new Date(`${from}T00:00:00Z`).getTime() + (new Date(`${to}T23:59:59Z`).getTime() - new Date(`${from}T00:00:00Z`).getTime()) / 2;
+        const before = records.filter((r: any) => new Date(r.note_date || r.incident_date || r.scheduled_start || r.expires_at || 0).getTime() <= midpoint).length;
+        const after = records.length - before;
+        deterministicItems.push(...records.filter((r: any) => r.source_type === 'incident' || r.status === 'missed' || r.status === 'overdue').slice(0, 20).map((r: any) => ({ title: 'Record may need review', detail: `The source record is marked ${r.status || r.severity || 'noted'}.`, priority: r.severity === 'critical' || r.status === 'missed' ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
+        if (before !== after) deterministicItems.push({ title: 'Record volume changed across the period', detail: `There are ${before} records in the earlier half and ${after} in the later half. This is a signal for review, not a conclusion.`, priority: 'low', source_type: sourceIds[0]?.type || 'period', source_id: sourceIds[0]?.id || 'period' });
+      }
+      if (capability === 'risk_signals') {
+        deterministicItems.push(...records.filter((r: any) => r.source_type === 'incident' || ['missed', 'overdue'].includes(r.status)).slice(0, 30).map((r: any) => ({ title: r.source_type === 'incident' ? `Incident: ${r.title}` : `Visit status: ${r.status}`, detail: 'This operational record may require human review.', priority: r.severity === 'critical' || r.status === 'missed' ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
+      }
+      if (capability === 'compliance_copilot') {
+        deterministicItems.push(...records.filter((r: any) => r.source_type === 'training_record' || r.status === 'expired').slice(0, 30).map((r: any) => ({ title: 'Training record may need attention', detail: `${r.staff_name || 'Staff member'} — ${r.module_name || 'training'} is ${r.status || 'expiring'}.`, priority: r.status === 'expired' ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
+      }
+      const { system, user } = renderPrompt('unified_intelligence', { capability, from, to, question, records: JSON.stringify(records) });
+      const start = Date.now();
+      const result = await aiCall(orgId, config, [{ role: 'system', content: system }, { role: 'user', content: user }], { model: config.model, temperature: 0.2, maxTokens: 2200 });
+      const validated = (await import('./ai.schemas')).validateAIResponse((await import('./ai.schemas')).IntelligenceResponseSchema, result.content, 'Intelligence response');
+      const parsed = validated.data || { headline: capability.replace(/_/g, ' '), summary: 'The AI response could not be validated. Review the source records directly.', items: [], suggested_follow_up: [], limitations: [validated.error || 'Validation failed'] };
+      const items = [...deterministicItems, ...parsed.items].filter((item, index, all) => all.findIndex(other => other.source_type === item.source_type && other.source_id === item.source_id) === index).slice(0, 50);
+      await AIRepository.logAudit({ organizationId: orgId, feature: capability, promptKey: 'unified_intelligence', promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens, model: config.model, provider: result.provider, durationMs: Date.now() - start, createdBy: userId, requestData: { from, to, personId, question, sourceIds }, responseSummary: parsed.headline });
+      res.json({ capability, result: { ...parsed, items, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString() }, sources: sourceIds, period: { from, to }, counts: { visits: visits.rowCount, notes: notes.rowCount, incidents: incidents.rowCount, training: training.rowCount } });
+    } catch (err: any) {
+      await AIRepository.logAudit({ organizationId: orgId, feature: capability, promptKey: 'unified_intelligence', success: false, errorMessage: err.message, createdBy: userId, requestData: { from, to, personId, question } }).catch(() => {});
+      logger.error(err, `AI ${capability} failed`);
+      res.status(500).json({ error: { message: `${capability.replace(/_/g, ' ')} failed` } });
     }
   }
 }

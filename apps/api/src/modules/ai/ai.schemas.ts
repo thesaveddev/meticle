@@ -6,6 +6,35 @@ import { z } from 'zod';
  * before saving to the database or returning to the client.
  */
 
+// --- Unified Intelligence ---
+export const IntelligenceResponseSchema = z.object({
+  headline: z.string().min(1),
+  summary: z.string().min(1),
+  items: z.array(z.object({
+    title: z.string(),
+    detail: z.string(),
+    priority: z.enum(['high', 'medium', 'low']).default('low'),
+    source_type: z.string(),
+    source_id: z.string(),
+  })).default([]),
+  suggested_follow_up: z.array(z.string()).default([]),
+  limitations: z.array(z.string()).default([]),
+});
+
+// --- Manager Briefing ---
+export const ManagerBriefingSchema = z.object({
+  headline: z.string().min(1),
+  today: z.array(z.string()).default([]),
+  attention: z.array(z.object({ title: z.string(), detail: z.string(), priority: z.enum(['high', 'medium', 'low']), source_type: z.string(), source_id: z.string() })).default([]),
+  people: z.array(z.string()).default([]),
+  workforce: z.array(z.string()).default([]),
+  compliance: z.array(z.string()).default([]),
+  incidents: z.array(z.string()).default([]),
+  medication: z.array(z.string()).default([]),
+  scheduling: z.array(z.string()).default([]),
+  follow_up: z.array(z.object({ action: z.string(), reason: z.string(), source_type: z.string(), source_id: z.string() })).default([]),
+});
+
 // --- Compliance Gap Analysis ---
 export const ComplianceGapAnalysisSchema = z.object({
   overall_assessment: z.string().min(1),

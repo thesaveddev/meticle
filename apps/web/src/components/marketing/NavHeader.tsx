@@ -51,21 +51,26 @@ const featureGroups = [
   },
 ]
 
-const navItems = [
-  { name: 'Features', path: '/features', mega: true },
-  { name: 'How It Works', path: '/how-it-works' },
-  { name: 'Pricing', path: '/pricing' },
-  { name: 'Learn', path: '/learn' },
-  { name: 'Blog', path: '/blog' },
+const navItems: Array<{ name: string; path: string; mega?: boolean; children?: { name: string; path: string }[] }> = [
+  { name: 'Platform', path: '/platform' },
   {
-    name: 'About', path: '#',
-    children: [
-      { name: 'Our Story', path: '/about' },
-      { name: 'Case Studies', path: '/case-studies' },
-      { name: 'Compliance & Standards', path: '/compliance-badges' },
-      { name: 'Contact', path: '/contact' },
+    name: 'Solutions', path: '#', children: [
+      { name: 'Domiciliary care', path: '/solutions/domiciliary-care' },
+      { name: 'Supported living', path: '/solutions/supported-living' },
+      { name: 'Mobile app', path: '/download' },
     ]
   },
+  {
+    name: 'Compliance', path: '/compliance', children: [
+      { name: 'Overview', path: '/compliance' },
+      { name: 'CQC · England', path: '/compliance/cqc' },
+      { name: 'Care Inspectorate · Scotland', path: '/compliance/care-inspectorate' },
+      { name: 'CIW · Wales', path: '/compliance/ciw' },
+      { name: 'RQIA · Northern Ireland', path: '/compliance/rqia' },
+    ]
+  },
+  { name: 'Resources', path: '/blog' },
+  { name: 'Security', path: '/security' },
 ]
 
 export default function NavHeader() {
@@ -123,7 +128,7 @@ export default function NavHeader() {
             }}
           >
             <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, letterSpacing: '-1.5px', cursor: 'pointer', fontSize: '1.35rem' }} onClick={() => navigate('/')}>
-              Meticle Care
+              Meticle<span style={{ color: EMERALD }}>Care</span>
             </Typography>
 
             {/* Desktop Nav */}
@@ -197,7 +202,7 @@ export default function NavHeader() {
             <Stack direction="row" spacing={2} alignItems="center">
               <Button onClick={() => navigate('/login')} sx={{ fontWeight: 600, color: INK, display: { xs: 'none', md: 'inline-flex' } }}>Login</Button>
               <Button variant="contained" sx={{ bgcolor: NAVY, '&:hover': { bgcolor: NAVY_DEEP }, fontWeight: 700, display: { xs: 'none', md: 'inline-flex' } }} onClick={() => navigate('/register')}>
-                Start free trial
+                Book a demo
               </Button>
               <IconButton sx={{ display: { xs: 'flex', md: 'none' }, '&:focus-visible': { outline: `2px solid ${EMERALD}`, outlineOffset: 2 } }} onClick={() => setMobileOpen(true)} aria-label="Open navigation menu">
                 <MenuIcon />
@@ -211,7 +216,7 @@ export default function NavHeader() {
       <Drawer anchor="right" open={mobileOpen} onClose={() => setMobileOpen(false)}>
         <Box sx={{ width: 300, pt: 2 }}>
           <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, letterSpacing: '-1.5px', px: 2, mb: 2, cursor: 'pointer', fontSize: '1.35rem' }} onClick={() => { navigate('/'); setMobileOpen(false) }}>
-            Meticle Care
+            Meticle<span style={{ color: EMERALD }}>Care</span>
           </Typography>
           <Divider />
           <List>
@@ -275,7 +280,7 @@ export default function NavHeader() {
               <ListItemText primary="Login" primaryTypographyProps={{ fontWeight: 700 }} />
             </ListItem>
             <ListItem tabIndex={0} role="button" sx={{ cursor: 'pointer', '&:focus-visible': { outline: `2px solid ${EMERALD}`, outlineOffset: -2 } }} onClick={() => { navigate('/register'); setMobileOpen(false) }} onKeyDown={activate(() => { navigate('/register'); setMobileOpen(false) })}>
-              <ListItemText primary="Start free trial" primaryTypographyProps={{ fontWeight: 700, color: NAVY }} />
+              <ListItemText primary="Book a demo" primaryTypographyProps={{ fontWeight: 700, color: NAVY }} />
             </ListItem>
           </List>
         </Box>
