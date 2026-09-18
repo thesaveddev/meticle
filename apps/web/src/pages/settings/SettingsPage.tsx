@@ -103,6 +103,11 @@ export default function SettingsPage() {
     { key: 'compliance_copilot', label: 'Compliance Copilot', desc: 'Highlight authorised evidence and training records that may need attention' },
     { key: 'natural_language_assistant', label: 'Natural-language Assistant', desc: 'Answer operational questions using only authorised records' },
     { key: 'end_of_day_intelligence', label: 'End-of-day Intelligence', desc: 'Create a transparent source-linked review of the day' },
+    { key: 'domiciliary_operations_copilot', label: 'Domiciliary Operations Copilot', desc: 'Review missed calls, conflicts and unresolved follow-ups' },
+    { key: 'operational_anomaly_detection', label: 'Operational Anomaly Detection', desc: 'Use rules-first signals to identify unusual operational patterns' },
+    { key: 'rota_alternatives', label: 'Explainable Rota Alternatives', desc: 'Suggest alternatives for manager review without publishing automatically' },
+    { key: 'competency_coaching', label: 'Competency Coaching', desc: 'Use training and assessment gaps to suggest supervised coaching' },
+    { key: 'family_communication_draft', label: 'Family Communication Drafting', desc: 'Draft manager-reviewed family updates without sending automatically' },
   ]
 
   // Pagination state

@@ -90,8 +90,11 @@ export const aiManagerBriefingSchema = z.object({
 export const aiIntelligenceSchema = z.object({
   from: aiDate.optional(),
   to: aiDate.optional(),
+  window: z.enum(['7', '14', '30']).optional(),
   personId: z.string().uuid().optional(),
   question: z.string().min(3).max(500).optional(),
+  audience: z.string().max(100).optional(),
+  tone: z.string().max(100).optional(),
 });
 
 export const aiRotaAnalysisSchema = z.object({
