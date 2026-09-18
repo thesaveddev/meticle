@@ -37,25 +37,6 @@ function CTA({
   )
 }
 
-function ProductFrame({ src, alt }: { src?: string; alt: string }) {
-  return (
-    <Box sx={{
-      borderRadius: R.xl, overflow: 'hidden',
-      border: `1px solid ${P.subtle}`, boxShadow: S.xl, bgcolor: P.card,
-    }}>
-      <Box sx={{ px: 2, py: 1, borderBottom: `1px solid ${P.faint}`, display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: P.red }} />
-          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: P.amber }} />
-          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: P.green }} />
-        </Box>
-        <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: P.muted, ml: 0.5 }}>MeticleCare</Typography>
-      </Box>
-      <Box component="img" src={src} alt={alt} loading="lazy" sx={{ display: 'block', width: '100%', height: 'auto' }} />
-    </Box>
-  )
-}
-
 /* ─── Data ──────────────────────────────────────────── */
 
 const platformTree = [
@@ -124,37 +105,30 @@ export default function HomePage() {
         {/* Glow */}
         <Box sx={{ position: 'absolute', top: -120, right: -80, width: 500, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${P.teal}12 0%, transparent 70%)` }} />
 
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-          <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
-            <Grid item xs={12} md={5.5}>
-              <Tag color={P.teal}>Care operations software</Tag>
-              <Typography sx={{ ...T.display, color: '#fff', mb: 3 }}>
-                Run your care operation with confidence.
-              </Typography>
-              <Typography sx={{ ...T.bodyLg, color: 'rgba(255,255,255,0.55)', mb: 5, maxWidth: 480 }}>
-                MeticleCare connects care delivery, workforce management, compliance, medication, reporting and intelligent automation in one platform for UK domiciliary and supported living providers.
-              </Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <CTA />
-                <CTA label="Explore the platform" to="/platform" variant="ghost" />
+        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <Tag color={P.teal}>Care operations software</Tag>
+          <Typography sx={{ ...T.display, color: '#fff', mb: 3 }}>
+            Run your care operation with confidence.
+          </Typography>
+          <Typography sx={{ ...T.bodyLg, color: 'rgba(255,255,255,0.55)', mb: 5, maxWidth: 600, mx: 'auto' }}>
+            MeticleCare connects care delivery, workforce management, compliance, medication, reporting and intelligent automation in one platform for UK domiciliary and supported living providers.
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
+            <CTA />
+            <CTA label="Explore the platform" to="/platform" variant="ghost" />
+          </Stack>
+          <Stack direction="row" spacing={5} justifyContent="center" sx={{ mt: 6 }}>
+            {[
+              { v: '4', l: 'UK nations' },
+              { v: '24/7', l: 'Mobile access' },
+              { v: '100%', l: 'Audit-tracked' },
+            ].map((s) => (
+              <Stack key={s.l} alignItems="center" spacing={0.5}>
+                <Typography sx={{ fontSize: { xs: '1.5rem', md: '1.75rem' }, fontWeight: 800, color: P.teal, letterSpacing: '-0.03em' }}>{s.v}</Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>{s.l}</Typography>
               </Stack>
-              <Stack direction="row" spacing={4} sx={{ mt: 5 }}>
-                {[
-                  { v: '4', l: 'UK nations' },
-                  { v: '24/7', l: 'Mobile access' },
-                  { v: '100%', l: 'Audit-tracked' },
-                ].map((s) => (
-                  <Stack key={s.l} alignItems="center" spacing={0.25}>
-                    <Typography sx={{ fontSize: { xs: '1.5rem', md: '1.75rem' }, fontWeight: 800, color: P.teal, letterSpacing: '-0.03em' }}>{s.v}</Typography>
-                    <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>{s.l}</Typography>
-                  </Stack>
-                ))}
-              </Stack>
-            </Grid>
-            <Grid item xs={12} md={6.5}>
-              <ProductFrame src="/meticle_dashboard_hero.jpg" alt="MeticleCare dashboard" />
-            </Grid>
-          </Grid>
+            ))}
+          </Stack>
         </Container>
       </Box>
 
