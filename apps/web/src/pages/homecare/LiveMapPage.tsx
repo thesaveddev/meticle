@@ -1,9 +1,17 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { Box, Button, Chip, CircularProgress, Paper, Stack, Typography } from '@mui/material'
+import { Box, Button, Chip, Paper, Stack, Typography, Skeleton } from '@mui/material'
 import { Refresh as RefreshIcon, MyLocation as LocationIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
 import 'leaflet/dist/leaflet.css'
+
+// Preconnect to tile server for faster loading
+if (typeof document !== 'undefined') {
+  const link = document.createElement('link')
+  link.rel = 'preconnect'
+  link.href = 'https://a.tile.openstreetmap.org'
+  document.head.appendChild(link)
+}
 
 interface MapVisit {
   id: string
@@ -49,60 +57,64 @@ function SimpleMap({ visits, centre }: { visits: MapVisit[]; centre: { lat: numb
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return
 
-    // Dynamic import for Leaflet (client-only)
-    import('leaflet').then((L) => {
-      if (!mapRef.current || mapInstanceRef.current) return
+    // Defer map initialization to avoid blocking initial render
+    const raf = requestAnimationFrame(() => {
+      // Dynamic import for Leaflet (client-only)
+      import('leaflet').then((L) => {
+        if (!mapRef.current || mapInstanceRef.current) return
 
-      const map = L.map(mapRef.current!, {
-        center: [mapCentre.lat, mapCentre.lng],
-        zoom: 13,
-        zoomControl: true,
-        attributionControl: true,
+        const map = L.map(mapRef.current!, {
+          center: [mapCentre.lat, mapCentre.lng],
+          zoom: 13,
+          zoomControl: true,
+          attributionControl: true,
+        })
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19,
+        }).addTo(map)
+
+        mapInstanceRef.current = map
+
+        // Add markers for visits with GPS
+        const markerIcon = (color: string) => L.divIcon({
+          className: '',
+          html: `<div style="width:24px;height:24px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;border-radius:50%;background:white"></div></div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+        })
+
+        const activeIcon = markerIcon('#047857')
+        const enRouteIcon = markerIcon('#7C3AED')
+        const scheduledIcon = markerIcon('#6B7280')
+
+        visits.forEach(v => {
+          if (v.latitude == null || v.longitude == null) return
+          const icon = v.status === 'checked_in' ? activeIcon : v.status === 'en_route' ? enRouteIcon : scheduledIcon
+          const marker = L.marker([v.latitude, v.longitude], { icon }).addTo(map)
+          marker.bindPopup(`
+            <div style="font-family:system-ui;min-width:180px">
+              <strong style="font-size:14px">${v.person_name}</strong><br/>
+              <span style="color:#6B7280;font-size:12px">${v.label}</span><br/>
+              ${v.carer_name ? `<span style="font-size:12px">Carer: <strong>${v.carer_name}</strong></span><br/>` : '<span style="font-size:12px;color:#D97706">No carer assigned</span><br/>'}
+              <span style="font-size:12px;color:#6B7280">${time(v.scheduled_start)} – ${time(v.scheduled_end)}</span><br/>
+              <span style="font-size:11px;color:#9CA3AF">Updated ${time(v.last_updated)}</span>
+            </div>
+          `)
+          markersRef.current.push(marker)
+        })
+
+        // Fit bounds if we have markers
+        if (markersRef.current.length > 1) {
+          const group = L.featureGroup(markersRef.current)
+          map.fitBounds(group.getBounds().pad(0.15))
+        }
       })
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
-      }).addTo(map)
-
-      mapInstanceRef.current = map
-
-      // Add markers for visits with GPS
-      const markerIcon = (color: string) => L.divIcon({
-        className: '',
-        html: `<div style="width:24px;height:24px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;border-radius:50%;background:white"></div></div>`,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
-      })
-
-      const activeIcon = markerIcon('#047857')
-      const enRouteIcon = markerIcon('#7C3AED')
-      const scheduledIcon = markerIcon('#6B7280')
-
-      visits.forEach(v => {
-        if (v.latitude == null || v.longitude == null) return
-        const icon = v.status === 'checked_in' ? activeIcon : v.status === 'en_route' ? enRouteIcon : scheduledIcon
-        const marker = L.marker([v.latitude, v.longitude], { icon }).addTo(map)
-        marker.bindPopup(`
-          <div style="font-family:system-ui;min-width:180px">
-            <strong style="font-size:14px">${v.person_name}</strong><br/>
-            <span style="color:#6B7280;font-size:12px">${v.label}</span><br/>
-            ${v.carer_name ? `<span style="font-size:12px">Carer: <strong>${v.carer_name}</strong></span><br/>` : '<span style="font-size:12px;color:#D97706">No carer assigned</span><br/>'}
-            <span style="font-size:12px;color:#6B7280">${time(v.scheduled_start)} – ${time(v.scheduled_end)}</span><br/>
-            <span style="font-size:11px;color:#9CA3AF">Updated ${time(v.last_updated)}</span>
-          </div>
-        `)
-        markersRef.current.push(marker)
-      })
-
-      // Fit bounds if we have markers
-      if (markersRef.current.length > 1) {
-        const group = L.featureGroup(markersRef.current)
-        map.fitBounds(group.getBounds().pad(0.15))
-      }
     })
 
     return () => {
+      cancelAnimationFrame(raf)
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove()
         mapInstanceRef.current = null
@@ -171,7 +183,11 @@ export default function LiveMapPage() {
   if (isLoading) {
     return (
       <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>Live Map</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Loading map…</Typography>
+        </Box>
+        <Skeleton variant="rounded" height={480} sx={{ borderRadius: 2 }} />
       </Box>
     )
   }
