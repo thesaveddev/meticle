@@ -9,7 +9,7 @@ const MODULE_SERVICE_TYPES: Record<string, string[]> = {
   rota_planner: ['supported_living', 'residential'],
   marketplace: ['supported_living', 'residential', 'domiciliary', 'live_in'],
   room_checks: ['supported_living', 'residential'],
-  emedication: ['residential', 'supported_living', 'domiciliary', 'live_in'],
+  emedication: ['residential', 'supported_living'],
   agencies: ['supported_living', 'residential'],
   tasks: ['supported_living', 'residential'],
   appointments: ['supported_living', 'residential'],
@@ -46,12 +46,7 @@ export default function ModuleGuard({ module, children }: { module: string; chil
           const orgRes = await api.get('/settings/org')
           const serviceTypes: string[] = orgRes.data.service_types || []
           const hasRequiredType = serviceTypes.some(t => requiredTypes.includes(t))
-          if (module === 'emedication' && serviceTypes.some(t => ['domiciliary', 'live_in'].includes(t))) {
-            const capabilityRes = await api.get('/settings/capabilities')
-            setAllowed(capabilityRes.data?.care_capabilities?.medication_support === true)
-          } else {
-            setAllowed(hasRequiredType)
-          }
+          setAllowed(hasRequiredType)
           return
         }
 

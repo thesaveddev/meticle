@@ -35,6 +35,7 @@ import BodyMapTab from './BodyMapTab'
 import MemoryBookTab from './MemoryBookTab'
 import GoalsPage from '../goals/GoalsPage'
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer as RechartsResponsiveContainer, Pie, PieChart, Tooltip as RechartsTooltip, Cell } from 'recharts'
+import PageContainer from '../../components/design/PageContainer'
 
 const RISK_COLORS: Record<string, string> = { low: '#16A34A', medium: '#D97706', high: '#DC2626', critical: '#7C3AED' }
 const CATEGORY_OPTIONS = ['personal_care', 'medication', 'mobility', 'nutrition', 'mental_health', 'behaviour', 'social', 'other']
@@ -523,7 +524,7 @@ export default function PersonProfilePage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+    <PageContainer>
 
       {/* Profile Header */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2.5, border: '1px solid', borderColor: 'grey.200', background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
@@ -2192,7 +2193,7 @@ export default function PersonProfilePage() {
           }}>Delete</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }
 

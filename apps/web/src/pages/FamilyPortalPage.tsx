@@ -8,6 +8,7 @@ import { Warning as WarningIcon } from '@mui/icons-material'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
+import PageContainer from '../components/design/PageContainer'
 
 const apiBase = '/api/family-portal'
 
@@ -132,7 +133,7 @@ export default function FamilyPortalPage() {
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
       {/* Header */}
       <Box sx={{ bgcolor: '#0F4C81', color: 'white', p: 4, pb: 6 }}>
-        <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+        <PageContainer>
           <Stack direction="row" spacing={3} alignItems="center">
             <Avatar src={su.photo_url || undefined}
               sx={{ width: 72, height: 72, bgcolor: 'rgba(255,255,255,0.2)', fontSize: 28, border: '3px solid rgba(255,255,255,0.3)' }}>
@@ -150,7 +151,7 @@ export default function FamilyPortalPage() {
               </Stack>
             </Box>
           </Stack>
-        </Box>
+        </PageContainer>
       </Box>
 
       {/* Tabs */}

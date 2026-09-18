@@ -25,6 +25,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import PageMeta from '../../components/PageMeta'
+import PageContainer from '../../components/design/PageContainer'
 
 interface AlertSummary {
   alerts: { critical: number; high: number; medium: number; low: number; total: number }
@@ -214,14 +215,14 @@ export default function MissionControlPage() {
 
   if (loading && tab === 0) {
     return (
-      <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+      <PageContainer>
 
         <PageMeta title="Mission Control" description="Operational overview of everything that needs attention across medication, staffing, compliance, and care reviews." />
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>Mission Control</Typography>
         <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>Operational overview of everything that needs attention.</Typography>
         <Grid container spacing={3} sx={{ mb: 4 }}>{[1,2,3,4].map(i => (<Grid item xs={6} md={3} key={i}><Skeleton variant="rectangular" height={96} sx={{ borderRadius: 2 }} /></Grid>))}</Grid>
         {[1,2,3].map(i => (<Skeleton key={i} variant="rectangular" height={72} sx={{ mb: 2, borderRadius: 2 }} />))}
-      </Box>
+      </PageContainer>
     )
   }
 

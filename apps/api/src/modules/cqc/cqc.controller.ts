@@ -156,6 +156,157 @@ export class CqcController {
     });
   }
 
+  // ---- Homecare Compliance Dashboard ----
+  static async getHomecareCompliance(req: Request, res: Response) {
+    const orgId = req.user!.organizationId;
+    if (!orgId) throw new AppError(400, 'Organization ID required');
+
+    // 1. Visit completion rate (last 30 days)
+    const visitResult = await pool.query(
+      `SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE status = 'completed') as completed,
+        COUNT(*) FILTER (WHERE status = 'missed') as missed,
+        COUNT(*) FILTER (WHERE status = 'in_progress') as in_progress
+       FROM homecare_visits
+       WHERE organization_id = $1 AND scheduled_start >= CURRENT_DATE - INTERVAL '30 days'`, [orgId]
+    );
+    const visits = visitResult.rows[0];
+    const visitTotal = parseInt(visits.total || '0');
+    const visitCompleted = parseInt(visits.completed || '0');
+    const visitMissed = parseInt(visits.missed || '0');
+    const visitRate = visitTotal > 0 ? Math.round((visitCompleted / visitTotal) * 100) : 0;
+
+    // 2. Care plan review status
+    const carePlanResult = await pool.query(
+      `SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE review_date IS NULL OR review_date < CURRENT_DATE) as overdue,
+        COUNT(*) FILTER (WHERE review_date >= CURRENT_DATE AND review_date <= CURRENT_DATE + 14) as due_soon
+       FROM care_plans cp
+       JOIN people p ON cp.person_id = p.id
+       WHERE p.organization_id = $1 AND cp.status = 'active'`, [orgId]
+    );
+    const carePlans = carePlanResult.rows[0];
+    const cpTotal = parseInt(carePlans.total || '0');
+    const cpOverdue = parseInt(carePlans.overdue || '0');
+    const cpDueSoon = parseInt(carePlans.due_soon || '0');
+
+    // 3. Incident summary (last 30 days)
+    const incidentResult = await pool.query(
+      `SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE severity = 'critical' OR severity = 'high') as serious,
+        COUNT(*) FILTER (WHERE status = 'open' OR status = 'investigating') as open
+       FROM incidents
+       WHERE organization_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '30 days'`, [orgId]
+    );
+    const incidents = incidentResult.rows[0];
+    const incidentTotal = parseInt(incidents.total || '0');
+    const incidentSerious = parseInt(incidents.serious || '0');
+    const incidentOpen = parseInt(incidents.open || '0');
+
+    // 4. Staff training compliance
+    const staffTrainingResult = await pool.query(
+      `SELECT
+        COUNT(DISTINCT sp.user_id) as total_staff,
+        COUNT(DISTINCT sp.user_id) FILTER (
+          WHERE NOT EXISTS (
+            SELECT 1 FROM training_records tr
+            JOIN training_modules tm ON tr.module_id = tm.id
+            WHERE tr.staff_id = sp.id AND tr.status = 'completed'
+              AND (tr.expires_at IS NULL OR tr.expires_at > CURRENT_DATE)
+          )
+        ) as non_compliant
+       FROM staff_profiles sp
+       JOIN users u ON sp.user_id = u.id
+       WHERE u.organization_id = $1 AND u.status = 'active'`, [orgId]
+    );
+    const staffTraining = staffTrainingResult.rows[0];
+    const totalStaff = parseInt(staffTraining.total_staff || '0');
+    const nonCompliantStaff = parseInt(staffTraining.non_compliant || '0');
+    const staffComplianceRate = totalStaff > 0 ? Math.round(((totalStaff - nonCompliantStaff) / totalStaff) * 100) : 100;
+
+    // 5. DBS / identity document status
+    const dbsResult = await pool.query(
+      `SELECT
+        COUNT(DISTINCT sp.user_id) as total,
+        COUNT(DISTINCT sp.user_id) FILTER (
+          WHERE EXISTS (
+            SELECT 1 FROM documents d
+            WHERE d.staff_id = sp.id AND d.type = 'DBS'
+              AND d.status IN ('approved', 'pending')
+              AND (d.expiry_date IS NULL OR d.expiry_date > CURRENT_DATE)
+          )
+        ) as compliant
+       FROM staff_profiles sp
+       JOIN users u ON sp.user_id = u.id
+       WHERE u.organization_id = $1 AND u.status = 'active'`, [orgId]
+    );
+    const dbs = dbsResult.rows[0];
+    const dbsTotal = parseInt(dbs.total || '0');
+    const dbsCompliant = parseInt(dbs.compliant || '0');
+    const dbsRate = dbsTotal > 0 ? Math.round((dbsCompliant / dbsTotal) * 100) : 100;
+
+    // 6. Missed visits requiring follow-up
+    const missedVisitsResult = await pool.query(
+      `SELECT COUNT(*) as count
+       FROM homecare_visits
+       WHERE organization_id = $1 AND status = 'missed'
+         AND scheduled_start >= CURRENT_DATE - INTERVAL '7 days'`, [orgId]
+    );
+    const missedVisits7d = parseInt(missedVisitsResult.rows[0]?.count || '0');
+
+    // 7. Overdue risk assessments
+    const riskResult = await pool.query(
+      `SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE next_review_date IS NULL OR next_review_date < CURRENT_DATE) as overdue
+       FROM risk_assessments ra
+       JOIN people p ON ra.person_id = p.id
+       WHERE p.organization_id = $1 AND ra.status = 'active'`, [orgId]
+    );
+    const risks = riskResult.rows[0];
+    const riskTotal = parseInt(risks.total || '0');
+    const riskOverdue = parseInt(risks.overdue || '0');
+
+    // 8. Supervision / appraisal tracking
+    const supervisionResult = await pool.query(
+      `SELECT
+        COUNT(DISTINCT sp.user_id) as total,
+        COUNT(DISTINCT sp.user_id) FILTER (
+          WHERE EXISTS (
+            SELECT 1 FROM audit_logs al
+            WHERE al.user_id = sp.user_id AND al.action = 'supervision'
+              AND al.created_at >= CURRENT_DATE - INTERVAL '6 months'
+          )
+        ) as supervised
+       FROM staff_profiles sp
+       JOIN users u ON sp.user_id = u.id
+       WHERE u.organization_id = $1 AND u.status = 'active'`, [orgId]
+    );
+    const supervision = supervisionResult.rows[0];
+    const supervisionTotal = parseInt(supervision.total || '0');
+    const supervisionDone = parseInt(supervision.supervised || '0');
+    const supervisionRate = supervisionTotal > 0 ? Math.round((supervisionDone / supervisionTotal) * 100) : 0;
+
+    // KLOE domain scores (reuse existing readiness calculation)
+    const readiness = await CqcRepository.calculateReadiness(orgId, 'cqc');
+
+    res.json({
+      visitCompletion: { total: visitTotal, completed: visitCompleted, missed: visitMissed, rate: visitRate },
+      carePlans: { total: cpTotal, overdue: cpOverdue, dueSoon: cpDueSoon },
+      incidents: { total: incidentTotal, serious: incidentSerious, open: incidentOpen },
+      staffTraining: { total: totalStaff, nonCompliant: nonCompliantStaff, rate: staffComplianceRate },
+      dbs: { total: dbsTotal, compliant: dbsCompliant, rate: dbsRate },
+      missedVisits7d,
+      riskAssessments: { total: riskTotal, overdue: riskOverdue },
+      supervision: { total: supervisionTotal, done: supervisionDone, rate: supervisionRate },
+      kloeScores: (readiness as any).domains || [],
+      overallScore: (readiness as any).overall || 0,
+    });
+  }
+
   // ---- Action Items ----
   static async getActionItems(req: Request, res: Response) {
     const items = await CqcActionRepository.getActionItems(req.user!.organizationId!, req.query);

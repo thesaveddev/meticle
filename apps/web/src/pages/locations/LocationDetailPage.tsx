@@ -18,6 +18,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { LoadingState, StatusBadge, NAVY, ConfirmDialog } from '../../components/ui'
 import { EmptyState } from '../../components/design/EmptyState'
+import PageContainer from '../../components/design/PageContainer'
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'primary' | 'purple'
 
@@ -286,12 +287,12 @@ export default function LocationDetailPage() {
 
   if (!location) {
     return (
-      <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+      <PageContainer>
 
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
           <Typography color="#9CA3AF">Location not found.</Typography>
         </Paper>
-      </Box>
+      </PageContainer>
     )
   }
 

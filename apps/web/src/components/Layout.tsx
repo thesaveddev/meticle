@@ -116,7 +116,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Care',
       items: [
         { text: 'People', icon: <PeopleIcon />, path: '/people', module: 'people', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
-        { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living', 'domiciliary', 'live_in'] },
+        { text: 'Medications', icon: <MedicationIcon />, path: '/emedication', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
         { text: 'Meal Plans', icon: <MealIcon />, path: '/meal-plans', module: 'emedication', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['residential', 'supported_living'] },
       ],
     },
@@ -134,7 +134,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     {
       label: 'Compliance & Safety',
       items: [
-        { text: 'Compliance', icon: <ComplianceIcon />, path: '/compliance', module: 'compliance', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
+        { text: 'Compliance', icon: <ComplianceIcon />, path: isDom ? '/compliance/homecare' : '/compliance', module: 'compliance', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Policies', icon: <PolicyIcon />, path: '/policies', module: 'policies', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'incidents', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
       ],

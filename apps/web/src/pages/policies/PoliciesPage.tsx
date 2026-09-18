@@ -42,6 +42,7 @@ import {
   WarningAmberOutlined as WarningIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
+import PageContainer from '../../components/design/PageContainer'
 
 interface Policy {
   id: string
@@ -301,7 +302,7 @@ export default function PoliciesPage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+    <PageContainer>
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
 
       <Paper variant="outlined" sx={{ mb: 4, p: { xs: 2, md: 2.5 }, borderRadius: 2, borderColor: '#C7D7E8', bgcolor: 'info.light' }}>
@@ -521,6 +522,6 @@ export default function PoliciesPage() {
         </DialogContent>
         <DialogActions><Button onClick={() => setShareDialog(null)}>Close</Button></DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

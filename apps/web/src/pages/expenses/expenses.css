@@ -41,8 +41,7 @@ body:has(.expenses-page) {
   --exp-radius-md: 10px;
   --exp-shadow: 0 8px 28px oklch(20% 0.02 260 / 0.07);
   min-width: 0;
-  max-width: 1440px;
-  margin: 0 auto;
+  width: 100%;
   padding: var(--exp-space-8) clamp(var(--exp-space-4), 3vw, var(--exp-space-10));
   background: var(--exp-paper);
   color: var(--exp-ink);
@@ -404,7 +403,7 @@ body:has(.expenses-page) {
 }
 
 .expenses-dialog .MuiDialogContent-root {
-  padding: var(--exp-space-4) var(--exp-space-6);
+  padding: var(--exp-space-6) var(--exp-space-6);
 }
 
 .expenses-dialog .MuiDialogActions-root {

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import {
   Box, Typography, Paper, Chip, LinearProgress, Alert, CircularProgress, Stack,
 } from '@mui/material'
+import { LocationOn as LocationIcon } from '@mui/icons-material'
+import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
 
 function time(v: string) {
@@ -55,7 +57,7 @@ export default function MyWeekPage() {
   if (loading) return <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+    <PageContainer>
       <Typography variant="h4" fontWeight={700} mb={1}>My week</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>{visits.length} calls · {completed} completed</Typography>
 
@@ -106,7 +108,7 @@ export default function MyWeekPage() {
                         <Chip label={v.status?.replace(/_/g, ' ')} color={statusColor(v.status) as any} size="small" />
                       </Box>
                       {v.person_name && <Typography variant="body2" color="text.secondary">{v.person_name}</Typography>}
-                      {v.person_address && <Typography variant="caption" color="text.secondary">📍 {v.person_address}</Typography>}
+                      {v.person_address && <Typography variant="caption" color="text.secondary" display="flex" alignItems="center" gap={0.5}><LocationIcon sx={{ fontSize: 14 }} />{v.person_address}</Typography>}
                     </Box>
                   </Paper>
                 ))}
@@ -115,6 +117,6 @@ export default function MyWeekPage() {
           )
         })
       )}
-    </Box>
+    </PageContainer>
   )
 }

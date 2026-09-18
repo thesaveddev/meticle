@@ -30,6 +30,7 @@ import { PremiumCard, StatCard, SectionHeader } from '../../components/design/Pr
 import { EmptyState } from '../../components/design/EmptyState'
 import EventIcon from '@mui/icons-material/Event'
 import ScheduleIcon2 from '@mui/icons-material/Schedule'
+import PageContainer from '../../components/design/PageContainer'
 
 interface DashboardStats {
   total_staff: number
@@ -208,7 +209,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+    <PageContainer>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 0.5 }}>
@@ -658,6 +659,6 @@ export default function DashboardPage() {
           </Stack>
         </PremiumCard>
       )}
-    </Box>
+    </PageContainer>
   )
 }
