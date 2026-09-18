@@ -16,6 +16,14 @@ const InsightsPage = lazy(() => import('./pages/insights/InsightsPage'))
 const ManagerBriefingPage = lazy(() => import('./pages/insights/ManagerBriefingPage'))
 const IntelligencePage = lazy(() => import('./pages/insights/IntelligencePage'))
 const PublicSitePage = lazy(() => import('./pages/marketing/PublicSitePage'))
+const HomePage = lazy(() => import('./pages/marketing/HomePage'))
+const PlatformPage = lazy(() => import('./pages/marketing/PlatformPage'))
+const SolutionsPage = lazy(() => import('./pages/marketing/SolutionsPage'))
+const CompliancePageNew = lazy(() => import('./pages/marketing/CompliancePage'))
+const SecurityPageNew = lazy(() => import('./pages/marketing/SecurityPage'))
+const AboutPageNew = lazy(() => import('./pages/marketing/AboutPage'))
+const ContactPageNew = lazy(() => import('./pages/marketing/ContactPageNew'))
+const DownloadPageNew = lazy(() => import('./pages/marketing/DownloadPageNew'))
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'))
 const VerifyEmailPage = lazy(() => import('./pages/auth/VerifyEmailPage'))
@@ -30,7 +38,6 @@ const LocationsPage = lazy(() => import('./pages/locations/LocationsPage'))
 const FeaturesPage = lazy(() => import('./pages/marketing/FeaturesPage'))
 
 const CaseStudiesPage = lazy(() => import('./pages/marketing/CaseStudiesPage'))
-const ContactPage = lazy(() => import('./pages/marketing/ContactPage'))
 const HowItWorksPage = lazy(() => import('./pages/marketing/HowItWorksPage'))
 const PublicBlogPage = lazy(() => import('./pages/marketing/PublicBlogPage'))
 const ComplianceBadgesPage = lazy(() => import('./pages/marketing/ComplianceBadgesPage'))
@@ -111,22 +118,22 @@ function App() {
   return (
     <Suspense fallback={<RouteLoading />}>
       <Routes>
-      <Route path="/" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="home" /></Suspense></ErrorBoundary>} />
-      <Route path="/platform" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="platform" /></Suspense></ErrorBoundary>} />
-      <Route path="/compliance" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="compliance" /></Suspense></ErrorBoundary>} />
-      <Route path="/compliance/:slug" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="regulator" /></Suspense></ErrorBoundary>} />
-      <Route path="/solutions/:slug" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="solution" /></Suspense></ErrorBoundary>} />
+      <Route path="/" element={<ErrorBoundary><Suspense fallback={null}><HomePage /></Suspense></ErrorBoundary>} />
+      <Route path="/platform" element={<ErrorBoundary><Suspense fallback={null}><PlatformPage /></Suspense></ErrorBoundary>} />
+      <Route path="/compliance" element={<ErrorBoundary><Suspense fallback={null}><CompliancePageNew /></Suspense></ErrorBoundary>} />
+      <Route path="/compliance/:slug" element={<ErrorBoundary><Suspense fallback={null}><CompliancePageNew /></Suspense></ErrorBoundary>} />
+      <Route path="/solutions/:slug" element={<ErrorBoundary><Suspense fallback={null}><SolutionsPage /></Suspense></ErrorBoundary>} />
       <Route path="/features/:slug" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="feature" /></Suspense></ErrorBoundary>} />
-      <Route path="/security" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="security" /></Suspense></ErrorBoundary>} />
-      <Route path="/mobile" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="download" /></Suspense></ErrorBoundary>} />
-      <Route path="/app" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="download" /></Suspense></ErrorBoundary>} />
-      <Route path="/download" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="download" /></Suspense></ErrorBoundary>} />
+      <Route path="/security" element={<ErrorBoundary><Suspense fallback={null}><SecurityPageNew /></Suspense></ErrorBoundary>} />
+      <Route path="/mobile" element={<ErrorBoundary><Suspense fallback={null}><DownloadPageNew /></Suspense></ErrorBoundary>} />
+      <Route path="/app" element={<ErrorBoundary><Suspense fallback={null}><DownloadPageNew /></Suspense></ErrorBoundary>} />
+      <Route path="/download" element={<ErrorBoundary><Suspense fallback={null}><DownloadPageNew /></Suspense></ErrorBoundary>} />
       <Route path="/features" element={<ErrorBoundary><Suspense fallback={null}><FeaturesPage /></Suspense></ErrorBoundary>} />
       <Route path="/how-it-works" element={<ErrorBoundary><Suspense fallback={null}><HowItWorksPage /></Suspense></ErrorBoundary>} />
       <Route path="/pricing" element={<Navigate to="/contact" replace />} />
-      <Route path="/about" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="about" /></Suspense></ErrorBoundary>} />
+      <Route path="/about" element={<ErrorBoundary><Suspense fallback={null}><AboutPageNew /></Suspense></ErrorBoundary>} />
       <Route path="/case-studies" element={<ErrorBoundary><Suspense fallback={null}><CaseStudiesPage /></Suspense></ErrorBoundary>} />
-      <Route path="/contact" element={<ErrorBoundary><Suspense fallback={null}><ContactPage /></Suspense></ErrorBoundary>} />
+      <Route path="/contact" element={<ErrorBoundary><Suspense fallback={null}><ContactPageNew /></Suspense></ErrorBoundary>} />
       <Route path="/blog" element={<ErrorBoundary><Suspense fallback={null}><PublicBlogPage /></Suspense></ErrorBoundary>} />
       <Route path="/blog/:slug" element={<ErrorBoundary><Suspense fallback={null}><PublicBlogPage /></Suspense></ErrorBoundary>} />
       <Route path="/compliance-badges" element={<ErrorBoundary><Suspense fallback={null}><ComplianceBadgesPage /></Suspense></ErrorBoundary>} />
