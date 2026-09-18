@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import PageContainer from '../../components/design/PageContainer'
 
 function getOrgId(): string {
   const userStr = localStorage.getItem('user')
@@ -16,7 +17,7 @@ function getOrgId(): string {
 export default function OrganizationPage() {
   const [tab, setTab] = useState(0)
   return (
-    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+    <PageContainer>
 
       <Typography variant="h4" sx={{ mb: 4 }}>Organization</Typography>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
@@ -29,7 +30,7 @@ export default function OrganizationPage() {
       {tab === 1 && <LocationsView />}
       {tab === 2 && <TeamsView />}
       {tab === 3 && <BrandingView />}
-    </Box>
+    </PageContainer>
   )
 }
 

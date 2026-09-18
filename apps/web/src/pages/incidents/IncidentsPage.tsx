@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTheme } from '@mui/material/styles'
+import PageContainer from '../../components/design/PageContainer'
 import {
   Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   FormControl, Grid, IconButton, InputLabel, MenuItem, Select, Stack, Table, TableBody, TableCell,
@@ -143,7 +144,7 @@ export default function IncidentsPage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+    <PageContainer>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 0.5 }}>
@@ -435,6 +436,6 @@ export default function IncidentsPage() {
           </>
         )}
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

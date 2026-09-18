@@ -47,7 +47,6 @@ export default function ReportingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isDomiciliary, setIsDomiciliary] = useState(false)
-  const [domiciliarySnapshot, setDomiciliarySnapshot] = useState<any>(null)
 
   useEffect(() => {
     Promise.all([api.get('/reporting/reports'), api.get('/reporting/overview'), api.get('/settings/org')])
@@ -58,9 +57,6 @@ export default function ReportingPage() {
         setReports(reportsResponse.data.reports)
         setCategories(reportsResponse.data.categories)
         setOverview(overviewResponse.data)
-        if (dom) {
-          api.get('/dashboard/domiciliary').then(response => setDomiciliarySnapshot(response.data)).catch(() => {})
-        }
       })
       .catch(e => setError(e.response?.data?.message || 'Failed to load reports'))
       .finally(() => setLoading(false))
@@ -118,32 +114,6 @@ export default function ReportingPage() {
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
-
-      {isDomiciliary && domiciliarySnapshot && (
-        <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 4, borderRadius: 2, borderColor: 'divider', bgcolor: 'primary.50' }}>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems={{ md: 'center' }}>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="overline" color="primary" sx={{ fontWeight: 800, letterSpacing: '0.12em' }}>Today’s operational pulse</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Are visits covered and delivered safely?</Typography>
-              <Typography variant="body2" color="text.secondary">Use the report cards below for trends and evidence; use the live dashboard for immediate action.</Typography>
-            </Box>
-            <Stack direction="row" spacing={3} flexWrap="wrap" useFlexGap>
-              {[
-                ['Coverage', `${domiciliarySnapshot.coverage_percent ?? 0}%`],
-                ['Completed', domiciliarySnapshot.calls_completed ?? 0],
-                ['Missed', domiciliarySnapshot.calls_missed ?? 0],
-                ['Unassigned', domiciliarySnapshot.calls_unassigned ?? 0],
-              ].map(([label, value]) => (
-                <Box key={label as string} sx={{ minWidth: 72 }}>
-                  <Typography variant="h5" sx={{ fontWeight: 900, color: label === 'Missed' || label === 'Unassigned' ? 'error.main' : 'primary.main' }}>{value}</Typography>
-                  <Typography variant="caption" color="text.secondary">{label}</Typography>
-                </Box>
-              ))}
-            </Stack>
-            <Button variant="outlined" onClick={() => navigate('/dashboard')} sx={{ whiteSpace: 'nowrap' }}>Open live dashboard</Button>
-          </Stack>
-        </Paper>
-      )}
 
       {overview && <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mb: 4, borderRadius: 2, borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>

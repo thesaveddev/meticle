@@ -3,6 +3,7 @@ import { Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogConte
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Add as AddIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
+import PageContainer from '../../components/design/PageContainer'
 
 const time = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 const dayName = (d: string) => new Date(d).toLocaleDateString('en-GB', { weekday: 'short' })
@@ -83,7 +84,7 @@ export default function WeeklyCallPlanner() {
   const unassignedCalls = totalCalls - assignedCalls
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+    <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Weekly Call Planner</Typography>
@@ -211,6 +212,6 @@ export default function WeeklyCallPlanner() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

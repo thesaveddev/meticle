@@ -27,7 +27,7 @@ interface PageContainerProps extends BoxProps {
   width?: ContainerWidth
 }
 
-export default function PageContainer({ width = 'standard', sx, children, ...props }: PageContainerProps) {
+export default function PageContainer({ width = 'wide', sx, children, ...props }: PageContainerProps) {
   return (
     <Box
       sx={{

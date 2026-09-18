@@ -27,6 +27,7 @@ import api from '../../services/api'
 import { PremiumCard, StatusBadge as DesignStatusBadge } from '../../components/design/PremiumCard'
 import { EmptyState } from '../../components/design/EmptyState'
 import { PageHeader } from '../../components/ui'
+import PageContainer from '../../components/design/PageContainer'
 
 const ROLE_OPTIONS = [
   { value: 'MANAGER', label: 'Manager' },
@@ -455,7 +456,7 @@ export default function StaffDirectoryPage() {
   const careWorkerCount = allMembers.filter((m: any) => m.role === 'CARE_WORKER' && m._type !== 'invitation').length
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+    <PageContainer>
       {/* ── Header ── */}
       <PageHeader
         title="Staff directory"
@@ -886,6 +887,6 @@ export default function StaffDirectoryPage() {
         onConfirm={confirmAction}
         onCancel={() => setConfirmOpen(false)}
       />
-    </Box>
+    </PageContainer>
   )
 }

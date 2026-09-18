@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box, Typography, TextField, Button, Stack, Alert,
   InputAdornment, Dialog, DialogTitle, DialogContent,
@@ -58,7 +58,15 @@ export default function PersonDirectoryPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkOpen, setBulkOpen] = useState<'status' | 'discharge' | null>(null)
   const [bulkStatus, setBulkStatus] = useState('active')
+  const [isDom, setIsDom] = useState(false)
   const queryClient = useQueryClient()
+
+  useEffect(() => {
+    api.get('/settings/org').then(res => {
+      const types = res.data?.service_types
+      if (Array.isArray(types)) setIsDom(types.some((t: string) => ['domiciliary', 'live_in'].includes(t)))
+    }).catch(() => {})
+  }, [])
 
   const { data: locations = [] } = useQuery({
     queryKey: ['locations'],
@@ -129,9 +137,9 @@ export default function PersonDirectoryPage() {
       {/* ── Header ── */}
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ mb: 3, gap: 2 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>People</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{isDom ? 'Clients' : 'People'}</Typography>
           <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
-            Manage clients, care plans and support levels
+            {isDom ? 'Manage clients, care plans and visit records' : 'Manage clients, care plans and support levels'}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} flexWrap="wrap">

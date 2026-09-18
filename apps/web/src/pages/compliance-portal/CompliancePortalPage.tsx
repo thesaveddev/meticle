@@ -18,6 +18,7 @@ import {
   LocalDrink as WaterIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
+import PageContainer from '../../components/design/PageContainer'
 
 
 
@@ -400,7 +401,7 @@ export default function CompliancePortalPage() {
         </Stack>
       </Paper>
 
-      <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%" }}>
+      <PageContainer>
         {/* Overview Cards */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6} md={3}>
@@ -507,7 +508,7 @@ export default function CompliancePortalPage() {
             </Collapse>
           </Paper>
         ))}
-      </Box>
+      </PageContainer>
 
       {/* Person Detail Dialog */}
       <PersonDetailDialog person={selectedPerson} onClose={() => setSelectedPerson(null)} />

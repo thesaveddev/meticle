@@ -50,6 +50,7 @@ const IdentityMonitoringPage = lazy(() => import('./pages/compliance/IdentityMon
 const CompetencyAssessmentsPage = lazy(() => import('./pages/compliance/CompetencyAssessmentsPage'))
 const EvidencePacksPage = lazy(() => import('./pages/compliance/EvidencePacksPage'))
 const CqcReadinessPage = lazy(() => import('./pages/compliance/CqcReadinessPage'))
+const HomecareCompliancePage = lazy(() => import('./pages/compliance/HomecareCompliancePage'))
 const SatisfactionSurveysPage = lazy(() => import('./pages/compliance/SatisfactionSurveysPage'))
 const StaffEngagementPage = lazy(() => import('./pages/compliance/StaffEngagementPage'))
 const DSPTPage = lazy(() => import('./pages/dspt/DSPTPage'))
@@ -169,6 +170,7 @@ function App() {
           <Route path="/compliance/competency" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><CompetencyAssessmentsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/evidence" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><EvidencePacksPage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/readiness" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><CqcReadinessPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/compliance/homecare" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><HomecareCompliancePage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/records" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><ComplianceRecordsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/training" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><TrainingMatrixPage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/satisfaction" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><SatisfactionSurveysPage /></ModuleGuard></AuthGuard>} />

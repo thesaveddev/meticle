@@ -8,6 +8,7 @@ import { UserRole } from '@meticle/shared';
 const router = Router();
 
 router.get('/readiness', authenticate, asyncHandler(CqcController.getReadiness));
+router.get('/homecare-compliance', authenticate, asyncHandler(CqcController.getHomecareCompliance));
 router.get('/frameworks', authenticate, asyncHandler(CqcController.getFrameworks));
 router.get('/gap-analysis', authenticate, asyncHandler(CqcController.getGapAnalysis));
 router.get('/action-items', authenticate, asyncHandler(CqcController.getActionItems));
