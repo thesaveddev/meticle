@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Box, Button, Chip, CircularProgress, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
 import { Receipt as ReceiptIcon, TrendingUp as TrendingIcon, Download as DownloadIcon, Warning as WarningIcon, ArrowBack as BackIcon, CheckCircle as CheckIcon, Schedule as ClockIcon, Person as PersonIcon, DirectionsCar as CarIcon, AttachMoney as MoneyIcon, CheckCircleOutline as PendingCheckIcon } from '@mui/icons-material'
+import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
 
 /* ── Types ── */
@@ -237,7 +238,7 @@ export default function CarerTotalsPage() {
 
   /* ────────────── RENDER ────────────── */
   return (
-    <Box>
+    <PageContainer>
       {/* Header */}
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Stack direction="row" alignItems="center" gap={1.5}>
@@ -764,6 +765,6 @@ export default function CarerTotalsPage() {
           )}
         </>
       )}
-    </Box>
+    </PageContainer>
   )
 }

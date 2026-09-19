@@ -4,6 +4,7 @@ import { CheckCircle as CheckCircleIcon, ReceiptLong as ReceiptLongIcon, Block a
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
+import PageContainer from '../../components/design/PageContainer'
 
 const money = (pence: number | null | undefined) => pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
 const dateLabel = (value: string) => new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -84,7 +85,7 @@ export default function ClientBillingPage() {
   if (!isManager) return <Box><Alert severity="info">Client billing is available to managers and organisation administrators.</Alert></Box>
 
   return (
-    <Box>
+    <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Client billing</Typography>
@@ -212,6 +213,6 @@ export default function ClientBillingPage() {
         <DialogContent><Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>This does not delete evidence. The original approved run is retained and marked as void with your reason in the audit trail.</Typography><TextField fullWidth multiline minRows={3} label="Reason for voiding" value={voidReason} onChange={e => setVoidReason(e.target.value)} placeholder="e.g. Funding code was incorrect — reissued as ..." /></DialogContent>
         <DialogActions><Button onClick={() => setVoidDialog(null)} sx={{ textTransform: 'none' }}>Cancel</Button><Button variant="contained" color="error" onClick={() => voidDialog && voidRun.mutate({ runId: voidDialog, reason: voidReason || 'Voided by manager' })} disabled={voidRun.isPending || !voidReason.trim()} sx={{ textTransform: 'none' }}>{voidRun.isPending ? <CircularProgress size={18} color="inherit" /> : 'Confirm void'}</Button></DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

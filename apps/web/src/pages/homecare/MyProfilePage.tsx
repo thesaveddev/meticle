@@ -4,6 +4,7 @@ import {
   CircularProgress,
 } from '@mui/material'
 import { Save as SaveIcon, PhotoCamera as PhotoIcon } from '@mui/icons-material'
+import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
 
 export default function MyProfilePage() {
@@ -84,7 +85,7 @@ export default function MyProfilePage() {
   if (loading) return <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>
 
   return (
-    <Box>
+    <PageContainer>
       <Typography variant="h4" fontWeight={700} mb={1}>My Profile</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>Manage your personal details and profile photo.</Typography>
 
@@ -139,6 +140,6 @@ export default function MyProfilePage() {
           {saving ? 'Saving...' : 'Save profile'}
         </Button>
       </Box>
-    </Box>
+    </PageContainer>
   )
 }

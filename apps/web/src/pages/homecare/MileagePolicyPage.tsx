@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material'
+import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
 
 const money = (pence: number | null | undefined) => pence == null ? '—' : `${(Number(pence)).toFixed(1)}p/mi`
@@ -120,7 +121,7 @@ export default function MileagePolicyPage() {
   const inactivePolicies = policies.filter(p => !p.is_active)
 
   return (
-    <Box>
+    <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Mileage Policies</Typography>
@@ -250,6 +251,6 @@ export default function MileagePolicyPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

@@ -4,6 +4,7 @@ import {
 } from '@mui/material'
 import DownloadIcon from '@mui/icons-material/Download'
 import api from '../../services/api'
+import PageContainer from '../../components/design/PageContainer'
 
 function fmtPence(p: number | null | undefined) {
   return p == null ? '—' : `£${(Number(p) / 100).toFixed(2)}`
@@ -75,6 +76,7 @@ export default function EarningsPage() {
   const mileagePay = Math.round((Number(s.total_mileage_miles) || 0) * Number(s.mileage_rate_pence || 0))
 
   return (
+    <PageContainer>
     <Stack spacing={3}>
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -221,5 +223,6 @@ export default function EarningsPage() {
         </Stack>
       )}
     </Stack>
+    </PageContainer>
   )
 }
