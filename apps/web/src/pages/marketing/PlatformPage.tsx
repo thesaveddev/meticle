@@ -11,11 +11,11 @@ import PageMeta from '../../components/PageMeta'
 
 /* ─── Shared ─────────────────────────────────────────── */
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
+function Eyebrow({ children, color }: { children: React.ReactNode; color?: string }) {
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-      <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: M.teal }} />
-      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.size, fontWeight: M.caption.weight, letterSpacing: M.caption.tracking, textTransform: 'uppercase' }}>{children}</Typography>
+      <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: color || M.teal }} />
+      <Typography sx={{ color: color || M.tealDeep, fontSize: M.caption.size, fontWeight: M.caption.weight, letterSpacing: M.caption.tracking, textTransform: 'uppercase' }}>{children}</Typography>
     </Stack>
   )
 }
@@ -24,7 +24,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 
 function DashboardMockup() {
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E2E8F0', fontFamily: 'system-ui, sans-serif' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E2E8F0' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E293B' }}>Today's Coverage</Typography>
         <Chip label="92%" size="small" sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
@@ -261,51 +261,71 @@ const mockups: Record<string, React.ReactNode> = {
   'AI Intelligence': <AIMockup />,
 }
 
+/* ─── Full-width immersive modules ──────────────────── */
+
 const modules = [
   {
     icon: Groups, title: 'Care Delivery', color: '#6366F1',
     desc: 'Keep care plans, daily notes, reviews, body maps, appointments and health observations in one accessible record — always linked to the person.',
     features: ['Person-centred support plans', 'Daily care notes and handover context', 'Body mapping and linked observations', 'Reviews, goals and health checks', 'Mobile access at the point of care'],
+    tone: 'light' as const,
+    link: '/features/care-management',
   },
   {
     icon: Medication, title: 'Medication (eMAR)', color: '#F59E0B',
     desc: 'Manage medication workflows where your service provides medication support — with clear permissions, administration records and an audit trail.',
     features: ['31-day medication administration records', 'Stock control and controlled-drug workflows', 'Exception recording and follow-up', 'Role-based access to medication data', 'Mobile reference and recording for field teams'],
+    tone: 'warm' as const,
+    link: '/features/medication',
   },
   {
     icon: People, title: 'Workforce Management', color: '#EC4899',
     desc: 'Connect staff information, training, competency, availability and work allocation into one operational view.',
     features: ['Staff directory and detailed profiles', 'Training and competency tracking', 'Availability, leave and approval workflows', 'Right-to-work and DBS reminders', 'Connected workforce reporting'],
+    tone: 'light' as const,
+    link: '/features/workforce',
   },
   {
     icon: CalendarMonth, title: 'Scheduling & Rota', color: '#22C55E',
     desc: 'Plan visits and shifts using availability, staffing and operational constraints — with human review before anything is published.',
     features: ['Rota and visit planning', 'Availability and leave awareness', 'Open-call marketplace for unfilled shifts', 'Conflict and coverage detection', 'Manager approval before publishing'],
+    tone: 'warm' as const,
+    link: '/features/scheduling',
   },
   {
     icon: Warning, title: 'Risk & Incidents', color: '#F97066',
     desc: 'Keep risk information visible, record incidents with follow-through and maintain the review history your governance requires.',
     features: ['Risk assessment records and review dates', 'Incident recording with severity context', 'Actions, owners and due dates', 'Escalation and follow-up history', 'Linked care-plan context'],
+    tone: 'light' as const,
+    link: '/features/risk-management',
   },
   {
     icon: Shield, title: 'Compliance & Evidence', color: '#8B5CF6',
     desc: 'Make inspection readiness part of everyday work — not a once-a-year scramble for evidence.',
     features: ['Training and competency matrices', 'Evidence packs and audit logs', 'Compliance dashboards by nation', 'Identity and right-to-work monitoring', 'Policy and procedure management'],
+    tone: 'warm' as const,
+    link: '/compliance',
   },
   {
     icon: Insights, title: 'Reporting & Intelligence', color: '#0EA5E9',
     desc: 'Turn the records your team already keeps into operational reports, evidence and AI-assisted insight.',
     features: ['Operational dashboards and drill-downs', 'Care and workforce reporting', 'Homecare call and visit analytics', 'AI-assisted briefings and summaries', 'Exportable evidence workflows'],
+    tone: 'light' as const,
+    link: '/features/reporting',
   },
   {
     icon: FamilyRestroom, title: 'Family Portal', color: '#14B8A6',
     desc: 'Give authorised relatives a respectful, focused view of the information your service chooses to share.',
     features: ['Authorised portal access with secure links', 'Relevant care information and updates', 'Communication and feedback channels', 'Appointment and visit context', 'Access controlled entirely by the service'],
+    tone: 'warm' as const,
+    link: '/features/family-portal',
   },
   {
     icon: AutoAwesome, title: 'AI Intelligence', color: '#A855F7',
     desc: 'AI assistance designed to reduce administration and surface patterns — with human judgement, permissions and auditability at the centre.',
     features: ['AI-assisted care summaries', 'Change detection across records', 'Risk signals with source traceability', 'Compliance copilot and anomaly detection', 'Natural-language data assistant'],
+    tone: 'light' as const,
+    link: '/features/ai',
   },
 ]
 
@@ -323,7 +343,21 @@ export default function PlatformPage() {
 
   return (
     <MarketingLayout>
-      <PageMeta title="The MeticleCare platform" description="Care operations, workforce, medication, safety, compliance, families and intelligence — connected in one platform for domiciliary and supported living providers." canonicalPath="/platform" />
+      <PageMeta
+        title="The MeticleCare platform"
+        description="Care operations, workforce, medication, safety, compliance, families and intelligence — connected in one platform for domiciliary and supported living providers."
+        canonicalPath="/platform"
+        keywords={['care management software', 'care operations platform', 'domiciliary care software', 'supported living software', 'UK care platform']}
+        breadcrumbs={[{ name: 'Home', path: '/' }, { name: 'Platform', path: '/platform' }]}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          name: 'MeticleCare Platform',
+          applicationCategory: 'BusinessApplication',
+          operatingSystem: 'Web and mobile',
+          description: 'Care operations platform for UK domiciliary and supported living providers.',
+        }}
+      />
 
       {/* Hero */}
       <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: M.paper }}>
@@ -385,61 +419,54 @@ export default function PlatformPage() {
         </Container>
       </Box>
 
-      {/* Modules with visual mockups */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.paper }}>
-        <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>Platform modules</Eyebrow>
-            <Typography sx={{ fontSize: M.h1.size, lineHeight: M.h1.height, fontWeight: M.h1.weight, letterSpacing: M.h1.tracking, mb: 2 }}>
-              Nine connected capabilities.
-            </Typography>
-            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, maxWidth: 580, mx: 'auto' }}>
-              Each module links to the person record and to the other modules — creating an auditable, connected operational view.
-            </Typography>
-          </Box>
-          <Stack spacing={4}>
-            {modules.map((m, i) => (
-              <Box key={m.title} sx={{
-                p: { xs: 3, md: 4 }, bgcolor: M.card, borderRadius: M.r.lg,
-                border: `1px solid ${M.faint}`,
-                transition: 'all 0.25s',
-                '&:hover': { borderColor: m.color, boxShadow: M.shadow.md },
-              }}>
-                <Grid container spacing={{ xs: 3, md: 5 }} alignItems="center">
-                  <Grid item xs={12} md={5}>
-                    <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                      <Box sx={{ width: 44, height: 44, borderRadius: M.r.md, bgcolor: `${m.color}12`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                        <m.icon sx={{ color: m.color, fontSize: 22 }} />
-                      </Box>
-                      <Box>
-                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: m.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Module {String(i + 1).padStart(2, '0')}</Typography>
-                        <Typography sx={{ fontWeight: 700, fontSize: '1.1rem' }}>{m.title}</Typography>
-                      </Box>
-                    </Stack>
-                    <Typography sx={{ color: M.slate, lineHeight: 1.65, fontSize: '0.9rem', mb: 2 }}>{m.desc}</Typography>
-                    <Stack spacing={0.75}>
-                      {m.features.map((f) => (
-                        <Stack key={f} direction="row" spacing={1} alignItems="center">
-                          <Check sx={{ color: m.color, fontSize: 14 }} />
-                          <Typography sx={{ fontWeight: 500, fontSize: '0.82rem' }}>{f}</Typography>
-                        </Stack>
-                      ))}
-                    </Stack>
-                  </Grid>
-                  <Grid item xs={12} md={7}>
-                    <Box sx={{ transform: 'perspective(1000px) rotateY(-2deg) rotateX(1deg)', transition: 'transform 0.3s', '&:hover': { transform: 'perspective(1000px) rotateY(0deg) rotateX(0deg)' } }}>
-                      {mockups[m.title]}
+      {/* Full-width immersive modules */}
+      {modules.map((m, i) => {
+        const bg = m.tone === 'warm' ? M.paper : M.card
+        const isReversed = i % 2 !== 0
+        return (
+          <Box key={m.title} sx={{ py: { xs: 8, md: 12 }, bgcolor: bg, borderBottom: `1px solid ${M.faint}` }}>
+            <Container maxWidth="lg">
+              <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center" direction={isReversed ? 'row-reverse' : 'row'}>
+                <Grid item xs={12} md={5}>
+                  <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                    <Box sx={{ width: 48, height: 48, borderRadius: M.r.md, bgcolor: `${m.color}12`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                      <m.icon sx={{ color: m.color, fontSize: 24 }} />
                     </Box>
-                  </Grid>
+                    <Box>
+                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: m.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Module {String(i + 1).padStart(2, '0')}</Typography>
+                      <Typography sx={{ fontWeight: 700, fontSize: '1.2rem' }}>{m.title}</Typography>
+                    </Box>
+                  </Stack>
+                  <Typography sx={{ color: M.slate, lineHeight: 1.65, fontSize: '0.95rem', mb: 3 }}>{m.desc}</Typography>
+                  <Stack spacing={1} sx={{ mb: 3 }}>
+                    {m.features.map((f) => (
+                      <Stack key={f} direction="row" spacing={1.5} alignItems="center">
+                        <Check sx={{ color: m.color, fontSize: 16 }} />
+                        <Typography sx={{ fontWeight: 500, fontSize: '0.88rem' }}>{f}</Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                  <Button component="a" href={m.link} endIcon={<ArrowForward />} sx={{ color: m.color, fontWeight: 700, px: 0, textTransform: 'none', fontSize: '0.88rem' }}>
+                    Learn more
+                  </Button>
                 </Grid>
-              </Box>
-            ))}
-          </Stack>
-        </Container>
-      </Box>
+                <Grid item xs={12} md={7}>
+                  <Box sx={{
+                    transform: 'perspective(1000px) rotateY(-2deg) rotateX(1deg)',
+                    transition: 'transform 0.3s',
+                    '&:hover': { transform: 'perspective(1000px) rotateY(0deg) rotateX(0deg)' },
+                  }}>
+                    {mockups[m.title]}
+                  </Box>
+                </Grid>
+              </Grid>
+            </Container>
+          </Box>
+        )
+      })}
 
       {/* Architecture */}
-      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
@@ -448,14 +475,14 @@ export default function PlatformPage() {
                 Not a collection of modules. One connected system.
               </Typography>
               <Typography sx={{ color: M.slate, lineHeight: 1.7, mb: 3 }}>
-                When a care note is written, it links to the person, the care plan, the visit and the staff member. When an incident is recorded, it connects to the care plan, the risk assessment and any follow-up actions. When training expires, it surfaces alongside competency gaps and compliance status.
+                When a care note is written, it links to the person, the care plan, the visit and the staff member. When an incident is recorded, it connects to the care plan, the risk assessment and any follow-up actions.
               </Typography>
               <Typography sx={{ color: M.slate, lineHeight: 1.7 }}>
-                This means managers never have to cross-reference multiple systems. The information they need is already connected.
+                Managers never have to cross-reference multiple systems. The information they need is already connected.
               </Typography>
             </Grid>
             <Grid item xs={12} md={7}>
-              <Box sx={{ p: 4, bgcolor: M.paper, borderRadius: M.r.xl, border: `1px solid ${M.faint}` }}>
+              <Box sx={{ p: 4, bgcolor: M.card, borderRadius: M.r.xl, border: `1px solid ${M.faint}` }}>
                 <Typography sx={{ fontWeight: 700, mb: 2 }}>Data flow</Typography>
                 {[
                   { from: 'Care note', to: 'Person record + Care plan + Visit + Staff member', icon: Description },

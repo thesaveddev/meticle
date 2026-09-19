@@ -6,6 +6,11 @@ const SITE_NAME = 'MeticleCare'
 const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`
 const TWITTER_HANDLE = '@meticlecare'
 
+export interface BreadcrumbItem {
+  name: string
+  path: string
+}
+
 export interface PageMetaProps {
   title: string
   description: string
@@ -15,6 +20,8 @@ export interface PageMetaProps {
   noindex?: boolean
   nofollow?: boolean
   structuredData?: Record<string, unknown>
+  breadcrumbs?: BreadcrumbItem[]
+  keywords?: string[]
 }
 
 const titleTemplate = (title: string) =>
@@ -44,8 +51,19 @@ function upsertLink(selector: string, attributes: Record<string, string>) {
   return el
 }
 
-function removeMeta(selector: string) {
-  const el = document.querySelector(selector)
+function upsertScript(id: string, content: string) {
+  let el = document.querySelector(`script#${id}`) as HTMLScriptElement | null
+  if (!el) {
+    el = document.createElement('script')
+    el.id = id
+    el.type = 'application/ld+json'
+    document.head.appendChild(el)
+  }
+  el.textContent = content
+}
+
+function removeScript(id: string) {
+  const el = document.querySelector(`script#${id}`)
   if (el) el.remove()
 }
 
@@ -58,6 +76,8 @@ export function usePageMeta({
   noindex = false,
   nofollow = false,
   structuredData,
+  breadcrumbs,
+  keywords,
 }: PageMetaProps) {
   const location = useLocation()
   const fullTitle = titleTemplate(title)
@@ -85,25 +105,41 @@ export function usePageMeta({
     upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: image })
     upsertMeta('meta[name="twitter:site"]', { name: 'twitter:site', content: TWITTER_HANDLE })
     upsertMeta('meta[name="author"]', { name: 'author', content: SITE_NAME })
-    upsertMeta('meta[name="theme-color"]', { name: 'theme-color', content: '#0F4C81' })
+    upsertMeta('meta[name="theme-color"]', { name: 'theme-color', content: '#0B1426' })
     upsertLink('link[rel="canonical"]', { rel: 'canonical', href: canonical })
 
+    if (keywords && keywords.length > 0) {
+      upsertMeta('meta[name="keywords"]', { name: 'keywords', content: keywords.join(', ') })
+    }
+
+    // Main structured data
     if (structuredData) {
-      let scriptEl = document.querySelector('script[type="application/ld+json"]')
-      if (!scriptEl) {
-        scriptEl = document.createElement('script')
-        scriptEl.setAttribute('type', 'application/ld+json')
-        document.head.appendChild(scriptEl)
-      }
-      scriptEl.textContent = JSON.stringify(structuredData)
+      upsertScript('structured-data-main', JSON.stringify(structuredData))
     } else {
-      removeMeta('script[type="application/ld+json"]')
+      removeScript('structured-data-main')
+    }
+
+    // Breadcrumb schema
+    if (breadcrumbs && breadcrumbs.length > 0) {
+      const breadcrumbSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: breadcrumbs.map((item, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: item.name,
+          item: `${SITE_URL}${item.path}`,
+        })),
+      }
+      upsertScript('structured-data-breadcrumb', JSON.stringify(breadcrumbSchema))
+    } else {
+      removeScript('structured-data-breadcrumb')
     }
 
     return () => {
       document.title = prevTitle
     }
-  }, [fullTitle, description, canonical, ogType, image, noindex, nofollow, structuredData])
+  }, [fullTitle, description, canonical, ogType, image, noindex, nofollow, structuredData, breadcrumbs, keywords])
 }
 
 export default function PageMeta(props: PageMetaProps) {
