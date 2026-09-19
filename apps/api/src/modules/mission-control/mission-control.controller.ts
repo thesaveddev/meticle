@@ -16,6 +16,11 @@ export class MissionControlController {
     res.json(summary);
   }
 
+  static async getHomecareSummary(req: Request, res: Response) {
+    const summary = await MissionControlRepository.getHomecareSummary(req.user!.organizationId!);
+    res.json(summary);
+  }
+
   static async getAlertHistory(req: Request, res: Response) {
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
     const history = await MissionControlRepository.getAlertHistory(req.user!.organizationId!, limit);

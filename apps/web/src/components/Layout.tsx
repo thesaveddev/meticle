@@ -109,7 +109,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       label: 'Overview',
       items: [
         { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-        { text: 'Mission Control', icon: <RadarIcon />, path: '/mission-control', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER], serviceTypes: ['supported_living', 'residential'] },
+        { text: 'Mission Control', icon: <RadarIcon />, path: '/mission-control', module: 'dashboard', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER], serviceTypes: ['supported_living', 'residential', 'domiciliary', 'live_in'] },
       ],
     },
     {

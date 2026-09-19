@@ -326,4 +326,158 @@ export class MissionControlRepository {
       overdue_incident_actions: overdueIncidentActions.rows[0]?.count || 0,
     };
   }
+
+  /* ═══════════════════════════════════════════════════════════
+     DOMICILIARY CARE — Mission Control Summary
+     Surfaces: missed calls, unassigned calls, overdue calls,
+     compliance gaps, incidents, coverage, exception trends
+     ═══════════════════════════════════════════════════════════ */
+
+  static async getHomecareSummary(orgId: string) {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Missed calls today
+    const missedCalls = await query(
+      `SELECT COUNT(*)::int AS count FROM homecare_visits
+       WHERE organization_id = $1 AND status = 'missed'
+         AND scheduled_start::date = $2`, [orgId, today]
+    );
+
+    // Unassigned calls today and upcoming
+    const unassignedToday = await query(
+      `SELECT COUNT(*)::int AS count FROM homecare_visits
+       WHERE organization_id = $1 AND assigned_staff_id IS NULL
+         AND status IN ('scheduled')
+         AND scheduled_start::date = $2`, [orgId, today]
+    );
+
+    const unassignedUpcoming = await query(
+      `SELECT COUNT(*)::int AS count FROM homecare_visits
+       WHERE organization_id = $1 AND assigned_staff_id IS NULL
+         AND status IN ('scheduled')
+         AND scheduled_start > NOW()
+         AND scheduled_start <= NOW() + interval '3 days'`, [orgId]
+    );
+
+    // Overdue calls (should be completed but not checked in/out)
+    const overdueCalls = await query(
+      `SELECT COUNT(*)::int AS count FROM homecare_visits
+       WHERE organization_id = $1 AND status IN ('scheduled', 'en_route')
+         AND scheduled_end < NOW()`, [orgId]
+    );
+
+    // Calls completed today
+    const completedToday = await query(
+      `SELECT COUNT(*)::int AS count FROM homecare_visits
+       WHERE organization_id = $1 AND status = 'completed'
+         AND check_out_at::date = $2`, [orgId, today]
+    );
+
+    // Total calls today
+    const totalToday = await query(
+      `SELECT COUNT(*)::int AS count FROM homecare_visits
+       WHERE organization_id = $1 AND scheduled_start::date = $2`, [orgId, today]
+    );
+
+    // Carer compliance: training expiring within 14 days
+    const trainingExpiring = await query(
+      `SELECT COUNT(DISTINCT tr.staff_id)::int AS count
+       FROM training_records tr
+       JOIN training_modules tm ON tr.module_id = tm.id
+       JOIN staff_profiles sp ON tr.staff_id = sp.id
+       JOIN users u ON sp.user_id = u.id
+       WHERE u.organization_id = $1 AND u.status = 'active'
+         AND tr.status = 'completed' AND tr.expires_at IS NOT NULL
+         AND tr.expires_at <= CURRENT_DATE + interval '14 days'`, [orgId]
+    );
+
+    // DBS / right-to-work expiring within 30 days
+    const docsExpiring = await query(
+      `SELECT COUNT(DISTINCT sp.id)::int AS count
+       FROM documents d
+       JOIN staff_profiles sp ON d.staff_id = sp.id
+       JOIN users u ON sp.user_id = u.id
+       WHERE u.organization_id = $1 AND u.status = 'active'
+         AND d.status NOT IN ('expired', 'rejected')
+         AND d.expiry_date IS NOT NULL
+         AND d.expiry_date <= CURRENT_DATE + interval '30 days'
+         AND d.type IN ('DBS', 'ENHANCED_DBS', 'PASSPORT', 'VISA', 'RIGHT_TO_WORK')`, [orgId]
+    );
+
+    // Open incidents needing follow-up
+    const openIncidents = await query(
+      `SELECT COUNT(*)::int AS count FROM incidents
+       WHERE organization_id = $1 AND status IN ('open', 'investigating')`, [orgId]
+    );
+
+    // Overdue incident actions
+    const overdueIncidentActions = await query(
+      `SELECT COUNT(*)::int AS count
+       FROM incident_actions ia
+       JOIN incidents i ON ia.incident_id = i.id
+       WHERE i.organization_id = $1 AND ia.completed_at IS NULL
+         AND ia.status != 'cancelled'
+         AND ia.due_date IS NOT NULL AND ia.due_date < CURRENT_DATE`, [orgId]
+    );
+
+    // Care plan reviews overdue
+    const overdueCarePlans = await query(
+      `SELECT COUNT(*)::int AS count FROM care_plans cp
+       JOIN people p ON cp.person_id = p.id
+       WHERE p.organization_id = $1 AND cp.status = 'active'
+         AND cp.review_date IS NOT NULL AND cp.review_date < CURRENT_DATE`, [orgId]
+    );
+
+    // Coverage: carers working today vs calls today
+    const carersWorkingToday = await query(
+      `SELECT COUNT(DISTINCT assigned_staff_id)::int AS count FROM homecare_visits
+       WHERE organization_id = $1 AND scheduled_start::date = $2
+         AND assigned_staff_id IS NOT NULL
+         AND status NOT IN ('cancelled')`, [orgId, today]
+    );
+
+    // Today's calls by status for the breakdown
+    const callsByStatus = await query(
+      `SELECT status, COUNT(*)::int AS count FROM homecare_visits
+       WHERE organization_id = $1 AND scheduled_start::date = $2
+       GROUP BY status`, [orgId, today]
+    );
+
+    // Exception trends: missed calls last 7 days
+    const missedTrend = await query(
+      `SELECT scheduled_start::date AS day, COUNT(*)::int AS count
+       FROM homecare_visits
+       WHERE organization_id = $1 AND status = 'missed'
+         AND scheduled_start >= CURRENT_DATE - interval '7 days'
+       GROUP BY day ORDER BY day`, [orgId]
+    );
+
+    // Missed calls by carer (last 7 days)
+    const missedByCarer = await query(
+      `SELECT sp.first_name || ' ' || sp.last_name AS carer_name, COUNT(*)::int AS count
+       FROM homecare_visits hv
+       JOIN staff_profiles sp ON sp.id = hv.assigned_staff_id
+       WHERE hv.organization_id = $1 AND hv.status = 'missed'
+         AND hv.scheduled_start >= CURRENT_DATE - interval '7 days'
+       GROUP BY carer_name ORDER BY count DESC LIMIT 10`, [orgId]
+    );
+
+    return {
+      missed_today: missedCalls.rows[0]?.count || 0,
+      unassigned_today: unassignedToday.rows[0]?.count || 0,
+      unassigned_upcoming: unassignedUpcoming.rows[0]?.count || 0,
+      overdue_calls: overdueCalls.rows[0]?.count || 0,
+      completed_today: completedToday.rows[0]?.count || 0,
+      total_today: totalToday.rows[0]?.count || 0,
+      training_expiring: trainingExpiring.rows[0]?.count || 0,
+      docs_expiring: docsExpiring.rows[0]?.count || 0,
+      open_incidents: openIncidents.rows[0]?.count || 0,
+      overdue_incident_actions: overdueIncidentActions.rows[0]?.count || 0,
+      overdue_care_plans: overdueCarePlans.rows[0]?.count || 0,
+      carers_working_today: carersWorkingToday.rows[0]?.count || 0,
+      calls_by_status: callsByStatus.rows,
+      missed_trend: missedTrend.rows,
+      missed_by_carer: missedByCarer.rows,
+    };
+  }
 }

@@ -12,6 +12,7 @@ const mcRoles = [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFIC
 const writeRoles = [UserRole.ORG_ADMIN, UserRole.MANAGER];
 
 router.get('/summary', requireRole(...mcRoles), asyncHandler(MissionControlController.getSummary));
+router.get('/homecare-summary', requireRole(...mcRoles), asyncHandler(MissionControlController.getHomecareSummary));
 router.get('/alerts', requireRole(...mcRoles), asyncHandler(MissionControlController.getAlerts));
 router.get('/alerts/history', requireRole(...mcRoles), asyncHandler(MissionControlController.getAlertHistory));
 router.get('/trends', requireRole(...mcRoles), asyncHandler(MissionControlController.getTrends));

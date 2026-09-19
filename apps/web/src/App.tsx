@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState, useEffect } from 'react'
 import Layout from './components/Layout'
 import AuthGuard from './components/AuthGuard'
 import ModuleGuard from './components/ModuleGuard'
@@ -96,6 +96,7 @@ const ComplianceRecordsPage = lazy(() => import('./pages/compliance/ComplianceRe
 const AppointmentsPage = lazy(() => import('./pages/appointments/AppointmentsPage'))
 const PoliciesPage = lazy(() => import('./pages/policies/PoliciesPage'))
 const MissionControlPage = lazy(() => import('./pages/mission-control/MissionControlPage'))
+const HomecareMissionControl = lazy(() => import('./pages/mission-control/HomecareMissionControl'))
 const CompliancePortalPage = lazy(() => import('./pages/compliance-portal/CompliancePortalPage'))
 const PortalLoginPage = lazy(async () => {
   const module = await import('./pages/compliance-portal/CompliancePortalPage')
@@ -116,6 +117,21 @@ import { MeticleThemeProvider } from './context/ThemeContext'
 function RouteLoading() {
   return <div role="status" aria-live="polite" style={{ padding: '2rem', textAlign: 'center' }}>Loading…</div>
 }
+
+function MissionControlSwitch() {
+  const [isDom, setIsDom] = useState<boolean | null>(null)
+  useEffect(() => {
+    import('./services/api').then(({ default: api }) => {
+      api.get('/settings/org').then(res => {
+        const types: string[] = res.data?.service_types || []
+        setIsDom(types.some(t => ['domiciliary', 'live_in'].includes(t)))
+      }).catch(() => setIsDom(false))
+    })
+  }, [])
+  if (isDom === null) return <RouteLoading />
+  return isDom ? <HomecareMissionControl /> : <MissionControlPage />
+}
+
 
 function App() {
   return (
@@ -165,7 +181,7 @@ function App() {
         <Route path="/onboarding" element={<OnboardingFlow />} />
         <Route element={<ErrorBoundary><Layout /></ErrorBoundary>}>
           <Route path="/dashboard" element={<ModuleGuard module="dashboard"><DashboardPage /></ModuleGuard>} />
-          <Route path="/mission-control" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="supported_living_only"><MissionControlPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/mission-control" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><Suspense fallback={null}><MissionControlSwitch /></Suspense></AuthGuard>} />
           <Route path="/staff" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><StaffDirectoryPage /></ModuleGuard></AuthGuard>} />
           <Route path="/staff/:userId" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="staff_directory"><StaffProfilePage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><CompliancePage /></ModuleGuard></AuthGuard>} />
