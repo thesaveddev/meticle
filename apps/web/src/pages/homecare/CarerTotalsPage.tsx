@@ -165,6 +165,9 @@ export default function CarerTotalsPage() {
   const [pendingLoading, setPendingLoading] = useState(false)
   const [payslipBusy, setPayslipBusy] = useState(false)
   const [expandedVisit, setExpandedVisit] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 10
 
   const load = async () => {
     setLoading(true); setError('')
@@ -306,7 +309,7 @@ export default function CarerTotalsPage() {
               accent={grandPending > 0} />
           </Stack>
 
-          {/* Carer cards */}
+          {/* Search and carer cards */}
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
           ) : totals.length === 0 ? (
@@ -315,11 +318,47 @@ export default function CarerTotalsPage() {
               <Typography sx={{ color: '#94A3B8' }}>No timesheet data for this period</Typography>
             </Paper>
           ) : (
-            <Stack gap={1.5}>
-              {totals.map(t => (
-                <CarerCard key={t.staff_id} carer={t} onClick={() => loadCarerDetail(t)} />
-              ))}
-            </Stack>
+            <>
+              <TextField
+                placeholder="Search by carer name…"
+                size="small"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(0) }}
+                sx={{ mb: 2, maxWidth: 360, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+              {(() => {
+                const filtered = totals.filter(t =>
+                  t.staff_name.toLowerCase().includes(search.toLowerCase())
+                )
+                const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+                const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+                return (
+                  <>
+                    <Stack gap={1.5}>
+                      {paged.map(t => (
+                        <CarerCard key={t.staff_id} carer={t} onClick={() => loadCarerDetail(t)} />
+                      ))}
+                    </Stack>
+                    {totalPages > 1 && (
+                      <Stack direction="row" justifyContent="center" alignItems="center" gap={1} sx={{ mt: 3 }}>
+                        <Button size="small" disabled={page === 0} onClick={() => setPage(p => p - 1)}
+                          sx={{ textTransform: 'none', minWidth: 0, px: 1.5 }}>← Prev</Button>
+                        <Typography sx={{ fontSize: '0.8rem', color: '#64748B' }}>
+                          Page {page + 1} of {totalPages}
+                        </Typography>
+                        <Button size="small" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
+                          sx={{ textTransform: 'none', minWidth: 0, px: 1.5 }}>Next →</Button>
+                      </Stack>
+                    )}
+                    {filtered.length === 0 && search && (
+                      <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid #F1F5F9', borderRadius: 3 }}>
+                        <Typography sx={{ color: '#94A3B8' }}>No carers match "{search}"</Typography>
+                      </Paper>
+                    )}
+                  </>
+                )
+              })()}
+            </>
           )}
         </>
       )}
