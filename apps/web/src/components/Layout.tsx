@@ -81,7 +81,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const userInitial = rawUser?.first_name?.[0] || rawUser?.email?.[0] || '?'
 
   interface NavItem { text: string; icon: JSX.Element; path: string; module: string; roles: UserRole[]; serviceTypes?: string[] }
-  interface NavGroup { label: string; items: NavItem[] }  const [orgServiceTypes, setOrgServiceTypes] = useState<string[]>(['supported_living'])
+  interface NavGroup { label: string; items: NavItem[] }  const [orgServiceTypes, setOrgServiceTypes] = useState<string[]>([])
 
   useEffect(() => {
     if (!rawUser.id) return
