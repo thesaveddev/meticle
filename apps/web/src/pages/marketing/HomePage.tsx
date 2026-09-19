@@ -10,9 +10,9 @@ import PageMeta from '../../components/PageMeta'
 
 /* ─── Shared Elements ──────────────────────────────── */
 
-function Eyebrow({ children, color = M.teal }: { children: React.ReactNode; color?: string }) {
+function Eyebrow({ children, color = M.teal, center }: { children: React.ReactNode; color?: string; center?: boolean }) {
   return (
-    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 2 }}>
+    <Stack direction="row" spacing={0.75} alignItems="center" justifyContent={center ? 'center' : 'flex-start'} sx={{ mb: 2 }}>
       <Box sx={{ width: 6, height: 6, borderRadius: M.r.full, bgcolor: color }} />
       <Typography sx={{ ...M.overline, color, textTransform: 'uppercase' }}>{children}</Typography>
     </Stack>
@@ -122,19 +122,21 @@ export default function HomePage() {
         <Box sx={{ position: 'absolute', top: -120, right: -80, width: 500, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${M.teal}10 0%, transparent 70%)` }} />
         <Box sx={{ position: 'absolute', bottom: -100, left: -60, width: 400, height: 400, borderRadius: '50%', background: `radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%)` }} />
 
-        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-          <Eyebrow color="rgba(255,255,255,0.5)">Care operations software</Eyebrow>
-          <Typography sx={{ ...M.display, color: '#fff', mb: 3 }}>
-            Run your care operation with confidence.
-          </Typography>
-          <Typography sx={{ ...M.bodyLg, color: 'rgba(255,255,255,0.5)', mb: 6, maxWidth: 600, mx: 'auto' }}>
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+          <Box sx={{ textAlign: 'center', maxWidth: 700, mx: 'auto' }}>
+            <Eyebrow color="rgba(255,255,255,0.5)" center>Care operations software</Eyebrow>
+            <Typography sx={{ ...M.display, color: '#fff', mb: 3 }}>
+              Run your care operation with confidence.
+            </Typography>
+          </Box>
+          <Typography sx={{ ...M.bodyLg, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 600, mx: 'auto', mb: 10 }}>
             MeticleCare connects care delivery, workforce management, compliance, medication, reporting and intelligent automation in one platform for UK domiciliary and supported living providers.
           </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" sx={{ mb: 6 }}>
             <CTA />
             <CTA label="Explore the platform" to="/platform" variant="ghost" />
           </Stack>
-          <Stack direction="row" spacing={6} justifyContent="center" sx={{ mt: 7 }}>
+          <Stack direction="row" spacing={5} justifyContent="center">
             {[
               { v: '4', l: 'UK nations' },
               { v: '24/7', l: 'Mobile access' },
@@ -167,7 +169,7 @@ export default function HomePage() {
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>Connected platform</Eyebrow>
+            <Eyebrow center>Connected platform</Eyebrow>
             <Typography sx={{ ...M.h1, mb: 2 }}>One platform. Every part of your care operation.</Typography>
             <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 560, mx: 'auto' }}>
               Not a collection of disconnected modules. A connected operating system where care records, workforce, compliance and intelligence share context.
@@ -224,57 +226,53 @@ export default function HomePage() {
       {/* ═══ 04 · INSPECTION READINESS ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
-          <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
-            <Grid item xs={12} md={5}>
-              <Eyebrow>Inspection readiness</Eyebrow>
-              <Typography sx={{ ...M.h1, mb: 2 }}>Stay ready for inspection. Every day.</Typography>
-              <Typography sx={{ ...M.bodyLg, color: M.slate, mb: 3 }}>
-                Compliance shouldn't begin when an inspection is announced. MeticleCare helps make good governance part of everyday care operations.
-              </Typography>
-              <Typography sx={{ ...M.body, color: M.slate, mb: 4 }}>
-                Requirements differ across England, Scotland, Wales and Northern Ireland. The platform supports your team's evidence and governance work without claiming to guarantee any regulatory outcome.
-              </Typography>
-              <CTA label="Explore compliance" to="/compliance" variant="secondary" />
-            </Grid>
-            <Grid item xs={12} md={7}>
-              {/* Readiness dashboard mockup */}
-              <Box sx={{ p: { xs: 3, md: 4 }, bgcolor: M.paper, borderRadius: M.r.xl, border: `1px solid ${M.faint}` }}>
-                <Typography sx={{ ...M.label, color: M.muted, mb: 2.5, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Inspection readiness</Typography>
-                <Grid container spacing={2}>
-                  {[
-                    { label: 'Care records', value: '98%', color: M.green },
-                    { label: 'Reviews', value: '96%', color: M.green },
-                    { label: 'Training', value: '94%', color: M.amber },
-                    { label: 'Competency', value: '97%', color: M.green },
-                    { label: 'Risk reviews', value: '99%', color: M.green },
-                    { label: 'Open actions', value: '3', color: M.coral },
-                  ].map((m) => (
-                    <Grid item xs={4} key={m.label}>
-                      <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: M.r.md, bgcolor: M.card, border: `1px solid ${M.faint}` }}>
-                        <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: m.color, letterSpacing: '-0.03em' }}>{m.value}</Typography>
-                        <Typography sx={{ fontSize: '0.72rem', color: M.muted, mt: 0.25 }}>{m.label}</Typography>
-                      </Box>
-                    </Grid>
-                  ))}
+          <Box sx={{ textAlign: 'center', mb: 8 }}>
+            <Eyebrow center>Inspection readiness</Eyebrow>
+            <Typography sx={{ ...M.h1, mb: 2 }}>Stay ready for inspection. Every day.</Typography>
+            <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 560, mx: 'auto', mb: 2 }}>
+              Compliance shouldn't begin when an inspection is announced. MeticleCare helps make good governance part of everyday care operations.
+            </Typography>
+            <Typography sx={{ ...M.body, color: M.slate, maxWidth: 560, mx: 'auto', mb: 4 }}>
+              Requirements differ across England, Scotland, Wales and Northern Ireland.
+            </Typography>
+            <CTA label="Explore compliance" to="/compliance" variant="secondary" />
+          </Box>
+          {/* Readiness dashboard mockup */}
+          <Box sx={{ p: { xs: 3, md: 4 }, bgcolor: M.paper, borderRadius: M.r.xl, border: `1px solid ${M.faint}`, maxWidth: 700, mx: 'auto' }}>
+            <Typography sx={{ ...M.label, color: M.muted, mb: 2.5, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Inspection readiness</Typography>
+            <Grid container spacing={2}>
+              {[
+                { label: 'Care records', value: '98%', color: M.green },
+                { label: 'Reviews', value: '96%', color: M.green },
+                { label: 'Training', value: '94%', color: M.amber },
+                { label: 'Competency', value: '97%', color: M.green },
+                { label: 'Risk reviews', value: '99%', color: M.green },
+                { label: 'Open actions', value: '3', color: M.coral },
+              ].map((m) => (
+                <Grid item xs={4} key={m.label}>
+                  <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: M.r.md, bgcolor: M.card, border: `1px solid ${M.faint}` }}>
+                    <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: m.color, letterSpacing: '-0.03em' }}>{m.value}</Typography>
+                    <Typography sx={{ fontSize: '0.72rem', color: M.muted, mt: 0.25 }}>{m.label}</Typography>
+                  </Box>
                 </Grid>
-                <Box sx={{ mt: 2.5, p: 2, borderRadius: M.r.md, bgcolor: M.card, border: `1px solid ${M.faint}` }}>
-                  <Typography sx={{ ...M.label, color: M.muted, mb: 1 }}>Needs attention</Typography>
-                  <Stack spacing={0.75}>
-                    {[
-                      { text: 'Training renewal', count: 2, color: M.amber },
-                      { text: 'Reviews due', count: 4, color: M.amber },
-                      { text: 'Risk review', count: 2, color: M.coral },
-                    ].map((a) => (
-                      <Stack key={a.text} direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{a.text}</Typography>
-                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: a.color, bgcolor: `${a.color}15`, px: 1, py: 0.25, borderRadius: M.r.sm }}>{a.count}</Typography>
-                      </Stack>
-                    ))}
-                  </Stack>
-                </Box>
-              </Box>
+              ))}
             </Grid>
-          </Grid>
+            <Box sx={{ mt: 2.5, p: 2, borderRadius: M.r.md, bgcolor: M.card, border: `1px solid ${M.faint}` }}>
+              <Typography sx={{ ...M.label, color: M.muted, mb: 1 }}>Needs attention</Typography>
+              <Stack spacing={0.75}>
+                {[
+                  { text: 'Training renewal', count: 2, color: M.amber },
+                  { text: 'Reviews due', count: 4, color: M.amber },
+                  { text: 'Risk review', count: 2, color: M.coral },
+                ].map((a) => (
+                  <Stack key={a.text} direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{a.text}</Typography>
+                    <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: a.color, bgcolor: `${a.color}15`, px: 1, py: 0.25, borderRadius: M.r.sm }}>{a.count}</Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            </Box>
+          </Box>
         </Container>
       </Box>
 
@@ -282,7 +280,7 @@ export default function HomePage() {
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>Regulatory environments</Eyebrow>
+            <Eyebrow center>Regulatory environments</Eyebrow>
             <Typography sx={{ ...M.h1, mb: 2 }}>Built for regulated care across the UK.</Typography>
             <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 600, mx: 'auto' }}>
               Different nations. Different regulatory frameworks. One platform for managing the records, evidence, people and processes behind your care service.
@@ -320,15 +318,15 @@ export default function HomePage() {
       {/* ═══ 06 · EVIDENCE FLOW ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
-          <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
-            <Grid item xs={12} md={5}>
+          <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={4}>
               <Eyebrow>How evidence is created</Eyebrow>
               <Typography sx={{ ...M.h2, mb: 2 }}>Evidence created through everyday work.</Typography>
               <Typography sx={{ ...M.bodyLg, color: M.slate }}>
                 When your team delivers care, records medication, tracks risks and manages incidents in one system, inspection evidence is created continuously — not assembled under pressure.
               </Typography>
             </Grid>
-            <Grid item xs={12} md={7}>
+            <Grid item xs={12} md={8}>
               <Stack spacing={0}>
                 {evidenceFlow.map((step, i) => (
                   <Stack key={step} direction="row" spacing={2} alignItems="center" sx={{
@@ -355,7 +353,7 @@ export default function HomePage() {
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>Solutions</Eyebrow>
+            <Eyebrow center>Solutions</Eyebrow>
             <Typography sx={{ ...M.h1, mb: 2 }}>Built for how you actually work.</Typography>
           </Box>
           <Grid container spacing={3}>
@@ -407,7 +405,7 @@ export default function HomePage() {
         <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={6}>
-              <Eyebrow color="rgba(255,255,255,0.5)">AI & Intelligence</Eyebrow>
+              <Eyebrow color="rgba(255,255,255,0.5)" center>AI & Intelligence</Eyebrow>
               <Typography sx={{ ...M.h1, color: '#fff', mb: 2 }}>AI that works with your care team.</Typography>
               <Typography sx={{ ...M.bodyLg, color: 'rgba(255,255,255,0.5)', mb: 4 }}>
                 Intelligence embedded throughout MeticleCare — not a separate chatbot. AI analyses the data your team already creates, surfaces patterns and generates briefings — with source traceability and human review at the centre.
@@ -490,7 +488,7 @@ export default function HomePage() {
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>Security</Eyebrow>
+            <Eyebrow center>Security</Eyebrow>
             <Typography sx={{ ...M.h1, mb: 2 }}>Care data deserves serious protection.</Typography>
             <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 520, mx: 'auto' }}>
               Security is a core product concern. Tenant isolation, role-based access, encryption and audit logging are built in from the start.
@@ -526,7 +524,7 @@ export default function HomePage() {
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Eyebrow>Resources</Eyebrow>
+            <Eyebrow center>Resources</Eyebrow>
             <Typography sx={{ ...M.h1, mb: 2 }}>Ideas for better care operations.</Typography>
             <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 480, mx: 'auto' }}>
               Practical guidance on care technology, compliance and operations.
