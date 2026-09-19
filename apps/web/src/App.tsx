@@ -91,6 +91,7 @@ const RoomChecksPage = lazy(() => import('./pages/room-checks/RoomChecksPage'))
 const CheckInPage = lazy(() => import('./pages/mobile/CheckInPage'))
 const VoiceNotesPage = lazy(() => import('./pages/mobile/MobileNotesPage'))
 const FamilyPortalPage = lazy(() => import('./pages/FamilyPortalPage'))
+const FamilyFeedbackPage = lazy(() => import('./pages/FamilyFeedbackPage'))
 const ComplianceRecordsPage = lazy(() => import('./pages/compliance/ComplianceRecordsPage'))
 const AppointmentsPage = lazy(() => import('./pages/appointments/AppointmentsPage'))
 const PoliciesPage = lazy(() => import('./pages/policies/PoliciesPage'))
@@ -149,6 +150,7 @@ function App() {
       <Route path="/survey/satisfaction/:token" element={<ErrorBoundary><SurveyFormPage /></ErrorBoundary>} />
       <Route path="/survey/engagement/:token" element={<ErrorBoundary><SurveyFormPage /></ErrorBoundary>} />
       <Route path="/family-portal/:token" element={<ErrorBoundary><FamilyPortalPage /></ErrorBoundary>} />
+      <Route path="/family-portal/feedback/:token" element={<ErrorBoundary><FamilyFeedbackPage /></ErrorBoundary>} />
       <Route path="/learn" element={<ErrorBoundary><Suspense fallback={null}><LearningCenterPage /></Suspense></ErrorBoundary>} />
       <Route path="/privacy" element={<ErrorBoundary><Suspense fallback={null}><PrivacyPolicyPage /></Suspense></ErrorBoundary>} />
       <Route path="/terms" element={<ErrorBoundary><Suspense fallback={null}><TermsOfUsePage /></Suspense></ErrorBoundary>} />
