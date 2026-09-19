@@ -304,16 +304,21 @@ mail["From"] = sender
 mail["To"] = recipient
 port = int(get("SMTP_PORT", "587"))
 secure = get("SMTP_SECURE", "false").lower() == "true"
-if secure:
-    with smtplib.SMTP_SSL(host, port, timeout=20, context=ssl.create_default_context()) as server:
-        server.login(user, password)
-        server.send_message(mail)
-else:
-    with smtplib.SMTP(host, port, timeout=20) as server:
-        server.starttls(context=ssl.create_default_context())
-        server.login(user, password)
-        server.send_message(mail)
-print("Deployment failure email sent")
+try:
+    if secure:
+        with smtplib.SMTP_SSL(host, port, timeout=20, context=ssl.create_default_context()) as server:
+            server.login(user, password)
+            server.send_message(mail)
+    else:
+        with smtplib.SMTP(host, port, timeout=20) as server:
+            server.starttls(context=ssl.create_default_context())
+            server.login(user, password)
+            server.send_message(mail)
+    print("Deployment failure email sent")
+except smtplib.SMTPRecipientsRefused as exc:
+    print(f"Deployment failure email recipient refused ({exc}); skipping email")
+except smtplib.SMTPException as exc:
+    print(f"Deployment failure email could not be sent ({exc}); skipping email")
 PY
   then
     echo "Deployment failure email could not be sent; preserving the original deployment failure" >&2
