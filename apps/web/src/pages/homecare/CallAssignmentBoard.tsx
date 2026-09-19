@@ -8,9 +8,9 @@ import {
 } from '@tanstack/react-query'
 import {
   Add as AddIcon, Delete as DeleteIcon, Assignment as TaskIcon,
-  CheckCircle as CheckIcon,
+  CheckCircle as CheckIcon, AutoAwesome,
   Person as PersonIcon, AccessTime as TimeIcon, DragIndicator as DragIcon,
-  Undo as UndoIcon, WarningAmber,
+  Undo as UndoIcon, WarningAmber, Lightbulb,
 } from '@mui/icons-material'
 import api from '../../services/api'
 import ContextualLearnLink from '../../components/ContextualLearnLink'
@@ -39,6 +39,8 @@ interface Visit {
   scheduled_start: string; scheduled_end: string; package_name: string | null
   latitude: number | null; longitude: number | null
 }
+
+
 
 interface Staff {
   id: string; first_name: string; last_name: string
@@ -249,6 +251,14 @@ export default function CallAssignmentBoard() {
 
   // Click fallback for touch devices / quick assign
   const [selectedForAssign, setSelectedForAssign] = useState<string | null>(null)
+  const [showSuggestions, setShowSuggestions] = useState<string | null>(null)
+
+  // AI carer suggestion query
+  const { data: suggestions = [], isLoading: suggestionsLoading } = useQuery({
+    queryKey: ['carer-suggestions', showSuggestions],
+    queryFn: () => api.get(`/homecare/visits/${showSuggestions}/suggest-carers`).then(r => Array.isArray(r.data) ? r.data : []),
+    enabled: !!showSuggestions,
+  })
 
   const handleVisitClick = useCallback((visitId: string) => {
     if (selectedForAssign === visitId) {
@@ -310,6 +320,49 @@ export default function CallAssignmentBoard() {
         </Alert>
       )}
 
+      {/* AI Suggestion panel */}
+      {showSuggestions && (
+        <Paper elevation={0} sx={{ p: 2.5, mb: 2, border: '1px solid', borderColor: '#E0E7FF', borderRadius: 2, bgcolor: '#F8FAFF' }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <AutoAwesome sx={{ fontSize: 18, color: '#6366F1' }} />
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#4338CA' }}>AI suggested carers</Typography>
+            </Stack>
+            <Button size="small" onClick={() => setShowSuggestions(null)} sx={{ textTransform: 'none' }}>Close</Button>
+          </Stack>
+          {suggestionsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={20} /></Box>
+          ) : (
+            <Stack spacing={0.75}>
+              {suggestions.slice(0, 5).map((s: any) => (
+                <Stack key={s.staff_id} direction="row" alignItems="center" spacing={1.5}
+                  sx={{ p: 1, borderRadius: 1.5, bgcolor: s.has_conflict || s.on_leave ? '#FEF2F2' : s.available ? '#F0FDF4' : '#FFFBEB', cursor: s.has_conflict || s.on_leave ? 'not-allowed' : 'pointer', '&:hover': s.has_conflict || s.on_leave ? {} : { bgcolor: '#EFF6FF' }, transition: 'background 0.15s' }}
+                  onClick={() => {
+                    if (s.has_conflict || s.on_leave) return
+                    const visit = unassigned.find((v: any) => v.id === showSuggestions)
+                    if (visit) assignVisit.mutate({ visitId: visit.id, staffId: s.staff_id })
+                    setShowSuggestions(null)
+                  }}
+                >
+                  <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: s.score >= 70 ? '#DCFCE7' : s.score >= 40 ? '#FEF9C3' : '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.7rem', color: s.score >= 70 ? '#166534' : s.score >= 70 ? '#166534' : '#92400E', flexShrink: 0 }}>{s.score}</Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{s.first_name} {s.last_name}</Typography>
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                      {s.reasons.map((r: string, i: number) => (
+                        <Chip key={i} label={r} size="small" sx={{ height: 16, fontSize: '0.55rem', bgcolor: 'white', border: '1px solid #E5E7EB', fontWeight: 500 }} />
+                      ))}
+                    </Stack>
+                  </Box>
+                  {s.has_conflict && <Chip label="Conflict" size="small" sx={{ bgcolor: '#FEE2E2', color: '#991B1B', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
+                  {s.on_leave && !s.has_conflict && <Chip label="On leave" size="small" sx={{ bgcolor: '#FEE2E2', color: '#991B1B', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
+                  {!s.has_conflict && !s.on_leave && s.available && <Chip label="Assign" size="small" sx={{ bgcolor: '#0F4C81', color: 'white', fontWeight: 700, height: 20, fontSize: '0.6rem' }} />}
+                </Stack>
+              ))}
+            </Stack>
+          )}
+        </Paper>
+      )}
+
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
       ) : (
@@ -359,6 +412,7 @@ export default function CallAssignmentBoard() {
                     onDeleteTask={(taskId: string) => deleteTask.mutate({ visitId: v.id, taskId })}
                     isAddingTask={addTask.isPending}
                     onUnassign={() => assignVisit.mutate({ visitId: v.id, staffId: null })}
+                    onSuggest={(id: string) => setShowSuggestions(id)}
                   />
                 ))}
               </Stack>
@@ -407,7 +461,7 @@ export default function CallAssignmentBoard() {
 function DraggableVisitCard({
   visit, isSelected, isDragging, expanded, newTaskLabel,
   onDragStart, onDragEnd, onClick, onNewTaskLabelChange,
-  onAddTask, onToggleTask, onDeleteTask, isAddingTask,
+  onAddTask, onToggleTask, onDeleteTask, isAddingTask, onSuggest,
 }: any) {
   const { data: tasks = [] } = useVisitTasks(visit.id, expanded)
   const doneCount = tasks.filter((t: VisitTask) => t.done).length
@@ -464,6 +518,13 @@ function DraggableVisitCard({
               </Typography>
             </Stack>
           )}
+          <Stack direction="row" alignItems="center" gap={0.5} sx={{ mt: 0.5 }}>
+            <Tooltip title="AI suggest best carer">
+              <Button size="small" variant="outlined" startIcon={<Lightbulb sx={{ fontSize: 13 }} />} onClick={(e) => { e.stopPropagation(); onSuggest(visit.id) }} sx={{ textTransform: 'none', fontSize: '0.65rem', py: 0, borderColor: '#E0E7FF', color: '#6366F1', '&:hover': { borderColor: '#6366F1', bgcolor: '#F5F3FF' } }}>
+                Suggest
+              </Button>
+            </Tooltip>
+          </Stack>
         </Box>
       </Stack>
 
