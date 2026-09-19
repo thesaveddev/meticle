@@ -896,16 +896,43 @@ export class HomecareController {
 
   private static async notifyCallCompleted(orgId: string, visit: any) {
     try {
-      const managers = await query(
-        `SELECT u.id, u.email, COALESCE(sp.first_name, u.email) as name
-         FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id
-         WHERE u.organization_id = $1 AND u.role IN ('ORG_ADMIN', 'MANAGER')`,
-        [orgId]
-      );
       const personResult = await query('SELECT first_name, last_name FROM people WHERE id = $1', [visit.person_id]);
       const personName = personResult.rows[0] ? `${personResult.rows[0].first_name} ${personResult.rows[0].last_name}` : 'Unknown';
-      // Completion is reported in the midday/evening digest rather than by email per call.
-      void managers;
+
+      // Send feedback link to family members
+      try {
+        const { FamilyFeedbackRepository } = await import('../family-portal/familyFeedback.repository');
+        const { EmailService } = await import('../../shared/utils/email.service');
+        const familyMembers = await query(
+          `SELECT name, email, relationship FROM family_members
+           WHERE person_id = $1 AND organization_id = $2 AND status IN ('invited', 'active') AND email IS NOT NULL`,
+          [visit.person_id, orgId]
+        );
+        for (const fm of familyMembers.rows) {
+          const record = await FamilyFeedbackRepository.createFeedbackToken({
+            organization_id: orgId,
+            visit_id: visit.id,
+            person_id: visit.person_id,
+            family_member_name: fm.name,
+            family_member_email: fm.email,
+            relationship: fm.relationship,
+          });
+          if (record) {
+            const feedbackUrl = `${process.env.FRONTEND_URL || ''}/family-portal/feedback/${record.access_token}`;
+            const carerName = visit.carer_name || 'Your care team member';
+            const visitDate = visit.scheduled_start ? new Date(visit.scheduled_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+            EmailService.sendEmail(
+              fm.email,
+              `How was the visit to ${personName}?`,
+              `<p>Hi ${fm.name},</p>
+              <p>A care visit for <strong>${personName}</strong>${visitDate ? ` on ${visitDate}` : ''} has been completed by ${carerName}.</p>
+              <p>We would love to hear your feedback. It only takes a minute and helps us improve the care we provide.</p>
+              <p><a href="${feedbackUrl}" style="display:inline-block;padding:12px 28px;background:#00C9A7;color:#0B1426;font-weight:700;text-decoration:none;border-radius:8px;font-size:15px">Share your feedback →</a></p>
+              <p style="color:#94A3B8;font-size:12px;margin-top:24px">This link expires in 7 days. Your feedback is confidential and helps us maintain high standards of care.</p>`
+            ).catch(() => {});
+          }
+        }
+      } catch { /* family feedback is non-critical */ }
     } catch (e: any) { /* notification failure should not block */ }
   }
 
