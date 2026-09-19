@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material'
 import api from '../../services/api'
 import ContextualLearnLink from '../../components/ContextualLearnLink'
+import PageContainer from '../../components/design/PageContainer'
 
 /* ─── Helpers ──────────────────────────────────────────────── */
 const time = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -284,7 +285,7 @@ export default function CallAssignmentBoard() {
   }, [selectedForAssign, visits, assignVisit])
 
   return (
-    <Box>
+    <PageContainer>
       {/* Header */}
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
@@ -453,7 +454,7 @@ export default function CallAssignmentBoard() {
           </Box>
         </Stack>
       )}
-    </Box>
+    </PageContainer>
   )
 }
 

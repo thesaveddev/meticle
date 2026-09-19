@@ -3,6 +3,7 @@ import { Box, Button, Chip, Paper, Stack, Typography, Skeleton } from '@mui/mate
 import { Refresh as RefreshIcon, MyLocation as LocationIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
+import PageContainer from '../../components/design/PageContainer'
 import 'leaflet/dist/leaflet.css'
 
 // Preconnect to tile server for faster loading
@@ -193,7 +194,7 @@ export default function LiveMapPage() {
   }
 
   return (
-    <Box>
+    <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Live Visit Map</Typography>
@@ -312,6 +313,6 @@ export default function LiveMapPage() {
           </Stack>
         </Paper>
       )}
-    </Box>
+    </PageContainer>
   )
 }

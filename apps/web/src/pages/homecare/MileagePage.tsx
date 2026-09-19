@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Typography } from '@mui/material'
 import { Download as DownloadIcon, Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, DirectionsCar as CarIcon, Policy as PolicyIcon } from '@mui/icons-material'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
 
 /* ── Helpers ── */
@@ -134,11 +135,46 @@ export default function MileagePage() {
     catch (e: any) { setPolicyError(e.response?.data?.message || 'Could not delete mileage policy') }
   }
 
+  // Travel tab: search and pagination
+  const [travelSearch, setTravelSearch] = useState('')
+  const [travelPage, setTravelPage] = useState(0)
+  const TRAVEL_PAGE_SIZE = 15
+
+  const filteredMileage = useMemo(() => {
+    if (!travelSearch.trim()) return mileageVisits
+    const q = travelSearch.toLowerCase()
+    return mileageVisits.filter((v: any) =>
+      (v.assigned_staff_name || '').toLowerCase().includes(q) ||
+      (v.person_name || '').toLowerCase().includes(q)
+    )
+  }, [mileageVisits, travelSearch])
+
+  const travelTotalPages = Math.ceil(filteredMileage.length / TRAVEL_PAGE_SIZE)
+  const paginatedMileage = filteredMileage.slice(travelPage * TRAVEL_PAGE_SIZE, (travelPage + 1) * TRAVEL_PAGE_SIZE)
+
+  // Policy tab: search and pagination
+  const [policySearch, setPolicySearch] = useState('')
+  const [policyPage, setPolicyPage] = useState(0)
+  const POLICY_PAGE_SIZE = 10
+
+  const filteredPolicies = useMemo(() => {
+    if (!policySearch.trim()) return policies
+    const q = policySearch.toLowerCase()
+    return policies.filter((p: MileagePolicy) =>
+      p.tax_year.toLowerCase().includes(q) ||
+      (VEHICLE_TYPES.find(v => v.value === p.vehicle_type)?.label || '').toLowerCase().includes(q) ||
+      (FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || '').toLowerCase().includes(q)
+    )
+  }, [policies, policySearch])
+
+  const policyTotalPages = Math.ceil(filteredPolicies.length / POLICY_PAGE_SIZE)
+  const paginatedPolicies = filteredPolicies.slice(policyPage * POLICY_PAGE_SIZE, (policyPage + 1) * POLICY_PAGE_SIZE)
+
   const activePolicies = policies.filter((p: MileagePolicy) => p.is_active)
 
   /* ──────────── RENDER ──────────── */
   return (
-    <Box>
+    <PageContainer>
       {/* Header */}
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 2 }}>
         <Stack direction="row" alignItems="center" gap={1.5}>
@@ -173,8 +209,9 @@ export default function MileagePage() {
       {/* ═══════ TAB 0: Travel & Mileage ═══════ */}
       {tab === 0 && (
         <>
-          <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
             <TextField type="month" size="small" value={month} onChange={e => setMonth(e.target.value)} sx={{ minWidth: 180 }} />
+            <TextField size="small" placeholder="Search by carer or client..." value={travelSearch} onChange={e => { setTravelSearch(e.target.value); setTravelPage(0) }} sx={{ flex: 1, minWidth: 200 }} />
           </Stack>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
@@ -228,9 +265,9 @@ export default function MileagePage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {mileageVisits.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>No mileage records for this period</TableCell></TableRow>
-                  ) : mileageVisits.map((v: any) => (
+                  {paginatedMileage.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>{travelSearch ? 'No records match your search' : 'No mileage records for this period'}</TableCell></TableRow>
+                  ) : paginatedMileage.map((v: any) => (
                     <TableRow key={v.id} hover>
                       <TableCell>
                         <Typography sx={{ fontWeight: 600 }}>{v.assigned_staff_name || 'Unassigned'}</Typography>
@@ -250,6 +287,15 @@ export default function MileagePage() {
                 </TableBody>
               </Table>
             </TableContainer>
+          )}
+
+          {/* Travel pagination */}
+          {travelTotalPages > 1 && (
+            <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} sx={{ mt: 2 }}>
+              <Button size="small" disabled={travelPage === 0} onClick={() => setTravelPage(p => p - 1)}>Previous</Button>
+              <Typography variant="body2" color="text.secondary">Page {travelPage + 1} of {travelTotalPages}</Typography>
+              <Button size="small" disabled={travelPage >= travelTotalPages - 1} onClick={() => setTravelPage(p => p + 1)}>Next</Button>
+            </Stack>
           )}
         </>
       )}
@@ -271,7 +317,9 @@ export default function MileagePage() {
               )}
             </Paper>
           ) : (
-            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
+            <>
+              <TextField size="small" placeholder="Search policies..." value={policySearch} onChange={e => { setPolicySearch(e.target.value); setPolicyPage(0) }} sx={{ mb: 2, minWidth: 250 }} />
+              <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Table>
                 <TableHead>
                   <TableRow>
@@ -287,7 +335,7 @@ export default function MileagePage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {policies.map((p: MileagePolicy) => (
+                  {paginatedPolicies.map((p: MileagePolicy) => (
                     <TableRow key={p.id} hover sx={{ opacity: p.is_active ? 1 : 0.6 }}>
                       <TableCell><Typography sx={{ fontWeight: 600 }}>{p.tax_year}</Typography></TableCell>
                       <TableCell>
@@ -316,6 +364,16 @@ export default function MileagePage() {
                 </TableBody>
               </Table>
             </TableContainer>
+
+              {/* Policy pagination */}
+              {policyTotalPages > 1 && (
+                <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} sx={{ mt: 2 }}>
+                  <Button size="small" disabled={policyPage === 0} onClick={() => setPolicyPage(p => p - 1)}>Previous</Button>
+                  <Typography variant="body2" color="text.secondary">Page {policyPage + 1} of {policyTotalPages}</Typography>
+                  <Button size="small" disabled={policyPage >= policyTotalPages - 1} onClick={() => setPolicyPage(p => p + 1)}>Next</Button>
+                </Stack>
+              )}
+            </>
           )}
         </>
       )}
@@ -363,6 +421,6 @@ export default function MileagePage() {
           <Button variant="contained" color="error" onClick={() => deleteConfirm && removePolicy(deleteConfirm)} sx={{ textTransform: 'none' }}>Delete</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   )
 }

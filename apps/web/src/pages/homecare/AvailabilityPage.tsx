@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, CircularProgress, Divider, MenuItem, Paper, S
 import { Add as AddIcon, CheckCircleOutline, DeleteOutline, Schedule as ScheduleIcon } from '@mui/icons-material'
 import { UserRole } from '@meticle/shared'
 import api from '../../services/api'
+import PageContainer from '../../components/design/PageContainer'
 import ContextualLearnLink from '../../components/ContextualLearnLink'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -130,7 +131,7 @@ export default function AvailabilityPage() {
   if (loading) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
 
   return (
-    <Box sx={{ maxWidth: 1120, mx: 'auto', pb: 4 }}>
+    <PageContainer>
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={2} sx={{ mb: 2.5 }}>
         <Stack direction="row" alignItems="center" gap={1.5}>
           <Box sx={{ width: 44, height: 44, borderRadius: 2.5, display: 'grid', placeItems: 'center', bgcolor: '#E8F6F0', color: '#047857' }}><ScheduleIcon /></Box>
@@ -249,6 +250,6 @@ export default function AvailabilityPage() {
           </Box>
         )}
       </Paper>
-    </Box>
+    </PageContainer>
   )
 }

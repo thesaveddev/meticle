@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Alert, Box, Button, CircularProgress, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
 import { Download as DownloadIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
+import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
 
 const money = (pence: number | null | undefined) => pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
@@ -39,7 +40,7 @@ export default function PayrollExportPage() {
   const totalMileage = timesheets.reduce((sum: number, t: any) => sum + ((Number(t.mileage_miles) || 0) * (Number(t.mileage_rate_pence) || 0)), 0)
 
   return (
-    <Box>
+    <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Payroll Export</Typography>
@@ -119,6 +120,6 @@ export default function PayrollExportPage() {
           </Table>
         </TableContainer>
       )}
-    </Box>
+    </PageContainer>
   )
 }

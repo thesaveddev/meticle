@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { enqueueHomecareAction, flushHomecareOfflineQueue, getHomecareOfflineQueue, type HomecareOfflineAction } from '../../services/homecare-offline'
 import './homecare.css'
+import PageContainer from '../../components/design/PageContainer'
 
 const money = (pence: number | null | undefined) => pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
 const dateLabel = (value: string) => new Date(value).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -132,7 +133,7 @@ export default function HomecarePage() {
   const pendingTimesheets = timesheets.filter((t: any) => t.status === 'submitted')
   const canCreatePackage = isManager && people.length > 0
 
-  return <Box className="homecare-page">
+  return <PageContainer><Box className="homecare-page">
     <header className="homecare-header">
       <Box><Typography component="h1" className="homecare-title">Domiciliary care</Typography><Typography className="homecare-intro">The next visit, the right carer, and a clean record of time and travel.</Typography></Box>
       <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap"><Chip icon={<HomeWorkIcon />} label={isManager ? `${packages.length} care packages` : `${todayVisits.length} visits today`} className="homecare-chip" />{isManager && <Button size="small" variant="outlined" onClick={() => window.location.href = '/people'} sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: 'text.primary' }}>Add client</Button>}{isManager && <Button size="small" variant="outlined" onClick={() => window.location.href = '/mileage'} sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: 'text.primary' }}>Mileage policy</Button>}{isManager && <Button size="small" variant="contained" className="homecare-action" onClick={() => setPackageDialogOpen(true)} disabled={!canCreatePackage}>New package</Button>}</Stack>
@@ -164,7 +165,7 @@ export default function HomecarePage() {
       </Stack></DialogContent>
       <DialogActions><Button onClick={() => setPackageDialogOpen(false)}>Cancel</Button><Button variant="contained" disabled={!packageForm.person_id || !packageForm.name.trim() || createPackage.isPending}              onClick={() => createPackage.mutate({ ...packageForm, hourly_rate_pence: packageForm.hourly_rate_pence === '' ? null : Number(packageForm.hourly_rate_pence), client_rate_pence: packageForm.client_rate_pence === '' ? null : Number(packageForm.client_rate_pence), mileage_rate_pence: packageForm.mileage_rate_pence === '' ? null : Number(packageForm.mileage_rate_pence) })}>{createPackage.isPending ? <CircularProgress size={18} /> : 'Create package'}</Button></DialogActions>
     </Dialog>
-  </Box>
+  </Box></PageContainer>
 }
 
 function OperationsSummary() {
