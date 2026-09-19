@@ -41,7 +41,7 @@ export default function Footer() {
         <Grid container spacing={{ xs: 4, md: 6 }} sx={{ pt: { xs: 8, md: 10 }, pb: { xs: 5, md: 7 } }}>
           {/* Brand */}
           <Grid item xs={12} md={3.5}>
-            <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.03em', mb: 2 }}>
+            <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.04em', mb: 2 }}>
               Meticle<span style={{ color: M.teal }}>Care</span>
             </Typography>
             <Typography sx={{ color: M.muted, fontSize: '0.875rem', lineHeight: 1.65, mb: 3, maxWidth: 280 }}>
@@ -79,7 +79,7 @@ export default function Footer() {
       </Container>
 
       {/* Bottom bar */}
-      <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.08)', py: { xs: 2.5, md: 3 }, bgcolor: M.darkMid }}>
+      <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.06)', py: { xs: 2.5, md: 3 }, bgcolor: M.darkMid }}>
         <Container maxWidth="lg">
           <Stack
             direction={{ xs: 'column', sm: 'row' }}

@@ -9,11 +9,13 @@ import { M } from '../../styles/marketing-tokens'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
 
-function Eyebrow({ children, light }: { children: React.ReactNode; light?: boolean }) {
+/* ─── Shared ─────────────────────────────────────────── */
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
       <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: M.teal }} />
-      <Typography sx={{ color: light ? 'rgba(255,255,255,0.6)' : M.tealDeep, fontSize: M.caption.size, fontWeight: M.caption.weight, letterSpacing: M.caption.tracking, textTransform: 'uppercase' }}>{children}</Typography>
+      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.size, fontWeight: M.caption.weight, letterSpacing: M.caption.tracking, textTransform: 'uppercase' }}>{children}</Typography>
     </Stack>
   )
 }
@@ -22,7 +24,7 @@ function Eyebrow({ children, light }: { children: React.ReactNode; light?: boole
 
 function DashboardMockup() {
   return (
-    <Box sx={{ p: 2, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E2E8F0', fontFamily: 'system-ui, sans-serif' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E2E8F0', fontFamily: 'system-ui, sans-serif' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E293B' }}>Today's Coverage</Typography>
         <Chip label="92%" size="small" sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
@@ -57,7 +59,7 @@ function EMARMockup() {
     { name: 'Paracetamol 500mg', time: '14:00', status: 'pending', color: '#94A3B8' },
   ]
   return (
-    <Box sx={{ p: 2, bgcolor: '#FFFBEB', borderRadius: 2, border: '1px solid #FEF3C7' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#FFFBEB', borderRadius: 2, border: '1px solid #FEF3C7' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#92400E' }}>Medication Record</Typography>
         <Chip label="MAR" size="small" sx={{ bgcolor: '#FDE68A', color: '#92400E', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
@@ -83,7 +85,7 @@ function WorkforceMockup() {
     { name: 'Priya S.', role: 'Care Worker', compliance: 72, color: '#EF4444' },
   ]
   return (
-    <Box sx={{ p: 2, bgcolor: '#FDF2F8', borderRadius: 2, border: '1px solid #FCE7F3' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#FDF2F8', borderRadius: 2, border: '1px solid #FCE7F3' }}>
       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#9D174D', mb: 1.5 }}>Staff Compliance</Typography>
       {staff.map((s, i) => (
         <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < staff.length - 1 ? '1px solid #FCE7F3' : 'none' }}>
@@ -112,7 +114,7 @@ function ScheduleMockup() {
     { time: '13:00', client: 'Robert H.', carer: 'Priya S.', status: 'scheduled', color: '#94A3B8' },
   ]
   return (
-    <Box sx={{ p: 2, bgcolor: '#F0FDF4', borderRadius: 2, border: '1px solid #DCFCE7' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#F0FDF4', borderRadius: 2, border: '1px solid #DCFCE7' }}>
       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#166534', mb: 1.5 }}>Call Schedule</Typography>
       {calls.map((c, i) => (
         <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < calls.length - 1 ? '1px solid #DCFCE7' : 'none' }}>
@@ -136,7 +138,7 @@ function IncidentMockup() {
     { title: 'Safeguarding concern logged', severity: 'high', status: 'escalated', color: '#F59E0B' },
   ]
   return (
-    <Box sx={{ p: 2, bgcolor: '#FEF2F2', borderRadius: 2, border: '1px solid #FECACA' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#FEF2F2', borderRadius: 2, border: '1px solid #FECACA' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#991B1B' }}>Open Incidents</Typography>
         <Chip label="3 active" size="small" sx={{ bgcolor: '#FEE2E2', color: '#991B1B', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
@@ -162,7 +164,7 @@ function ComplianceMockup() {
     { label: 'Competency Assessments', pct: 68, color: '#EF4444' },
   ]
   return (
-    <Box sx={{ p: 2, bgcolor: '#F5F3FF', borderRadius: 2, border: '1px solid #EDE9FE' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#F5F3FF', borderRadius: 2, border: '1px solid #EDE9FE' }}>
       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#5B21B6', mb: 1.5 }}>Compliance Dashboard</Typography>
       {items.map((item, i) => (
         <Box key={i} sx={{ py: 1, borderBottom: i < items.length - 1 ? '1px solid #EDE9FE' : 'none' }}>
@@ -186,7 +188,7 @@ function ReportingMockup() {
     { label: 'Client satisfaction', value: '4.6/5', trend: '+0.2', color: '#8B5CF6' },
   ]
   return (
-    <Box sx={{ p: 2, bgcolor: '#EFF6FF', borderRadius: 2, border: '1px solid #DBEAFE' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#EFF6FF', borderRadius: 2, border: '1px solid #DBEAFE' }}>
       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E40AF', mb: 1.5 }}>Operational Insights</Typography>
       <Grid container spacing={1.5}>
         {metrics.map((m, i) => (
@@ -205,7 +207,7 @@ function ReportingMockup() {
 
 function FamilyPortalMockup() {
   return (
-    <Box sx={{ p: 2, bgcolor: '#F0FDFA', borderRadius: 2, border: '1px solid #99F6E4' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#F0FDFA', borderRadius: 2, border: '1px solid #99F6E4' }}>
       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#134E4A', mb: 1.5 }}>Family View</Typography>
       <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #99F6E4', mb: 1.5 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
@@ -227,7 +229,7 @@ function FamilyPortalMockup() {
 
 function AIMockup() {
   return (
-    <Box sx={{ p: 2, bgcolor: '#FAF5FF', borderRadius: 2, border: '1px solid #E9D5FF' }}>
+    <Box sx={{ p: 2.5, bgcolor: '#FAF5FF', borderRadius: 2, border: '1px solid #E9D5FF' }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
         <AutoAwesome sx={{ fontSize: 14, color: '#9333EA' }} />
         <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#6B21A8' }}>AI Intelligence</Typography>
@@ -313,6 +315,8 @@ const workflows = [
   { step: '03', title: 'Review', desc: 'Managers see the operational picture: missed calls, overdue training, open incidents, compliance gaps — all in one view.' },
   { step: '04', title: 'Act', desc: 'Assign follow-up actions, approve changes, generate reports and prepare evidence — with full change history.' },
 ]
+
+/* ─── Page ──────────────────────────────────────────── */
 
 export default function PlatformPage() {
   const nav = useNavigate()

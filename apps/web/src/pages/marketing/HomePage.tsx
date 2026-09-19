@@ -8,11 +8,11 @@ import { M } from '../../styles/marketing-tokens'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
 
-/* ─── Primitives ────────────────────────────────────── */
+/* ─── Shared Elements ──────────────────────────────── */
 
-function Tag({ children, color = M.teal }: { children: React.ReactNode; color?: string }) {
+function Eyebrow({ children, color = M.teal }: { children: React.ReactNode; color?: string }) {
   return (
-    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 2.5 }}>
+    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 2 }}>
       <Box sx={{ width: 6, height: 6, borderRadius: M.r.full, bgcolor: color }} />
       <Typography sx={{ ...M.overline, color, textTransform: 'uppercase' }}>{children}</Typography>
     </Stack>
@@ -38,6 +38,15 @@ function CTA({
 }
 
 /* ─── Data ──────────────────────────────────────────── */
+
+const trustItems = [
+  { icon: VerifiedUser, label: 'UK data hosting' },
+  { icon: Lock, label: 'Encryption at rest & in transit' },
+  { icon: Shield, label: 'MFA & RBAC' },
+  { icon: Insights, label: 'Full audit trail' },
+  { icon: Security, label: 'Tenant isolation' },
+  { icon: Star, label: 'GDPR-ready' },
+]
 
 const platformTree = [
   {
@@ -68,13 +77,12 @@ const evidenceFlow = [
   'Maintain evidence',
 ]
 
-const trustItems = [
-  { icon: VerifiedUser, label: 'UK data hosting' },
-  { icon: Lock, label: 'Encryption at rest & in transit' },
-  { icon: Shield, label: 'MFA & RBAC' },
-  { icon: Insights, label: 'Full audit trail' },
-  { icon: Security, label: 'Tenant isolation' },
-  { icon: Star, label: 'GDPR-ready' },
+const aiFeatures = [
+  { icon: AutoAwesome, title: 'Care summaries', desc: '7, 14 or 30-day person summaries linked to source records.' },
+  { icon: TrendingUp, title: 'Change detection', desc: 'Surfaces changes across notes, incidents, missed calls and medication.' },
+  { icon: Warning, title: 'Risk signals', desc: 'Deterministic signals with AI explanations — not diagnoses.' },
+  { icon: Insights, title: 'Compliance copilot', desc: 'Training gaps, overdue reviews and evidence that may need attention.' },
+  { icon: People, title: 'Manager briefing', desc: 'End-of-day intelligence covering people, workforce and operations.' },
 ]
 
 /* ─── Page ──────────────────────────────────────────── */
@@ -99,33 +107,34 @@ export default function HomePage() {
         }}
       />
 
-      {/* ═══ HERO ═══ */}
+      {/* ═══ 01 · HERO ═══ */}
       <Box sx={{
         background: `linear-gradient(165deg, ${M.navy} 0%, ${M.navyMid} 55%, ${M.navyLight} 100%)`,
-        pt: { xs: 12, md: 20 }, pb: { xs: 10, md: 16 }, position: 'relative', overflow: 'hidden',
+        pt: { xs: 12, md: 22 }, pb: { xs: 10, md: 18 }, position: 'relative', overflow: 'hidden',
       }}>
         {/* Subtle grid pattern */}
         <Box sx={{
-          position: 'absolute', inset: 0, opacity: 0.025,
+          position: 'absolute', inset: 0, opacity: 0.02,
           backgroundImage: `linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)`,
           backgroundSize: '48px 48px',
         }} />
         {/* Ambient glow */}
-        <Box sx={{ position: 'absolute', top: -120, right: -80, width: 500, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${M.teal}12 0%, transparent 70%)` }} />
+        <Box sx={{ position: 'absolute', top: -120, right: -80, width: 500, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${M.teal}10 0%, transparent 70%)` }} />
+        <Box sx={{ position: 'absolute', bottom: -100, left: -60, width: 400, height: 400, borderRadius: '50%', background: `radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%)` }} />
 
         <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-          <Tag color={M.teal}>Care operations software</Tag>
+          <Eyebrow color="rgba(255,255,255,0.5)">Care operations software</Eyebrow>
           <Typography sx={{ ...M.display, color: '#fff', mb: 3 }}>
             Run your care operation with confidence.
           </Typography>
-          <Typography sx={{ ...M.bodyLg, color: 'rgba(255,255,255,0.55)', mb: 5, maxWidth: 600, mx: 'auto' }}>
+          <Typography sx={{ ...M.bodyLg, color: 'rgba(255,255,255,0.5)', mb: 6, maxWidth: 600, mx: 'auto' }}>
             MeticleCare connects care delivery, workforce management, compliance, medication, reporting and intelligent automation in one platform for UK domiciliary and supported living providers.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <CTA />
             <CTA label="Explore the platform" to="/platform" variant="ghost" />
           </Stack>
-          <Stack direction="row" spacing={5} justifyContent="center" sx={{ mt: 6 }}>
+          <Stack direction="row" spacing={6} justifyContent="center" sx={{ mt: 7 }}>
             {[
               { v: '4', l: 'UK nations' },
               { v: '24/7', l: 'Mobile access' },
@@ -133,14 +142,14 @@ export default function HomePage() {
             ].map((s) => (
               <Stack key={s.l} alignItems="center" spacing={0.5}>
                 <Typography sx={{ fontSize: { xs: '1.5rem', md: '1.75rem' }, fontWeight: 800, color: M.teal, letterSpacing: '-0.03em' }}>{s.v}</Typography>
-                <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>{s.l}</Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>{s.l}</Typography>
               </Stack>
             ))}
           </Stack>
         </Container>
       </Box>
 
-      {/* ═══ TRUST BAR ═══ */}
+      {/* ═══ 02 · TRUST BAR ═══ */}
       <Box sx={{ bgcolor: M.card, borderBottom: `1px solid ${M.faint}`, py: 2.5 }}>
         <Container maxWidth="lg">
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 4 }} alignItems="center" justifyContent="center" useFlexGap>
@@ -154,11 +163,11 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ CONNECTED OPERATING SYSTEM ═══ */}
+      {/* ═══ 03 · CONNECTED OPERATING SYSTEM ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Tag>Connected platform</Tag>
+            <Eyebrow>Connected platform</Eyebrow>
             <Typography sx={{ ...M.h1, mb: 2 }}>One platform. Every part of your care operation.</Typography>
             <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 560, mx: 'auto' }}>
               Not a collection of disconnected modules. A connected operating system where care records, workforce, compliance and intelligence share context.
@@ -199,7 +208,7 @@ export default function HomePage() {
             {/* Intelligence layer */}
             <Box sx={{
               mt: 3, p: 2.5, borderRadius: M.r.lg,
-              background: `linear-gradient(135deg, ${M.tealSoft} 0%, ${M.indigoLight} 100%)`,
+              background: `linear-gradient(135deg, ${M.tealSoft} 0%, ${M.blueLight} 100%)`,
               border: `1px solid ${M.teal}30`,
               textAlign: 'center',
             }}>
@@ -212,12 +221,12 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ INSPECTION READINESS ═══ */}
+      {/* ═══ 04 · INSPECTION READINESS ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
-              <Tag>Inspection readiness</Tag>
+              <Eyebrow>Inspection readiness</Eyebrow>
               <Typography sx={{ ...M.h1, mb: 2 }}>Stay ready for inspection. Every day.</Typography>
               <Typography sx={{ ...M.bodyLg, color: M.slate, mb: 3 }}>
                 Compliance shouldn't begin when an inspection is announced. MeticleCare helps make good governance part of everyday care operations.
@@ -269,11 +278,11 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ FOUR NATIONS ═══ */}
+      {/* ═══ 05 · FOUR NATIONS ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Tag>Regulatory environments</Tag>
+            <Eyebrow>Regulatory environments</Eyebrow>
             <Typography sx={{ ...M.h1, mb: 2 }}>Built for regulated care across the UK.</Typography>
             <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 600, mx: 'auto' }}>
               Different nations. Different regulatory frameworks. One platform for managing the records, evidence, people and processes behind your care service.
@@ -282,7 +291,7 @@ export default function HomePage() {
           <Grid container spacing={2.5}>
             {[
               { code: 'CQC', name: 'Care Quality Commission', nation: 'England', color: '#2563EB' },
-              { code: 'Care Inspectorate', name: 'Scotland\'s regulator', nation: 'Scotland', color: '#DC2626' },
+              { code: 'Care Inspectorate', name: "Scotland's regulator", nation: 'Scotland', color: '#DC2626' },
               { code: 'CIW', name: 'Care Inspectorate Wales', nation: 'Wales', color: '#059669' },
               { code: 'RQIA', name: 'Quality authority for NI', nation: 'Northern Ireland', color: '#7C3AED' },
             ].map((r) => (
@@ -308,12 +317,12 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ EVIDENCE FLOW ═══ */}
+      {/* ═══ 06 · EVIDENCE FLOW ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
-              <Tag>How evidence is created</Tag>
+              <Eyebrow>How evidence is created</Eyebrow>
               <Typography sx={{ ...M.h2, mb: 2 }}>Evidence created through everyday work.</Typography>
               <Typography sx={{ ...M.bodyLg, color: M.slate }}>
                 When your team delivers care, records medication, tracks risks and manages incidents in one system, inspection evidence is created continuously — not assembled under pressure.
@@ -342,11 +351,11 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ TWO SOLUTIONS ═══ */}
+      {/* ═══ 07 · TWO SOLUTIONS ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Tag>Solutions</Tag>
+            <Eyebrow>Solutions</Eyebrow>
             <Typography sx={{ ...M.h1, mb: 2 }}>Built for how you actually work.</Typography>
           </Box>
           <Grid container spacing={3}>
@@ -359,7 +368,7 @@ export default function HomePage() {
               {
                 title: 'Supported Living', tagline: 'Connected around the person.',
                 points: ['Person-centred support plans and daily notes', 'Medication, body mapping and MAR workflows', 'Risk assessments, incidents and safeguarding', 'Rota, staff, training and competency', 'Reviews, reporting and compliance evidence'],
-                path: '/solutions/supported-living', accent: M.indigo,
+                path: '/solutions/supported-living', accent: '#6366F1',
               },
             ].map((sol) => (
               <Grid item xs={12} md={6} key={sol.title}>
@@ -388,7 +397,7 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ AI INTELLIGENCE ═══ */}
+      {/* ═══ 08 · AI INTELLIGENCE ═══ */}
       <Box sx={{
         py: { xs: 8, md: 14 },
         background: `linear-gradient(165deg, ${M.navy} 0%, ${M.navyMid} 55%, ${M.navyLight} 100%)`,
@@ -398,7 +407,7 @@ export default function HomePage() {
         <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={6}>
-              <Tag color="rgba(255,255,255,0.5)">AI & Intelligence</Tag>
+              <Eyebrow color="rgba(255,255,255,0.5)">AI & Intelligence</Eyebrow>
               <Typography sx={{ ...M.h1, color: '#fff', mb: 2 }}>AI that works with your care team.</Typography>
               <Typography sx={{ ...M.bodyLg, color: 'rgba(255,255,255,0.5)', mb: 4 }}>
                 Intelligence embedded throughout MeticleCare — not a separate chatbot. AI analyses the data your team already creates, surfaces patterns and generates briefings — with source traceability and human review at the centre.
@@ -407,13 +416,7 @@ export default function HomePage() {
             </Grid>
             <Grid item xs={12} md={6}>
               <Stack spacing={2}>
-                {[
-                  { icon: AutoAwesome, title: 'Care summaries', desc: '7, 14 or 30-day person summaries linked to source records.' },
-                  { icon: TrendingUp, title: 'Change detection', desc: 'Surfaces changes across notes, incidents, missed calls and medication.' },
-                  { icon: Warning, title: 'Risk signals', desc: 'Deterministic signals with AI explanations — not diagnoses.' },
-                  { icon: Insights, title: 'Compliance copilot', desc: 'Training gaps, overdue reviews and evidence that may need attention.' },
-                  { icon: People, title: 'Manager briefing', desc: 'End-of-day intelligence covering people, workforce and operations.' },
-                ].map((f) => (
+                {aiFeatures.map((f) => (
                   <Box key={f.title} sx={{
                     p: 2.5, borderRadius: M.r.md,
                     border: '1px solid rgba(255,255,255,0.06)',
@@ -438,7 +441,7 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ MOBILE ═══ */}
+      {/* ═══ 09 · MOBILE ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
@@ -464,7 +467,7 @@ export default function HomePage() {
               </Box>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Tag>Mobile app</Tag>
+              <Eyebrow>Mobile app</Eyebrow>
               <Typography sx={{ ...M.h1, mb: 2 }}>Care doesn't happen behind a desk.</Typography>
               <Typography sx={{ ...M.bodyLg, color: M.slate, mb: 4 }}>
                 Give carers a focused mobile experience for the work in front of them — check in, record notes, report disruptions, view care plans and access client information. Available for iOS and Android.
@@ -483,11 +486,11 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ SECURITY ═══ */}
+      {/* ═══ 10 · SECURITY ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Tag>Security</Tag>
+            <Eyebrow>Security</Eyebrow>
             <Typography sx={{ ...M.h1, mb: 2 }}>Care data deserves serious protection.</Typography>
             <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 520, mx: 'auto' }}>
               Security is a core product concern. Tenant isolation, role-based access, encryption and audit logging are built in from the start.
@@ -519,11 +522,11 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ BLOG ═══ */}
+      {/* ═══ 11 · BLOG ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Tag>Resources</Tag>
+            <Eyebrow>Resources</Eyebrow>
             <Typography sx={{ ...M.h1, mb: 2 }}>Ideas for better care operations.</Typography>
             <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 480, mx: 'auto' }}>
               Practical guidance on care technology, compliance and operations.
@@ -556,7 +559,7 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ FINAL CTA ═══ */}
+      {/* ═══ 12 · FINAL CTA ═══ */}
       <Box sx={{
         py: { xs: 10, md: 16 },
         background: `linear-gradient(165deg, ${M.navy} 0%, ${M.navyMid} 55%, ${M.navyLight} 100%)`,
@@ -579,4 +582,3 @@ export default function HomePage() {
     </MarketingLayout>
   )
 }
-

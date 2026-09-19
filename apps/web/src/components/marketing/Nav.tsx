@@ -43,6 +43,7 @@ const navGroups: NavGroup[] = [
   },
   { name: 'Resources', path: '/blog' },
   { name: 'Security', path: '/security' },
+  { name: 'About', path: '/about' },
 ]
 
 /* ─── Component ────────────────────────────────────── */
@@ -76,12 +77,11 @@ export default function Nav() {
         position="fixed"
         elevation={0}
         sx={{
-          bgcolor: scrolled ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.98)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderBottom: `1px solid ${scrolled ? M.subtle : 'transparent'}`,
-          boxShadow: scrolled ? M.shadow.sm : 'none',
-          transition: `border-color ${M.transition.base}, box-shadow ${M.transition.base}`,
+          bgcolor: scrolled ? 'rgba(255,255,255,0.94)' : 'rgba(255,255,255,0.98)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderBottom: `1px solid ${scrolled ? 'rgba(0,0,0,0.06)' : 'transparent'}`,
+          transition: `all ${M.transition.base}`,
         }}
       >
         <Container maxWidth="lg">
@@ -89,20 +89,20 @@ export default function Nav() {
             {/* Logo */}
             <Box
               onClick={() => go('/')}
-              sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5, userSelect: 'none' }}
+              sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.75, userSelect: 'none' }}
             >
               <Box
                 component="img"
                 src="/logo.svg"
                 alt="MeticleCare"
-                sx={{ height: { xs: 28, md: 32 }, width: 'auto' }}
+                sx={{ height: { xs: 26, md: 30 }, width: 'auto' }}
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
               />
               <Typography sx={{
-                fontSize: { xs: '1.15rem', md: '1.3rem' },
+                fontSize: { xs: '1.1rem', md: '1.2rem' },
                 fontWeight: 800,
                 color: M.navy,
-                letterSpacing: '-0.03em',
+                letterSpacing: '-0.04em',
                 display: { xs: 'none', sm: 'block' },
               }}>
                 Meticle<span style={{ color: M.teal }}>Care</span>
@@ -110,7 +110,7 @@ export default function Nav() {
             </Box>
 
             {/* Desktop nav */}
-            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ display: { xs: 'none', lg: 'flex' } }}>
+            <Stack direction="row" spacing={0} alignItems="center" sx={{ display: { xs: 'none', lg: 'flex' } }}>
               {navGroups.map((group) => (
                 <Box
                   key={group.name}
@@ -126,7 +126,7 @@ export default function Nav() {
                     sx={{
                       ...M.label,
                       py: 2, px: 1.5, cursor: 'pointer',
-                      color: isActive(group.path) ? M.navy : M.slate,
+                      color: isActive(group.path) ? M.teal : M.slate,
                       display: 'flex', alignItems: 'center', gap: 0.5,
                       transition: `color ${M.transition.fast}`,
                       '&:hover': { color: M.navy },
@@ -145,7 +145,7 @@ export default function Nav() {
                         transform: 'translateX(-50%) translateY(-4px)',
                         width: group.children.length > 4 ? 'min(520px, calc(100vw - 48px))' : 'min(280px, calc(100vw - 48px))',
                         bgcolor: M.card, borderRadius: M.r.lg, boxShadow: M.shadow.xl,
-                        border: `1px solid ${M.faint}`, p: 1.5, zIndex: 200,
+                        border: `1px solid rgba(0,0,0,0.06)`, p: 1.5, zIndex: 200,
                         opacity: 0, visibility: 'hidden',
                         transition: `opacity ${M.transition.fast}, visibility ${M.transition.fast}, transform ${M.transition.smooth}`,
                       }}
@@ -190,14 +190,15 @@ export default function Nav() {
 
             {/* Desktop CTAs */}
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ display: { xs: 'none', lg: 'flex' } }}>
-              <Button onClick={() => go('/login')} sx={{ fontWeight: 600, color: M.slate, textTransform: 'none', fontSize: '0.875rem' }}>Login</Button>
+              <Button onClick={() => go('/login')} sx={{ fontWeight: 600, color: M.slate, textTransform: 'none', fontSize: '0.85rem', '&:hover': { color: M.navy } }}>Login</Button>
               <Button
                 variant="contained"
+                endIcon={<ArrowForward />}
                 onClick={() => go('/contact')}
                 sx={{
                   bgcolor: M.teal, color: M.navy, fontWeight: 700,
                   px: 2.5, py: 1, borderRadius: M.r.md, textTransform: 'none',
-                  fontSize: '0.875rem', boxShadow: 'none',
+                  fontSize: '0.85rem', boxShadow: 'none',
                   '&:hover': { bgcolor: M.tealDark, boxShadow: 'none' },
                 }}
               >Book a demo</Button>
@@ -223,17 +224,17 @@ export default function Nav() {
         PaperProps={{ sx: { width: '85vw', maxWidth: 360, bgcolor: M.card } }}
       >
         <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: M.navy }}>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: M.navy, letterSpacing: '-0.03em' }}>
             Meticle<span style={{ color: M.teal }}>Care</span>
           </Typography>
-          <IconButton onClick={() => setMobileOpen(false)} aria-label="Close menu">
-            <Close />
+          <IconButton onClick={() => setMobileOpen(false)} aria-label="Close menu" size="small">
+            <Close sx={{ fontSize: 20 }} />
           </IconButton>
         </Box>
 
         <Box sx={{ px: 2, pb: 3 }}>
           {navGroups.map((group) => (
-            <Box key={group.name} sx={{ mb: 0.5 }}>
+            <Box key={group.name} sx={{ mb: 0.25 }}>
               {group.children ? (
                 <>
                   <Box
@@ -244,7 +245,7 @@ export default function Nav() {
                       '&:hover': { bgcolor: M.faint },
                     }}
                   >
-                    <Typography sx={{ fontWeight: 600, color: M.navy }}>{group.name}</Typography>
+                    <Typography sx={{ fontWeight: 600, color: M.navy, fontSize: '0.95rem' }}>{group.name}</Typography>
                     <ExpandMore sx={{
                       fontSize: 18, color: M.muted,
                       transition: `transform ${M.transition.fast}`,
@@ -259,7 +260,7 @@ export default function Nav() {
                           onClick={() => go(child.path)}
                           sx={{ p: 1.25, borderRadius: M.r.sm, cursor: 'pointer', '&:hover': { bgcolor: M.faint } }}
                         >
-                          <Typography sx={{ fontSize: '0.9rem', color: M.slate }}>{child.name}</Typography>
+                          <Typography sx={{ fontSize: '0.875rem', color: M.slate }}>{child.name}</Typography>
                         </Box>
                       ))}
                     </Box>
@@ -270,7 +271,7 @@ export default function Nav() {
                   onClick={() => go(group.path)}
                   sx={{ p: 1.5, borderRadius: M.r.sm, cursor: 'pointer', '&:hover': { bgcolor: M.faint } }}
                 >
-                  <Typography sx={{ fontWeight: 600, color: M.navy }}>{group.name}</Typography>
+                  <Typography sx={{ fontWeight: 600, color: M.navy, fontSize: '0.95rem' }}>{group.name}</Typography>
                 </Box>
               )}
             </Box>
@@ -281,12 +282,12 @@ export default function Nav() {
               fullWidth variant="contained"
               endIcon={<ArrowForward />}
               onClick={() => go('/contact')}
-              sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, py: 1.4, borderRadius: M.r.md, textTransform: 'none', mb: 1.5 }}
+              sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, py: 1.4, borderRadius: M.r.md, textTransform: 'none', mb: 1.5, fontSize: '0.9rem' }}
             >Book a demo</Button>
             <Button
               fullWidth variant="outlined"
               onClick={() => go('/login')}
-              sx={{ borderColor: M.subtle, color: M.navy, fontWeight: 600, py: 1.4, borderRadius: M.r.md, textTransform: 'none' }}
+              sx={{ borderColor: M.subtle, color: M.navy, fontWeight: 600, py: 1.4, borderRadius: M.r.md, textTransform: 'none', fontSize: '0.9rem' }}
             >Login</Button>
           </Box>
         </Box>
