@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react'
+import { Box, CircularProgress } from '@mui/material'
 import { Navigate, Outlet } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
 import api from '../services/api'
@@ -48,7 +49,11 @@ export default function AuthGuard({ allowedRoles, children }: AuthGuardProps) {
   }, [token])
 
   if (!token) return <Navigate to="/login" replace />
-  if (checking) return <div role="status" aria-live="polite" style={{ padding: '2rem', textAlign: 'center' }}>Checking access…</div>
+  if (checking) return (
+    <Box role="status" aria-live="polite" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+      <CircularProgress size={36} sx={{ color: '#0F4C81' }} />
+    </Box>
+  )
 
   if (allowedRoles && (!user || !allowedRoles.includes(user.role))) {
     return <Navigate to="/unauthorized" replace />
