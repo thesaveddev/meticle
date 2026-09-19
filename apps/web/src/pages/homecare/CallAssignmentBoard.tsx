@@ -9,9 +9,9 @@ import {
 } from '@tanstack/react-query'
 import {
   Add as AddIcon, Delete as DeleteIcon, Assignment as TaskIcon,
-  CheckCircle as CheckIcon, AutoAwesome,
+  CheckCircle as CheckIcon, AutoAwesome, ViewTimeline as TimelineIcon,
   Person as PersonIcon, AccessTime as TimeIcon, DragIndicator as DragIcon,
-  Undo as UndoIcon, WarningAmber, Lightbulb,
+  Undo as UndoIcon, WarningAmber, Lightbulb, ViewModule as BoardIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
 import ContextualLearnLink from '../../components/ContextualLearnLink'
@@ -273,6 +273,7 @@ export default function CallAssignmentBoard() {
   const [autoAssigning, setAutoAssigning] = useState(false)
   const [autoAssignResult, setAutoAssignResult] = useState<any>(null)
   const [autoAssignDialog, setAutoAssignDialog] = useState(false)
+  const [viewMode, setViewMode] = useState<'board' | 'timeline'>('board')
 
   // AI carer suggestion query
   const { data: suggestions = [], isLoading: suggestionsLoading } = useQuery({
@@ -315,6 +316,18 @@ export default function CallAssignmentBoard() {
           </Typography>
           <ContextualLearnLink topic="dom-manager-web" />
         </Box>
+        <Stack direction="row" spacing={0.5}>
+          <Tooltip title="Board view">
+            <IconButton size="small" onClick={() => setViewMode('board')} sx={{ bgcolor: viewMode === 'board' ? '#0F4C81' : 'transparent', color: viewMode === 'board' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'board' ? '#0D3D6B' : 'grey.100' } }}>
+              <BoardIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Timeline view">
+            <IconButton size="small" onClick={() => setViewMode('timeline')} sx={{ bgcolor: viewMode === 'timeline' ? '#0F4C81' : 'transparent', color: viewMode === 'timeline' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'timeline' ? '#0D3D6B' : 'grey.100' } }}>
+              <TimelineIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
         <Stack direction="row" spacing={1} alignItems="center">
           <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() - 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>←</Button>
           <Chip label={`${dateStr(date)} — ${visits.length} calls`} sx={{ fontWeight: 700, bgcolor: '#0F4C81', color: 'white' }} onClick={() => setDate(new Date().toISOString().slice(0, 10))} />
@@ -420,6 +433,24 @@ export default function CallAssignmentBoard() {
 
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+      ) : viewMode === 'timeline' ? (
+        <GanttTimeline
+          unassigned={unassigned}
+          carerEntries={carerEntries}
+          selectedForAssign={selectedForAssign}
+          onSelectVisit={handleVisitClick}
+          onAssignVisit={(visitId, staffId) => {
+            const visit = visits.find((v: any) => v.id === visitId)
+            if (!visit) return
+            const check = checkConflicts(visit, staffId, visits)
+            if (check.conflict) {
+              setConflictInfo({ visitId, carerId: staffId, msg: check.message, severity: check.severity })
+              return
+            }
+            assignVisit.mutate({ visitId, staffId })
+            setSelectedForAssign(null)
+          }}
+        />
       ) : (
         <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3} sx={{ alignItems: 'stretch' }}>
           {/* ─── LEFT: Unassigned Calls ─────────────────── */}
@@ -527,6 +558,162 @@ export default function CallAssignmentBoard() {
         </DialogActions>
       </Dialog>
     </PageContainer>
+  )
+}
+
+/* ─── Gantt Timeline View ─────────────────────────────────── */
+function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVisit, onAssignVisit }: {
+  unassigned: any[]; carerEntries: [string, { name: string; visits: any[] }][]
+  selectedForAssign: string | null; onSelectVisit: (id: string) => void
+  onAssignVisit: (visitId: string, staffId: string) => void
+}) {
+  const HOUR_HEIGHT = 60 // px per hour
+  const START_HOUR = 6
+  const END_HOUR = 22
+  const TOTAL_HOURS = END_HOUR - START_HOUR
+  const LABEL_WIDTH = 160 // px for carer name column
+
+  const timeToY = (dateStr: string) => {
+    const d = new Date(dateStr)
+    const h = d.getHours() + d.getMinutes() / 60
+    return Math.max(0, (h - START_HOUR) * HOUR_HEIGHT)
+  }
+
+  const visitHeight = (v: any) => {
+    const start = new Date(v.scheduled_start).getTime()
+    const end = new Date(v.scheduled_end).getTime()
+    return Math.max(20, ((end - start) / 3600000) * HOUR_HEIGHT)
+  }
+
+  // Current time indicator
+  const now = new Date()
+  const currentHour = now.getHours() + now.getMinutes() / 60
+  const showNowLine = currentHour >= START_HOUR && currentHour <= END_HOUR
+  const rows: { id: string; name: string; visits: any[]; isUnassigned?: boolean }[] = [
+    { id: '__unassigned', name: 'Unassigned', visits: unassigned, isUnassigned: true },
+    ...carerEntries.map(([id, data]) => ({ id, name: data.name, visits: data.visits })),
+  ]
+
+  const ROW_HEIGHT = 70
+
+  return (
+    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
+      <Box sx={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 160px)' }}>
+        <Box sx={{ display: 'flex', minWidth: LABEL_WIDTH + TOTAL_HOURS * 60 + 20 }}>
+          {/* Time header */}
+          <Box sx={{ width: LABEL_WIDTH, flexShrink: 0, borderRight: '1px solid #E5E7EB', position: 'sticky', left: 0, zIndex: 2, bgcolor: 'white' }} />
+          <Box sx={{ flex: 1, position: 'relative' }}>
+            <Stack direction="row" sx={{ borderBottom: '1px solid #E5E7EB', bgcolor: '#FAFAFA' }}>
+              {Array.from({ length: TOTAL_HOURS }, (_, i) => {
+                const h = START_HOUR + i
+                return (
+                  <Box key={h} sx={{ width: 60, flexShrink: 0, textAlign: 'center', py: 1, borderRight: '1px solid #F3F4F6' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.65rem' }}>
+                      {String(h).padStart(2, '0')}:00
+                    </Typography>
+                  </Box>
+                )
+              })}
+            </Stack>
+          </Box>
+        </Box>
+
+        {/* Rows */}
+        {rows.map((row) => (
+          <Box key={row.id} sx={{ display: 'flex', borderBottom: '1px solid #F3F4F6', minHeight: ROW_HEIGHT }}>
+            {/* Carer name */}
+            <Box sx={{
+              width: LABEL_WIDTH, flexShrink: 0, borderRight: '1px solid #E5E7EB',
+              position: 'sticky', left: 0, zIndex: 1, bgcolor: row.isUnassigned ? '#FFF7ED' : 'white',
+              px: 1.5, py: 1, display: 'flex', alignItems: 'center',
+              cursor: selectedForAssign && row.isUnassigned ? 'default' : selectedForAssign ? 'pointer' : 'default',
+              '&:hover': selectedForAssign && !row.isUnassigned ? { bgcolor: '#EFF6FF' } : {},
+              transition: 'background 0.15s',
+            }}
+              onClick={() => {
+                if (selectedForAssign && !row.isUnassigned) onAssignVisit(selectedForAssign, row.id)
+              }}
+            >
+              <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: row.isUnassigned ? '#FED7AA' : '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1, flexShrink: 0 }}>
+                {row.isUnassigned ? (
+                  <WarningAmber sx={{ fontSize: 14, color: '#D97706' }} />
+                ) : (
+                  <PersonIcon sx={{ fontSize: 14, color: '#0F4C81' }} />
+                )}
+              </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6rem' }}>{row.visits.length} call{row.visits.length !== 1 ? 's' : ''}</Typography>
+              </Box>
+            </Box>
+
+            {/* Timeline area */}
+            <Box sx={{ flex: 1, position: 'relative', minHeight: ROW_HEIGHT }}>
+              {/* Hour grid lines */}
+              {Array.from({ length: TOTAL_HOURS }, (_, i) => (
+                <Box key={i} sx={{ position: 'absolute', left: i * 60, top: 0, bottom: 0, width: 1, bgcolor: '#F3F4F6' }} />
+              ))}
+
+              {/* Current time line */}
+              {showNowLine && row.id === rows[0].id && (
+                <Box sx={{ position: 'absolute', left: (currentHour - START_HOUR) * 60, top: 0, bottom: 0, width: 2, bgcolor: '#DC2626', zIndex: 3, '&::before': { content: '""', position: 'absolute', top: -4, left: -3, width: 8, height: 8, borderRadius: '50%', bgcolor: '#DC2626' } }} />
+              )}
+
+              {/* Visit bars */}
+              {row.visits.map((v: any) => {
+                const startY = timeToY(v.scheduled_start)
+                const height = visitHeight(v)
+                const cfg = statusConfig[v.status] || statusConfig.scheduled
+                const isSelected = selectedForAssign === v.id
+                const startLeft = (() => {
+                  const d = new Date(v.scheduled_start)
+                  const h = d.getHours() + d.getMinutes() / 60
+                  return (h - START_HOUR) * 60
+                })()
+
+                return (
+                  <Tooltip key={v.id} title={`${v.person_name} · ${time(v.scheduled_start)}–${time(v.scheduled_end)} · ${v.label}${row.isUnassigned ? ' (click a carer to assign)' : ''}`} arrow placement="top">
+                    <Box
+                      onClick={() => row.isUnassigned ? onSelectVisit(v.id) : undefined}
+                      sx={{
+                        position: 'absolute',
+                        left: startLeft,
+                        top: startY + 2,
+                        height: Math.max(height - 4, 18),
+                        width: 56,
+                        minWidth: 56,
+                        bgcolor: isSelected ? '#DBEAFE' : cfg.bg,
+                        border: `1.5px solid ${isSelected ? '#0F4C81' : cfg.color}40`,
+                        borderLeft: `3px solid ${cfg.color}`,
+                        borderRadius: 1,
+                        px: 0.75,
+                        py: 0.25,
+                        cursor: row.isUnassigned ? 'pointer' : 'default',
+                        overflow: 'hidden',
+                        zIndex: 1,
+                        transition: 'all 0.15s',
+                        '&:hover': {
+                          zIndex: 5,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                          transform: 'scale(1.02)',
+                        },
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.6rem', color: cfg.color, display: 'block', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {time(v.scheduled_start)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontSize: '0.55rem', display: 'block', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'text.secondary' }}>
+                        {v.person_name}
+                      </Typography>
+                    </Box>
+                  </Tooltip>
+                )
+              })}
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    </Paper>
   )
 }
 
