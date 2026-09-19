@@ -337,7 +337,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
                     </View>
                     {tv.visit.person_name && (
                       <View style={styles.infoRow}>
-                        <Text style={[styles.infoIcon, { color: c.subtle }]}>👤</Text>
+                        <Ionicons name="person-outline" size={14} color={c.subtle} style={styles.infoIcon} />
                         <Text style={[styles.timelinePerson, { color: isPast ? c.subtle : c.muted }]} numberOfLines={1}>
                           {tv.visit.person_name}
                         </Text>
@@ -345,7 +345,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
                     )}
                     {tv.visit.person_address && (
                       <View style={styles.infoRow}>
-                        <Text style={[styles.infoIcon, { color: c.subtle }]}>📍</Text>
+                        <Ionicons name="location-outline" size={14} color={c.subtle} style={styles.infoIcon} />
                         <Text style={[styles.timelineAddr, { color: c.subtle }]} numberOfLines={1}>
                           {tv.visit.person_address}
                         </Text>
@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
   timelineNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 4 },
   timelineName: { fontFamily: FONT, fontSize: 15, fontWeight: '700', letterSpacing: -0.2, flex: 1 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  infoIcon: { fontSize: 12 },
+  infoIcon: { width: 14, height: 14 },
   timelinePerson: { fontFamily: FONT, fontSize: 13, fontWeight: '400' },
   timelineAddr: { fontFamily: FONT, fontSize: 11, fontWeight: '400' },
   overdueTag: { fontFamily: FONT, fontSize: 11, fontWeight: '700', marginTop: 4 },
