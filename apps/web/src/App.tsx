@@ -15,7 +15,7 @@ const ReportBuilder = lazy(() => import('./pages/reporting/ReportBuilder'))
 const InsightsPage = lazy(() => import('./pages/insights/InsightsPage'))
 const ManagerBriefingPage = lazy(() => import('./pages/insights/ManagerBriefingPage'))
 const IntelligencePage = lazy(() => import('./pages/insights/IntelligencePage'))
-const PublicSitePage = lazy(() => import('./pages/marketing/PublicSitePage'))
+const FeaturePage = lazy(() => import('./pages/marketing/FeaturePage'))
 const HomePage = lazy(() => import('./pages/marketing/HomePage'))
 const PlatformPage = lazy(() => import('./pages/marketing/PlatformPage'))
 const SolutionsPage = lazy(() => import('./pages/marketing/SolutionsPage'))
@@ -142,7 +142,7 @@ function App() {
       <Route path="/compliance" element={<ErrorBoundary><Suspense fallback={null}><CompliancePageNew /></Suspense></ErrorBoundary>} />
       <Route path="/compliance/:slug" element={<ErrorBoundary><Suspense fallback={null}><CompliancePageNew /></Suspense></ErrorBoundary>} />
       <Route path="/solutions/:slug" element={<ErrorBoundary><Suspense fallback={null}><SolutionsPage /></Suspense></ErrorBoundary>} />
-      <Route path="/features/:slug" element={<ErrorBoundary><Suspense fallback={null}><PublicSitePage kind="feature" /></Suspense></ErrorBoundary>} />
+      <Route path="/features/:slug" element={<ErrorBoundary><Suspense fallback={null}><FeaturePage /></Suspense></ErrorBoundary>} />
       <Route path="/security" element={<ErrorBoundary><Suspense fallback={null}><SecurityPageNew /></Suspense></ErrorBoundary>} />
       <Route path="/mobile" element={<ErrorBoundary><Suspense fallback={null}><DownloadPageNew /></Suspense></ErrorBoundary>} />
       <Route path="/app" element={<ErrorBoundary><Suspense fallback={null}><DownloadPageNew /></Suspense></ErrorBoundary>} />
