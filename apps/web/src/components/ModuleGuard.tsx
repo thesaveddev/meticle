@@ -6,7 +6,7 @@ import api from '../services/api'
 /** Modules that are only available for specific org service types */
 const MODULE_SERVICE_TYPES: Record<string, string[]> = {
   homecare: ['domiciliary', 'live_in'],
-  rota_planner: ['supported_living', 'residential'],
+  scheduling: ['supported_living', 'residential'],
   marketplace: ['supported_living', 'residential', 'domiciliary', 'live_in'],
   room_checks: ['supported_living', 'residential'],
   emedication: ['residential', 'supported_living'],
