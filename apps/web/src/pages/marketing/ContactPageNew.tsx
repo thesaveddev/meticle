@@ -5,12 +5,11 @@ import { M } from '../../styles/marketing-tokens'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-      <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: M.teal }} />
-      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{children}</Typography>
-    </Stack>
+    <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+    </Box>
   )
 }
 
@@ -30,7 +29,7 @@ export default function ContactPageNew() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="flex-start">
             <Grid item xs={12} md={5}>
-              <Eyebrow>Get in touch</Eyebrow>
+              <SectionLabel>Get in touch</SectionLabel>
               <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
                 Book a demo.
               </Typography>

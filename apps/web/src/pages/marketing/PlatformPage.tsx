@@ -1,7 +1,7 @@
 import { Box, Button, Container, Grid, Stack, Typography, Chip } from '@mui/material'
 import {
   ArrowForward, Check, Groups, Medication, People, CalendarMonth,
-  Warning, Insights, FamilyRestroom, Shield, AutoAwesome,
+  Warning, Insights, FamilyRestroom, Shield,
   Description, LocationOn, AccessTime, Person, CheckCircle,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
@@ -11,12 +11,11 @@ import PageMeta from '../../components/PageMeta'
 
 /* ─── Shared ─────────────────────────────────────────── */
 
-function Eyebrow({ children, color }: { children: React.ReactNode; color?: string }) {
+function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-      <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: color || M.teal }} />
-      <Typography sx={{ color: color || M.tealDeep, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{children}</Typography>
-    </Stack>
+    <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+    </Box>
   )
 }
 
@@ -85,16 +84,16 @@ function WorkforceMockup() {
     { name: 'Priya S.', role: 'Care Worker', compliance: 72, color: '#EF4444' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#FDF2F8', borderRadius: 2, border: '1px solid #FCE7F3' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#9D174D', mb: 1.5 }}>Staff Compliance</Typography>
+    <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Staff Compliance</Typography>
       {staff.map((s, i) => (
         <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1, borderBottom: i < staff.length - 1 ? '1px solid #FCE7F3' : 'none' }}>
           <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: s.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Person sx={{ fontSize: 14, color: s.color }} />
           </Box>
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#831843' }}>{s.name}</Typography>
-            <Typography sx={{ fontSize: '0.6rem', color: '#9D174D' }}>{s.role}</Typography>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: M.tealDeep }}>{s.name}</Typography>
+            <Typography sx={{ fontSize: '0.6rem', color: M.tealDeep }}>{s.role}</Typography>
           </Box>
           <Box sx={{ width: 50, height: 4, bgcolor: '#FCE7F3', borderRadius: 2, overflow: 'hidden' }}>
             <Box sx={{ width: `${s.compliance}%`, height: '100%', bgcolor: s.color, borderRadius: 2 }} />
@@ -164,12 +163,12 @@ function ComplianceMockup() {
     { label: 'Competency Assessments', pct: 68, color: '#EF4444' },
   ]
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#F5F3FF', borderRadius: 2, border: '1px solid #EDE9FE' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#5B21B6', mb: 1.5 }}>Compliance Dashboard</Typography>
+    <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: M.tealDeep, mb: 1.5 }}>Compliance Dashboard</Typography>
       {items.map((item, i) => (
         <Box key={i} sx={{ py: 1, borderBottom: i < items.length - 1 ? '1px solid #EDE9FE' : 'none' }}>
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#5B21B6' }}>{item.label}</Typography>
+            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: M.tealDeep }}>{item.label}</Typography>
             <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: item.color }}>{item.pct}%</Typography>
           </Stack>
           <Box sx={{ height: 4, bgcolor: '#EDE9FE', borderRadius: 2, overflow: 'hidden' }}>
@@ -185,7 +184,7 @@ function ReportingMockup() {
   const metrics = [
     { label: 'Calls completed today', value: '47', trend: '+12%', color: '#22C55E' },
     { label: 'Average response time', value: '23min', trend: '-8%', color: '#3B82F6' },
-    { label: 'Client satisfaction', value: '4.6/5', trend: '+0.2', color: '#8B5CF6' },
+    { label: 'Client satisfaction', value: '4.6/5', trend: '+0.2', color: 'M.tealDeep' },
   ]
   return (
     <Box sx={{ p: 2.5, bgcolor: '#EFF6FF', borderRadius: 2, border: '1px solid #DBEAFE' }}>
@@ -229,20 +228,20 @@ function FamilyPortalMockup() {
 
 function AIMockup() {
   return (
-    <Box sx={{ p: 2.5, bgcolor: '#FAF5FF', borderRadius: 2, border: '1px solid #E9D5FF' }}>
+    <Box sx={{ p: 2.5, bgcolor: M.tealSoft, borderRadius: 2, border: '1px solid ' + M.tealMuted }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
-        <AutoAwesome sx={{ fontSize: 14, color: '#9333EA' }} />
-        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#6B21A8' }}>AI Intelligence</Typography>
+        <Insights sx={{ fontSize: 14, color: 'M.tealDeep' }} />
+        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: M.tealDeep }}>AI Intelligence</Typography>
       </Stack>
-      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #E9D5FF', mb: 1 }}>
-        <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B21A8', mb: 0.5 }}>Care Summary</Typography>
-        <Typography sx={{ fontSize: '0.6rem', color: '#581C87', lineHeight: 1.5 }}>Margaret's care needs have increased over the past week. Consider reviewing her support plan and increasing visit frequency.</Typography>
+      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid ' + M.tealMuted, mb: 1 }}>
+        <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: M.tealDeep, mb: 0.5 }}>Care Summary</Typography>
+        <Typography sx={{ fontSize: '0.6rem', color: M.slate, lineHeight: 1.5 }}>Margaret's care needs have increased over the past week. Consider reviewing her support plan and increasing visit frequency.</Typography>
       </Box>
-      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #E9D5FF' }}>
-        <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B21A8', mb: 0.5 }}>Risk Signal</Typography>
+      <Box sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid ' + M.tealMuted }}>
+        <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: M.tealDeep, mb: 0.5 }}>Risk Signal</Typography>
         <Stack direction="row" alignItems="center" spacing={0.5}>
           <Warning sx={{ fontSize: 12, color: '#F59E0B' }} />
-          <Typography sx={{ fontSize: '0.6rem', color: '#581C87' }}>3 missed calls this week — pattern detected</Typography>
+          <Typography sx={{ fontSize: '0.6rem', color: M.slate }}>3 missed calls this week — pattern detected</Typography>
         </Stack>
       </Box>
     </Box>
@@ -265,7 +264,7 @@ const mockups: Record<string, React.ReactNode> = {
 
 const modules = [
   {
-    icon: Groups, title: 'Care Delivery', color: '#6366F1',
+    icon: Groups, title: 'Care Delivery', color: 'M.navy',
     desc: 'Keep care plans, daily notes, reviews, body maps, appointments and health observations in one accessible record — always linked to the person.',
     features: ['Person-centred support plans', 'Daily care notes and handover context', 'Body mapping and linked observations', 'Reviews, goals and health checks', 'Mobile access at the point of care'],
     tone: 'light' as const,
@@ -279,7 +278,7 @@ const modules = [
     link: '/features/medication',
   },
   {
-    icon: People, title: 'Workforce Management', color: '#EC4899',
+    icon: People, title: 'Workforce Management', color: 'M.teal',
     desc: 'Connect staff information, training, competency, availability and work allocation into one operational view.',
     features: ['Staff directory and detailed profiles', 'Training and competency tracking', 'Availability, leave and approval workflows', 'Right-to-work and DBS reminders', 'Connected workforce reporting'],
     tone: 'light' as const,
@@ -300,7 +299,7 @@ const modules = [
     link: '/features/risk-management',
   },
   {
-    icon: Shield, title: 'Compliance & Evidence', color: '#8B5CF6',
+    icon: Shield, title: 'Compliance & Evidence', color: 'M.tealDeep',
     desc: 'Make inspection readiness part of everyday work — not a once-a-year scramble for evidence.',
     features: ['Training and competency matrices', 'Evidence packs and audit logs', 'Compliance dashboards by nation', 'Identity and right-to-work monitoring', 'Policy and procedure management'],
     tone: 'warm' as const,
@@ -321,7 +320,7 @@ const modules = [
     link: '/features/family-portal',
   },
   {
-    icon: AutoAwesome, title: 'AI Intelligence', color: '#A855F7',
+    icon: Insights, title: 'AI Intelligence', color: 'M.tealDeep',
     desc: 'AI assistance designed to reduce administration and surface patterns — with human judgement, permissions and auditability at the centre.',
     features: ['AI-assisted care summaries', 'Change detection across records', 'Risk signals with source traceability', 'Compliance copilot and anomaly detection', 'Natural-language data assistant'],
     tone: 'light' as const,
@@ -364,7 +363,7 @@ export default function PlatformPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={6}>
-              <Eyebrow>MeticleCare Platform</Eyebrow>
+              <SectionLabel>MeticleCare Platform</SectionLabel>
               <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
                 One platform. Every part of care operations.
               </Typography>
@@ -397,7 +396,7 @@ export default function PlatformPage() {
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>How it works</Eyebrow>
+            <SectionLabel>How it works</SectionLabel>
             <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, mb: 2 }}>
               From recording to insight in four steps.
             </Typography>
@@ -470,7 +469,7 @@ export default function PlatformPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
-              <Eyebrow>Connected architecture</Eyebrow>
+              <SectionLabel>Connected architecture</SectionLabel>
               <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing, mb: 2 }}>
                 Not a collection of modules. One connected system.
               </Typography>
@@ -505,7 +504,7 @@ export default function PlatformPage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ py: { xs: 10, md: 14 }, background: `linear-gradient(160deg, ${M.navy} 0%, #162032 50%, #1A2744 100%)`, textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.navy, textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             See how the pieces connect.

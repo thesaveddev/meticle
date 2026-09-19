@@ -13,12 +13,11 @@ import PageMeta from '../../components/PageMeta'
 const appStoreUrl = import.meta.env.VITE_APP_STORE_URL || ''
 const playStoreUrl = import.meta.env.VITE_GOOGLE_PLAY_URL || ''
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-      <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: M.teal }} />
-      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{children}</Typography>
-    </Stack>
+    <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+    </Box>
   )
 }
 
@@ -65,7 +64,7 @@ function ScheduleScreen() {
       <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: M.navy, mb: 1 }}>Today's Schedule</Typography>
       <Typography sx={{ fontSize: '0.6rem', color: M.muted, mb: 1.5 }}>4 visits · 2 completed</Typography>
       {calls.map((c, i) => (
-        <Box key={i} sx={{ mb: 1, p: 1, borderRadius: M.r.sm, bgcolor: M.faint, borderLeft: `3px solid ${c.color}` }}>
+        <Box key={i} sx={{ mb: 1, p: 1, borderRadius: M.r.sm, bgcolor: M.faint,  }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: M.navy }}>{c.time}</Typography>
             <Chip label={c.status} size="small" sx={{ height: 16, fontSize: '0.5rem', bgcolor: c.color + '20', color: c.color, fontWeight: 600 }} />
@@ -169,7 +168,7 @@ export default function DownloadPageNew() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={6}>
-              <Eyebrow>Mobile app</Eyebrow>
+              <SectionLabel>Mobile app</SectionLabel>
               <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
                 Care doesn't happen behind a desk. Neither should your software.
               </Typography>
@@ -207,7 +206,7 @@ export default function DownloadPageNew() {
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>What you can do</Eyebrow>
+            <SectionLabel>What you can do</SectionLabel>
             <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, mb: 2 }}>
               The full field experience.
             </Typography>
@@ -246,7 +245,7 @@ export default function DownloadPageNew() {
             <Grid item xs={12} md={8}>
               <Grid container spacing={4}>
                 <Grid item xs={12} sm={6}>
-                  <Eyebrow>For managers</Eyebrow>
+                  <SectionLabel>For managers</SectionLabel>
                   <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, mb: 2 }}>
                     Oversight from anywhere.
                   </Typography>
@@ -263,7 +262,7 @@ export default function DownloadPageNew() {
                   </Stack>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Eyebrow>For carers</Eyebrow>
+                  <SectionLabel>For carers</SectionLabel>
                   <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, mb: 2 }}>
                     Everything you need in the field.
                   </Typography>
@@ -286,7 +285,7 @@ export default function DownloadPageNew() {
       </Box>
 
       {/* ═══ CTA ═══ */}
-      <Box sx={{ py: { xs: 10, md: 14 }, background: `linear-gradient(165deg, ${M.navy} 0%, ${M.navyMid} 55%, ${M.navyLight} 100%)`, textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.navy, textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             Ready to get started?

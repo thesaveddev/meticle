@@ -1,16 +1,15 @@
 import { Box, Button, Container, Grid, Stack, Typography, Chip, Divider } from '@mui/material'
-import { ArrowForward, Check, Groups, Shield, AutoAwesome } from '@mui/icons-material'
+import { ArrowForward, Check, Groups, Shield, Insights } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { M } from '../../styles/marketing-tokens'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-      <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: M.teal }} />
-      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{children}</Typography>
-    </Stack>
+    <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+    </Box>
   )
 }
 
@@ -20,7 +19,7 @@ const tiers = [
     subtitle: 'For small domiciliary care providers',
     price: 'From £2.50',
     period: 'per person per week',
-    color: '#6366F1',
+    color: 'M.navy',
     icon: Groups,
     features: [
       'Care plan management',
@@ -59,8 +58,8 @@ const tiers = [
     subtitle: 'For multi-site organisations with complex needs',
     price: 'Custom',
     period: 'tailored to your organisation',
-    color: '#8B5CF6',
-    icon: AutoAwesome,
+    color: 'M.tealDeep',
+    icon: Insights,
     features: [
       'Everything in Professional',
       'Multi-organisation management',
@@ -113,7 +112,7 @@ export default function PricingPage() {
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', maxWidth: 700, mx: 'auto' }}>
-            <Eyebrow>Pricing</Eyebrow>
+            <SectionLabel>Pricing</SectionLabel>
             <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
               Simple pricing for better care.
             </Typography>
@@ -270,7 +269,7 @@ export default function PricingPage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ py: { xs: 10, md: 14 }, background: `linear-gradient(160deg, ${M.navy} 0%, #162032 50%, #1A2744 100%)`, textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.navy, textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             Ready to get started?

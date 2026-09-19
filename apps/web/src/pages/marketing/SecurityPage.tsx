@@ -5,12 +5,11 @@ import { M } from '../../styles/marketing-tokens'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-      <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: M.teal }} />
-      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{children}</Typography>
-    </Stack>
+    <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+    </Box>
   )
 }
 
@@ -42,7 +41,7 @@ export default function SecurityPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={6}>
-              <Eyebrow>Security & data protection</Eyebrow>
+              <SectionLabel>Security & data protection</SectionLabel>
               <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
                 Built around trust.
               </Typography>
@@ -88,7 +87,7 @@ export default function SecurityPage() {
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>Security controls</Eyebrow>
+            <SectionLabel>Security controls</SectionLabel>
             <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, mb: 2 }}>
               Defence in depth.
             </Typography>
@@ -127,7 +126,7 @@ export default function SecurityPage() {
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>Practices</Eyebrow>
+            <SectionLabel>Practices</SectionLabel>
             <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing }}>
               How we think about data.
             </Typography>
@@ -142,7 +141,7 @@ export default function SecurityPage() {
               </Grid>
             ))}
           </Grid>
-          <Box sx={{ mt: 5, p: 3, bgcolor: '#FEF9C3', borderRadius: M.r.md, borderLeft: `3px solid ${M.amber}` }}>
+          <Box sx={{ mt: 5, p: 3, bgcolor: '#FEF9C3', borderRadius: M.r.md,  }}>
             <Typography sx={{ color: '#78350F', fontSize: '0.9rem', lineHeight: 1.6 }}>
               We do not claim certifications or regulatory approvals that have not been independently verified. If you have specific security requirements, ask the team about the controls and processing arrangements relevant to your service.
             </Typography>
@@ -151,7 +150,7 @@ export default function SecurityPage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ py: { xs: 10, md: 14 }, background: `linear-gradient(160deg, ${M.navy} 0%, #162032 50%, #1A2744 100%)`, textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.navy, textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             Ask us about your data requirements.
