@@ -109,6 +109,7 @@ router.get('/staff-visits/:staffId', requireRole(...fieldRoles), asyncHandler(Ho
 router.get('/colleagues', requireRole(...fieldRoles), asyncHandler(HomecareController.listColleagues));
 router.get('/my-availability', requireRole(...fieldRoles), asyncHandler(HomecareController.getMyAvailability));
 router.get('/availability', requireRole(...managerRoles), asyncHandler(HomecareController.listAvailability));
+router.get('/availability/weekly-summary', requireRole(...managerRoles), asyncHandler(HomecareController.getWeeklyAvailabilitySummary));
 router.get('/available-staff', requireRole(...managerRoles), asyncHandler(HomecareController.listAvailableStaff));
 router.get('/visits/:visitId/suggest-carers', requireRole(...managerRoles), asyncHandler(HomecareController.suggestCarers));
 router.post('/availability', requireRole(...fieldRoles), validate(availabilitySchema), asyncHandler(HomecareController.createAvailability));

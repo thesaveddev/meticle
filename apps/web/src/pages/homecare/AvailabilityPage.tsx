@@ -55,6 +55,7 @@ export default function AvailabilityPage() {
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [selectedStaff, setSelectedStaff] = useState('')
   const [tab, setTab] = useState(0)
+  const [weeklySummary, setWeeklySummary] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [day, setDay] = useState('1')
@@ -73,6 +74,10 @@ export default function AvailabilityPage() {
         setAvailability(availRes.data || [])
         setStaff(staffRes.data || [])
         setLeavePeriods((leaveRes.data || []).filter((leave: LeavePeriod) => ['approved', 'pending'].includes(leave.status)))
+      }
+      // Load weekly summary for managers
+      if (!isCarer) {
+        api.get('/homecare/availability/weekly-summary').then(r => setWeeklySummary(r.data || [])).catch(() => {})
       }
     } catch { setError('Could not load availability. Please try again.') }
     finally { setLoading(false) }
@@ -170,6 +175,7 @@ export default function AvailabilityPage() {
         <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ px: 1, borderBottom: '1px solid #E5E7EB', '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 50 } }}>
           <Tab label="Weekly pattern" />
           <Tab label="Schedule" />
+          {!isCarer && <Tab label="Weekly summary" />}
           {canEdit && <Tab label="Add a time window" />}
         </Tabs>
 
@@ -224,7 +230,50 @@ export default function AvailabilityPage() {
           </Box>
         )}
 
-        {tab === 2 && canEdit && (
+        {tab === 2 && !isCarer && (
+          <Box sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Weekly availability summary</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>Total available hours per carer per day of the week.</Typography>
+            {weeklySummary.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">No availability submitted yet.</Typography>
+            ) : (
+              <Box sx={{ overflowX: 'auto' }}>
+                <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+                  <Box component="thead">
+                    <Box component="tr">
+                      <Box component="th" sx={{ textAlign: 'left', py: 1.5, px: 1.5, borderBottom: '2px solid #E5E7EB', fontWeight: 700, fontSize: '0.8rem', color: '#6B7280' }}>Carer</Box>
+                      {DAYS.map(d => (
+                        <Box key={d} component="th" sx={{ textAlign: 'center', py: 1.5, px: 1, borderBottom: '2px solid #E5E7EB', fontWeight: 700, fontSize: '0.75rem', color: '#6B7280' }}>{d.slice(0, 3)}</Box>
+                      ))}
+                      <Box component="th" sx={{ textAlign: 'center', py: 1.5, px: 1.5, borderBottom: '2px solid #0F4C81', fontWeight: 700, fontSize: '0.8rem', color: '#0F4C81' }}>Weekly</Box>
+                    </Box>
+                  </Box>
+                  <Box component="tbody">
+                    {weeklySummary.map((s: any) => (
+                      <Box key={s.staff_id} component="tr" sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
+                        <Box component="td" sx={{ py: 1.5, px: 1.5, borderBottom: '1px solid #F3F4F6', fontWeight: 600, fontSize: '0.85rem' }}>{s.staff_name}</Box>
+                        {s.daily_hours.map((h: number, i: number) => (
+                          <Box key={i} component="td" sx={{ textAlign: 'center', py: 1.5, px: 1, borderBottom: '1px solid #F3F4F6' }}>
+                            {h > 0 ? (
+                              <Chip label={`${h}h`} size="small" sx={{ bgcolor: h >= 8 ? '#DCFCE7' : h >= 4 ? '#FEF9C3' : '#FEE2E2', color: h >= 8 ? '#166534' : h >= 4 ? '#92400E' : '#991B1B', fontWeight: 700, fontSize: '0.7rem', height: 22 }} />
+                            ) : (
+                              <Typography sx={{ color: '#D1D5DB', fontSize: '0.75rem' }}>—</Typography>
+                            )}
+                          </Box>
+                        ))}
+                        <Box component="td" sx={{ textAlign: 'center', py: 1.5, px: 1.5, borderBottom: '1px solid #F3F4F6' }}>
+                          <Typography sx={{ fontWeight: 800, color: s.weekly_hours >= 30 ? '#047857' : s.weekly_hours >= 15 ? '#D97706' : '#DC2626', fontSize: '0.85rem' }}>{s.weekly_hours}h</Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {tab === 3 && canEdit && (
           <Box sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Add one availability window</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>Choose a day and time. You can add more windows without leaving this page.</Typography>
