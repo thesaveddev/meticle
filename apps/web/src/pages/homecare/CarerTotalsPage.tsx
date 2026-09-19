@@ -149,7 +149,7 @@ export default function CarerTotalsPage() {
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [from, to])
 
   /** Manager download of the selected carer's payslip for the period in view. */
   const downloadCarerPayslip = async () => {
@@ -188,8 +188,9 @@ export default function CarerTotalsPage() {
     setView('carer-detail')
     try {
       const res = await api.get(`/homecare/timesheets/carer/${carer.staff_id}?from=${from}&to=${to}`)
-      setCarerVisits(res.data)
-    } catch {
+      setCarerVisits(res.data || [])
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to load carer details')
       setCarerVisits([])
     } finally { setCarerLoading(false) }
   }, [from, to])
@@ -200,8 +201,9 @@ export default function CarerTotalsPage() {
     setView('pending-approvals')
     try {
       const res = await api.get(`/homecare/timesheets/pending?from=${from}&to=${to}`)
-      setPendingVisits(res.data)
-    } catch {
+      setPendingVisits(res.data || [])
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to load pending timesheets')
       setPendingVisits([])
     } finally { setPendingLoading(false) }
   }, [from, to])
@@ -451,6 +453,7 @@ export default function CarerTotalsPage() {
       {/* ═══════════ CARER DETAIL ═══════════ */}
       {view === 'carer-detail' && selectedCarer && (
         <>
+          {error && <Typography color="error" mb={2}>{error}</Typography>}
           {/* Carer summary cards */}
           <Stack direction="row" gap={2} mb={3} flexWrap="wrap">
             <Paper elevation={0} sx={{ p: 2.5, flex: '1 1 160px', minWidth: 160, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
