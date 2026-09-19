@@ -1,7 +1,6 @@
 import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material'
 import {
-  ArrowForward, Check, Shield, Warning, Insights, AutoAwesome,
-  TrendingUp, People, Security, VerifiedUser, Lock, Star,
+  ArrowForward, Check, Shield, Insights, Security, VerifiedUser, Lock, Star,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { M } from '../../styles/marketing-tokens'
@@ -10,23 +9,35 @@ import PageMeta from '../../components/PageMeta'
 
 /* ─── Shared Elements ──────────────────────────────── */
 
-function Eyebrow({ children, color = M.teal, center }: { children: React.ReactNode; color?: string; center?: boolean }) {
+function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <Stack direction="row" spacing={0.75} alignItems="center" justifyContent={center ? 'center' : 'flex-start'} sx={{ mb: 2 }}>
-      <Box sx={{ width: 6, height: 6, borderRadius: M.r.full, bgcolor: color }} />
-      <Typography sx={{ ...M.overline, color, textTransform: 'uppercase' }}>{children}</Typography>
-    </Stack>
+    <Box sx={{ mb: 1, textAlign: center ? 'center' : 'left' }}>
+      <Typography
+        component="span"
+        sx={{
+          ...M.overline, color: M.tealDeep,
+          borderBottom: `2px solid ${M.teal}`,
+          pb: 0.5,
+        }}
+      >{children}</Typography>
+    </Box>
   )
 }
 
 function CTA({
   label = 'Book a demo', to = '/contact', variant = 'primary',
-}: { label?: string; to?: string; variant?: 'primary' | 'secondary' | 'ghost' }) {
+}: { label?: string; to?: string; variant?: 'primary' | 'secondary' }) {
   const nav = useNavigate()
   const styles = {
-    primary: { bgcolor: M.teal, color: M.navy, fontWeight: 700, '&:hover': { bgcolor: M.tealDark } },
-    secondary: { bgcolor: 'transparent', color: M.navy, border: `1.5px solid ${M.subtle}`, fontWeight: 600, '&:hover': { borderColor: M.navy, bgcolor: M.faint } },
-    ghost: { bgcolor: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.2)', fontWeight: 600, '&:hover': { borderColor: 'rgba(255,255,255,0.5)' } },
+    primary: {
+      bgcolor: M.teal, color: M.navy, fontWeight: 700,
+      '&:hover': { bgcolor: M.tealDark },
+    },
+    secondary: {
+      bgcolor: 'transparent', color: M.ink,
+      border: `1.5px solid ${M.subtle}`, fontWeight: 600,
+      '&:hover': { borderColor: M.navy, bgcolor: M.faint },
+    },
   }
   return (
     <Button
@@ -48,19 +59,11 @@ const trustItems = [
   { icon: Star, label: 'GDPR-ready' },
 ]
 
-const platformTree = [
-  {
-    group: 'Care', color: '#6366F1',
-    items: ['Care notes', 'Support plans', 'Reviews', 'Body mapping', 'Appointments'],
-  },
-  {
-    group: 'Workforce', color: '#EC4899',
-    items: ['Staff profiles', 'Training', 'Competency', 'Availability', 'Rota'],
-  },
-  {
-    group: 'Compliance', color: '#8B5CF6',
-    items: ['Audit trails', 'Evidence', 'Reporting', 'Competency', 'Policies'],
-  },
+const careDay = [
+  { step: 'Plan', desc: 'Schedule visits, assign carers, review availability' },
+  { step: 'Deliver', desc: 'Mobile check-in, care notes, travel and disruptions' },
+  { step: 'Record', desc: 'Medication, risks, incidents, body maps' },
+  { step: 'Review', desc: 'Compliance evidence, person reviews, reporting' },
 ]
 
 const evidenceFlow = [
@@ -77,13 +80,49 @@ const evidenceFlow = [
   'Maintain evidence',
 ]
 
-const aiFeatures = [
-  { icon: AutoAwesome, title: 'Care summaries', desc: '7, 14 or 30-day person summaries linked to source records.' },
-  { icon: TrendingUp, title: 'Change detection', desc: 'Surfaces changes across notes, incidents, missed calls and medication.' },
-  { icon: Warning, title: 'Risk signals', desc: 'Deterministic signals with AI explanations — not diagnoses.' },
-  { icon: Insights, title: 'Compliance copilot', desc: 'Training gaps, overdue reviews and evidence that may need attention.' },
-  { icon: People, title: 'Manager briefing', desc: 'End-of-day intelligence covering people, workforce and operations.' },
+const aiCapabilities = [
+  { title: 'Care summaries', desc: '7, 14 or 30-day person summaries linked to source records.' },
+  { title: 'Change detection', desc: 'Surfaces changes across notes, incidents, missed calls and medication.' },
+  { title: 'Risk signals', desc: 'Deterministic signals with AI explanations — not diagnoses.' },
+  { title: 'Compliance copilot', desc: 'Training gaps, overdue reviews and evidence that may need attention.' },
+  { title: 'Manager briefing', desc: 'End-of-day intelligence covering people, workforce and operations.' },
 ]
+
+/* ─── Styles ────────────────────────────────────────── */
+
+const animKeyframes = `
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.6); }
+}
+@keyframes signalMove {
+  0% { left: 0%; }
+  100% { left: 100%; }
+}
+@keyframes progressFill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc-animate { animation: none !important; opacity: 1 !important; }
+  .mc-animate-delay { animation: none !important; opacity: 1 !important; }
+}
+`
+
+const sectionIn = {
+  animation: 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
+}
+const fadeInDelay = {
+  animation: 'fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both',
+}
 
 /* ─── Page ──────────────────────────────────────────── */
 
@@ -92,6 +131,7 @@ export default function HomePage() {
 
   return (
     <MarketingLayout>
+      <style>{animKeyframes}</style>
       <PageMeta
         title="Care operations, unified"
         description="MeticleCare connects care delivery, scheduling, medication, risk, compliance, workforce and reporting in one platform for UK domiciliary and supported living providers."
@@ -108,46 +148,82 @@ export default function HomePage() {
       />
 
       {/* ═══ 01 · HERO ═══ */}
-      <Box sx={{
-        background: `linear-gradient(165deg, ${M.navy} 0%, ${M.navyMid} 55%, ${M.navyLight} 100%)`,
-        pt: { xs: 12, md: 22 }, pb: { xs: 10, md: 18 }, position: 'relative', overflow: 'hidden',
-      }}>
-        {/* Subtle grid pattern */}
-        <Box sx={{
-          position: 'absolute', inset: 0, opacity: 0.02,
-          backgroundImage: `linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)`,
-          backgroundSize: '48px 48px',
-        }} />
-        {/* Ambient glow */}
-        <Box sx={{ position: 'absolute', top: -120, right: -80, width: 500, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${M.teal}10 0%, transparent 70%)` }} />
-        <Box sx={{ position: 'absolute', bottom: -100, left: -60, width: 400, height: 400, borderRadius: '50%', background: `radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%)` }} />
-
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-          <Box sx={{ textAlign: 'center', maxWidth: 700, mx: 'auto' }}>
-            <Eyebrow color="rgba(255,255,255,0.5)" center>Care operations software</Eyebrow>
-            <Typography sx={{ ...M.display, color: '#fff', mb: 3 }}>
-              Run your care operation with confidence.
-            </Typography>
-          </Box>
-          <Typography sx={{ ...M.bodyLg, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 600, mx: 'auto', mb: 10 }}>
-            MeticleCare connects care delivery, workforce management, compliance, medication, reporting and intelligent automation in one platform for UK domiciliary and supported living providers.
-          </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" sx={{ mb: 6 }}>
-            <CTA />
-            <CTA label="Explore the platform" to="/platform" variant="ghost" />
-          </Stack>
-          <Stack direction="row" spacing={5} justifyContent="center">
-            {[
-              { v: '4', l: 'UK nations' },
-              { v: '24/7', l: 'Mobile access' },
-              { v: '100%', l: 'Audit-tracked' },
-            ].map((s) => (
-              <Stack key={s.l} alignItems="center" spacing={0.5}>
-                <Typography sx={{ fontSize: { xs: '1.5rem', md: '1.75rem' }, fontWeight: 800, color: M.teal, letterSpacing: '-0.03em' }}>{s.v}</Typography>
-                <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>{s.l}</Typography>
-              </Stack>
-            ))}
-          </Stack>
+      <Box sx={{ bgcolor: M.navy, pt: { xs: 10, md: 16 }, pb: { xs: 8, md: 14 } }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Box className="mc-animate" sx={sectionIn}>
+                <SectionLabel>MeticleCare</SectionLabel>
+                <Typography sx={{ ...M.display, color: '#fff', mb: 3 }}>
+                  Run your care operation with confidence.
+                </Typography>
+              </Box>
+              <Typography className="mc-animate-delay" sx={{ ...M.bodyLg, color: M.subtle, mb: 5, maxWidth: 480 }} style={{ animation: 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both' }}>
+                One platform connecting care delivery, workforce, compliance, medication and reporting for UK domiciliary and supported living providers.
+              </Typography>
+              <Box className="mc-animate-delay" style={{ animation: 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both' }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <CTA />
+                  <Button
+                    variant="outlined" endIcon={<ArrowForward />}
+                    onClick={() => nav('/platform')}
+                    sx={{
+                      px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none',
+                      fontSize: '0.9rem', fontWeight: 600, color: '#fff',
+                      borderColor: 'rgba(255,255,255,0.2)', '&:hover': { borderColor: 'rgba(255,255,255,0.5)', bgcolor: 'rgba(255,255,255,0.05)' },
+                    }}
+                  >Explore the platform</Button>
+                </Stack>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={6} sx={{ display: { xs: 'none', md: 'block' } }}>
+              <Box className="mc-animate-delay" sx={fadeInDelay}>
+                {/* Care day timeline — the animated centerpiece */}
+                <Box sx={{
+                  p: 4, borderRadius: M.r.xl,
+                  bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
+                }}>
+                  <Typography sx={{ ...M.overline, color: M.teal, mb: 3, display: 'block' }}>The care day</Typography>
+                  <Stack spacing={0}>
+                    {careDay.map((c, i) => (
+                      <Box key={c.step}>
+                        <Stack direction="row" spacing={2.5} alignItems="flex-start" sx={{ py: 2 }}>
+                          <Box sx={{
+                            width: 40, height: 40, borderRadius: M.r.sm,
+                            bgcolor: i < careDay.length - 1 ? 'rgba(0,201,167,0.1)' : M.teal,
+                            display: 'grid', placeItems: 'center', flexShrink: 0,
+                            position: 'relative',
+                          }}>
+                            <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: i < careDay.length - 1 ? M.teal : M.navy }}>
+                              {i + 1}
+                            </Typography>
+                            {i < careDay.length - 1 && (
+                              <Box sx={{
+                                position: 'absolute', bottom: -20, left: '50%', transform: 'translateX(-50%)',
+                                width: 1, height: 18, bgcolor: 'rgba(0,201,167,0.2)',
+                              }} />
+                            )}
+                          </Box>
+                          <Box>
+                            <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem', mb: 0.25 }}>{c.step}</Typography>
+                            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', lineHeight: 1.5 }}>{c.desc}</Typography>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    ))}
+                  </Stack>
+                  {/* Animated signal dot */}
+                  <Box sx={{ mt: 2, height: 2, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden' }}>
+                    <Box sx={{
+                      position: 'absolute', top: -2, width: 20, height: 6, borderRadius: 3,
+                      bgcolor: M.teal, boxShadow: `0 0 12px ${M.teal}60`,
+                      animation: 'signalMove 4s linear infinite',
+                    }} />
+                  </Box>
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
         </Container>
       </Box>
 
@@ -165,118 +241,80 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ 03 · CONNECTED OPERATING SYSTEM ═══ */}
+      {/* ═══ 03 · CONNECTED PLATFORM ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow center>Connected platform</Eyebrow>
-            <Typography sx={{ ...M.h1, mb: 2 }}>One platform. Every part of your care operation.</Typography>
-            <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 560, mx: 'auto' }}>
-              Not a collection of disconnected modules. A connected operating system where care records, workforce, compliance and intelligence share context.
-            </Typography>
-          </Box>
-
-          {/* Visual: connected tree */}
-          <Box sx={{
-            p: { xs: 3, md: 5 }, bgcolor: M.card, borderRadius: M.r.xl,
-            border: `1px solid ${M.faint}`, boxShadow: M.shadow.md, position: 'relative',
-          }}>
-            <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <Typography sx={{ ...M.overline, color: M.muted, mb: 0.5, display: 'block' }}>MeticleCare</Typography>
-              <Typography sx={{ ...M.h2, color: M.navy }}>Everything is connected.</Typography>
-            </Box>
-
-            <Grid container spacing={3}>
-              {platformTree.map((col) => (
-                <Grid item xs={12} md={4} key={col.group}>
-                  <Box sx={{
-                    p: 2.5, borderRadius: M.r.lg, border: `1px solid ${M.faint}`,
-                    borderTop: `3px solid ${col.color}`,
-                  }}>
-                    <Typography sx={{ ...M.overline, color: col.color, mb: 1.5, display: 'block' }}>{col.group}</Typography>
-                    <Stack spacing={1}>
-                      {col.items.map((item) => (
-                        <Stack key={item} direction="row" spacing={1} alignItems="center">
-                          <Box sx={{ width: 5, height: 5, borderRadius: M.r.full, bgcolor: col.color, opacity: 0.4 }} />
-                          <Typography sx={{ fontSize: '0.88rem', fontWeight: 500 }}>{item}</Typography>
-                        </Stack>
-                      ))}
-                    </Stack>
-                  </Box>
-                </Grid>
-              ))}
+          <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={5}>
+              <SectionLabel>Connected platform</SectionLabel>
+              <Typography sx={{ ...M.h1, mb: 2 }}>One platform. Every part of your care operation.</Typography>
+              <Typography sx={{ ...M.bodyLg, color: M.slate }}>
+                Not a collection of disconnected modules. A connected operating system where care records, workforce, compliance and intelligence share context.
+              </Typography>
             </Grid>
-
-            {/* Intelligence layer */}
-            <Box sx={{
-              mt: 3, p: 2.5, borderRadius: M.r.lg,
-              background: `linear-gradient(135deg, ${M.tealSoft} 0%, ${M.blueLight} 100%)`,
-              border: `1px solid ${M.teal}30`,
-              textAlign: 'center',
-            }}>
-              <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-                <AutoAwesome sx={{ fontSize: 18, color: M.tealDeep }} />
-                <Typography sx={{ ...M.label, color: M.tealDeep }}>Intelligence layer — AI summaries, change detection, risk signals, compliance copilot</Typography>
+            <Grid item xs={12} md={7}>
+              <Stack spacing={2}>
+                {[
+                  { group: 'Care', items: 'Care notes · Support plans · Reviews · Body mapping · Appointments', color: M.teal },
+                  { group: 'Workforce', items: 'Staff profiles · Training · Competency · Availability · Rota', color: M.navy },
+                  { group: 'Compliance', items: 'Audit trails · Evidence · Reporting · Policies', color: M.tealDeep },
+                ].map((col) => (
+                  <Box key={col.group} sx={{
+                    p: 3, borderRadius: M.r.lg, border: `1px solid ${M.faint}`, bgcolor: M.card,
+                    borderLeft: `3px solid ${col.color}`,
+                    transition: `all ${M.transition.base}`,
+                    '&:hover': { boxShadow: M.shadow.md, borderColor: col.color },
+                  }}>
+                    <Typography sx={{ ...M.overline, color: col.color, mb: 0.5, display: 'block' }}>{col.group}</Typography>
+                    <Typography sx={{ fontSize: '0.88rem', fontWeight: 500, color: M.slate }}>{col.items}</Typography>
+                  </Box>
+                ))}
               </Stack>
-            </Box>
-          </Box>
+            </Grid>
+          </Grid>
         </Container>
       </Box>
 
       {/* ═══ 04 · INSPECTION READINESS ═══ */}
-      <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card }}>
+      <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card, borderTop: `1px solid ${M.faint}`, borderBottom: `1px solid ${M.faint}` }}>
         <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow center>Inspection readiness</Eyebrow>
-            <Typography sx={{ ...M.h1, display: 'block', lineHeight: { xs: 1.2, md: 1.1 }, mb: 2 }}>
-              Stay ready for inspection. Every day.
-            </Typography>
-            <Stack spacing={4} alignItems="center">
-              <Typography sx={{ ...M.bodyLg, display: 'block', color: M.slate, lineHeight: { xs: 1.6, md: 1.7 }, maxWidth: 760, mx: 'auto', mb: 0 }}>
+          <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
+            <Grid item xs={12} md={5}>
+              <SectionLabel>Inspection readiness</SectionLabel>
+              <Typography sx={{ ...M.h1, mb: 2 }}>Stay ready for inspection. Every day.</Typography>
+              <Typography sx={{ ...M.bodyLg, color: M.slate, mb: 3 }}>
                 Compliance should be part of everyday operations — not something assembled when an inspection is announced.
               </Typography>
-              <Typography sx={{ ...M.body, display: 'block', color: M.slate, lineHeight: { xs: 1.6, md: 1.65 }, maxWidth: 760, mx: 'auto', mb: 0 }}>
-                Requirements differ across England, Scotland, Wales and Northern Ireland.
+              <Typography sx={{ ...M.body, color: M.slate, mb: 4 }}>
+                Requirements differ across England, Scotland, Wales and Northern Ireland. MeticleCare tracks what matters for your regulatory environment.
               </Typography>
               <CTA label="Explore compliance" to="/compliance" variant="secondary" />
-            </Stack>
-          </Box>
-          {/* Readiness dashboard mockup */}
-          <Box sx={{ p: { xs: 3, md: 4 }, bgcolor: M.paper, borderRadius: M.r.xl, border: `1px solid ${M.faint}`, maxWidth: 700, mx: 'auto' }}>
-            <Typography sx={{ ...M.label, color: M.muted, mb: 2.5, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Inspection readiness</Typography>
-            <Grid container spacing={2}>
-              {[
-                { label: 'Care records', value: '98%', color: M.green },
-                { label: 'Reviews', value: '96%', color: M.green },
-                { label: 'Training', value: '94%', color: M.amber },
-                { label: 'Competency', value: '97%', color: M.green },
-                { label: 'Risk reviews', value: '99%', color: M.green },
-                { label: 'Open actions', value: '3', color: M.coral },
-              ].map((m) => (
-                <Grid item xs={4} key={m.label}>
-                  <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: M.r.md, bgcolor: M.card, border: `1px solid ${M.faint}` }}>
-                    <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: m.color, letterSpacing: '-0.03em' }}>{m.value}</Typography>
-                    <Typography sx={{ fontSize: '0.72rem', color: M.muted, mt: 0.25 }}>{m.label}</Typography>
-                  </Box>
-                </Grid>
-              ))}
             </Grid>
-            <Box sx={{ mt: 2.5, p: 2, borderRadius: M.r.md, bgcolor: M.card, border: `1px solid ${M.faint}` }}>
-              <Typography sx={{ ...M.label, color: M.muted, mb: 1 }}>Needs attention</Typography>
-              <Stack spacing={0.75}>
-                {[
-                  { text: 'Training renewal', count: 2, color: M.amber },
-                  { text: 'Reviews due', count: 4, color: M.amber },
-                  { text: 'Risk review', count: 2, color: M.coral },
-                ].map((a) => (
-                  <Stack key={a.text} direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{a.text}</Typography>
-                    <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: a.color, bgcolor: `${a.color}15`, px: 1, py: 0.25, borderRadius: M.r.sm }}>{a.count}</Typography>
-                  </Stack>
-                ))}
-              </Stack>
-            </Box>
-          </Box>
+            <Grid item xs={12} md={7}>
+              <Box sx={{ p: { xs: 3, md: 4 }, bgcolor: M.paper, borderRadius: M.r.xl, border: `1px solid ${M.faint}` }}>
+                <Typography sx={{ ...M.label, color: M.muted, mb: 2.5, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Readiness</Typography>
+                <Stack spacing={1.5}>
+                  {[
+                    { label: 'Care records', status: 'Tracked', color: M.green },
+                    { label: 'Reviews', status: 'Tracked', color: M.green },
+                    { label: 'Training', status: 'Needs review', color: M.amber },
+                    { label: 'Competency', status: 'Tracked', color: M.green },
+                    { label: 'Risk reviews', status: 'Tracked', color: M.green },
+                    { label: 'Open actions', status: '3 items', color: M.coral },
+                  ].map((m) => (
+                    <Stack key={m.label} direction="row" justifyContent="space-between" alignItems="center"
+                      sx={{ py: 1.5, borderBottom: '1px solid #F0F4F8' }}>
+                      <Typography sx={{ fontWeight: 500, fontSize: '0.9rem' }}>{m.label}</Typography>
+                      <Typography sx={{
+                        fontSize: '0.78rem', fontWeight: 600, color: m.color,
+                        bgcolor: `${m.color}12`, px: 1.5, py: 0.5, borderRadius: M.r.sm,
+                      }}>{m.status}</Typography>
+                    </Stack>
+                  ))}
+                </Stack>
+              </Box>
+            </Grid>
+          </Grid>
         </Container>
       </Box>
 
@@ -284,7 +322,7 @@ export default function HomePage() {
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow center>Regulatory environments</Eyebrow>
+            <SectionLabel center>Regulatory environments</SectionLabel>
             <Typography sx={{ ...M.h1, mb: 2 }}>Built for regulated care across the UK.</Typography>
             <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 600, mx: 'auto' }}>
               Different nations. Different regulatory frameworks. One platform for managing the records, evidence, people and processes behind your care service.
@@ -292,10 +330,10 @@ export default function HomePage() {
           </Box>
           <Grid container spacing={2.5}>
             {[
-              { code: 'CQC', name: 'Care Quality Commission', nation: 'England', color: '#2563EB' },
-              { code: 'Care Inspectorate', name: "Scotland's regulator", nation: 'Scotland', color: '#DC2626' },
-              { code: 'CIW', name: 'Care Inspectorate Wales', nation: 'Wales', color: '#059669' },
-              { code: 'RQIA', name: 'Quality authority for NI', nation: 'Northern Ireland', color: '#7C3AED' },
+              { code: 'CQC', name: 'Care Quality Commission', nation: 'England' },
+              { code: 'Care Inspectorate', name: "Scotland's regulator", nation: 'Scotland' },
+              { code: 'CIW', name: 'Care Inspectorate Wales', nation: 'Wales' },
+              { code: 'RQIA', name: 'Quality authority for NI', nation: 'Northern Ireland' },
             ].map((r) => (
               <Grid item xs={12} sm={6} md={3} key={r.code}>
                 <Box
@@ -303,13 +341,12 @@ export default function HomePage() {
                   href={`/compliance/${r.code === 'Care Inspectorate' ? 'care-inspectorate' : r.code.toLowerCase()}`}
                   sx={{
                     display: 'block', textDecoration: 'none', color: 'inherit',
-                    p: 3, borderRadius: M.r.lg, border: `1px solid ${M.faint}`,
-                    borderLeft: `3px solid ${r.color}`, height: '100%', bgcolor: M.card,
+                    p: 3, borderRadius: M.r.lg, border: `1px solid ${M.faint}`, height: '100%', bgcolor: M.card,
                     transition: `all ${M.transition.base}`,
-                    '&:hover': { borderColor: r.color, boxShadow: M.shadow.md, transform: 'translateY(-2px)' },
+                    '&:hover': { borderColor: M.teal, boxShadow: M.shadow.md, transform: 'translateY(-2px)' },
                   }}
                 >
-                  <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: r.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{r.nation}</Typography>
+                  <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: M.tealDeep, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{r.nation}</Typography>
                   <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', mt: 1, mb: 0.5 }}>{r.code}</Typography>
                   <Typography sx={{ color: M.muted, fontSize: '0.8rem', lineHeight: 1.5 }}>{r.name}</Typography>
                 </Box>
@@ -320,11 +357,11 @@ export default function HomePage() {
       </Box>
 
       {/* ═══ 06 · EVIDENCE FLOW ═══ */}
-      <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card }}>
+      <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card, borderTop: `1px solid ${M.faint}`, borderBottom: `1px solid ${M.faint}` }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             <Grid item xs={12} md={4}>
-              <Eyebrow>How evidence is created</Eyebrow>
+              <SectionLabel>How evidence is created</SectionLabel>
               <Typography sx={{ ...M.h2, mb: 2 }}>Evidence created through everyday work.</Typography>
               <Typography sx={{ ...M.bodyLg, color: M.slate }}>
                 When your team delivers care, records medication, tracks risks and manages incidents in one system, inspection evidence is created continuously — not assembled under pressure.
@@ -353,11 +390,11 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* ═══ 07 · TWO SOLUTIONS ═══ */}
+      {/* ═══ 07 · SOLUTIONS ═══ */}
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow center>Solutions</Eyebrow>
+            <SectionLabel center>Solutions</SectionLabel>
             <Typography sx={{ ...M.h1, mb: 2 }}>Built for how you actually work.</Typography>
           </Box>
           <Grid container spacing={3}>
@@ -365,33 +402,32 @@ export default function HomePage() {
               {
                 title: 'Domiciliary Care', tagline: 'From the office to the doorstep.',
                 points: ['Visit scheduling with real-time status', 'Mobile check-in, notes, travel and disruptions', 'Carer availability and open-call marketplace', 'Missed-call follow-up and escalation', 'Timesheet and payroll export'],
-                path: '/solutions/domiciliary-care', accent: M.teal,
+                path: '/solutions/domiciliary-care',
               },
               {
                 title: 'Supported Living', tagline: 'Connected around the person.',
                 points: ['Person-centred support plans and daily notes', 'Medication, body mapping and MAR workflows', 'Risk assessments, incidents and safeguarding', 'Rota, staff, training and competency', 'Reviews, reporting and compliance evidence'],
-                path: '/solutions/supported-living', accent: '#6366F1',
+                path: '/solutions/supported-living',
               },
             ].map((sol) => (
               <Grid item xs={12} md={6} key={sol.title}>
                 <Box sx={{
                   p: { xs: 3.5, md: 4.5 }, bgcolor: M.card, borderRadius: M.r.xl,
                   border: `1px solid ${M.faint}`, height: '100%',
-                  borderTop: `3px solid ${sol.accent}`,
                   transition: `all ${M.transition.base}`,
-                  '&:hover': { boxShadow: M.shadow.lg },
+                  '&:hover': { boxShadow: M.shadow.lg, borderColor: M.teal },
                 }}>
-                  <Typography sx={{ ...M.overline, color: sol.accent, mb: 1 }}>{sol.title}</Typography>
+                  <Typography sx={{ ...M.overline, color: M.tealDeep, mb: 1 }}>{sol.title}</Typography>
                   <Typography sx={{ ...M.h2, mb: 3 }}>{sol.tagline}</Typography>
                   <Stack spacing={1.5} sx={{ mb: 4 }}>
                     {sol.points.map((pt) => (
                       <Stack key={pt} direction="row" spacing={1.5} alignItems="flex-start">
-                        <Check sx={{ color: sol.accent, fontSize: 17, mt: 0.3 }} />
+                        <Check sx={{ color: M.teal, fontSize: 17, mt: 0.3 }} />
                         <Typography sx={{ fontWeight: 500, lineHeight: 1.5 }}>{pt}</Typography>
                       </Stack>
                     ))}
                   </Stack>
-                  <Button endIcon={<ArrowForward />} onClick={() => nav(sol.path)} sx={{ color: sol.accent, fontWeight: 700, px: 0, textTransform: 'none' }}>Learn more</Button>
+                  <Button endIcon={<ArrowForward />} onClick={() => nav(sol.path)} sx={{ color: M.tealDeep, fontWeight: 700, px: 0, textTransform: 'none' }}>Learn more</Button>
                 </Box>
               </Grid>
             ))}
@@ -400,41 +436,36 @@ export default function HomePage() {
       </Box>
 
       {/* ═══ 08 · AI INTELLIGENCE ═══ */}
-      <Box sx={{
-        py: { xs: 8, md: 14 },
-        background: `linear-gradient(165deg, ${M.navy} 0%, ${M.navyMid} 55%, ${M.navyLight} 100%)`,
-        position: 'relative', overflow: 'hidden',
-      }}>
-        <Box sx={{ position: 'absolute', top: -100, right: -80, width: 400, height: 400, borderRadius: '50%', background: `radial-gradient(circle, ${M.teal}08 0%, transparent 70%)` }} />
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+      <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.navy }}>
+        <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <Eyebrow color="rgba(255,255,255,0.5)" center>AI & Intelligence</Eyebrow>
+            <Grid item xs={12} md={5}>
+              <SectionLabel>Intelligence</SectionLabel>
               <Typography sx={{ ...M.h1, color: '#fff', mb: 2 }}>AI that works with your care team.</Typography>
-              <Typography sx={{ ...M.bodyLg, color: 'rgba(255,255,255,0.5)', mb: 4 }}>
+              <Typography sx={{ ...M.bodyLg, color: M.subtle, mb: 4 }}>
                 Intelligence embedded throughout MeticleCare — not a separate chatbot. AI analyses the data your team already creates, surfaces patterns and generates briefings — with source traceability and human review at the centre.
               </Typography>
-              <CTA label="See intelligence features" to="/features/ai" variant="ghost" />
+              <Button
+                variant="outlined" endIcon={<ArrowForward />}
+                onClick={() => nav('/features/ai')}
+                sx={{
+                  px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none',
+                  fontSize: '0.9rem', fontWeight: 600, color: '#fff',
+                  borderColor: 'rgba(255,255,255,0.2)', '&:hover': { borderColor: 'rgba(255,255,255,0.5)', bgcolor: 'rgba(255,255,255,0.05)' },
+                }}
+              >See intelligence features</Button>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={7}>
               <Stack spacing={2}>
-                {aiFeatures.map((f) => (
+                {aiCapabilities.map((f) => (
                   <Box key={f.title} sx={{
                     p: 2.5, borderRadius: M.r.md,
                     border: '1px solid rgba(255,255,255,0.06)',
-                    bgcolor: 'rgba(255,255,255,0.03)',
                     transition: `border-color ${M.transition.fast}`,
                     '&:hover': { borderColor: M.teal },
                   }}>
-                    <Stack direction="row" spacing={2} alignItems="flex-start">
-                      <Box sx={{ width: 36, height: 36, borderRadius: M.r.sm, bgcolor: `${M.teal}15`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                        <f.icon sx={{ color: M.teal, fontSize: 18 }} />
-                      </Box>
-                      <Box>
-                        <Typography sx={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem' }}>{f.title}</Typography>
-                        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', lineHeight: 1.5, mt: 0.25 }}>{f.desc}</Typography>
-                      </Box>
-                    </Stack>
+                    <Typography sx={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem', mb: 0.25 }}>{f.title}</Typography>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', lineHeight: 1.5 }}>{f.desc}</Typography>
                   </Box>
                 ))}
               </Stack>
@@ -447,29 +478,8 @@ export default function HomePage() {
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
-            <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center' }}>
-              {/* Phone frame */}
-              <Box sx={{
-                width: 260, height: 520, borderRadius: '28px',
-                border: `3px solid ${M.subtle}`, bgcolor: M.card,
-                boxShadow: M.shadow.xl, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-              }}>
-                <Box sx={{ height: 36, bgcolor: M.faint, borderBottom: `1px solid ${M.faint}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Box sx={{ width: 72, height: 18, borderRadius: 9, bgcolor: M.subtle }} />
-                </Box>
-                <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Box sx={{ height: 28, borderRadius: M.r.sm, bgcolor: M.tealSoft }} />
-                  <Box sx={{ height: 14, width: '55%', borderRadius: M.r.sm, bgcolor: M.faint }} />
-                  <Box sx={{ flex: 1, borderRadius: M.r.md, bgcolor: M.faint }} />
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Box sx={{ flex: 1, height: 64, borderRadius: M.r.sm, bgcolor: M.tealSoft }} />
-                    <Box sx={{ flex: 1, height: 64, borderRadius: M.r.sm, bgcolor: M.faint }} />
-                  </Box>
-                </Box>
-              </Box>
-            </Grid>
             <Grid item xs={12} md={6}>
-              <Eyebrow>Mobile app</Eyebrow>
+              <SectionLabel>Mobile app</SectionLabel>
               <Typography sx={{ ...M.h1, mb: 2 }}>Care doesn't happen behind a desk.</Typography>
               <Typography sx={{ ...M.bodyLg, color: M.slate, mb: 4 }}>
                 Give carers a focused mobile experience for the work in front of them — check in, record notes, report disruptions, view care plans and access client information. Available for iOS and Android.
@@ -484,15 +494,35 @@ export default function HomePage() {
               </Stack>
               <CTA label="Download the app" to="/download" variant="secondary" />
             </Grid>
+            <Grid item xs={12} md={6} sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
+              <Box sx={{
+                width: 280, height: 560, borderRadius: '32px',
+                border: `3px solid ${M.subtle}`, bgcolor: M.card,
+                boxShadow: M.shadow.xl, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+              }}>
+                <Box sx={{ height: 44, bgcolor: M.faint, borderBottom: `1px solid ${M.faint}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 80, height: 20, borderRadius: 10, bgcolor: M.subtle }} />
+                </Box>
+                <Box sx={{ flex: 1, p: 2.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box sx={{ height: 32, borderRadius: M.r.sm, bgcolor: M.tealSoft }} />
+                  <Box sx={{ height: 14, width: '55%', borderRadius: M.r.sm, bgcolor: M.faint }} />
+                  <Box sx={{ flex: 1, borderRadius: M.r.md, bgcolor: M.faint }} />
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ flex: 1, height: 72, borderRadius: M.r.sm, bgcolor: M.tealSoft }} />
+                    <Box sx={{ flex: 1, height: 72, borderRadius: M.r.sm, bgcolor: M.faint }} />
+                  </Box>
+                </Box>
+              </Box>
+            </Grid>
           </Grid>
         </Container>
       </Box>
 
       {/* ═══ 10 · SECURITY ═══ */}
-      <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card }}>
+      <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.card, borderTop: `1px solid ${M.faint}`, borderBottom: `1px solid ${M.faint}` }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow center>Security</Eyebrow>
+            <SectionLabel center>Security</SectionLabel>
             <Typography sx={{ ...M.h1, mb: 2 }}>Care data deserves serious protection.</Typography>
             <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 520, mx: 'auto' }}>
               Security is a core product concern. Tenant isolation, role-based access, encryption and audit logging are built in from the start.
@@ -512,10 +542,12 @@ export default function HomePage() {
                   p: 3, borderRadius: M.r.lg, border: `1px solid ${M.faint}`, height: '100%',
                   transition: `all ${M.transition.base}`, '&:hover': { borderColor: M.teal, boxShadow: M.shadow.md },
                 }}>
-                  <Box sx={{ width: 40, height: 40, borderRadius: M.r.md, bgcolor: M.tealSoft, display: 'grid', placeItems: 'center', mb: 2 }}>
-                    <t.icon sx={{ color: M.tealDeep, fontSize: 20 }} />
-                  </Box>
-                  <Typography sx={{ fontWeight: 600, mb: 0.75 }}>{t.title}</Typography>
+                  <Stack direction="row" spacing={1.5} alignItems="center" mb={1.5}>
+                    <Box sx={{ width: 36, height: 36, borderRadius: M.r.sm, bgcolor: M.tealSoft, display: 'grid', placeItems: 'center' }}>
+                      <t.icon sx={{ color: M.tealDeep, fontSize: 18 }} />
+                    </Box>
+                    <Typography sx={{ fontWeight: 600 }}>{t.title}</Typography>
+                  </Stack>
                   <Typography sx={{ color: M.slate, fontSize: '0.85rem', lineHeight: 1.55 }}>{t.desc}</Typography>
                 </Box>
               </Grid>
@@ -528,7 +560,7 @@ export default function HomePage() {
       <Box sx={{ py: { xs: 8, md: 14 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Eyebrow center>Resources</Eyebrow>
+            <SectionLabel center>Resources</SectionLabel>
             <Typography sx={{ ...M.h1, mb: 2 }}>Ideas for better care operations.</Typography>
             <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 480, mx: 'auto' }}>
               Practical guidance on care technology, compliance and operations.
@@ -551,7 +583,7 @@ export default function HomePage() {
                     '&:hover': { borderColor: M.teal, boxShadow: M.shadow.md },
                   }}
                 >
-                  <Typography sx={{ ...M.overline, color: M.teal, mb: 1.5, display: 'block' }}>{a.category}</Typography>
+                  <Typography sx={{ ...M.overline, color: M.tealDeep, mb: 1.5, display: 'block' }}>{a.category}</Typography>
                   <Typography sx={{ fontWeight: 600, lineHeight: 1.4, mb: 2, fontSize: '0.92rem' }}>{a.title}</Typography>
                   <Typography sx={{ fontSize: '0.78rem', color: M.muted }}>{a.time} read</Typography>
                 </Box>
@@ -562,22 +594,25 @@ export default function HomePage() {
       </Box>
 
       {/* ═══ 12 · FINAL CTA ═══ */}
-      <Box sx={{
-        py: { xs: 10, md: 16 },
-        background: `linear-gradient(165deg, ${M.navy} 0%, ${M.navyMid} 55%, ${M.navyLight} 100%)`,
-        textAlign: 'center', position: 'relative', overflow: 'hidden',
-      }}>
-        <Box sx={{ position: 'absolute', bottom: -80, left: '50%', transform: 'translateX(-50%)', width: 500, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${M.teal}08 0%, transparent 70%)` }} />
-        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
+      <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: M.navy, textAlign: 'center' }}>
+        <Container maxWidth="md">
           <Typography sx={{ ...M.display, color: '#fff', mb: 2 }}>
             Run your care operation with more clarity.
           </Typography>
-          <Typography sx={{ ...M.bodyLg, color: 'rgba(255,255,255,0.5)', mb: 5, maxWidth: 480, mx: 'auto' }}>
+          <Typography sx={{ ...M.bodyLg, color: M.subtle, mb: 5, maxWidth: 480, mx: 'auto' }}>
             See how MeticleCare connects care delivery, workforce, compliance and reporting. Talk to the team about your service.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <CTA />
-            <CTA label="Explore the platform" to="/platform" variant="ghost" />
+            <Button
+              variant="outlined" endIcon={<ArrowForward />}
+              onClick={() => nav('/platform')}
+              sx={{
+                px: 3.5, py: 1.5, borderRadius: M.r.md, textTransform: 'none',
+                fontSize: '0.9rem', fontWeight: 600, color: '#fff',
+                borderColor: 'rgba(255,255,255,0.2)', '&:hover': { borderColor: 'rgba(255,255,255,0.5)', bgcolor: 'rgba(255,255,255,0.05)' },
+              }}
+            >Explore the platform</Button>
           </Stack>
         </Container>
       </Box>

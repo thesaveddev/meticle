@@ -1,0 +1,8 @@
+{
+  "font": "Inter",
+  "palette": "OKLCH custom properties (marketing-tokens.ts)",
+  "motion": "CSS @keyframes (manual)",
+  "spacing": "MUI sx scale",
+  "framework": "React + MUI",
+  "lastScan": "2026-09-19"
+}
