@@ -1,47 +1,40 @@
+/* Hallmark · macrostructure: Editorial · theme: Custom (care-ops editorial)
+ * paper-band: mid (52%) · display-style: grotesk-sans · accent-hue: cool (teal 170°)
+ */
+
 /**
- * MeticleCare Marketing Design System — v3
- *
- * Premium B2B healthcare SaaS visual identity.
- * Calm, trustworthy, intelligent, precise.
- * Distinctive teal accent, deep navy foundations, warm neutrals.
+ * MeticleCare Marketing Design System — Editorial Pass
+ * Anti-slop tokens. Navy + teal only. No purple, no pink, no gradients.
  */
 
 export const M = {
   /* ── Palette ─────────────────────────────────────── */
-  ink:        '#0C1220',   // primary text — deep near-black
-  slate:      '#4A5568',   // secondary text
-  muted:      '#8896A8',   // tertiary / captions
-  subtle:     '#CBD5E1',   // borders, hairlines
-  faint:      '#F0F4F8',   // subtle backgrounds
+  ink:        '#0C1220',
+  slate:      '#4A5568',
+  muted:      '#8896A8',
+  subtle:     '#CBD5E1',
+  faint:      '#F0F4F8',
 
-  paper:      '#FAFBFD',   // page bg — cool white
-  warm:       '#F7F5F2',   // warm page bg variant
-  card:       '#FFFFFF',   // card surfaces
+  paper:      '#FAFBFD',
+  warm:       '#F7F5F2',
+  card:       '#FFFFFF',
 
-  /* Accent — distinctive teal */
+  /* Accent — teal only */
   teal:       '#00C9A7',
   tealDark:   '#00A88C',
   tealSoft:   '#E6FAF5',
   tealDeep:   '#065F56',
   tealMuted:  '#B2F0E3',
 
-  /* Secondary — warm amber for compliance/warnings */
-  amber:      '#F59E0B',
-  amberLight: '#FEF3C7',
-
   /* Status */
-  coral:      '#EF4444',
+  amber:      '#D97706',
+  amberLight: '#FEF3C7',
+  coral:      '#DC2626',
   coralLight: '#FEF2F2',
-  green:      '#22C55E',
-  greenLight: '#F0FDF4',
-  blue:       '#3B82F6',
-  blueLight:  '#EFF6FF',
-  purple:     '#8B5CF6',
-  purpleLight:'#F5F3FF',
-  pink:       '#EC4899',
-  pinkLight:  '#FDF2F8',
+  green:      '#16A34A',
+  greenLight: '#DCFCE7',
 
-  /* Navy — deep, serious, trustworthy */
+  /* Navy */
   navy:       '#0B1426',
   navyMid:    '#131D32',
   navyLight:  '#1C2B45',
@@ -49,25 +42,24 @@ export const M = {
   /* Dark sections */
   dark:       '#0B1426',
   darkMid:    '#111827',
-  darkCard:   '#1E293B',
 
   /* ── Typography ──────────────────────────────────── */
   font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 
   display: {
-    fontSize: 'clamp(2.5rem, 5vw + 1rem, 4.25rem)',
+    fontSize: 'clamp(2.5rem, 5vw + 1rem, 4rem)',
     lineHeight: 1.05,
     fontWeight: 800 as const,
     letterSpacing: '-0.035em',
   },
   h1: {
-    fontSize: 'clamp(1.75rem, 3.5vw + 0.5rem, 3rem)',
+    fontSize: 'clamp(1.75rem, 3.5vw + 0.5rem, 2.75rem)',
     lineHeight: 1.1,
     fontWeight: 700 as const,
     letterSpacing: '-0.025em',
   },
   h2: {
-    fontSize: 'clamp(1.375rem, 2.5vw + 0.5rem, 2rem)',
+    fontSize: 'clamp(1.375rem, 2.5vw + 0.5rem, 1.875rem)',
     lineHeight: 1.2,
     fontWeight: 700 as const,
     letterSpacing: '-0.02em',
@@ -100,8 +92,6 @@ export const M = {
     md:   '0 4px 16px rgba(0,0,0,0.06)',
     lg:   '0 12px 32px rgba(0,0,0,0.08)',
     xl:   '0 24px 56px rgba(0,0,0,0.12)',
-    glow: '0 0 80px rgba(0,201,167,0.12)',
-    navy: '0 24px 56px rgba(11,20,38,0.25)',
   },
 
   /* ── Transitions ─────────────────────────────────── */
@@ -110,15 +100,11 @@ export const M = {
     base:   '250ms cubic-bezier(0.4, 0, 0.2, 1)',
     smooth: '400ms cubic-bezier(0.16, 1, 0.3, 1)',
   },
+
+  /* ── Animation ───────────────────────────────────── */
+  ease: {
+    out:    'cubic-bezier(0.16, 1, 0.3, 1)',
+    in:     'cubic-bezier(0.7, 0, 0.84, 0)',
+    inOut:  'cubic-bezier(0.65, 0, 0.35, 1)',
+  },
 } as const
-
-/* Section tone helper */
-export type SectionTone = 'light' | 'warm' | 'dark' | 'accent' | 'gradient'
-
-export const sectionBg: Record<SectionTone, string> = {
-  light:   M.card,
-  warm:    M.paper,
-  dark:    M.navy,
-  accent:  M.teal,
-  gradient: `linear-gradient(165deg, ${M.navy} 0%, ${M.navyMid} 55%, ${M.navyLight} 100%)`,
-}
