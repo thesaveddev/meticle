@@ -261,7 +261,6 @@ export default function HomePage() {
                 ].map((col) => (
                   <Box key={col.group} sx={{
                     p: 3, borderRadius: M.r.lg, border: `1px solid ${M.faint}`, bgcolor: M.card,
-                    borderLeft: `3px solid ${col.color}`,
                     transition: `all ${M.transition.base}`,
                     '&:hover': { boxShadow: M.shadow.md, borderColor: col.color },
                   }}>

@@ -128,8 +128,7 @@ export default function ContactPage() {
                       sx={{
                         p: 2.25,
                         bgcolor: BONE, borderRadius: 2.5,
-                        borderLeft: `3px solid ${EMERALD}`,
-                      }}
+                                              }}
                     >
                       <Box sx={{ flexShrink: 0, mt: 0.25, display: 'flex' }}>{m.icon}</Box>
                       <Box sx={{ minWidth: 0 }}>
@@ -257,8 +256,7 @@ export default function ContactPage() {
                   bgcolor: 'background.paper',
                   border: `1px solid ${HAIRLINE}`,
                   borderRadius: 3,
-                  borderLeft: `3px solid ${EMERALD}`,
-                }}
+                                  }}
               >
                 <Typography sx={{ fontWeight: 900, color: NAVY, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', mb: 1 }}>
                   ENTERPRISE · 100+ STAFF
@@ -283,8 +281,7 @@ export default function ContactPage() {
                   bgcolor: 'background.paper',
                   border: `1px solid ${HAIRLINE}`,
                   borderRadius: 3,
-                  borderLeft: `3px solid ${EMERALD}`,
-                }}
+                                  }}
               >
                 <Typography sx={{ fontWeight: 900, color: NAVY, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', mb: 1 }}>
                   PROCUREMENT & TENDER

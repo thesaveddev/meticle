@@ -8,12 +8,11 @@ import { M } from '../../styles/marketing-tokens'
 import MarketingLayout from '../../components/marketing/MarketingLayout'
 import PageMeta from '../../components/PageMeta'
 
-function Eyebrow({ children, color }: { children: React.ReactNode; color?: string }) {
+function SectionLabel({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-      <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: color || M.teal }} />
-      <Typography sx={{ color: color || M.tealDeep, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{children}</Typography>
-    </Stack>
+    <Box sx={{ mb: 1, textAlign: center ? "center" : "left" }}>
+      <Typography component="span" sx={{ fontSize: "0.75rem", lineHeight: 1.3, fontWeight: 700, letterSpacing: "0.08em", color: M.tealDeep, borderBottom: "2px solid " + M.teal, pb: 0.5, textTransform: "uppercase" }}>{children}</Typography>
+    </Box>
   )
 }
 
@@ -121,7 +120,7 @@ export function ComplianceOverviewPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={6}>
-              <Eyebrow>Compliance & inspection readiness</Eyebrow>
+              <SectionLabel>Compliance & inspection readiness</SectionLabel>
               <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
                 Compliance isn't a once-a-year exercise.
               </Typography>
@@ -143,7 +142,7 @@ export function ComplianceOverviewPage() {
                     <Box component="a" href={`/compliance/${r.slug}`} sx={{
                       display: 'block', textDecoration: 'none', color: 'inherit',
                       p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`,
-                      borderLeft: `3px solid ${r.color}`, height: '100%',
+                       height: '100%',
                       transition: 'all 0.2s',
                       '&:hover': { borderColor: r.color, boxShadow: M.shadow.md },
                     }}>
@@ -164,7 +163,7 @@ export function ComplianceOverviewPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
-              <Eyebrow>Always-on readiness</Eyebrow>
+              <SectionLabel>Always-on readiness</SectionLabel>
               <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, mb: 2 }}>
                 Stay ready for inspection. Every day.
               </Typography>
@@ -210,7 +209,7 @@ export function ComplianceOverviewPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
-              <Eyebrow>A continuous record</Eyebrow>
+              <SectionLabel>A continuous record</SectionLabel>
               <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing, mb: 2 }}>
                 Evidence created as part of everyday work.
               </Typography>
@@ -239,7 +238,7 @@ export function ComplianceOverviewPage() {
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>Evidence categories</Eyebrow>
+            <SectionLabel>Evidence categories</SectionLabel>
             <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing }}>
               What inspectors look for. What you can show.
             </Typography>
@@ -267,7 +266,7 @@ export function ComplianceOverviewPage() {
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>Nation-specific guidance</Eyebrow>
+            <SectionLabel>Nation-specific guidance</SectionLabel>
             <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, mb: 2 }}>
               Four nations. Different frameworks. One platform.
             </Typography>
@@ -279,8 +278,7 @@ export function ComplianceOverviewPage() {
             {regulators.map((r) => (
               <Box key={r.slug} sx={{
                 p: { xs: 3, md: 4 }, bgcolor: M.card, borderRadius: M.r.lg,
-                border: `1px solid ${M.faint}`, borderLeft: `3px solid ${r.color}`,
-              }}>
+                border: `1px solid ${M.faint}`,               }}>
                 <Grid container spacing={{ xs: 4, md: 6 }} alignItems="flex-start">
                   <Grid item xs={12} md={4}>
                     <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: r.color, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>{r.nation}</Typography>
@@ -320,7 +318,7 @@ export function ComplianceOverviewPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
-              <Eyebrow>The evidence chain</Eyebrow>
+              <SectionLabel>The evidence chain</SectionLabel>
               <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing, mb: 2 }}>
                 From care delivery to inspection evidence.
               </Typography>
@@ -361,7 +359,7 @@ export function ComplianceOverviewPage() {
       {/* Disclaimer */}
       <Box sx={{ py: { xs: 6, md: 8 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
-          <Box sx={{ p: 3, bgcolor: M.amberLight, borderRadius: M.r.md, borderLeft: `3px solid ${M.amber}` }}>
+          <Box sx={{ p: 3, bgcolor: M.amberLight, borderRadius: M.r.md,  }}>
             <Typography sx={{ fontWeight: 700, color: '#92400E', mb: 0.5 }}>Important context</Typography>
             <Typography sx={{ color: '#78350F', fontSize: '0.9rem', lineHeight: 1.6 }}>
               MeticleCare is a software tool, not a regulator, legal adviser or substitute for your organisation's policies and professional judgement. Requirements differ by nation and service type. The responsibility for compliance remains with the provider.
@@ -371,7 +369,7 @@ export function ComplianceOverviewPage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ py: { xs: 10, md: 14 }, background: `linear-gradient(160deg, ${M.navy} 0%, #162032 50%, #1A2744 100%)`, textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.navy, textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             Ready to see your evidence more clearly?
@@ -432,7 +430,7 @@ export function RegulatorPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="flex-start">
             <Grid item xs={12} md={5}>
-              <Eyebrow color={r.color}>Key guidance for {r.nation}</Eyebrow>
+              <SectionLabel>Key guidance for {r.nation}</SectionLabel>
               <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing, mb: 2 }}>
                 What this regulatory context requires.
               </Typography>
@@ -450,7 +448,7 @@ export function RegulatorPage() {
             <Grid item xs={12} md={7}>
               <Stack spacing={2}>
                 {r.guidance.map((g, i) => (
-                  <Box key={i} sx={{ p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`, borderLeft: `3px solid ${r.color}` }}>
+                  <Box key={i} sx={{ p: 2.5, borderRadius: M.r.md, border: `1px solid ${M.faint}`,  }}>
                     <Stack direction="row" spacing={1.5} alignItems="flex-start">
                       <CheckCircle sx={{ color: r.color, fontSize: 18, mt: 0.25, flexShrink: 0 }} />
                       <Typography sx={{ fontSize: '0.92rem', lineHeight: 1.6, fontWeight: 500 }}>{g}</Typography>
@@ -467,7 +465,7 @@ export function RegulatorPage() {
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.paper }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Eyebrow>Evidence categories</Eyebrow>
+            <SectionLabel>Evidence categories</SectionLabel>
             <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing }}>
               How MeticleCare supports {r.code} evidence.
             </Typography>
@@ -488,7 +486,7 @@ export function RegulatorPage() {
               </Grid>
             ))}
           </Grid>
-          <Box sx={{ mt: 5, p: 3, bgcolor: M.amberLight, borderRadius: M.r.md, borderLeft: `3px solid ${M.amber}` }}>
+          <Box sx={{ mt: 5, p: 3, bgcolor: M.amberLight, borderRadius: M.r.md,  }}>
             <Typography sx={{ color: '#78350F', fontSize: '0.9rem', lineHeight: 1.6 }}>
               MeticleCare is a software tool, not a regulator. Requirements differ by nation and service type. The responsibility for compliance remains with the provider.
             </Typography>
@@ -497,7 +495,7 @@ export function RegulatorPage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ py: { xs: 10, md: 14 }, background: `linear-gradient(160deg, ${M.navy} 0%, #162032 50%, #1A2744 100%)`, textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 10, md: 14 }, bgcolor: M.navy, textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             Talk through your {r.nation} regulatory context.

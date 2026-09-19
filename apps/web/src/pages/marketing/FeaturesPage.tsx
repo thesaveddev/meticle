@@ -472,8 +472,7 @@ export default function FeaturesPage() {
                             sx={{
                               p: { xs: 2.75, md: 3.5 },
                               border: `1px solid ${HAIRLINE}`,
-                              borderLeft: `3px solid ${EMERALD}`,
-                              borderRadius: 2.5,
+                                                            borderRadius: 2.5,
                               transition: 'border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease',
                               '&:hover': {
                                 borderColor: NAVY,

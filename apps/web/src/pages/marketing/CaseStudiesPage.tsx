@@ -175,8 +175,7 @@ export default function CaseStudiesPage() {
                     p: { xs: 2.5, md: 3 },
                     bgcolor: 'background.paper',
                     border: `1px solid ${HAIRLINE}`,
-                    borderLeft: `3px solid ${EMERALD}`,
-                    borderRadius: 2.5,
+                                        borderRadius: 2.5,
                   }}
                 >
                   <Typography sx={{ fontStyle: 'italic', color: INK, mb: 1, fontSize: '0.98rem', lineHeight: 1.55, fontWeight: 500 }}>
