@@ -3,6 +3,7 @@ import { AppError } from '../../shared/middleware/error.middleware';
 import pool, { query } from '../../shared/database';
 import { AuditRepository } from '../audit/audit.repository';
 import { sendPushToUser } from '../notifications/push.service';
+import { safeIo } from '../../shared/socket';
 
 import * as repo from './homecare.repository';
 import { summariseEarnings, getYearToDateTotals, buildPayslipData, renderPayslipPdf } from './payslip.service';
@@ -115,6 +116,17 @@ export class HomecareController {
     if (req.body.status === 'completed') {
       HomecareController.notifyCallCompleted(orgId(req), result).catch(() => {});
     }
+
+    // Broadcast real-time update to other managers
+    try {
+      safeIo().to(`org:${orgId(req)}`).emit('homecare:visit-updated', {
+        visitId: result.id,
+        assigned_staff_id: result.assigned_staff_id,
+        status: result.status,
+        scheduled_start: result.scheduled_start,
+        updatedBy: userId(req),
+      });
+    } catch { /* socket emit is best-effort */ }
 
     res.json(result);
   }
@@ -367,6 +379,15 @@ export class HomecareController {
         });
       }
     }
+
+    // Broadcast bulk assignment to other managers
+    try {
+      safeIo().to(`org:${oid}`).emit('homecare:visit-updated', {
+        type: 'bulk-auto-assign',
+        assignedCount: assignments.length,
+        updatedBy: userId(req),
+      });
+    } catch { /* socket emit is best-effort */ }
 
     res.json({
       assignments,
