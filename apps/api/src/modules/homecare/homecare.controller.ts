@@ -397,6 +397,95 @@ export class HomecareController {
     });
   }
 
+  // ─── Travel Time Estimation ─────────────────────────────────
+  // Simple in-memory cache for OSRM responses (TTL 1 hour)
+  private static travelTimeCache = new Map<string, { data: any; expiresAt: number }>()
+
+  private static getCacheKey(origin: string, destination: string): string {
+    return `${origin}:${destination}`
+  }
+
+  private static async fetchOsrmTravelTime(origin: string, destination: string): Promise<{ duration_minutes: number; distance_km: number; route_summary: string } | null> {
+    const cacheKey = HomecareController.getCacheKey(origin, destination)
+    const cached = HomecareController.travelTimeCache.get(cacheKey)
+    if (cached && cached.expiresAt > Date.now()) return cached.data
+
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${origin};${destination}?overview=false&alternatives=false&steps=false`
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'MeticleCare/1.0' },
+        signal: AbortSignal.timeout(5000),
+      })
+      if (!response.ok) return null
+      const data = await response.json()
+      if (!data.routes || data.routes.length === 0) return null
+
+      const route = data.routes[0]
+      const result = {
+        duration_minutes: Math.round(route.duration / 60),
+        distance_km: Math.round((route.distance / 1000) * 10) / 10,
+        route_summary: `${Math.round(route.distance / 1000)}km · ${Math.round(route.duration / 60)}min`,
+      }
+
+      // Cache for 1 hour
+      HomecareController.travelTimeCache.set(cacheKey, { data: result, expiresAt: Date.now() + 3600000 })
+      return result
+    } catch {
+      return null
+    }
+  }
+
+  static async getTravelTime(req: Request, res: Response) {
+    const origin = req.query.origin as string
+    const destination = req.query.destination as string
+    if (!origin || !destination) throw new AppError(400, 'origin and destination coordinates required (lat,lon)')
+
+    const result = await HomecareController.fetchOsrmTravelTime(origin, destination)
+    if (!result) {
+      // Fallback to haversine estimate
+      const [oLat, oLon] = origin.split(',').map(Number)
+      const [dLat, dLon] = destination.split(',').map(Number)
+      const R = 6371
+      const dLat2 = ((dLat - oLat) * Math.PI) / 180
+      const dLon2 = ((dLon - oLon) * Math.PI) / 180
+      const a = Math.sin(dLat2 / 2) ** 2 + Math.cos((oLat * Math.PI) / 180) * Math.cos((dLat * Math.PI) / 180) * Math.sin(dLon2 / 2) ** 2
+      const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+      return res.json({
+        duration_minutes: Math.round(distKm * 3), // rough 20km/h UK urban
+        distance_km: Math.round(distKm * 10) / 10,
+        route_summary: `${Math.round(distKm)}km (estimated)`,
+        source: 'haversine',
+      })
+    }
+
+    res.json({ ...result, source: 'osrm' })
+  }
+
+  static async bulkTravelTime(req: Request, res: Response) {
+    const { pairs } = req.body as { pairs: Array<{ origin: string; destination: string; label?: string }> }
+    if (!Array.isArray(pairs) || pairs.length === 0) throw new AppError(400, 'pairs array required')
+    if (pairs.length > 50) throw new AppError(400, 'Maximum 50 pairs per request')
+
+    const results = await Promise.all(
+      pairs.map(async (pair) => {
+        const result = await HomecareController.fetchOsrmTravelTime(pair.origin, pair.destination)
+        if (!result) {
+          const [oLat, oLon] = pair.origin.split(',').map(Number)
+          const [dLat, dLon] = pair.destination.split(',').map(Number)
+          const R = 6371
+          const dLat2 = ((dLat - oLat) * Math.PI) / 180
+          const dLon2 = ((dLon - oLon) * Math.PI) / 180
+          const a = Math.sin(dLat2 / 2) ** 2 + Math.cos((oLat * Math.PI) / 180) * Math.cos((dLat * Math.PI) / 180) * Math.sin(dLon2 / 2) ** 2
+          const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+          return { ...pair, duration_minutes: Math.round(distKm * 3), distance_km: Math.round(distKm * 10) / 10, source: 'haversine' }
+        }
+        return { ...pair, ...result, source: 'osrm' }
+      })
+    )
+
+    res.json({ results })
+  }
+
   static async createAvailability(req: Request, res: Response) {
     // Carers can only set their own availability
     const userRole = req.user!.role;

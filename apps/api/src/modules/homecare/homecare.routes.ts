@@ -189,4 +189,13 @@ const photoReqSchema = z.object({ require_photo_on_checkout: z.boolean() });
 router.patch('/settings/require-photo', requireRole(...managerRoles), validate(photoReqSchema), asyncHandler(HomecareController.updateRequirePhoto));
 router.get('/settings/require-photo', requireRole(...fieldRoles), asyncHandler(HomecareController.getRequirePhoto));
 
+// Travel time estimation
+const travelTimeSchema = z.object({
+  origin: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/),
+  destination: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/),
+});
+router.get('/travel-time', requireRole(...fieldRoles), validate(travelTimeSchema, 'query'), asyncHandler(HomecareController.getTravelTime));
+
+router.post('/visits/bulk-travel-time', requireRole(...managerRoles), asyncHandler(HomecareController.bulkTravelTime));
+
 export default router;

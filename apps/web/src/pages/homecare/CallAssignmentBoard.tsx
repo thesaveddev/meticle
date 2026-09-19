@@ -855,6 +855,36 @@ function CarerDropZone({
   onAddTask, onToggleTask, onDeleteTask, isAddingTask, onUnassign,
 }: any) {
   const sorted = [...visits].sort((a: any, b: any) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())
+  const [travelTimes, setTravelTimes] = useState<Record<string, { duration_minutes: number; distance_km: number }>>({})
+
+  // Fetch travel times between consecutive visits
+  useEffect(() => {
+    if (sorted.length < 2) return
+    const pairs: Array<{ origin: string; destination: string; key: string }> = []
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1]
+      const curr = sorted[i]
+      if (prev.latitude && prev.longitude && curr.latitude && curr.longitude) {
+        pairs.push({
+          origin: `${prev.latitude},${prev.longitude}`,
+          destination: `${curr.latitude},${curr.longitude}`,
+          key: `${prev.id}:${curr.id}`,
+        })
+      }
+    }
+    if (pairs.length === 0) return
+
+    // Fetch travel times (batch via bulk endpoint)
+    api.post('/homecare/visits/bulk-travel-time', { pairs: pairs.map(p => ({ origin: p.origin, destination: p.destination })) })
+      .then(res => {
+        const map: Record<string, { duration_minutes: number; distance_km: number }> = {}
+        res.data.results.forEach((r: any, i: number) => {
+          map[pairs[i].key] = { duration_minutes: r.duration_minutes, distance_km: r.distance_km }
+        })
+        setTravelTimes(map)
+      })
+      .catch(() => {})
+  }, [sorted])
 
   // Calculate workload summary
   const totalMins = visits.reduce((sum: number, v: any) => {
@@ -913,15 +943,29 @@ function CarerDropZone({
         <Stack spacing={0.5}>
           {sorted.map((v: any, idx: number) => {
             const cfg = statusConfig[v.status] || statusConfig.scheduled
-            // Show gap indicator between visits
+            // Show gap indicator between visits with travel time
             const gap = idx > 0 ? minsBetween(v.scheduled_start, sorted[idx - 1].scheduled_end) : null
+            const travelKey = idx > 0 ? `${sorted[idx - 1].id}:${v.id}` : null
+            const travel = travelKey ? travelTimes[travelKey] : null
             return (
               <Box key={v.id}>
                 {gap !== null && gap > 0 && (
                   <Box sx={{ pl: 3, py: 0.25 }}>
-                    <Typography variant="caption" sx={{ color: gap < 15 ? '#DC2626' : '#9CA3AF', fontSize: '0.6rem', fontWeight: 600 }}>
-                      {gap < 15 ? `⚠ ${Math.round(gap)}min gap` : `${Math.round(gap)}min gap`}
-                    </Typography>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      {travel ? (
+                        <>
+                          <Typography variant="caption" sx={{ color: travel.duration_minutes > gap ? '#DC2626' : '#9CA3AF', fontSize: '0.6rem', fontWeight: 600 }}>
+                            {travel.duration_minutes > gap
+                              ? `⚠ ${travel.duration_minutes}min travel (only ${Math.round(gap)}min gap)`
+                              : `${travel.distance_km}km · ~${travel.duration_minutes}min travel`}
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography variant="caption" sx={{ color: gap < 15 ? '#DC2626' : '#9CA3AF', fontSize: '0.6rem', fontWeight: 600 }}>
+                          {gap < 15 ? `⚠ ${Math.round(gap)}min gap` : `${Math.round(gap)}min gap`}
+                        </Typography>
+                      )}
+                    </Stack>
                   </Box>
                 )}
                 <Stack
