@@ -143,6 +143,7 @@ router.get('/packages/:packageId/visit-plans', requireRole(...fieldRoles), async
 router.post('/packages/:packageId/visit-plans', requireRole(...managerRoles), validate(planSchema), asyncHandler(HomecareController.createVisitPlan));
 router.post('/visit-plans/:planId/generate', requireRole(...managerRoles), validate(generationSchema), asyncHandler(HomecareController.generateVisits));
 router.get('/visits', requireRole(...managerRoles), asyncHandler(HomecareController.listVisits));
+router.post('/visits/bulk-auto-assign', requireRole(...managerRoles), validate(billingPeriodSchema), asyncHandler(HomecareController.bulkAutoAssign));
 router.get('/my-visits', requireRole(...fieldRoles), asyncHandler(HomecareController.myVisits));
 router.get('/my-earnings', requireRole(...fieldRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getMyEarnings));
 // Payslip PDF. Carers download their own; managers/admins may pass `staffId` (checked in the controller).

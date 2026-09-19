@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useMemo } from 'react'
 import {
   Box, Button, Chip, CircularProgress, IconButton, Paper, Stack,
   TextField, Typography, Alert, Tooltip, Collapse,
+  Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material'
 import {
   useMutation, useQuery, useQueryClient,
@@ -169,6 +170,22 @@ export default function CallAssignmentBoard() {
     },
   })
 
+  const handleBulkAutoAssign = useCallback(async () => {
+    setAutoAssigning(true)
+    setAutoAssignDialog(false)
+    try {
+      const nextDate = new Date(new Date(date).getTime() + 86400000).toISOString().slice(0, 10)
+      const res = await api.post(`/homecare/visits/bulk-auto-assign?from=${date}&to=${nextDate}`)
+      setAutoAssignResult(res.data)
+      qc.invalidateQueries({ queryKey: ['homecare-visits-assign'] })
+      qc.invalidateQueries({ queryKey: ['homecare-live-map'] })
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Auto-assign failed')
+    } finally {
+      setAutoAssigning(false)
+    }
+  }, [date, qc])
+
   const unassigned = useMemo(() =>
     visits.filter((v: any) => !v.assigned_staff_id && v.status === 'scheduled')
       .sort((a: any, b: any) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime()),
@@ -253,6 +270,9 @@ export default function CallAssignmentBoard() {
   // Click fallback for touch devices / quick assign
   const [selectedForAssign, setSelectedForAssign] = useState<string | null>(null)
   const [showSuggestions, setShowSuggestions] = useState<string | null>(null)
+  const [autoAssigning, setAutoAssigning] = useState(false)
+  const [autoAssignResult, setAutoAssignResult] = useState<any>(null)
+  const [autoAssignDialog, setAutoAssignDialog] = useState(false)
 
   // AI carer suggestion query
   const { data: suggestions = [], isLoading: suggestionsLoading } = useQuery({
@@ -299,6 +319,11 @@ export default function CallAssignmentBoard() {
           <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() - 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>←</Button>
           <Chip label={`${dateStr(date)} — ${visits.length} calls`} sx={{ fontWeight: 700, bgcolor: '#0F4C81', color: 'white' }} onClick={() => setDate(new Date().toISOString().slice(0, 10))} />
           <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() + 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>→</Button>
+          {unassigned.length > 0 && (
+            <Button variant="contained" startIcon={autoAssigning ? <CircularProgress size={16} color="inherit" /> : <AutoAwesome />} onClick={() => setAutoAssignDialog(true)} disabled={autoAssigning} sx={{ textTransform: 'none', bgcolor: '#6366F1', '&:hover': { bgcolor: '#4F46E5' }, fontSize: '0.8rem' }}>
+              {autoAssigning ? 'Assigning…' : 'Auto-assign'}
+            </Button>
+          )}
         </Stack>
       </Stack>
 
@@ -319,6 +344,35 @@ export default function CallAssignmentBoard() {
         <Alert severity="info" sx={{ mb: 2 }} action={<Button size="small" color="inherit" onClick={() => setSelectedForAssign(null)}>Cancel</Button>}>
           Click a carer on the right to assign this call, or drag it.
         </Alert>
+      )}
+
+      {/* Auto-assign result */}
+      {autoAssignResult && (
+        <Paper elevation={0} sx={{ p: 2.5, mb: 2, border: '1px solid', borderColor: autoAssignResult.assigned_count > 0 ? '#D1FAE5' : '#FEE2E2', borderRadius: 2, bgcolor: autoAssignResult.assigned_count > 0 ? '#F0FDF4' : '#FEF2F2' }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <AutoAwesome sx={{ fontSize: 18, color: autoAssignResult.assigned_count > 0 ? '#059669' : '#DC2626' }} />
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Auto-assign complete</Typography>
+            </Stack>
+            <Button size="small" onClick={() => setAutoAssignResult(null)} sx={{ textTransform: 'none' }}>Dismiss</Button>
+          </Stack>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            {autoAssignResult.assigned_count} of {autoAssignResult.total_unassigned} unassigned calls were distributed to carers.
+            {autoAssignResult.unassigned_count > 0 && ` ${autoAssignResult.unassigned_count} could not be assigned (no suitable carer available).`}
+          </Typography>
+          {autoAssignResult.assignments.length > 0 && (
+            <Stack spacing={0.5}>
+              {autoAssignResult.assignments.map((a: any) => (
+                <Stack key={a.visit_id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
+                  <CheckIcon sx={{ fontSize: 14, color: '#059669' }} />
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{a.person_name}</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>→ {a.carer_name}</Typography>
+                  <Chip label={`score ${a.score}`} size="small" sx={{ height: 16, fontSize: '0.55rem', bgcolor: a.score >= 70 ? '#D1FAE5' : '#FEF9C3', fontWeight: 600 }} />
+                </Stack>
+              ))}
+            </Stack>
+          )}
+        </Paper>
       )}
 
       {/* AI Suggestion panel */}
@@ -454,6 +508,24 @@ export default function CallAssignmentBoard() {
           </Box>
         </Stack>
       )}
+      {/* Auto-assign confirmation dialog */}
+      <Dialog open={autoAssignDialog} onClose={() => setAutoAssignDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Auto-assign {unassigned.length} unassigned calls</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+            This will distribute unassigned calls to the most suitable carers based on their availability, proximity to clients, and current workload. Calls are assigned in chronological order.
+          </Typography>
+          <Alert severity="info" sx={{ bgcolor: '#F8FAFF' }}>
+            Carers on leave or with overlapping calls will be skipped. You can always unassign calls after auto-assign.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAutoAssignDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleBulkAutoAssign} disabled={autoAssigning} startIcon={autoAssigning ? <CircularProgress size={16} color="inherit" /> : <AutoAwesome />} sx={{ textTransform: 'none', bgcolor: '#6366F1', '&:hover': { bgcolor: '#4F46E5' } }}>
+            {autoAssigning ? 'Assigning…' : `Assign ${unassigned.length} calls`}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   )
 }

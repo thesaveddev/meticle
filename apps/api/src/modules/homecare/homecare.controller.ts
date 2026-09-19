@@ -214,6 +214,168 @@ export class HomecareController {
     res.json(await repo.suggestCarersForVisit(orgId(req), visitId));
   }
 
+  static async bulkAutoAssign(req: Request, res: Response) {
+    const oid = orgId(req);
+    const from = req.query.from as string;
+    const to = req.query.to as string;
+    if (!from || !to) throw new AppError(400, 'from and to date parameters are required');
+
+    // Get all visits for the period
+    const visitsResult = await query(
+      `SELECT hv.*, pe.first_name || ' ' || pe.last_name AS person_name,
+              l.latitude, l.longitude
+       FROM homecare_visits hv
+       JOIN people pe ON pe.id = hv.person_id
+       LEFT JOIN locations l ON l.id = pe.location_id
+       WHERE hv.organization_id = $1 AND hv.status = 'scheduled'
+         AND hv.scheduled_start >= $2::date AND hv.scheduled_start < ($3::date + INTERVAL '1 day')
+       ORDER BY hv.scheduled_start`,
+      [oid, from, to]
+    );
+    const allVisits = visitsResult.rows;
+    const unassigned = allVisits.filter((v: any) => !v.assigned_staff_id);
+    if (unassigned.length === 0) return res.json({ assignments: [], message: 'No unassigned calls' });
+
+    // Get all active staff
+    const staffResult = await query(
+      `SELECT sp.id, sp.first_name, sp.last_name
+       FROM staff_profiles sp JOIN users u ON u.id = sp.user_id
+       WHERE u.organization_id = $1 AND u.status = 'active' AND u.role IN ('CARE_WORKER', 'MANAGER')`,
+      [oid]
+    );
+    const staffList = staffResult.rows;
+    if (staffList.length === 0) return res.json({ assignments: [], message: 'No active staff' });
+
+    // Get availability for all staff
+    const availResult = await query(
+      `SELECT * FROM staff_availability WHERE organization_id = $1`, [oid]
+    );
+    const availability = availResult.rows;
+
+    // Get pending/approved leave for the period
+    const leaveResult = await query(
+      `SELECT * FROM leave_requests WHERE organization_id = $1
+         AND status IN ('pending', 'approved')
+         AND start_date <= $3::date AND end_date >= $2::date`,
+      [oid, from, to]
+    );
+    const leaves = leaveResult.rows;
+
+    // Get existing assigned visits for conflict checking
+    const assignedVisits = allVisits.filter((v: any) => v.assigned_staff_id);
+
+    // Haversine distance
+    const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    // Score a carer for a visit
+    const scoreVisit = (visit: any, staffId: string, currentAssignments: Map<string, any[]>): number => {
+      let score = 50; // base
+
+      // Check leave conflict
+      const onLeave = leaves.some((l: any) => l.staff_id === staffId && new Date(l.start_date) <= new Date(visit.scheduled_end) && new Date(l.end_date) >= new Date(visit.scheduled_start));
+      if (onLeave) return -1;
+
+      // Check availability match
+      const visitDay = new Date(visit.scheduled_start).getDay();
+      const visitStart = new Date(visit.scheduled_start).getHours() * 60 + new Date(visit.scheduled_start).getMinutes();
+      const visitEnd = new Date(visit.scheduled_end).getHours() * 60 + new Date(visit.scheduled_end).getMinutes();
+      const avail = availability.find((a: any) => a.staff_id === staffId && a.day_of_week === visitDay);
+      if (avail && !avail.is_unavailable) {
+        const aStart = avail.start_time ? parseTime(avail.start_time) : 0;
+        const aEnd = avail.end_time ? parseTime(avail.end_time) : 1440;
+        if (visitStart >= aStart && visitEnd <= aEnd) score += 25;
+        else score -= 10;
+      } else if (avail?.is_unavailable) {
+        return -1;
+      }
+
+      // Check time overlap with existing assignments
+      const carerVisits = [...(currentAssignments.get(staffId) || []), ...assignedVisits.filter((v: any) => v.assigned_staff_id === staffId)];
+      const vStart = new Date(visit.scheduled_start).getTime();
+      const vEnd = new Date(visit.scheduled_end).getTime();
+      const buffer = 30 * 60 * 1000;
+      for (const cv of carerVisits) {
+        if (cv.id === visit.id) continue;
+        const cStart = new Date(cv.scheduled_start).getTime();
+        const cEnd = new Date(cv.scheduled_end).getTime();
+        if (vStart < cEnd + buffer && vEnd > cStart - buffer) return -1;
+      }
+
+      // Proximity bonus for back-to-back calls
+      for (const cv of carerVisits) {
+        if (cv.id === visit.id) continue;
+        const cEnd = new Date(cv.scheduled_end).getTime();
+        const gapMins = (vStart - cEnd) / 60000;
+        if (gapMins >= 0 && gapMins <= 90 && visit.latitude && visit.longitude && cv.latitude && cv.longitude) {
+          const distKm = haversineKm(visit.latitude, visit.longitude, cv.latitude, cv.longitude);
+          const travelNeeded = distKm * 3;
+          if (travelNeeded <= gapMins + 15) score += 15;
+        }
+      }
+
+      // Workload balance — prefer carers with fewer hours today
+      const currentHours = carerVisits.reduce((sum: number, cv: any) => {
+        return sum + (new Date(cv.scheduled_end).getTime() - new Date(cv.scheduled_start).getTime()) / 3600000;
+      }, 0);
+      const visitHours = (vEnd - vStart) / 3600000;
+      if (currentHours + visitHours <= 8) score += 10;
+      else score -= 5;
+
+      return score;
+    };
+
+    function parseTime(timeStr: string): number {
+      const parts = String(timeStr).split(':');
+      return (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
+    }
+
+    // Greedy assignment: sort unassigned by time, assign best available carer
+    const assignments: { visit_id: string; staff_id: string; score: number; person_name: string; carer_name: string; time: string }[] = [];
+    const tempAssignments = new Map<string, any[]>();
+
+    for (const visit of unassigned) {
+      let bestStaff: string | null = null;
+      let bestScore = -1;
+
+      for (const staff of staffList) {
+        const s = scoreVisit(visit, staff.id, tempAssignments);
+        if (s > bestScore) {
+          bestScore = s;
+          bestStaff = staff.id;
+        }
+      }
+
+      if (bestStaff && bestScore > 0) {
+        // Actually assign
+        await query('UPDATE homecare_visits SET assigned_staff_id = $1 WHERE id = $2 AND organization_id = $3', [bestStaff, visit.id, oid]);
+        if (!tempAssignments.has(bestStaff)) tempAssignments.set(bestStaff, []);
+        tempAssignments.get(bestStaff)!.push(visit);
+        const staffMember = staffList.find((s: any) => s.id === bestStaff);
+        assignments.push({
+          visit_id: visit.id,
+          staff_id: bestStaff,
+          score: bestScore,
+          person_name: visit.person_name,
+          carer_name: staffMember ? `${staffMember.first_name} ${staffMember.last_name}` : 'Unknown',
+          time: visit.scheduled_start,
+        });
+      }
+    }
+
+    res.json({
+      assignments,
+      total_unassigned: unassigned.length,
+      assigned_count: assignments.length,
+      unassigned_count: unassigned.length - assignments.length,
+    });
+  }
+
   static async createAvailability(req: Request, res: Response) {
     // Carers can only set their own availability
     const userRole = req.user!.role;
