@@ -228,14 +228,18 @@ export default function HomePage() {
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Eyebrow center>Inspection readiness</Eyebrow>
-            <Typography sx={{ ...M.h1, mb: 2 }}>Stay ready for inspection. Every day.</Typography>
-            <Typography sx={{ ...M.bodyLg, color: M.slate, maxWidth: 560, mx: 'auto', mb: 2 }}>
-              Compliance shouldn't begin when an inspection is announced. MeticleCare helps make good governance part of everyday care operations.
+            <Typography sx={{ ...M.h1, display: 'block', lineHeight: { xs: 1.2, md: 1.1 }, mb: 2 }}>
+              Stay ready for inspection. Every day.
             </Typography>
-            <Typography sx={{ ...M.body, color: M.slate, maxWidth: 560, mx: 'auto', mb: 4 }}>
-              Requirements differ across England, Scotland, Wales and Northern Ireland.
-            </Typography>
-            <CTA label="Explore compliance" to="/compliance" variant="secondary" />
+            <Stack spacing={4} alignItems="center">
+              <Typography sx={{ ...M.bodyLg, display: 'block', color: M.slate, lineHeight: { xs: 1.6, md: 1.7 }, maxWidth: 760, mx: 'auto', mb: 0 }}>
+                Compliance should be part of everyday operations — not something assembled when an inspection is announced.
+              </Typography>
+              <Typography sx={{ ...M.body, display: 'block', color: M.slate, lineHeight: { xs: 1.6, md: 1.65 }, maxWidth: 760, mx: 'auto', mb: 0 }}>
+                Requirements differ across England, Scotland, Wales and Northern Ireland.
+              </Typography>
+              <CTA label="Explore compliance" to="/compliance" variant="secondary" />
+            </Stack>
           </Box>
           {/* Readiness dashboard mockup */}
           <Box sx={{ p: { xs: 3, md: 4 }, bgcolor: M.paper, borderRadius: M.r.xl, border: `1px solid ${M.faint}`, maxWidth: 700, mx: 'auto' }}>
