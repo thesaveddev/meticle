@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Box, Button, CircularProgress, Container, Grid, IconButton, LinearProgress, Stack, Typography, Chip } from '@mui/material'
+import { Box, Button, CircularProgress, Container, Divider, Grid, IconButton, LinearProgress, Stack, Typography, Chip } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@mui/material/styles'
 import {
@@ -58,12 +58,14 @@ export default function DomiciliaryDashboard() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<DomiciliaryData | null>(null)
   const [error, setError] = useState('')
+  const [overview, setOverview] = useState<{ cards: { label: string; value: string | number; subtitle: string; color: string }[]; attention: { label: string; value: number; action: string; target: string }[]; generatedAt: string } | null>(null)
 
   const load = useCallback(async (date: string) => {
     setLoading(true)
     try {
       const res = await api.get('/dashboard/domiciliary', { params: { date } })
       setData(res.data)
+      api.get('/reporting/overview').then(r => setOverview(r.data)).catch(() => {})
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load dashboard')
     } finally { setLoading(false) }
@@ -180,6 +182,43 @@ export default function DomiciliaryDashboard() {
           )}
         </Stack>
       </PremiumCard>
+
+      {/* Operational Pulse */}
+      {overview && overview.cards.length > 0 && (
+        <PremiumCard noBorder sx={{ p: 3, mb: 3 }}>
+          <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="overline" sx={{ color: '#0F4C81', fontWeight: 800, letterSpacing: '0.12em', fontSize: '0.65rem' }}>Operational pulse</Typography>
+              <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
+                {overview.cards.map(card => (
+                  <Grid item xs={6} sm={4} key={card.label}>
+                    <Box>
+                      <Typography variant="h5" sx={{ fontWeight: 900, color: card.color }}>{card.value}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>{card.label}</Typography>
+                      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontSize: '0.65rem' }}>{card.subtitle}</Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+            {overview.attention.length > 0 && (
+              <>
+                <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', lg: 'block' } }} />
+                <Box sx={{ width: { xs: '100%', lg: 260 } }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, fontSize: '0.85rem' }}>Quick actions</Typography>
+                  <Stack spacing={0.5}>
+                    {overview.attention.map(item => (
+                      <Button key={item.label} size="small" endIcon={<ArrowIcon />} onClick={() => navigate(item.target === 'locations' ? '/care-areas' : `/homecare`)} sx={{ justifyContent: 'space-between', textTransform: 'none', color: item.value > 0 ? '#DC2626' : 'text.primary', fontSize: '0.8rem' }}>
+                        <span>{item.label}: <strong>{item.value}</strong></span>
+                      </Button>
+                    ))}
+                  </Stack>
+                </Box>
+              </>
+            )}
+          </Stack>
+        </PremiumCard>
+      )}
 
       {/* Call Stats */}
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
