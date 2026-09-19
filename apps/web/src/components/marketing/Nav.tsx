@@ -43,6 +43,7 @@ const navGroups: NavGroup[] = [
   },
   { name: 'Resources', path: '/blog' },
   { name: 'Security', path: '/security' },
+  { name: 'Pricing', path: '/pricing' },
 ]
 
 /* ─── Component ────────────────────────────────────── */

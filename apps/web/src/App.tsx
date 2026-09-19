@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import Layout from './components/Layout'
 import AuthGuard from './components/AuthGuard'
@@ -41,6 +41,7 @@ const CaseStudiesPage = lazy(() => import('./pages/marketing/CaseStudiesPage'))
 const HowItWorksPage = lazy(() => import('./pages/marketing/HowItWorksPage'))
 const PublicBlogPage = lazy(() => import('./pages/marketing/PublicBlogPage'))
 const ComplianceBadgesPage = lazy(() => import('./pages/marketing/ComplianceBadgesPage'))
+const PricingPage = lazy(() => import('./pages/marketing/PricingPage'))
 const LearningCenterPage = lazy(() => import('./pages/learn/LearningCenterPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'))
 const TermsOfUsePage = lazy(() => import('./pages/legal/TermsOfUsePage'))
@@ -131,7 +132,7 @@ function App() {
       <Route path="/download" element={<ErrorBoundary><Suspense fallback={null}><DownloadPageNew /></Suspense></ErrorBoundary>} />
       <Route path="/features" element={<ErrorBoundary><Suspense fallback={null}><FeaturesPage /></Suspense></ErrorBoundary>} />
       <Route path="/how-it-works" element={<ErrorBoundary><Suspense fallback={null}><HowItWorksPage /></Suspense></ErrorBoundary>} />
-      <Route path="/pricing" element={<Navigate to="/contact" replace />} />
+      <Route path="/pricing" element={<ErrorBoundary><Suspense fallback={null}><PricingPage /></Suspense></ErrorBoundary>} />
       <Route path="/about" element={<ErrorBoundary><Suspense fallback={null}><AboutPageNew /></Suspense></ErrorBoundary>} />
       <Route path="/case-studies" element={<ErrorBoundary><Suspense fallback={null}><CaseStudiesPage /></Suspense></ErrorBoundary>} />
       <Route path="/contact" element={<ErrorBoundary><Suspense fallback={null}><ContactPageNew /></Suspense></ErrorBoundary>} />
