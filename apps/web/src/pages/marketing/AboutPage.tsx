@@ -9,7 +9,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
       <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: M.teal }} />
-      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.size, fontWeight: M.caption.weight, letterSpacing: M.caption.tracking, textTransform: 'uppercase' }}>{children}</Typography>
+      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{children}</Typography>
     </Stack>
   )
 }
@@ -39,13 +39,13 @@ export default function AboutPage() {
       <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: M.paper }}>
         <Container maxWidth="md">
           <Eyebrow>About MeticleCare</Eyebrow>
-          <Typography sx={{ fontSize: M.display.size, lineHeight: M.display.height, fontWeight: M.display.weight, letterSpacing: M.display.tracking, mb: 3 }}>
+          <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
             This is where care operations come together.
           </Typography>
-          <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, lineHeight: 1.8, mb: 4 }}>
+          <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: 1.8, mb: 4 }}>
             Care teams should not have to search across paperwork, spreadsheets, messages and disconnected systems to understand what happened and what needs attention. MeticleCare exists because care operations deserve better.
           </Typography>
-          <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, lineHeight: 1.8 }}>
+          <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: 1.8 }}>
             We are building the operating layer for modern care providers — connecting care delivery, people, medication, risk, incidents, compliance, reporting, families and intelligence in one platform.
           </Typography>
         </Container>
@@ -56,7 +56,7 @@ export default function AboutPage() {
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Eyebrow>Our story</Eyebrow>
-            <Typography sx={{ fontSize: M.h1.size, lineHeight: M.h1.height, fontWeight: M.h1.weight, letterSpacing: M.h1.tracking }}>
+            <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing }}>
               From a problem to a platform.
             </Typography>
           </Box>
@@ -82,7 +82,7 @@ export default function AboutPage() {
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Eyebrow>What we believe</Eyebrow>
-            <Typography sx={{ fontSize: M.h2.size, fontWeight: M.h2.weight, letterSpacing: M.h2.tracking }}>
+            <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing }}>
               Principles that guide the product.
             </Typography>
           </Box>
@@ -109,10 +109,10 @@ export default function AboutPage() {
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.card }}>
         <Container maxWidth="md">
           <Box sx={{ textAlign: 'center', p: { xs: 4, md: 6 }, bgcolor: M.paper, borderRadius: M.r.xl, border: `1px solid ${M.faint}` }}>
-            <Typography sx={{ fontSize: M.h2.size, fontWeight: M.h2.weight, letterSpacing: M.h2.tracking, mb: 2 }}>
+            <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing, mb: 2 }}>
               Our mission.
             </Typography>
-            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, lineHeight: 1.8 }}>
+            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: 1.8 }}>
               Help care providers spend less time processing information and more time delivering care — while keeping the evidence, compliance and governance that inspection-ready services need.
             </Typography>
           </Box>
@@ -122,10 +122,10 @@ export default function AboutPage() {
       {/* CTA */}
       <Box sx={{ py: { xs: 10, md: 14 }, background: `linear-gradient(160deg, ${M.navy} 0%, #162032 50%, #1A2744 100%)`, textAlign: 'center' }}>
         <Container maxWidth="md">
-          <Typography sx={{ fontSize: M.h1.size, lineHeight: M.h1.height, fontWeight: M.h1.weight, letterSpacing: M.h1.tracking, color: M.card, mb: 2 }}>
+          <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             Run your care operation with more clarity.
           </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.size, mb: 4 }}>
+          <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.fontSize, mb: 4 }}>
             Talk to the team about how MeticleCare can support your service.
           </Typography>
           <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>

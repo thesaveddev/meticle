@@ -13,7 +13,7 @@ function Eyebrow({ children, color }: { children: React.ReactNode; color?: strin
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
       <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: color || M.teal }} />
-      <Typography sx={{ color: color || M.tealDeep, fontSize: M.caption.size, fontWeight: M.caption.weight, letterSpacing: M.caption.tracking, textTransform: 'uppercase' }}>{children}</Typography>
+      <Typography sx={{ color: color || M.tealDeep, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{children}</Typography>
     </Stack>
   )
 }
@@ -432,10 +432,10 @@ export default function FeaturePage() {
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={6}>
               <Eyebrow color={d.color}>Platform capability</Eyebrow>
-              <Typography sx={{ fontSize: M.display.size, lineHeight: M.display.height, fontWeight: M.display.weight, letterSpacing: M.display.tracking, mb: 3 }}>
+              <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
                 {d.title}
               </Typography>
-              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, lineHeight: M.bodyLg.height, mb: 3 }}>
+              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight, mb: 3 }}>
                 {d.intro}
               </Typography>
               <Chip label={`For: ${d.audience}`} sx={{ bgcolor: `${d.color}12`, color: d.color, fontWeight: 700, fontSize: '0.78rem' }} />
@@ -459,7 +459,7 @@ export default function FeaturePage() {
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
               <Eyebrow color={d.color}>What your team can do</Eyebrow>
-              <Typography sx={{ fontSize: M.h2.size, fontWeight: M.h2.weight, letterSpacing: M.h2.tracking, mb: 2 }}>
+              <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing, mb: 2 }}>
                 A clearer working view.
               </Typography>
               <Typography sx={{ color: M.slate, lineHeight: 1.7 }}>
@@ -489,7 +489,7 @@ export default function FeaturePage() {
             {d.detailSections.map((section, i) => (
               <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center" key={i}>
                 <Grid item xs={12} md={i % 2 === 0 ? 5 : 7} order={{ xs: 1, md: i % 2 === 0 ? 1 : 2 }}>
-                  <Typography sx={{ fontSize: M.h2.size, fontWeight: M.h2.weight, letterSpacing: M.h2.tracking, mb: 2 }}>
+                  <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing, mb: 2 }}>
                     {section.heading}
                   </Typography>
                   <Typography sx={{ color: M.slate, lineHeight: 1.75, fontSize: '1rem' }}>
@@ -514,7 +514,7 @@ export default function FeaturePage() {
       {/* CTA */}
       <Box sx={{ py: { xs: 10, md: 14 }, background: `linear-gradient(160deg, ${M.navy} 0%, #162032 50%, #1A2744 100%)`, textAlign: 'center' }}>
         <Container maxWidth="md">
-          <Typography sx={{ fontSize: M.h1.size, lineHeight: M.h1.height, fontWeight: M.h1.weight, letterSpacing: M.h1.tracking, color: M.card, mb: 2 }}>
+          <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             See {d.title.toLowerCase()} in your operation.
           </Typography>
           <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>

@@ -9,7 +9,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
       <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: M.teal }} />
-      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.size, fontWeight: M.caption.weight, letterSpacing: M.caption.tracking, textTransform: 'uppercase' }}>{children}</Typography>
+      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{children}</Typography>
     </Stack>
   )
 }
@@ -31,10 +31,10 @@ export default function ContactPageNew() {
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="flex-start">
             <Grid item xs={12} md={5}>
               <Eyebrow>Get in touch</Eyebrow>
-              <Typography sx={{ fontSize: M.display.size, lineHeight: M.display.height, fontWeight: M.display.weight, letterSpacing: M.display.tracking, mb: 3 }}>
+              <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
                 Book a demo.
               </Typography>
-              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, lineHeight: M.bodyLg.height, mb: 5 }}>
+              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight, mb: 5 }}>
                 See how MeticleCare connects care delivery, scheduling, medication, risk, compliance and reporting in one platform. Talk to the team about your service.
               </Typography>
 
