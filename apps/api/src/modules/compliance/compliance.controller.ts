@@ -161,6 +161,12 @@ export class ComplianceController {
     res.json(docs);
   }
 
+  static async getAlertsSummary(req: Request, res: Response) {
+    const user = req.user!;
+    const summary = await ComplianceNotificationService.getAlertsSummary(user.organizationId!);
+    res.json(summary);
+  }
+
   static async getEvidencePack(req: Request, res: Response) {
     const user = req.user!;
     const staffId = req.query.staffId as string | undefined;
