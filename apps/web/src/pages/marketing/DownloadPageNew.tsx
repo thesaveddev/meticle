@@ -17,7 +17,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
       <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: M.teal }} />
-      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.size, fontWeight: M.caption.weight, letterSpacing: M.caption.tracking, textTransform: 'uppercase' }}>{children}</Typography>
+      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{children}</Typography>
     </Stack>
   )
 }
@@ -170,10 +170,10 @@ export default function DownloadPageNew() {
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={6}>
               <Eyebrow>Mobile app</Eyebrow>
-              <Typography sx={{ fontSize: M.display.size, lineHeight: M.display.height, fontWeight: M.display.weight, letterSpacing: M.display.tracking, mb: 3 }}>
+              <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
                 Care doesn't happen behind a desk. Neither should your software.
               </Typography>
-              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, lineHeight: M.bodyLg.height, mb: 4 }}>
+              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight, mb: 4 }}>
                 Give care teams a focused mobile experience for the work in front of them — check in, record notes, report disruptions, view care plans and access client information. Available for iOS and Android.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -208,10 +208,10 @@ export default function DownloadPageNew() {
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Eyebrow>What you can do</Eyebrow>
-            <Typography sx={{ fontSize: M.h1.size, lineHeight: M.h1.height, fontWeight: M.h1.weight, letterSpacing: M.h1.tracking, mb: 2 }}>
+            <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, mb: 2 }}>
               The full field experience.
             </Typography>
-            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, maxWidth: 560, mx: 'auto' }}>
+            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, maxWidth: 560, mx: 'auto' }}>
               Everything care teams need for the work in front of them — without carrying a laptop or calling the office.
             </Typography>
           </Box>
@@ -247,7 +247,7 @@ export default function DownloadPageNew() {
               <Grid container spacing={4}>
                 <Grid item xs={12} sm={6}>
                   <Eyebrow>For managers</Eyebrow>
-                  <Typography sx={{ fontSize: M.h3.size, fontWeight: M.h3.weight, letterSpacing: M.h3.tracking, mb: 2 }}>
+                  <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, mb: 2 }}>
                     Oversight from anywhere.
                   </Typography>
                   <Typography sx={{ color: M.slate, lineHeight: 1.7, mb: 3 }}>
@@ -264,7 +264,7 @@ export default function DownloadPageNew() {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Eyebrow>For carers</Eyebrow>
-                  <Typography sx={{ fontSize: M.h3.size, fontWeight: M.h3.weight, letterSpacing: M.h3.tracking, mb: 2 }}>
+                  <Typography sx={{ fontSize: M.h3.fontSize, fontWeight: M.h3.fontWeight, letterSpacing: M.h3.letterSpacing, mb: 2 }}>
                     Everything you need in the field.
                   </Typography>
                   <Typography sx={{ color: M.slate, lineHeight: 1.7, mb: 3 }}>
@@ -288,10 +288,10 @@ export default function DownloadPageNew() {
       {/* ═══ CTA ═══ */}
       <Box sx={{ py: { xs: 10, md: 14 }, background: `linear-gradient(165deg, ${M.navy} 0%, ${M.navyMid} 55%, ${M.navyLight} 100%)`, textAlign: 'center' }}>
         <Container maxWidth="md">
-          <Typography sx={{ fontSize: M.h1.size, lineHeight: M.h1.height, fontWeight: M.h1.weight, letterSpacing: M.h1.tracking, color: M.card, mb: 2 }}>
+          <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             Ready to get started?
           </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.size, mb: 4 }}>
+          <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.fontSize, mb: 4 }}>
             Download the app or talk to the team about your care operation.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">

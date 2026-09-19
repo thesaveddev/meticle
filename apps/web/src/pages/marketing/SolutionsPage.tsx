@@ -14,7 +14,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
       <Box sx={{ width: 8, height: 8, borderRadius: M.r.full, bgcolor: M.teal }} />
-      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.size, fontWeight: M.caption.weight, letterSpacing: M.caption.tracking, textTransform: 'uppercase' }}>{children}</Typography>
+      <Typography sx={{ color: M.tealDeep, fontSize: M.caption.fontSize, fontWeight: M.caption.fontWeight, letterSpacing: M.caption.letterSpacing, textTransform: 'uppercase' }}>{children}</Typography>
     </Stack>
   )
 }
@@ -124,10 +124,10 @@ export default function SolutionsPage() {
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={6}>
               <Eyebrow>{data.title}</Eyebrow>
-              <Typography sx={{ fontSize: M.display.size, lineHeight: M.display.height, fontWeight: M.display.weight, letterSpacing: M.display.tracking, mb: 3 }}>
+              <Typography sx={{ fontSize: M.display.fontSize, lineHeight: M.display.lineHeight, fontWeight: M.display.fontWeight, letterSpacing: M.display.letterSpacing, mb: 3 }}>
                 {data.tagline}
               </Typography>
-              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, lineHeight: M.bodyLg.height, maxWidth: 520, mb: 4 }}>
+              <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight, maxWidth: 520, mb: 4 }}>
                 {data.desc}
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -154,10 +154,10 @@ export default function SolutionsPage() {
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Eyebrow>Why it matters</Eyebrow>
-            <Typography sx={{ fontSize: M.h1.size, lineHeight: M.h1.height, fontWeight: M.h1.weight, letterSpacing: M.h1.tracking, mb: 2 }}>
+            <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, mb: 2 }}>
               {isHomecare ? 'Domiciliary care has its own operational challenges.' : 'Supported living demands continuous, connected records.'}
             </Typography>
-            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, maxWidth: 580, mx: 'auto' }}>
+            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, maxWidth: 580, mx: 'auto' }}>
               {isHomecare
                 ? 'Visits happen across multiple locations. Carers travel between clients. Status changes by the minute. The software needs to work the way the service actually operates.'
                 : 'People live in their own homes with ongoing support. Records must reflect the continuity of that support — not just individual shifts or visits.'}
@@ -168,7 +168,7 @@ export default function SolutionsPage() {
             {why.map((item, i) => (
               <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center" key={i}>
                 <Grid item xs={12} md={i % 2 === 0 ? 5 : 7} order={{ xs: 1, md: i % 2 === 0 ? 1 : 2 }}>
-                  <Typography sx={{ fontSize: M.h2.size, fontWeight: M.h2.weight, lineHeight: M.h2.height, letterSpacing: M.h2.tracking, mb: 2 }}>
+                  <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, lineHeight: M.h2.lineHeight, letterSpacing: M.h2.letterSpacing, mb: 2 }}>
                     {item.title}
                   </Typography>
                   <Typography sx={{ color: M.slate, lineHeight: 1.75, fontSize: '1rem' }}>
@@ -198,10 +198,10 @@ export default function SolutionsPage() {
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Eyebrow>Workflow</Eyebrow>
-            <Typography sx={{ fontSize: M.h1.size, lineHeight: M.h1.height, fontWeight: M.h1.weight, letterSpacing: M.h1.tracking, mb: 2 }}>
+            <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, mb: 2 }}>
               {isHomecare ? 'The working day, connected.' : 'From person to proof.'}
             </Typography>
-            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, maxWidth: 560, mx: 'auto' }}>
+            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, maxWidth: 560, mx: 'auto' }}>
               {isHomecare
                 ? 'Every step — from planning the morning calls to reviewing the evening\'s completions — flows through one connected system.'
                 : 'Care is delivered, recorded, reviewed and evidenced in one continuous cycle — not assembled from separate systems.'}
@@ -226,10 +226,10 @@ export default function SolutionsPage() {
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Eyebrow>Capabilities</Eyebrow>
-            <Typography sx={{ fontSize: M.h1.size, lineHeight: M.h1.height, fontWeight: M.h1.weight, letterSpacing: M.h1.tracking, mb: 2 }}>
+            <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, mb: 2 }}>
               What your team can do.
             </Typography>
-            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.size, maxWidth: 580, mx: 'auto' }}>
+            <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, maxWidth: 580, mx: 'auto' }}>
               Each capability links to the person record and to other modules — so information is never isolated.
             </Typography>
           </Box>
@@ -269,7 +269,7 @@ export default function SolutionsPage() {
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid item xs={12} md={5}>
               <Eyebrow>Regulatory coverage</Eyebrow>
-              <Typography sx={{ fontSize: M.h2.size, fontWeight: M.h2.weight, letterSpacing: M.h2.tracking, mb: 2 }}>
+              <Typography sx={{ fontSize: M.h2.fontSize, fontWeight: M.h2.fontWeight, letterSpacing: M.h2.letterSpacing, mb: 2 }}>
                 Built for regulated care across the UK.
               </Typography>
               <Typography sx={{ color: M.slate, lineHeight: 1.75, mb: 3 }}>
@@ -308,10 +308,10 @@ export default function SolutionsPage() {
       {/* ═══ CTA ═══ */}
       <Box sx={{ py: { xs: 10, md: 14 }, background: `linear-gradient(160deg, ${M.navy} 0%, #162032 50%, #1A2744 100%)`, textAlign: 'center' }}>
         <Container maxWidth="md">
-          <Typography sx={{ fontSize: M.h1.size, lineHeight: M.h1.height, fontWeight: M.h1.weight, letterSpacing: M.h1.tracking, color: M.card, mb: 2 }}>
+          <Typography sx={{ fontSize: M.h1.fontSize, lineHeight: M.h1.lineHeight, fontWeight: M.h1.fontWeight, letterSpacing: M.h1.letterSpacing, color: M.card, mb: 2 }}>
             {isHomecare ? 'Ready to see how domiciliary care operations should work?' : 'Ready to connect your supported living service?'}
           </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.size, mb: 4, maxWidth: 500, mx: 'auto' }}>
+          <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.fontSize, mb: 4, maxWidth: 500, mx: 'auto' }}>
             Talk to the team about how MeticleCare works for {isHomecare ? 'domiciliary' : 'supported living'} providers.
           </Typography>
           <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>Book a demo</Button>
