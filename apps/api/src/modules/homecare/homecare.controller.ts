@@ -209,6 +209,11 @@ export class HomecareController {
     res.json(await repo.listAvailableStaff(orgId(req), start, end, req.query.excludeVisitId as string | undefined));
   }
 
+  static async suggestCarers(req: Request, res: Response) {
+    const visitId = req.params.visitId;
+    res.json(await repo.suggestCarersForVisit(orgId(req), visitId));
+  }
+
   static async createAvailability(req: Request, res: Response) {
     // Carers can only set their own availability
     const userRole = req.user!.role;

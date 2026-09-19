@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
-import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Add as AddIcon } from '@mui/icons-material'
+import { Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, TextField, Typography, Alert } from '@mui/material'
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Add as AddIcon, SwapHoriz } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import PageContainer from '../../components/design/PageContainer'
@@ -28,8 +28,10 @@ export default function WeeklyCallPlanner() {
   const [createForm, setCreateForm] = useState({
     person_id: '', label: 'Routine call', visit_type: 'routine',
     day: new Date().toISOString().slice(0, 10),
-    start_time: '09:00', duration_minutes: 30,
+    start_time: '09:00', duration_minutes: 30, assigned_staff_id: '',
   })
+  const [reassignVisit, setReassignVisit] = useState<any>(null)
+  const [reassignStaffId, setReassignStaffId] = useState('')
   const qc = useQueryClient()
 
   // Calculate week range
@@ -61,14 +63,30 @@ export default function WeeklyCallPlanner() {
     queryFn: () => api.get('/people?status=active').then(r => Array.isArray(r.data) ? r.data : (r.data?.people || [])),
   })
 
+  const { data: staff = [] } = useQuery({
+    queryKey: ['homecare-staff-for-planner'],
+    queryFn: () => api.get('/homecare/staff').then(r => Array.isArray(r.data) ? r.data : []),
+  })
+
   const createVisit = useMutation({
     mutationFn: (data: any) => api.post('/homecare/visits', data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['homecare-visits-week'] })
       setCreateDialog(false)
-      setCreateForm({ person_id: '', label: 'Routine call', visit_type: 'routine', day: new Date().toISOString().slice(0, 10), start_time: '09:00', duration_minutes: 30 })
+      setCreateForm({ person_id: '', label: 'Routine call', visit_type: 'routine', day: new Date().toISOString().slice(0, 10), start_time: '09:00', duration_minutes: 30, assigned_staff_id: '' })
     },
     onError: (e: any) => alert(e.response?.data?.message || 'Could not create call'),
+  })
+
+  const assignVisit = useMutation({
+    mutationFn: ({ visitId, staffId }: { visitId: string; staffId: string | null }) =>
+      api.patch(`/homecare/visits/${visitId}`, { assigned_staff_id: staffId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['homecare-visits-week'] })
+      setReassignVisit(null)
+      setReassignStaffId('')
+    },
+    onError: (e: any) => alert(e.response?.data?.message || 'Could not assign call'),
   })
 
   // Group visits by day
@@ -149,6 +167,7 @@ export default function WeeklyCallPlanner() {
                             '&:hover': { borderColor: '#0F4C81' },
                           }}
                           title={`${v.person_name} - ${v.label}${v.carer_name ? ` (${v.carer_name})` : ' (Unassigned)'}`}
+                          onClick={() => { setReassignVisit(v); setReassignStaffId(v.assigned_staff_id || '') }}
                         >
                           <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.65rem', display: 'block', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {time(v.scheduled_start)} {v.person_name}
@@ -166,6 +185,36 @@ export default function WeeklyCallPlanner() {
           </Box>
         </Box>
       )}
+
+      {/* Reassign dialog */}
+      <Dialog open={!!reassignVisit} onClose={() => setReassignVisit(null)} fullWidth maxWidth="xs">
+        <DialogTitle>
+          <Stack direction="row" alignItems="center" gap={1}>
+            <SwapHoriz sx={{ color: '#0F4C81' }} />
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Assign carer</Typography>
+              {reassignVisit && <Typography variant="caption" color="text.secondary">{reassignVisit.person_name} · {time(reassignVisit.scheduled_start)}–{time(reassignVisit.scheduled_end)}</Typography>}
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <TextField select fullWidth label="Carer" value={reassignStaffId} onChange={e => setReassignStaffId(e.target.value)}>
+              <MenuItem value="">Unassigned</MenuItem>
+              {staff.map((s: any) => <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</MenuItem>)}
+            </TextField>
+            {reassignStaffId === reassignVisit?.assigned_staff_id && (
+              <Alert severity="info" sx={{ fontSize: '0.8rem' }}>This carer is already assigned.</Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setReassignVisit(null)} sx={{ textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" disabled={reassignStaffId === (reassignVisit?.assigned_staff_id || '') || assignVisit.isPending} onClick={() => { if (reassignVisit) assignVisit.mutate({ visitId: reassignVisit.id, staffId: reassignStaffId || null }) }} sx={{ textTransform: 'none', bgcolor: '#0F4C81' }}>
+            {assignVisit.isPending ? <CircularProgress size={18} color="inherit" /> : 'Assign'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Create call dialog */}
       <Dialog open={createDialog} onClose={() => setCreateDialog(false)} fullWidth maxWidth="sm">
@@ -187,6 +236,10 @@ export default function WeeklyCallPlanner() {
               <TextField type="time" label="Start time" value={createForm.start_time} onChange={e => setCreateForm(f => ({ ...f, start_time: e.target.value }))} InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} />
               <TextField type="number" label="Duration (min)" value={createForm.duration_minutes} onChange={e => setCreateForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))} sx={{ flex: 1 }} />
             </Stack>
+            <TextField select label="Assign carer (optional)" value={createForm.assigned_staff_id} onChange={e => setCreateForm(f => ({ ...f, assigned_staff_id: e.target.value }))}>
+              <MenuItem value="">Unassigned</MenuItem>
+              {staff.map((s: any) => <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</MenuItem>)}
+            </TextField>
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -205,6 +258,7 @@ export default function WeeklyCallPlanner() {
                 label: createForm.label,
                 scheduled_start: start.toISOString(),
                 scheduled_end: end.toISOString(),
+                assigned_staff_id: createForm.assigned_staff_id || undefined,
               })
             }).catch((e: any) => alert(e.message || 'Could not create call'))
           }} sx={{ textTransform: 'none', bgcolor: '#0F4C81' }}>

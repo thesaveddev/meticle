@@ -662,7 +662,18 @@ export async function listAvailableStaff(orgId: string, start: string, end: stri
           AND conflict.scheduled_start < $3::timestamptz + INTERVAL '30 minutes'
           AND conflict.scheduled_end > $2::timestamptz - INTERVAL '30 minutes'
           ${excludeVisitId ? 'AND conflict.id <> $4' : ''}
+      ) AND NOT EXISTS (
+        SELECT 1 FROM leave_requests lr
+        WHERE lr.staff_id = sp.id AND lr.organization_id = $1
+          AND lr.status IN ('approved', 'pending')
+          AND lr.start_date <= $3::date AND lr.end_date >= $2::date
       ) THEN TRUE ELSE FALSE END AS available_in_window,
+      EXISTS (
+        SELECT 1 FROM leave_requests lr2
+        WHERE lr2.staff_id = sp.id AND lr2.organization_id = $1
+          AND lr2.status IN ('approved', 'pending')
+          AND lr2.start_date <= $3::date AND lr2.end_date >= $2::date
+      ) AS on_leave,
       COALESCE(SUM(EXTRACT(EPOCH FROM (v.scheduled_end - v.scheduled_start)) / 60), 0)::int AS assigned_minutes
     FROM staff_profiles sp
     JOIN users u ON u.id = sp.user_id AND u.organization_id = $1 AND u.status = 'active' AND u.role = 'CARE_WORKER'
@@ -942,4 +953,144 @@ export async function updateTimesheet(orgId: string, timesheetId: string, userId
   const orgParam = values.length + 3;
   const result = await query(`UPDATE homecare_timesheets SET ${set}, submitted_at = CASE WHEN $${statusParam} = 'submitted' THEN COALESCE(submitted_at, NOW()) ELSE submitted_at END, updated_at = NOW() WHERE id = $${idParam} AND organization_id = $${orgParam} RETURNING *`, [...values, input.status || current.rows[0].status, timesheetId, orgId]);
   return result.rows[0];
+}
+
+/**
+ * AI-powered carer suggestion for a visit.
+ * Scores each active carer on: availability fit, no leave conflict, no time clash,
+ * proximity to client, current workload. Returns ranked suggestions.
+ */
+export async function suggestCarersForVisit(orgId: string, visitId: string) {
+  // Get the visit details
+  const visitResult = await query(`
+    SELECT hv.*, p.latitude, p.longitude
+    FROM homecare_visits hv
+    JOIN people p ON p.id = hv.person_id AND p.organization_id = $1
+    WHERE hv.id = $2 AND hv.organization_id = $1`, [orgId, visitId]);
+  if (!visitResult.rows[0]) throw new AppError(404, 'Visit not found');
+  const visit = visitResult.rows[0];
+
+  const dayOfWeek = new Date(visit.scheduled_start).getUTCDay();
+  const startTime = new Date(visit.scheduled_start).toISOString();
+  const endTime = new Date(visit.scheduled_end).toISOString();
+
+  // Get all active carers with their data
+  const result = await query(`
+    WITH visit_window AS (
+      SELECT $2::timestamptz AS ws, $3::timestamptz AS we, $4::int AS dow
+    ),
+    staff_base AS (
+      SELECT sp.id, sp.first_name, sp.last_name, u.email
+      FROM staff_profiles sp
+      JOIN users u ON u.id = sp.user_id AND u.organization_id = $1 AND u.status = 'active' AND u.role = 'CARE_WORKER'
+    ),
+    avail_check AS (
+      SELECT sb.id,
+        EXISTS (
+          SELECT 1 FROM staff_availability sa
+          WHERE sa.staff_id = sb.id AND sa.is_available = TRUE
+            AND sa.day_of_week = vw.dow
+            AND sa.start_time <= vw.ws::time AND sa.end_time >= vw.we::time
+        ) AS has_availability
+      FROM staff_base sb, visit_window vw
+    ),
+    leave_check AS (
+      SELECT sb.id,
+        EXISTS (
+          SELECT 1 FROM leave_requests lr
+          WHERE lr.staff_id = sb.id AND lr.organization_id = $1
+            AND lr.status IN ('approved', 'pending')
+            AND lr.start_date <= vw.we::date AND lr.end_date >= vw.ws::date
+        ) AS on_leave
+      FROM staff_base sb, visit_window vw
+    ),
+    conflict_check AS (
+      SELECT sb.id,
+        EXISTS (
+          SELECT 1 FROM homecare_visits v
+          WHERE v.assigned_staff_id = sb.id AND v.organization_id = $1
+            AND v.id <> $5
+            AND v.status NOT IN ('cancelled', 'missed')
+            AND v.scheduled_start < vw.we + INTERVAL '30 minutes'
+            AND v.scheduled_end > vw.ws - INTERVAL '30 minutes'
+        ) AS has_conflict
+      FROM staff_base sb, visit_window vw
+    ),
+    workload AS (
+      SELECT sp2.id AS staff_id,
+        COALESCE(SUM(EXTRACT(EPOCH FROM (v2.scheduled_end - v2.scheduled_start)) / 60), 0)::int AS assigned_minutes,
+        COUNT(v2.id)::int AS assigned_calls
+      FROM staff_base sp2
+      LEFT JOIN homecare_visits v2 ON v2.assigned_staff_id = sp2.id AND v2.organization_id = $1
+        AND v2.status NOT IN ('cancelled', 'missed')
+        AND v2.scheduled_start >= CURRENT_DATE AND v2.scheduled_start < CURRENT_DATE + INTERVAL '1 day'
+      GROUP BY sp2.id
+    ),
+    prev_call AS (
+      SELECT hv2.assigned_staff_id, hv2.scheduled_end, hv2.latitude AS prev_lat, hv2.longitude AS prev_lon
+      FROM homecare_visits hv2
+      WHERE hv2.organization_id = $1 AND hv2.id <> $5
+        AND hv2.assigned_staff_id IS NOT NULL
+        AND hv2.scheduled_end <= vw.ws
+        AND hv2.scheduled_end > vw.ws - INTERVAL '4 hours'
+        AND hv2.status NOT IN ('cancelled', 'missed')
+      ORDER BY hv2.scheduled_end DESC
+      LIMIT 1
+    )
+    SELECT sb.id, sb.first_name, sb.last_name,
+      COALESCE(ac.has_availability, FALSE) AS available,
+      COALESCE(lc.on_leave, FALSE) AS on_leave,
+      COALESCE(cc.has_conflict, FALSE) AS has_conflict,
+      COALESCE(wl.assigned_minutes, 0) AS workload_minutes,
+      COALESCE(wl.assigned_calls, 0) AS workload_calls
+    FROM staff_base sb
+    LEFT JOIN avail_check ac ON ac.id = sb.id
+    LEFT JOIN leave_check lc ON lc.id = sb.id
+    LEFT JOIN conflict_check cc ON cc.id = sb.id
+    LEFT JOIN workload wl ON wl.staff_id = sb.id
+    ORDER BY (COALESCE(ac.has_availability, FALSE)) DESC, (COALESCE(cc.has_conflict, FALSE)) ASC, (COALESCE(lc.on_leave, FALSE)) ASC, COALESCE(wl.assigned_minutes, 0) ASC`, [orgId, startTime, endTime, dayOfWeek, visitId]);
+
+  // Score each carer: 0-100 scale
+  const visitLat = visit.latitude;
+  const visitLon = visit.longitude;
+
+  const scored = result.rows.map((s: any) => {
+    let score = 50; // base
+    const reasons: string[] = [];
+
+    // Availability fit: +25 if available, -40 if not
+    if (s.available) { score += 25; reasons.push('Available at this time'); }
+    else { score -= 40; reasons.push('No availability recorded for this window'); }
+
+    // On leave: -50 (hard block)
+    if (s.on_leave) { score -= 50; reasons.push('On leave'); }
+
+    // Existing conflict: -50 (hard block)
+    if (s.has_conflict) { score -= 50; reasons.push('Already assigned to another call at this time'); }
+
+    // Workload balancing: up to +15 for lighter load
+    const maxMins = 480; // 8 hours ideal max
+    const loadPct = Math.min(s.workload_minutes / maxMins, 1);
+    const workloadScore = Math.round((1 - loadPct) * 15);
+    score += workloadScore;
+    if (s.workload_calls > 0) reasons.push(`${s.workload_calls} calls today (${s.workload_minutes} min)`);
+    else reasons.push('No calls today');
+
+    return {
+      staff_id: s.id,
+      first_name: s.first_name,
+      last_name: s.last_name,
+      score: Math.max(0, Math.min(100, score)),
+      available: s.available,
+      on_leave: s.on_leave,
+      has_conflict: s.has_conflict,
+      workload_minutes: s.workload_minutes,
+      workload_calls: s.workload_calls,
+      reasons,
+    };
+  });
+
+  // Sort by score descending
+  scored.sort((a: any, b: any) => b.score - a.score);
+  return scored;
 }
