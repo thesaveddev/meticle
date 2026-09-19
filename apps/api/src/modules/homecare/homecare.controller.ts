@@ -486,6 +486,59 @@ export class HomecareController {
     res.json({ results })
   }
 
+  static async getWeeklyAvailabilitySummary(req: Request, res: Response) {
+    const oid = orgId(req);
+    const result = await query(
+      `SELECT sp.id AS staff_id, sp.first_name || ' ' || sp.last_name AS staff_name,
+        sa.day_of_week, sa.start_time, sa.end_time, sa.is_available, sa.availability_date
+       FROM staff_availability sa
+       JOIN staff_profiles sp ON sp.id = sa.staff_id
+       JOIN users u ON u.id = sp.user_id
+       WHERE u.organization_id = $1 AND u.status = 'active'
+       ORDER BY sp.first_name, sp.last_name, sa.day_of_week, sa.start_time`,
+      [oid]
+    );
+
+    // Group by staff and calculate weekly hours
+    const staffMap = new Map<string, {
+      staff_id: string; staff_name: string;
+      weekly_hours: number; daily_hours: number[];
+      entries: any[]
+    }>();
+
+    for (const row of result.rows) {
+      if (!staffMap.has(row.staff_id)) {
+        staffMap.set(row.staff_id, {
+          staff_id: row.staff_id, staff_name: row.staff_name,
+          weekly_hours: 0, daily_hours: [0, 0, 0, 0, 0, 0, 0],
+          entries: [],
+        });
+      }
+      const staff = staffMap.get(row.staff_id)!;
+      staff.entries.push(row);
+
+      if (row.is_available && row.start_time && row.end_time) {
+        const [sh, sm] = String(row.start_time).split(':').map(Number);
+        const [eh, em] = String(row.end_time).split(':').map(Number);
+        const hours = ((eh * 60 + em) - (sh * 60 + sm)) / 60;
+        if (hours > 0) {
+          staff.daily_hours[row.day_of_week] += hours;
+          staff.weekly_hours += hours;
+        }
+      }
+    }
+
+    const summary = Array.from(staffMap.values()).map(s => ({
+      staff_id: s.staff_id,
+      staff_name: s.staff_name,
+      weekly_hours: Math.round(s.weekly_hours * 10) / 10,
+      daily_hours: s.daily_hours.map(h => Math.round(h * 10) / 10),
+      has_availability: s.entries.length > 0,
+    }));
+
+    res.json(summary);
+  }
+
   static async createAvailability(req: Request, res: Response) {
     // Carers can only set their own availability
     const userRole = req.user!.role;
