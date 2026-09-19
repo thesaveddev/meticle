@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import {
   Box, Button, Chip, CircularProgress, IconButton, Paper, Stack,
   TextField, Typography, Alert, Tooltip, Collapse,
@@ -14,6 +14,7 @@ import {
   Undo as UndoIcon, WarningAmber, Lightbulb, ViewModule as BoardIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
+import { getSocket } from '../../services/socket'
 import ContextualLearnLink from '../../components/ContextualLearnLink'
 import PageContainer from '../../components/design/PageContainer'
 
@@ -120,6 +121,21 @@ export default function CallAssignmentBoard() {
   const [conflictInfo, setConflictInfo] = useState<{ visitId: string; carerId: string; msg: string; severity: 'error' | 'warning' } | null>(null)
   const qc = useQueryClient()
   const dropRef = useRef<HTMLDivElement>(null)
+
+  // Real-time socket listener for visit updates from other managers
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket) return
+    const handleVisitUpdate = (data: any) => {
+      // Skip if this update was made by the current user (already handled by mutation onSuccess)
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      if (data.updatedBy === user.id) return
+      qc.invalidateQueries({ queryKey: ['homecare-visits-assign'] })
+      qc.invalidateQueries({ queryKey: ['homecare-live-map'] })
+    }
+    socket.on('homecare:visit-updated', handleVisitUpdate)
+    return () => { socket.off('homecare:visit-updated', handleVisitUpdate) }
+  }, [qc])
 
   const nextDate = new Date(new Date(date).getTime() + 86400000).toISOString().slice(0, 10)
 

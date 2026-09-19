@@ -238,6 +238,9 @@ export async function initSocketServer(httpServer: HTTPServer) {
     if (!Array.isArray(socket.data.joinedChannels)) socket.data.joinedChannels = [];
 
     socket.join(`user:${user.userId}`);
+    if (user.organizationId) {
+      socket.join(`org:${user.organizationId}`);
+    }
 
     // Refcounted presence: keyed by userId with per-socket entries so multi-tab
     // and multi-instance stay consistent. Recovery may re-use the same socket.id,
