@@ -922,7 +922,7 @@ export async function getPendingTimesheets(orgId: string, from: string, to: stri
       hv.visit_notes, hv.progress_notes, hv.check_in_at AS actual_check_in, hv.check_out_at AS actual_check_out,
       pe.first_name || ' ' || pe.last_name AS person_name,
       (SELECT COUNT(*) FROM homecare_visit_tasks vt WHERE vt.visit_id = hv.id) AS tasks_total,
-      (SELECT COUNT(*) FROM homecare_visit_tasks vt WHERE vt.visit_id = hv.id AND vt.completed = true) AS tasks_completed
+      (SELECT COUNT(*) FROM homecare_visit_tasks vt WHERE vt.visit_id = hv.id AND vt.done = true) AS tasks_completed
     FROM homecare_timesheets t
     JOIN staff_profiles sp ON sp.id = t.staff_id
     JOIN homecare_visits hv ON hv.id = t.visit_id
