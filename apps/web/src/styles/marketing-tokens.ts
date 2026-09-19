@@ -8,22 +8,22 @@
 
 export const M = {
   /* ── Palette ─────────────────────────────────────── */
-  ink:        '#0C1220',   // primary text — deep near-black
-  slate:      '#4A5568',   // secondary text
-  muted:      '#8896A8',   // tertiary / captions
-  subtle:     '#CBD5E1',   // borders, hairlines
-  faint:      '#F0F4F8',   // subtle backgrounds
+  ink:        '#1B2430',   // editorial charcoal
+  slate:      '#5B6672',   // secondary text
+  muted:      '#8E98A3',   // tertiary / captions
+  subtle:     '#C9C2B4',   // borders, hairlines
+  faint:      '#E7E1D6',   // editorial rules
 
-  paper:      '#FAFBFD',   // page bg — cool white
-  warm:       '#F7F5F2',   // warm page bg variant
-  card:       '#FFFFFF',   // card surfaces
+  paper:      '#F7F4EE',   // warm bone page ground
+  warm:       '#FCFAF6',   // framed-window chrome
+  card:       '#FFFFFF',   // paper surfaces
 
-  /* Accent — distinctive teal */
-  teal:       '#00C9A7',
-  tealDark:   '#00A88C',
-  tealSoft:   '#E6FAF5',
-  tealDeep:   '#065F56',
-  tealMuted:  '#B2F0E3',
+  /* Accent — deliberately rare emerald */
+  teal:       '#10B981',
+  tealDark:   '#065F46',
+  tealSoft:   '#ECFDF5',
+  tealDeep:   '#047857',
+  tealMuted:  '#A7F3D0',
 
   /* Secondary — warm amber for compliance/warnings */
   amber:      '#F59E0B',
@@ -42,14 +42,14 @@ export const M = {
   pinkLight:  '#FDF2F8',
 
   /* Navy — deep, serious, trustworthy */
-  navy:       '#0B1426',
-  navyMid:    '#131D32',
-  navyLight:  '#1C2B45',
+  navy:       '#0F4C81',
+  navyMid:    '#0F4C81',
+  navyLight:  '#0A3A63',
 
   /* Dark sections */
-  dark:       '#0B1426',
-  darkMid:    '#111827',
-  darkCard:   '#1E293B',
+  dark:       '#0F4C81',
+  darkMid:    '#141C24',
+  darkCard:   '#1D2733',
 
   /* ── Typography ──────────────────────────────────── */
   font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
