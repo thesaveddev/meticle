@@ -4,7 +4,27 @@ import { EmailService } from '../../shared/utils/email.service';
 import logger, { logWarn } from '../../shared/utils/logger';
 import { ComplianceRepository } from './compliance.repository';
 
-const EXPIRING_SOON_DAYS = 14;
+const DEFAULT_EXPIRING_SOON_DAYS = 14;
+
+/** Per-org cached warning window (days). Falls back to DEFAULT. */
+const orgWarningDaysCache = new Map<string, number>();
+
+async function getWarningDays(organizationId?: string): Promise<number> {
+  if (!organizationId) return DEFAULT_EXPIRING_SOON_DAYS;
+  const cached = orgWarningDaysCache.get(organizationId);
+  if (cached !== undefined) return cached;
+  try {
+    const res = await query(
+      `SELECT compliance_warning_days FROM organizations WHERE id = $1`,
+      [organizationId]
+    );
+    const days = res.rows[0]?.compliance_warning_days || DEFAULT_EXPIRING_SOON_DAYS;
+    orgWarningDaysCache.set(organizationId, days);
+    return days;
+  } catch {
+    return DEFAULT_EXPIRING_SOON_DAYS;
+  }
+}
 
 /** Tracks last digest send per org to enforce 24-hour cadence. */
 const digestSentTracker = new Map<string, number>();
@@ -213,6 +233,7 @@ export class ComplianceNotificationService {
 
   static async checkDocumentExpirations(organizationId?: string) {
     const result = { notified: 0, expiring: 0, expired: 0 };
+    const warningDays = await getWarningDays(organizationId);
 
     let sql =
       `SELECT d.id, d.type, d.expiry_date, d.status, d.renewal_status,
@@ -227,7 +248,7 @@ export class ComplianceNotificationService {
            d.expiry_date <= CURRENT_DATE + interval '1 day' * $1
            OR d.expiry_date <= CURRENT_DATE
          )`;
-    const params: any[] = [EXPIRING_SOON_DAYS];
+    const params: any[] = [warningDays];
     if (organizationId) {
       sql += ` AND u.organization_id = $2`;
       params.push(organizationId);
@@ -281,10 +302,20 @@ export class ComplianceNotificationService {
         }
       }
 
-      // Notify org managers/admins about expired docs only (avoids spam for expiring)
+      // Notify org managers/admins — expired docs get urgent alert, expiring gets warning
       if (isExpired) {
         await this.notifyOrgAdmins(doc.organization_id, 'Document Expired',
           `${staffName}'s ${doc.type} has expired and needs immediate attention.`,
+          `/staff/${doc.staff_id}`
+        );
+        // Also push to mobile
+        await this.pushToOrgManagers(doc.organization_id, 'Document Expired',
+          `${staffName}'s ${doc.type} has expired.`, `/staff/${doc.staff_id}`
+        );
+      } else {
+        const daysLeft = Math.ceil((new Date(doc.expiry_date).getTime() - Date.now()) / 86400000);
+        await this.notifyOrgAdmins(doc.organization_id, 'Document Expiring Soon',
+          `${staffName}'s ${doc.type} expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (${new Date(doc.expiry_date).toLocaleDateString()}).`,
           `/staff/${doc.staff_id}`
         );
       }
@@ -297,6 +328,7 @@ export class ComplianceNotificationService {
 
   static async checkTrainingExpirations(organizationId?: string) {
     const result = { notified: 0, expiring: 0, expired: 0 };
+    const warningDays = await getWarningDays(organizationId);
 
     let sql =
       `SELECT tr.id, tr.expires_at, tr.status as record_status,
@@ -314,7 +346,7 @@ export class ComplianceNotificationService {
            tr.expires_at <= CURRENT_DATE + interval '1 day' * $1
            OR tr.expires_at <= CURRENT_DATE
          )`;
-    const params: any[] = [EXPIRING_SOON_DAYS];
+    const params: any[] = [warningDays];
     if (organizationId) {
       sql += ` AND u.organization_id = $2`;
       params.push(organizationId);
@@ -351,10 +383,19 @@ export class ComplianceNotificationService {
         }
       }
 
-      // Notify admin about expired training
+      // Notify managers about expired AND expiring training
       if (isExpired) {
         await this.notifyOrgAdmins(rec.organization_id, 'Training Expired',
           `${staffName}'s "${rec.module_name}" training has expired.`,
+          `/staff/${rec.staff_id}`
+        );
+        await this.pushToOrgManagers(rec.organization_id, 'Training Expired',
+          `${staffName}'s "${rec.module_name}" training has expired.`, `/staff/${rec.staff_id}`
+        );
+      } else {
+        const daysLeft = Math.ceil((new Date(rec.expires_at).getTime() - Date.now()) / 86400000);
+        await this.notifyOrgAdmins(rec.organization_id, 'Training Expiring Soon',
+          `${staffName}'s "${rec.module_name}" training expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.`,
           `/staff/${rec.staff_id}`
         );
       }
@@ -367,6 +408,7 @@ export class ComplianceNotificationService {
 
   static async checkCompetencyDue(organizationId?: string) {
     const result = { notified: 0, due: 0 };
+    const warningDays = await getWarningDays(organizationId);
 
     let sql =
       `SELECT ca.id, ca.assessed_at, ca.reassessment_date,
@@ -380,7 +422,7 @@ export class ComplianceNotificationService {
        WHERE u.status = 'active'
          AND ca.reassessment_date IS NOT NULL
          AND ca.reassessment_date <= CURRENT_DATE + interval '1 day' * $1`;
-    const params: any[] = [EXPIRING_SOON_DAYS];
+    const params: any[] = [warningDays];
     if (organizationId) {
       sql += ` AND u.organization_id = $2`;
       params.push(organizationId);
@@ -543,6 +585,103 @@ export class ComplianceNotificationService {
     for (const admin of admins.rows) {
       NotificationsController.createNotification(admin.id, title, message, 'compliance').catch(logWarn('escalationNotification'));
     }
+  }
+
+  /** Send push notifications to org managers for urgent compliance alerts. */
+  private static async pushToOrgManagers(orgId: string, title: string, body: string, url?: string) {
+    try {
+      const { sendPushNotification } = await import('../notifications/push.service');
+      const admins = await query(
+        `SELECT id FROM users WHERE organization_id = $1 AND role IN ('ORG_ADMIN', 'MANAGER') AND status = 'active'`,
+        [orgId]
+      );
+      for (const admin of admins.rows) {
+        sendPushNotification(admin.id, { title, body, url: url || '/compliance' }, 'compliance').catch(logWarn('compliancePush'));
+      }
+    } catch {
+      // Push service optional — non-critical
+    }
+  }
+
+  /** Get a summary of all compliance alerts for the manager dashboard. */
+  static async getAlertsSummary(organizationId: string) {
+    const warningDays = await getWarningDays(organizationId);
+
+    // Expiring/expired documents
+    const docsResult = await query(
+      `SELECT d.id, d.type, d.expiry_date, d.renewal_status,
+              sp.id as staff_id, sp.first_name, sp.last_name,
+              CASE WHEN d.expiry_date <= CURRENT_DATE THEN 'expired'
+                   WHEN d.expiry_date <= CURRENT_DATE + interval '1 day' * $1 THEN 'expiring'
+                   ELSE 'ok' END as status
+       FROM documents d
+       JOIN staff_profiles sp ON d.staff_id = sp.id
+       JOIN users u ON sp.user_id = u.id
+       WHERE u.organization_id = $2 AND u.status = 'active'
+         AND d.status NOT IN ('expired', 'rejected')
+         AND d.expiry_date IS NOT NULL
+         AND d.expiry_date <= CURRENT_DATE + interval '1 day' * $1
+       ORDER BY d.expiry_date ASC`,
+      [warningDays, organizationId]
+    );
+
+    // Expiring/expired training
+    const trainingResult = await query(
+      `SELECT tr.id, tm.name as module_name, tr.expires_at,
+              sp.id as staff_id, sp.first_name, sp.last_name,
+              CASE WHEN tr.expires_at <= CURRENT_DATE THEN 'expired'
+                   WHEN tr.expires_at <= CURRENT_DATE + interval '1 day' * $1 THEN 'expiring'
+                   ELSE 'ok' END as status
+       FROM training_records tr
+       JOIN training_modules tm ON tr.module_id = tm.id
+       JOIN staff_profiles sp ON tr.staff_id = sp.id
+       JOIN users u ON sp.user_id = u.id
+       WHERE u.organization_id = $2 AND u.status = 'active'
+         AND tr.status = 'completed' AND tr.expires_at IS NOT NULL
+         AND tr.expires_at <= CURRENT_DATE + interval '1 day' * $1
+       ORDER BY tr.expires_at ASC`,
+      [warningDays, organizationId]
+    );
+
+    // Overdue competency reassessments
+    const competencyResult = await query(
+      `SELECT ca.id, ct.name as template_name, ca.reassessment_date,
+              sp.id as staff_id, sp.first_name, sp.last_name,
+              CASE WHEN ca.reassessment_date <= CURRENT_DATE THEN 'overdue'
+                   ELSE 'due_soon' END as status
+       FROM competency_assessments ca
+       JOIN competency_templates ct ON ca.template_id = ct.id
+       JOIN staff_profiles sp ON ca.staff_id = sp.id
+       JOIN users u ON sp.user_id = u.id
+       WHERE u.organization_id = $1 AND u.status = 'active'
+         AND ca.reassessment_date IS NOT NULL
+         AND ca.reassessment_date <= CURRENT_DATE + interval '1 day' * $2
+       ORDER BY ca.reassessment_date ASC`,
+      [organizationId, warningDays]
+    );
+
+    const expiredDocs = docsResult.rows.filter((r: any) => r.status === 'expired');
+    const expiringDocs = docsResult.rows.filter((r: any) => r.status === 'expiring');
+    const expiredTraining = trainingResult.rows.filter((r: any) => r.status === 'expired');
+    const expiringTraining = trainingResult.rows.filter((r: any) => r.status === 'expiring');
+    const overdueCompetency = competencyResult.rows.filter((r: any) => r.status === 'overdue');
+    const dueSoonCompetency = competencyResult.rows.filter((r: any) => r.status === 'due_soon');
+
+    return {
+      warningDays,
+      summary: {
+        expiredDocuments: expiredDocs.length,
+        expiringDocuments: expiringDocs.length,
+        expiredTraining: expiredTraining.length,
+        expiringTraining: expiringTraining.length,
+        overdueCompetency: overdueCompetency.length,
+        dueSoonCompetency: dueSoonCompetency.length,
+        total: expiredDocs.length + expiringDocs.length + expiredTraining.length + expiringTraining.length + overdueCompetency.length + dueSoonCompetency.length,
+      },
+      documents: { expired: expiredDocs, expiring: expiringDocs },
+      training: { expired: expiredTraining, expiring: expiringTraining },
+      competency: { overdue: overdueCompetency, dueSoon: dueSoonCompetency },
+    };
   }
 
   /** Send daily compliance digest emails to location managers for orgs that have it enabled. */

@@ -14,6 +14,7 @@ router.use(authenticate);
 
 router.get('/documents', asyncHandler(ComplianceController.getAllDocuments));
 router.get('/expiring', asyncHandler(ComplianceController.getExpiringDocuments));
+router.get('/alerts-summary', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ComplianceController.getAlertsSummary));
 router.get('/evidence-pack', asyncHandler(ComplianceController.getEvidencePack));
 router.get('/evidence-pack/pdf', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ComplianceController.generateEvidencePackPdf));
 router.get('/identity-dashboard', asyncHandler(ComplianceController.getIdentityDashboard));
