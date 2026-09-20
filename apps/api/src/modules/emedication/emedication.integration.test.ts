@@ -33,7 +33,7 @@ afterAll(async () => {
 })
 
 async function makeSetup() {
-  const org = await createOrg()
+  const org = await createOrg({ service_types: ['supported_living'] })
   createdOrgIds.push(org.id)
   const admin = await createUser({
     email: `medm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.com`,
@@ -72,7 +72,7 @@ async function makeSetup() {
 
 describe('eMedication — MAR records, stock, deliveries, audit', () => {
   it('should create a record, add items, log administrations and view the chart', async () => {
-    const org = await createOrg()
+    const org = await createOrg({ service_types: ['supported_living'] })
     const location = await createLocation({ organizationId: org.id })
     const person = await createPerson({ organizationId: org.id, locationId: location.id })
     const mgr = await createUser({ email: `em-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
@@ -132,7 +132,7 @@ describe('eMedication — MAR records, stock, deliveries, audit', () => {
   })
 
   it('should create stock and a delivery as CARE_WORKER', async () => {
-    const org = await createOrg()
+    const org = await createOrg({ service_types: ['supported_living'] })
     const person = await createPerson({ organizationId: org.id })
     const worker = await createUser({ email: `em3-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
     const token = generateToken(worker)
@@ -163,7 +163,7 @@ describe('eMedication — MAR records, stock, deliveries, audit', () => {
   })
 
   it('should reject a CARE_WORKER creating a MAR record (403)', async () => {
-    const org = await createOrg()
+    const org = await createOrg({ service_types: ['supported_living'] })
     const person = await createPerson({ organizationId: org.id })
     const worker = await createUser({ email: `em4-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
 
