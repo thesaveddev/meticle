@@ -20,13 +20,17 @@ export async function createOrg(overrides: Record<string, any> = {}) {
   const currentPeriodEnd = overrides.current_period_end || null
   const gracePeriodEndsAt = overrides.grace_period_ends_at || null
   const createdAt = overrides.created_at || new Date().toISOString()
+  // Most integration suites exercise shared functionality. Give those test
+  // organisations both service models unless a test explicitly narrows them;
+  // dedicated RBAC tests can pass ['domiciliary'] or ['supported_living'].
+  const serviceTypes = overrides.service_types || overrides.serviceTypes || ['supported_living', 'domiciliary']
 
   const result = await query(
-    `INSERT INTO organizations (id, name, status, plan, subscription_status, trial_ends_at, current_period_end, grace_period_ends_at, onboarding_step, onboarding_completed, minimum_compliance_percent, overtime_requires_approval, force_mfa, base_leave_hours, default_hours_per_leave_day, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name
+    `INSERT INTO organizations (id, name, status, plan, subscription_status, trial_ends_at, current_period_end, grace_period_ends_at, onboarding_step, onboarding_completed, minimum_compliance_percent, overtime_requires_approval, force_mfa, base_leave_hours, default_hours_per_leave_day, service_types, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, service_types = EXCLUDED.service_types
      RETURNING *`,
-    [id, name, status, plan, subscriptionStatus, trialEndsAt, currentPeriodEnd, gracePeriodEndsAt, onboardingStep, onboardingCompleted, minimumCompliancePercent, overtimeRequiresApproval, forceMfa, baseLeaveHours, defaultHoursPerLeaveDay, createdAt]
+    [id, name, status, plan, subscriptionStatus, trialEndsAt, currentPeriodEnd, gracePeriodEndsAt, onboardingStep, onboardingCompleted, minimumCompliancePercent, overtimeRequiresApproval, forceMfa, baseLeaveHours, defaultHoursPerLeaveDay, serviceTypes, createdAt]
   )
   return result.rows[0]
 }

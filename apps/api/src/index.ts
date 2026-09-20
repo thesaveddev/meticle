@@ -229,7 +229,7 @@ app.use('/organizations', orgRoutes);
 app.use('/organizations', invitationRoutes);
 app.use('/staff', staffRoutes);
 app.use('/compliance', complianceRoutes);
-app.use('/shifts', requireSupportedLivingOnly, schedulingRoutes);
+app.use('/shifts', authenticate, requireSupportedLivingOnly, schedulingRoutes);
 app.use('/marketplace', marketplaceRoutes);
 app.use('/reporting', reportingRoutes);
 app.use('/insights', insightsRoutes);
@@ -251,9 +251,9 @@ app.use('/settings', settingsRoutes);
 app.use('/chat', chatRoutes);
 app.use('/billing', billingRoutes);
 app.use('/audit', auditRoutes);
-app.use('/appointments', requireSupportedLivingOnly, appointmentRoutes);
+app.use('/appointments', authenticate, requireSupportedLivingOnly, appointmentRoutes);
 app.use('/policies', policyRoutes);
-app.use('/emedication', requireSupportedLivingOnly, emedicationRoutes);
+app.use('/emedication', authenticate, requireSupportedLivingOnly, emedicationRoutes);
 app.use('/goals', goalRoutes);
 app.use('/ai', aiRoutes);
 app.use('/family-portal', familyPortalRoutes);
@@ -261,9 +261,9 @@ app.use('/api/family-portal', familyPortalPublicRoutes);
 app.use('/family-feedback', familyFeedbackRoutes);
 app.use('/api/family-feedback', familyFeedbackPublicRoutes);
 app.use('/delegations', delegationRoutes);
-app.use('/agencies', requireSupportedLivingOnly, agencyRoutes);
+app.use('/agencies', authenticate, requireSupportedLivingOnly, agencyRoutes);
 app.use('/dbs', dbsRoutes);
-app.use('/expenses', requireSupportedLivingOnly, expensesRoutes);
+app.use('/expenses', authenticate, requireSupportedLivingOnly, expensesRoutes);
 app.use('/mission-control', missionControlRoutes);
 app.use('/platform-admin', platformAdminRoutes);
 // Health checks — must be BEFORE /health routes to avoid auth middleware clash
@@ -310,15 +310,15 @@ app.get('/health/ready', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 app.use('/health', healthRoutes);
-app.use('/nutrition', requireSupportedLivingOnly, nutritionRoutes);
+app.use('/nutrition', authenticate, requireSupportedLivingOnly, nutritionRoutes);
 app.use('/body-map', bodyMapRoutes);
-app.use('/tasks', requireSupportedLivingOnly, taskRoutes);
-app.use('/room-checks', requireSupportedLivingOnly, roomCheckRoutes);
+app.use('/tasks', authenticate, requireSupportedLivingOnly, taskRoutes);
+app.use('/room-checks', authenticate, requireSupportedLivingOnly, roomCheckRoutes);
 app.use('/mobile', mobileRoutes);
 app.use('/shift-audit', shiftAuditRoutes);
 app.use('/events', eventRoutes);
 app.use('/contact', contactRoutes); // public — website contact form
-app.use('/homecare', requireDomiciliaryOnly, homecareRoutes); // Phase 2 domiciliary-care operations
+app.use('/homecare', authenticate, requireDomiciliaryOnly, homecareRoutes); // Phase 2 domiciliary-care operations
 // chat routes already registered above
 
 // Prometheus metrics — restricted to localhost/internal IPs in production
