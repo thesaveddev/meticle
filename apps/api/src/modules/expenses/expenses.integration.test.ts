@@ -12,7 +12,7 @@ beforeAll(async () => {
 
 describe('Expenses â€” CRUD, stats, petty cash', () => {
   it('should create, list, update, delete an expense and top up petty cash', async () => {
-    const org = await createOrg()
+    const org = await createOrg({ service_types: ['supported_living'] })
     const location = await createLocation({ organizationId: org.id })
     const person = await createPerson({ organizationId: org.id })
     const mgr = await createUser({ email: `ex-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
@@ -80,10 +80,10 @@ describe('Expenses â€” CRUD, stats, petty cash', () => {
   })
 
   it('requires a different staff member to accept a cash check and records the acceptance', async () => {
-    const org = await createOrg()
+    const org = await createOrg({ service_types: ['supported_living'] })
     const location = await createLocation({ organizationId: org.id })
     const counter = await createUser({ email: `cash-counter-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
-    const confirmer = await createUser({ email: `cash-confirmer-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const confirmer = await createUser({ email: `cash-confirmer-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
     await createStaffProfile({ userId: counter.id, firstName: 'Cash', lastName: 'Counter' })
     await createStaffProfile({ userId: confirmer.id, firstName: 'Cash', lastName: 'Confirmer' })
     const counterToken = generateToken(counter)
@@ -133,10 +133,10 @@ describe('Expenses â€” CRUD, stats, petty cash', () => {
   })
 
   it('keeps reconciliation pending until the assigned second person approves it', async () => {
-    const org = await createOrg()
+    const org = await createOrg({ service_types: ['supported_living'] })
     const location = await createLocation({ organizationId: org.id })
     const requester = await createUser({ email: `recon-requester-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
-    const reviewer = await createUser({ email: `recon-reviewer-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const reviewer = await createUser({ email: `recon-reviewer-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
     const requesterToken = generateToken(requester)
     const reviewerToken = generateToken(reviewer)
 
@@ -182,10 +182,10 @@ describe('Expenses â€” CRUD, stats, petty cash', () => {
   })
 
   it('requires a reason and leaves the balance unchanged when a reconciliation is rejected', async () => {
-    const org = await createOrg()
+    const org = await createOrg({ service_types: ['supported_living'] })
     const location = await createLocation({ organizationId: org.id })
     const requester = await createUser({ email: `recon-reject-requester-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
-    const reviewer = await createUser({ email: `recon-reject-reviewer-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    const reviewer = await createUser({ email: `recon-reject-reviewer-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
     const requesterToken = generateToken(requester)
     const reviewerToken = generateToken(reviewer)
 
@@ -218,7 +218,7 @@ describe('Expenses â€” CRUD, stats, petty cash', () => {
   })
 
   it('should let a CARE_WORKER list but not create expenses', async () => {
-    const org = await createOrg()
+    const org = await createOrg({ service_types: ['supported_living'] })
     const person = await createPerson({ organizationId: org.id })
     const worker = await createUser({ email: `ex2-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
     const token = generateToken(worker)
