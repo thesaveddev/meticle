@@ -164,7 +164,7 @@ export default function RegisterPage() {
   }
 
 
-  usePageMeta({ title: 'Create Account | Meticle Care', description: 'Register for a Meticle Care account. Start your 14-day free trial for UK care providers.', noindex: true })
+  usePageMeta({ title: 'Create Account | Meticle Care', description: 'Create a MeticleCare account after your organisation has been invited or approved for access.', noindex: true })
   if (invitationLoading) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'white' }}>
@@ -198,7 +198,7 @@ export default function RegisterPage() {
             <Stack spacing={4} sx={{ mb: 6 }}>
               {[
                 { t: 'Automated Compliance', d: 'Never miss a training or DBS renewal again.' },
-                { t: 'Smart Scheduling', d: 'Reduce agency spend by up to 40%.' },
+                { t: 'Smart Scheduling', d: 'Bring workforce and care operations into one view.' },
                 { t: 'Real-time Visibility', d: 'Audit your entire workforce in one click.' }
               ].map((v, i) => (
                 <Stack key={i} direction="row" spacing={2}>
@@ -227,7 +227,7 @@ export default function RegisterPage() {
             <Typography sx={{ color: 'text.secondary' }}>
               {invitation
                 ? 'Set your password to join your organization.'
-                : 'Join modern care providers in 2 minutes. Start your free 14-day trial — no credit card required.'}
+                : 'Create your account after your demo or invitation. Your team will guide the next steps.'}
             </Typography>
           </Box>
 
@@ -457,7 +457,7 @@ export default function RegisterPage() {
                 disabled={loading || (!emailVerified && !invitation) || !termsAccepted}
                 sx={{ bgcolor: '#0F4C81', py: 1.8, fontWeight: 800, borderRadius: 2, fontSize: '1rem', textTransform: 'none', mt: 2 }}
               >
-                {loading ? <CircularProgress size={24} color="inherit" /> : (invitation ? 'Join Organization' : 'Start Free Trial')}
+                {loading ? <CircularProgress size={24} color="inherit" /> : (invitation ? 'Join Organization' : 'Create account')}
               </Button>
 
               <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>

@@ -521,21 +521,21 @@ export default function FeaturesPage() {
             See it on your service, not a demo dataset.
           </Typography>
           <Typography sx={{ color: MIST, fontSize: '1.1rem', lineHeight: 1.7, mb: 5, mx: 'auto', maxWidth: 580 }}>
-            Start your 14-day free trial on the full Care Service tier — no credit card, no auto-charge. Or book a 30-minute call and we'll walk through anything specific to your provider.
+            Book a focused conversation about your service, modules and rollout. We will agree any evaluation scope and commercial terms before access is enabled.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button
               variant="contained"
               size="large"
               endIcon={<ArrowForwardIcon />}
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/contact')}
               sx={{
                 bgcolor: NAVY, fontWeight: 800,
                 '&:hover': { bgcolor: NAVY_DEEP },
                 px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.02rem',
               }}
             >
-              Start your free trial
+              Book a demo
             </Button>
             <Button
               variant="outlined"

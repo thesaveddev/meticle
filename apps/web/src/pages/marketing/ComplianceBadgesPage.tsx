@@ -342,16 +342,16 @@ export default function ComplianceBadgesPage() {
             Ready to simplify compliance?
           </Typography>
           <Typography color={MIST} sx={{ mb: 4, lineHeight: 1.7 }}>
-            Start a free 14-day trial and see how Meticle Care keeps your records inspection-ready across every regulatory framework.
+            Book a walkthrough to see how MeticleCare helps organise evidence for your regulatory and governance workflows.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button
               variant="contained"
               size="large"
               sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A63' }, fontWeight: 700, px: 5, borderRadius: 2 }}
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/contact')}
             >
-              Start free trial
+              Book a demo
             </Button>
             <Button
               variant="outlined"

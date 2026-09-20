@@ -161,7 +161,7 @@ export default function DownloadPageNew() {
 
   return (
     <MarketingLayout>
-      <PageMeta title="MeticleCare mobile app" description="MeticleCare gives care teams a field-ready mobile experience alongside the web application. Available for iOS and Android." canonicalPath="/download" />
+      <PageMeta title="MeticleCare mobile app" description="MeticleCare's React Native mobile app gives care teams a field-ready experience alongside the web application. Store links will be published when the apps are available." canonicalPath="/download" />
 
       {/* ═══ HERO ═══ */}
       <Box sx={{ py: { xs: 10, md: 16 }, bgcolor: M.paper }}>
@@ -173,18 +173,18 @@ export default function DownloadPageNew() {
                 Care doesn't happen behind a desk. Neither should your software.
               </Typography>
               <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight, mb: 4 }}>
-                Give care teams a focused mobile experience for the work in front of them — check in, record notes, report disruptions, view care plans and access client information. Available for iOS and Android.
+                Give care teams a focused mobile experience for the work in front of them — check in, record notes, report disruptions, view care plans and access client information. The app is built with React Native; App Store and Google Play links will be added once the releases are published.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 {appStoreUrl ? (
                   <Button component="a" href={appStoreUrl} target="_blank" rel="noreferrer" startIcon={<Download />} variant="contained" sx={{ bgcolor: M.ink, color: '#fff', fontWeight: 700, px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Download on the App Store</Button>
                 ) : (
-                  <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 700 }}>App Store — coming soon</Button>
+                  <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 700 }}>App Store link pending</Button>
                 )}
                 {playStoreUrl ? (
                   <Button component="a" href={playStoreUrl} target="_blank" rel="noreferrer" startIcon={<Download />} variant="contained" sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>Get it on Google Play</Button>
                 ) : (
-                  <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 700 }}>Google Play — coming soon</Button>
+                  <Button disabled startIcon={<Download />} variant="outlined" sx={{ px: 3, py: 1.5, borderRadius: M.r.md, textTransform: 'none', fontWeight: 700 }}>Google Play link pending</Button>
                 )}
               </Stack>
             </Grid>

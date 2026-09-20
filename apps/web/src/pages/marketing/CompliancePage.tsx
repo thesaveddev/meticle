@@ -79,12 +79,12 @@ const evidenceAreas = [
 ]
 
 const readinessMetrics = [
-  { label: 'Care records', value: '98%', color: M.green },
-  { label: 'Reviews', value: '96%', color: M.green },
-  { label: 'Training', value: '94%', color: M.amber },
-  { label: 'Competency', value: '97%', color: M.green },
-  { label: 'Risk reviews', value: '99%', color: M.green },
-  { label: 'Open actions', value: '3', color: M.coral },
+  { label: 'Care records', value: '—', color: M.green },
+  { label: 'Reviews', value: '—', color: M.green },
+  { label: 'Training', value: '—', color: M.amber },
+  { label: 'Competency', value: '—', color: M.green },
+  { label: 'Risk reviews', value: '—', color: M.green },
+  { label: 'Open actions', value: '—', color: M.coral },
 ]
 
 const attentionItems = [

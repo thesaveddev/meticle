@@ -143,7 +143,6 @@ export default function HomePage() {
           applicationCategory: 'BusinessApplication',
           operatingSystem: 'Web and mobile',
           description: 'Care operations software for UK domiciliary and supported living providers.',
-          offers: { '@type': 'Offer', price: '0', priceCurrency: 'GBP', description: 'Book a demo for pricing' },
         }}
       />
 
@@ -481,7 +480,7 @@ export default function HomePage() {
               <SectionLabel>Mobile app</SectionLabel>
               <Typography sx={{ ...M.h1, mb: 2 }}>Care doesn't happen behind a desk.</Typography>
               <Typography sx={{ ...M.bodyLg, color: M.slate, mb: 4 }}>
-                Give carers a focused mobile experience for the work in front of them — check in, record notes, report disruptions, view care plans and access client information. Available for iOS and Android.
+                Give carers a focused React Native mobile experience for the work in front of them — check in, record notes, report disruptions, view care plans and access client information. Store links will be published when the releases are available.
               </Typography>
               <Stack spacing={1.5} sx={{ mb: 4 }}>
                 {['Care notes at the point of care', 'Availability and leave workflows', 'Client records, care plans and risk assessments', 'Shift marketplace and open-call pickup', 'Chat, notifications and team communication'].map((item) => (
