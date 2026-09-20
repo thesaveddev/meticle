@@ -14,7 +14,7 @@ describe('Contact — public form', () => {
     const res = await request(app)
       .post('/contact')
       .send({ name: 'John Doe', email: 'john@example.com', message: 'I would like a demo of the platform.' })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
   })
 
   it('should reject a submission with an invalid email', async () => {
