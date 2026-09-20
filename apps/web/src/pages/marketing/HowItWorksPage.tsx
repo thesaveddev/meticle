@@ -361,20 +361,20 @@ export default function HowItWorksPage() {
             Ready to set up in minutes?
           </Typography>
           <Typography sx={{ opacity: 0.92, fontSize: '1.12rem', lineHeight: 1.7, mb: 5, maxWidth: 560, mx: 'auto' }}>
-            Try the full Care Service tier free for 14 days. Or chat with us on a 30-minute call — we'll walk through anything specific to your service before you commit.
+            Book a focused walkthrough and we will show how the platform could fit your service before agreeing an evaluation or rollout.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button
               variant="contained"
               size="large"
               endIcon={<ArrowForwardIcon />}
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/contact')}
               sx={{
                 bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
                 fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >
-              Start your free trial
+              Book a demo
             </Button>
             <Button
               variant="outlined"

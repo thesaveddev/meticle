@@ -16,10 +16,10 @@ function SectionLabel({ children, center }: { children: React.ReactNode; center?
 const tiers = [
   {
     name: 'Essential',
-    subtitle: 'For small domiciliary care providers',
-    price: 'From £2.50',
-    period: 'per person per week',
-    color: 'M.navy',
+    subtitle: 'For smaller care providers getting started',
+    price: 'Talk to us',
+    period: 'sales-led pricing based on your service',
+    color: M.navy,
     icon: Groups,
     features: [
       'Care plan management',
@@ -36,8 +36,8 @@ const tiers = [
   {
     name: 'Professional',
     subtitle: 'For growing domiciliary and supported living providers',
-    price: 'From £4.00',
-    period: 'per person per week',
+    price: 'Talk to us',
+    period: 'sales-led pricing based on your service',
     color: M.teal,
     icon: Shield,
     features: [
@@ -56,9 +56,9 @@ const tiers = [
   {
     name: 'Enterprise',
     subtitle: 'For multi-site organisations with complex needs',
-    price: 'Custom',
+    price: 'Talk to us',
     period: 'tailored to your organisation',
-    color: 'M.tealDeep',
+    color: M.tealDeep,
     icon: Insights,
     features: [
       'Everything in Professional',
@@ -67,7 +67,7 @@ const tiers = [
       'Advanced AI intelligence suite',
       'Dedicated account manager',
       'Custom training & onboarding',
-      'SLA guarantees',
+      'Agreed service and support terms',
       'Phone & video support',
     ],
     highlight: false,
@@ -80,16 +80,16 @@ const faqs = [
     a: 'Pricing is based on the number of people you support (clients/residents) and the modules you enable. There are no hidden fees — you pay for what you use.',
   },
   {
-    q: 'Is there a free trial?',
-    a: 'Yes. Every organisation starts with a free trial period. No credit card required. You can explore all features before committing.',
+    q: 'Can we evaluate the platform?',
+    a: 'We offer a structured evaluation for suitable organisations. We will agree the scope, duration and commercial terms with you before access is enabled.',
   },
   {
     q: 'Can I change plans later?',
-    a: 'Absolutely. You can upgrade, downgrade or add modules at any time. Changes take effect on your next billing cycle.',
+    a: 'Yes. Your plan can be reviewed as your service changes. We will confirm any change in scope or price with you before it takes effect.',
   },
   {
     q: 'What about data migration?',
-    a: 'Our team helps migrate your existing data — client records, care plans, staff information — at no extra cost for Professional and Enterprise plans.',
+    a: 'We will assess your existing records during onboarding and agree a migration approach, responsibilities and any associated work before the project starts.',
   },
   {
     q: 'Is my data secure?',
@@ -97,7 +97,7 @@ const faqs = [
   },
   {
     q: 'Do you offer discounts for charities?',
-    a: 'Yes. Registered charities and not-for-profit care providers qualify for discounted pricing. Contact us for details.',
+    a: 'We can discuss the right commercial structure for charities and not-for-profit providers during the sales conversation.',
   },
 ]
 
@@ -106,7 +106,7 @@ export default function PricingPage() {
 
   return (
     <MarketingLayout>
-      <PageMeta title="Pricing" description="Simple, transparent pricing for domiciliary and supported living care providers. No hidden fees. Start with a free trial." canonicalPath="/pricing" />
+      <PageMeta title="Pricing" description="Sales-led pricing for UK domiciliary and supported living care providers. Book a conversation to scope your service and modules." canonicalPath="/pricing" />
 
       {/* Hero */}
       <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.paper }}>
@@ -117,14 +117,14 @@ export default function PricingPage() {
               Simple pricing for better care.
             </Typography>
             <Typography sx={{ color: M.slate, fontSize: M.bodyLg.fontSize, lineHeight: M.bodyLg.lineHeight, mb: 4 }}>
-              No hidden fees, no per-seat licensing surprises. Pay for the people you support and the modules you need. Start with a free trial — no credit card required.
+              We scope pricing around your service type, people supported, locations and the modules you need. Book a conversation and receive a clear proposal before you commit.
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
               <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>
                 Book a demo
               </Button>
               <Button variant="outlined" onClick={() => nav('/contact')} sx={{ borderColor: M.subtle, color: M.ink, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>
-                Start free trial
+                Talk through your needs
               </Button>
             </Stack>
           </Box>
@@ -183,7 +183,7 @@ export default function PricingPage() {
                       '&:hover': { bgcolor: tier.highlight ? tier.color : `${tier.color}08` },
                     }}
                   >
-                    {tier.price === 'Custom' ? 'Contact sales' : 'Start free trial'}
+                    Talk to sales
                   </Button>
                 </Box>
               </Grid>
@@ -228,7 +228,7 @@ export default function PricingPage() {
                   { feature: 'Custom integrations & API', essential: false, professional: false, enterprise: true },
                   { feature: 'Advanced AI intelligence', essential: false, professional: false, enterprise: true },
                   { feature: 'Dedicated account manager', essential: false, professional: false, enterprise: true },
-                  { feature: 'SLA guarantees', essential: false, professional: false, enterprise: true },
+                  { feature: 'Agreed service and support terms', essential: false, professional: false, enterprise: true },
                 ].map((row) => (
                   <Box key={row.feature} component="tr" sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
                     <Box component="td" sx={{ py: 1.5, px: 2, borderBottom: `1px solid ${M.faint}`, fontSize: '0.88rem' }}>{row.feature}</Box>
@@ -275,14 +275,14 @@ export default function PricingPage() {
             Ready to get started?
           </Typography>
           <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: M.bodyLg.fontSize, mb: 4, maxWidth: 500, mx: 'auto' }}>
-            Book a demo to see MeticleCare in action, or start your free trial today.
+            Talk to the team about your service and receive a proposal built around your needs.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button variant="contained" endIcon={<ArrowForward />} onClick={() => nav('/contact')} sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>
               Book a demo
             </Button>
             <Button variant="outlined" onClick={() => nav('/contact')} sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white', fontWeight: 700, px: 4, py: 1.5, borderRadius: M.r.md, textTransform: 'none' }}>
-              Start free trial
+              Talk through your needs
             </Button>
           </Stack>
         </Container>

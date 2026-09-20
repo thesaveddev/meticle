@@ -168,12 +168,12 @@ export class BillingController {
             const paymentMethodId = defaultPaymentMethod.rows[0]?.stripe_payment_method_id || null;
             if (paymentMethodId) {
               const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-              // Allow the same physical card across multiple organisations — detach from the
-              // old customer if needed so we can reattach to this org's Stripe customer.
+              // Do not detach a payment method from another Stripe customer during
+              // a plan change. Require the organisation to add its own card instead.
               if (paymentMethod.customer && paymentMethod.customer !== customerId) {
-                await stripe.paymentMethods.detach(paymentMethodId).catch(() => {});
+                throw new AppError(409, 'The default payment method belongs to another billing account');
               }
-              if (!paymentMethod.customer || paymentMethod.customer !== customerId) {
+              if (!paymentMethod.customer) {
                 await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
               }
               await stripe.customers.update(customerId, {
@@ -372,12 +372,13 @@ export class BillingController {
       if (!org.rows[0]?.stripe_customer_id) throw new AppError(409, 'Your Stripe customer is not configured');
       const stripeCustomerId = org.rows[0].stripe_customer_id;
       const pmBefore = await stripe.paymentMethods.retrieve(payment_method_id);
-      // If the card is attached to another Stripe customer, detach it first so we can
-      // reuse the same physical card across multiple organisations (multi-home scenario).
+      // A payment method already attached to another customer belongs to that
+      // billing account. Never detach it behind their back; Stripe cards can be
+      // shared by staff, but ownership must be established with a fresh SetupIntent.
       if (pmBefore.customer && pmBefore.customer !== stripeCustomerId) {
-        await stripe.paymentMethods.detach(payment_method_id).catch(() => {});
+        throw new AppError(409, 'This payment method is already linked to another billing account');
       }
-      if (!pmBefore.customer || pmBefore.customer !== stripeCustomerId) {
+      if (!pmBefore.customer) {
         await stripe.paymentMethods.attach(payment_method_id, { customer: stripeCustomerId });
       }
       try {
@@ -452,14 +453,13 @@ export class BillingController {
       const org = await pool.query('SELECT stripe_customer_id FROM organizations WHERE id = $1', [orgId]);
       const stripeCustomerId = org.rows[0]?.stripe_customer_id;
       if (stripeCustomerId) {
-        // Detach from any other customer first, then attach to this org's customer.
         const pmInfo = await stripe.paymentMethods.retrieve(stripePaymentMethodId).catch(() => null);
         if (pmInfo?.customer && pmInfo.customer !== stripeCustomerId) {
-          await stripe.paymentMethods.detach(stripePaymentMethodId).catch(() => {});
+          throw new AppError(409, 'This payment method is linked to another billing account');
         }
-        await stripe.paymentMethods.attach(stripePaymentMethodId, { customer: stripeCustomerId }).catch((err: any) => {
-          if (err?.code !== 'resource_already_attached') throw err;
-        });
+        if (!pmInfo?.customer) {
+          await stripe.paymentMethods.attach(stripePaymentMethodId, { customer: stripeCustomerId });
+        }
         await stripe.customers.update(stripeCustomerId, {
           invoice_settings: { default_payment_method: stripePaymentMethodId },
         });

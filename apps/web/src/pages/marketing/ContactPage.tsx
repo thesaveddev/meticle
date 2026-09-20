@@ -353,22 +353,22 @@ export default function ContactPage() {
             variant="h2"
             sx={{ fontSize: { xs: '2.1rem', md: '3rem' }, fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', mb: 3, color: '#FFFFFF' }}
           >
-            Or skip the form and start your free trial.
+            Prefer to start with a conversation?
           </Typography>
           <Typography sx={{ opacity: 0.92, fontSize: '1.12rem', lineHeight: 1.7, mb: 5, maxWidth: 560, mx: 'auto' }}>
-            14 days of full Care Service functionality, no credit card required. We pull migration data from your existing system for free in the first 30 days.
+            We will scope an evaluation around your service and agree the rollout, migration responsibilities and commercial terms before access begins.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button
               variant="contained"
               size="large"
-              onClick={() => { window.location.href = '/register' }}
+              onClick={() => { window.location.href = '/contact' }}
               sx={{
                 bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
                 fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >
-              Start your free trial
+              Book a demo
             </Button>
             <Button
               variant="outlined"

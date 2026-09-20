@@ -381,20 +381,20 @@ export default function BlogPage() {
             See it on your service, not a demo dataset.
           </Typography>
           <Typography sx={{ opacity: 0.92, fontSize: '1.12rem', lineHeight: 1.7, mb: 5, maxWidth: 560, mx: 'auto' }}>
-            14 days of full Care Service functionality, no credit card required. We pull migration data from your existing system for free in the first 30 days.
+            Book a focused conversation about your service and see how the platform could fit your operating model.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button
               variant="contained"
               size="large"
               endIcon={<ArrowForwardIcon />}
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/contact')}
               sx={{
                 bgcolor: EMERALD_DEEP, '&:hover': { bgcolor: 'success.dark' },
                 fontWeight: 800, px: { xs: 5, sm: 7 }, py: 1.9, fontSize: '1.05rem',
               }}
             >
-              Start your free trial
+              Book a demo
             </Button>
             <Button
               variant="outlined"

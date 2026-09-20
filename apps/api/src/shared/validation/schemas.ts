@@ -1546,10 +1546,18 @@ export const recordProgressSchema = z.object({
 
 // === Contact Form ===
 export const contactSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255),
-  email: z.string().email('A valid email is required').max(255),
-  company: z.string().max(255).optional(),
-  message: z.string().min(1, 'Message is required').max(5000),
+  name: z.string().trim().min(1, 'Name is required').max(255),
+  email: z.string().trim().email('A valid email is required').max(255),
+  company: z.string().trim().max(255).optional(),
+  role: z.string().trim().max(100).optional(),
+  careType: z.enum(['domiciliary', 'supported-living', 'both', 'other']).optional(),
+  message: z.string().trim().min(1, 'Message is required').max(5000),
+  website: z.string().max(255).optional(),
+  source: z.string().max(100).optional(),
+  utmSource: z.string().max(100).optional(),
+  utmMedium: z.string().max(100).optional(),
+  utmCampaign: z.string().max(150).optional(),
+  referrer: z.string().max(500).optional(),
 });
 
 // === Nutrition ===
