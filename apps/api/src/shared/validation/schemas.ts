@@ -212,6 +212,9 @@ export const mfaDisableSchema = z.object({}).passthrough();
 export const mfaAdminDisableSchema = z.object({}).passthrough();
 
 // === Organizations ===
+export const SERVICE_TYPES = ['domiciliary', 'live_in', 'supported_living', 'residential'] as const;
+const serviceTypesSchema = z.array(z.enum(SERVICE_TYPES)).min(1).refine(types => new Set(types).size === types.length, 'Service types must be unique');
+
 export const createOrganizationSchema = z.object({
   name: z.string().min(1, 'Organization name is required').max(255),
 });
@@ -225,8 +228,8 @@ export const updateOrganizationSchema = z.object({
   onboarding_completed: z.boolean().optional(),
   onboarding_dismissed_at: z.string().nullable().optional(),
   auto_approve_documents: z.boolean().optional(),
-  service_types: z.array(z.string()).optional(),
-  primary_service_type: z.string().optional(),
+  service_types: serviceTypesSchema.optional(),
+  primary_service_type: z.enum(SERVICE_TYPES).optional(),
 });
 
 const operationalLocationFields = {
@@ -737,8 +740,8 @@ export const updateOrgSettingsSchema = z.object({
   emergency_contact_2_label: z.string().trim().max(40).optional(),
   emergency_contact_2_phone: emergencyPhoneSchema,
   emedication_count_convention: z.enum(['end_of_day', 'am_pm', 'after_each']).optional(),
-  service_types: z.array(z.string()).optional(),
-  primary_service_type: z.string().optional(),
+  service_types: serviceTypesSchema.optional(),
+  primary_service_type: z.enum(SERVICE_TYPES).optional(),
 });
 
 export const createComplianceConfigSchema = z.object({

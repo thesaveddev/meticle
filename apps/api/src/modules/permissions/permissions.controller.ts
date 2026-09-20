@@ -20,6 +20,11 @@ const MODULES = [
   'tasks',
   'appointments',
   'expenses',
+  'homecare',
+  'call_scheduling',
+  'mileage_travel',
+  'payroll_export',
+  'client_billing',
   'room_checks',
   'settings',
   'billing',
@@ -27,10 +32,10 @@ const MODULES = [
 ];
 
 const ROLE_DEFAULTS: Record<string, Record<string, string>> = {
-  ORG_ADMIN: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'edit', room_checks: 'edit', settings: 'edit', billing: 'edit', learn: 'edit' },
-  MANAGER: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'view', room_checks: 'edit', settings: 'view', billing: 'view', learn: 'view' },
-  CARE_WORKER: { dashboard: 'view', people: 'none', emedication: 'view', staff_directory: 'none', scheduling: 'view', marketplace: 'view', agencies: 'none', leave: 'view', compliance: 'view', training: 'none', policies: 'none', incidents: 'none', reporting: 'none', chat: 'view', tasks: 'none', appointments: 'view', expenses: 'view', room_checks: 'none', settings: 'view', billing: 'none', learn: 'view' },
-  COMPLIANCE_OFFICER: { dashboard: 'view', people: 'view', emedication: 'view', staff_directory: 'view', scheduling: 'none', marketplace: 'none', agencies: 'none', leave: 'view', compliance: 'edit', training: 'edit', policies: 'view', incidents: 'view', reporting: 'view', chat: 'view', tasks: 'view', appointments: 'view', expenses: 'none', room_checks: 'view', settings: 'view', billing: 'none', learn: 'view' },
+  ORG_ADMIN: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'edit', homecare: 'edit', call_scheduling: 'edit', mileage_travel: 'edit', payroll_export: 'edit', client_billing: 'edit', room_checks: 'edit', settings: 'edit', billing: 'edit', learn: 'edit' },
+  MANAGER: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'view', homecare: 'edit', call_scheduling: 'edit', mileage_travel: 'edit', payroll_export: 'edit', client_billing: 'edit', room_checks: 'edit', settings: 'view', billing: 'view', learn: 'view' },
+  CARE_WORKER: { dashboard: 'view', people: 'none', emedication: 'view', staff_directory: 'none', scheduling: 'view', marketplace: 'view', agencies: 'none', leave: 'view', compliance: 'view', training: 'none', policies: 'none', incidents: 'none', reporting: 'none', chat: 'view', tasks: 'none', appointments: 'view', expenses: 'view', homecare: 'view', call_scheduling: 'view', mileage_travel: 'view', payroll_export: 'none', client_billing: 'none', room_checks: 'none', settings: 'view', billing: 'none', learn: 'view' },
+  COMPLIANCE_OFFICER: { dashboard: 'view', people: 'view', emedication: 'view', staff_directory: 'view', scheduling: 'none', marketplace: 'none', agencies: 'none', leave: 'view', compliance: 'edit', training: 'edit', policies: 'view', incidents: 'view', reporting: 'view', chat: 'view', tasks: 'view', appointments: 'view', expenses: 'none', homecare: 'none', call_scheduling: 'none', mileage_travel: 'none', payroll_export: 'none', client_billing: 'none', room_checks: 'view', settings: 'view', billing: 'none', learn: 'view' },
 };
 
 export class PermissionsController {
@@ -39,6 +44,8 @@ export class PermissionsController {
     const orgId = req.user!.organizationId;
     const requesterId = req.user!.userId;
     const requesterRole = req.user!.role;
+
+    if (!orgId) throw new AppError(403, 'Organization context required');
 
     // Users can see their own permissions; ORG_ADMIN and MANAGER can see anyone's
     if (userId !== requesterId && requesterRole !== 'ORG_ADMIN' && requesterRole !== 'MANAGER') {
@@ -70,8 +77,18 @@ export class PermissionsController {
     const orgId = req.user!.organizationId;
     const requesterRole = req.user!.role;
 
+    if (!orgId) throw new AppError(403, 'Organization context required');
+
     if (requesterRole !== 'ORG_ADMIN' && requesterRole !== 'MANAGER') {
       throw new AppError(403, 'Only admins and managers can update permissions');
+    }
+    if (requesterRole === 'MANAGER') {
+      throw new AppError(403, 'Only organisation admins can update permissions');
+    }
+
+    const validModules = new Set(MODULES);
+    for (const permission of permissions) {
+      if (!validModules.has(permission.module)) throw new AppError(400, `Unknown permission module: ${permission.module}`);
     }
 
     const user = await query('SELECT * FROM users WHERE id = $1 AND organization_id = $2', [userId, orgId]);

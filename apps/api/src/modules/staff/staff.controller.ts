@@ -122,7 +122,7 @@ export class StaffController {
       [orgId, role]
     );
     if (profile.rows.length > 0) {
-      const staff = await pool.query('SELECT id FROM staff_profiles WHERE user_id = $1', [userId]);
+      const staff = await pool.query('SELECT id FROM staff_profiles WHERE user_id = $1 AND EXISTS (SELECT 1 FROM users WHERE id = $1 AND organization_id = $2)', [userId, orgId]);
       if (staff.rows.length > 0) {
         await pool.query('UPDATE staff_profiles SET compliance_profile_id = $1 WHERE id = $2', [profile.rows[0].id, staff.rows[0].id]);
         const reqs = await pool.query('SELECT requirement_id FROM compliance_profile_requirements WHERE profile_id = $1', [profile.rows[0].id]);
@@ -160,7 +160,7 @@ export class StaffController {
       await checkNotLastAdmin(orgId, userId);
     }
 
-    const result = await pool.query('UPDATE users SET status = $1 WHERE id = $2 RETURNING id, email, role, status', [status, userId]);
+    const result = await pool.query('UPDATE users SET status = $1 WHERE id = $2 AND organization_id = $3 RETURNING id, email, role, status', [status, userId, orgId]);
 
     AuditRepository.log({
       user_id: req.user!.userId,
@@ -186,7 +186,7 @@ export class StaffController {
       await checkNotLastAdmin(orgId, userId);
     }
 
-    await pool.query('UPDATE users SET status = $1 WHERE id = $2', ['deactivated', userId]);
+    await pool.query('UPDATE users SET status = $1 WHERE id = $2 AND organization_id = $3', ['deactivated', userId, orgId]);
 
     AuditRepository.log({
       user_id: req.user!.userId,
@@ -204,12 +204,12 @@ export class StaffController {
     const userId = req.user!.userId;
     const orgId = req.user!.organizationId;
 
-    const userCheck = await pool.query('SELECT role FROM users WHERE id = $1', [userId]);
+    const userCheck = await pool.query('SELECT role FROM users WHERE id = $1 AND organization_id = $2', [userId, orgId]);
     if (userCheck.rows.length > 0 && userCheck.rows[0].role === 'ORG_ADMIN' && orgId) {
       await checkNotLastAdmin(orgId, userId);
     }
 
-    await pool.query('UPDATE users SET status = $1 WHERE id = $2', ['deactivated', userId]);
+    await pool.query('UPDATE users SET status = $1 WHERE id = $2 AND organization_id = $3', ['deactivated', userId, orgId]);
 
     AuditRepository.log({
       user_id: userId,
@@ -235,10 +235,14 @@ export class StaffController {
     if (user.rows.length === 0) throw new AppError(404, 'User not found');
     if (requesterId !== userId && req.user!.role !== UserRole.ORG_ADMIN) {
       throw new AppError(403, 'You can only update your own profile');
+    }    if (location_id) {
+      const location = await pool.query('SELECT 1 FROM locations WHERE id = $1 AND organization_id = $2', [location_id, orgId]);
+      if (!location.rows.length) throw new AppError(400, 'Location not found in your organisation');
     }
 
     const result = await pool.query(
-       `INSERT INTO staff_profiles (user_id, first_name, last_name, birth_date, phone, address, city, country, postal_code, profile_picture_url, location_id, employment_type, contracted_hours_weekly, max_hours_weekly)
+      `INSERT INTO staff_profiles (user_id, first_name, last_name, birth_date, phone, address, city, country, postal_code, profile_picture_url, location_id, employment_type, contracted_hours_weekly, max_hours_weekly)
+
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         ON CONFLICT (user_id) DO UPDATE SET
           first_name = EXCLUDED.first_name,
@@ -260,7 +264,7 @@ export class StaffController {
 
     // Notify the user if profile was changed by an admin/manager
     if (requesterId !== userId) {
-      const requesterResult = await pool.query('SELECT role FROM users WHERE id = $1', [requesterId]);
+      const requesterResult = await pool.query('SELECT role FROM users WHERE id = $1 AND organization_id = $2', [requesterId, orgId]);
       const requesterRole = requesterResult.rows[0]?.role;
       if (requesterRole === 'ORG_ADMIN' || requesterRole === 'MANAGER') {
         NotificationsController.createNotification(
@@ -328,8 +332,8 @@ export class StaffController {
 
     // Get staff profile id for this user
     const spResult = await pool.query(
-      'SELECT id FROM staff_profiles WHERE user_id = $1',
-      [userId]
+      'SELECT sp.id FROM staff_profiles sp JOIN users u ON u.id = sp.user_id WHERE sp.user_id = $1 AND u.organization_id = $2',
+      [userId, orgId]
     );
     if (spResult.rows.length === 0) throw new AppError(404, 'Staff profile not found');
 

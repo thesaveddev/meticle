@@ -9,7 +9,10 @@ import {
   requireTeamInOrg,
   requireDepartmentInOrg,
   findOrgScoped,
+  requireSameOrgForUser,
 } from '../../shared/database/tenant';
+
+const requireUserInOrg = requireSameOrgForUser;
 import { logWarn } from '../../shared/utils/logger';
 
 export class OrgController {
@@ -24,6 +27,13 @@ export class OrgController {
     const { orgId } = req.params;
     if (orgId !== user.organizationId) throw new AppError(403, 'Access denied');
     const { name, address, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff } = req.body;
+    if (manager_id) {
+      const manager = await pool.query(
+        `SELECT 1 FROM users WHERE id = $1 AND organization_id = $2 AND role IN ('MANAGER', 'ORG_ADMIN')`,
+        [manager_id, orgId]
+      );
+      if (manager.rows.length === 0) throw new AppError(400, 'Location manager must be an active manager in your organisation');
+    }
     const location = await OrgRepository.createLocation(orgId, name, address, manager_id, { minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff });
     res.status(201).json(location);
   }
@@ -191,6 +201,7 @@ export class OrgController {
     const { teamId } = req.params;
     await requireTeamInOrg(user, teamId);
     const { userId, role } = req.body;
+    await requireUserInOrg(user, userId);
     const member = await OrgRepository.addTeamMember(teamId, userId, role);
     // Notify the assigned user
     const teamRes = await pool.query('SELECT name FROM teams WHERE id = $1', [teamId]);
@@ -218,9 +229,10 @@ export class OrgController {
     const user = req.user!;
     const { teamId, userId } = req.params;
     await requireTeamInOrg(user, teamId);
+    await requireUserInOrg(user, userId);
     await OrgRepository.removeTeamMember(teamId, userId);
-    // Notify the removed user
-    const teamRes = await pool.query('SELECT name FROM teams WHERE id = $1', [teamId]);
+    // Notify the removed user only after both resources have been tenant-checked.
+    const teamRes = await pool.query('SELECT name FROM teams WHERE id = $1 AND organization_id = $2', [teamId, user.organizationId]);
     const teamName = teamRes.rows[0]?.name || 'a team';
     NotificationsController.createNotification(
       userId,

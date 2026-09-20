@@ -10,6 +10,7 @@ import { rateLimit } from '../shared/middleware/rateLimit.middleware'
 import { metricsMiddleware } from '../shared/metrics'
 import { correlationId } from '../shared/middleware/correlationId'
 import { rlsMiddleware } from '../shared/middleware/rls.middleware'
+import { requireSupportedLivingOnly, requireDomiciliaryOnly } from '../shared/middleware/requireServiceType'
 
 import pool from '../shared/database'
 
@@ -80,7 +81,7 @@ export function createTestApp(): Express {
   app.use('/organizations', invitationRoutes)
   app.use('/staff', staffRoutes)
   app.use('/compliance', complianceRoutes)
-  app.use('/shifts', schedulingRoutes)
+  app.use('/shifts', requireSupportedLivingOnly, schedulingRoutes)
   app.use('/marketplace', marketplaceRoutes)
   app.use('/reporting', reportingRoutes)
   app.use('/insights', insightsRoutes)
@@ -100,28 +101,28 @@ export function createTestApp(): Express {
   app.use('/chat', chatRoutes)
   app.use('/billing', billingRoutes)
   app.use('/audit', auditRoutes)
-  app.use('/appointments', appointmentRoutes)
+  app.use('/appointments', requireSupportedLivingOnly, appointmentRoutes)
   app.use('/policies', policyRoutes)
-  app.use('/emedication', emedicationRoutes)
+  app.use('/emedication', requireSupportedLivingOnly, emedicationRoutes)
   app.use('/goals', goalRoutes)
   app.use('/health', healthRoutes)
-  app.use('/nutrition', nutritionRoutes)
+  app.use('/nutrition', requireSupportedLivingOnly, nutritionRoutes)
   app.use('/compliance-portal', compliancePortalRoutes)
   app.use('/ai', aiRoutes)
   app.use('/family-portal', familyPortalRoutes)
   app.use('/delegations', delegationRoutes)
-  app.use('/agencies', agencyRoutes)
+  app.use('/agencies', requireSupportedLivingOnly, agencyRoutes)
   app.use('/dbs', dbsRoutes)
-  app.use('/expenses', expensesRoutes)
-  app.use('/tasks', taskRoutes)
-  app.use('/room-checks', roomCheckRoutes)
+  app.use('/expenses', requireSupportedLivingOnly, expensesRoutes)
+  app.use('/tasks', requireSupportedLivingOnly, taskRoutes)
+  app.use('/room-checks', requireSupportedLivingOnly, roomCheckRoutes)
   app.use('/mobile', mobileRoutes)
   app.use('/contact', contactRoutes)
   app.use('/events', eventRoutes)
   app.use('/platform-admin', platformAdminRoutes)
   app.use('/shift-audit', shiftAuditRoutes)
   app.use('/mission-control', missionControlRoutes)
-  app.use('/homecare', homecareRoutes)
+  app.use('/homecare', requireDomiciliaryOnly, homecareRoutes)
 
   app.get('/health/live', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 

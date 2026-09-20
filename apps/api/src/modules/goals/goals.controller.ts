@@ -28,6 +28,7 @@ export class GoalController {
 
   static async create(req: Request, res: Response) {
     const orgId = GoalController.getOrgId(req);
+    await requirePersonInOrg(req.user!, req.body.person_id);
     const goal = await GoalRepository.create({ ...req.body, organization_id: orgId, created_by: req.user!.userId });
     AuditRepository.log({ user_id: req.user!.userId, action: 'create', entity_type: 'person_goal', entity_id: goal.id, ip_address: req.ip }).catch(() => {});
     res.status(201).json(goal);
@@ -35,6 +36,7 @@ export class GoalController {
 
   static async update(req: Request, res: Response) {
     const orgId = GoalController.getOrgId(req);
+    if (req.body.person_id) await requirePersonInOrg(req.user!, req.body.person_id);
     const goal = await GoalRepository.update(req.params.id, req.body, orgId);
     if (!goal) throw new AppError(404, 'Goal not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'person_goal', entity_id: req.params.id, ip_address: req.ip }).catch(() => {});

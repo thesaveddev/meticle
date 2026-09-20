@@ -4,11 +4,12 @@ import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { UserRole } from '@meticle/shared';
+import { requireDomiciliaryOnly } from '../../shared/middleware/requireServiceType';
 
 const router = Router();
 
 router.get('/readiness', authenticate, asyncHandler(CqcController.getReadiness));
-router.get('/homecare-compliance', authenticate, asyncHandler(CqcController.getHomecareCompliance));
+router.get('/homecare-compliance', authenticate, requireDomiciliaryOnly, asyncHandler(CqcController.getHomecareCompliance));
 router.get('/frameworks', authenticate, asyncHandler(CqcController.getFrameworks));
 router.get('/gap-analysis', authenticate, asyncHandler(CqcController.getGapAnalysis));
 router.get('/action-items', authenticate, asyncHandler(CqcController.getActionItems));

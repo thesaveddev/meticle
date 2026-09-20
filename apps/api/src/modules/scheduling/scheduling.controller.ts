@@ -8,8 +8,8 @@ import { requireLocationInOrg, requireShiftInOrg, requireSameOrgForStaff } from 
 import { logDelegationAction } from '../delegations/delegation.audit';
 
 /** Check that a shift is not in the past. Throws if its end_time has passed. */
-async function requireShiftNotPast(shiftId: string) {
-  const shift = await SchedulingRepository.getShiftById(shiftId);
+async function requireShiftNotPast(shiftId: string, organizationId?: string) {
+  const shift = await SchedulingRepository.getShiftById(shiftId, organizationId);
   if (!shift) throw new AppError(404, 'Shift not found');
   if (new Date(shift.end_time) < new Date()) {
     throw new AppError(400, 'Cannot modify a shift that has already ended');
@@ -68,7 +68,7 @@ export class SchedulingController {
     const user = req.user!;
     const { id } = req.params;
     await requireShiftInOrg(user, id);
-    const shift = await SchedulingRepository.getShiftById(id);
+    const shift = await SchedulingRepository.getShiftById(id, user.organizationId);
     if (!shift) throw new AppError(404, 'Shift not found');
     const assignments = await SchedulingRepository.getShiftAssignments(id);
     res.json({ ...shift, assignments });
@@ -78,13 +78,13 @@ export class SchedulingController {
     const user = req.user!;
     const { id } = req.params;
     await requireShiftInOrg(user, id);
-    await requireShiftNotPast(id);
+    await requireShiftNotPast(id, user.organizationId);
     if (req.body.location_id) {
       await requireLocationInOrg(user, req.body.location_id);
       await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, req.body.location_id);
     } else {
       // Check existing shift's location
-      const existing = await SchedulingRepository.getShiftById(id);
+      const existing = await SchedulingRepository.getShiftById(id, user.organizationId);
       if (existing) {
         await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, existing.location_id);
       }
@@ -99,8 +99,8 @@ export class SchedulingController {
     const user = req.user!;
     const { id } = req.params;
     await requireShiftInOrg(user, id);
-    await requireShiftNotPast(id);
-    const shift = await SchedulingRepository.getShiftById(id);
+    await requireShiftNotPast(id, user.organizationId);
+    const shift = await SchedulingRepository.getShiftById(id, user.organizationId);
     if (shift) {
       await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, shift.location_id);
     }
@@ -114,14 +114,14 @@ export class SchedulingController {
     const userId = req.user!.userId;
     const orgId = req.user!.organizationId!;
     const userRole = req.user!.role;
-    await requireShiftNotPast(id);
+    await requireShiftNotPast(id, orgId);
     const staffProfile = await SchedulingRepository.getStaffIdByUserId(userId);
     if (!staffProfile) throw new AppError(404, 'Staff profile not found');
     if (!staffProfile.location_id) throw new AppError(403, 'You must have a work location assigned to claim a shift');
     const staffId = staffProfile.id;
 
     // If claimant is the manager of this location, auto-approve
-    const shiftInfo = await SchedulingRepository.getShiftById(id);
+    const shiftInfo = await SchedulingRepository.getShiftById(id, orgId);
     if (shiftInfo) {
       const locRes = await pool.query('SELECT manager_id FROM locations WHERE id = $1', [shiftInfo.location_id]);
       if (locRes.rows[0]?.manager_id === userId && (userRole === 'MANAGER' || userRole === 'ORG_ADMIN')) {
@@ -203,7 +203,7 @@ export class SchedulingController {
     await requireShiftInOrg(user, shiftId);
     await requireSameOrgForStaff(user, staffId);
     await requireShiftNotPast(shiftId);
-    const shiftInfo = await SchedulingRepository.getShiftById(shiftId);
+    const shiftInfo = await SchedulingRepository.getShiftById(shiftId, user.organizationId);
     if (shiftInfo) {
       await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, shiftInfo.location_id);
     }
@@ -230,7 +230,7 @@ export class SchedulingController {
     const { shiftId, staffId } = req.params;
     await requireShiftInOrg(user, shiftId);
     await requireSameOrgForStaff(user, staffId);
-    const shiftInfo = await SchedulingRepository.getShiftById(shiftId);
+    const shiftInfo = await SchedulingRepository.getShiftById(shiftId, user.organizationId);
     if (shiftInfo) {
       await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, shiftInfo.location_id);
     }
@@ -257,7 +257,7 @@ export class SchedulingController {
     const { shiftId, staffId } = req.params;
     await requireShiftInOrg(user, shiftId);
     await requireSameOrgForStaff(user, staffId);
-    const shiftInfo = await SchedulingRepository.getShiftById(shiftId);
+    const shiftInfo = await SchedulingRepository.getShiftById(shiftId, user.organizationId);
     if (shiftInfo) {
       await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, shiftInfo.location_id);
     }
@@ -287,7 +287,7 @@ export class SchedulingController {
     await requireSameOrgForStaff(user, staffId);
     await requireSameOrgForStaff(user, newStaffId);
     await requireShiftNotPast(shiftId);
-    const shiftInfo = await SchedulingRepository.getShiftById(shiftId);
+    const shiftInfo = await SchedulingRepository.getShiftById(shiftId, user.organizationId);
     if (shiftInfo) {
       await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, shiftInfo.location_id);
     }
@@ -317,7 +317,7 @@ export class SchedulingController {
     await requireShiftInOrg(user, shiftId);
     await requireSameOrgForStaff(user, staffId);
     await requireShiftNotPast(shiftId);
-    const shiftInfo = await SchedulingRepository.getShiftById(shiftId);
+    const shiftInfo = await SchedulingRepository.getShiftById(shiftId, user.organizationId);
     if (shiftInfo) {
       await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, shiftInfo.location_id);
     }
@@ -352,7 +352,7 @@ export class SchedulingController {
     await requireShiftInOrg(user, shiftId);
     await requireSameOrgForStaff(user, staffId);
     await requireShiftNotPast(shiftId);
-    const shiftInfo2 = await SchedulingRepository.getShiftById(shiftId);
+    const shiftInfo2 = await SchedulingRepository.getShiftById(shiftId, user.organizationId);
     if (shiftInfo2) {
       await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, shiftInfo2.location_id);
     }
@@ -385,11 +385,11 @@ export class SchedulingController {
     const { id } = req.params;
     const { staffId } = req.body;
     await requireShiftInOrg(user, id);
-    await requireShiftNotPast(id);
+    await requireShiftNotPast(id, user.organizationId);
     await requireSameOrgForStaff(user, staffId);
     const staffLocRes = await pool.query('SELECT location_id FROM staff_profiles WHERE id = $1', [staffId]);
     if (!staffLocRes.rows[0]?.location_id) throw new AppError(403, 'Staff must have a work location assigned before they can be assigned to shifts');
-    const shiftForLoc = await SchedulingRepository.getShiftById(id);
+    const shiftForLoc = await SchedulingRepository.getShiftById(id, user.organizationId);
     if (shiftForLoc) {
       await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, shiftForLoc.location_id);
     }
@@ -404,7 +404,7 @@ export class SchedulingController {
     await requireShiftInOrg(user, shiftId);
     await requireSameOrgForStaff(user, staffId);
     await requireShiftNotPast(shiftId);
-    const shiftForLoc2 = await SchedulingRepository.getShiftById(shiftId);
+    const shiftForLoc2 = await SchedulingRepository.getShiftById(shiftId, user.organizationId);
     if (shiftForLoc2) {
       await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, shiftForLoc2.location_id);
     }
@@ -473,7 +473,7 @@ export class SchedulingController {
       res.json([]);
       return;
     }
-    const shifts = await SchedulingRepository.getMyShifts(userId, startDate, endDate);
+    const shifts = await SchedulingRepository.getMyShifts(userId, startDate, endDate, req.user!.organizationId);
     res.json(shifts);
   }
 
@@ -503,7 +503,7 @@ export class SchedulingController {
     );
     if (staffProf.rows.length === 0) throw new AppError(404, 'Staff not found');
     if (staffProf.rows[0].organization_id !== user.organizationId) throw new AppError(403, 'Staff not in your organization');
-    const shifts = await SchedulingRepository.getStaffShifts(staffId, startDate, endDate);
+    const shifts = await SchedulingRepository.getStaffShifts(staffId, startDate, endDate, user.organizationId);
     res.json(shifts);
   }
 
@@ -525,7 +525,8 @@ export class SchedulingController {
     );
     if (assignment.rows.length === 0) throw new AppError(403, 'You are not assigned to this shift');
 
-    const shiftInfo = await SchedulingRepository.getShiftById(shiftId);
+    const shiftInfo = await SchedulingRepository.getShiftById(shiftId, user.organizationId);
+    if (!shiftInfo) throw new AppError(404, 'Shift not found');
     const toProfile = await pool.query('SELECT location_id, user_id, first_name, last_name FROM staff_profiles WHERE id = $1', [toStaffId]);
     // Enforce same location: both must have a location and share the same one
     const fromLoc = profile.location_id;
@@ -604,18 +605,24 @@ export class SchedulingController {
               fp.user_id as from_user_id, uf.email as from_email,
               tp.user_id as to_user_id, tp.first_name as to_first_name, tp.last_name as to_last_name
        FROM shift_swaps sw
+       JOIN shifts s ON s.id = sw.shift_id
+       JOIN locations l ON l.id = s.location_id
        JOIN staff_profiles fp ON sw.from_staff_id = fp.id
        JOIN users uf ON fp.user_id = uf.id
        JOIN staff_profiles tp ON sw.to_staff_id = tp.id
-       WHERE sw.id = $1`,
-      [swapId]
+       WHERE sw.id = $1 AND l.organization_id = $2
+         AND uf.organization_id = $2 AND EXISTS (
+           SELECT 1 FROM users target_user
+           WHERE target_user.id = tp.user_id AND target_user.organization_id = $2
+         )`,
+      [swapId, user.organizationId]
     );
     if (swapCheck.rows.length === 0) throw new AppError(404, 'Swap request not found');
     if (swapCheck.rows[0].to_user_id !== user.userId) {
       throw new AppError(403, 'You are not the intended recipient of this swap request');
     }
 
-    const result = await SchedulingRepository.respondToSwapRequest(swapId, accepted);
+    const result = await SchedulingRepository.respondToSwapRequest(swapId, accepted, user.organizationId!);
 
     const shiftInfo = await pool.query(
       `SELECT s.*, l.name as location_name, l.manager_id FROM shifts s LEFT JOIN locations l ON s.location_id = l.id WHERE s.id = $1`,
@@ -740,7 +747,7 @@ export class SchedulingController {
     const user = req.user!;
     const profile = await SchedulingRepository.getStaffIdByUserId(user.userId);
     if (!profile) { res.json([]); return; }
-    const swaps = await SchedulingRepository.getSwapRequestsForStaff(profile.id);
+    const swaps = await SchedulingRepository.getSwapRequestsForStaff(profile.id, user.organizationId);
     res.json(swaps);
   }
 

@@ -2,8 +2,24 @@ import { Request, Response } from 'express';
 import { MealPlanRepository } from './meal-plan.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { AuditRepository } from '../audit/audit.repository';
+import { query } from '../../shared/database';
 
 export class MealPlanController {
+  private static async assertTemplateInOrg(templateId: string, orgId: string) {
+    const result = await query('SELECT 1 FROM meal_plan_templates WHERE id = $1 AND organization_id = $2', [templateId, orgId]);
+    if (!result.rows.length) throw new AppError(404, 'Meal plan template not found');
+  }
+
+  private static async assertItemInOrg(itemId: string, orgId: string) {
+    const result = await query(
+      `SELECT 1 FROM meal_plan_items mpi
+       JOIN meal_plan_templates mp ON mp.id = mpi.meal_plan_id
+       WHERE mpi.id = $1 AND mp.organization_id = $2`,
+      [itemId, orgId]
+    );
+    if (!result.rows.length) throw new AppError(404, 'Meal plan item not found');
+  }
+
   static async listTemplates(req: Request, res: Response) {
     const orgId = req.user!.organizationId!;
     const { meal_type, day_of_week, active_only } = req.query as any;
@@ -14,6 +30,7 @@ export class MealPlanController {
 
   static async getTemplate(req: Request, res: Response) {
     const { id } = req.params;
+    await MealPlanController.assertTemplateInOrg(id, req.user!.organizationId!);
     const template = await MealPlanRepository.getTemplateById(id);
     if (!template) throw new AppError(404, 'Meal plan template not found');
     res.json(template);
@@ -41,7 +58,9 @@ export class MealPlanController {
 
   static async updateTemplate(req: Request, res: Response) {
     const { id } = req.params;
-    const updated = await MealPlanRepository.updateTemplate(id, req.body);
+    const orgId = req.user!.organizationId!;
+    await MealPlanController.assertTemplateInOrg(id, orgId);
+    const updated = await MealPlanRepository.updateTemplate(id, req.body, orgId);
     if (!updated) throw new AppError(404, 'Meal plan template not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'meal_plan_template', entity_id: id, ip_address: req.ip }).catch(() => {});
     res.json(updated);
@@ -68,6 +87,7 @@ export class MealPlanController {
   // Template items
   static async addItem(req: Request, res: Response) {
     const { templateId } = req.params;
+    await MealPlanController.assertTemplateInOrg(templateId, req.user!.organizationId!);
     const item = await MealPlanRepository.addTemplateItem(templateId, req.body);
     AuditRepository.log({ user_id: req.user!.userId, action: 'create', entity_type: 'meal_plan_item', entity_id: item.id, ip_address: req.ip }).catch(() => {});
     res.status(201).json(item);
@@ -75,6 +95,7 @@ export class MealPlanController {
 
   static async updateItem(req: Request, res: Response) {
     const { itemId } = req.params;
+    await MealPlanController.assertItemInOrg(itemId, req.user!.organizationId!);
     const updated = await MealPlanRepository.updateTemplateItem(itemId, req.body);
     if (!updated) throw new AppError(404, 'Meal plan item not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'meal_plan_item', entity_id: itemId, ip_address: req.ip }).catch(() => {});
@@ -83,6 +104,7 @@ export class MealPlanController {
 
   static async deleteItem(req: Request, res: Response) {
     const { itemId } = req.params;
+    await MealPlanController.assertItemInOrg(itemId, req.user!.organizationId!);
     await MealPlanRepository.deleteTemplateItem(itemId);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'meal_plan_item', entity_id: itemId, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Meal plan item deleted' });

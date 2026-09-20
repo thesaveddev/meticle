@@ -77,7 +77,7 @@ import { errorHandler, notFoundHandler } from './shared/middleware/error.middlew
 import { authenticate } from './shared/middleware/auth.middleware';
 import { asyncHandler } from './shared/middleware/asyncHandler';
 import { rlsMiddleware } from './shared/middleware/rls.middleware';
-import { requireSupportedLivingOnly } from './shared/middleware/requireServiceType';
+import { requireSupportedLivingOnly, requireDomiciliaryOnly } from './shared/middleware/requireServiceType';
 import { initSocketServer, closeSocketServer } from './shared/socket';
 import { setupSwagger } from './shared/swagger';
 import { healthCheck } from './shared/database';
@@ -313,12 +313,12 @@ app.use('/health', healthRoutes);
 app.use('/nutrition', requireSupportedLivingOnly, nutritionRoutes);
 app.use('/body-map', bodyMapRoutes);
 app.use('/tasks', requireSupportedLivingOnly, taskRoutes);
-app.use('/room-checks', roomCheckRoutes);
+app.use('/room-checks', requireSupportedLivingOnly, roomCheckRoutes);
 app.use('/mobile', mobileRoutes);
 app.use('/shift-audit', shiftAuditRoutes);
 app.use('/events', eventRoutes);
 app.use('/contact', contactRoutes); // public — website contact form
-app.use('/homecare', homecareRoutes); // Phase 2 domiciliary-care operations
+app.use('/homecare', requireDomiciliaryOnly, homecareRoutes); // Phase 2 domiciliary-care operations
 // chat routes already registered above
 
 // Prometheus metrics — restricted to localhost/internal IPs in production

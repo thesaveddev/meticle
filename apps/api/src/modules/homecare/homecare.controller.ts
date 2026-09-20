@@ -567,16 +567,17 @@ export class HomecareController {
 
   /* ── Visit tasks ─────────────────────────────────────────── */
   static async getVisitTasks(req: Request, res: Response) {
-    const { visitId } = req.params;
+    const visit = await repo.assertVisitForUser(orgId(req), userId(req), req.params.visitId, req.user!.role);
     const result = await pool.query(
-      'SELECT * FROM homecare_visit_tasks WHERE visit_id = $1 ORDER BY sort_order, created_at',
-      [visitId]
+      'SELECT * FROM homecare_visit_tasks WHERE visit_id = $1 AND EXISTS (SELECT 1 FROM homecare_visits v WHERE v.id = $1 AND v.organization_id = $2) ORDER BY sort_order, created_at',
+      [visit.id, orgId(req)]
     );
     res.json(result.rows);
   }
 
   static async addVisitTask(req: Request, res: Response) {
     const { visitId } = req.params;
+    await repo.assertVisitForUser(orgId(req), userId(req), visitId, req.user!.role);
     const { label } = req.body;
     if (!label || !label.trim()) throw new AppError(400, 'Task label is required');
     const maxOrder = await pool.query(
@@ -592,6 +593,7 @@ export class HomecareController {
 
   static async updateVisitTask(req: Request, res: Response) {
     const { visitId, taskId } = req.params;
+    await repo.assertVisitForUser(orgId(req), userId(req), visitId, req.user!.role);
     const { done, label } = req.body;
     const updates: string[] = [];
     const values: any[] = [];
@@ -621,6 +623,7 @@ export class HomecareController {
 
   static async deleteVisitTask(req: Request, res: Response) {
     const { visitId, taskId } = req.params;
+    await repo.assertVisitForUser(orgId(req), userId(req), visitId, req.user!.role);
     const result = await pool.query(
       'DELETE FROM homecare_visit_tasks WHERE visit_id = $1 AND id = $2 RETURNING id',
       [visitId, taskId]

@@ -21,10 +21,10 @@ setInterval(() => {
 
 // Role-level defaults mirroring PermissionsController.ROLE_DEFAULTS
 const ROLE_DEFAULTS: Record<string, Record<string, string>> = {
-  ORG_ADMIN: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'edit', homecare: 'edit', room_checks: 'edit', settings: 'edit', billing: 'edit', learn: 'edit' },
-  MANAGER: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'view', homecare: 'edit', room_checks: 'edit', settings: 'view', billing: 'view', learn: 'view' },
-  CARE_WORKER: { dashboard: 'view', people: 'none', emedication: 'view', staff_directory: 'none', scheduling: 'view', marketplace: 'view', agencies: 'none', leave: 'view', compliance: 'view', training: 'none', policies: 'none', incidents: 'none', reporting: 'none', chat: 'view', tasks: 'none', appointments: 'view', expenses: 'view', homecare: 'view', room_checks: 'none', settings: 'view', billing: 'none', learn: 'view' },
-  COMPLIANCE_OFFICER: { dashboard: 'view', people: 'view', emedication: 'view', staff_directory: 'view', scheduling: 'none', marketplace: 'none', agencies: 'none', leave: 'view', compliance: 'edit', training: 'edit', policies: 'view', incidents: 'view', reporting: 'view', chat: 'view', tasks: 'view', appointments: 'view', expenses: 'none', homecare: 'none', room_checks: 'view', settings: 'view', billing: 'none', learn: 'view' },
+  ORG_ADMIN: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'edit', homecare: 'edit', call_scheduling: 'edit', mileage_travel: 'edit', payroll_export: 'edit', client_billing: 'edit', room_checks: 'edit', settings: 'edit', billing: 'edit', learn: 'edit' },
+  MANAGER: { dashboard: 'edit', people: 'edit', emedication: 'edit', staff_directory: 'edit', scheduling: 'edit', marketplace: 'edit', agencies: 'edit', leave: 'edit', compliance: 'edit', training: 'edit', policies: 'edit', incidents: 'edit', reporting: 'edit', chat: 'edit', tasks: 'edit', appointments: 'edit', expenses: 'view', homecare: 'edit', call_scheduling: 'edit', mileage_travel: 'edit', payroll_export: 'edit', client_billing: 'edit', room_checks: 'edit', settings: 'view', billing: 'view', learn: 'view' },
+  CARE_WORKER: { dashboard: 'view', people: 'none', emedication: 'view', staff_directory: 'none', scheduling: 'view', marketplace: 'view', agencies: 'none', leave: 'view', compliance: 'view', training: 'none', policies: 'none', incidents: 'none', reporting: 'none', chat: 'view', tasks: 'none', appointments: 'view', expenses: 'view', homecare: 'view', call_scheduling: 'view', mileage_travel: 'view', payroll_export: 'none', client_billing: 'none', room_checks: 'none', settings: 'view', billing: 'none', learn: 'view' },
+  COMPLIANCE_OFFICER: { dashboard: 'view', people: 'view', emedication: 'view', staff_directory: 'view', scheduling: 'none', marketplace: 'none', agencies: 'none', leave: 'view', compliance: 'edit', training: 'edit', policies: 'view', incidents: 'view', reporting: 'view', chat: 'view', tasks: 'view', appointments: 'view', expenses: 'none', homecare: 'none', call_scheduling: 'none', mileage_travel: 'none', payroll_export: 'none', client_billing: 'none', room_checks: 'view', settings: 'view', billing: 'none', learn: 'view' },
 };
 
 export const requirePermission = (module: string, requiredLevel: 'view' | 'edit') => {
@@ -58,11 +58,11 @@ export const requirePermission = (module: string, requiredLevel: 'view' | 'edit'
       const delResult = await query(
         `SELECT up.permission_level FROM manager_delegations md
          JOIN user_permissions up ON up.user_id = md.primary_manager_id
-         WHERE md.delegate_manager_id = $1 AND md.is_active = true
-           AND up.module = $2
+         WHERE md.delegate_manager_id = $1 AND md.organization_id = $2 AND md.is_active = true
+           AND up.module = $3
            AND (md.ends_at IS NULL OR md.ends_at > CURRENT_TIMESTAMP)
          LIMIT 1`,
-        [req.user.userId, module]
+        [req.user.userId, req.user.organizationId, module]
       );
       if (delResult.rows.length > 0) {
         permission = delResult.rows[0].permission_level;
