@@ -129,13 +129,13 @@ export class SchedulingRepository {
     return result.rows;
   }
 
-  static async getShiftById(id: string) {
+  static async getShiftById(id: string, organizationId?: string) {
     const result = await query(
-      `SELECT s.*, l.name as location_name, su.first_name as su_first_name, su.last_name as su_last_name
+      `SELECT s.*, l.name as location_name, l.organization_id, su.first_name as su_first_name, su.last_name as su_last_name
        FROM shifts s JOIN locations l ON s.location_id = l.id
        LEFT JOIN people su ON s.person_id = su.id
-       WHERE s.id = $1`,
-      [id]
+       WHERE s.id = $1 AND ($2::uuid IS NULL OR l.organization_id = $2)`,
+      [id, organizationId || null]
     );
     return result.rows[0] || null;
   }
@@ -645,7 +645,7 @@ export class SchedulingRepository {
   }
 
   static async claimOpenShift(shiftId: string, staffId: string, orgId: string) {
-    const shift = await this.getShiftById(shiftId);
+    const shift = await this.getShiftById(shiftId, orgId);
     if (!shift) throw new AppError(404, 'Shift not found');
     if (shift.status !== 'open') throw new AppError(409, 'Shift is not available for claiming');
 
@@ -741,7 +741,7 @@ export class SchedulingRepository {
     return result.rows;
   }
 
-  static async getMyShifts(userId: string, startDate: string, endDate: string) {
+  static async getMyShifts(userId: string, startDate: string, endDate: string, orgId?: string) {
     const result = await query(
       `SELECT s.*, l.name as location_name, sa.status as assignment_status,
               su.first_name as su_first_name, su.last_name as su_last_name
@@ -751,13 +751,14 @@ export class SchedulingRepository {
        LEFT JOIN people su ON s.person_id = su.id
        JOIN staff_profiles sp ON sa.staff_id = sp.id
        WHERE sp.user_id = $1 AND s.start_time >= $2 AND s.end_time <= $3
+         AND ($4::uuid IS NULL OR l.organization_id = $4)
        ORDER BY s.start_time`,
-      [userId, startDate, endDate]
+      [userId, startDate, endDate, orgId || null]
     );
     return result.rows;
   }
 
-  static async getStaffShifts(staffProfileId: string, startDate: string, endDate: string) {
+  static async getStaffShifts(staffProfileId: string, startDate: string, endDate: string, orgId?: string) {
     const result = await query(
       `SELECT s.*, l.name as location_name, sa.status as assignment_status,
               su.first_name as su_first_name, su.last_name as su_last_name
@@ -766,8 +767,9 @@ export class SchedulingRepository {
        JOIN locations l ON s.location_id = l.id
        LEFT JOIN people su ON s.person_id = su.id
        WHERE sa.staff_id = $1 AND s.start_time >= $2 AND s.end_time <= $3
+         AND ($4::uuid IS NULL OR l.organization_id = $4)
        ORDER BY s.start_time`,
-      [staffProfileId, startDate, endDate]
+      [staffProfileId, startDate, endDate, orgId || null]
     );
     return result.rows;
   }
@@ -858,9 +860,10 @@ export class SchedulingRepository {
     const delegations = await query(
       `SELECT primary_manager_id FROM manager_delegations
        WHERE delegate_manager_id = $1
+         AND organization_id = $2
          AND is_active = true
          AND (ends_at IS NULL OR ends_at > CURRENT_TIMESTAMP)`,
-      [userId]
+      [userId, orgId]
     );
     for (const del of delegations.rows) {
       const delegateLocations = await this.getManagedLocationIds(del.primary_manager_id, 'MANAGER', orgId);
@@ -876,10 +879,10 @@ export class SchedulingRepository {
     // Check delegations - a delegate inherits the primary manager's edit permissions
     const isDelegate = await query(
       `SELECT 1 FROM manager_delegations
-       WHERE delegate_manager_id = $1 AND is_active = true
+       WHERE delegate_manager_id = $1 AND organization_id = $2 AND is_active = true
          AND (ends_at IS NULL OR ends_at > CURRENT_TIMESTAMP)
        LIMIT 1`,
-      [userId]
+      [userId, orgId]
     );
     const managedIds = await this.getManagedLocationIds(userId, role, orgId);
     if (!managedIds.includes(locationId)) {
@@ -897,9 +900,16 @@ export class SchedulingRepository {
     return result.rows[0];
   }
 
-  static async respondToSwapRequest(swapId: string, accepted: boolean) {
+  static async respondToSwapRequest(swapId: string, accepted: boolean, orgId?: string) {
     return transaction(async (client) => {
-      const swap = await client.query("SELECT * FROM shift_swaps WHERE id = $1 FOR UPDATE", [swapId]);
+      const swap = await client.query(
+        `SELECT sw.* FROM shift_swaps sw
+         JOIN shifts s ON s.id = sw.shift_id
+         JOIN locations l ON l.id = s.location_id
+         WHERE sw.id = $1 AND ($2::uuid IS NULL OR l.organization_id = $2)
+         FOR UPDATE OF sw`,
+        [swapId, orgId || null]
+      );
       if (swap.rows.length === 0) throw new AppError(404, 'Swap request not found');
       if (swap.rows[0].status !== 'pending') throw new AppError(409, 'Swap request already responded to');
 
@@ -966,7 +976,7 @@ export class SchedulingRepository {
     });
   }
 
-  static async getSwapRequestsForStaff(staffProfileId: string) {
+  static async getSwapRequestsForStaff(staffProfileId: string, orgId?: string) {
     const result = await query(
       `SELECT sw.*, s.start_time, s.end_time, s.shift_type,
               l.name as location_name,
@@ -977,9 +987,10 @@ export class SchedulingRepository {
        JOIN locations l ON s.location_id = l.id
        JOIN staff_profiles fp ON sw.from_staff_id = fp.id
        JOIN staff_profiles tp ON sw.to_staff_id = tp.id
-       WHERE sw.from_staff_id = $1 OR sw.to_staff_id = $1
+       WHERE (sw.from_staff_id = $1 OR sw.to_staff_id = $1)
+         AND ($2::uuid IS NULL OR l.organization_id = $2)
        ORDER BY sw.created_at DESC`,
-      [staffProfileId]
+      [staffProfileId, orgId || null]
     );
     return result.rows;
   }
@@ -1001,7 +1012,7 @@ export class SchedulingRepository {
   }
 
   static async getEligibleSwapStaff(shiftId: string, orgId: string) {
-    const shift = await this.getShiftById(shiftId);
+    const shift = await this.getShiftById(shiftId, orgId);
     if (!shift) throw new AppError(404, 'Shift not found');
     const result = await query(
       `SELECT sp.id as staff_id, sp.first_name, sp.last_name,
@@ -1045,7 +1056,7 @@ export class SchedulingRepository {
     // If no cost provided, auto-calculate from agency rate for this shift type
     let cost = data.agency_cost;
     if (!cost || cost === '') {
-      const shift = await this.getShiftById(shiftId);
+      const shift = await this.getShiftById(shiftId, orgId);
       if (shift) {
         const hours = (new Date(shift.end_time).getTime() - new Date(shift.start_time).getTime()) / 3600000;
         const shiftType = shift.shift_type || 'day';

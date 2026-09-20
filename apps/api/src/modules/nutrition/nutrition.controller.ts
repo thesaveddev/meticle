@@ -9,12 +9,14 @@ export class NutritionController {
   // === Dietary Profile ===
   static async getDietaryProfile(req: Request, res: Response) {
     const { personId } = req.params;
+    await assertNutritionPersonInOrg(req, personId);
     const profile = await NutritionRepository.findDietaryProfile(personId);
     res.json(profile);
   }
 
   static async upsertDietaryProfile(req: Request, res: Response) {
     const { personId } = req.params;
+    await assertNutritionPersonInOrg(req, personId);
     const profile = await NutritionRepository.upsertDietaryProfile(personId, {
       ...req.body,
       person_id: personId,
@@ -27,6 +29,7 @@ export class NutritionController {
   // === Meal Records ===
   static async getMeals(req: Request, res: Response) {
     const { personId } = req.params;
+    await assertNutritionPersonInOrg(req, personId);
     const { date, meal_type, dateFrom, dateTo } = req.query as any;
     const meals = await NutritionRepository.findMeals(personId, { date, meal_type, dateFrom, dateTo });
     res.json(meals);
@@ -34,6 +37,7 @@ export class NutritionController {
 
   static async getMeal(req: Request, res: Response) {
     const { id } = req.params;
+    await assertNutritionMealInOrg(req, id);
     const meal = await NutritionRepository.findMealById(id);
     if (!meal) throw new AppError(404, 'Meal record not found');
     // Attach items
@@ -43,6 +47,7 @@ export class NutritionController {
 
   static async createMeal(req: Request, res: Response) {
     const { personId } = req.params;
+    await assertNutritionPersonInOrg(req, personId);
     const meal = await NutritionRepository.createMeal(personId, {
       ...req.body,
       person_id: personId,
@@ -63,6 +68,7 @@ export class NutritionController {
 
   static async updateMeal(req: Request, res: Response) {
     const { id, personId } = req.params;
+    await assertNutritionMealInOrg(req, id);
     const updated = await NutritionRepository.updateMeal(id, req.body);
     if (!updated) throw new AppError(404, 'Meal record not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'meal_record', entity_id: id, ip_address: req.ip }).catch(() => {});
@@ -73,6 +79,7 @@ export class NutritionController {
 
   static async deleteMeal(req: Request, res: Response) {
     const { id, personId } = req.params;
+    await assertNutritionMealInOrg(req, id);
     await NutritionRepository.deleteMeal(id, personId);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'meal_record', entity_id: id, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Meal record deleted' });
@@ -81,6 +88,7 @@ export class NutritionController {
   // === Meal Items ===
   static async addMealItem(req: Request, res: Response) {
     const { mealId } = req.params;
+    await assertNutritionMealInOrg(req, mealId);
     const item = await NutritionRepository.addMealItem(mealId, req.body);
     AuditRepository.log({ user_id: req.user!.userId, action: 'create', entity_type: 'meal_item', entity_id: item.id, ip_address: req.ip }).catch(() => {});
     res.status(201).json(item);
@@ -88,6 +96,7 @@ export class NutritionController {
 
   static async updateMealItem(req: Request, res: Response) {
     const { itemId } = req.params;
+    await assertNutritionItemInOrg(req, itemId);
     const updated = await NutritionRepository.updateMealItem(itemId, req.body);
     if (!updated) throw new AppError(404, 'Meal item not found');
     AuditRepository.log({ user_id: req.user!.userId, action: 'update', entity_type: 'meal_item', entity_id: itemId, ip_address: req.ip }).catch(() => {});
@@ -96,6 +105,7 @@ export class NutritionController {
 
   static async deleteMealItem(req: Request, res: Response) {
     const { itemId } = req.params;
+    await assertNutritionItemInOrg(req, itemId);
     await NutritionRepository.deleteMealItem(itemId);
     AuditRepository.log({ user_id: req.user!.userId, action: 'delete', entity_type: 'meal_item', entity_id: itemId, ip_address: req.ip }).catch(() => {});
     res.json({ message: 'Meal item deleted' });
@@ -104,6 +114,7 @@ export class NutritionController {
   // === Summary / Overview ===
   static async getDailySummary(req: Request, res: Response) {
     const { personId } = req.params;
+    await assertNutritionPersonInOrg(req, personId);
     const { date } = req.query as any;
     if (!date) throw new AppError(400, 'Date query param required');
     const summary = await NutritionRepository.getDailySummary(personId, date);
@@ -271,6 +282,30 @@ export class NutritionController {
  * After a meal is recorded or updated, check if it triggers
  * nutrition.appetite_decline or nutrition.refused_meal events.
  */
+async function assertNutritionPersonInOrg(req: Request, personId: string): Promise<void> {
+  const result = await query('SELECT 1 FROM people WHERE id = $1 AND organization_id = $2', [personId, req.user!.organizationId]);
+  if (!result.rows.length) throw new AppError(404, 'Person not found');
+}
+
+async function assertNutritionMealInOrg(req: Request, mealId: string): Promise<void> {
+  const result = await query(
+    `SELECT 1 FROM meal_records mr JOIN people p ON p.id = mr.person_id
+     WHERE mr.id = $1 AND p.organization_id = $2`,
+    [mealId, req.user!.organizationId]
+  );
+  if (!result.rows.length) throw new AppError(404, 'Meal record not found');
+}
+
+async function assertNutritionItemInOrg(req: Request, itemId: string): Promise<void> {
+  const result = await query(
+    `SELECT 1 FROM meal_items mi JOIN meal_records mr ON mr.id = mi.meal_id
+     JOIN people p ON p.id = mr.person_id
+     WHERE mi.id = $1 AND p.organization_id = $2`,
+    [itemId, req.user!.organizationId]
+  );
+  if (!result.rows.length) throw new AppError(404, 'Meal item not found');
+}
+
 async function emitNutritionEventsIfNeeded(personId: string, meal: any): Promise<void> {
   // Fetch person info and org
   const personResult = await query(

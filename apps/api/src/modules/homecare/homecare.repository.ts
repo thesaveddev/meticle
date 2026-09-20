@@ -300,6 +300,18 @@ async function assertVisit(visitId: string, orgId: string) {
   return result.rows[0];
 }
 
+/** Enforce that field staff can only access tasks for their assigned visits. */
+export async function assertVisitForUser(orgId: string, userId: string, visitId: string, role: string) {
+  const visit = await assertVisit(visitId, orgId);
+  if (role === 'CARE_WORKER') {
+    const staff = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [userId]);
+    if (!staff.rows[0] || visit.assigned_staff_id !== staff.rows[0].id) {
+      throw new AppError(403, 'This visit is not assigned to you');
+    }
+  }
+  return visit;
+}
+
 export async function updateVisit(orgId: string, visitId: string, input: HomecareVisitUpdateInput) {
   await assertStaff(input.assigned_staff_id, orgId);
   const existingVisit = await assertVisit(visitId, orgId);

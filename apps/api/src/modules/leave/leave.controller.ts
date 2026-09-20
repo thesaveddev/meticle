@@ -596,10 +596,10 @@ export class LeaveController {
     if (user.role === 'CARE_WORKER') {
       const isDelegate = await pool.query(
         `SELECT 1 FROM manager_delegations
-         WHERE delegate_manager_id = $1 AND is_active = true
+         WHERE delegate_manager_id = $1 AND organization_id = $2 AND is_active = true
            AND (ends_at IS NULL OR ends_at > CURRENT_TIMESTAMP)
          LIMIT 1`,
-        [user.userId]
+        [user.userId, user.organizationId]
       );
       if (isDelegate.rows.length === 0) {
         throw new AppError(403, 'Only managers, admins, or active delegates can review leave requests');
@@ -699,8 +699,9 @@ export class LeaveController {
     const leave = await pool.query(
       `SELECT lr.* FROM leave_requests lr
        JOIN staff_profiles sp ON lr.staff_id = sp.id
-       WHERE lr.id = $1 AND sp.user_id = $2`,
-      [id, userId]
+       JOIN users u ON u.id = sp.user_id
+       WHERE lr.id = $1 AND sp.user_id = $2 AND u.organization_id = $3`,
+      [id, userId, req.user!.organizationId]
     );
     if (leave.rows.length === 0) throw new AppError(404, 'Leave request not found');
 
@@ -874,6 +875,11 @@ export class LeaveController {
       throw new AppError(400, 'Provide at least one of days_allocated or hours_allocated');
     }
     const targetYear = year || new Date().getFullYear();
+    const leaveType = await pool.query(
+      'SELECT id FROM leave_types WHERE id = $1 AND organization_id = $2',
+      [leave_type_id, user.organizationId]
+    );
+    if (leaveType.rows.length === 0) throw new AppError(404, 'Leave type not found');
     const existing = await pool.query(
       'SELECT id FROM leave_balances WHERE staff_id = $1 AND leave_type_id = $2 AND year = $3',
       [staffId, leave_type_id, targetYear]

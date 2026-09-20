@@ -70,6 +70,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   })
   const [locationName, setLocationName] = useState('')
   const [modulePermissions, setModulePermissions] = useState<Record<string, string>>({})
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
     const stored = localStorage.getItem('sidebarCollapsedGroups')
     try { return stored ? new Set(JSON.parse(stored)) : new Set() } catch { return new Set() }
@@ -82,15 +83,15 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
 
   interface NavItem { text: string; icon: JSX.Element; path: string; module: string; roles: UserRole[]; serviceTypes?: string[] }
   interface NavGroup { label: string; items: NavItem[] }  const [orgServiceTypes, setOrgServiceTypes] = useState<string[]>([])
+  const [serviceTypesLoaded, setServiceTypesLoaded] = useState(false)
 
   useEffect(() => {
     if (!rawUser.id) return
+    setServiceTypesLoaded(false)
     api.get('/settings/org').then(res => {
       const types = res.data?.service_types
-      if (Array.isArray(types) && types.length > 0) {
-        setOrgServiceTypes(types)
-      }
-    }).catch(() => {}) // silently fail — default is supported_living
+      if (Array.isArray(types)) setOrgServiceTypes(types)
+    }).catch(() => setOrgServiceTypes([])).finally(() => setServiceTypesLoaded(true))
   }, [rawUser.id])
 
   // Rename nav labels based on org service type for familiar terminology
@@ -192,12 +193,12 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     items: group.items.filter(item =>
       item.roles.includes(userRole) &&
       (modulePermissions[item.module] || 'view') !== 'none' &&
-      (!item.serviceTypes || item.serviceTypes.some(t => orgServiceTypes.includes(t)))
+      permissionsLoaded && serviceTypesLoaded && (modulePermissions[item.module] || 'none') !== 'none' && (!item.serviceTypes || item.serviceTypes.some(t => orgServiceTypes.includes(t)))
     ),
   })).filter(group => group.items.length > 0)
   const filteredBottomItems = bottomItems.filter(item =>
     item.roles.includes(userRole) &&
-    (modulePermissions[item.module] || 'view') !== 'none'
+    permissionsLoaded && (modulePermissions[item.module] || 'none') !== 'none'
   )
   const activeNavItem = [...filteredGroups.flatMap(group => group.items), ...filteredBottomItems]
     .find(item => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
@@ -240,12 +241,18 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     }, 60000)
 
     const fetchPermissions = async () => {
+      setPermissionsLoaded(false)
       try {
         const res = await api.get(`/permissions/${rawUser.id}`)
         const perms: Record<string, string> = {}
         res.data.permissions.forEach((p: any) => { perms[p.module] = p.permission_level })
         setModulePermissions(perms)
-      } catch { /* silent */ }
+      } catch {
+        // Hide protected navigation when permission metadata cannot be verified.
+        setModulePermissions({})
+      } finally {
+        setPermissionsLoaded(true)
+      }
     }
     fetchPermissions()
 

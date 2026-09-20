@@ -1,22 +1,32 @@
 import { query } from '../../shared/database';
 
 export class MarketplaceRepository {
-  static async getShiftById(shiftId: string) {
-    const result = await query('SELECT * FROM shifts WHERE id = $1', [shiftId]);
+  static async getShiftById(shiftId: string, orgId: string) {
+    const result = await query(
+      `SELECT s.*, l.organization_id
+       FROM shifts s JOIN locations l ON l.id = s.location_id
+       WHERE s.id = $1 AND l.organization_id = $2`,
+      [shiftId, orgId]
+    );
     return result.rows[0] || null;
   }
 
-  static async publishShift(shiftId: string) {
+  static async publishShift(shiftId: string, orgId: string) {
     const result = await query(
-      "UPDATE shifts SET published_at = CURRENT_TIMESTAMP, status = 'open' WHERE id = $1 RETURNING *",
-      [shiftId]
+      `UPDATE shifts SET published_at = CURRENT_TIMESTAMP, status = 'open'
+       WHERE id = $1 AND location_id IN (SELECT id FROM locations WHERE organization_id = $2)
+       RETURNING *`,
+      [shiftId, orgId]
     );
     return result.rows[0];
   }
 
-  static async getAvailableShifts() {
+  static async getAvailableShifts(orgId: string) {
     const result = await query(
-      "SELECT s.*, l.name as location_name FROM shifts s JOIN locations l ON s.location_id = l.id WHERE published_at IS NOT NULL AND status = 'open'"
+      `SELECT s.*, l.name as location_name
+       FROM shifts s JOIN locations l ON s.location_id = l.id
+       WHERE l.organization_id = $1 AND s.published_at IS NOT NULL AND s.status = 'open'`,
+      [orgId]
     );
     return result.rows;
   }

@@ -173,9 +173,12 @@ export class SettingsController {
     const orgId = req.user!.organizationId;
     const { name, address, latitude, longitude, manager_id, minimum_staff_per_day, min_day_staff, min_night_staff, min_sleep_staff, service_type, service_capacity, phone, email, food_hygiene_rating, cqc_rating, last_cqc_inspection, max_staff_on_leave } = req.body;
     if (manager_id) {
-      const user = await pool.query('SELECT role FROM users WHERE id = $1', [manager_id]);
-      if (user.rows.length > 0 && user.rows[0].role !== 'MANAGER' && user.rows[0].role !== 'ORG_ADMIN') {
-        throw new AppError(400, 'Location manager must have MANAGER or ORG_ADMIN role');
+      const user = await pool.query(
+        `SELECT role FROM users WHERE id = $1 AND organization_id = $2 AND status = 'active'`,
+        [manager_id, orgId]
+      );
+      if (user.rows.length === 0 || (user.rows[0].role !== 'MANAGER' && user.rows[0].role !== 'ORG_ADMIN')) {
+        throw new AppError(400, 'Location manager must be an active manager in your organisation');
       }
     }
     // Auto-geocode from address if lat/lng not provided
@@ -203,9 +206,12 @@ export class SettingsController {
     const locCheck = await pool.query('SELECT address, latitude, longitude FROM locations WHERE id = $1 AND organization_id = $2', [id, user.organizationId]);
     if (locCheck.rows.length === 0) throw new AppError(404, 'Location not found');
     if (manager_id) {
-      const mUser = await pool.query('SELECT role FROM users WHERE id = $1 AND organization_id = $2', [manager_id, user.organizationId]);
-      if (mUser.rows.length > 0 && mUser.rows[0].role !== 'MANAGER' && mUser.rows[0].role !== 'ORG_ADMIN') {
-        throw new AppError(400, 'Location manager must have MANAGER or ORG_ADMIN role');
+      const mUser = await pool.query(
+        `SELECT role FROM users WHERE id = $1 AND organization_id = $2 AND status = 'active'`,
+        [manager_id, user.organizationId]
+      );
+      if (mUser.rows.length === 0 || (mUser.rows[0].role !== 'MANAGER' && mUser.rows[0].role !== 'ORG_ADMIN')) {
+        throw new AppError(400, 'Location manager must be an active manager in your organisation');
       }
     }
     // Auto-geocode if address changed and lat/lng not explicitly provided
@@ -547,8 +553,8 @@ export class SettingsController {
        LEFT JOIN staff_profiles p ON pu.id = p.user_id
        JOIN users du ON du.id = $2
        LEFT JOIN staff_profiles d ON du.id = d.user_id
-       WHERE pu.id = $1`,
-      [primary_manager_id, delegate_manager_id]
+       WHERE pu.id = $1 AND pu.organization_id = $3 AND du.organization_id = $3`,
+      [primary_manager_id, delegate_manager_id, orgId]
     );
     if (names.rows[0]) {
       const primaryName = `${names.rows[0].p_first || ''} ${names.rows[0].p_last || ''}`.trim() || 'A manager';
@@ -568,7 +574,23 @@ export class SettingsController {
 
   static async updateManagerDelegation(req: Request, res: Response) {
     const { id } = req.params;
+    const orgId = req.user!.organizationId;
     const { primary_manager_id, delegate_manager_id, is_active, ends_at } = req.body;
+    const current = await pool.query(
+      `SELECT primary_manager_id, delegate_manager_id FROM manager_delegations WHERE id = $1 AND organization_id = $2`,
+      [id, orgId]
+    );
+    if (current.rows.length === 0) throw new AppError(404, 'Delegation not found');
+    for (const candidate of [primary_manager_id, delegate_manager_id].filter(Boolean)) {
+      const manager = await pool.query(
+        `SELECT 1 FROM users WHERE id = $1 AND organization_id = $2 AND role IN ('MANAGER', 'ORG_ADMIN') AND status = 'active'`,
+        [candidate, orgId]
+      );
+      if (manager.rows.length === 0) throw new AppError(400, 'Delegation participants must be active managers in your organisation');
+    }
+    if (primary_manager_id && delegate_manager_id && primary_manager_id === delegate_manager_id) {
+      throw new AppError(400, 'Primary manager and delegate manager must be different');
+    }
     if (primary_manager_id && delegate_manager_id) {
       const existing = await pool.query(
         `SELECT id FROM manager_delegations
@@ -583,8 +605,8 @@ export class SettingsController {
         delegate_manager_id = COALESCE($2, delegate_manager_id),
         is_active = COALESCE($3, is_active),
         ends_at = COALESCE($4, ends_at)
-       WHERE id = $5 RETURNING *`,
-      [primary_manager_id, delegate_manager_id, is_active, ends_at, id]
+       WHERE id = $5 AND organization_id = $6 RETURNING *`,
+      [primary_manager_id, delegate_manager_id, is_active, ends_at, id, orgId]
     );
     if (result.rows.length === 0) throw new AppError(404, 'Delegation not found');
     res.json(result.rows[0]);
@@ -800,6 +822,13 @@ export class SettingsController {
       [orgId, name, description || '', role_name]
     );
     if (requirement_ids?.length) {
+      const validRequirements = await pool.query(
+        'SELECT id FROM compliance_config WHERE organization_id = $1 AND id = ANY($2::uuid[])',
+        [orgId, requirement_ids]
+      );
+      if (validRequirements.rows.length !== requirement_ids.length) {
+        throw new AppError(400, 'All compliance requirements must belong to your organisation');
+      }
       for (const rid of requirement_ids) {
         await pool.query(
           `INSERT INTO compliance_profile_requirements (profile_id, requirement_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
@@ -823,6 +852,13 @@ export class SettingsController {
     );
     if (requirement_ids) {
       await transaction(async (client) => {
+        const validRequirements = await client.query(
+          `SELECT id FROM compliance_config WHERE organization_id = $1 AND id = ANY($2::uuid[])`,
+          [user.organizationId, requirement_ids]
+        );
+        if (validRequirements.rows.length !== requirement_ids.length) {
+          throw new AppError(400, 'All compliance requirements must belong to your organisation');
+        }
         await client.query('DELETE FROM compliance_profile_requirements WHERE profile_id = $1', [id]);
         for (const rid of requirement_ids) {
           await client.query(

@@ -20,6 +20,10 @@ const MODULE_SERVICE_TYPES: Record<string, string[]> = {
   payroll_export: ['domiciliary', 'live_in'],
   client_billing: ['domiciliary', 'live_in'],
   supported_living_only: ['supported_living', 'residential'],
+  nutrition: ['supported_living', 'residential'],
+  body_map: ['supported_living', 'residential', 'domiciliary', 'live_in'],
+  health: ['supported_living', 'residential', 'domiciliary', 'live_in'],
+  goals: ['supported_living', 'residential', 'domiciliary', 'live_in'],
 }
 
 export default function ModuleGuard({ module, children }: { module: string; children: React.ReactNode }) {
@@ -31,11 +35,14 @@ export default function ModuleGuard({ module, children }: { module: string; chil
         const userStr = localStorage.getItem('user')
         if (!userStr) { setAllowed(false); return }
         const user = JSON.parse(userStr)
+        const userId = user?.id || user?.userId
+        if (!userId) { setAllowed(false); return }
 
         // Check role-based permissions
-        const permRes = await api.get(`/permissions/${user.id}`)
-        const perm = permRes.data.permissions.find((p: any) => p.module === module)
-        if (perm && perm.permission_level === 'none') {
+        const permRes = await api.get(`/permissions/${userId}`)
+        const permissions = Array.isArray(permRes.data?.permissions) ? permRes.data.permissions : []
+        const perm = permissions.find((p: any) => p.module === module)
+        if (!perm || perm.permission_level === 'none') {
           setAllowed(false)
           return
         }
@@ -52,7 +59,9 @@ export default function ModuleGuard({ module, children }: { module: string; chil
 
         setAllowed(true)
       } catch {
-        setAllowed(true)
+        // Never fail open: a permission or service-type lookup failure must not
+        // expose a protected module through a direct route.
+        setAllowed(false)
       }
     }
     check()

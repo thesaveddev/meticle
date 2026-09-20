@@ -5,6 +5,7 @@ import { validate } from '../../shared/middleware/validate.middleware';
 import { EMedicationController } from './emedication.controller';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
+import { requireSupportedLivingOnly } from '../../shared/middleware/requireServiceType';
 import { UserRole } from '@meticle/shared';
 import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
@@ -28,6 +29,7 @@ import {
 const router = Router();
 
 router.use(authenticate);
+router.use(requireSupportedLivingOnly);
 
 // Medication support is available by default to supported-living/residential
 // organisations. Domiciliary providers must explicitly enable it because it

@@ -77,10 +77,10 @@ router.get('/petty-cash/balances', requireRole(...ADMIN_ROLES), asyncHandler(Exp
 router.post('/petty-cash/top-up', requireRole(...ADMIN_ROLES), validate(topUpSchema), asyncHandler(ExpensesController.topUp));
 router.post('/petty-cash/reconcile', requireRole(...ADMIN_ROLES), validate(reconcileSchema), asyncHandler(ExpensesController.reconcile));
 router.get('/petty-cash/reconciliations', requireRole(...VIEW_ROLES), asyncHandler(ExpensesController.getReconciliations));
-router.post('/petty-cash/reconciliations/:id/review', requireRole(...VIEW_ROLES), validate(reconciliationReviewSchema), asyncHandler(ExpensesController.reviewReconciliation));
+router.post('/petty-cash/reconciliations/:id/review', requireRole(...ADMIN_ROLES), validate(reconciliationReviewSchema), asyncHandler(ExpensesController.reviewReconciliation));
 router.post('/petty-cash/daily-check', requireRole(...ADMIN_ROLES), validate(cashCheckSchema), asyncHandler(ExpensesController.dailyCashCheck));
 router.get('/petty-cash/daily-checks', requireRole(...VIEW_ROLES), asyncHandler(ExpensesController.getDailyCashChecks));
-router.post('/petty-cash/daily-checks/:id/accept', requireRole(...VIEW_ROLES), asyncHandler(ExpensesController.acceptDailyCashCheck));
+router.post('/petty-cash/daily-checks/:id/accept', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.acceptDailyCashCheck));
 router.get('/report', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.report));
 router.get('/petty-cash/transactions', requireRole(...ADMIN_ROLES), asyncHandler(ExpensesController.getTransactions));
 router.post('/', requireRole(...ADMIN_ROLES), validate(createExpenseSchema), asyncHandler(ExpensesController.create));

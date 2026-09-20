@@ -43,11 +43,11 @@ export class MealPlanRepository {
     return result.rows;
   }
 
-  static async getTemplateById(id: string) {
+  static async getTemplateById(id: string, orgId?: string) {
     const result = await query(
       `SELECT mp.*,
         (SELECT first_name || ' ' || last_name FROM staff_profiles WHERE user_id = mp.created_by) AS created_by_name
-       FROM meal_plan_templates mp WHERE mp.id = $1`, [id]);
+       FROM meal_plan_templates mp WHERE mp.id = $1${orgId ? ' AND mp.organization_id = $2' : ''}`, orgId ? [id, orgId] : [id]);
     if (result.rows.length === 0) return null;
     const template = result.rows[0];
     template.items = await this.getTemplateItems(id);
@@ -64,7 +64,7 @@ export class MealPlanRepository {
     return result.rows[0];
   }
 
-  static async updateTemplate(id: string, data: any) {
+  static async updateTemplate(id: string, data: any, orgId?: string) {
     const fields: string[] = [];
     const values: any[] = [];
     let idx = 1;
@@ -76,8 +76,9 @@ export class MealPlanRepository {
     if (fields.length === 0) return null;
     fields.push('updated_at = NOW()');
     values.push(id);
+    if (orgId) values.push(orgId);
     const result = await query(
-      `UPDATE meal_plan_templates SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, values);
+      `UPDATE meal_plan_templates SET ${fields.join(', ')} WHERE id = $${idx}${orgId ? ` AND organization_id = $${idx + 1}` : ''} RETURNING *`, values);
     return result.rows[0] || null;
   }
 
@@ -127,7 +128,7 @@ export class MealPlanRepository {
 
   // Clone a template (e.g. to create next week's plan from this week's)
   static async cloneTemplate(templateId: string, orgId: string, newDayOfWeek?: string) {
-    const source = await this.getTemplateById(templateId);
+    const source = await this.getTemplateById(templateId, orgId);
     if (!source) return null;
     const cloned = await this.createTemplate(orgId, {
       name: `${source.name} (copy)`,

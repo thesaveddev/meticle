@@ -12,7 +12,7 @@ describe('Permissions module catalogue', () => {
       'chat', 'tasks', 'appointments', 'expenses', 'room_checks', 'settings',
       'billing', 'learn',
     ]));
-    expect(MODULES).toHaveLength(21);
+    expect(MODULES).toHaveLength(26);
     expect(new Set(MODULES).size).toBe(MODULES.length);
   });
 
