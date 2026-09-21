@@ -275,6 +275,7 @@ describe('validation schemas', () => {
         email: 'jane@example.com',
         company: 'Example Care Ltd',
         message: 'I would like a demo.',
+        privacyConsent: true,
       });
       expect(result.success).toBe(true);
     });
@@ -284,6 +285,7 @@ describe('validation schemas', () => {
         name: 'Jane Doe',
         email: 'jane@example.com',
         message: 'I would like a demo.',
+        privacyConsent: true,
       });
       expect(result.success).toBe(true);
     });
