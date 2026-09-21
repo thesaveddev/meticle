@@ -1548,7 +1548,7 @@ export const recordProgressSchema = z.object({
 export const contactSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(255),
   email: z.string().trim().email('A valid email is required').max(255),
-  company: z.string().trim().min(1, 'Organisation is required').max(255),
+  company: z.string().trim().max(255).optional(),
   role: z.string().trim().max(100).optional(),
   careType: z.enum(['domiciliary', 'supported-living', 'both', 'other']).optional(),
   message: z.string().trim().min(1, 'Message is required').max(5000),
