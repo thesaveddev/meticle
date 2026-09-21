@@ -77,7 +77,7 @@ import { errorHandler, notFoundHandler } from './shared/middleware/error.middlew
 import { authenticate } from './shared/middleware/auth.middleware';
 import { asyncHandler } from './shared/middleware/asyncHandler';
 import { rlsMiddleware } from './shared/middleware/rls.middleware';
-import { requireSupportedLivingOnly, requireDomiciliaryOnly } from './shared/middleware/requireServiceType';
+import { requireCareOrganisation, requireSupportedLivingOnly, requireDomiciliaryOnly } from './shared/middleware/requireServiceType';
 import { initSocketServer, closeSocketServer } from './shared/socket';
 import { setupSwagger } from './shared/swagger';
 import { healthCheck } from './shared/database';
@@ -233,8 +233,8 @@ app.use('/shifts', authenticate, requireSupportedLivingOnly, schedulingRoutes);
 app.use('/marketplace', marketplaceRoutes);
 app.use('/reporting', reportingRoutes);
 app.use('/insights', insightsRoutes);
-app.use('/people', personRoutes);
-app.use('/incidents', incidentRoutes);
+app.use('/people', authenticate, requireCareOrganisation, personRoutes);
+app.use('/incidents', authenticate, requireCareOrganisation, incidentRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/notifications/push', pushRoutes);
@@ -246,7 +246,7 @@ app.use('/surveys', surveysRoutes);
 app.use('/api/surveys', surveyPublicRoutes);
 app.use('/dspt', dsptRoutes); // no auth — public survey form submission
 app.use('/compliance-portal', compliancePortalRoutes);
-app.use('/leave', leaveRoutes);
+app.use('/leave', authenticate, requireCareOrganisation, leaveRoutes);
 app.use('/settings', settingsRoutes);
 app.use('/chat', chatRoutes);
 app.use('/billing', billingRoutes);
@@ -254,7 +254,7 @@ app.use('/audit', auditRoutes);
 app.use('/appointments', authenticate, requireSupportedLivingOnly, appointmentRoutes);
 app.use('/policies', policyRoutes);
 app.use('/emedication', authenticate, requireSupportedLivingOnly, emedicationRoutes);
-app.use('/goals', goalRoutes);
+app.use('/goals', authenticate, requireCareOrganisation, goalRoutes);
 app.use('/ai', aiRoutes);
 app.use('/family-portal', familyPortalRoutes);
 app.use('/api/family-portal', familyPortalPublicRoutes);
@@ -309,7 +309,7 @@ app.get('/health/ready', asyncHandler(async (req: Request, res: Response) => {
   });
 }));
 
-app.use('/health', healthRoutes);
+app.use('/health', authenticate, requireCareOrganisation, healthRoutes);
 app.use('/nutrition', authenticate, requireSupportedLivingOnly, nutritionRoutes);
 app.use('/body-map', bodyMapRoutes);
 app.use('/tasks', authenticate, requireSupportedLivingOnly, taskRoutes);

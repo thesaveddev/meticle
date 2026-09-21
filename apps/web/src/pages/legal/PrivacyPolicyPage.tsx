@@ -20,6 +20,10 @@ export default function PrivacyPolicyPage() {
       <Typography variant="h3" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Privacy Policy</Typography>
       <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: August 2026</Typography>
 
+      <Section title="About the Company">
+        <p>MeticleCare is a product operated by <strong>34Orients Ltd</strong>, company number <strong>17446318</strong>. Our registered office is 3 Dan-Y-Coedcae Road, Pontypridd, United Kingdom, CF37 1LS.</p>
+      </Section>
+
       <Section title="1. Information We Collect">
         <p>We collect information you provide directly, including:</p>
         <ul><li>Account information (name, email, password)</li><li>Organisation information (company name, address, staff details)</li><li>Person information (names, care plans, medical details, daily notes)</li><li>Staff compliance data (training records, DBS checks, identity documents)</li><li>Payment information (processed securely through Stripe — we never store your full card details)</li><li>Usage data (pages visited, features used, error logs)</li></ul>
@@ -27,7 +31,7 @@ export default function PrivacyPolicyPage() {
 
       <Section title="2. How We Use Your Information">
         <ul><li>To provide, maintain, and improve Meticle Care services</li><li>To process payments and manage subscriptions</li><li>To send service-related notifications</li><li>To generate compliance reports and evidence packs for regulatory inspections</li><li>To comply with legal obligations (UK GDPR, CQC requirements)</li><li>To detect and prevent fraud, abuse, and security incidents</li></ul>
-        <p>We do not sell your data. We do not share your data with third parties except as necessary to provide the service.</p>
+        <p>We do not sell your data. We do not share your data with third parties except as necessary to provide the service. On the public website, we record only privacy-safe conversion events such as a demo request being submitted; we do not use advertising trackers or build behavioural profiles.</p>
       </Section>
 
       <Section title="3. Legal Basis for Processing (UK GDPR)">
@@ -51,11 +55,11 @@ export default function PrivacyPolicyPage() {
       </Section>
 
       <Section title="8. Cookies">
-        <p>We use essential cookies for authentication and session management only. No tracking or analytics cookies. See our Cookie Policy for details.</p>
+        <p>We use essential cookies for authentication and session management only. Conversion events are recorded server-side and are not stored in tracking cookies. See our Cookie Policy for details.</p>
       </Section>
 
       <Section title="9. Contact">
-        <p>Data Protection Officer: dpo@meticlecare.com<br/>Privacy concerns: privacy@meticlecare.com<br/>ICO registered. Registration available on request.</p>
+        <p>Data Protection Officer: dpo@meticlecare.com<br/>Privacy concerns: privacy@meticlecare.com<br/>34Orients Ltd, company number 17446318<br/>3 Dan-Y-Coedcae Road, Pontypridd, United Kingdom, CF37 1LS</p>
       </Section>
     </Container>
     </>

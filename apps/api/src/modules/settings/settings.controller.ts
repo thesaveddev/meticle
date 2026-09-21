@@ -33,16 +33,23 @@ export class SettingsController {
   static async getCareCapabilities(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
     const result = await pool.query(
-      `SELECT service_types, care_capabilities FROM organizations WHERE id = $1`,
+      `SELECT service_types, primary_service_type, care_capabilities FROM organizations WHERE id = $1`,
       [orgId]
     );
     if (!result.rows[0]) throw new AppError(404, 'Organization not found');
     const serviceTypes: string[] = result.rows[0].service_types || [];
+    const primaryServiceType = result.rows[0].primary_service_type as string | null;
+    const isDomiciliary = primaryServiceType
+      ? ['domiciliary', 'live_in'].includes(primaryServiceType)
+      : serviceTypes.some(type => ['domiciliary', 'live_in'].includes(type));
     const stored = result.rows[0].care_capabilities || {};
     res.json({
       service_types: serviceTypes,
+      primary_service_type: primaryServiceType,
       care_capabilities: {
-        medication_support: stored.medication_support === true,
+        // Medication is a supported-living workflow and is never exposed as
+        // enabled for a domiciliary organisation, even if legacy JSON remains.
+        medication_support: !isDomiciliary && stored.medication_support === true,
         nutrition_support: stored.nutrition_support === true,
       },
     });
@@ -50,11 +57,19 @@ export class SettingsController {
 
   static async updateCareCapabilities(req: Request, res: Response) {
     const orgId = req.user!.organizationId;
-    const current = await pool.query('SELECT care_capabilities FROM organizations WHERE id = $1', [orgId]);
+    const current = await pool.query('SELECT service_types, primary_service_type, care_capabilities FROM organizations WHERE id = $1', [orgId]);
     if (!current.rows[0]) throw new AppError(404, 'Organization not found');
+    const serviceTypes: string[] = current.rows[0].service_types || [];
+    const primaryServiceType = current.rows[0].primary_service_type as string | null;
+    const isDomiciliary = primaryServiceType
+      ? ['domiciliary', 'live_in'].includes(primaryServiceType)
+      : serviceTypes.some(type => ['domiciliary', 'live_in'].includes(type));
+    if (isDomiciliary && req.body.medication_support !== undefined) {
+      throw new AppError(403, 'Medication support is not available for domiciliary organisations');
+    }
     const next = {
       ...(current.rows[0].care_capabilities || {}),
-      medication_support: req.body.medication_support === true,
+      medication_support: isDomiciliary ? false : req.body.medication_support === true,
       nutrition_support: req.body.nutrition_support === true,
     };
     const result = await pool.query(

@@ -18,6 +18,10 @@ export default function CookiePolicyPage() {
       <Typography variant="h3" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Cookie Policy</Typography>
       <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: August 2026</Typography>
 
+      <S title="About the Company">
+        <p>MeticleCare is a product operated by <strong>34Orients Ltd</strong>, company number <strong>17446318</strong>. Our registered office is 3 Dan-Y-Coedcae Road, Pontypridd, United Kingdom, CF37 1LS.</p>
+      </S>
+
       <S title="1. What Are Cookies">
         <p>Cookies are small text files stored on your device when you visit a website. They help the website remember your preferences and authenticate your session.</p>
       </S>
@@ -33,7 +37,7 @@ export default function CookiePolicyPage() {
         <ul>
           <li>Tracking cookies</li>
           <li>Advertising cookies</li>
-          <li>Third-party analytics cookies (Google Analytics, Facebook Pixel, etc.)</li>
+          <li>Third-party analytics cookies (Google Analytics, Facebook Pixel, etc.); conversion events are recorded server-side without tracking cookies</li>
           <li>Social media cookies</li>
         </ul>
       </S>
@@ -48,6 +52,10 @@ export default function CookiePolicyPage() {
 
       <S title="5. Changes">
         <p>We will update this policy if our cookie usage changes. Material changes will be notified via in-app notification.</p>
+      </S>
+
+      <S title="6. Contact">
+        <p>Questions about this policy: privacy@meticlecare.com<br/>34Orients Ltd, company number 17446318<br/>3 Dan-Y-Coedcae Road, Pontypridd, United Kingdom, CF37 1LS</p>
       </S>
     </Container>
     </>

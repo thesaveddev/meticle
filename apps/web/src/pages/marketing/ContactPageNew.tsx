@@ -1,4 +1,4 @@
-import { Box, Button, Container, Grid, Stack, Typography, TextField, MenuItem, Alert } from '@mui/material'
+import { Box, Button, Container, Grid, Stack, Typography, TextField, MenuItem, Alert, Checkbox, FormControlLabel, Link } from '@mui/material'
 import { ArrowForward, Email, LocationOn, AccessTime } from '@mui/icons-material'
 import { useState } from 'react'
 import { M } from '../../styles/marketing-tokens'
@@ -14,8 +14,8 @@ function SectionLabel({ children, center }: { children: React.ReactNode; center?
   )
 }
 
-type FormState = { name: string; company: string; email: string; role: string; careType: string; message: string; website: string }
-const initialForm: FormState = { name: '', company: '', email: '', role: '', careType: '', message: '', website: '' }
+type FormState = { name: string; company: string; email: string; role: string; careType: string; message: string; website: string; privacyConsent: boolean; marketingConsent: boolean }
+const initialForm: FormState = { name: '', company: '', email: '', role: '', careType: '', message: '', website: '', privacyConsent: false, marketingConsent: false }
 
 export default function ContactPageNew() {
   const [form, setForm] = useState<FormState>(initialForm)
@@ -25,6 +25,10 @@ export default function ContactPageNew() {
 
   const update = (field: keyof FormState) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setForm(current => ({ ...current, [field]: event.target.value }))
+  }
+
+  const updateConsent = (field: 'privacyConsent' | 'marketingConsent') => (_event: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+    setForm(current => ({ ...current, [field]: checked }))
   }
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -46,6 +50,9 @@ export default function ContactPageNew() {
         utmMedium: params.get('utm_medium') || undefined,
         utmCampaign: params.get('utm_campaign') || undefined,
         referrer: document.referrer || undefined,
+        privacyConsent: form.privacyConsent,
+        marketingConsent: form.marketingConsent,
+        privacyPolicyVersion: '2026-09-20',
       })
       setSubmitted(true)
     } catch (err: any) {
@@ -103,8 +110,10 @@ export default function ContactPageNew() {
                       </Grid>
                       <TextField fullWidth label="How can we help?" required multiline rows={3} size="small" value={form.message} onChange={update('message')} />
                       <TextField value={form.website} onChange={update('website')} tabIndex={-1} autoComplete="off" aria-hidden="true" sx={{ display: 'none' }} />
+                      <FormControlLabel control={<Checkbox checked={form.privacyConsent} onChange={updateConsent('privacyConsent')} required />} label={<Typography variant="body2">I agree to the <Link href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</Link>.</Typography>} />
+                      <FormControlLabel control={<Checkbox checked={form.marketingConsent} onChange={updateConsent('marketingConsent')} />} label={<Typography variant="body2">Send me occasional product updates and care-technology guidance.</Typography>} />
                       <Button type="submit" disabled={submitting} variant="contained" endIcon={<ArrowForward />} sx={{ bgcolor: M.teal, color: M.navy, fontWeight: 700, py: 1.5, borderRadius: M.r.md, textTransform: 'none', '&:hover': { bgcolor: M.tealDark } }}>{submitting ? 'Sending…' : 'Book a demo'}</Button>
-                      <Typography sx={{ color: M.muted, fontSize: '0.78rem' }}>No spam. No sales pressure. Just a focused conversation about your care operation.</Typography>
+                      <Typography sx={{ color: M.muted, fontSize: '0.78rem' }}>We use your details to respond to this enquiry. Optional updates are sent only if you opt in. You can unsubscribe at any time.</Typography>
                     </Stack>
                   </form>
                 )}

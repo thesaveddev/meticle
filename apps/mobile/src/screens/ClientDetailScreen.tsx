@@ -68,8 +68,9 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
   const loadData = useCallback(async () => {
     try {
       const isDomiciliary = (session.organization?.service_types || []).some(type => ['domiciliary', 'live_in'].includes(type))
-      const medicationSupport = (session.organization?.capabilities as any)?.medication_support === true
-      const medicationEnabled = !isDomiciliary || medicationSupport
+      // Medication is a supported-living workflow. Domiciliary clients must
+      // not attempt the endpoint or show a medication tab in the mobile app.
+      const medicationEnabled = !isDomiciliary
       const [personData, medData, bmStats, nutSummary, assessments, timeline, documents, clinicalScores, wellbeing, capacity, pathways, communications, timeAway] = await Promise.all([
         getPersonDetail(session.accessToken, personId),
         medicationEnabled ? getMedicationsForPerson(session.accessToken, personId).catch(() => []) : Promise.resolve([]),

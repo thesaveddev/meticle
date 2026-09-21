@@ -3,6 +3,7 @@ import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { AuditRepository } from '../audit/audit.repository';
 import logger from '../../shared/utils/logger';
+import { SERVICE_TYPES } from '../../shared/validation/schemas';
 
 export class OrganizationController {
   static async updateOrganization(req: Request, res: Response) {
@@ -18,7 +19,28 @@ export class OrganizationController {
       throw new AppError(403, 'You can only update your own organisation');
     }
 
-    const { name, service_types, primary_service_type, onboarding_completed, default_hourly_rate_pence, default_mileage_rate_pence } = req.body;
+    const { name, service_types, primary_service_type, onboarding_completed } = req.body;
+
+    const current = await pool.query(
+      'SELECT service_types, primary_service_type, onboarding_completed FROM organizations WHERE id = $1',
+      [orgId],
+    );
+    if (current.rows.length === 0) throw new AppError(404, 'Organisation not found');
+
+    const nextServiceTypes = service_types ?? current.rows[0].service_types ?? [];
+    const nextPrimary = primary_service_type ?? current.rows[0].primary_service_type;
+    if (!Array.isArray(nextServiceTypes) || nextServiceTypes.length === 0) {
+      throw new AppError(400, 'Select at least one service type before completing onboarding');
+    }
+    if (!nextServiceTypes.every((type: string) => (SERVICE_TYPES as readonly string[]).includes(type))) {
+      throw new AppError(400, 'Invalid service type');
+    }
+    if (nextPrimary && !nextServiceTypes.includes(nextPrimary)) {
+      throw new AppError(400, 'Primary service type must be one of the selected service types');
+    }
+    if (onboarding_completed === true && !nextPrimary) {
+      throw new AppError(400, 'Choose a primary service type before completing onboarding');
+    }
 
     const sets: string[] = [];
     const params: any[] = [];
@@ -28,9 +50,6 @@ export class OrganizationController {
     if (service_types !== undefined) { sets.push(`service_types = $${idx++}`); params.push(service_types); }
     if (primary_service_type !== undefined) { sets.push(`primary_service_type = $${idx++}`); params.push(primary_service_type); }
     if (onboarding_completed !== undefined) { sets.push(`onboarding_completed = $${idx++}`); params.push(onboarding_completed); }
-    if (default_hourly_rate_pence !== undefined) { sets.push(`default_hourly_rate_pence = $${idx++}`); params.push(default_hourly_rate_pence); }
-    if (default_mileage_rate_pence !== undefined) { sets.push(`default_mileage_rate_pence = $${idx++}`); params.push(default_mileage_rate_pence); }
-
     if (sets.length === 0) {
       throw new AppError(400, 'No fields to update');
     }

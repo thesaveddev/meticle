@@ -790,10 +790,11 @@ export default function SettingsPage() {
         </Paper>
       )}
 
+      {!((['domiciliary', 'live_in'] as string[]).includes(orgSettings.primary_service_type) || (orgSettings.service_types || []).some((type: string) => ['domiciliary', 'live_in'].includes(type))) && (
       <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}><MedicationIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Care capabilities</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Choose which optional workflows your organisation actually provides. These controls are separate from the service type, so domiciliary medication support can be enabled with the appropriate training, competency checks, and audit process.
+          Choose which optional workflows your organisation actually provides. Supported-living medication workflows include MAR charts, stock, competency checks, overdue alerts and audit history.
         </Typography>
         <FormControlLabel
           control={<Switch checked={orgSettings.care_capabilities?.medication_support === true} onChange={e => {
@@ -804,7 +805,7 @@ export default function SettingsPage() {
           label="Medication support during visits"
         />
         <Typography variant="caption" display="block" color="text.secondary" sx={{ ml: 4, mb: 1.5 }}>
-          Enables medication records, MAR administration, stock, competence controls, overdue alerts, and medication audit routes for domiciliary clients.
+          Enables medication records, MAR administration, stock, competency controls, overdue alerts and medication audit history for supported-living services.
         </Typography>
         <FormControlLabel
           control={<Switch checked={orgSettings.care_capabilities?.nutrition_support === true} onChange={e => {
@@ -818,6 +819,7 @@ export default function SettingsPage() {
           Enables nutrition and hydration recording where this is part of the commissioned care plan.
         </Typography>
       </Paper>
+      )}
 
       {/* Branding */}
       <Paper sx={{ p: 4 }}>

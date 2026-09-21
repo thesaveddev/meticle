@@ -20,19 +20,27 @@ export function requireServiceType(...allowedTypes: string[]) {
       }
 
       // Check cache on the request to avoid repeated queries
-      const cacheKey = '_serviceTypes';
-      let serviceTypes: string[] = (req as any)[cacheKey];
+      const cacheKey = '_serviceTypeContext';
+      let serviceContext: { serviceTypes: string[]; primaryServiceType: string | null } | undefined = (req as any)[cacheKey];
 
-      if (!serviceTypes) {
+      if (!serviceContext) {
         const result = await query(
-          'SELECT service_types FROM organizations WHERE id = $1',
+          'SELECT service_types, primary_service_type FROM organizations WHERE id = $1',
           [user.organizationId]
         );
-        serviceTypes = result.rows[0]?.service_types || [];
-        (req as any)[cacheKey] = serviceTypes;
+        serviceContext = {
+          serviceTypes: result.rows[0]?.service_types || [],
+          primaryServiceType: result.rows[0]?.primary_service_type || null,
+        };
+        (req as any)[cacheKey] = serviceContext;
       }
 
-      const hasAccess = serviceTypes.some((t: string) => allowedTypes.includes(t));
+      // When a primary model is configured, it is authoritative. This keeps
+      // a domiciliary organisation from reaching supported-living routes just
+      // because a legacy secondary value remains in service_types.
+      const hasAccess = serviceContext.primaryServiceType
+        ? allowedTypes.includes(serviceContext.primaryServiceType)
+        : serviceContext.serviceTypes.some((t: string) => allowedTypes.includes(t));
       if (!hasAccess) {
         return next(new AppError(403, 'This feature is not available for your organisation type'));
       }
@@ -43,6 +51,19 @@ export function requireServiceType(...allowedTypes: string[]) {
     }
   };
 }
+
+/**
+ * Shared care-record modules are valid for either care model, but they still
+ * require an explicit, recognised service model. This prevents organisations
+ * with missing or malformed onboarding configuration from reaching shared
+ * person, health, goals, incident, or leave data routes.
+ */
+export const requireCareOrganisation = requireServiceType(
+  'supported_living',
+  'residential',
+  'domiciliary',
+  'live_in',
+);
 
 /**
  * Convenience: block access for domiciliary orgs.

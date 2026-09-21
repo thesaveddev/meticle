@@ -14,6 +14,7 @@ import {
 
 const requireUserInOrg = requireSameOrgForUser;
 import { logWarn } from '../../shared/utils/logger';
+import { SERVICE_TYPES } from '../../shared/validation/schemas';
 
 export class OrgController {
   static async createOrganization(req: Request, res: Response) {
@@ -52,6 +53,26 @@ export class OrgController {
     const { id } = req.params;
     if (id !== user.organizationId) throw new AppError(403, 'Access denied');
     const updates = req.body;
+    const current = await OrgRepository.getOrgById(id);
+    if (!current) throw new AppError(404, 'Organization not found');
+
+    const nextServiceTypes = updates.service_types ?? (current as any).service_types ?? [];
+    const nextPrimary = updates.primary_service_type ?? (current as any).primary_service_type;
+    if (updates.service_types !== undefined || updates.primary_service_type !== undefined || updates.onboarding_completed === true) {
+      if (!Array.isArray(nextServiceTypes) || nextServiceTypes.length === 0) {
+        throw new AppError(400, 'Select at least one service type before completing onboarding');
+      }
+      if (!nextServiceTypes.every((type: string) => (SERVICE_TYPES as readonly string[]).includes(type))) {
+        throw new AppError(400, 'Invalid service type');
+      }
+      if (nextPrimary && !nextServiceTypes.includes(nextPrimary)) {
+        throw new AppError(400, 'Primary service type must be one of the selected service types');
+      }
+      if (updates.onboarding_completed === true && !nextPrimary) {
+        throw new AppError(400, 'Choose a primary service type before completing onboarding');
+      }
+    }
+
     const org = await OrgRepository.updateOrg(id, updates);
 
     AuditRepository.log({
