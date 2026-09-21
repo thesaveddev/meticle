@@ -41,6 +41,42 @@ describe('Organizations — onboarding dismiss persistence', () => {
     expect(getRes.body.onboarding_dismissed_at).toBe(dismissedAt)
   }, 30_000)
 
+  it('rejects completing onboarding without a primary service type', async () => {
+    const { token, orgId } = await registerOrgAdmin()
+
+    const response = await request(app)
+      .patch(`/organizations/${orgId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ onboarding_completed: true })
+
+    expect(response.status).toBe(400)
+  }, 30_000)
+
+  it('rejects a primary service type that is not selected', async () => {
+    const { token, orgId } = await registerOrgAdmin()
+
+    const response = await request(app)
+      .patch(`/organizations/${orgId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ service_types: ['domiciliary'], primary_service_type: 'supported_living' })
+
+    expect(response.status).toBe(400)
+  }, 30_000)
+
+  it('allows completing onboarding with a valid service configuration', async () => {
+    const { token, orgId } = await registerOrgAdmin()
+
+    const response = await request(app)
+      .patch(`/organizations/${orgId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Production Care Organisation', service_types: ['domiciliary'], primary_service_type: 'domiciliary', onboarding_step: 3, onboarding_completed: true })
+
+    expect(response.status).toBe(200)
+    expect(response.body.service_types).toEqual(['domiciliary'])
+    expect(response.body.primary_service_type).toBe('domiciliary')
+    expect(response.body.onboarding_completed).toBe(true)
+  }, 30_000)
+
   it('allows clearing onboarding_dismissed_at back to null', async () => {
     const { token, orgId } = await registerOrgAdmin()
     const dismissedAt = new Date().toISOString()

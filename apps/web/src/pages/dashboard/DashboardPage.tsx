@@ -107,7 +107,9 @@ export default function DashboardPage() {
   const [org, setOrg] = useState<any>(null)
   const [domiciliaryData, setDomiciliaryData] = useState<any>(null)
   const orgId = rawUser.organization_id || rawUser.organizationId
-  const serviceTypes: string[] = org?.service_types || ['supported_living']
+  const serviceTypes: string[] = org?.primary_service_type
+    ? [org.primary_service_type]
+    : (org?.service_types || ['supported_living'])
   const [hideOnboarding, setHideOnboarding] = useState(() => {
     try { return orgId ? localStorage.getItem(ONBOARDING_STEPS_BY_KEY + orgId) === 'true' : false } catch { return false }
   })
@@ -367,7 +369,7 @@ export default function DashboardPage() {
             { label: 'Staff Below Threshold', value: widgets.staff_below_threshold, icon: <ComplianceDownIcon />, color: widgets.staff_below_threshold > 0 ? '#DC2626' : '#10B981', path: '/staff', emptyMsg: 'All staff compliant', warnMsg: `${widgets.staff_below_threshold} staff need attention` },
             { label: 'Pending Leave', value: widgets.pending_leave_requests, icon: <LeaveIcon />, color: widgets.pending_leave_requests > 0 ? '#1A2332' : '#10B981', path: '/leave', emptyMsg: 'No pending requests', warnMsg: `${widgets.pending_leave_requests} pending approvals` },
             { label: 'Open Critical Incidents', value: widgets.open_severe_incidents, icon: <IncidentIcon />, color: widgets.open_severe_incidents > 0 ? '#DC2626' : '#10B981', path: '/incidents', emptyMsg: 'No critical incidents', warnMsg: `${widgets.open_severe_incidents} need attention` },
-            { label: 'Overdue Medications', value: widgets.overdue_medications, icon: <MedIcon />, color: widgets.overdue_medications > 0 ? '#DC2626' : '#10B981', path: '/emedication', emptyMsg: 'All administered', warnMsg: `${widgets.overdue_medications} doses overdue` },
+            ...(!serviceTypes.some((type: string) => ['domiciliary', 'live_in'].includes(type)) ? [{ label: 'Overdue Medications', value: widgets.overdue_medications, icon: <MedIcon />, color: widgets.overdue_medications > 0 ? '#DC2626' : '#10B981', path: '/emedication', emptyMsg: 'All administered', warnMsg: `${widgets.overdue_medications} doses overdue` }] : []),
             widgets.satisfaction_avg != null ? { label: `Satisfaction Rating`, value: widgets.satisfaction_avg, icon: <SatisfactionIcon />, color: (widgets.satisfaction_avg || 0) >= 4 ? '#10B981' : (widgets.satisfaction_avg || 0) >= 3 ? '#D97706' : '#DC2626', path: '/compliance/satisfaction', emptyMsg: 'No surveys yet', warnMsg: `${widgets.satisfaction_total} responses`, format: (v: number) => `${v}/5` } : null,
           ].filter(Boolean).map((w: any, i) => (
             <Grid item xs={6} md={3} key={i}>

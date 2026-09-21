@@ -10,7 +10,7 @@ import { rateLimit } from '../shared/middleware/rateLimit.middleware'
 import { metricsMiddleware } from '../shared/metrics'
 import { correlationId } from '../shared/middleware/correlationId'
 import { rlsMiddleware } from '../shared/middleware/rls.middleware'
-import { requireSupportedLivingOnly, requireDomiciliaryOnly } from '../shared/middleware/requireServiceType'
+import { requireCareOrganisation, requireSupportedLivingOnly, requireDomiciliaryOnly } from '../shared/middleware/requireServiceType'
 
 import pool from '../shared/database'
 
@@ -85,8 +85,8 @@ export function createTestApp(): Express {
   app.use('/marketplace', marketplaceRoutes)
   app.use('/reporting', reportingRoutes)
   app.use('/insights', insightsRoutes)
-  app.use('/people', personRoutes)
-  app.use('/incidents', incidentRoutes)
+  app.use('/people', authenticate, requireCareOrganisation, personRoutes)
+  app.use('/incidents', authenticate, requireCareOrganisation, incidentRoutes)
   app.use('/dashboard', dashboardRoutes)
   app.use('/notifications', notificationRoutes)
   app.use('/notifications/push', pushRoutes)
@@ -96,7 +96,7 @@ export function createTestApp(): Express {
   app.use('/cqc', cqcRoutes)
   app.use('/surveys', surveyRoutes)
   app.use('/dspt', dsptRoutes)
-  app.use('/leave', leaveRoutes)
+  app.use('/leave', authenticate, requireCareOrganisation, leaveRoutes)
   app.use('/settings', settingsRoutes)
   app.use('/chat', chatRoutes)
   app.use('/billing', billingRoutes)
@@ -104,8 +104,8 @@ export function createTestApp(): Express {
   app.use('/appointments', authenticate, requireSupportedLivingOnly, appointmentRoutes)
   app.use('/policies', policyRoutes)
   app.use('/emedication', authenticate, requireSupportedLivingOnly, emedicationRoutes)
-  app.use('/goals', goalRoutes)
-  app.use('/health', healthRoutes)
+  app.use('/goals', authenticate, requireCareOrganisation, goalRoutes)
+  app.use('/health', authenticate, requireCareOrganisation, healthRoutes)
   app.use('/nutrition', authenticate, requireSupportedLivingOnly, nutritionRoutes)
   app.use('/compliance-portal', compliancePortalRoutes)
   app.use('/ai', aiRoutes)

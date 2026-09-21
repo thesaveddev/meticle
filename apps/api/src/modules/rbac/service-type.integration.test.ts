@@ -13,6 +13,14 @@ type RestrictedEndpoint = {
   path: string
 }
 
+const sharedCareEndpoints: RestrictedEndpoint[] = [
+  { name: 'people', method: 'get', path: '/people' },
+  { name: 'health', method: 'get', path: '/health/person-00000000-0000-0000-0000-000000000000/observations' },
+  { name: 'goals', method: 'get', path: '/goals' },
+  { name: 'incidents', method: 'get', path: '/incidents' },
+  { name: 'leave', method: 'get', path: '/leave/my-requests' },
+]
+
 const supportedLivingEndpoints: RestrictedEndpoint[] = [
   { name: 'rota', method: 'get', path: '/shifts' },
   { name: 'appointments', method: 'get', path: '/appointments' },
@@ -72,6 +80,16 @@ afterAll(async () => {
 })
 
 describe('service-type API boundary matrix', () => {
+  it.each(sharedCareEndpoints)('allows a configured domiciliary organisation on shared $name', async endpoint => {
+    const response = await callEndpoint(app, endpoint, generateToken(domiciliaryUser))
+    expect(response.status, `${endpoint.method.toUpperCase()} ${endpoint.path}: ${JSON.stringify(response.body)}`).not.toBe(403)
+  })
+
+  it.each(sharedCareEndpoints)('allows a configured supported-living organisation on shared $name', async endpoint => {
+    const response = await callEndpoint(app, endpoint, generateToken(supportedLivingUser))
+    expect(response.status, `${endpoint.method.toUpperCase()} ${endpoint.path}: ${JSON.stringify(response.body)}`).not.toBe(403)
+  })
+
   it.each(supportedLivingEndpoints)('returns 403 for a domiciliary organisation on $name', async endpoint => {
     const response = await callEndpoint(app, endpoint, generateToken(domiciliaryUser))
     expect(response.status, `${endpoint.method.toUpperCase()} ${endpoint.path}: ${JSON.stringify(response.body)}`).toBe(403)
@@ -80,5 +98,23 @@ describe('service-type API boundary matrix', () => {
   it.each(domiciliaryEndpoints)('returns 403 for a supported-living organisation on $name', async endpoint => {
     const response = await callEndpoint(app, endpoint, generateToken(supportedLivingUser))
     expect(response.status, `${endpoint.method.toUpperCase()} ${endpoint.path}: ${JSON.stringify(response.body)}`).toBe(403)
+  })
+
+  it('returns 403 for a malformed shared-module service configuration', async () => {
+    const org = await createOrg({ service_types: [] })
+    organisationIds.push(org.id)
+    const user = await createUser({ email: `rbac-empty-${Date.now()}@test.com`, role: 'ORG_ADMIN', organization_id: org.id })
+    const response = await callEndpoint(app, sharedCareEndpoints[0], generateToken(user))
+    expect(response.status).toBe(403)
+  })
+
+  it('uses the primary service type when a legacy secondary type remains configured', async () => {
+    const org = await createOrg({ service_types: ['domiciliary', 'supported_living'] })
+    organisationIds.push(org.id)
+    await migrateQuery('UPDATE organizations SET primary_service_type = $1 WHERE id = $2', ['domiciliary', org.id])
+    const user = await createUser({ email: `rbac-primary-${Date.now()}@test.com`, role: 'ORG_ADMIN', organization_id: org.id })
+    const response = await callEndpoint(app, { name: 'medication', method: 'get', path: '/emedication/records' }, generateToken(user))
+    expect(response.status).toBe(403)
+    expect(JSON.stringify(response.body)).not.toContain('Medication support is not enabled for this domiciliary organisation')
   })
 })

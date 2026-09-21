@@ -51,8 +51,14 @@ export default function ModuleGuard({ module, children }: { module: string; chil
         const requiredTypes = MODULE_SERVICE_TYPES[module]
         if (requiredTypes) {
           const orgRes = await api.get('/settings/org')
-          const serviceTypes: string[] = orgRes.data.service_types || []
-          const hasRequiredType = serviceTypes.some(t => requiredTypes.includes(t))
+          const serviceTypes: string[] = Array.isArray(orgRes.data.service_types) ? orgRes.data.service_types : []
+          // The organisation's primary service model is authoritative when it
+          // exists. This prevents a domiciliary organisation that also has a
+          // legacy/secondary supported-living value from exposing SL modules.
+          const primaryServiceType = orgRes.data.primary_service_type
+          const hasRequiredType = primaryServiceType
+            ? requiredTypes.includes(primaryServiceType)
+            : serviceTypes.some(t => requiredTypes.includes(t))
           setAllowed(hasRequiredType)
           return
         }

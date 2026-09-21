@@ -88,7 +88,7 @@ export default function Footer() {
             spacing={2}
           >
             <Typography sx={{ color: '#94A3B8', fontSize: '0.78rem' }}>
-              © {new Date().getFullYear()} Meticle Care Technologies. All rights reserved.
+              © {new Date().getFullYear()} 34Orients Ltd. MeticleCare is a product of 34Orients Ltd. All rights reserved.
             </Typography>
             <Stack direction="row" spacing={2.5}>
               {['Privacy Policy', 'Terms of Use', 'Cookie Policy'].map((t) => (

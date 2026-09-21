@@ -1548,7 +1548,7 @@ export const recordProgressSchema = z.object({
 export const contactSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(255),
   email: z.string().trim().email('A valid email is required').max(255),
-  company: z.string().trim().max(255).optional(),
+  company: z.string().trim().min(1, 'Organisation is required').max(255),
   role: z.string().trim().max(100).optional(),
   careType: z.enum(['domiciliary', 'supported-living', 'both', 'other']).optional(),
   message: z.string().trim().min(1, 'Message is required').max(5000),
@@ -1558,6 +1558,14 @@ export const contactSchema = z.object({
   utmMedium: z.string().max(100).optional(),
   utmCampaign: z.string().max(150).optional(),
   referrer: z.string().max(500).optional(),
+  privacyConsent: z.literal(true, { errorMap: () => ({ message: 'Please agree to the Privacy Policy' }) }),
+  marketingConsent: z.boolean().optional().default(false),
+  privacyPolicyVersion: z.string().max(30).default('2026-09-20'),
+});
+
+export const updateContactSubmissionSchema = z.object({
+  status: z.enum(['new', 'qualified', 'demo_booked', 'pilot', 'won', 'lost']),
+  notes: z.string().max(4000).nullable().optional(),
 });
 
 // === Nutrition ===

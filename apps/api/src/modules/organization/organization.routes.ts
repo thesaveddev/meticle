@@ -5,7 +5,7 @@ import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { validate } from '../../shared/middleware/validate.middleware';
-import { inviteStaffSchema, acceptInvitationSchema } from '../../shared/validation/schemas';
+import { inviteStaffSchema, acceptInvitationSchema, updateOrganizationSchema } from '../../shared/validation/schemas';
 import { UserRole } from '@meticle/shared';
 
 const router = Router();
@@ -23,6 +23,6 @@ router.delete('/invitation/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(I
 router.post('/invitation/accept', validate(acceptInvitationSchema), asyncHandler(InvitationController.accept));
 
 // Organization update (service types, onboarding)
-router.patch('/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(OrganizationController.updateOrganization));
+router.patch('/:id', requireRole(UserRole.ORG_ADMIN), validate(updateOrganizationSchema), asyncHandler(OrganizationController.updateOrganization));
 
 export default router;

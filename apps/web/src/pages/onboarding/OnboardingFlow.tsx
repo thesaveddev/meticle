@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Button, Container, Typography, TextField, Stack, Chip, Alert, CircularProgress, Card, CardActionArea, CardContent, Checkbox } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
@@ -27,6 +27,8 @@ export default function OnboardingFlow() {
 
   const [step, setStep] = useState(1)
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
+  const [hydrating, setHydrating] = useState(true)
+  const [completed, setCompleted] = useState(false)
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [emailInput, setEmailInput] = useState('')
@@ -34,8 +36,58 @@ export default function OnboardingFlow() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    if (!isOrg || !orgId) {
+      setHydrating(false)
+      return
+    }
+
+    let mounted = true
+    api.get(`/organizations/${orgId}`)
+      .then(({ data }) => {
+        if (!mounted) return
+        const existingTypes = Array.isArray(data.service_types) ? data.service_types : []
+        setSelectedTypes(existingTypes)
+        setName(data.name || '')
+        setCompleted(data.onboarding_completed === true)
+        if (data.onboarding_completed === true) setStep(3)
+        else if (existingTypes.length > 0) setStep(Math.max(1, Math.min(3, Number(data.onboarding_step || 1))))
+      })
+      .catch(() => {
+        if (mounted) setError('We could not load your saved onboarding progress. Please refresh and try again.')
+      })
+      .finally(() => { if (mounted) setHydrating(false) })
+
+    return () => { mounted = false }
+  }, [isOrg, orgId])
+
   const toggleType = (id: string) => {
     setSelectedTypes(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
+  }
+
+  const handleServiceContinue = async () => {
+    if (selectedTypes.length === 0) {
+      setError('Select at least one service type to continue')
+      return
+    }
+    setError('')
+    if (isOrg && orgId) {
+      setSaving(true)
+      try {
+        await api.patch(`/organizations/${orgId}`, {
+          service_types: selectedTypes,
+          primary_service_type: selectedTypes[0],
+          onboarding_step: 1,
+        })
+        setStep(2)
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'We could not save your service types. Please try again.')
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
+    setStep(2)
   }
 
   const addEmail = () => {
@@ -54,21 +106,42 @@ export default function OnboardingFlow() {
 
 
   const handleStep2Submit = async () => {
+    if (isOrg && selectedTypes.length === 0) {
+      setError('Select at least one service type to continue')
+      setStep(1)
+      return
+    }
+    if (isOrg && !name.trim()) {
+      setError('Organisation name is required')
+      return
+    }
     setSaving(true)
     setError('')
     try {
       if (isOrg && orgId) {
         await api.patch(`/organizations/${orgId}`, {
-          name: name || undefined,
+          name: name.trim(),
           service_types: selectedTypes,
-          primary_service_type: selectedTypes[0] || 'supported_living',
+          primary_service_type: selectedTypes[0],
+          onboarding_step: 2,
         })
-        if (address) {
-          await api.post(`/organizations/${orgId}/locations`, {
-            name: name || 'Main Location',
-            address,
-            service_type: selectedTypes[0] || 'supported_living',
-          })
+        if (address.trim()) {
+          const locationsResponse = await api.get('/settings/locations')
+          const locations = Array.isArray(locationsResponse.data) ? locationsResponse.data : []
+          const primaryLocation = locations[0]
+          if (primaryLocation?.id) {
+            await api.put(`/settings/locations/${primaryLocation.id}`, {
+              name: primaryLocation.name || name.trim(),
+              address: address.trim(),
+              service_type: selectedTypes[0],
+            })
+          } else {
+            await api.post('/settings/locations', {
+              name: name.trim() || 'Main Location',
+              address: address.trim(),
+              service_type: selectedTypes[0],
+            })
+          }
         }
         for (const email of invites) {
           await api.post('/organizations/invitation/invite', { email, role: 'CARE_WORKER' })
@@ -86,7 +159,7 @@ export default function OnboardingFlow() {
         setStep(3)
       } else {
         if (isOrg && orgId) {
-          await api.patch(`/organizations/${orgId}`, { onboarding_completed: true })
+          await api.patch(`/organizations/${orgId}`, { onboarding_completed: true, onboarding_step: 3 })
         }
         navigate('/dashboard')
       }
@@ -97,20 +170,31 @@ export default function OnboardingFlow() {
   }
 
   const handleStep3Submit = async () => {
+    if (isOrg && !orgId) {
+      setError('Your organisation could not be identified. Please sign out and sign in again.')
+      return
+    }
     setSaving(true)
+    setError('')
     try {
       if (isOrg && orgId) {
-        await api.patch(`/organizations/${orgId}`, { onboarding_completed: true })
+        await api.patch(`/organizations/${orgId}`, { onboarding_completed: true, onboarding_step: 3 })
+        setCompleted(true)
       }
       navigate('/dashboard')
-    } catch {
-      // Non-critical — still navigate to dashboard
-      if (isOrg && orgId) {
-        await api.patch(`/organizations/${orgId}`, { onboarding_completed: true }).catch(() => {})
-      }
-      navigate('/dashboard')
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'We could not finish setup. Your progress is saved; please try again.')
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
+  }
+
+  if (hydrating) {
+    return (
+      <Box role="status" aria-live="polite" sx={{ minHeight: '100vh', bgcolor: '#020617', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress sx={{ color: '#10b981' }} />
+      </Box>
+    )
   }
 
   return (
@@ -118,10 +202,10 @@ export default function OnboardingFlow() {
       <Container maxWidth="sm">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 900, color: 'white', mb: 1 }}>
-            {step === 1 ? 'What kind of care do you provide?' : step === 2 ? 'Tell us about your organisation' : 'Set up your first record'}
+            {step === 1 ? 'What kind of care do you provide?' : step === 2 ? 'Tell us about your organisation' : completed ? 'Your setup is ready' : 'Set up your first record'}
           </Typography>
           <Typography sx={{ color: 'text.secondary' }}>
-            {step === 1 ? "Select all that apply. We'll tailor your experience." : step === 2 ? 'Almost done — set your organisation details.' : 'Optional: create your first record now, or skip and do it later.'}
+            {step === 1 ? "Select all that apply. We'll tailor your experience." : step === 2 ? 'Almost done — set your organisation details.' : completed ? 'You can revisit setup from Settings at any time.' : 'Optional: create your first record now, or skip and do it later.'}
           </Typography>
         </Box>
 
@@ -151,15 +235,14 @@ export default function OnboardingFlow() {
               )
             })}
 
-            <Button variant="contained" fullWidth size="large" onClick={() => setStep(2)} disabled={selectedTypes.length === 0}
+            <Button variant="contained" fullWidth size="large" onClick={handleServiceContinue} disabled={saving || selectedTypes.length === 0}
               sx={{ bgcolor: '#10b981', py: 1.5, fontWeight: 700, mt: 2 }}>
               Continue
             </Button>
 
-            <Button variant="text" fullWidth onClick={() => { setSelectedTypes(['supported_living']); setStep(2) }}
-              sx={{ color: '#64748b', textTransform: 'none' }}>
-              Skip — I'll set this up later
-            </Button>
+            <Typography variant="caption" sx={{ color: '#64748b', textAlign: 'center', display: 'block', mt: 1 }}>
+              You can change your service types later in Settings. At least one is required to configure the right modules and permissions.
+            </Typography>
           </Stack>
         ) : step === 2 ? (
           /* Step 2: Org details */
@@ -203,7 +286,7 @@ export default function OnboardingFlow() {
             )}
             <Stack direction="row" spacing={2}>
               <Button variant="outlined" fullWidth onClick={() => setStep(1)} sx={{ color: 'text.secondary', borderColor: 'rgba(255,255,255,0.2)' }}>Back</Button>
-              <Button variant="contained" fullWidth size="large" onClick={handleStep2Submit} disabled={saving || (isOrg ? false : !name)}
+              <Button variant="contained" fullWidth size="large" onClick={handleStep2Submit} disabled={saving || (isOrg ? !name.trim() || selectedTypes.length === 0 : !name.trim())}
                 sx={{ bgcolor: '#10b981', py: 1.5, fontWeight: 700 }}>
                 {saving ? <CircularProgress size={24} color="inherit" /> : 'Continue'}
               </Button>

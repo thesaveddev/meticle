@@ -444,9 +444,6 @@ export class BillingController {
     const pm = await pool.query('SELECT organization_id, stripe_payment_method_id FROM payment_methods WHERE id = $1', [id]);
     if (pm.rows.length === 0) throw new AppError(404, 'Payment method not found');
     if (pm.rows[0].organization_id !== orgId) throw new AppError(403, 'Access denied');
-    await pool.query('UPDATE payment_methods SET is_default = FALSE WHERE organization_id = $1', [orgId]);
-    await pool.query('UPDATE payment_methods SET is_default = TRUE WHERE id = $1', [id]);
-
     const stripe = getStripe();
     const stripePaymentMethodId = pm.rows[0]?.stripe_payment_method_id;
     if (stripe && stripePaymentMethodId) {
@@ -465,6 +462,11 @@ export class BillingController {
         });
       }
     }
+
+    // Only mutate local default flags after the Stripe ownership/default check succeeds.
+    // This prevents a failed Stripe operation from leaving the database out of sync.
+    await pool.query('UPDATE payment_methods SET is_default = FALSE WHERE organization_id = $1', [orgId]);
+    await pool.query('UPDATE payment_methods SET is_default = TRUE WHERE id = $1', [id]);
 
     const updated = await pool.query('SELECT * FROM payment_methods WHERE id = $1', [id]);
     res.json(updated.rows[0]);

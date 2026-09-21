@@ -7,8 +7,6 @@ import { authenticate } from '../../shared/middleware/auth.middleware';
 import { requireRole } from '../../shared/middleware/requireRole';
 import { requireSupportedLivingOnly } from '../../shared/middleware/requireServiceType';
 import { UserRole } from '@meticle/shared';
-import pool from '../../shared/database';
-import { AppError } from '../../shared/middleware/error.middleware';
 import {
   createMedicationRecordSchema,
   updateMedicationRecordSchema,
@@ -30,18 +28,6 @@ const router = Router();
 
 router.use(authenticate);
 router.use(requireSupportedLivingOnly);
-
-// Medication support is available by default to supported-living/residential
-// organisations. Domiciliary providers must explicitly enable it because it
-// changes the care workflow, permissions, training, and audit expectations.
-router.use(asyncHandler(async (req, _res, next) => {
-  const result = await pool.query('SELECT service_types, care_capabilities FROM organizations WHERE id = $1', [req.user!.organizationId]);
-  const types: string[] = result.rows[0]?.service_types || [];
-  const isDomiciliary = types.some(type => ['domiciliary', 'live_in'].includes(type));
-  const enabled = result.rows[0]?.care_capabilities?.medication_support === true;
-  if (isDomiciliary && !enabled) throw new AppError(403, 'Medication support is not enabled for this domiciliary organisation');
-  next();
-}));
 
 // ── Read routes — any authenticated user (CARE_WORKER can view) ──
 router.get('/records', asyncHandler(EMedicationController.listRecords));

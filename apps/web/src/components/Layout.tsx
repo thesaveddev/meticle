@@ -83,6 +83,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
 
   interface NavItem { text: string; icon: JSX.Element; path: string; module: string; roles: UserRole[]; serviceTypes?: string[] }
   interface NavGroup { label: string; items: NavItem[] }  const [orgServiceTypes, setOrgServiceTypes] = useState<string[]>([])
+  const [primaryServiceType, setPrimaryServiceType] = useState<string | null>(null)
   const [serviceTypesLoaded, setServiceTypesLoaded] = useState(false)
 
   useEffect(() => {
@@ -91,11 +92,26 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     api.get('/settings/org').then(res => {
       const types = res.data?.service_types
       if (Array.isArray(types)) setOrgServiceTypes(types)
+      setPrimaryServiceType(typeof res.data?.primary_service_type === 'string' ? res.data.primary_service_type : null)
     }).catch(() => setOrgServiceTypes([])).finally(() => setServiceTypesLoaded(true))
   }, [rawUser.id])
 
   // Rename nav labels based on org service type for familiar terminology
+  const navigationServiceTypes = primaryServiceType ? [primaryServiceType] : orgServiceTypes
+  // These modules are supported-living-only. Keep this deny-list separate
+  // from permissions so stale grants or mixed legacy service types cannot put
+  // them back into a domiciliary organisation's sidebar.
+  const DOMICILIARY_HIDDEN_NAV_PATHS = new Set([
+    '/meal-plans',
+    '/emedication',
+    '/scheduling',
+    '/agencies',
+    '/tasks',
+    '/appointments',
+    '/expenses',
+  ])
   const isDom = orgServiceTypes.some(t => ['domiciliary', 'live_in'].includes(t))
+    || ['domiciliary', 'live_in'].includes(primaryServiceType || '')
   const labelOverride: Record<string, string> = isDom ? {
     'People': 'Clients',
     'Visits & Packages': 'Care Packages',
@@ -193,7 +209,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     items: group.items.filter(item =>
       item.roles.includes(userRole) &&
       (modulePermissions[item.module] || 'view') !== 'none' &&
-      permissionsLoaded && serviceTypesLoaded && (modulePermissions[item.module] || 'none') !== 'none' && (!item.serviceTypes || item.serviceTypes.some(t => orgServiceTypes.includes(t)))
+      permissionsLoaded && serviceTypesLoaded && (modulePermissions[item.module] || 'none') !== 'none' && (!isDom || !DOMICILIARY_HIDDEN_NAV_PATHS.has(item.path)) && (!item.serviceTypes || item.serviceTypes.some(t => navigationServiceTypes.includes(t)))
     ),
   })).filter(group => group.items.length > 0)
   const filteredBottomItems = bottomItems.filter(item =>

@@ -20,12 +20,16 @@ export default function TermsOfUsePage() {
       <Typography variant="h3" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Terms of Use</Typography>
       <Typography variant="body2" color="#6B7280" sx={{ mb: 5 }}>Last updated: August 2026</Typography>
 
+      <Section title="About the Company">
+        <p>MeticleCare is a product operated by <strong>34Orients Ltd</strong>, company number <strong>17446318</strong>. Our registered office is 3 Dan-Y-Coedcae Road, Pontypridd, United Kingdom, CF37 1LS.</p>
+      </Section>
+
       <Section title="1. Agreement">
         <p>By accessing or using Meticle Care ("the Service"), you agree to be bound by these Terms of Use. If you are using the Service on behalf of an organisation, you represent that you have authority to bind that organisation.</p>
       </Section>
 
       <Section title="2. Definitions">
-        <ul><li><strong>"We", "Us", "Meticle Care"</strong> — the Service provider</li><li><strong>"You", "Customer"</strong> — the organisation or individual using the Service</li><li><strong>"Person"</strong> — a person receiving care, whose data is stored in the Service</li><li><strong>"Staff"</strong> — employees or contractors of the Customer who access the Service</li></ul>
+        <ul><li><strong>"We", "Us", "MeticleCare"</strong> — 34Orients Ltd, company number 17446318, the Service provider</li><li><strong>"You", "Customer"</strong> — the organisation or individual using the Service</li><li><strong>"Person"</strong> — a person receiving care, whose data is stored in the Service</li><li><strong>"Staff"</strong> — employees or contractors of the Customer who access the Service</li></ul>
       </Section>
 
       <Section title="3. Your Account">
@@ -71,7 +75,7 @@ export default function TermsOfUsePage() {
       </Section>
 
       <Section title="13. Contact">
-        <p>Legal enquiries: legal@meticlecare.com<br/>General enquiries: hello@meticlecare.com</p>
+        <p>Legal enquiries: legal@meticlecare.com<br/>General enquiries: hello@meticlecare.com<br/>34Orients Ltd, company number 17446318<br/>3 Dan-Y-Coedcae Road, Pontypridd, United Kingdom, CF37 1LS</p>
       </Section>
     </Container>
     </>

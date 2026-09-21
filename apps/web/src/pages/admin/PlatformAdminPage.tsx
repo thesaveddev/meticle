@@ -41,6 +41,12 @@ export default function PlatformAdminPage() {
   const [followupSubject, setFollowupSubject] = useState('Checking in about your Meticle Care trial')
   const [followupSending, setFollowupSending] = useState<string | null>(null)
   const [followupNotice, setFollowupNotice] = useState('')
+  const [leads, setLeads] = useState<any[]>([])
+  const [leadCounts, setLeadCounts] = useState<any[]>([])
+  const [leadSearch, setLeadSearch] = useState('')
+  const [leadStatus, setLeadStatus] = useState('')
+  const [leadNotice, setLeadNotice] = useState('')
+  const [leadSaving, setLeadSaving] = useState<string | null>(null)
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchDebounce), 400)
@@ -88,6 +94,26 @@ export default function PlatformAdminPage() {
     try { const res = await api.get('/platform-admin/trial-followups'); setTrialFollowups(res.data.followups || []) } catch { /* silent */ }
   }, [])
 
+  const loadLeads = useCallback(async () => {
+    try {
+      const res = await api.get('/contact/submissions', { params: { search: leadSearch || undefined, status: leadStatus || undefined } })
+      setLeads(res.data.submissions || [])
+      setLeadCounts(res.data.counts || [])
+    } catch { setLeadNotice('Could not load enquiries.') }
+  }, [leadSearch, leadStatus])
+
+  const updateLead = async (id: string, status: string, notes?: string | null) => {
+    setLeadSaving(id)
+    setLeadNotice('')
+    try {
+      await api.patch(`/contact/submissions/${id}`, { status, notes })
+      setLeadNotice('Enquiry updated.')
+      await loadLeads()
+    } catch (err: any) {
+      setLeadNotice(err.response?.data?.message || 'Could not update enquiry.')
+    } finally { setLeadSaving(null) }
+  }
+
   const sendFollowup = async (organizationId: string) => {
     if (!followupMessage.trim()) { setFollowupNotice('Write a message before sending.'); return }
     setFollowupSending(organizationId)
@@ -107,6 +133,7 @@ export default function PlatformAdminPage() {
   useEffect(() => { if (tab === 4) loadAuditLog() }, [tab, loadAuditLog])
   useEffect(() => { if (tab === 5) loadHealth() }, [tab, loadHealth])
   useEffect(() => { if (tab === 6) loadTrialFollowups() }, [tab, loadTrialFollowups])
+  useEffect(() => { if (tab === 7) loadLeads() }, [tab, loadLeads])
 
   const statCards = stats ? [
     { label: 'Organizations', value: stats.totalOrganizations, icon: <BusinessIcon />, color: '#0F4C81' },
@@ -115,7 +142,7 @@ export default function PlatformAdminPage() {
     { label: 'Signups (30d)', value: stats.recentSignups, icon: <PersonAddIcon />, color: '#D97706' },
   ] : []
 
-  const tabLabels = ['Overview', 'Organizations', 'Users', 'Finance', 'Audit Log', 'System Health', 'Trial follow-up']
+  const tabLabels = ['Overview', 'Organizations', 'Users', 'Finance', 'Audit Log', 'System Health', 'Trial follow-up', 'Sales pipeline']
 
   return (
     <Box>
@@ -460,6 +487,56 @@ export default function PlatformAdminPage() {
                     </TableRow>
                   ))}
                   {trialFollowups.length === 0 && <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>No unpaid expired trials found</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Stack>
+      )}
+
+      {/* ─── Sales Pipeline Tab ─── */}
+      {tab === 7 && (
+        <Stack spacing={3}>
+          <Paper sx={{ p: 3, borderRadius: 2.5 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>Sales pipeline</Typography>
+                <Typography variant="body2" color="#6B7280">Review demo enquiries and move them through the commercial lifecycle.</Typography>
+              </Box>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                <TextField size="small" placeholder="Search enquiries..." value={leadSearch} onChange={e => setLeadSearch(e.target.value)} />
+                <TextField size="small" select label="Stage" value={leadStatus} onChange={e => setLeadStatus(e.target.value)} sx={{ minWidth: 150 }}>
+                  <MenuItem value="">All stages</MenuItem>
+                  {['new', 'qualified', 'demo_booked', 'pilot', 'won', 'lost'].map(stage => <MenuItem key={stage} value={stage}>{stage.replace('_', ' ')}</MenuItem>)}
+                </TextField>
+              </Stack>
+            </Stack>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 2 }}>
+              {['new', 'qualified', 'demo_booked', 'pilot', 'won', 'lost'].map(stage => {
+                const count = leadCounts.find(item => item.status === stage)?.count || 0
+                return <Chip key={stage} size="small" label={`${stage.replace('_', ' ')}: ${count}`} variant={leadStatus === stage ? 'filled' : 'outlined'} onClick={() => setLeadStatus(leadStatus === stage ? '' : stage)} />
+              })}
+            </Stack>
+            {leadNotice && <Typography variant="body2" sx={{ mt: 2 }} color={leadNotice === 'Enquiry updated.' ? 'success.main' : 'error.main'}>{leadNotice}</Typography>}
+          </Paper>
+          <Paper sx={{ p: 3, borderRadius: 2.5 }}>
+            <TableContainer>
+              <Table size="small">
+                <TableHead><TableRow><TableCell>Enquiry</TableCell><TableCell>Care type</TableCell><TableCell>Message</TableCell><TableCell>Consent</TableCell><TableCell>Stage</TableCell><TableCell>Received</TableCell></TableRow></TableHead>
+                <TableBody>
+                  {leads.map((lead: any) => (
+                    <TableRow key={lead.id} hover>
+                      <TableCell sx={{ minWidth: 210 }}><Typography variant="body2" fontWeight={700}>{lead.name}</Typography><Typography variant="caption" color="#6B7280">{lead.company} · {lead.email}</Typography><Typography variant="caption" display="block" color="#9CA3AF">{lead.role || 'Role not provided'}</Typography></TableCell>
+                      <TableCell>{lead.care_type || '—'}</TableCell>
+                      <TableCell sx={{ maxWidth: 300 }}><Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{lead.message}</Typography></TableCell>
+                      <TableCell><Chip size="small" label={lead.marketing_consent ? 'Updates opted in' : 'Demo only'} color={lead.marketing_consent ? 'success' : 'default'} variant="outlined" /></TableCell>
+                      <TableCell><TextField size="small" select value={lead.status} disabled={leadSaving === lead.id} onChange={e => updateLead(lead.id, e.target.value, lead.notes)} sx={{ minWidth: 145 }}>
+                        {['new', 'qualified', 'demo_booked', 'pilot', 'won', 'lost'].map(stage => <MenuItem key={stage} value={stage}>{stage.replace('_', ' ')}</MenuItem>)}
+                      </TextField></TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(lead.created_at).toLocaleDateString('en-GB')}</TableCell>
+                    </TableRow>
+                  ))}
+                  {leads.length === 0 && <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>No enquiries found</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </TableContainer>
