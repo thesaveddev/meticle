@@ -188,6 +188,7 @@ export default function CallAssignmentBoard() {
 
   const handleBulkAutoAssign = useCallback(async () => {
     setAutoAssigning(true)
+    setAutoAssignError('')
     setAutoAssignDialog(false)
     try {
       const nextDate = new Date(new Date(date).getTime() + 86400000).toISOString().slice(0, 10)
@@ -196,7 +197,7 @@ export default function CallAssignmentBoard() {
       qc.invalidateQueries({ queryKey: ['homecare-visits-assign'] })
       qc.invalidateQueries({ queryKey: ['homecare-live-map'] })
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Auto-assign failed')
+      setAutoAssignError(e.response?.data?.message || 'We could not auto-assign these calls. Please try again.')
     } finally {
       setAutoAssigning(false)
     }
@@ -283,11 +284,19 @@ export default function CallAssignmentBoard() {
     setDropTargetCarer(null)
   }, [draggedVisitId, visits, assignVisit])
 
+  const handleDropUnassigned = useCallback(() => {
+    if (!draggedVisitId) return
+    assignVisit.mutate({ visitId: draggedVisitId, staffId: null })
+    setDraggedVisitId(null)
+    setDropTargetCarer(null)
+  }, [draggedVisitId, assignVisit])
+
   // Click fallback for touch devices / quick assign
   const [selectedForAssign, setSelectedForAssign] = useState<string | null>(null)
   const [showSuggestions, setShowSuggestions] = useState<string | null>(null)
   const [autoAssigning, setAutoAssigning] = useState(false)
   const [autoAssignResult, setAutoAssignResult] = useState<any>(null)
+  const [autoAssignError, setAutoAssignError] = useState('')
   const [autoAssignDialog, setAutoAssignDialog] = useState(false)
   const [viewMode, setViewMode] = useState<'board' | 'timeline'>('board')
 
@@ -349,7 +358,14 @@ export default function CallAssignmentBoard() {
           <Chip label={`${dateStr(date)} — ${visits.length} calls`} sx={{ fontWeight: 700, bgcolor: '#0F4C81', color: 'white' }} onClick={() => setDate(new Date().toISOString().slice(0, 10))} />
           <Button size="small" onClick={() => { const d = new Date(date); d.setDate(d.getDate() + 1); setDate(d.toISOString().slice(0, 10)) }} sx={{ minWidth: 'auto' }}>→</Button>
           {unassigned.length > 0 && (
-            <Button variant="contained" startIcon={autoAssigning ? <CircularProgress size={16} color="inherit" /> : <AutoAwesome />} onClick={() => setAutoAssignDialog(true)} disabled={autoAssigning} sx={{ textTransform: 'none', bgcolor: '#6366F1', '&:hover': { bgcolor: '#4F46E5' }, fontSize: '0.8rem' }}>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={autoAssigning ? <CircularProgress size={13} color="inherit" /> : <AutoAwesome sx={{ fontSize: 14 }} />}
+              onClick={() => { setAutoAssignError(''); setAutoAssignDialog(true) }}
+              disabled={autoAssigning}
+              sx={{ minHeight: 30, px: 1.25, py: 0.5, textTransform: 'none', bgcolor: '#6366F1', '&:hover': { bgcolor: '#4F46E5' }, fontSize: '0.72rem' }}
+            >
               {autoAssigning ? 'Assigning…' : 'Auto-assign'}
             </Button>
           )}
@@ -368,10 +384,10 @@ export default function CallAssignmentBoard() {
         </Alert>
       </Collapse>
 
-      {/* Click-to-assign hint */}
-      {selectedForAssign && (
-        <Alert severity="info" sx={{ mb: 2 }} action={<Button size="small" color="inherit" onClick={() => setSelectedForAssign(null)}>Cancel</Button>}>
-          Click a carer on the right to assign this call, or drag it.
+      {/* Auto-assign error */}
+      {autoAssignError && (
+        <Alert severity="error" sx={{ mb: 2, py: 0.25 }} onClose={() => setAutoAssignError('')}>
+          {autoAssignError}
         </Alert>
       )}
 
@@ -389,7 +405,7 @@ export default function CallAssignmentBoard() {
             {autoAssignResult.assigned_count} of {autoAssignResult.total_unassigned} unassigned calls were distributed to carers.
             {autoAssignResult.unassigned_count > 0 && ` ${autoAssignResult.unassigned_count} could not be assigned (no suitable carer available).`}
           </Typography>
-          {autoAssignResult.assignments.length > 0 && (
+          {Array.isArray(autoAssignResult.assignments) && autoAssignResult.assignments.length > 0 && (
             <Stack spacing={0.5}>
               {autoAssignResult.assignments.map((a: any) => (
                 <Stack key={a.visit_id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
@@ -466,6 +482,7 @@ export default function CallAssignmentBoard() {
             assignVisit.mutate({ visitId, staffId })
             setSelectedForAssign(null)
           }}
+          onUnassignVisit={(visitId) => assignVisit.mutate({ visitId, staffId: null })}
         />
       ) : (
         <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3} sx={{ alignItems: 'stretch' }}>
@@ -473,14 +490,18 @@ export default function CallAssignmentBoard() {
           <Paper
             elevation={0}
             sx={{
-              flex: '0 0 380px', p: 2.5, border: '2px solid', borderColor: draggedVisitId ? '#0F4C81' : 'grey.200',
+              flex: '0 0 380px', p: 2.5, border: '2px solid', borderColor: draggedVisitId ? '#0F4C81' : 'divider',
               borderRadius: 2, transition: 'border-color 0.2s', overflow: 'auto', maxHeight: 'calc(100vh - 160px)',
             }}
             ref={dropRef}
+            data-testid="unassigned-drop-zone"
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropTargetCarer('__unassigned') }}
+            onDragLeave={() => setDropTargetCarer(null)}
+            onDrop={handleDropUnassigned}
           >
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#D97706' }}>
-                Unassigned calls
+                Unassigned calls · drop here to unassign
               </Typography>
               <Chip
                 label={unassigned.length}
@@ -489,8 +510,7 @@ export default function CallAssignmentBoard() {
               />
             </Stack>
 
-            {unassigned.length === 0 ? (
-              <Box sx={{ py: 6, textAlign: 'center' }}>
+            {unassigned.length === 0 ? (                <Box sx={{ py: 6, textAlign: 'center', bgcolor: dropTargetCarer === '__unassigned' ? 'action.hover' : 'transparent', borderRadius: 2 }}>
                 <CheckIcon sx={{ fontSize: 36, color: '#10B981', mb: 1 }} />
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>All calls are assigned</Typography>
               </Box>
@@ -539,6 +559,8 @@ export default function CallAssignmentBoard() {
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
                   onClick={() => handleCarerClick(carerId)}
                   expandedVisit={expandedVisit}
                   onExpand={(id: string) => setExpandedVisit(expandedVisit === id ? null : id)}
@@ -568,7 +590,7 @@ export default function CallAssignmentBoard() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAutoAssignDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleBulkAutoAssign} disabled={autoAssigning} startIcon={autoAssigning ? <CircularProgress size={16} color="inherit" /> : <AutoAwesome />} sx={{ textTransform: 'none', bgcolor: '#6366F1', '&:hover': { bgcolor: '#4F46E5' } }}>
+          <Button size="small" variant="contained" onClick={handleBulkAutoAssign} disabled={autoAssigning} startIcon={autoAssigning ? <CircularProgress size={15} color="inherit" /> : <AutoAwesome sx={{ fontSize: 16 }} />} sx={{ minHeight: 34, textTransform: 'none', bgcolor: '#6366F1', '&:hover': { bgcolor: '#4F46E5' } }}>
             {autoAssigning ? 'Assigning…' : `Assign ${unassigned.length} calls`}
           </Button>
         </DialogActions>
@@ -578,33 +600,23 @@ export default function CallAssignmentBoard() {
 }
 
 /* ─── Gantt Timeline View ─────────────────────────────────── */
-function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVisit, onAssignVisit }: {
+function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVisit, onAssignVisit, onUnassignVisit }: {
   unassigned: any[]; carerEntries: [string, { name: string; visits: any[] }][]
   selectedForAssign: string | null; onSelectVisit: (id: string) => void
   onAssignVisit: (visitId: string, staffId: string) => void
+  onUnassignVisit: (visitId: string) => void
 }) {
-  const HOUR_HEIGHT = 60 // px per hour
   const START_HOUR = 6
   const END_HOUR = 22
   const TOTAL_HOURS = END_HOUR - START_HOUR
   const LABEL_WIDTH = 160 // px for carer name column
 
-  const timeToY = (dateStr: string) => {
-    const d = new Date(dateStr)
-    const h = d.getHours() + d.getMinutes() / 60
-    return Math.max(0, (h - START_HOUR) * HOUR_HEIGHT)
-  }
-
-  const visitHeight = (v: any) => {
-    const start = new Date(v.scheduled_start).getTime()
-    const end = new Date(v.scheduled_end).getTime()
-    return Math.max(20, ((end - start) / 3600000) * HOUR_HEIGHT)
-  }
-
   // Current time indicator
   const now = new Date()
   const currentHour = now.getHours() + now.getMinutes() / 60
   const showNowLine = currentHour >= START_HOUR && currentHour <= END_HOUR
+  const [draggedTimelineVisit, setDraggedTimelineVisit] = useState<string | null>(null)
+  const [timelineDropRow, setTimelineDropRow] = useState<string | null>(null)
   const rows: { id: string; name: string; visits: any[]; isUnassigned?: boolean }[] = [
     { id: '__unassigned', name: 'Unassigned', visits: unassigned, isUnassigned: true },
     ...carerEntries.map(([id, data]) => ({ id, name: data.name, visits: data.visits })),
@@ -624,7 +636,7 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
                 const h = START_HOUR + i
                 return (
                   <Box key={h} sx={{ width: 60, flexShrink: 0, textAlign: 'center', py: 1, borderRight: '1px solid #F3F4F6' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.65rem' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.65rem' }}>
                       {String(h).padStart(2, '0')}:00
                     </Typography>
                   </Box>
@@ -636,7 +648,21 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
 
         {/* Rows */}
         {rows.map((row) => (
-          <Box key={row.id} sx={{ display: 'flex', borderBottom: '1px solid #F3F4F6', minHeight: ROW_HEIGHT }}>
+          <Box
+            key={row.id}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setTimelineDropRow(row.id) }}
+            onDragLeave={() => setTimelineDropRow(null)}
+            onDrop={(e) => {
+              e.preventDefault()
+              const visitId = draggedTimelineVisit || e.dataTransfer.getData('text/plain') || selectedForAssign
+              if (!visitId) return
+              if (row.isUnassigned) onUnassignVisit(visitId)
+              else onAssignVisit(visitId, row.id)
+              setDraggedTimelineVisit(null)
+              setTimelineDropRow(null)
+            }}
+            sx={{ display: 'flex', borderBottom: '1px solid', borderColor: 'divider', minHeight: ROW_HEIGHT, bgcolor: timelineDropRow === row.id ? 'action.hover' : 'transparent', transition: 'background-color 140ms ease' }}
+          >
             {/* Carer name */}
             <Box sx={{
               width: LABEL_WIDTH, flexShrink: 0, borderRight: '1px solid #E5E7EB',
@@ -646,6 +672,16 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
               '&:hover': selectedForAssign && !row.isUnassigned ? { bgcolor: '#EFF6FF' } : {},
               transition: 'background 0.15s',
             }}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setTimelineDropRow(row.id) }}
+              onDrop={(e) => {
+                e.preventDefault()
+                const visitId = draggedTimelineVisit || e.dataTransfer.getData('text/plain') || selectedForAssign
+                if (!visitId) return
+                if (row.isUnassigned) onUnassignVisit(visitId)
+                else onAssignVisit(visitId, row.id)
+                setDraggedTimelineVisit(null)
+                setTimelineDropRow(null)
+              }}
               onClick={() => {
                 if (selectedForAssign && !row.isUnassigned) onAssignVisit(selectedForAssign, row.id)
               }}
@@ -671,14 +707,13 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
               ))}
 
               {/* Current time line */}
-              {showNowLine && row.id === rows[0].id && (
+              {showNowLine && (
                 <Box sx={{ position: 'absolute', left: (currentHour - START_HOUR) * 60, top: 0, bottom: 0, width: 2, bgcolor: '#DC2626', zIndex: 3, '&::before': { content: '""', position: 'absolute', top: -4, left: -3, width: 8, height: 8, borderRadius: '50%', bgcolor: '#DC2626' } }} />
               )}
 
               {/* Visit bars */}
               {row.visits.map((v: any) => {
-                const startY = timeToY(v.scheduled_start)
-                const height = visitHeight(v)
+                const durationWidth = Math.max(44, ((new Date(v.scheduled_end).getTime() - new Date(v.scheduled_start).getTime()) / 3600000) * 60)
                 const cfg = statusConfig[v.status] || statusConfig.scheduled
                 const isSelected = selectedForAssign === v.id
                 const startLeft = (() => {
@@ -688,23 +723,26 @@ function GanttTimeline({ unassigned, carerEntries, selectedForAssign, onSelectVi
                 })()
 
                 return (
-                  <Tooltip key={v.id} title={`${v.person_name} · ${time(v.scheduled_start)}–${time(v.scheduled_end)} · ${v.label}${row.isUnassigned ? ' (click a carer to assign)' : ''}`} arrow placement="top">
+                  <Tooltip key={v.id} title={`${v.person_name} · ${time(v.scheduled_start)}–${time(v.scheduled_end)} · ${v.label}${row.isUnassigned ? ' (drag to a carer)' : ' (drag to another carer or Unassigned)'}`} arrow placement="top">
                     <Box
+                      draggable
+                      onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', v.id); setDraggedTimelineVisit(v.id) }}
+                      onDragEnd={() => setDraggedTimelineVisit(null)}
                       onClick={() => row.isUnassigned ? onSelectVisit(v.id) : undefined}
                       sx={{
                         position: 'absolute',
                         left: startLeft,
-                        top: startY + 2,
-                        height: Math.max(height - 4, 18),
-                        width: 56,
-                        minWidth: 56,
+                        top: 10,
+                        height: ROW_HEIGHT - 20,
+                        width: durationWidth,
+                        minWidth: durationWidth,
                         bgcolor: isSelected ? '#DBEAFE' : cfg.bg,
                         border: `1.5px solid ${isSelected ? '#0F4C81' : cfg.color}40`,
                         borderLeft: `3px solid ${cfg.color}`,
                         borderRadius: 1,
                         px: 0.75,
                         py: 0.25,
-                        cursor: row.isUnassigned ? 'pointer' : 'default',
+                        cursor: 'grab',
                         overflow: 'hidden',
                         zIndex: 1,
                         transition: 'all 0.15s',
@@ -850,11 +888,11 @@ function DraggableVisitCard({
 /* ─── Carer Drop Zone (right column) ──────────────────────── */
 function CarerDropZone({
   carerId, name, visits, isDropTarget, isClickable,
-  onDragOver, onDragLeave, onDrop, onClick,
+  onDragOver, onDragLeave, onDrop, onClick, onDragStart, onDragEnd,
   expandedVisit, onExpand, newTaskLabel, onNewTaskLabelChange,
   onAddTask, onToggleTask, onDeleteTask, isAddingTask, onUnassign,
 }: any) {
-  const sorted = [...visits].sort((a: any, b: any) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())
+  const sorted = useMemo(() => [...visits].sort((a: any, b: any) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime()), [visits])
   const [travelTimes, setTravelTimes] = useState<Record<string, { duration_minutes: number; distance_km: number }>>({})
 
   // Fetch travel times between consecutive visits
@@ -896,6 +934,7 @@ function CarerDropZone({
   return (
     <Paper
       elevation={0}
+      data-testid={`carer-drop-zone-${carerId}`}
       onDragOver={(e: any) => onDragOver(e, carerId)}
       onDragLeave={onDragLeave}
       onDrop={() => onDrop(carerId)}
@@ -969,6 +1008,9 @@ function CarerDropZone({
                   </Box>
                 )}
                 <Stack
+                  draggable
+                  onDragStart={(e: any) => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', v.id); onDragStart(v.id) }}
+                  onDragEnd={onDragEnd}
                   direction="row" alignItems="center" spacing={1}
                   sx={{
                     py: 0.75, px: 1, bgcolor: 'grey.50', borderRadius: 1, cursor: 'pointer',

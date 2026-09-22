@@ -88,14 +88,24 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
       MuiButton: {
         styleOverrides: {
           root: {
-            padding: '10px 24px',
-            borderRadius: 14,
+            minHeight: 40,
+            padding: '10px 18px',
+            borderRadius: 12,
             boxShadow: 'none',
-            '&:hover': { boxShadow: '0 4px 12px rgba(26, 35, 50, 0.06)' },
+            fontWeight: 700,
+            transition: 'background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
+            '&:hover': { boxShadow: mode === 'dark' ? '0 4px 14px rgba(0,0,0,0.28)' : '0 4px 12px rgba(26, 35, 50, 0.08)', transform: 'translateY(-1px)' },
+            '&:active': { transform: 'translateY(0)' },
+            '&.Mui-disabled': { opacity: 0.55 },
           },
           contained: {
-            backgroundColor: '#1A2332',
-            '&:hover': { backgroundColor: '#0F172A' },
+            backgroundColor: mode === 'dark' ? '#34D399' : primary,
+            color: mode === 'dark' ? '#07131A' : '#FFFFFF',
+            '&:hover': { backgroundColor: mode === 'dark' ? '#6EE7B7' : (primary === '#1A2332' ? '#0F172A' : primary) },
+          },
+          outlined: {
+            borderColor: mode === 'dark' ? '#64748B' : '#CBD5E1',
+            '&:hover': { borderColor: mode === 'dark' ? '#34D399' : primary, backgroundColor: mode === 'dark' ? 'rgba(52,211,153,0.08)' : 'rgba(26,35,50,0.04)' },
           },
         },
       },
@@ -122,7 +132,26 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
           root: {
             '& .MuiOutlinedInput-root': {
               borderRadius: 14,
+              color: mode === 'dark' ? '#F8FAFC' : '#1A2332',
+              backgroundColor: mode === 'dark' ? '#111827' : '#FFFFFF',
+              '& fieldset': { borderColor: mode === 'dark' ? '#64748B' : '#CBD5E1' },
+              '&:hover fieldset': { borderColor: mode === 'dark' ? '#94A3B8' : '#64748B' },
+              '&.Mui-focused fieldset': { borderColor: mode === 'dark' ? '#34D399' : primary, borderWidth: 2 },
             },
+            '& .MuiInputBase-input': {
+              color: mode === 'dark' ? '#F8FAFC' : '#1A2332',
+              '&::placeholder': { color: mode === 'dark' ? '#94A3B8' : '#64748B', opacity: 1 },
+            },
+            '& .MuiInputLabel-root': { color: mode === 'dark' ? '#CBD5E1' : '#475569' },
+            '& .MuiInputLabel-root.Mui-focused': { color: mode === 'dark' ? '#6EE7B7' : primary },
+          },
+        },
+      },
+      MuiInputBase: {
+        styleOverrides: {
+          root: {
+            color: mode === 'dark' ? '#F8FAFC' : '#1A2332',
+            '& input, & textarea': { color: mode === 'dark' ? '#F8FAFC' : '#1A2332' },
           },
         },
       },
@@ -135,8 +164,17 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
       },
       MuiCssBaseline: {
         styleOverrides: {
+          html: { colorScheme: mode },
           body: {
-            scrollbarColor: mode === 'dark' ? '#334155 #1E293B' : undefined,
+            scrollbarColor: mode === 'dark' ? '#64748B #111827' : undefined,
+            backgroundColor: mode === 'dark' ? '#0B1220' : '#F7F9F7',
+            color: mode === 'dark' ? '#F8FAFC' : '#1A2332',
+          },
+          '*, *::before, *::after': { borderColor: mode === 'dark' ? '#334155' : undefined },
+          'input::placeholder, textarea::placeholder': { color: mode === 'dark' ? '#94A3B8' : '#64748B', opacity: 1 },
+          'input:-webkit-autofill': {
+            WebkitBoxShadow: `0 0 0 1000px ${mode === 'dark' ? '#111827' : '#FFFFFF'} inset`,
+            WebkitTextFillColor: mode === 'dark' ? '#F8FAFC' : '#1A2332',
           },
         },
       },

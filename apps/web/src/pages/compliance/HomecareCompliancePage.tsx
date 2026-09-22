@@ -140,21 +140,46 @@ export default function HomecareCompliancePage() {
   const navigate = useNavigate()
   const [expandedKloe, setExpandedKloe] = useState<string | null>(null)
 
-  const { data, isLoading, isError, refetch, isFetching } = useQuery<ComplianceData>({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery<ComplianceData>({
     queryKey: ['homecare-compliance'],
     queryFn: async () => {
-      const res = await api.get('/cqc/homecare-compliance')
+      const res = await api.get('/cqc/homecare-compliance', { timeout: 20_000 })
       return res.data
     },
     refetchInterval: 120_000,
+    retry: 1,
   })
 
   if (isLoading) {
-    return <PageContainer><Box sx={{ display: 'flex', justifyContent: 'center', py: 12 }}><CircularProgress /></Box></PageContainer>
+    return (
+      <PageContainer>
+        <Box role="status" aria-live="polite" sx={{ minHeight: '60vh', display: 'grid', placeItems: 'center' }}>
+          <Stack spacing={2} alignItems="center">
+            <CircularProgress size={36} />
+            <Typography color="text.secondary">Loading compliance overview…</Typography>
+          </Stack>
+        </Box>
+      </PageContainer>
+    )
   }
 
   if (isError || !data) {
-    return <PageContainer><Box sx={{ textAlign: 'center', py: 8 }}><Typography color="error">Failed to load compliance data</Typography></Box></PageContainer>
+    const status = (error as any)?.response?.status
+    return (
+      <PageContainer>
+        <Box role="alert" sx={{ minHeight: '60vh', display: 'grid', placeItems: 'center', textAlign: 'center', px: 2 }}>
+          <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>Compliance overview unavailable</Typography>
+            <Typography color="text.secondary">
+              {status === 403
+                ? 'Your organisation does not have access to this compliance view.'
+                : 'We could not retrieve the latest compliance data. Check your connection and try again.'}
+            </Typography>
+            {status !== 403 && <Button variant="contained" onClick={() => refetch()} disabled={isFetching}>Try again</Button>}
+          </Stack>
+        </Box>
+      </PageContainer>
+    )
   }
 
   const d = data

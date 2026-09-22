@@ -35,11 +35,12 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
            COALESCE(v.check_in_latitude, v.check_out_latitude) AS latitude,
            COALESCE(v.check_in_longitude, v.check_out_longitude) AS longitude,
            pe.first_name || ' ' || pe.last_name AS person_name,
-           pe.address AS person_address,
+           l.address AS person_address,
            sp.first_name || ' ' || sp.last_name AS carer_name,
            v.assigned_staff_id AS carer_id
     FROM homecare_visits v
     JOIN people pe ON pe.id = v.person_id
+    LEFT JOIN locations l ON l.id = pe.location_id
     LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
     WHERE v.organization_id = $1
       AND v.scheduled_start >= $2

@@ -140,6 +140,21 @@ export default function LocationDetailPage() {
   })
   const location = locations?.find((l: any) => l.id === locationId)
 
+  const { data: orgSettings } = useQuery({
+    queryKey: ['settings-org'],
+    queryFn: async () => (await api.get('/settings/org')).data,
+  })
+  const isDomiciliary = orgSettings?.primary_service_type
+    ? ['domiciliary', 'live_in'].includes(orgSettings.primary_service_type)
+    : (orgSettings?.service_types || []).some((type: string) => ['domiciliary', 'live_in'].includes(type))
+  const showResidentialTabs = orgSettings !== undefined && !isDomiciliary
+
+  const { data: areaSummary } = useQuery({
+    queryKey: ['area-summary', locationId],
+    queryFn: async () => (await api.get(`/settings/locations/${locationId}/area-summary`)).data,
+    enabled: !!locationId && isDomiciliary,
+  })
+
   const { data: staff, isLoading: staffLoading } = useQuery({
     queryKey: ['settings-staff'],
     queryFn: async () => {
@@ -155,7 +170,7 @@ export default function LocationDetailPage() {
       const res = await api.get(`/settings/locations/${locationId}/certificates`)
       return res.data as any[]
     },
-    enabled: !!locationId,
+    enabled: !!locationId && showResidentialTabs,
   })
 
   const certMutation = useMutation({
@@ -307,10 +322,10 @@ export default function LocationDetailPage() {
   ]
 
   const tabs = [
-    { id: TAB_OVERVIEW, label: 'Overview', icon: <BuildingIcon /> },
-    { id: TAB_HEALTH_SAFETY, label: 'Health & Safety', icon: <WarningAmberIcon /> },
-    { id: TAB_STAFF, label: 'Staff', icon: <BadgeIcon /> },
-    { id: TAB_CERTIFICATES, label: 'Certificates', icon: <VerifiedIcon /> },
+    { id: TAB_OVERVIEW, label: isDomiciliary ? 'Area operations' : 'Overview', icon: <BuildingIcon /> },
+    ...(showResidentialTabs ? [{ id: TAB_HEALTH_SAFETY, label: 'Health & Safety', icon: <WarningAmberIcon /> }] : []),
+    { id: TAB_STAFF, label: isDomiciliary ? 'Carers' : 'Staff', icon: <BadgeIcon /> },
+    ...(showResidentialTabs ? [{ id: TAB_CERTIFICATES, label: 'Certificates', icon: <VerifiedIcon /> }] : []),
   ]
 
   return (
@@ -320,9 +335,8 @@ export default function LocationDetailPage() {
           <Box sx={{ width: 72, height: 72, borderRadius: 2, bgcolor: '#0F4C8110', color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <BuildingIcon sx={{ fontSize: 36 }} />
           </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
-              Location
+          <Box sx={{ flex: 1, minWidth: 0 }}>              <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
+              {isDomiciliary ? 'Care area' : 'Location'}
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 0.5 }}>
               <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
@@ -354,14 +368,14 @@ export default function LocationDetailPage() {
             <Typography variant="caption" color="text.secondary">Staff assigned</Typography>
           </Box>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, lineHeight: 1.1 }}>{certificates?.length ?? 0}</Typography>
-            <Typography variant="caption" color="text.secondary">Certificates</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, lineHeight: 1.1 }}>{isDomiciliary ? (areaSummary?.workload_hours_next_7_days ?? '—') : (certificates?.length ?? 0)}</Typography>
+            <Typography variant="caption" color="text.secondary">{isDomiciliary ? 'Workload hours / 7 days' : 'Certificates'}</Typography>
           </Box>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 900, color: noManager ? '#D97706' : '#16A34A', lineHeight: 1.1 }}>
-              {noManager ? '—' : 'Assigned'}
+            <Typography variant="h5" sx={{ fontWeight: 900, color: isDomiciliary ? NAVY : (noManager ? '#D97706' : '#16A34A'), lineHeight: 1.1 }}>
+              {isDomiciliary ? (areaSummary ? `£${(areaSummary.estimated_revenue_pence_this_month / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}` : '—') : (noManager ? '—' : 'Assigned')}
             </Typography>
-            <Typography variant="caption" color="text.secondary">Manager</Typography>
+            <Typography variant="caption" color="text.secondary">{isDomiciliary ? 'Est. revenue this month' : 'Manager'}</Typography>
           </Box>
         </Stack>
       </Paper>
@@ -380,13 +394,51 @@ export default function LocationDetailPage() {
         </Tabs>
       </Paper>
 
-      {noManager && tab === TAB_OVERVIEW && (
+      {noManager && tab === TAB_OVERVIEW && !isDomiciliary && (
         <Alert severity="warning" icon={<WarningAmberIcon />} sx={{ mb: 3 }}>
           This location has no manager assigned. Every location should have a MANAGER so cover, leave approvals and medication escalations are reviewed. Org admins are notified automatically.
         </Alert>
       )}
 
-      {tab === TAB_OVERVIEW && (
+      {isDomiciliary && tab === TAB_OVERVIEW && (
+        <Stack spacing={3}>
+          <Paper sx={{ p: 3.5, borderRadius: 2 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
+              Area operations
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+              A live operating view for {location.name}. Areas group clients and carers by geography; they do not represent residential premises or regulated accommodation.
+            </Typography>
+            <Grid container spacing={2}>
+              {[
+                { label: 'Active clients', value: areaSummary?.active_clients ?? '—', detail: 'Clients served in this area' },
+                { label: 'Carers covering area', value: areaSummary?.active_carers ?? '—', detail: 'Active carers assigned here' },
+                { label: 'Visits today', value: areaSummary?.visits_today ?? '—', detail: `${areaSummary?.completed_today ?? 0} completed · ${areaSummary?.missed_today ?? 0} missed` },
+                { label: 'Open calls', value: areaSummary?.open_calls ?? '—', detail: 'Extra work available to carers' },
+                { label: 'Next 7 days', value: areaSummary ? `${areaSummary.workload_hours_next_7_days}h` : '—', detail: 'Scheduled care workload' },
+                { label: 'Estimated revenue', value: areaSummary ? `£${(areaSummary.estimated_revenue_pence_this_month / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}` : '—', detail: 'Scheduled this month, before adjustments' },
+              ].map(metric => (
+                <Grid item xs={12} sm={6} md={4} key={metric.label}>
+                  <Box sx={{ p: 2.25, border: '1px solid', borderColor: 'divider', borderRadius: 2, height: '100%' }}>
+                    <Typography variant="h5" sx={{ fontWeight: 900 }}>{metric.value}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5 }}>{metric.label}</Typography>
+                    <Typography variant="caption" color="text.secondary">{metric.detail}</Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </Paper>
+          <Paper sx={{ p: 3.5, borderRadius: 2 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Today’s delivery</Typography>
+              <Chip label={areaSummary?.completion_rate_today == null ? 'No visits yet' : `${areaSummary.completion_rate_today}% complete`} color={areaSummary?.completion_rate_today != null && areaSummary.completion_rate_today >= 90 ? 'success' : 'default'} size="small" />
+            </Stack>
+            <Typography variant="body2" color="text.secondary">Use Open Calls to fill gaps in coverage and keep workload balanced across Cardiff, Cathays and other service areas.</Typography>
+          </Paper>
+        </Stack>
+      )}
+
+      {tab === TAB_OVERVIEW && !isDomiciliary && (
         <Paper sx={{ p: 3.5, borderRadius: 2 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
             <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase' }}>
@@ -463,7 +515,7 @@ export default function LocationDetailPage() {
         </Paper>
       )}
 
-      {tab === TAB_HEALTH_SAFETY && (() => {
+      {showResidentialTabs && tab === TAB_HEALTH_SAFETY && (() => {
         const certs = certificates || []
         const now = new Date()
         const expired = certs.filter(c => c.expiry_date && new Date(c.expiry_date) < now)
@@ -586,7 +638,7 @@ export default function LocationDetailPage() {
         </Paper>
       )}
 
-      {tab === TAB_CERTIFICATES && (
+      {showResidentialTabs && tab === TAB_CERTIFICATES && (
         <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2.5, pb: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Location Certificates</Typography>

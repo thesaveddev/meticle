@@ -3,9 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { ThemeModeProvider, useThemeMode, STORAGE_KEY_ZOOM, DEFAULT_ZOOM, ZOOM_OPTIONS } from './ThemeContext'
 
 function Probe() {
-  const { zoomScale, setZoomScale } = useThemeMode()
+  const { mode, toggleTheme, zoomScale, setZoomScale } = useThemeMode()
   return (
     <div>
+      <span data-testid="mode">{mode}</span>
+      <button onClick={toggleTheme}>toggle theme</button>
       <span data-testid="zoom">{zoomScale}</span>
       <button onClick={() => setZoomScale(1.5)}>set 1.5</button>
       <button onClick={() => setZoomScale(0.85)}>set 0.85</button>
@@ -34,6 +36,15 @@ describe('ThemeModeProvider zoom scale', () => {
     window.localStorage.clear()
     document.documentElement.style.removeProperty('--app-zoom')
     ;(document.documentElement.style as any).zoom = ''
+  })
+
+  it('toggles dark mode, updates the document theme and persists it', () => {
+    renderProvider()
+    expect(screen.getByTestId('mode')).toHaveTextContent('light')
+    fireEvent.click(screen.getByRole('button', { name: 'toggle theme' }))
+    expect(screen.getByTestId('mode')).toHaveTextContent('dark')
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(window.localStorage.getItem('theme-mode')).toBe('dark')
   })
 
   it('applies the default zoom and persists it on mount', () => {

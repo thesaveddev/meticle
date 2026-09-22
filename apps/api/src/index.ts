@@ -77,7 +77,7 @@ import { errorHandler, notFoundHandler } from './shared/middleware/error.middlew
 import { authenticate } from './shared/middleware/auth.middleware';
 import { asyncHandler } from './shared/middleware/asyncHandler';
 import { rlsMiddleware } from './shared/middleware/rls.middleware';
-import { requireCareOrganisation, requireSupportedLivingOnly, requireDomiciliaryOnly } from './shared/middleware/requireServiceType';
+import { requireCareOrganisation, requireSupportedLivingOnly, requireDomiciliaryOnly, requireOpenCallAccess } from './shared/middleware/requireServiceType';
 import { initSocketServer, closeSocketServer } from './shared/socket';
 import { setupSwagger } from './shared/swagger';
 import { healthCheck } from './shared/database';
@@ -229,7 +229,7 @@ app.use('/organizations', orgRoutes);
 app.use('/organizations', invitationRoutes);
 app.use('/staff', staffRoutes);
 app.use('/compliance', complianceRoutes);
-app.use('/shifts', authenticate, requireSupportedLivingOnly, schedulingRoutes);
+app.use('/shifts', authenticate, requireOpenCallAccess, schedulingRoutes);
 app.use('/marketplace', marketplaceRoutes);
 app.use('/reporting', reportingRoutes);
 app.use('/insights', insightsRoutes);

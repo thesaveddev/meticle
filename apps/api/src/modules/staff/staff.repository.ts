@@ -21,7 +21,9 @@ export class StaffRepository {
   }
 
   static async getProfileByUserId(userId: string): Promise<StaffProfileRow | null> {
-    const result = await query('SELECT * FROM staff_profiles WHERE user_id = $1', [userId]);
+    const result = await query(`SELECT sp.*, pp.name AS pay_profile_name, pp.hourly_rate_pence AS pay_profile_hourly_rate_pence
+      FROM staff_profiles sp LEFT JOIN homecare_pay_profiles pp ON pp.id = sp.pay_profile_id
+      WHERE sp.user_id = $1`, [userId]);
     return result.rows[0] || null;
   }
 

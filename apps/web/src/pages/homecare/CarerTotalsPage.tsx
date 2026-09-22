@@ -52,6 +52,26 @@ const fmtH = (m: number) => { const mins = Number(m || 0); const h = Math.floor(
 const fmtM = (m: number) => `${Number(m || 0).toFixed(1)} mi`
 const fmtD = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 const fmtT = (d: string) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+const displayText = (value: unknown, fallback = '—') => {
+  if (typeof value === 'string' || typeof value === 'number') return String(value)
+  return fallback
+}
+const normaliseCarerTotal = (row: any): CarerTotal => ({
+  ...row,
+  staff_id: displayText(row?.staff_id, ''),
+  staff_name: displayText(row?.staff_name, 'Unnamed carer'),
+  visit_count: Number(row?.visit_count || 0),
+  total_work_minutes: Number(row?.total_work_minutes || 0),
+  total_travel_minutes: Number(row?.total_travel_minutes || 0),
+  total_paid_travel_minutes: Number(row?.total_paid_travel_minutes || 0),
+  total_mileage_miles: Number(row?.total_mileage_miles || 0),
+  total_gross_pay_pence: Number(row?.total_gross_pay_pence || 0),
+  approved_gross_pence: Number(row?.approved_gross_pence || 0),
+  pending_count: Number(row?.pending_count || 0),
+  approved_count: Number(row?.approved_count || 0),
+  rejected_count: Number(row?.rejected_count || 0),
+  exception_count: Number(row?.exception_count || 0),
+})
 
 function getMonthRange(monthsBack = 0) {
   const now = new Date()
@@ -89,7 +109,7 @@ function StatCard({ icon, label, value, color, onClick, accent }: {
 /* ── Carer Card ── */
 function CarerCard({ carer, onClick }: { carer: CarerTotal; onClick: () => void }) {
   const hasIssues = carer.exception_count > 0 || carer.rejected_count > 0
-  const initials = carer.staff_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  const initials = displayText(carer.staff_name, 'UC').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 
   return (
     <Paper
@@ -173,7 +193,8 @@ export default function CarerTotalsPage() {
     setLoading(true); setError('')
     try {
       const res = await api.get(`/homecare/timesheets/monthly-totals?from=${from}&to=${to}`)
-      setTotals(res.data)
+      const rows = Array.isArray(res.data) ? res.data : []
+      setTotals(rows.map(normaliseCarerTotal))
     } catch (err: any) { setError(err.response?.data?.message || 'Failed to load carer totals') }
     finally { setLoading(false) }
   }
@@ -222,7 +243,7 @@ export default function CarerTotalsPage() {
       })
       const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
       const link = document.createElement('a'); link.href = url
-      link.download = `payslip-${selectedCarer.staff_name.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase()}-${from.slice(0, 7)}.pdf`
+      link.download = `payslip-${displayText(selectedCarer.staff_name, 'carer').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase()}-${from.slice(0, 7)}.pdf`
       document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url)
     } catch (err: any) {
       setError(err.response?.data instanceof Blob ? 'Could not create this payslip' : err.response?.data?.message || 'Could not create this payslip')
@@ -249,8 +270,8 @@ export default function CarerTotalsPage() {
           {view !== 'overview' && <IconButton onClick={goBack} sx={{ color: '#0F4C81' }}><BackIcon /></IconButton>}
           <TrendingIcon sx={{ color: '#10b981', fontSize: 28 }} />
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>
-              {view === 'carer-detail' ? selectedCarer?.staff_name || 'Carer Details' :
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>               {view === 'carer-detail' ? displayText(selectedCarer?.staff_name, 'Carer Details') :
+
                view === 'pending-approvals' ? 'Pending Approvals' : 'Carer Totals'}
             </Typography>
             <Typography variant="body2" sx={{ color: '#94A3B8' }}>

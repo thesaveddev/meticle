@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { Box, Button, Chip, Paper, Stack, Typography, Skeleton } from '@mui/material'
+import { Box, Chip, Paper, Stack, Typography, Skeleton } from '@mui/material'
 import { Refresh as RefreshIcon, MyLocation as LocationIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
 import PageContainer from '../../components/design/PageContainer'
+import AppButton from '../../components/design/AppButton'
 import 'leaflet/dist/leaflet.css'
 
 // Preconnect to tile server for faster loading
@@ -169,27 +170,54 @@ function SimpleMap({ visits, centre }: { visits: MapVisit[]; centre: { lat: numb
 export default function LiveMapPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const [loadTimedOut, setLoadTimedOut] = useState(false)
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['homecare-live-map', refreshKey],
-    queryFn: () => api.get('/dashboard/live-map').then(r => r.data as LiveMapData),
+    queryFn: () => api.get('/dashboard/live-map', { timeout: 20_000 }).then(r => r.data as LiveMapData),
     refetchInterval: autoRefresh ? 30000 : false, // Auto-refresh every 30s
+    retry: 1,
   })
+
+  // Never leave managers looking at an indefinite loading state if the API or
+  // network is unavailable. The request itself is also bounded below.
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadTimedOut(false)
+      return
+    }
+    const timer = window.setTimeout(() => setLoadTimedOut(true), 12000)
+    return () => window.clearTimeout(timer)
+  }, [isLoading, refreshKey])
 
   const allVisits = useMemo(() => {
     if (!data) return []
     return [...data.active_visits, ...data.scheduled_visits]
   }, [data])
 
-  if (isLoading) {
+  if (isLoading && !loadTimedOut) {
     return (
-      <Box>
+      <PageContainer>
         <Box sx={{ mb: 3 }}>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Live Map</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Loading map…</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Loading live visit data…</Typography>
         </Box>
         <Skeleton variant="rounded" height={480} sx={{ borderRadius: 2 }} />
-      </Box>
+      </PageContainer>
+    )
+  }
+
+  if (isError || !data || loadTimedOut) {
+    return (
+      <PageContainer>
+        <Box sx={{ minHeight: '60vh', display: 'grid', placeItems: 'center', px: 2 }}>
+          <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520, textAlign: 'center' }}>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>Live map unavailable</Typography>
+            <Typography color="text.secondary">{loadTimedOut && !error ? 'The live visit service is taking too long to respond.' : (error as any)?.response?.data?.message || 'We could not load the live visit data.'}</Typography>
+            <AppButton loading={isFetching && !loadTimedOut} onClick={() => refetch()}>Try again</AppButton>
+          </Stack>
+        </Box>
+      </PageContainer>
     )
   }
 
@@ -203,23 +231,12 @@ export default function LiveMapPage() {
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            sx={{ textTransform: 'none', borderColor: autoRefresh ? '#10b981' : '#E5E7EB', color: autoRefresh ? '#047857' : '#374151' }}
-          >
+          <AppButton variant="secondary" size="small" onClick={() => setAutoRefresh(!autoRefresh)}>
             {autoRefresh ? 'Auto-refresh on' : 'Auto-refresh off'}
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<RefreshIcon />}
-            onClick={() => { setRefreshKey(k => k + 1); refetch() }}
-            sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: 'text.primary' }}
-          >
+          </AppButton>
+          <AppButton variant="secondary" size="small" startIcon={<RefreshIcon />} loading={isFetching} onClick={() => { setRefreshKey(k => k + 1); refetch() }}>
             Refresh
-          </Button>
+          </AppButton>
         </Stack>
       </Stack>
 

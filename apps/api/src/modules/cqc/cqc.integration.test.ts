@@ -33,6 +33,18 @@ describe('CQC — readiness, frameworks, action items', () => {
     expect(gap.status).toBe(200)
   })
 
+  it('should return the domiciliary compliance dashboard without a schema error', async () => {
+    const org = await createOrg({ service_types: ['domiciliary'] })
+    const admin = await createUser({ email: `homecare-cqc-${Date.now()}@test.com`, password: 'TestPass123!', role: 'ORG_ADMIN', organization_id: org.id })
+    const response = await request(app)
+      .get('/cqc/homecare-compliance')
+      .set('Authorization', `Bearer ${generateToken(admin)}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body).toHaveProperty('visitCompletion')
+    expect(response.body).toHaveProperty('riskAssessments')
+  })
+
   it('should create, list, update and delete an action item as MANAGER', async () => {
     const org = await createOrg()
     const mgr = await createUser({ email: `cqc2-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })

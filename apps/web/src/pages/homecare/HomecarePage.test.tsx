@@ -30,16 +30,16 @@ describe('HomecarePage', () => {
   it('shows the manager workspaces for a manager', async () => {
     localStorage.setItem('user', JSON.stringify({ id: 'manager-1', role: 'MANAGER' }))
     renderPage()
-    expect(await screen.findByRole('heading', { name: 'Domiciliary care' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Care operations' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /care packages/i })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: /timesheets/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /travel & pay rules/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /new package/i })).toBeInTheDocument()
   })
 
   it('keeps a carer on assigned visits without manager controls', async () => {
     localStorage.setItem('user', JSON.stringify({ id: 'carer-1', role: 'CARE_WORKER' }))
     renderPage()
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Domiciliary care' })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Care operations' })).toBeInTheDocument())
     expect(screen.getByRole('tab', { name: /my visits/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /new package/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('tab', { name: /timesheets/i })).not.toBeInTheDocument()

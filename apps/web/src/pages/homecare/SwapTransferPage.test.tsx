@@ -14,7 +14,7 @@ beforeEach(() => {
   mockedApi.get.mockImplementation((url: string) => {
     if (url === '/homecare/swap-requests') return Promise.resolve({ data: [sent, received] })
     if (url === '/homecare/my-visits') return Promise.resolve({ data: [] })
-    if (url === '/homecare/staff') return Promise.resolve({ data: [] })
+    if (url === '/homecare/colleagues') return Promise.resolve({ data: [] })
     return Promise.resolve({ data: [] })
   })
 })

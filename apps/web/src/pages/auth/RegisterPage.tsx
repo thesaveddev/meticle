@@ -167,26 +167,26 @@ export default function RegisterPage() {
   usePageMeta({ title: 'Create Account | Meticle Care', description: 'Create a MeticleCare account after your organisation has been invited or approved for access.', noindex: true })
   if (invitationLoading) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'white' }}>
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
         <CircularProgress />
       </Box>
     )
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'white' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'background.default' }}>
        <Box sx={{ 
         flex: { xs: 0, md: 1 }, 
         display: { xs: 'none', md: 'flex' }, 
         flexDirection: 'column',
-        bgcolor: 'grey.50', 
+        bgcolor: 'background.paper',
         p: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRight: '1px solid #E5E7EB'
+        borderRight: '1px solid', borderColor: 'divider'
       }}>
         <Box sx={{ maxWidth: '500px' }}>
-          <Typography variant="h3" sx={{ fontWeight: 800, color: '#111827', mb: 3 }}>
+          <Typography variant="h3" sx={{ fontWeight: 800, color: 'text.primary', mb: 3 }}>
             {invitation ? `Join ${invitation.organizationName}` : 'Scale your care operations with confidence.'}
           </Typography>
           {invitation ? (
@@ -204,7 +204,7 @@ export default function RegisterPage() {
                 <Stack key={i} direction="row" spacing={2}>
                   <CheckIcon sx={{ color: '#16A34A', mt: 0.5 }} />
                   <Box>
-                    <Typography sx={{ fontWeight: 700, color: '#111827' }}>{v.t}</Typography>
+                    <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>{v.t}</Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>{v.d}</Typography>
                   </Box>
                 </Stack>
@@ -221,7 +221,7 @@ export default function RegisterPage() {
             <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
               Meticle Care
             </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
               {invitation ? 'Complete Your Registration' : 'Create Your Account'}
             </Typography>
             <Typography sx={{ color: 'text.secondary' }}>
@@ -286,7 +286,7 @@ export default function RegisterPage() {
 
               {/* Email verification section */}
               {!invitation && !emailVerified && (
-                <Box sx={{ bgcolor: 'grey.50', borderRadius: 2, p: 2, border: '1px solid', borderColor: 'grey.200' }}>
+                <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: 2, border: '1px solid', borderColor: 'grey.200' }}>
                   {!codeSent ? (
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Button
@@ -405,7 +405,7 @@ export default function RegisterPage() {
               </Box>
 
               {password && (
-                <Box sx={{ bgcolor: 'grey.50', borderRadius: 2, p: 2 }}>
+                <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: 2 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', mb: 1, display: 'block' }}>
                     Password requirements:
                   </Typography>
@@ -460,7 +460,7 @@ export default function RegisterPage() {
                 {loading ? <CircularProgress size={24} color="inherit" /> : (invitation ? 'Join Organization' : 'Create account')}
               </Button>
 
-              <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
+              <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Already have an account? <Link onClick={() => navigate('/login')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>Sign In</Link>
                 </Typography>

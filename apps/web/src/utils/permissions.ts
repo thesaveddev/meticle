@@ -31,6 +31,16 @@ const LEVEL_LABELS: Record<string, string> = {
   edit: 'Can Edit',
 }
 
+export function formatPermissionLabel(module: string): string {
+  const known = MODULE_LABELS[module]
+  if (known) return known
+  return module
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, letter => letter.toUpperCase())
+}
+
 export { MODULE_LABELS, LEVEL_LABELS }
 
 export async function fetchUserPermissions(userId: string): Promise<{ permissions: Array<{ module: string; permission_level: string }>; role: string }> {

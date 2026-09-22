@@ -1,37 +1,28 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Alert, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, MenuItem, Paper, Stack, Tab, Tabs, TextField, Typography } from '@mui/material'
-import { CheckCircle as CheckCircleIcon, DirectionsCar as DirectionsCarIcon, Download as DownloadIcon, ErrorOutline as ErrorOutlineIcon, HomeWork as HomeWorkIcon, Schedule as ScheduleIcon } from '@mui/icons-material'
+import { useMemo, useState } from 'react'
+import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Tab, Tabs, TextField, Typography } from '@mui/material'
+import { ErrorOutline as ExceptionIcon, HomeWork as PackageIcon, ReceiptLong as PayrollIcon, Schedule as ScheduleIcon } from '@mui/icons-material'
+import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { EmptyState } from '../../components/design/EmptyState'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import api from '../../services/api'
-import { enqueueHomecareAction, flushHomecareOfflineQueue, getHomecareOfflineQueue, type HomecareOfflineAction } from '../../services/homecare-offline'
-import './homecare.css'
 import PageContainer from '../../components/design/PageContainer'
+import EmptyState from '../../components/design/EmptyState'
+import api from '../../services/api'
+import './homecare.css'
 
-const money = (pence: number | null | undefined) => pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
-const dateLabel = (value: string) => new Date(value).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-const statusLabel = (status: string) => status.replace(/_/g, ' ')
-const localDateOnly = (date = new Date()) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+const money = (pence: unknown) => pence == null || pence === '' ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
+const localDate = (date = new Date()) => {
+  const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
+const dateLabel = (value: string) => new Date(value).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 export default function HomecarePage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const statusFilter = searchParams.get('status') || ''
-  const initialTab = statusFilter ? 0 : 0
-  const [tab, setTab] = useState(initialTab)
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState(0)
+  const [packageSearch, setPackageSearch] = useState('')
+  const [packageStatus, setPackageStatus] = useState('all')
+  const [packagePage, setPackagePage] = useState(0)
   const [message, setMessage] = useState('')
-  const [syncState, setSyncState] = useState<'online' | 'syncing' | 'offline' | 'failed'>(navigator.onLine ? 'online' : 'offline')
-  const [queuedActions, setQueuedActions] = useState<HomecareOfflineAction[]>(getHomecareOfflineQueue())
-  const [packageDialogOpen, setPackageDialogOpen] = useState(false)
-  const [payrollFrom, setPayrollFrom] = useState(() => localDateOnly(new Date(new Date().getFullYear(), new Date().getMonth(), 1)))
-  const [payrollTo, setPayrollTo] = useState(() => localDateOnly())
-  const [packageForm, setPackageForm] = useState({ person_id: '', name: '', start_date: localDateOnly(), funding_type: 'private', hourly_rate_pence: '', client_rate_pence: '', travel_time_paid: true, mileage_rate_pence: '' })
-  const qc = useQueryClient()
+  const [newPackage, setNewPackage] = useState<any>(null)
   const user = useMemo(() => { try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} } }, [])
   const isManager = user.role === 'ORG_ADMIN' || user.role === 'MANAGER'
   const from = new Date(); from.setHours(0, 0, 0, 0)
@@ -41,236 +32,59 @@ export default function HomecarePage() {
     queryKey: ['homecare-visits', from.toISOString().slice(0, 10), isManager],
     queryFn: () => api.get(isManager ? '/homecare/visits' : '/homecare/my-visits', { params: { from: from.toISOString(), to: to.toISOString() } }).then(r => Array.isArray(r.data) ? r.data : []),
   })
-  const { data: people = [] } = useQuery({
-    queryKey: ['homecare-people'],
-    queryFn: () => api.get('/people?status=active').then(r => Array.isArray(r.data) ? r.data : (r.data?.people || [])),
-    enabled: isManager,
-  })
-  const { data: packages = [] } = useQuery({
-    queryKey: ['homecare-packages'],
-    queryFn: () => api.get('/homecare/packages').then(r => Array.isArray(r.data) ? r.data : []),
-  })
-  const { data: timesheets = [] } = useQuery({
-    queryKey: ['homecare-timesheets'],
-    queryFn: () => api.get('/homecare/timesheets').then(r => Array.isArray(r.data) ? r.data : []),
-    enabled: isManager,
-  })
-  const { data: exceptions = [] } = useQuery({
-    queryKey: ['homecare-exceptions'],
-    queryFn: () => api.get('/homecare/exceptions').then(r => Array.isArray(r.data) ? r.data : []),
-    enabled: isManager,
-  })
-  const getLocation = () => new Promise<{ latitude: number; longitude: number; accuracy_meters?: number }>((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('Location is not available on this device.'))
-      return
-    }
-    navigator.geolocation.getCurrentPosition(
-      position => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy_meters: position.coords.accuracy }),
-      () => reject(new Error('Location permission is required to record this visit.')),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
-    )
-  })
-  const syncQueue = async () => {
-    if (!navigator.onLine) { setSyncState('offline'); return }
-    setSyncState('syncing')
-    const result = await flushHomecareOfflineQueue()
-    const next = getHomecareOfflineQueue()
-    setQueuedActions(next)
-    setSyncState(result.failed ? 'failed' : 'online')
-    if (result.processed) qc.invalidateQueries({ queryKey: ['homecare-visits'] })
-    if (result.failed) setMessage(`${result.failed} offline visit action${result.failed === 1 ? '' : 's'} needs review.`)
-  }
-  useEffect(() => {
-    const online = () => { setSyncState('online'); void syncQueue() }
-    const offline = () => setSyncState('offline')
-    window.addEventListener('online', online)
-    window.addEventListener('offline', offline)
-    void syncQueue()
-    return () => { window.removeEventListener('online', online); window.removeEventListener('offline', offline) }
-  }, [])
-  const execute = useMutation({
-    mutationFn: async ({ id, action }: { id: string; action: 'check-in' | 'check-out' }) => {
-      const location = await getLocation()
-      if (!navigator.onLine) return { queued: enqueueHomecareAction(id, action, location) }
-      return api.post(`/homecare/visits/${id}/${action}`, location)
-    },
-    onSuccess: (result: any, variables) => { if (result?.queued) { setQueuedActions(getHomecareOfflineQueue()); setSyncState('offline'); setMessage('No connection. Visit action saved on this device and will sync when you are online.') } else { qc.invalidateQueries({ queryKey: ['homecare-visits'] }); setMessage(variables.action === 'check-in' ? 'Visit checked in.' : 'Visit completed and timesheet prepared.') } },
-    onError: (e: any) => setMessage(e.response?.data?.message || e.message || 'Could not update this visit.'),
-  })
-  const createPackage = useMutation({
-    mutationFn: (data: any) => api.post('/homecare/packages', data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['homecare-packages'] }); setPackageDialogOpen(false); setMessage('Care package created.') },
-    onError: (e: any) => setMessage(e.response?.data?.message || 'Could not create the care package.'),
-  })
-  const approve = useMutation({
-    mutationFn: (id: string) => api.patch(`/homecare/timesheets/${id}`, { status: 'approved' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['homecare-timesheets'] }); setMessage('Timesheet approved.') },
-    onError: (e: any) => setMessage(e.response?.data?.message || 'Could not approve the timesheet.'),
-  })
-  const resolveException = useMutation({
-    mutationFn: ({ id, exceptionType, note }: { id: string; exceptionType: string; note: string }) => api.post(`/homecare/visits/${id}/resolve-exception`, { exception_type: exceptionType, resolution_note: note || null }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['homecare-exceptions'] }); setMessage('Exception resolved and retained in the audit trail.') },
-    onError: (e: any) => setMessage(e.response?.data?.message || 'Could not resolve the exception.'),
-  })
-  const exportPayroll = async () => {
-    try {
-      const response = await api.get('/homecare/payroll/export.csv', { params: { from: payrollFrom, to: payrollTo, provider: 'generic_csv' }, responseType: 'blob' })
-      const url = URL.createObjectURL(response.data)
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = `homecare-payroll-${payrollFrom}-${payrollTo}.csv`
-      anchor.click()
-      URL.revokeObjectURL(url)
-      setMessage('Approved payroll inputs downloaded.')
-    } catch (e: any) {
-      setMessage(e.response?.data?.message || 'Could not export payroll inputs.')
-    }
-  }
+  const { data: packages = [] } = useQuery({ queryKey: ['homecare-packages'], queryFn: () => api.get('/homecare/packages').then(r => Array.isArray(r.data) ? r.data : []) })
+  const { data: people = [] } = useQuery({ queryKey: ['homecare-people'], queryFn: () => api.get('/people?status=active').then(r => Array.isArray(r.data) ? r.data : r.data?.people || []), enabled: isManager })
+  const { data: billingProfiles = [] } = useQuery({ queryKey: ['homecare-billing-profiles'], queryFn: () => api.get('/homecare/billing-profiles').then(r => Array.isArray(r.data) ? r.data : []), enabled: isManager })
+  const { data: payProfiles = [] } = useQuery({ queryKey: ['homecare-pay-profiles'], queryFn: () => api.get('/homecare/pay-profiles').then(r => Array.isArray(r.data) ? r.data : []), enabled: isManager })
+  const { data: exceptions = [] } = useQuery({ queryKey: ['homecare-exceptions'], queryFn: () => api.get('/homecare/exceptions').then(r => Array.isArray(r.data) ? r.data : []), enabled: isManager })
 
-  const todayVisits = visits.filter((v: any) => new Date(v.scheduled_start).toDateString() === new Date().toDateString())
-  const filteredVisits = statusFilter ? visits.filter((v: any) => v.status === statusFilter) : visits
-  const pendingTimesheets = timesheets.filter((t: any) => t.status === 'submitted')
-  const canCreatePackage = isManager && people.length > 0
+  const filteredVisits = params.get('status') ? visits.filter((v: any) => v.status === params.get('status')) : visits
+  const filteredPackages = packages.filter((pkg: any) => {
+    const q = packageSearch.trim().toLowerCase()
+    const matchesText = !q || `${pkg.name || ''} ${pkg.person_name || ''} ${pkg.funding_type || ''}`.toLowerCase().includes(q)
+    return matchesText && (packageStatus === 'all' || pkg.status === packageStatus)
+  })
+  const packageSize = 8
+  const packagePages = Math.max(1, Math.ceil(filteredPackages.length / packageSize))
+  const visiblePackages = filteredPackages.slice(packagePage * packageSize, (packagePage + 1) * packageSize)
 
   return <PageContainer><Box className="homecare-page">
     <header className="homecare-header">
-      <Box><Typography component="h1" className="homecare-title">Domiciliary care</Typography><Typography className="homecare-intro">The next visit, the right carer, and a clean record of time and travel.</Typography></Box>
-      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap"><Chip icon={<HomeWorkIcon />} label={isManager ? `${packages.length} care packages` : `${todayVisits.length} visits today`} className="homecare-chip" />{isManager && <Button size="small" variant="outlined" onClick={() => window.location.href = '/people'} sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: 'text.primary' }}>Add client</Button>}{isManager && <Button size="small" variant="outlined" onClick={() => window.location.href = '/mileage'} sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: 'text.primary' }}>Mileage policy</Button>}{isManager && <Button size="small" variant="contained" className="homecare-action" onClick={() => setPackageDialogOpen(true)} disabled={!canCreatePackage}>New package</Button>}</Stack>
+      <Box><Typography component="h1" className="homecare-title">Care operations</Typography><Typography className="homecare-intro">Plan client support, organise visits, and keep time, travel and exceptions under control.</Typography></Box>
+      {isManager && <Stack direction="row" spacing={1} flexWrap="wrap"><Chip icon={<PackageIcon />} label={`${packages.length} care packages`} className="homecare-chip" /><Button size="small" variant="outlined" onClick={() => { window.location.href = '/mileage' }}>Travel & pay rules</Button><Button size="small" variant="outlined" onClick={() => { window.location.href = '/payroll-timesheets' }} startIcon={<PayrollIcon />}>Payroll & timesheets</Button><Button size="small" variant="contained" onClick={() => setNewPackage({ person_id: '', name: '', funding_type: 'private', start_date: localDate(), hourly_rate_pence: '', client_rate_pence: '', billing_profile_id: '', pay_profile_id: '' })}>New package</Button></Stack>}
     </header>
-    {message && <Alert severity={message.includes('Could not') || message.includes('needs review') ? 'error' : 'success'} onClose={() => setMessage('')} sx={{ mb: 2 }}>{message}</Alert>}
-    <Paper className="homecare-sync" role="status"><Typography variant="body2"><strong>{syncState === 'syncing' ? 'Syncing visit actions…' : syncState === 'offline' ? 'Offline mode' : syncState === 'failed' ? 'Sync needs review' : 'Online'}</strong>{queuedActions.length ? ` · ${queuedActions.length} action${queuedActions.length === 1 ? '' : 's'} queued` : ''}</Typography>{(syncState === 'offline' || syncState === 'failed') && <Button size="small" onClick={() => void syncQueue()} disabled={!navigator.onLine}>Try sync</Button>}</Paper>
-    <Tabs value={tab} onChange={(_, value) => setTab(value)} className="homecare-tabs" aria-label="Domiciliary care sections">
+    {message && <Alert severity="success" onClose={() => setMessage('')} sx={{ mb: 2 }}>{message}</Alert>}
+    <Tabs value={tab} onChange={(_, value) => setTab(value)} className="homecare-tabs" aria-label="Care operations sections">
       <Tab icon={<ScheduleIcon />} iconPosition="start" label={isManager ? 'Visit board' : 'My visits'} />
-      {isManager && <Tab icon={<HomeWorkIcon />} iconPosition="start" label="Care packages" />}
-      {isManager && <Tab icon={<CheckCircleIcon />} iconPosition="start" label={`Timesheets${pendingTimesheets.length ? ` · ${pendingTimesheets.length}` : ''}`} />}
-      {isManager && <Tab icon={<ErrorOutlineIcon />} iconPosition="start" label={`Exceptions${exceptions.length ? ` · ${exceptions.length}` : ''}`} />}
+      {isManager && <Tab icon={<PackageIcon />} iconPosition="start" label="Care packages" />}
+      {isManager && <Tab icon={<ExceptionIcon />} iconPosition="start" label={`Exceptions${exceptions.length ? ` · ${exceptions.length}` : ''}`} />}
     </Tabs>
-    {tab === 0 && <VisitList visits={filteredVisits} loading={visitsLoading} execute={execute} statusFilter={statusFilter} onClearFilter={() => { searchParams.delete('status'); setSearchParams(searchParams) }} />}
-    {tab === 1 && isManager && <PackageList packages={packages} onMessage={setMessage} />}
-    {tab === 2 && isManager && <Box><TimesheetList timesheets={timesheets} approve={approve} /><Paper className="homecare-export"><Typography variant="subtitle1">Export approved payroll inputs</Typography><Typography variant="body2" color="text.secondary">Only manager-approved rows are included. This file is an input for payroll review, not a payslip or statutory payroll calculation.</Typography><Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} sx={{ mt: 1.5 }}><TextField size="small" type="date" label="From" InputLabelProps={{ shrink: true }} value={payrollFrom} onChange={e => setPayrollFrom(e.target.value)} /><TextField size="small" type="date" label="To" InputLabelProps={{ shrink: true }} value={payrollTo} onChange={e => setPayrollTo(e.target.value)} /><Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportPayroll} disabled={!payrollFrom || !payrollTo}>Download CSV</Button></Stack></Paper></Box>}
-    {tab === 3 && isManager && <ExceptionList exceptions={exceptions} resolve={resolveException} />}
-    {tab === 0 && isManager && <OperationsSummary />}
-    <Dialog open={packageDialogOpen} onClose={() => setPackageDialogOpen(false)} fullWidth maxWidth="sm">
-      <DialogTitle>Create care package</DialogTitle>
-      <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
-        <TextField select required label="Client" value={packageForm.person_id} onChange={e => setPackageForm(f => ({ ...f, person_id: e.target.value }))} helperText={!people.length ? 'Add an active client before creating a package.' : undefined}><MenuItem value="">Select client</MenuItem>{people.map((person: any) => <MenuItem key={person.id} value={person.id}>{person.first_name} {person.last_name}</MenuItem>)}</TextField>
-        <TextField required label="Package name" value={packageForm.name} onChange={e => setPackageForm(f => ({ ...f, name: e.target.value }))} placeholder="Example: Morning and evening support" />
-        <TextField select label="Funding type" value={packageForm.funding_type} onChange={e => setPackageForm(f => ({ ...f, funding_type: e.target.value }))}><MenuItem value="private">Private</MenuItem><MenuItem value="local_authority">Local authority</MenuItem><MenuItem value="nhs">NHS</MenuItem><MenuItem value="other">Other</MenuItem></TextField>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><TextField label="Start date" type="date" InputLabelProps={{ shrink: true }} value={packageForm.start_date} onChange={e => setPackageForm(f => ({ ...f, start_date: e.target.value }))} /><TextField label="Carer hourly rate (pence)" type="number" inputProps={{ min: 0 }} value={packageForm.hourly_rate_pence} onChange={e => setPackageForm(f => ({ ...f, hourly_rate_pence: e.target.value }))} /></Stack>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><TextField label="Client rate (pence/hr)" type="number" inputProps={{ min: 0 }} value={packageForm.client_rate_pence} onChange={e => setPackageForm(f => ({ ...f, client_rate_pence: e.target.value }))} helperText="Rate charged to the client. Used for billing." /><TextField label="Mileage rate (pence/mile)" type="number" inputProps={{ min: 0 }} value={packageForm.mileage_rate_pence} onChange={e => setPackageForm(f => ({ ...f, mileage_rate_pence: e.target.value }))} /></Stack>
-
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><TextField select label="Travel time" value={packageForm.travel_time_paid ? 'paid' : 'unpaid'} onChange={e => setPackageForm(f => ({ ...f, travel_time_paid: e.target.value === 'paid' }))}><MenuItem value="paid">Paid under policy</MenuItem><MenuItem value="unpaid">Not paid under policy</MenuItem></TextField></Stack>
-        <Alert severity="info">Carer rate is what you pay the staff member. Client rate is what you charge the client. Both are needed for payroll and billing respectively.</Alert>
-      </Stack></DialogContent>
-      <DialogActions><Button onClick={() => setPackageDialogOpen(false)}>Cancel</Button><Button variant="contained" disabled={!packageForm.person_id || !packageForm.name.trim() || createPackage.isPending}              onClick={() => createPackage.mutate({ ...packageForm, hourly_rate_pence: packageForm.hourly_rate_pence === '' ? null : Number(packageForm.hourly_rate_pence), client_rate_pence: packageForm.client_rate_pence === '' ? null : Number(packageForm.client_rate_pence), mileage_rate_pence: packageForm.mileage_rate_pence === '' ? null : Number(packageForm.mileage_rate_pence) })}>{createPackage.isPending ? <CircularProgress size={18} /> : 'Create package'}</Button></DialogActions>
-    </Dialog>
+    {tab === 0 && <VisitBoard visits={filteredVisits} loading={visitsLoading} />}
+    {tab === 1 && isManager && <PackageBoard packages={visiblePackages} total={filteredPackages.length} search={packageSearch} status={packageStatus} page={packagePage} pages={packagePages} onSearch={(value: string) => { setPackageSearch(value); setPackagePage(0) }} onStatus={(value: string) => { setPackageStatus(value); setPackagePage(0) }} onPage={setPackagePage} onPattern={() => setMessage('Call patterns are managed from Call Scheduling.')} />}
+    {tab === 2 && isManager && <ExceptionBoard exceptions={exceptions} />}
+    <PackageDialog packageDraft={newPackage} people={people} billingProfiles={billingProfiles} payProfiles={payProfiles} onClose={() => setNewPackage(null)} onSaved={() => { setNewPackage(null); setMessage('Care package created.'); window.location.reload() }} />
   </Box></PageContainer>
 }
 
-function OperationsSummary() {
-  const [availability, setAvailability] = useState<any[]>([])
-  const [staff, setStaff] = useState<any[]>([])
-  const [selectedStaff, setSelectedStaff] = useState('')
-  const [day, setDay] = useState('1')
-  const [start, setStart] = useState('08:00')
-  const [end, setEnd] = useState('18:00')
-  const [disruptions, setDisruptions] = useState<any[]>([])
-  const [policies, setPolicies] = useState<any[]>([])
-  const [saving, setSaving] = useState(false)
-  const load = async () => { const [a, s, d, p] = await Promise.all([api.get('/homecare/availability'), api.get('/homecare/staff'), api.get('/homecare/disruptions?openOnly=true'), api.get('/homecare/mileage-policies')]); setAvailability(a.data || []); setStaff(s.data || []); setDisruptions(d.data || []); setPolicies(p.data || []) }
-  useEffect(() => { void load() }, [])
-  const saveAvailability = async () => { if (!selectedStaff) return; setSaving(true); try { await api.post('/homecare/availability', { staff_id: selectedStaff, day_of_week: Number(day), start_time: start, end_time: end }); await load() } finally { setSaving(false) } }
-  return <Paper className="homecare-ops"><Typography variant="h6">Operations controls</Typography><Typography variant="body2" color="text.secondary">Availability and travel exceptions are manager-owned records. Mileage rates are stored by tax year, vehicle and fuel category; confirm the current approved rate before use.</Typography><Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}><TextField select size="small" label="Carer" value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)}><MenuItem value="">Select carer</MenuItem>{staff.map(member => <MenuItem key={member.id} value={member.id}>{member.first_name} {member.last_name}</MenuItem>)}</TextField><TextField select size="small" label="Day" value={day} onChange={e => setDay(e.target.value)}>{['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((label, index) => <MenuItem key={label} value={index}>{label}</MenuItem>)}</TextField><TextField size="small" type="time" label="From" InputLabelProps={{ shrink: true }} value={start} onChange={e => setStart(e.target.value)} /><TextField size="small" type="time" label="To" InputLabelProps={{ shrink: true }} value={end} onChange={e => setEnd(e.target.value)} /><Button variant="outlined" onClick={saveAvailability} disabled={saving || !selectedStaff}>Save availability</Button></Stack><Typography variant="subtitle2" sx={{ mt: 2 }}>Recorded availability: {availability.length}</Typography><Typography variant="subtitle2">Open travel disruptions: {disruptions.length}</Typography><Typography variant="subtitle2">Mileage policy rows: {policies.length}</Typography></Paper>
+function VisitBoard({ visits, loading }: { visits: any[]; loading: boolean }) {
+  if (loading) return <Box className="homecare-loading"><CircularProgress /><Typography color="text.secondary">Loading visits…</Typography></Box>
+  if (!visits.length) return <EmptyState title="No visits in this view" description="Assigned calls will appear here with their client, time and carer." />
+  return <Stack spacing={1.5}>{visits.map((visit: any) => <Paper key={visit.id} className="homecare-visit"><Box><Typography className="homecare-visit__date">{dateLabel(visit.scheduled_start)}</Typography><Typography className="homecare-visit__name">{visit.label || visit.visit_type || 'Care visit'}</Typography></Box><Box className="homecare-visit__main"><Typography className="homecare-visit__person">{visit.person_name || 'Client'}</Typography><Typography className="homecare-visit__address">{visit.person_address || 'Address not recorded'}</Typography><Typography className="homecare-visit__carer">{visit.assigned_staff_name || 'Unassigned'}</Typography></Box><Chip label={String(visit.status || 'scheduled').replace(/_/g, ' ')} size="small" variant="outlined" /></Paper>)}</Stack>
 }
 
-function VisitList({ visits, loading, execute, statusFilter, onClearFilter }: any) {
-  const [disruptionVisit, setDisruptionVisit] = useState<any>(null)
-  const [error, setError] = useState('')
-  const [disruption, setDisruption] = useState({ disruption_type: 'traffic', severity: 'medium', delay_minutes: 15, description: '' })
-  const [saving, setSaving] = useState(false)
-  const reportDisruption = async () => {
-    if (!disruptionVisit || !disruption.description.trim()) return
-    setSaving(true)
-    try {
-      await api.post(`/homecare/visits/${disruptionVisit.id}/disruptions`, { ...disruption, delay_minutes: Number(disruption.delay_minutes) })
-      setDisruptionVisit(null)
-      setDisruption({ disruption_type: 'traffic', severity: 'medium', delay_minutes: 15, description: '' })
-    } catch (e: any) {
-      setError(e.response?.data?.message || 'Could not report the travel issue. Please try again.')
-    }
-    finally { setSaving(false) }
-  }
-  if (loading) return <Box className="homecare-loading"><CircularProgress /><Typography>Loading your visit plan…</Typography></Box>
-  if (!visits.length) return <Paper className="homecare-empty"><Typography variant="h6">{statusFilter ? `No ${statusFilter.replace(/_/g, ' ')} visits` : 'No visits assigned in the next two days'}</Typography><Typography color="text.secondary">{statusFilter ? <><>No visits with status &quot;{statusFilter.replace(/_/g, ' ')}&quot; found.</><Button size="small" onClick={onClearFilter} sx={{ ml: 1 }}>Show all visits</Button></> : 'When a manager assigns a call, it will appear here with time to travel.'}</Typography></Paper>
-  return <>
-    {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
-    {statusFilter && (
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-        <Chip
-          label={`Filtered: ${statusFilter.replace(/_/g, ' ')}`}
-          onDelete={onClearFilter}
-          color="primary"
-          variant="outlined"
-          size="small"
-        />
-        <Typography variant="caption" color="text.secondary">
-          {visits.length} visit{visits.length === 1 ? '' : 's'}
-        </Typography>
-      </Stack>
-    )}
-    <Stack spacing={1.5}>{visits.map((visit: any) => {
-      const open = ['scheduled', 'en_route', 'checked_in'].includes(visit.status)
-      const checkedIn = visit.status === 'checked_in'
-      return <Paper key={visit.id} className={`homecare-visit homecare-visit--${visit.status}`}>
-        <Box className="homecare-visit__time"><Typography className="homecare-visit__date">{dateLabel(visit.scheduled_start)}</Typography><Chip size="small" label={statusLabel(visit.status)} variant="outlined" /></Box>
-        <Box className="homecare-visit__main"><Typography className="homecare-visit__name">{visit.label}</Typography><Typography className="homecare-visit__person">{visit.person_name}</Typography><Typography className="homecare-visit__address">{visit.person_address || 'Address recorded in the person profile'}</Typography>{visit.carer_name && <Typography className="homecare-visit__carer">Carer: {visit.carer_name}</Typography>}</Box>
-        <Box className="homecare-visit__meta"><Typography><strong>{Math.max(0, Math.round((new Date(visit.scheduled_end).getTime() - new Date(visit.scheduled_start).getTime()) / 60000))} min</strong> scheduled</Typography><Typography><DirectionsCarIcon fontSize="inherit" /> Allow travel before arrival</Typography></Box>
-        {open && <Stack spacing={1}><Button className="homecare-action" variant="contained" onClick={() => execute.mutate({ id: visit.id, action: checkedIn ? 'check-out' : 'check-in' })} disabled={execute.isPending}>{execute.isPending ? <CircularProgress size={18} color="inherit" /> : checkedIn ? 'Check out' : 'Check in'}</Button><Button size="small" variant="text" onClick={() => setDisruptionVisit(visit)}>Report travel issue</Button></Stack>}
-      </Paper>
-    })}</Stack>
-    <Dialog open={Boolean(disruptionVisit)} onClose={() => !saving && setDisruptionVisit(null)} fullWidth maxWidth="sm">
-      <DialogTitle>Report a travel or safety issue</DialogTitle>
-      <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
-        <TextField select label="Issue" value={disruption.disruption_type} onChange={e => setDisruption(d => ({ ...d, disruption_type: e.target.value }))}>{['traffic','public_transport','weather','vehicle','client_unavailable','unsafe','other'].map(type => <MenuItem key={type} value={type}>{type.replace('_', ' ')}</MenuItem>)}</TextField>
-        <TextField select label="Severity" value={disruption.severity} onChange={e => setDisruption(d => ({ ...d, severity: e.target.value }))}><MenuItem value="low">Low</MenuItem><MenuItem value="medium">Medium</MenuItem><MenuItem value="high">High — contact the office now</MenuItem></TextField>
-        <TextField label="Expected delay (minutes)" type="number" inputProps={{ min: 0 }} value={disruption.delay_minutes} onChange={e => setDisruption(d => ({ ...d, delay_minutes: Number(e.target.value) }))} />
-        <TextField label="What happened?" multiline minRows={3} required value={disruption.description} onChange={e => setDisruption(d => ({ ...d, description: e.target.value }))} helperText="Use factual details. Do not include unnecessary clinical information." />
-      </Stack></DialogContent>
-      <DialogActions><Button onClick={() => setDisruptionVisit(null)} disabled={saving}>Cancel</Button><Button variant="contained" onClick={reportDisruption} disabled={saving || !disruption.description.trim()}>{saving ? <CircularProgress size={18} /> : 'Report issue'}</Button></DialogActions>
-    </Dialog>
-  </>
+function PackageBoard({ packages, total, search, status, page, pages, onSearch, onStatus, onPage, onPattern }: any) {
+  return <><Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2 }}><TextField size="small" placeholder="Search client, package or funding" value={search} onChange={e => onSearch(e.target.value)} sx={{ flex: 1 }} /><TextField select size="small" label="Status" value={status} onChange={e => onStatus(e.target.value)} sx={{ minWidth: 160 }}><MenuItem value="all">All statuses</MenuItem>{['draft', 'active', 'paused', 'ended'].map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}</TextField></Stack><Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>{total} package{total === 1 ? '' : 's'} · rates can use profiles with package and call-level overrides</Typography><Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, gap: 2 }}>{packages.map((pkg: any) => <Paper key={pkg.id} className="homecare-package"><Stack direction="row" justifyContent="space-between" gap={2}><Box><Typography className="homecare-package__name">{pkg.name || 'Care package'}</Typography><Typography color="text.secondary">{pkg.person_name || 'Client not linked'} · {String(pkg.funding_type || 'private').replace('_', ' ')}</Typography></Box><Chip label={pkg.status || 'draft'} size="small" variant="outlined" /></Stack><Box className="homecare-package__numbers"><span>Carer rate<strong>{money(pkg.hourly_rate_pence)}/hr</strong></span><span>Client rate<strong>{money(pkg.client_rate_pence)}/hr</strong></span><span>Starts<strong>{pkg.start_date || '—'}</strong></span></Box><Typography variant="caption" color="text.secondary">Billing: {pkg.billing_profile_name || 'package charge'} · Pay: {pkg.pay_profile_name || 'carer/call override'}</Typography><Button size="small" variant="outlined" onClick={onPattern}>Set up call pattern</Button></Paper>)}</Box>{pages > 1 && <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}><Typography variant="caption" color="text.secondary">Showing {page * 8 + 1}–{Math.min((page + 1) * 8, total)} of {total}</Typography><Stack direction="row" spacing={1}><Button size="small" disabled={page === 0} onClick={() => onPage(page - 1)}>Previous</Button><Typography variant="body2">Page {page + 1} of {pages}</Typography><Button size="small" disabled={page >= pages - 1} onClick={() => onPage(page + 1)}>Next</Button></Stack></Stack>}</>
 }
 
-function PackageList({ packages, onMessage }: any) {
-  const [selectedPackage, setSelectedPackage] = useState<any>(null)
-  const [plan, setPlan] = useState({ visit_type: 'routine', label: 'Routine call', days_of_week: [1, 2, 3, 4, 5], start_time: '09:00', duration_minutes: 30, travel_buffer_minutes: 15, default_staff_id: '', default_tasks: [] as { label: string; sort_order: number }[], hourly_rate_pence: '', mileage_rate_pence: '', use_default_rate: true })
-  const [newTaskLabel, setNewTaskLabel] = useState('')
-  const { data: staff = [] } = useQuery({ queryKey: ['homecare-staff'], queryFn: () => api.get('/homecare/staff').then(r => Array.isArray(r.data) ? r.data : []), enabled: true })
-  const [range, setRange] = useState({ from: localDateOnly(), to: localDateOnly(new Date(Date.now() + 6 * 86400000)) })
-  const [open, setOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const createPlan = async () => {
-    if (!selectedPackage || !plan.label.trim()) return
-    setSaving(true)
-    try {
-      const created = await api.post(`/homecare/packages/${selectedPackage.id}/visit-plans`, { ...plan, duration_minutes: Number(plan.duration_minutes), travel_buffer_minutes: Number(plan.travel_buffer_minutes), default_staff_id: plan.default_staff_id || null, default_tasks: plan.default_tasks, hourly_rate_pence: plan.use_default_rate ? null : (plan.hourly_rate_pence === '' ? null : Number(plan.hourly_rate_pence)), mileage_rate_pence: plan.use_default_rate ? null : (plan.mileage_rate_pence === '' ? null : Number(plan.mileage_rate_pence)) })
-      const generated = await api.post(`/homecare/visit-plans/${created.data.id}/generate`, range)
-      onMessage(`Call pattern saved. ${generated.data.generated_count} visit${generated.data.generated_count === 1 ? '' : 's'} generated.`)
-      setOpen(false)
-    } catch (e: any) { onMessage(e.response?.data?.message || 'Could not create this call pattern.') }
-    finally { setSaving(false) }
-  }
-  if (!packages.length) return <EmptyState title="No care packages yet" description="Create the first package from the manager workflow once funding, rates, and travel policy are agreed." />
-  return <><Stack spacing={1.5}>{packages.map((pkg: any) => <Paper key={pkg.id} className="homecare-package"><Box><Typography className="homecare-package__name">{pkg.name}</Typography><Typography color="text.secondary">{pkg.person_name} · {pkg.funding_type.replace('_', ' ')}</Typography></Box><Stack direction="row" spacing={1} flexWrap="wrap"><Chip label={pkg.status} size="small" variant="outlined" /><Chip label={pkg.travel_time_paid ? 'Travel time paid' : 'Travel time policy: unpaid'} size="small" /></Stack><Box className="homecare-package__numbers"><span>Rate <strong>{money(pkg.hourly_rate_pence)}/hr</strong></span><span>Mileage <strong>{money(pkg.mileage_rate_pence)}/mile</strong></span><span>From <strong>{pkg.start_date}</strong></span></Box><Button size="small" variant="outlined" onClick={() => { setSelectedPackage(pkg); setOpen(true) }}>Set up call pattern</Button></Paper>)}</Stack><Dialog open={open} onClose={() => !saving && setOpen(false)} fullWidth maxWidth="sm"><DialogTitle>Set up recurring call</DialogTitle><DialogContent><Stack spacing={2} sx={{ pt: 1 }}><TextField select label="Call type" value={plan.visit_type} onChange={e => setPlan(p => ({ ...p, visit_type: e.target.value }))}>{['morning','breakfast','lunch','tea','evening','night','routine','medication','custom'].map(type => <MenuItem key={type} value={type}>{type.replace('_', ' ')}</MenuItem>)}</TextField><TextField label="Call label" value={plan.label} onChange={e => setPlan(p => ({ ...p, label: e.target.value }))} /><TextField label="Days (0 Sunday · 6 Saturday)" value={plan.days_of_week.join(', ')} onChange={e => setPlan(p => ({ ...p, days_of_week: e.target.value.split(',').map(v => Number(v.trim())).filter(v => Number.isInteger(v) && v >= 0 && v <= 6) }))} helperText="Example: 1, 2, 3, 4, 5" /><TextField select label="Default carer (optional)" value={plan.default_staff_id} onChange={e => setPlan(p => ({ ...p, default_staff_id: e.target.value }))}><MenuItem value="">Leave unassigned</MenuItem>{staff.map((member: any) => <MenuItem key={member.id} value={member.id}>{member.first_name} {member.last_name}</MenuItem>)}</TextField><Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><TextField label="Start" type="time" InputLabelProps={{ shrink: true }} value={plan.start_time} onChange={e => setPlan(p => ({ ...p, start_time: e.target.value }))} /><TextField label="Duration (minutes)" type="number" value={plan.duration_minutes} onChange={e => setPlan(p => ({ ...p, duration_minutes: Number(e.target.value) }))} /><TextField label="Travel buffer" type="number" value={plan.travel_buffer_minutes} onChange={e => setPlan(p => ({ ...p, travel_buffer_minutes: Number(e.target.value) }))} /></Stack><Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, mt: 1 }}><Typography variant="subtitle2" gutterBottom>Call rate override (optional)</Typography><Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>Leave unchecked to use the organisation default rate. Check to set a custom rate for this call pattern.</Typography><FormControlLabel control={<Checkbox checked={!plan.use_default_rate} onChange={e => setPlan(p => ({ ...p, use_default_rate: !e.target.checked }))} />} label="Use custom rate for this call" /><Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1 }}><TextField label="Hourly rate (pence)" type="number" inputProps={{ min: 0 }} value={plan.hourly_rate_pence} onChange={e => setPlan(p => ({ ...p, hourly_rate_pence: e.target.value }))} disabled={plan.use_default_rate} helperText={plan.use_default_rate ? 'Using org default' : 'Leave empty to use package rate'} /><TextField label="Mileage rate (pence/mile)" type="number" inputProps={{ min: 0 }} value={plan.mileage_rate_pence} onChange={e => setPlan(p => ({ ...p, mileage_rate_pence: e.target.value }))} disabled={plan.use_default_rate} helperText={plan.use_default_rate ? 'Using org default' : 'Leave empty to use package rate'} /></Stack></Box><Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><TextField label="Generate from" type="date" InputLabelProps={{ shrink: true }} value={range.from} onChange={e => setRange(r => ({ ...r, from: e.target.value }))} /><TextField label="Generate to" type="date" InputLabelProps={{ shrink: true }} value={range.to} onChange={e => setRange(r => ({ ...r, to: e.target.value }))} /></Stack><Alert severity="info">Generation is idempotent: running the same range again will not duplicate visits. A default carer must have availability recorded for every generated call.</Alert><Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, mt: 1 }}><Typography variant="subtitle2" gutterBottom>Default tasks for each call</Typography><Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>These tasks will be pre-populated on every call generated from this plan. Carers must complete them before checking out.</Typography>{plan.default_tasks.map((t: any, i: number) => (<Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}><Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'primary.main' }} /><Typography variant="body2" sx={{ flex: 1 }}>{t.label}</Typography><Button size="small" color="error" onClick={() => setPlan(p => ({ ...p, default_tasks: p.default_tasks.filter((_: any, j: number) => j !== i) }))}>Remove</Button></Box>))}<Box sx={{ display: 'flex', gap: 1, mt: 1 }}><TextField size="small" placeholder="e.g. Personal care completed" value={newTaskLabel} onChange={e => setNewTaskLabel(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && newTaskLabel.trim()) { setPlan(p => ({ ...p, default_tasks: [...p.default_tasks, { label: newTaskLabel.trim(), sort_order: p.default_tasks.length }] })); setNewTaskLabel('') } }} sx={{ flex: 1 }} /><Button size="small" variant="outlined" onClick={() => { if (newTaskLabel.trim()) { setPlan(p => ({ ...p, default_tasks: [...p.default_tasks, { label: newTaskLabel.trim(), sort_order: p.default_tasks.length }] })); setNewTaskLabel('') } }}>Add</Button></Box></Box></Stack></DialogContent><DialogActions><Button onClick={() => setOpen(false)} disabled={saving}>Cancel</Button><Button variant="contained" onClick={createPlan} disabled={saving || !plan.label.trim() || !plan.days_of_week.length}>{saving ? <CircularProgress size={18} /> : 'Save and generate'}</Button></DialogActions></Dialog></>
-}
-
-function ExceptionList({ exceptions, resolve }: any) {
+function ExceptionBoard({ exceptions }: { exceptions: any[] }) {
   if (!exceptions.length) return <EmptyState title="No open exceptions" description="Late, missed and cancelled calls will appear here for manager follow-up." />
-  return <Stack spacing={1.5}>{exceptions.map((visit: any) => <Paper key={visit.id} className="homecare-exception"><Box><Typography className="homecare-package__name">{visit.label}</Typography><Typography color="text.secondary">{visit.person_name} · {dateLabel(visit.scheduled_start)}</Typography><Typography className="homecare-exception__detail">{statusLabel(visit.exception_type || visit.status)}{visit.late_reason ? ` · ${visit.late_reason}` : ''}</Typography></Box><Button size="small" variant="outlined" onClick={() => { const note = window.prompt('Resolution note (required for the audit trail):', '') || ''; if (note.trim()) resolve.mutate({ id: visit.id, exceptionType: visit.exception_type || visit.status, note: note.trim() }) }}>Resolve exception</Button></Paper>)}</Stack>
+  return <Stack spacing={1.5}>{exceptions.map((item: any) => <Paper key={item.id} className="homecare-exception"><Box><Typography className="homecare-package__name">{item.label || 'Visit exception'}</Typography><Typography color="text.secondary">{item.person_name || 'Client'} · {dateLabel(item.scheduled_start)}</Typography><Typography className="homecare-exception__detail">{String(item.exception_type || item.status || 'Review').replace(/_/g, ' ')}</Typography></Box><Button size="small" variant="outlined">Review</Button></Paper>)}</Stack>
 }
 
-function TimesheetList({ timesheets, approve }: any) {
-  if (!timesheets.length) return <Paper className="homecare-empty"><Typography variant="h6">No timesheets prepared</Typography><Typography color="text.secondary">Completed visits will create a reviewable payroll input here.</Typography></Paper>
-  return <Stack spacing={1.5}>{timesheets.map((sheet: any) => <Paper key={sheet.id} className="homecare-timesheet"><Box><Typography className="homecare-package__name">{sheet.staff_name}</Typography><Typography color="text.secondary">{sheet.person_name} · {sheet.label} · {dateLabel(sheet.scheduled_start)}</Typography></Box><Box className="homecare-timesheet__grid"><span>Work <strong>{sheet.work_minutes}m</strong></span><span>Travel <strong>{sheet.travel_minutes}m</strong></span><span>Paid travel <strong>{sheet.paid_travel_minutes}m</strong></span><span>Mileage <strong>{Number(sheet.mileage_miles || 0).toFixed(1)} mi</strong></span><span>Gross input <strong>{money(sheet.gross_pay_pence)}</strong></span></Box><Stack direction="row" justifyContent="space-between" alignItems="center"><Chip size="small" label={statusLabel(sheet.status)} color={sheet.status === 'approved' ? 'success' : sheet.status === 'submitted' ? 'warning' : 'default'} variant="outlined" />{sheet.status === 'submitted' && <Button size="small" variant="contained" onClick={() => approve.mutate(sheet.id)} disabled={approve.isPending}>Approve for payroll</Button>}</Stack></Paper>)}</Stack>
+function PackageDialog({ packageDraft, people, billingProfiles, payProfiles, onClose, onSaved }: any) {
+  const [draft, setDraft] = useState<any>(null)
+  const [saving, setSaving] = useState(false)
+  if (packageDraft && !draft) setDraft(packageDraft)
+  const save = async () => { if (!draft?.person_id || !draft.name.trim()) return; setSaving(true); try { await api.post('/homecare/packages', { ...draft, billing_profile_id: draft.billing_profile_id || null, pay_profile_id: draft.pay_profile_id || null, hourly_rate_pence: draft.hourly_rate_pence === '' ? null : Number(draft.hourly_rate_pence), client_rate_pence: draft.client_rate_pence === '' ? null : Number(draft.client_rate_pence) }); onSaved() } finally { setSaving(false) } }
+  return <Dialog open={Boolean(packageDraft)} onClose={onClose} fullWidth maxWidth="sm"><DialogTitle>New care package</DialogTitle><DialogContent><Stack spacing={2} sx={{ pt: 1 }}><TextField select required label="Client" value={draft?.person_id || ''} onChange={e => setDraft((v: any) => ({ ...v, person_id: e.target.value }))}><MenuItem value="">Select client</MenuItem>{people.map((p: any) => <MenuItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</MenuItem>)}</TextField><TextField required label="Package name" value={draft?.name || ''} onChange={e => setDraft((v: any) => ({ ...v, name: e.target.value }))} /><TextField select label="Funding type" value={draft?.funding_type || 'private'} onChange={e => setDraft((v: any) => ({ ...v, funding_type: e.target.value }))}><MenuItem value="private">Private</MenuItem><MenuItem value="local_authority">Local authority</MenuItem><MenuItem value="nhs">NHS</MenuItem><MenuItem value="other">Other</MenuItem></TextField><TextField type="date" label="Start date" InputLabelProps={{ shrink: true }} value={draft?.start_date || ''} onChange={e => setDraft((v: any) => ({ ...v, start_date: e.target.value }))} /><TextField select label="Billing profile" value={draft?.billing_profile_id || ''} onChange={e => setDraft((v: any) => ({ ...v, billing_profile_id: e.target.value }))}><MenuItem value="">No billing profile</MenuItem>{billingProfiles.map((p: any) => <MenuItem key={p.id} value={p.id}>{p.name} · {money(p.client_rate_pence)}/hr</MenuItem>)}</TextField><TextField label="Custom client charge (pence/hr)" type="number" value={draft?.client_rate_pence || ''} onChange={e => setDraft((v: any) => ({ ...v, client_rate_pence: e.target.value }))} helperText="Optional package override." /><TextField select label="Carer pay profile" value={draft?.pay_profile_id || ''} onChange={e => setDraft((v: any) => ({ ...v, pay_profile_id: e.target.value }))}><MenuItem value="">No pay profile</MenuItem>{payProfiles.map((p: any) => <MenuItem key={p.id} value={p.id}>{p.name} · {money(p.hourly_rate_pence)}/hr</MenuItem>)}</TextField><TextField label="Package carer rate (pence/hr)" type="number" value={draft?.hourly_rate_pence || ''} onChange={e => setDraft((v: any) => ({ ...v, hourly_rate_pence: e.target.value }))} helperText="A call-level pay rate can override this." /></Stack></DialogContent><DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="contained" onClick={save} disabled={saving || !draft?.person_id || !draft?.name?.trim()}>{saving ? <CircularProgress size={18} /> : 'Create package'}</Button></DialogActions></Dialog>
 }

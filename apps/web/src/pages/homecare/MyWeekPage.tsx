@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box, Typography, Paper, Chip, LinearProgress, Alert, CircularProgress, Stack,
 } from '@mui/material'
 import { LocationOn as LocationIcon } from '@mui/icons-material'
 import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
+import AppButton from '../../components/design/AppButton'
 
 function time(v: string) {
   return new Date(v).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -33,15 +34,26 @@ export default function MyWeekPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  const loadWeek = useCallback(async () => {
+    setLoading(true)
+    setError('')
     const now = new Date()
     const from = new Date(now); from.setHours(0, 0, 0, 0)
     const to = new Date(now); to.setDate(to.getDate() + 7); to.setHours(23, 59, 59)
-    api.get('/homecare/week-visits', { params: { from: from.toISOString(), to: to.toISOString() } })
-      .then(res => setVisits(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setError('Could not load your week. Please try again.'))
-      .finally(() => setLoading(false))
+    try {
+      const response = await api.get('/homecare/week-visits', {
+        params: { from: from.toISOString(), to: to.toISOString() },
+        timeout: 20_000,
+      })
+      setVisits(Array.isArray(response.data) ? response.data : [])
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Could not load your week. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => { loadWeek() }, [loadWeek])
 
   // Group by day
   const grouped: Record<string, any[]> = {}
@@ -61,7 +73,11 @@ export default function MyWeekPage() {
       <Typography variant="h4" fontWeight={700} mb={1}>My week</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>{visits.length} calls · {completed} completed</Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} action={<AppButton variant="secondary" size="small" onClick={loadWeek}>Try again</AppButton>}>
+          {error}
+        </Alert>
+      )}
 
       {/* Progress */}
       {visits.length > 0 && (

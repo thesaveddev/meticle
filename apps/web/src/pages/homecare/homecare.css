@@ -64,7 +64,8 @@
 .homecare-visit,
 .homecare-package,
 .homecare-timesheet,
-.homecare-empty {
+.homecare-empty,
+.homecare-ops {
   border: 1px solid var(--homecare-rule) !important;
   border-radius: 8px !important;
   background: var(--homecare-surface) !important;
@@ -77,10 +78,10 @@
   align-items: center;
   gap: 20px;
   padding: 18px 20px;
-  border-left: 4px solid var(--homecare-navy) !important;
+  border: 1px solid var(--homecare-rule) !important;
 }
 
-.homecare-visit--checked_in { border-left-color: var(--homecare-green) !important; }
+.homecare-visit--checked_in { background: color-mix(in srgb, var(--homecare-green) 5%, var(--homecare-surface)); }
 .homecare-visit--completed { opacity: 0.7; }
 .homecare-visit__date { color: var(--homecare-navy); font-size: 0.87rem !important; font-weight: 700 !important; }
 .homecare-visit__time .MuiChip-root { margin-top: 7px; text-transform: capitalize; }
@@ -96,11 +97,12 @@
 .homecare-package,
 .homecare-timesheet,
 .homecare-exception,
-.homecare-export { display: grid; gap: 16px; padding: 20px; }
+.homecare-export,
+.homecare-ops { display: grid; gap: 16px; padding: 20px; }
 .homecare-empty { padding: 48px 24px; text-align: center; }
 .homecare-empty h6 { font-weight: 700; }
 .homecare-empty p { margin-top: 8px; }
-.homecare-exception { grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-left: 4px solid #B45309 !important; }
+.homecare-exception { grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid var(--homecare-rule) !important; }
 .homecare-exception__detail { margin-top: 6px !important; color: #B45309; font-size: 0.84rem !important; text-transform: capitalize; }
 .homecare-export { margin-top: 20px; border: 1px solid var(--homecare-rule) !important; border-radius: 12px !important; box-shadow: none !important; background: var(--homecare-surface) !important; }
 .homecare-package__numbers,

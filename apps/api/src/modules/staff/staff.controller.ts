@@ -279,6 +279,21 @@ export class StaffController {
     res.json(result.rows[0]);
   }
 
+  static async updatePayProfile(req: Request, res: Response) {
+    const orgId = req.user!.organizationId;
+    const { userId } = req.params;
+    const payProfileId = req.body?.pay_profile_id || null;
+    const userCheck = await pool.query('SELECT 1 FROM users WHERE id = $1 AND organization_id = $2', [userId, orgId]);
+    if (!userCheck.rows[0]) throw new AppError(404, 'Staff member not found');
+    if (payProfileId) {
+      const profile = await pool.query('SELECT id FROM homecare_pay_profiles WHERE id = $1 AND organization_id = $2 AND is_active = TRUE', [payProfileId, orgId]);
+      if (!profile.rows[0]) throw new AppError(400, 'Pay profile is not active in this organisation');
+    }
+    const result = await pool.query(`UPDATE staff_profiles SET pay_profile_id = $1 WHERE user_id = $2 RETURNING *`, [payProfileId, userId]);
+    if (!result.rows[0]) throw new AppError(404, 'Staff profile not found');
+    res.json(result.rows[0]);
+  }
+
   static async forcePasswordReset(req: Request, res: Response) {
     const { userId } = req.params;
     const orgId = req.user!.organizationId;

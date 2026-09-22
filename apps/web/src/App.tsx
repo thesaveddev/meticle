@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Navigate, Routes, Route } from 'react-router-dom'
 import { lazy, Suspense, useState, useEffect } from 'react'
 import Layout from './components/Layout'
 import AuthGuard from './components/AuthGuard'
@@ -216,12 +216,15 @@ function App() {
           <Route path="/expenses" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="expenses"><ExpensesPage /></ModuleGuard></AuthGuard>} />
           <Route path="/homecare" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="homecare"><HomecarePage /></ModuleGuard></AuthGuard>} />
           <Route path="/mileage" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="mileage_travel"><MileagePage /></ModuleGuard></AuthGuard>} />
-          <Route path="/call-scheduling" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="call_scheduling"><CallSchedulingPage /></ModuleGuard></AuthGuard>} />
+          {/* Call scheduling is the single home for daily assignment and weekly planning. */}
+          <Route path="/call-scheduling" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="call_scheduling"><WeeklyCallPlanner /></ModuleGuard></AuthGuard>} />
+          <Route path="/call-scheduling/day" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="call_scheduling"><CallSchedulingPage /></ModuleGuard></AuthGuard>} />
           <Route path="/payroll-export" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="payroll_export"><PayrollExportPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/payroll-timesheets" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="payroll_export"><PayrollExportPage /></ModuleGuard></AuthGuard>} />
           <Route path="/availability" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="homecare"><AvailabilityPage /></ModuleGuard></AuthGuard>} />
           <Route path="/live-map" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="homecare"><LiveMapPage /></ModuleGuard></AuthGuard>} />
           <Route path="/call-assignment" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="call_scheduling"><CallAssignmentBoard /></ModuleGuard></AuthGuard>} />
-          <Route path="/weekly-planner" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="call_scheduling"><WeeklyCallPlanner /></ModuleGuard></AuthGuard>} />
+          <Route path="/weekly-planner" element={<Navigate to="/call-scheduling" replace />} />
 
           <Route path="/my-profile" element={<MyProfilePage />} />
           <Route path="/my-week" element={<MyWeekPage />} />
