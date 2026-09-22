@@ -19,7 +19,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
-
   const justRegistered = searchParams.get('registered') === 'true'
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,14 +68,14 @@ export default function LoginPage() {
   usePageMeta({ title: 'Login | Meticle Care', description: 'Log in to your Meticle Care care management account.', noindex: true })
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'white' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'background.default', color: 'text.primary' }}>
       <Box sx={{ flex: { xs: 1, md: 0.8, lg: 0.6 }, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
         <Container maxWidth="xs" sx={{ mx: 'auto' }}>
           <Box sx={{ mb: 6 }}>
             <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', letterSpacing: '-1.5px', cursor: 'pointer', mb: 1 }} onClick={() => navigate('/')}>
               Meticle Care
             </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>Welcome back</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>Welcome back</Typography>
             <Typography sx={{ color: 'text.secondary' }}>Care operations, unified.</Typography>
           </Box>
 
@@ -120,7 +119,7 @@ export default function LoginPage() {
 
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <FormControlLabel
-                  control={<Checkbox sx={{ color: '#E5E7EB', '&.Mui-checked': { color: '#0F4C81' } }} />}
+                  control={<Checkbox sx={{ color: 'text.disabled', '&.Mui-checked': { color: '#0F4C81' } }} />}
                   label={<Typography variant="body2" sx={{ color: 'text.secondary' }}>Remember me</Typography>}
                 />
               </Stack>
@@ -130,7 +129,7 @@ export default function LoginPage() {
                 {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign in to dashboard'}
               </Button>
 
-              <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
+              <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Don't have an account?{' '}
                   <Link onClick={() => navigate('/register')} sx={{ color: '#0F4C81', cursor: 'pointer', fontWeight: 700, textDecoration: 'none' }}>
@@ -151,13 +150,13 @@ export default function LoginPage() {
       <Box sx={{
         flex: { xs: 0, md: 1.2, lg: 1.6 },
         display: { xs: 'none', md: 'flex' },
-        flexDirection: 'column', bgcolor: 'grey.50', p: 8,
+        flexDirection: 'column', bgcolor: 'background.paper', p: 8,
         alignItems: 'center', justifyContent: 'center',
-        borderLeft: '1px solid #E5E7EB'
+        borderLeft: '1px solid', borderColor: 'divider'
       }}>
         <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
           <img src={LOGIN_ILLUSTRATION} alt="Meticle Care dashboard" style={{ width: '100%', marginBottom: '32px', borderRadius: 8 }} />
-          <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1.5, lineHeight: 1.3 }}>
             Care records, medication, staffing and compliance — one working view.
           </Typography>
           <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>

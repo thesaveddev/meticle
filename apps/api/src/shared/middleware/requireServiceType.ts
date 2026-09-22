@@ -76,3 +76,21 @@ export const requireSupportedLivingOnly = requireServiceType('supported_living',
  * Use on routes that are only for domiciliary / live_in.
  */
 export const requireDomiciliaryOnly = requireServiceType('domiciliary', 'live_in');
+
+/**
+ * Shift Marketplace access is shared by both care models, but the scheduling
+ * API also contains supported-living rota operations. Domiciliary users may
+ * only use the explicitly open-call/claim surface, never the wider rota API.
+ */
+export async function requireOpenCallAccess(req: Request, _res: Response, next: NextFunction) {
+  const isOpenCallRoute =
+    (req.method === 'GET' && ['/open', '/my-claims', '/all-claims', '/staff'].includes(req.path)) ||
+    (req.method === 'POST' && req.path === '/' && (!Array.isArray(req.body?.assigned_staff_ids) || req.body.assigned_staff_ids.length === 0)) ||
+    (req.method === 'POST' && /^\/[^/]+\/claim$/.test(req.path)) ||
+    (req.method === 'POST' && /^\/[^/]+\/(convert-claim|swap-claim)\/[^/]+$/.test(req.path)) ||
+    (req.method === 'PATCH' && /^\/[^/]+\/(approve-claim|reject-claim)\/[^/]+$/.test(req.path)) ||
+    (req.method === 'DELETE' && /^\/[^/]+\/cancel-claim\/[^/]+$/.test(req.path));
+
+  if (!isOpenCallRoute) return requireSupportedLivingOnly(req, _res, next);
+  return requireCareOrganisation(req, _res, next);
+}

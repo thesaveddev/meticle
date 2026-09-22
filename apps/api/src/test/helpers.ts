@@ -10,7 +10,7 @@ import { rateLimit } from '../shared/middleware/rateLimit.middleware'
 import { metricsMiddleware } from '../shared/metrics'
 import { correlationId } from '../shared/middleware/correlationId'
 import { rlsMiddleware } from '../shared/middleware/rls.middleware'
-import { requireCareOrganisation, requireSupportedLivingOnly, requireDomiciliaryOnly } from '../shared/middleware/requireServiceType'
+import { requireCareOrganisation, requireSupportedLivingOnly, requireDomiciliaryOnly, requireOpenCallAccess } from '../shared/middleware/requireServiceType'
 
 import pool from '../shared/database'
 
@@ -81,7 +81,7 @@ export function createTestApp(): Express {
   app.use('/organizations', invitationRoutes)
   app.use('/staff', staffRoutes)
   app.use('/compliance', complianceRoutes)
-  app.use('/shifts', authenticate, requireSupportedLivingOnly, schedulingRoutes)
+  app.use('/shifts', authenticate, requireOpenCallAccess, schedulingRoutes)
   app.use('/marketplace', marketplaceRoutes)
   app.use('/reporting', reportingRoutes)
   app.use('/insights', insightsRoutes)

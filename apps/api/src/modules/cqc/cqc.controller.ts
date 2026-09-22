@@ -261,10 +261,10 @@ export class CqcController {
     const riskResult = await pool.query(
       `SELECT
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE next_review_date IS NULL OR next_review_date < CURRENT_DATE) as overdue
+        COUNT(*) FILTER (WHERE review_date IS NULL OR review_date < CURRENT_DATE) as overdue
        FROM risk_assessments ra
        JOIN people p ON ra.person_id = p.id
-       WHERE p.organization_id = $1 AND ra.status = 'active'`, [orgId]
+       WHERE p.organization_id = $1`, [orgId]
     );
     const risks = riskResult.rows[0];
     const riskTotal = parseInt(risks.total || '0');

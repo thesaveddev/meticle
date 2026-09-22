@@ -117,6 +117,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     'Visits & Packages': 'Care Packages',
     'Staff Directory': 'Carers',
     'Locations': 'Areas',
+    'Shift Marketplace': 'Open Calls',
   } : {}
 
 
@@ -183,13 +184,12 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       items: [
         { text: 'Live Map', icon: <LocationOnIcon />, path: '/live-map', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Call Assignment', icon: <ScheduleIcon />, path: '/call-assignment', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
-        { text: 'Weekly Planner', icon: <ScheduleIcon />, path: '/weekly-planner', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Availability', icon: <ScheduleIcon />, path: '/availability', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Visits & Packages', icon: <HomecareIcon />, path: '/homecare', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
-        { text: 'Call Schedule', icon: <ScheduleIcon />, path: '/call-scheduling', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
+        { text: 'Call Scheduling', icon: <ScheduleIcon />, path: '/call-scheduling', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Mileage & Travel', icon: <DirectionsCarIcon />, path: '/mileage', module: 'mileage_travel', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
 
-        { text: 'Payroll Export', icon: <ReceiptIcon />, path: '/payroll-export', module: 'payroll_export', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
+        { text: 'Payroll & Timesheets', icon: <ReceiptIcon />, path: '/payroll-timesheets', module: 'payroll_export', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Carer Totals', icon: <ReportsIcon />, path: '/carer-totals', module: 'payroll_export', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'My Earnings', icon: <ReceiptIcon />, path: '/earnings', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Client Billing', icon: <ReceiptIcon />, path: '/client-billing', module: 'client_billing', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },

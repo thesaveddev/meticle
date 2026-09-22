@@ -22,6 +22,8 @@ export interface HomecarePackageInput {
   weekly_hours?: number | null;
   hourly_rate_pence?: number | null;
   client_rate_pence?: number | null;
+  billing_profile_id?: string | null;
+  pay_profile_id?: string | null;
   travel_time_paid?: boolean;
   mileage_rate_pence?: number | null;
   notes?: string | null;

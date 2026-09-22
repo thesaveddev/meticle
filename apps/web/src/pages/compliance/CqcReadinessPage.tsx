@@ -116,7 +116,7 @@ export default function CqcReadinessPage() {
     const gapsRows = (aiResult.critical_gaps || []).map((g: any) => {
       const priColor = g.priority === 'critical' || g.priority === 'high' ? '#DC2626' : g.priority === 'medium' ? '#F59E0B' : '#6B7280'
       const priBg = g.priority === 'critical' || g.priority === 'high' ? '#FEF2F2' : g.priority === 'medium' ? '#FFFBEB' : '#F9FAFB'
-      return `<div style="padding:8px 12px;margin:6px 0;border-left:4px solid ${priColor};background:${priBg}"><strong>${g.area}</strong> <span style="float:right;font-size:11px;font-weight:700;text-transform:uppercase">${g.priority}</span><br><span style="color:#6B7280;font-size:12px">Statement: ${g.statement || '-'}</span><br><span style="color:#6B7280;font-size:12px">Current: ${g.current_state || '-'}</span><br>→ ${g.recommended_action || ''}</div>`
+      return `<div style="padding:8px 12px;margin:6px 0;border:1px solid ${priColor};border-radius:6px;background:${priBg}"><strong>${g.area}</strong> <span style="float:right;font-size:11px;font-weight:700;text-transform:uppercase">${g.priority}</span><br><span style="color:#6B7280;font-size:12px">Statement: ${g.statement || '-'}</span><br><span style="color:#6B7280;font-size:12px">Current: ${g.current_state || '-'}</span><br>→ ${g.recommended_action || ''}</div>`
     }).join('')
     const quickWinsRows = (aiResult.quick_wins || []).map((w: string) => `<div style="padding:8px 12px;margin:4px 0;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:4px;font-size:13px">✓ ${w}</div>`).join('')
     const frameworkName = data.framework?.name || 'CQC'
@@ -128,7 +128,7 @@ export default function CqcReadinessPage() {
 ${aiResult.overall_assessment ? `<h2 style="color:#0F4C81;font-size:16px;margin-top:20px">Overall Assessment</h2><div style="background:#F5F3FF;padding:12px;border-radius:8px;margin:12px 0;border:1px solid #DDD6FE">${aiResult.overall_assessment}</div>` : ''}
 ${gapsRows ? `<h2 style="color:#0F4C81;font-size:16px;margin-top:20px">Critical Gaps (${aiResult.critical_gaps.length})</h2>${gapsRows}` : ''}
 ${quickWinsRows ? `<h2 style="color:#0F4C81;font-size:16px;margin-top:20px">Quick Wins</h2>${quickWinsRows}` : ''}
-${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;background:#F8FAFC;border-left:3px solid #7C3AED;font-style:italic;font-size:13px;color:#6B7280">⏱ Estimated timeline: ${aiResult.estimated_timeline}</div>` : ''}
+${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;background:#F8FAFC;border:1px solid #DDD6FE;border-radius:6px;font-style:italic;font-size:13px;color:#6B7280">⏱ Estimated timeline: ${aiResult.estimated_timeline}</div>` : ''}
 `
   }
 
@@ -289,9 +289,9 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
         .gauge { text-align: center; padding: 40px; }
         .gauge-score { font-size: 48px; font-weight: 700; }
         .metric-card { text-align: center; padding: 16px; border: 1px solid #D1D5DB; border-radius: 8px; }
-        .action-item { padding: 8px 12px; margin: 4px 0; border-left: 4px solid #DC2626; background: #FEF2F2; }
-        .action-item.medium { border-left-color: #F59E0B; background: #FFFBEB; }
-        .action-item.low { border-left-color: #6B7280; background: #F9FAFB; }
+        .action-item { padding: 8px 12px; margin: 4px 0; border: 1px solid #FECACA; border-radius: 6px; background: #FEF2F2; }
+        .action-item.medium { border-color: #FDE68A; background: #FFFBEB; }
+        .action-item.low { border-color: #D1D5DB; background: #F9FAFB; }
         .priority-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .priority-high { background: #FEE2E2; color: #991B1B; }
         .priority-medium { background: #FEF3C7; color: #92400E; }

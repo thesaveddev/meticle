@@ -466,7 +466,7 @@ export default function PrintableWeeklyMealPlan({ personId, personName }: Props)
                       sx={{
                         py: 1.5, px: 1,
                         bgcolor: mt.color + '10',
-                        borderLeft: `3px solid ${mt.color}`,
+                        border: `1px solid ${mt.color}55`,
                         borderRadius: 2, height: '100%',
                         display: 'flex', alignItems: 'center',
                       }}

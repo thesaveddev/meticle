@@ -17,6 +17,7 @@ interface Visit {
   person_name: string
   assigned_staff_id: string | null
   carer_name: string | null
+  assigned_staff_name?: string | null
   status: string
   scheduled_start: string
   scheduled_end: string
@@ -55,7 +56,16 @@ export default function WeeklyCallPlanner() {
 
   const { data: visits = [], isLoading } = useQuery({
     queryKey: ['homecare-visits-week', weekFrom, weekTo],
-    queryFn: () => api.get('/homecare/visits', { params: { from: weekFrom, to: weekTo } }).then(r => Array.isArray(r.data) ? r.data : []),
+    queryFn: () => api.get('/homecare/visits', { params: { from: weekFrom, to: weekTo } }).then(r => {
+      const rows = Array.isArray(r.data) ? r.data : []
+      // The shared visits endpoint calls this field `assigned_staff_name`; the
+      // planner's view model uses `carer_name`. Normalise at the API boundary so
+      // assigned calls are never displayed as unassigned just because of naming.
+      return rows.map((visit: Visit & { assigned_staff_name?: string | null }) => ({
+        ...visit,
+        carer_name: visit.carer_name || visit.assigned_staff_name || null,
+      }))
+    }),
   })
 
   const { data: people = [] } = useQuery({
@@ -105,12 +115,14 @@ export default function WeeklyCallPlanner() {
     <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Weekly Call Planner</Typography>
+          <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 800, letterSpacing: 1.1 }}>Call scheduling</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>Plan and assign calls</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
             {dayName(weekFrom)} {dayNum(weekFrom)} - {dayName(weekDays[6])} {dayNum(weekDays[6])} · {totalCalls} calls · {assignedCalls} assigned · {unassignedCalls} unassigned
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
+          <Button variant="text" onClick={() => { window.location.href = '/call-scheduling/day' }} sx={{ textTransform: 'none' }}>Daily list</Button>
           <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCreateDialog(true)} sx={{ textTransform: 'none', borderColor: '#0F4C81', color: '#0F4C81', fontWeight: 600 }}>
             Add call
           </Button>
@@ -166,14 +178,14 @@ export default function WeeklyCallPlanner() {
                             cursor: 'pointer',
                             '&:hover': { borderColor: '#0F4C81' },
                           }}
-                          title={`${v.person_name} - ${v.label}${v.carer_name ? ` (${v.carer_name})` : ' (Unassigned)'}`}
+                          title={`${v.person_name} - ${v.label}${(v.carer_name || v.assigned_staff_name) ? ` (${v.carer_name || v.assigned_staff_name})` : ' (Unassigned)'}`}
                           onClick={() => { setReassignVisit(v); setReassignStaffId(v.assigned_staff_id || '') }}
                         >
                           <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.65rem', display: 'block', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {time(v.scheduled_start)} {v.person_name}
                           </Typography>
                           <Typography variant="caption" sx={{ fontSize: '0.55rem', color: v.assigned_staff_id ? '#6B7280' : '#D97706', display: 'block', lineHeight: 1.2 }}>
-                            {v.carer_name || 'Unassigned'}
+                            {v.carer_name || v.assigned_staff_name || 'Unassigned'}
                           </Typography>
                         </Paper>
                       ))}

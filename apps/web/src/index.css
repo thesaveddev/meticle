@@ -84,11 +84,47 @@
   box-sizing: border-box;
 }
 
+html, body {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Authenticated surfaces use the same dark canvas as the shell. These
+   overrides also neutralise legacy page-level white card declarations. */
+[data-theme="dark"] .MuiPaper-root,
+[data-theme="dark"] .MuiCard-root {
+  background-color: var(--bg-white) !important;
+  color: var(--text-main);
+}
+
+[data-theme="dark"] .MuiTableCell-root,
+[data-theme="dark"] .MuiListItem-root {
+  color: var(--text-main);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .MuiInputBase-root,
+[data-theme="dark"] .MuiOutlinedInput-root,
+[data-theme="dark"] .MuiSelect-select {
+  background-color: #111827 !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .MuiMenu-paper,
+[data-theme="dark"] .MuiPopover-paper {
+  background-color: var(--bg-white) !important;
+  color: var(--text-main);
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: var(--bg-page);
   color: var(--text-main);
   line-height: 1.5;
+  transition: background-color var(--transition-base), color var(--transition-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -203,7 +239,7 @@ h1, h2, h3, h4, h5, h6 {
 .pain-card {
   padding: 2rem;
   background: var(--bg-white);
-  border-left: 4px solid var(--error);
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
 }

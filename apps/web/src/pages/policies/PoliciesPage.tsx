@@ -152,7 +152,6 @@ export default function PoliciesPage() {
   const [sharing, setSharing] = useState(false)
   const [shareResult, setShareResult] = useState<'success' | 'error' | null>(null)
   const [error, setError] = useState('')
-  const [hallmarkInstalled, setHallmarkInstalled] = useState(() => localStorage.getItem('meticle-hallmark-global') === 'true')
   const currentUser = useMemo(() => {
     try {
       const stored = localStorage.getItem('user')
@@ -305,14 +304,11 @@ export default function PoliciesPage() {
     <PageContainer>
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
 
-      <Paper variant="outlined" sx={{ mb: 4, p: { xs: 2, md: 2.5 }, borderRadius: 2, borderColor: '#C7D7E8', bgcolor: 'info.light' }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} gap={2}>
-          <Box>
-            <Typography sx={{ color: NAVY, fontWeight: 900, mb: 0.5 }}>Hallmark skills for every team</Typography>
-            <Typography variant="body2" sx={{ color: MUTED }}>Install the Hallmark policy skills globally so every service uses the same review, approval, and evidence standards.</Typography>
-          </Box>
-          <Button variant={hallmarkInstalled ? 'outlined' : 'contained'} onClick={() => { const next = !hallmarkInstalled; setHallmarkInstalled(next); localStorage.setItem('meticle-hallmark-global', String(next)) }} sx={{ color: hallmarkInstalled ? NAVY : '#fff', bgcolor: hallmarkInstalled ? 'transparent' : NAVY, borderColor: NAVY, textTransform: 'none', fontWeight: 800, flexShrink: 0 }}>{hallmarkInstalled ? 'Hallmark skills installed' : 'Install globally'}</Button>
-        </Stack>
+      <Paper variant="outlined" sx={{ mb: 4, p: { xs: 2, md: 2.5 }, borderRadius: 2, borderColor: HAIRLINE, bgcolor: 'background.paper' }}>
+        <Typography sx={{ color: INK, fontWeight: 900, mb: 0.5 }}>Policy control standard</Typography>
+        <Typography variant="body2" sx={{ color: MUTED, maxWidth: 780 }}>
+          The same review, approval and evidence rules apply across domiciliary care and supported living. Every published policy has an owner, version, review date and audit trail; evidence must be attributable, dated and linked to the policy it supports.
+        </Typography>
       </Paper>
 
       <Box sx={{ mb: 4 }}>

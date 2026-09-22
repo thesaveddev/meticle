@@ -42,7 +42,7 @@ function AlertCard({ icon, label, value, color, bg, onClick, subtitle }: {
       elevation={0}
       onClick={onClick}
       sx={{
-        p: 2.5, border: value > 0 ? `2px solid ${color}` : '1px solid #F1F5F9',
+        p: 2.5, border: value > 0 ? `2px solid ${color}` : '1px solid', borderColor: 'divider',
         borderRadius: 2.5, cursor: onClick ? 'pointer' : 'default',
         transition: 'all 0.15s', height: '100%',
         '&:hover': onClick ? { boxShadow: '0 4px 16px rgba(0,0,0,0.06)', transform: 'translateY(-1px)' } : {},
@@ -53,11 +53,11 @@ function AlertCard({ icon, label, value, color, bg, onClick, subtitle }: {
           {icon}
         </Box>
         <Box sx={{ flex: 1 }}>
-          <Typography sx={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 500 }}>{label}</Typography>
+          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>{label}</Typography>
           <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color, letterSpacing: '-0.02em' }}>{value}</Typography>
         </Box>
       </Stack>
-      {subtitle && <Typography sx={{ fontSize: '0.7rem', color: '#94A3B8' }}>{subtitle}</Typography>}
+      {subtitle && <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>{subtitle}</Typography>}
     </Paper>
   )
 }
@@ -104,12 +104,12 @@ export default function HomecareMissionControl() {
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800 }}>Mission Control</Typography>
-            <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {totalOpenIssues > 0 ? `${totalOpenIssues} issue${totalOpenIssues !== 1 ? 's' : ''} need attention` : 'All clear — no open issues'}
             </Typography>
           </Box>
         </Stack>
-        <IconButton onClick={load} disabled={loading} sx={{ color: '#64748B' }}>
+        <IconButton onClick={load} disabled={loading} sx={{ color: 'text.secondary' }}>
           <RefreshIcon />
         </IconButton>
       </Stack>
@@ -123,12 +123,12 @@ export default function HomecareMissionControl() {
       ) : data && (
         <>
           {/* ═══ TODAY'S OPERATIONS ═══ */}
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
             Today's Operations
           </Typography>
 
           {/* Completion progress */}
-          <Paper elevation={0} sx={{ p: 2.5, mb: 2, border: '1px solid #F1F5F9', borderRadius: 2.5 }}>
+          <Paper elevation={0} sx={{ p: 2.5, mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
               <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>Call completion</Typography>
               <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: completionRate >= 90 ? '#22C55E' : completionRate >= 70 ? '#F59E0B' : '#EF4444' }}>
@@ -147,11 +147,11 @@ export default function HomecareMissionControl() {
               }}
             />
             <Stack direction="row" gap={2} sx={{ mt: 1.5 }} flexWrap="wrap">
-              <Typography sx={{ fontSize: '0.75rem', color: '#64748B' }}>
+              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                 {data.completed_today} completed of {data.total_today} total
               </Typography>
               {data.carers_working_today > 0 && (
-                <Typography sx={{ fontSize: '0.75rem', color: '#64748B' }}>
+                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                   {data.carers_working_today} carer{data.carers_working_today !== 1 ? 's' : ''} working
                 </Typography>
               )}
@@ -179,7 +179,7 @@ export default function HomecareMissionControl() {
           </Grid>
 
           {/* ═══ COMPLIANCE & SAFETY ═══ */}
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
             Compliance & Safety
           </Typography>
 
@@ -205,10 +205,10 @@ export default function HomecareMissionControl() {
           {/* ═══ MISSED CALL TREND ═══ */}
           {data.missed_trend.length > 0 && (
             <>
-              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
                 Missed Calls — Last 7 Days
               </Typography>
-              <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid #F1F5F9', borderRadius: 2.5 }}>
+              <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
                 <Stack direction="row" gap={1} alignItems="flex-end" sx={{ height: 120 }}>
                   {data.missed_trend.map((d) => {
                     const maxCount = Math.max(...data.missed_trend.map(x => x.count), 1)
@@ -230,8 +230,8 @@ export default function HomecareMissionControl() {
                   })}
                 </Stack>
                 <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
-                  <Typography sx={{ fontSize: '0.65rem', color: '#94A3B8' }}>7 days ago</Typography>
-                  <Typography sx={{ fontSize: '0.65rem', color: '#94A3B8' }}>Today</Typography>
+                  <Typography sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>7 days ago</Typography>
+                  <Typography sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>Today</Typography>
                 </Stack>
               </Paper>
             </>
@@ -240,19 +240,19 @@ export default function HomecareMissionControl() {
           {/* ═══ MISSED BY CARER ═══ */}
           {data.missed_by_carer.length > 0 && (
             <>
-              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
                 Missed Calls by Carer — Last 7 Days
               </Typography>
               <Stack gap={1} sx={{ mb: 3 }}>
                 {data.missed_by_carer.map((c) => (
                   <Paper key={c.carer_name} elevation={0} sx={{
-                    border: '1px solid #F1F5F9', borderRadius: 2, overflow: 'hidden',
+                    border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden',
                   }}>
                     <Box
                       onClick={() => setExpandedCarer(expandedCarer === c.carer_name ? null : c.carer_name)}
                       sx={{
                         p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        cursor: 'pointer', '&:hover': { bgcolor: '#F8FAFC' },
+                        cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' },
                         transition: 'background 0.15s',
                       }}
                     >
@@ -266,21 +266,21 @@ export default function HomecareMissionControl() {
                       <Stack direction="row" alignItems="center" gap={1}>
                         <Chip label={`${c.count} missed`} size="small"
                           sx={{ bgcolor: c.count > 3 ? '#FEF2F2' : '#FFFBEB', color: c.count > 3 ? '#B91C1C' : '#D97706', fontWeight: 600, fontSize: '0.7rem' }} />
-                        {expandedCarer === c.carer_name ? <ExpandLess sx={{ fontSize: 18, color: '#94A3B8' }} /> : <ExpandMore sx={{ fontSize: 18, color: '#94A3B8' }} />}
+                        {expandedCarer === c.carer_name ? <ExpandLess sx={{ fontSize: 18, color: 'text.secondary' }} /> : <ExpandMore sx={{ fontSize: 18, color: 'text.secondary' }} />}
                       </Stack>
                     </Box>
                     <Collapse in={expandedCarer === c.carer_name}>
-                      <Box sx={{ px: 2, pb: 2, borderTop: '1px solid #F1F5F9' }}>
+                      <Box sx={{ px: 2, pb: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                         <Stack spacing={1} sx={{ pt: 1.5 }}>
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Person sx={{ fontSize: 14, color: '#94A3B8' }} />
-                            <Typography sx={{ fontSize: '0.8rem', color: '#64748B' }}>
+                            <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
+                            <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
                               {c.count} call{c.count !== 1 ? 's' : ''} missed in the last 7 days
                             </Typography>
                           </Stack>
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <AccessTime sx={{ fontSize: 14, color: '#94A3B8' }} />
-                            <Typography sx={{ fontSize: '0.8rem', color: '#64748B' }}>
+                            <AccessTime sx={{ fontSize: 14, color: 'text.secondary' }} />
+                            <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
                               Review individual call records for reasons and follow-up actions
                             </Typography>
                           </Stack>
@@ -301,32 +301,6 @@ export default function HomecareMissionControl() {
             </>
           )}
 
-          {/* ═══ QUICK ACTIONS ═══ */}
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
-            Quick Actions
-          </Typography>
-          <Stack direction="row" gap={1.5} flexWrap="wrap">
-            <Button variant="outlined" size="small" startIcon={<GotoIcon />}
-              onClick={() => nav('/call-assignment')}
-              sx={{ textTransform: 'none', borderColor: '#E5E7EB', borderRadius: 2, fontWeight: 600, fontSize: '0.8rem' }}>
-              Assign calls ({data.unassigned_today})
-            </Button>
-            <Button variant="outlined" size="small" startIcon={<GotoIcon />}
-              onClick={() => nav('/homecare?status=missed')}
-              sx={{ textTransform: 'none', borderColor: '#E5E7EB', borderRadius: 2, fontWeight: 600, fontSize: '0.8rem' }}>
-              Review missed ({data.missed_today})
-            </Button>
-            <Button variant="outlined" size="small" startIcon={<GotoIcon />}
-              onClick={() => nav('/compliance/homecare')}
-              sx={{ textTransform: 'none', borderColor: '#E5E7EB', borderRadius: 2, fontWeight: 600, fontSize: '0.8rem' }}>
-              Compliance ({data.training_expiring + data.docs_expiring})
-            </Button>
-            <Button variant="outlined" size="small" startIcon={<GotoIcon />}
-              onClick={() => nav('/incidents')}
-              sx={{ textTransform: 'none', borderColor: '#E5E7EB', borderRadius: 2, fontWeight: 600, fontSize: '0.8rem' }}>
-              Incidents ({data.open_incidents})
-            </Button>
-          </Stack>
         </>
       )}
     </PageContainer>

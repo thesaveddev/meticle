@@ -17,7 +17,7 @@ import {
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
-import { fetchUserPermissions, updateUserPermissions, MODULE_LABELS, LEVEL_LABELS } from '../../utils/permissions'
+import { fetchUserPermissions, updateUserPermissions, formatPermissionLabel, LEVEL_LABELS } from '../../utils/permissions'
 import { formatDateOnly } from '../../utils/dateFormat'
 import { LoadingState, StatusBadge, EmptyRow, NAVY } from '../../components/ui'
 import { EmptyState } from '../../components/design/EmptyState'
@@ -152,6 +152,18 @@ export default function StaffProfilePage() {
       const res = await api.get('/leave/locations')
       return res.data
     },
+  })
+
+  const { data: payProfiles = [] } = useQuery({
+    queryKey: ['homecare-pay-profiles'],
+    queryFn: () => api.get('/homecare/pay-profiles').then(res => Array.isArray(res.data) ? res.data : []),
+    enabled: canEdit,
+  })
+  const [payProfileId, setPayProfileId] = useState('')
+  useEffect(() => { if (profile) setPayProfileId(profile.pay_profile_id || '') }, [profile])
+  const payProfileMutation = useMutation({
+    mutationFn: (pay_profile_id: string | null) => api.patch(`/staff/${userId}/pay-profile`, { pay_profile_id }),
+    onSuccess: () => { refetchProfile(); setSaved(true); setTimeout(() => setSaved(false), 3000) },
   })
 
   const [compPage, setCompPage] = useState(0)
@@ -431,6 +443,13 @@ export default function StaffProfilePage() {
                 <Typography variant="caption" color="text.secondary">Weekly max hours</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{profile.max_hours_weekly ? `${profile.max_hours_weekly}h` : '—'}</Typography>
               </Grid>
+              {canEdit && <Grid item xs={12} sm={6}>
+                <TextField select fullWidth size="small" label="Carer pay profile" value={payProfileId} onChange={e => setPayProfileId(e.target.value)} helperText="Used when a call does not have its own pay override.">
+                  <MenuItem value="">No profile assigned</MenuItem>
+                  {payProfiles.map((pay: any) => <MenuItem key={pay.id} value={pay.id}>{pay.name} · £{(Number(pay.hourly_rate_pence) / 100).toFixed(2)}/hr</MenuItem>)}
+                </TextField>
+                <Button size="small" variant="outlined" sx={{ mt: 1 }} disabled={payProfileMutation.isPending} onClick={() => payProfileMutation.mutate(payProfileId || null)}>Save pay profile</Button>
+              </Grid>}
             </Grid>
           </Paper>
         ) : (
@@ -641,9 +660,9 @@ export default function StaffProfilePage() {
               <Box sx={{ textAlign: 'center', py: 5 }}><CircularProgress size={24} sx={{ color: NAVY }} /></Box>
             ) : (
               <Box sx={{ px: 3.5, py: 1.5 }}>
-                {permData.map((p) => (
+                {Array.from(new Map(permData.map(p => [p.module, p])).values()).map((p) => (
                   <Stack key={p.module} direction="row" justifyContent="space-between" alignItems="center" spacing={2} sx={{ py: 1.25, borderBottom: '1px solid #F5F6F8' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{MODULE_LABELS[p.module] || p.module}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatPermissionLabel(p.module)}</Typography>
                     <ToggleButtonGroup
                       exclusive
                       size="small"

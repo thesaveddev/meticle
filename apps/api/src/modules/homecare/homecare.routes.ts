@@ -23,11 +23,15 @@ const packageSchema = z.object({
   weekly_hours: z.number().min(0).max(1000).nullish(),
   hourly_rate_pence: z.number().int().min(0).nullish(),
   client_rate_pence: z.number().int().min(0).nullish(),
+  billing_profile_id: uuid.nullish(),
+  pay_profile_id: uuid.nullish(),
   travel_time_paid: z.boolean().optional(),
   mileage_rate_pence: z.number().int().min(0).nullish(),
   notes: z.string().max(5000).nullish(),
 });
 const packagePatchSchema = packageSchema.partial().omit({ person_id: true });
+const billingProfileSchema = z.object({ name: z.string().trim().min(1).max(255), funding_type: z.enum(['private','local_authority','nhs','other','all']).optional(), client_rate_pence: z.number().int().min(0), description: z.string().max(2000).nullish(), is_active: z.boolean().optional() });
+const payProfileSchema = z.object({ name: z.string().trim().min(1).max(255), hourly_rate_pence: z.number().int().min(0), description: z.string().max(2000).nullish(), is_active: z.boolean().optional() });
 const planSchema = z.object({
   visit_type: z.enum(['morning','breakfast','lunch','tea','evening','night','routine','medication','custom']),
   label: z.string().trim().min(1).max(255),
@@ -66,9 +70,11 @@ const visitSchema = z.object({
   label: z.string().trim().min(1).max(255),
   scheduled_start: iso,
   scheduled_end: iso,
+  hourly_rate_pence: z.number().int().min(0).nullish(),
 });
 const visitPatchSchema = z.object({
   assigned_staff_id: uuid.nullish(),
+  hourly_rate_pence: z.number().int().min(0).nullish(),
   status: z.enum(['scheduled','en_route','checked_in','completed','missed','cancelled']).optional(),
   actual_travel_minutes: z.number().int().min(0).nullish(),
   actual_mileage_miles: z.number().min(0).nullish(),
@@ -100,6 +106,14 @@ const timesheetSchema = z.object({
 const router = Router();
 router.use(authenticate);
 router.get('/packages', requireRole(...fieldRoles), asyncHandler(HomecareController.listPackages));
+router.get('/billing-profiles', requireRole(...managerRoles), asyncHandler(HomecareController.listBillingProfiles));
+router.post('/billing-profiles', requireRole(...managerRoles), validate(billingProfileSchema), asyncHandler(HomecareController.createBillingProfile));
+router.patch('/billing-profiles/:id', requireRole(...managerRoles), validate(billingProfileSchema.partial()), asyncHandler(HomecareController.updateBillingProfile));
+router.delete('/billing-profiles/:id', requireRole(...managerRoles), asyncHandler(HomecareController.deleteBillingProfile));
+router.get('/pay-profiles', requireRole(...managerRoles), asyncHandler(HomecareController.listPayProfiles));
+router.post('/pay-profiles', requireRole(...managerRoles), validate(payProfileSchema), asyncHandler(HomecareController.createPayProfile));
+router.patch('/pay-profiles/:id', requireRole(...managerRoles), validate(payProfileSchema.partial()), asyncHandler(HomecareController.updatePayProfile));
+router.delete('/pay-profiles/:id', requireRole(...managerRoles), asyncHandler(HomecareController.deletePayProfile));
 router.post('/packages', requireRole(...managerRoles), validate(packageSchema), asyncHandler(HomecareController.createPackage));
 router.patch('/packages/:id', requireRole(...managerRoles), validate(packagePatchSchema), asyncHandler(HomecareController.updatePackage));
 router.get('/staff', requireRole(...managerRoles), asyncHandler(HomecareController.listStaff));
@@ -144,7 +158,7 @@ router.get('/packages/:packageId/visit-plans', requireRole(...fieldRoles), async
 router.post('/packages/:packageId/visit-plans', requireRole(...managerRoles), validate(planSchema), asyncHandler(HomecareController.createVisitPlan));
 router.post('/visit-plans/:planId/generate', requireRole(...managerRoles), validate(generationSchema), asyncHandler(HomecareController.generateVisits));
 router.get('/visits', requireRole(...managerRoles), asyncHandler(HomecareController.listVisits));
-router.post('/visits/bulk-auto-assign', requireRole(...managerRoles), validate(billingPeriodSchema), asyncHandler(HomecareController.bulkAutoAssign));
+router.post('/visits/bulk-auto-assign', requireRole(...managerRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.bulkAutoAssign));
 router.get('/my-visits', requireRole(...fieldRoles), asyncHandler(HomecareController.myVisits));
 router.get('/my-earnings', requireRole(...fieldRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getMyEarnings));
 // Payslip PDF. Carers download their own; managers/admins may pass `staffId` (checked in the controller).

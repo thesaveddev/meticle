@@ -4,6 +4,7 @@ import PageContainer from '../../components/design/PageContainer'
 import { HowToReg as ClaimIcon, Schedule as ScheduleIcon, LocationOn as LocationIcon, CheckCircle, Cancel, History, Send as SendIcon, AccessTime as AccessTimeIcon, DateRange as DateRangeIcon, Person as PersonIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material'
 import api from '../../services/api'
 import ContextualLearnLink from '../../components/ContextualLearnLink'
+import AppButton from '../../components/design/AppButton'
 
 const shiftTypeLabel = (t?: string) =>
   ({ day: 'Day', sleep: 'Sleep-in', wake_night: 'Wake Night' } as Record<string, string>)[t || 'day'] || t || 'Day'
@@ -38,6 +39,12 @@ const DetailRow = ({ icon, label, value }: { icon?: ReactNode; label: string; va
 export default function ShiftMarketplacePage() {
   const currentUser = (() => { const s = localStorage.getItem('user'); try { const p = s ? JSON.parse(s) : {}; return p && typeof p === 'object' ? p : {} } catch { return {} } })()
   const isAdminOrManager = currentUser.role === 'ORG_ADMIN' || currentUser.role === 'MANAGER'
+  const storedOrg = (() => { try { const raw = localStorage.getItem('organization'); return raw ? JSON.parse(raw) : {} } catch { return {} } })()
+  const isDomiciliary = storedOrg.primary_service_type
+    ? ['domiciliary', 'live_in'].includes(storedOrg.primary_service_type)
+    : (Array.isArray(storedOrg.service_types) && storedOrg.service_types.some((type: string) => ['domiciliary', 'live_in'].includes(type)))
+  const marketplaceTitle = isDomiciliary ? 'Open Calls' : 'Shift Marketplace'
+  const marketplaceDescription = isDomiciliary ? 'Find, claim and manage open calls for extra paid work' : 'Find, claim and manage unclaimed overtime'
 
   const [tab, setTab] = useState(0)
   const [shifts, setShifts] = useState<any[]>([])
@@ -393,14 +400,14 @@ export default function ShiftMarketplacePage() {
         <Stack direction="row" spacing={1} alignItems="center">
           <ScheduleIcon sx={{ color: '#0F4C81', fontSize: 28 }} />
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>Shift Marketplace</Typography>
-            <Typography variant="caption" color="#6B7280">Find, claim and manage unclaimed overtime</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>{marketplaceTitle}</Typography>
+            <Typography variant="caption" color="text.secondary">{marketplaceDescription}</Typography>
             <ContextualLearnLink topic="dom-manager-web" label="Learn how open calls work" />
           </Box>
         </Stack>
         <Box sx={{ flexGrow: 1 }} />
         {tab === 0 && <Chip label={`${shifts.length} available`} color="primary" variant="outlined" sx={{ fontWeight: 700 }} />}
-        {isAdminOrManager && <Button variant="contained" onClick={() => setOpenCallDialog(true)} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A63' }, textTransform: 'none', fontWeight: 700 }}>Post open call</Button>}
+        {isAdminOrManager && <AppButton onClick={() => setOpenCallDialog(true)}>Post open call</AppButton>}
         {tab === 1 && isAdminOrManager && reviewCount > 0 && <Chip label={`${reviewCount} to review`} color="warning" sx={{ fontWeight: 700 }} />}
       </Stack>
 
@@ -410,7 +417,7 @@ export default function ShiftMarketplacePage() {
       <Paper variant="outlined" sx={{ mb: 2 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 0.5 }}>
           <Tabs value={tab} onChange={(_, v) => setTab(v)}>
-            <Tab label="Available Shifts" icon={<ScheduleIcon />} iconPosition="start" />
+            <Tab label={isDomiciliary ? 'Open Calls' : 'Available Shifts'} icon={<ScheduleIcon />} iconPosition="start" />
             <Tab label="Claims" icon={<History />} iconPosition="start" />
           </Tabs>
           <FormControl size="small" sx={{ m: 1, minWidth: 180 }}>
@@ -428,7 +435,7 @@ export default function ShiftMarketplacePage() {
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }} flexWrap="wrap" useFlexGap>
             <Stack direction="row" spacing={1} alignItems="center">
               <DateRangeIcon sx={{ color: '#0F4C81', fontSize: 18 }} />
-              <Typography variant="body2" sx={{ fontWeight: 700, color: '#1B2430' }}>Unclaimed overtime</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>{isDomiciliary ? 'Open calls' : 'Unclaimed overtime'}</Typography>
             </Stack>
             <TextField label="From" type="date" size="small" value={openDateFrom}
               onChange={e => setOpenDateFrom(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
@@ -475,8 +482,8 @@ export default function ShiftMarketplacePage() {
             <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress size={28} /></Box>
           ) : shifts.length === 0 ? (
             <Paper variant="outlined" sx={{ p: 6, textAlign: 'center' }}>
-              <Typography variant="h6" color="#9CA3AF" sx={{ mb: 1 }}>No open shifts available</Typography>
-              <Typography variant="body2" color="#9CA3AF">Check back later for overtime opportunities.</Typography>
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>No open calls available</Typography>
+              <Typography variant="body2" color="text.secondary">Check back later for new earning opportunities.</Typography>
             </Paper>
           ) : (
             Object.entries(groupedByDate).map(([date, dayShifts]) => (
@@ -521,13 +528,13 @@ export default function ShiftMarketplacePage() {
                             {openStatusChip(s)}
                           </Stack>
                           <Stack spacing={1}>
-                            <Button fullWidth variant="contained" color="primary"
-                              startIcon={claimingId === s.id ? <CircularProgress size={16} color="inherit" /> : <ClaimIcon />}
+                            <AppButton fullWidth
+                              startIcon={claimingId === s.id ? undefined : <ClaimIcon />}
+                              loading={claimingId === s.id}
                               onClick={(e) => { e.stopPropagation(); handleClaim(s.id) }}
-                              disabled={claimingId === s.id || new Date(s.start_time) < new Date()}
-                              sx={{ fontWeight: 700, textTransform: 'none' }}>
-                              {claimingId === s.id ? 'Claiming...' : new Date(s.start_time) < new Date() ? 'Shift started' : 'Claim as Overtime'}
-                            </Button>
+                              disabled={new Date(s.start_time) < new Date()}>
+                              {new Date(s.start_time) < new Date() ? 'Call started' : 'Claim Open Call'}
+                            </AppButton>
                             {isAdminOrManager && (
                               <Button fullWidth variant="outlined" size="small"
                                 startIcon={<SendIcon />}
@@ -660,9 +667,7 @@ export default function ShiftMarketplacePage() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={resetOpenCall}>Cancel</Button>
-          <Button variant="contained" onClick={handlePostOpenCall} disabled={openCallSaving} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A63' } }}>
-            {openCallSaving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Post open call'}
-          </Button>
+          <AppButton onClick={handlePostOpenCall} loading={openCallSaving}>Post Open Call</AppButton>
         </DialogActions>
       </Dialog>
 

@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Typography } from '@mui/material'
-import { Download as DownloadIcon, Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, DirectionsCar as CarIcon, Policy as PolicyIcon } from '@mui/icons-material'
+import { Download as DownloadIcon, Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, DirectionsCar as CarIcon, Policy as PolicyIcon, SettingsSuggest as SettingsIcon, AccessTime as TravelTimeIcon } from '@mui/icons-material'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PageContainer from '../../components/design/PageContainer'
+import AppButton from '../../components/design/AppButton'
 import api from '../../services/api'
 
 /* ── Helpers ── */
@@ -180,28 +181,22 @@ export default function MileagePage() {
         <Stack direction="row" alignItems="center" gap={1.5}>
           <CarIcon sx={{ color: '#0F4C81', fontSize: 28 }} />
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>Mileage & Travel</Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Track carer travel and manage mileage policies</Typography>
+            <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 800, letterSpacing: 1.2 }}>Operations controls</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>Mileage, travel & rate rules</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Keep travel records visible and apply one approved reimbursement policy across the service.</Typography>
           </Box>
         </Stack>
         <Stack direction="row" spacing={1}>
-          {tab === 0 && (
-            <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv} disabled={!mileageVisits.length} sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: 'text.primary' }}>
-              Export CSV
-            </Button>
-          )}
-          {tab === 1 && isManager && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={openPolicyCreate} sx={{ textTransform: 'none', bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0D3D6B' } }}>
-              Add policy
-            </Button>
-          )}
+          {tab === 0 && <AppButton variant="secondary" startIcon={<DownloadIcon />} onClick={exportCsv} disabled={!mileageVisits.length}>Export travel register</AppButton>}
+          {tab === 1 && isManager && <AppButton variant="primary" startIcon={<AddIcon />} onClick={openPolicyCreate}>Add policy</AppButton>}
         </Stack>
       </Stack>
 
       {/* Tabs */}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: '1px solid #E5E7EB' }}>
-        <Tab label="Travel & Mileage" icon={<CarIcon />} iconPosition="start" sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }} />
-        <Tab label={`Policies ${activePolicies.length > 0 ? `(${activePolicies.length})` : ''}`} icon={<PolicyIcon />} iconPosition="start" sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }} />
+        <Tab label="Travel register" icon={<TravelTimeIcon />} iconPosition="start" sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }} />
+        <Tab label={`Policy register ${activePolicies.length > 0 ? `(${activePolicies.length})` : ''}`} icon={<SettingsIcon />} iconPosition="start" sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }} />
+        {isManager && <Tab label="Rate profiles" icon={<PolicyIcon />} iconPosition="start" sx={{ textTransform: 'none', fontWeight: 600, minHeight: 48 }} />}
       </Tabs>
 
       {policyError && <Alert severity="error" onClose={() => setPolicyError('')} sx={{ mb: 2 }}>{policyError}</Alert>}
@@ -232,21 +227,6 @@ export default function MileagePage() {
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Tracked visits</Typography>
             </Paper>
           </Stack>
-
-          {/* Active policies bar */}
-          {isManager && activePolicies.length > 0 && (
-            <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0F4C81' }}>Active mileage policies</Typography>
-                <Button size="small" onClick={() => setTab(1)} sx={{ textTransform: 'none', color: '#0F4C81' }}>Manage</Button>
-              </Stack>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {activePolicies.map((p: MileagePolicy) => (
-                  <Chip key={p.id} label={`${VEHICLE_TYPES.find(v => v.value === p.vehicle_type)?.label || p.vehicle_type} · ${FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} — ${fmtRate(p.rate_pence)} (${p.tax_year})`} size="small" sx={{ bgcolor: 'info.light', fontWeight: 600, color: '#0F4C81' }} />
-                ))}
-              </Stack>
-            </Paper>
-          )}
 
           {isLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
@@ -309,7 +289,7 @@ export default function MileagePage() {
             <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <PolicyIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 1 }} />
               <Typography sx={{ color: 'text.secondary', mb: 1 }}>No mileage policies configured</Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Add your first policy to set mileage rates for carer travel</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Add an approved policy to calculate mileage reimbursement consistently for carer travel.</Typography>
               {isManager && (
                 <Box sx={{ mt: 2 }}>
                   <Button variant="outlined" startIcon={<AddIcon />} onClick={openPolicyCreate} sx={{ textTransform: 'none' }}>Add policy</Button>
@@ -378,6 +358,8 @@ export default function MileagePage() {
         </>
       )}
 
+      {tab === 2 && isManager && <RateProfilesTab />}
+
       {/* ═══════ Policy Create/Edit Dialog ═══════ */}
       <Dialog open={policyDialog} onClose={() => setPolicyDialog(false)} fullWidth maxWidth="sm">
         <DialogTitle>{editId ? 'Edit mileage policy' : 'Add mileage policy'}</DialogTitle>
@@ -423,4 +405,38 @@ export default function MileagePage() {
       </Dialog>
     </PageContainer>
   )
+}
+
+function RateProfilesTab() {
+  const [billingProfiles, setBillingProfiles] = useState<any[]>([])
+  const [payProfiles, setPayProfiles] = useState<any[]>([])
+  const [billingName, setBillingName] = useState('')
+  const [billingRate, setBillingRate] = useState('')
+  const [payName, setPayName] = useState('')
+  const [payRate, setPayRate] = useState('')
+  const [error, setError] = useState('')
+  const load = async () => {
+    try {
+      const [billing, pay] = await Promise.all([api.get('/homecare/billing-profiles'), api.get('/homecare/pay-profiles')])
+      setBillingProfiles(billing.data || []); setPayProfiles(pay.data || [])
+    } catch (e: any) { setError(e.response?.data?.message || 'Could not load rate profiles') }
+  }
+  useEffect(() => { void load() }, [])
+  const addBilling = async () => { if (!billingName.trim() || !billingRate) return; await api.post('/homecare/billing-profiles', { name: billingName.trim(), client_rate_pence: Number(billingRate), funding_type: 'all' }); setBillingName(''); setBillingRate(''); await load() }
+  const addPay = async () => { if (!payName.trim() || !payRate) return; await api.post('/homecare/pay-profiles', { name: payName.trim(), hourly_rate_pence: Number(payRate) }); setPayName(''); setPayRate(''); await load() }
+  return <Stack spacing={2}>
+    {error && <Alert severity="error">{error}</Alert>}
+    <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
+      <Typography variant="h6" sx={{ fontWeight: 800 }}>Client billing profiles</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Reusable hourly charges for client packages. A package can choose a profile and still override the charge when required.</Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><TextField size="small" label="Profile name" value={billingName} onChange={e => setBillingName(e.target.value)} sx={{ flex: 1 }} /><TextField size="small" label="Client rate (pence/hr)" type="number" value={billingRate} onChange={e => setBillingRate(e.target.value)} /><Button variant="contained" onClick={addBilling} disabled={!billingName.trim() || !billingRate}>Add profile</Button></Stack>
+      <Stack spacing={1} sx={{ mt: 2 }}>{billingProfiles.map(profile => <Paper key={profile.id} variant="outlined" sx={{ p: 1.5 }}><Typography fontWeight={700}>{profile.name}</Typography><Typography variant="body2" color="text.secondary">£{(Number(profile.client_rate_pence) / 100).toFixed(2)}/hr · {profile.is_active ? 'Active' : 'Inactive'}</Typography></Paper>)}</Stack>
+    </Paper>
+    <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
+      <Typography variant="h6" sx={{ fontWeight: 800 }}>Carer pay profiles</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Reusable hourly pay rates assigned to carer profiles. A call-level rate override takes precedence for that call.</Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><TextField size="small" label="Profile name" value={payName} onChange={e => setPayName(e.target.value)} sx={{ flex: 1 }} /><TextField size="small" label="Carer rate (pence/hr)" type="number" value={payRate} onChange={e => setPayRate(e.target.value)} /><Button variant="contained" onClick={addPay} disabled={!payName.trim() || !payRate}>Add profile</Button></Stack>
+      <Stack spacing={1} sx={{ mt: 2 }}>{payProfiles.map(profile => <Paper key={profile.id} variant="outlined" sx={{ p: 1.5 }}><Typography fontWeight={700}>{profile.name}</Typography><Typography variant="body2" color="text.secondary">£{(Number(profile.hourly_rate_pence) / 100).toFixed(2)}/hr · {profile.is_active ? 'Active' : 'Inactive'}</Typography></Paper>)}</Stack>
+    </Paper>
+  </Stack>
 }

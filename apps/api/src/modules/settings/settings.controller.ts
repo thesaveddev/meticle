@@ -311,6 +311,143 @@ export class SettingsController {
     }
   }
 
+  static async getDomiciliaryAreaSummary(req: Request, res: Response) {
+    const user = req.user!;
+    const { locationId } = req.params;
+    const location = await pool.query(
+      'SELECT id, name, organization_id FROM locations WHERE id = $1 AND organization_id = $2',
+      [locationId, user.organizationId]
+    );
+    if (location.rows.length === 0) throw new AppError(404, 'Area not found');
+
+    const result = await pool.query(
+      `SELECT
+        (SELECT COUNT(*)::int FROM people p WHERE p.organization_id = $1 AND p.location_id = $2 AND p.status = 'active') AS active_clients,
+        (SELECT COUNT(*)::int FROM staff_profiles sp JOIN users u ON u.id = sp.user_id
+          WHERE u.organization_id = $1 AND sp.location_id = $2 AND u.status = 'active') AS active_carers,
+        (SELECT COUNT(*)::int FROM homecare_visits v
+          WHERE v.organization_id = $1 AND v.scheduled_start >= CURRENT_DATE
+            AND v.scheduled_start < CURRENT_DATE + INTERVAL '1 day'
+            AND EXISTS (SELECT 1 FROM people p WHERE p.id = v.person_id AND p.location_id = $2)) AS visits_today,
+        (SELECT COUNT(*)::int FROM homecare_visits v
+          WHERE v.organization_id = $1 AND v.scheduled_start >= CURRENT_DATE
+            AND v.scheduled_start < CURRENT_DATE + INTERVAL '1 day' AND v.status = 'completed'
+            AND EXISTS (SELECT 1 FROM people p WHERE p.id = v.person_id AND p.location_id = $2)) AS completed_today,
+        (SELECT COUNT(*)::int FROM homecare_visits v
+          WHERE v.organization_id = $1 AND v.scheduled_start >= CURRENT_DATE
+            AND v.scheduled_start < CURRENT_DATE + INTERVAL '1 day' AND v.status = 'missed'
+            AND EXISTS (SELECT 1 FROM people p WHERE p.id = v.person_id AND p.location_id = $2)) AS missed_today,
+        (SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (v.scheduled_end - v.scheduled_start)) / 60), 0)::int
+          FROM homecare_visits v
+          WHERE v.organization_id = $1 AND v.scheduled_start >= CURRENT_DATE
+            AND v.scheduled_start < CURRENT_DATE + INTERVAL '7 days' AND v.status <> 'cancelled'
+            AND EXISTS (SELECT 1 FROM people p WHERE p.id = v.person_id AND p.location_id = $2)) AS workload_minutes_next_7_days,
+        (SELECT COALESCE(SUM((EXTRACT(EPOCH FROM (v.scheduled_end - v.scheduled_start)) / 3600) * COALESCE(p.client_rate_pence, 0)), 0)::int
+          FROM homecare_visits v JOIN homecare_packages p ON p.id = v.package_id
+          WHERE v.organization_id = $1 AND v.scheduled_start >= DATE_TRUNC('month', CURRENT_DATE)
+            AND v.scheduled_start < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month' AND v.status <> 'cancelled'
+            AND EXISTS (SELECT 1 FROM people pe WHERE pe.id = v.person_id AND pe.location_id = $2)) AS estimated_revenue_pence_this_month,
+        (SELECT COUNT(*)::int FROM shifts s
+          WHERE s.location_id = $2 AND s.status = 'open' AND s.start_time >= NOW()) AS open_calls
+      `,
+      [user.organizationId, locationId]
+    );
+
+    const row = result.rows[0];
+    const visitsToday = Number(row.visits_today || 0);
+    res.json({
+      area: location.rows[0],
+      active_clients: Number(row.active_clients || 0),
+      active_carers: Number(row.active_carers || 0),
+      visits_today: visitsToday,
+      completed_today: Number(row.completed_today || 0),
+      missed_today: Number(row.missed_today || 0),
+      completion_rate_today: visitsToday > 0 ? Math.round((Number(row.completed_today || 0) / visitsToday) * 100) : null,
+      workload_minutes_next_7_days: Number(row.workload_minutes_next_7_days || 0),
+      workload_hours_next_7_days: Math.round(Number(row.workload_minutes_next_7_days || 0) / 60),
+      estimated_revenue_pence_this_month: Number(row.estimated_revenue_pence_this_month || 0),
+      open_calls: Number(row.open_calls || 0),
+    });
+  }
+
+  static async getDomiciliaryAreaComparison(req: Request, res: Response) {
+    const orgId = req.user!.organizationId;
+    const result = await pool.query(
+      `WITH area_people AS (
+        SELECT l.id AS area_id, l.name AS area_name,
+               COUNT(DISTINCT p.id) FILTER (WHERE p.status = 'active')::int AS active_clients
+        FROM locations l
+        LEFT JOIN people p ON p.location_id = l.id AND p.organization_id = $1
+        WHERE l.organization_id = $1 AND COALESCE(l.service_type, 'domiciliary') = 'domiciliary'
+        GROUP BY l.id, l.name
+      ), area_carers AS (
+        SELECT sp.location_id AS area_id,
+               COUNT(DISTINCT sp.id) FILTER (WHERE u.status = 'active')::int AS active_carers,
+               COUNT(DISTINCT sp.id) FILTER (WHERE u.status = 'active' AND EXISTS (
+                 SELECT 1 FROM homecare_visits v
+                 WHERE v.organization_id = $1 AND v.assigned_staff_id = sp.id
+                   AND v.scheduled_start >= CURRENT_DATE AND v.scheduled_start < CURRENT_DATE + INTERVAL '1 day'
+                   AND v.status NOT IN ('cancelled', 'missed')
+               ))::int AS carers_working_today
+        FROM staff_profiles sp
+        JOIN users u ON u.id = sp.user_id
+        WHERE u.organization_id = $1 AND sp.location_id IS NOT NULL
+        GROUP BY sp.location_id
+      ), area_visits AS (
+        SELECT p.location_id AS area_id,
+               COUNT(*) FILTER (WHERE v.scheduled_start >= CURRENT_DATE AND v.scheduled_start < CURRENT_DATE + INTERVAL '1 day')::int AS visits_today,
+               COUNT(*) FILTER (WHERE v.status = 'missed' AND v.scheduled_start >= CURRENT_DATE - INTERVAL '30 days')::int AS missed_visits_30_days,
+               COUNT(*) FILTER (WHERE v.scheduled_start >= CURRENT_DATE AND v.scheduled_start < CURRENT_DATE + INTERVAL '7 days' AND v.status <> 'cancelled')::int AS visits_next_7_days,
+               COALESCE(SUM(EXTRACT(EPOCH FROM (v.scheduled_end - v.scheduled_start)) / 60) FILTER (WHERE v.scheduled_start >= CURRENT_DATE AND v.scheduled_start < CURRENT_DATE + INTERVAL '7 days' AND v.status <> 'cancelled'), 0)::int AS workload_minutes_next_7_days,
+               COALESCE(SUM((EXTRACT(EPOCH FROM (v.scheduled_end - v.scheduled_start)) / 3600) * COALESCE(pck.client_rate_pence, 0)) FILTER (WHERE v.scheduled_start >= DATE_TRUNC('month', CURRENT_DATE) AND v.scheduled_start < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month' AND v.status NOT IN ('cancelled', 'missed')), 0)::bigint AS estimated_revenue_pence,
+               COALESCE(SUM((EXTRACT(EPOCH FROM (v.scheduled_end - v.scheduled_start)) / 3600) * COALESCE(v.hourly_rate_pence, pck.hourly_rate_pence, 0)) FILTER (WHERE v.scheduled_start >= DATE_TRUNC('month', CURRENT_DATE) AND v.scheduled_start < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month' AND v.status NOT IN ('cancelled', 'missed')), 0)::bigint AS estimated_pay_pence
+        FROM homecare_visits v
+        JOIN people p ON p.id = v.person_id AND p.organization_id = $1
+        LEFT JOIN homecare_packages pck ON pck.id = v.package_id AND pck.organization_id = $1
+        WHERE v.organization_id = $1
+        GROUP BY p.location_id
+      ), area_open_calls AS (
+        SELECT s.location_id AS area_id,
+               COUNT(*) FILTER (WHERE s.status = 'open' AND s.start_time >= NOW())::int AS open_calls,
+               COUNT(*) FILTER (WHERE s.start_time >= CURRENT_DATE AND s.start_time < CURRENT_DATE + INTERVAL '7 days' AND s.status <> 'cancelled')::int AS published_calls,
+               COUNT(*) FILTER (WHERE s.start_time >= CURRENT_DATE AND s.start_time < CURRENT_DATE + INTERVAL '7 days' AND s.status IN ('assigned', 'claimed', 'completed'))::int AS covered_calls
+        FROM shifts s
+        JOIN locations l ON l.id = s.location_id AND l.organization_id = $1
+        GROUP BY s.location_id
+      )
+      SELECT ap.area_id, ap.area_name, ap.active_clients,
+             COALESCE(ac.active_carers, 0)::int AS active_carers,
+             COALESCE(ac.carers_working_today, 0)::int AS carers_working_today,
+             GREATEST(COALESCE(ac.active_carers, 0) - COALESCE(ac.carers_working_today, 0), 0)::int AS available_carers,
+             COALESCE(av.visits_today, 0)::int AS visits_today,
+             COALESCE(av.missed_visits_30_days, 0)::int AS missed_visits_30_days,
+             COALESCE(av.visits_next_7_days, 0)::int AS visits_next_7_days,
+             COALESCE(av.workload_minutes_next_7_days, 0)::int AS workload_minutes_next_7_days,
+             COALESCE(av.estimated_revenue_pence, 0)::bigint AS estimated_revenue_pence,
+             COALESCE(av.estimated_pay_pence, 0)::bigint AS estimated_pay_pence,
+             (COALESCE(av.estimated_revenue_pence, 0) - COALESCE(av.estimated_pay_pence, 0))::bigint AS estimated_margin_pence,
+             COALESCE(aoc.open_calls, 0)::int AS open_calls,
+             COALESCE(aoc.published_calls, 0)::int AS published_calls,
+             COALESCE(aoc.covered_calls, 0)::int AS covered_calls
+      FROM area_people ap
+      LEFT JOIN area_carers ac ON ac.area_id = ap.area_id
+      LEFT JOIN area_visits av ON av.area_id = ap.area_id
+      LEFT JOIN area_open_calls aoc ON aoc.area_id = ap.area_id
+      ORDER BY ap.area_name`,
+      [orgId]
+    );
+
+    res.json(result.rows.map((row: any) => {
+      const published = Number(row.published_calls || 0);
+      return {
+        ...row,
+        workload_hours_next_7_days: Math.round(Number(row.workload_minutes_next_7_days || 0) / 60),
+        open_call_coverage_percent: published ? Math.round((Number(row.covered_calls || 0) / published) * 100) : null,
+        estimated_margin_pence: Number(row.estimated_margin_pence || 0),
+      };
+    }));
+  }
+
   // === Location Certificates ===
 
   static async getLocationCertificates(req: Request, res: Response) {

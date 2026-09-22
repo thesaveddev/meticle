@@ -22,6 +22,8 @@ const SERVICE_TYPE_LABEL: Record<string, string> = {
   domiciliary: 'Domiciliary',
 }
 
+const money = (pence: unknown) => pence == null || pence === '' ? '—' : `£${(Number(pence) / 100).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+
 const EMPTY_LOC = {
   name: '', address: '', latitude: '', longitude: '', manager_id: '', minimum_staff_per_day: 1,
   min_day_staff: '', min_night_staff: '', min_sleep_staff: '', max_staff_on_leave: '',
@@ -43,6 +45,8 @@ export default function LocationsPage() {
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
   const [deleting, setDeleting] = useState(false)
   const [orgServiceTypes, setOrgServiceTypes] = useState<string[]>([])
+  const [areaComparison, setAreaComparison] = useState<any[]>([])
+  const [comparisonLoading, setComparisonLoading] = useState(false)
   const rowsPerPage = 10
 
   const userStr = localStorage.getItem('user')
@@ -65,10 +69,23 @@ export default function LocationsPage() {
 
   useEffect(() => {
     load()
-    api.get('/settings/org').then(res => setOrgServiceTypes(Array.isArray(res.data?.service_types) ? res.data.service_types : [])).catch(() => {})
+    api.get('/settings/org').then(res => {
+      const types = Array.isArray(res.data?.service_types) ? res.data.service_types : []
+      const primary = res.data?.primary_service_type
+      setOrgServiceTypes(primary ? [primary] : types)
+    }).catch(() => {})
   }, [])
 
   const isDomiciliary = orgServiceTypes.some(type => ['domiciliary', 'live_in'].includes(type))
+
+  useEffect(() => {
+    if (!isDomiciliary) return
+    setComparisonLoading(true)
+    api.get('/settings/locations/area-comparison')
+      .then(res => setAreaComparison(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setAreaComparison([]))
+      .finally(() => setComparisonLoading(false))
+  }, [isDomiciliary])
 
   const openAdd = () => {
     setEditLoc({ ...EMPTY_LOC, ...(isDomiciliary ? { service_type: 'domiciliary' } : {}) })
@@ -173,15 +190,22 @@ export default function LocationsPage() {
         </Alert>
       )}
 
-      {isDomiciliary && <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 0.5 }}>Area coverage</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>A practical view of the carers and active clients attached to each domiciliary area.</Typography>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
-          {locations.map(location => <Paper key={location.id} variant="outlined" sx={{ p: 1.5, minWidth: 180, flex: '1 1 180px' }}>
-            <Typography variant="body2" sx={{ fontWeight: 800 }}>{location.name}</Typography>
-            <Stack direction="row" spacing={2} sx={{ mt: 1 }}><Box><Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1 }}>{location.carer_count ?? 0}</Typography><Typography variant="caption" color="text.secondary">active carers</Typography></Box><Box><Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1 }}>{location.client_count ?? 0}</Typography><Typography variant="caption" color="text.secondary">active clients</Typography></Box></Stack>
-          </Paper>)}
+      {isDomiciliary && <Paper sx={{ p: { xs: 2, md: 3 }, mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={1} sx={{ mb: 2 }}>
+          <Box><Typography variant="h6" sx={{ fontWeight: 800 }}>Area comparison</Typography><Typography variant="body2" color="text.secondary">Compare demand, cover and indicative margin across Cardiff, Cathays and every other service area.</Typography></Box>
+          <Chip size="small" label="Manager view · live aggregates" variant="outlined" />
         </Stack>
+        {comparisonLoading ? <Box sx={{ py: 4, textAlign: 'center' }}><CircularProgress size={24} /></Box> : areaComparison.length === 0 ? <Typography variant="body2" color="text.secondary">No domiciliary areas have been configured yet.</Typography> : <TableContainer sx={{ overflowX: 'auto' }}><Table size="small" sx={{ minWidth: 980 }}>
+          <TableHead><TableRow>{['Area','Clients','Carers','Capacity','7-day workload','Missed · 30d','Open calls','Coverage','Est. margin'].map(label => <TableCell key={label} sx={{ fontWeight: 800, whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
+          <TableBody>{areaComparison.map(area => <TableRow key={area.area_id} hover>
+            <TableCell><Typography variant="body2" sx={{ fontWeight: 800 }}>{area.area_name}</Typography><Typography variant="caption" color="text.secondary">{area.visits_today ?? 0} visits today</Typography></TableCell>
+            <TableCell>{area.active_clients}</TableCell><TableCell>{area.active_carers}</TableCell><TableCell><Typography sx={{ fontWeight: 700 }}>{area.available_carers}</Typography><Typography variant="caption" color="text.secondary">available today</Typography></TableCell>
+            <TableCell>{area.workload_hours_next_7_days}h</TableCell><TableCell>{area.missed_visits_30_days}</TableCell><TableCell>{area.open_calls}</TableCell>
+            <TableCell>{area.open_call_coverage_percent == null ? '—' : `${area.open_call_coverage_percent}%`}</TableCell>
+            <TableCell><Typography sx={{ fontWeight: 800, color: Number(area.estimated_margin_pence) >= 0 ? 'success.main' : 'error.main' }}>{money(area.estimated_margin_pence)}</Typography><Typography variant="caption" color="text.secondary">indicative this month</Typography></TableCell>
+          </TableRow>)}</TableBody>
+        </Table></TableContainer>}
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>Capacity is active carers minus carers with a scheduled visit today. Margin is an indicative scheduled-care estimate using configured package rates; confirm against approved billing and payroll before relying on it.</Typography>
       </Paper>}
 
       <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>

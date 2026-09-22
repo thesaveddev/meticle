@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  Box, Typography, Paper, Chip, Button, Stack, Dialog, DialogTitle, DialogContent,
+  Box, Typography, Paper, Chip, Stack, Dialog, DialogTitle, DialogContent,
   DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Alert,
   CircularProgress, Autocomplete, Avatar,
 } from '@mui/material'
@@ -16,6 +16,7 @@ import {
 } from '@mui/icons-material'
 import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
+import AppButton from '../../components/design/AppButton'
 
 interface SwapRequest {
   id: string
@@ -57,13 +58,13 @@ export default function SwapTransferPage() {
       const [reqsRes, visitsRes, teamRes] = await Promise.all([
         api.get('/homecare/swap-requests'),
         api.get('/homecare/my-visits'),
-        api.get('/staff'),
+        api.get('/homecare/colleagues'),
       ])
       setRequests(Array.isArray(reqsRes.data) ? reqsRes.data : [])
       setMyVisits(Array.isArray(visitsRes.data) ? visitsRes.data : [])
       setTeam(Array.isArray(teamRes.data) ? teamRes.data : [])
     } catch (e: any) {
-      setError(e.response?.data?.message || 'Failed to load')
+      setError(e.response?.data?.message || e.message || 'Failed to load')
     } finally { setLoading(false) }
   }
 
@@ -116,9 +117,9 @@ export default function SwapTransferPage() {
           <Typography variant="h4" fontWeight={700} mb={0.5}>Swap & Transfer</Typography>
           <Typography variant="body2" color="text.secondary">{pending.length} pending request{pending.length !== 1 ? 's' : ''}</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialogOpen(true)} sx={{ bgcolor: '#2D3A8C' }}>
+        <AppButton startIcon={<AddIcon />} onClick={() => setDialogOpen(true)}>
           New request
-        </Button>
+        </AppButton>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -188,8 +189,8 @@ export default function SwapTransferPage() {
 
               {req.status === 'pending' && req.is_target_for_me === true && (
                 <Stack direction="row" spacing={1} mt={1.5}>
-                  <Button variant="contained" size="small" color="success" startIcon={<AcceptIcon />} onClick={() => handleRespond(req.id, 'accepted')}>Accept</Button>
-                  <Button variant="outlined" size="small" color="error" startIcon={<DeclineIcon />} onClick={() => handleRespond(req.id, 'rejected')}>Decline</Button>
+                  <AppButton size="small" startIcon={<AcceptIcon />} onClick={() => handleRespond(req.id, 'accepted')}>Accept</AppButton>
+                  <AppButton variant="danger" size="small" startIcon={<DeclineIcon />} onClick={() => handleRespond(req.id, 'rejected')}>Decline</AppButton>
                 </Stack>
               )}
             </Paper>
@@ -233,10 +234,10 @@ export default function SwapTransferPage() {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSubmit} disabled={submitting || !selectedVisit || (requestType === 'transfer' && !targetStaff)} sx={{ bgcolor: '#2D3A8C' }}>
-            {submitting ? 'Submitting...' : 'Submit'}
-          </Button>
+          <AppButton variant="quiet" onClick={() => setDialogOpen(false)}>Cancel</AppButton>
+          <AppButton loading={submitting} onClick={handleSubmit} disabled={!selectedVisit || (requestType === 'transfer' && !targetStaff)}>
+            Submit
+          </AppButton>
         </DialogActions>
       </Dialog>
     </PageContainer>

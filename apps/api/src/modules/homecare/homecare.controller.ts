@@ -28,6 +28,15 @@ export class HomecareController {
     res.json(await repo.listPackages(orgId(req)));
   }
 
+  static async listBillingProfiles(req: Request, res: Response) { res.json(await repo.listBillingProfiles(orgId(req))); }
+  static async createBillingProfile(req: Request, res: Response) { res.status(201).json(await repo.createBillingProfile(orgId(req), req.body)); }
+  static async updateBillingProfile(req: Request, res: Response) { res.json(await repo.updateBillingProfile(orgId(req), req.params.id, req.body)); }
+  static async deleteBillingProfile(req: Request, res: Response) { res.json({ deleted: await repo.deleteBillingProfile(orgId(req), req.params.id) }); }
+  static async listPayProfiles(req: Request, res: Response) { res.json(await repo.listPayProfiles(orgId(req))); }
+  static async createPayProfile(req: Request, res: Response) { res.status(201).json(await repo.createPayProfile(orgId(req), req.body)); }
+  static async updatePayProfile(req: Request, res: Response) { res.json(await repo.updatePayProfile(orgId(req), req.params.id, req.body)); }
+  static async deletePayProfile(req: Request, res: Response) { res.json({ deleted: await repo.deletePayProfile(orgId(req), req.params.id) }); }
+
   static async createPackage(req: Request, res: Response) {
     const result = await repo.createPackage(orgId(req), userId(req), req.body);
     audit(req, 'create', 'homecare_package', result.id, req.body);
@@ -1139,10 +1148,11 @@ export class HomecareController {
 
     const result = await query(
       `SELECT hv.*, p.first_name || ' ' || p.last_name as person_name,
-              p.address as person_address, hp.name as package_name,
+              l.address as person_address, hp.name as package_name,
               sp.first_name || ' ' || sp.last_name as assigned_staff_name
        FROM homecare_visits hv
        LEFT JOIN people p ON p.id = hv.person_id
+       LEFT JOIN locations l ON l.id = p.location_id
        LEFT JOIN homecare_packages hp ON hp.id = hv.package_id
        LEFT JOIN staff_profiles sp ON sp.id = hv.assigned_staff_id
        WHERE hv.organization_id = $1

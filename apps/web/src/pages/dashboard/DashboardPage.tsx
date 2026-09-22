@@ -109,7 +109,7 @@ export default function DashboardPage() {
   const orgId = rawUser.organization_id || rawUser.organizationId
   const serviceTypes: string[] = org?.primary_service_type
     ? [org.primary_service_type]
-    : (org?.service_types || ['supported_living'])
+    : (org?.service_types || [])
   const [hideOnboarding, setHideOnboarding] = useState(() => {
     try { return orgId ? localStorage.getItem(ONBOARDING_STEPS_BY_KEY + orgId) === 'true' : false } catch { return false }
   })
@@ -127,7 +127,19 @@ export default function DashboardPage() {
         localStorage.setItem('organization', JSON.stringify(orgData))
         if (orgData.onboarding_dismissed_at) setHideOnboarding(true)
 
+        // Service type is authoritative before loading any dashboard widgets.
+        // Supported-living endpoints are not valid for domiciliary care and
+        // would otherwise surface a misleading organisation-type error.
+        const effectiveTypes: string[] = orgData.primary_service_type
+          ? [orgData.primary_service_type]
+          : (Array.isArray(orgData.service_types) ? orgData.service_types : [])
+        const isDomiciliaryOrg = effectiveTypes.some(type => ['domiciliary', 'live_in'].includes(type))
         const todayStr = new Date().toISOString().split('T')[0]
+        if (isDomiciliaryOrg && !isStaff) {
+          api.get('/dashboard/domiciliary').then(res => setDomiciliaryData(res.data)).catch(() => {})
+          setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
+          return
+        }
         if (isStaff) {
           const [rotaRes, aptRes] = await Promise.all([
             api.get('/dashboard/today-rota'),
@@ -149,10 +161,7 @@ export default function DashboardPage() {
           setTodayRota(rotaRes.data)
           setWidgets(widgetsRes.data)
           setTodayAppointments(aptRes.data)
-          const types = orgRes.data?.service_types || []
-          if (types.includes('domiciliary') || types.includes('live_in')) {
-            api.get('/dashboard/domiciliary').then(res => setDomiciliaryData(res.data)).catch(() => {})
-          }
+
         }
       } catch {
         setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
@@ -177,7 +186,7 @@ export default function DashboardPage() {
   }
 
   // If this is a domiciliary care organisation, show the dedicated dom care dashboard
-  if (serviceTypes.includes('domiciliary') && !isStaff) {
+  if (serviceTypes.some(type => ['domiciliary', 'live_in'].includes(type)) && !isStaff) {
     return <DomiciliaryDashboard />
   }
 

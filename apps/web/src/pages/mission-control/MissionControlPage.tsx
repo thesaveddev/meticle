@@ -23,6 +23,7 @@ import {
   DoneAll as DoneAllIcon,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
+import { useTheme } from '@mui/material/styles'
 import api from '../../services/api'
 import PageMeta from '../../components/PageMeta'
 import PageContainer from '../../components/design/PageContainer'
@@ -64,18 +65,19 @@ interface TrendData {
   last_week: { total: number; critical: number; high: number; medium: number; low: number }
 }
 
-const severityColor = (s: string) => {
+const severityColor = (s: string, dark = false) => {
   switch (s) {
-    case 'critical': return { bg: '#FEF2F2', border: '#DC2626', text: '#991B1B', icon: '#DC2626' }
-    case 'high': return { bg: '#FFFBEB', border: '#D97706', text: '#92400E', icon: '#D97706' }
-    case 'medium': return { bg: '#F0F9FF', border: '#2563EB', text: '#1E40AF', icon: '#2563EB' }
-    case 'low': return { bg: '#F8FAFC', border: '#6B7280', text: '#4B5563', icon: '#9CA3AF' }
-    default: return { bg: '#F8FAFC', border: '#9CA3AF', text: '#4B5563', icon: '#9CA3AF' }
+    case 'critical': return { bg: dark ? '#3B1820' : '#FEF2F2', border: '#DC2626', text: dark ? '#FCA5A5' : '#991B1B', icon: '#EF4444' }
+    case 'high': return { bg: dark ? '#3A2A13' : '#FFFBEB', border: '#D97706', text: dark ? '#FCD34D' : '#92400E', icon: '#F59E0B' }
+    case 'medium': return { bg: dark ? '#172B45' : '#F0F9FF', border: '#2563EB', text: dark ? '#93C5FD' : '#1E40AF', icon: '#60A5FA' }
+    case 'low': return { bg: dark ? '#1E293B' : '#F8FAFC', border: '#64748B', text: dark ? '#CBD5E1' : '#4B5563', icon: '#94A3B8' }
+    default: return { bg: dark ? '#1E293B' : '#F8FAFC', border: '#64748B', text: dark ? '#CBD5E1' : '#4B5563', icon: '#94A3B8' }
   }
 }
 
 const SeverityIcon = ({ severity }: { severity: string }) => {
-  const c = severityColor(severity)
+  const theme = useTheme()
+  const c = severityColor(severity, theme.palette.mode === 'dark')
   switch (severity) {
     case 'critical': return <CriticalIcon sx={{ color: c.icon, fontSize: 20 }} />
     case 'high': return <HighIcon sx={{ color: c.icon, fontSize: 20 }} />
@@ -101,6 +103,7 @@ const categoryLabel = (type: string): string => {
 
 export default function MissionControlPage() {
   const navigate = useNavigate()
+  const theme = useTheme()
   const [tab, setTab] = useState(0)
   const [summary, setSummary] = useState<AlertSummary | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
@@ -248,7 +251,7 @@ export default function MissionControlPage() {
       {tab === 0 && (
         <>
           {/* Severity Bar */}
-          <Paper elevation={0} sx={{ p: 2.5, mb: 3, borderRadius: 2, bgcolor: severityCounts.critical > 0 ? '#FEF2F2' : severityCounts.high > 0 ? '#FFFBEB' : '#F8FAFC', border: `1px solid ${severityCounts.critical > 0 ? '#FECACA' : severityCounts.high > 0 ? '#FDE68A' : '#E2E8F0'}` }}>
+          <Paper elevation={0} sx={{ p: 2.5, mb: 3, borderRadius: 2, bgcolor: severityCounts.critical > 0 ? (theme.palette.mode === 'dark' ? '#3B1820' : '#FEF2F2') : severityCounts.high > 0 ? (theme.palette.mode === 'dark' ? '#3A2A13' : '#FFFBEB') : 'background.paper', border: `1px solid ${severityCounts.critical > 0 ? '#DC2626' : severityCounts.high > 0 ? '#D97706' : theme.palette.divider}` }}>
             <Grid container spacing={2} alignItems="center">
               {[{ label: 'Critical', val: severityCounts.critical, color: '#DC2626' }, { label: 'High', val: severityCounts.high, color: '#D97706' }, { label: 'Medium', val: severityCounts.medium, color: '#2563EB' }, { label: 'Low', val: severityCounts.low, color: 'text.secondary' }].map(s => (
                 <Grid item xs={6} md={3} key={s.label}>
@@ -344,7 +347,7 @@ export default function MissionControlPage() {
           ) : (
             <Stack spacing={1}>
               {alerts.map(alert => {
-                const c = severityColor(alert.severity)
+                const c = severityColor(alert.severity, theme.palette.mode === 'dark')
                 const isChecked = selected.has(alert.id)
                 return (
                   <Paper key={alert.id} elevation={0} sx={{ p: 2, borderRadius: 2, cursor: 'pointer', border: `1px solid ${isChecked ? c.border : c.border + '40'}`, bgcolor: isChecked ? c.bg : 'background.paper', transition: 'box-shadow 0.15s', '&:hover': { boxShadow: '0 2px 8px -2px rgba(0,0,0,0.08)' }, opacity: dismissing.has(alert.id) ? 0.5 : 1 }} onClick={() => isWriteRole && toggleSelect(alert.id)}>
@@ -403,7 +406,7 @@ export default function MissionControlPage() {
             <Stack spacing={1}>
               {history.map(alert => {
                 return (
-                  <Paper key={alert.id} elevation={0} sx={{ p: 2, borderRadius: 2, border: `1px solid #E2E8F0`, opacity: 0.7 }}>
+                  <Paper key={alert.id} elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', opacity: 0.7 }}>
                     <Stack direction="row" spacing={1.5} alignItems="flex-start">
                       <Box sx={{ mt: 0.25 }}><SeverityIcon severity={alert.severity} /></Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>

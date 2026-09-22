@@ -4,9 +4,13 @@ import { HomecarePackageInput, HomecareVisitInput, HomecareVisitPlanInput, Homec
 import { applyVat, buildFundingBreakdown, calculateClientBillingLine, fundingLabel, cancellationPolicyLabel, type ClientBillingUtilisationRow } from './client-billing';
 
 const PACKAGE_SELECT = `
-  SELECT p.*, pe.first_name || ' ' || pe.last_name AS person_name
+  SELECT p.*, pe.first_name || ' ' || pe.last_name AS person_name,
+    bp.name AS billing_profile_name,
+    pp.name AS pay_profile_name
   FROM homecare_packages p
   JOIN people pe ON pe.id = p.person_id
+  LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id AND bp.is_active = TRUE
+  LEFT JOIN homecare_pay_profiles pp ON pp.id = p.pay_profile_id AND pp.organization_id = p.organization_id AND pp.is_active = TRUE
 `;
 
 const VISIT_SELECT = `
@@ -14,12 +18,16 @@ const VISIT_SELECT = `
     sp.first_name || ' ' || sp.last_name AS assigned_staff_name,
     l.address AS person_address,
     p.name AS package_name,
-    p.mileage_rate_pence
+    p.mileage_rate_pence,
+    bp.name AS billing_profile_name,
+    pp.name AS pay_profile_name
   FROM homecare_visits v
   JOIN people pe ON pe.id = v.person_id
   JOIN homecare_packages p ON p.id = v.package_id AND p.organization_id = v.organization_id
   LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
   LEFT JOIN locations l ON l.id = pe.location_id
+  LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id AND bp.is_active = TRUE
+  LEFT JOIN homecare_pay_profiles pp ON pp.id = p.pay_profile_id AND pp.organization_id = p.organization_id AND pp.is_active = TRUE
 `;
 
 async function assertPackage(packageId: string, orgId: string) {
@@ -102,10 +110,11 @@ export async function buildClientBillingUtilisation(orgId: string, from: string,
       EXTRACT(EPOCH FROM (v.scheduled_end - v.scheduled_start)) / 60 AS scheduled_minutes,
       CASE WHEN v.status = 'completed' AND v.check_in_at IS NOT NULL AND v.check_out_at IS NOT NULL
         THEN EXTRACT(EPOCH FROM (v.check_out_at - v.check_in_at)) / 60 ELSE 0 END AS delivered_minutes,
-      p.client_rate_pence
+      COALESCE(p.client_rate_pence, bp.client_rate_pence) AS client_rate_pence
     FROM homecare_visits v
     JOIN homecare_packages p ON p.id = v.package_id AND p.organization_id = v.organization_id
     JOIN people pe ON pe.id = v.person_id
+    LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id AND bp.is_active = TRUE
     WHERE v.organization_id = $1 AND v.scheduled_start >= $2::date
       AND v.scheduled_start < ($3::date + INTERVAL '1 day')
     ORDER BY v.scheduled_start, person_name`, [orgId, from, to]);
@@ -218,16 +227,59 @@ export async function listPackages(orgId: string) {
   return result.rows;
 }
 
+export async function listBillingProfiles(orgId: string) {
+  return (await query('SELECT * FROM homecare_billing_profiles WHERE organization_id = $1 ORDER BY is_active DESC, name', [orgId])).rows;
+}
+export async function createBillingProfile(orgId: string, input: any) {
+  const result = await query(`INSERT INTO homecare_billing_profiles (organization_id, name, funding_type, client_rate_pence, description, is_active) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`, [orgId, input.name, input.funding_type || 'all', input.client_rate_pence, input.description || null, input.is_active ?? true]);
+  return result.rows[0];
+}
+export async function updateBillingProfile(orgId: string, id: string, input: any) {
+  const result = await query(`UPDATE homecare_billing_profiles SET name = COALESCE($1,name), funding_type = COALESCE($2,funding_type), client_rate_pence = COALESCE($3,client_rate_pence), description = $4, is_active = COALESCE($5,is_active), updated_at = NOW() WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.name || null, input.funding_type || null, input.client_rate_pence ?? null, input.description || null, input.is_active, id, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Billing profile not found');
+  return result.rows[0];
+}
+export async function deleteBillingProfile(orgId: string, id: string) {
+  const result = await query('DELETE FROM homecare_billing_profiles WHERE id = $1 AND organization_id = $2 RETURNING id', [id, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Billing profile not found');
+  return true;
+}
+export async function listPayProfiles(orgId: string) {
+  return (await query('SELECT * FROM homecare_pay_profiles WHERE organization_id = $1 ORDER BY is_active DESC, name', [orgId])).rows;
+}
+export async function createPayProfile(orgId: string, input: any) {
+  const result = await query(`INSERT INTO homecare_pay_profiles (organization_id, name, hourly_rate_pence, description, is_active) VALUES ($1,$2,$3,$4,$5) RETURNING *`, [orgId, input.name, input.hourly_rate_pence, input.description || null, input.is_active ?? true]);
+  return result.rows[0];
+}
+export async function updatePayProfile(orgId: string, id: string, input: any) {
+  const result = await query(`UPDATE homecare_pay_profiles SET name = COALESCE($1,name), hourly_rate_pence = COALESCE($2,hourly_rate_pence), description = $3, is_active = COALESCE($4,is_active), updated_at = NOW() WHERE id = $5 AND organization_id = $6 RETURNING *`, [input.name || null, input.hourly_rate_pence ?? null, input.description || null, input.is_active, id, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Pay profile not found');
+  return result.rows[0];
+}
+export async function deletePayProfile(orgId: string, id: string) {
+  const result = await query('DELETE FROM homecare_pay_profiles WHERE id = $1 AND organization_id = $2 RETURNING id', [id, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Pay profile not found');
+  return true;
+}
+
 export async function createPackage(orgId: string, userId: string, input: HomecarePackageInput) {
   if (input.person_id) await assertPerson(input.person_id, orgId);
-  const result = await query(`INSERT INTO homecare_packages (organization_id, person_id, name, status, funding_type, start_date, end_date, weekly_hours, hourly_rate_pence, travel_time_paid, mileage_rate_pence, client_rate_pence, notes, created_by)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`, [orgId, input.person_id || null, input.name, input.status || 'draft', input.funding_type || 'private', input.start_date || new Date().toISOString().slice(0, 10), input.end_date || null, input.weekly_hours ?? null, input.hourly_rate_pence ?? null, input.travel_time_paid ?? true, input.mileage_rate_pence ?? null, (input as any).client_rate_pence ?? null, input.notes || null, userId]);
+  if (input.billing_profile_id) {
+    const profile = await query('SELECT id FROM homecare_billing_profiles WHERE id = $1 AND organization_id = $2 AND is_active = TRUE', [input.billing_profile_id, orgId]);
+    if (!profile.rows[0]) throw new AppError(400, 'Billing profile is not active in this organisation');
+  }
+  if (input.pay_profile_id) {
+    const profile = await query('SELECT id FROM homecare_pay_profiles WHERE id = $1 AND organization_id = $2 AND is_active = TRUE', [input.pay_profile_id, orgId]);
+    if (!profile.rows[0]) throw new AppError(400, 'Pay profile is not active in this organisation');
+  }
+  const result = await query(`INSERT INTO homecare_packages (organization_id, person_id, name, status, funding_type, start_date, end_date, weekly_hours, hourly_rate_pence, travel_time_paid, mileage_rate_pence, client_rate_pence, billing_profile_id, pay_profile_id, notes, created_by)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`, [orgId, input.person_id || null, input.name, input.status || 'draft', input.funding_type || 'private', input.start_date || new Date().toISOString().slice(0, 10), input.end_date || null, input.weekly_hours ?? null, input.hourly_rate_pence ?? null, input.travel_time_paid ?? true, input.mileage_rate_pence ?? null, (input as any).client_rate_pence ?? null, input.billing_profile_id || null, input.pay_profile_id || null, input.notes || null, userId]);
   return result.rows[0];
 }
 
 export async function updatePackage(orgId: string, packageId: string, input: Partial<HomecarePackageInput>) {
   await assertPackage(packageId, orgId);
-  const allowed = ['name','status','funding_type','start_date','end_date','weekly_hours','hourly_rate_pence','travel_time_paid','mileage_rate_pence','client_rate_pence','notes'];
+  const allowed = ['name','status','funding_type','start_date','end_date','weekly_hours','hourly_rate_pence','travel_time_paid','mileage_rate_pence','client_rate_pence','billing_profile_id','pay_profile_id','notes'];
   const entries = Object.entries(input).filter(([key]) => allowed.includes(key));
   if (!entries.length) return (await query(`${PACKAGE_SELECT} WHERE p.id = $1 AND p.organization_id = $2`, [packageId, orgId])).rows[0];
   const values = entries.map(([, value]) => value);
@@ -318,7 +370,7 @@ export async function updateVisit(orgId: string, visitId: string, input: Homecar
   if (input.assigned_staff_id && input.assigned_staff_id !== existingVisit.assigned_staff_id && await hasVisitConflict(orgId, input.assigned_staff_id, existingVisit.scheduled_start, existingVisit.scheduled_end, visitId)) {
     throw new AppError(409, 'Assigned carer already has an overlapping homecare visit');
   }
-  const allowed = ['assigned_staff_id','status','actual_travel_minutes','actual_mileage_miles','mileage_status','late_reason','visit_notes'];
+  const allowed = ['assigned_staff_id','hourly_rate_pence','mileage_rate_pence','status','actual_travel_minutes','actual_mileage_miles','mileage_status','late_reason','visit_notes'];
   const entries = Object.entries(input).filter(([key]) => allowed.includes(key));
   if (!entries.length) return (await query(`${VISIT_SELECT} WHERE v.id = $1 AND v.organization_id = $2`, [visitId, orgId])).rows[0];
   const values = entries.map(([, value]) => value);
@@ -381,13 +433,25 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
     if (!updated.rows[0]) throw new AppError(404, 'Visit not found');
     const v = updated.rows[0];
     const workMinutes = Math.max(0, Math.round((new Date(v.check_out_at).getTime() - new Date(v.check_in_at).getTime()) / 60000));
-    const pkg = await client.query('SELECT hourly_rate_pence, travel_time_paid, mileage_rate_pence FROM homecare_packages WHERE id = $1 AND organization_id = $2', [v.package_id, orgId]);
+    const pkg = await client.query(`SELECT p.hourly_rate_pence, p.travel_time_paid, p.mileage_rate_pence, pp.hourly_rate_pence AS profile_hourly_rate_pence, spp.hourly_rate_pence AS staff_profile_hourly_rate_pence, bp.client_rate_pence AS profile_client_rate_pence
+      FROM homecare_packages p
+      LEFT JOIN homecare_pay_profiles pp ON pp.id = p.pay_profile_id AND pp.organization_id = p.organization_id AND pp.is_active = TRUE
+      LEFT JOIN staff_profiles sp ON sp.id = $3
+      LEFT JOIN homecare_pay_profiles spp ON spp.id = sp.pay_profile_id AND spp.organization_id = p.organization_id AND spp.is_active = TRUE
+      LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id AND bp.is_active = TRUE
+      WHERE p.id = $1 AND p.organization_id = $2`, [v.package_id, orgId, v.assigned_staff_id]);
     const policy = pkg.rows[0];
+    const orgConfigResult = await client.query('SELECT billing_config FROM organizations WHERE id = $1', [orgId]);
+    const domiciliaryConfig = orgConfigResult.rows[0]?.billing_config?.domiciliary || {};
     const travelMinutes = Number(v.actual_travel_minutes || 0);
-    const paidTravelMinutes = policy?.travel_time_paid ? travelMinutes : 0;
-    const workRate = policy?.hourly_rate_pence == null ? null : Number(policy.hourly_rate_pence);
-    // Auto-select mileage rate from organisation policy if package has none
-    let mileageRate = policy?.mileage_rate_pence == null ? null : Number(policy.mileage_rate_pence);
+    // Organisation rules are authoritative; package values remain a backwards-compatible fallback.
+    const travelTimePaid = domiciliaryConfig.travel_time_paid ?? policy?.travel_time_paid ?? true;
+    const payInterClientTravel = domiciliaryConfig.pay_inter_client_travel ?? true;
+    const paidTravelMinutes = travelTimePaid && payInterClientTravel ? travelMinutes : 0;
+    const workRateValue = v.hourly_rate_pence ?? policy?.hourly_rate_pence ?? policy?.profile_hourly_rate_pence ?? policy?.staff_profile_hourly_rate_pence;
+    const workRate = workRateValue == null ? null : Number(workRateValue);
+    // Auto-select mileage rate from the organisation policy if the package has none.
+    let mileageRate = v.mileage_rate_pence ?? (policy?.mileage_rate_pence == null ? null : Number(policy.mileage_rate_pence));
     if (mileageRate == null) {
       const rateRow = await client.query(
         `SELECT rate_pence FROM homecare_mileage_policies
@@ -398,6 +462,9 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
     // Apply ride share split if applicable
     const splitPct = v.ride_share_split_pct != null ? Number(v.ride_share_split_pct) : 100;
     const effectiveMileage = Number(v.actual_mileage_miles || 0) * (splitPct / 100);
+    const mileagePaymentMode = domiciliaryConfig.mileage_payment_mode || 'approved_rate';
+    if (mileagePaymentMode === 'none') mileageRate = 0;
+    if (mileagePaymentMode === 'custom_rate' && domiciliaryConfig.custom_mileage_rate_pence != null) mileageRate = Number(domiciliaryConfig.custom_mileage_rate_pence);
     const gross = workRate == null ? null : Math.round(((workMinutes + paidTravelMinutes) / 60) * workRate + effectiveMileage * Number(mileageRate || 0));
     await client.query(`INSERT INTO homecare_timesheets (organization_id, visit_id, staff_id, work_minutes, travel_minutes, paid_travel_minutes, mileage_miles, mileage_rate_pence, hourly_rate_pence, gross_pay_pence, status)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'submitted') ON CONFLICT (visit_id) DO UPDATE SET work_minutes = EXCLUDED.work_minutes, travel_minutes = EXCLUDED.travel_minutes, paid_travel_minutes = EXCLUDED.paid_travel_minutes, mileage_miles = EXCLUDED.mileage_miles, mileage_rate_pence = EXCLUDED.mileage_rate_pence, hourly_rate_pence = EXCLUDED.hourly_rate_pence, gross_pay_pence = EXCLUDED.gross_pay_pence, updated_at = NOW()`, [orgId, visitId, v.assigned_staff_id, workMinutes, travelMinutes, paidTravelMinutes, effectiveMileage, mileageRate, workRate, gross]);

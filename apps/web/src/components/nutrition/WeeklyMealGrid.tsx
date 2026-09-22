@@ -249,7 +249,7 @@ export default function WeeklyMealGrid({ people }: Props) {
               {MEAL_TYPES.map(mt => (
                 <Grid container spacing={1} key={mt.value} sx={{ mb: 1 }}>
                   <Grid item xs={1.5}>
-                    <Paper sx={{ py: 1.5, px: 1, bgcolor: mt.color + '10', borderLeft: `3px solid ${mt.color}`, borderRadius: 2, height: '100%' }}>
+                    <Paper sx={{ py: 1.5, px: 1, bgcolor: mt.color + '10', border: `1px solid ${mt.color}55`, borderRadius: 2, height: '100%' }}>
                       <Stack direction="row" spacing={0.5} alignItems="center">
                         <Typography fontSize="14px">{mt.icon}</Typography>
                         <Typography variant="caption" fontWeight={700} sx={{ color: mt.color, lineHeight: 1.2 }}>

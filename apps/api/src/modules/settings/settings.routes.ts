@@ -6,6 +6,7 @@ import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { SettingsController } from './settings.controller';
 import { UserRole } from '@meticle/shared';
+import { requireDomiciliaryOnly, requireSupportedLivingOnly } from '../../shared/middleware/requireServiceType';
 import { updateOrgSettingsSchema, createLocationSchema, updateLocationSchema, createComplianceConfigSchema, updateComplianceConfigSchema, createManagerDelegationSchema, updateManagerDelegationSchema, updateComplianceRecordSchema, createComplianceProfileSchema, updateComplianceProfileSchema, assignComplianceProfileSchema, createLocationCertificateSchema, updateLocationCertificateSchema } from '../../shared/validation/schemas';
 
 const router = Router();
@@ -31,10 +32,12 @@ router.put('/locations/:id', requireRole(UserRole.ORG_ADMIN), validate(updateLoc
 router.delete('/locations/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(SettingsController.deleteLocation));
 
 // Location certificates
-router.get('/locations/:locationId/certificates', asyncHandler(SettingsController.getLocationCertificates));
-router.post('/locations/:locationId/certificates', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createLocationCertificateSchema), asyncHandler(SettingsController.createLocationCertificate));
-router.put('/locations/:locationId/certificates/:certificateId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateLocationCertificateSchema), asyncHandler(SettingsController.updateLocationCertificate));
-router.delete('/locations/:locationId/certificates/:certificateId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(SettingsController.deleteLocationCertificate));
+router.get('/locations/:locationId/certificates', requireSupportedLivingOnly, asyncHandler(SettingsController.getLocationCertificates));
+router.post('/locations/:locationId/certificates', requireSupportedLivingOnly, requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createLocationCertificateSchema), asyncHandler(SettingsController.createLocationCertificate));
+router.put('/locations/:locationId/certificates/:certificateId', requireSupportedLivingOnly, requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateLocationCertificateSchema), asyncHandler(SettingsController.updateLocationCertificate));
+router.delete('/locations/:locationId/certificates/:certificateId', requireSupportedLivingOnly, requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(SettingsController.deleteLocationCertificate));
+router.get('/locations/:locationId/area-summary', requireDomiciliaryOnly, asyncHandler(SettingsController.getDomiciliaryAreaSummary));
+router.get('/locations/area-comparison', requireDomiciliaryOnly, asyncHandler(SettingsController.getDomiciliaryAreaComparison));
 
 router.post('/compliance-config', requireRole(UserRole.ORG_ADMIN), validate(createComplianceConfigSchema), asyncHandler(SettingsController.createComplianceConfig));
 router.put('/compliance-config/:id', requireRole(UserRole.ORG_ADMIN), validate(updateComplianceConfigSchema), asyncHandler(SettingsController.updateComplianceConfig));
