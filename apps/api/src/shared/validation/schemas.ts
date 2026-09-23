@@ -830,11 +830,30 @@ export const addPaymentMethodSchema = z.object({
 
 export const createSetupIntentSchema = z.object({}).passthrough();
 
+export const updateDomiciliaryQuoteSchema = z.object({
+  monthly_price_pence: z.number().int().min(1).max(100_000_000),
+  vat_behavior: z.enum(['inclusive', 'exclusive']),
+});
+
+export const updateDomiciliaryBillingAddressSchema = z.object({
+  address: z.object({
+    line1: z.string().trim().min(1).max(200),
+    line2: z.string().trim().max(200).optional(),
+    city: z.string().trim().min(1).max(100),
+    postal_code: z.string().trim().min(2).max(20),
+    country: z.literal('GB'),
+  }),
+});
+
 const domiciliaryBillingConfigSchema = z.object({
   per_client_monthly: z.number().int().min(0).max(1_000_000).optional(),
   per_carer_monthly: z.number().int().min(0).max(1_000_000).optional(),
   per_visit: z.number().int().min(0).max(1_000_000).optional(),
-  travel_pay_included: z.boolean().optional(),
+  travel_pay_included: z.boolean().optional(), // legacy key retained during migration
+  travel_time_paid: z.boolean().optional(),
+  pay_inter_client_travel: z.boolean().optional(),
+  mileage_payment_mode: z.enum(['approved_rate', 'none', 'custom_rate']).optional(),
+  custom_mileage_rate_pence: z.number().int().min(0).max(100_000).optional(),
   vat_inclusive: z.boolean().optional(),
   vat_rate: z.number().min(0).max(100).optional(),
 }).passthrough();

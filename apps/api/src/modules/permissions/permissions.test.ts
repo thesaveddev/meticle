@@ -9,12 +9,14 @@ describe('Permissions module catalogue', () => {
     expect(MODULES).toEqual(expect.arrayContaining([
       'dashboard', 'people', 'emedication', 'staff_directory', 'scheduling', 'marketplace',
       'agencies', 'leave', 'compliance', 'training', 'policies', 'incidents', 'reporting',
-      'chat', 'tasks', 'appointments', 'expenses', 'room_checks', 'settings',
+      'chat', 'tasks', 'appointments', 'expenses', 'homecare', 'call_scheduling',
+      'mileage_travel', 'payroll_export', 'client_billing', 'room_checks', 'settings',
       'billing', 'learn',
     ]));
     expect(MODULES).toHaveLength(26);
     expect(new Set(MODULES).size).toBe(MODULES.length);
   });
+
 
   it('gives every role a default level for every module', () => {
     for (const role of ALL_ROLES) {

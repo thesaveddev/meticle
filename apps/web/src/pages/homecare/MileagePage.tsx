@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Typography } from '@mui/material'
 import { Download as DownloadIcon, Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, DirectionsCar as CarIcon, Policy as PolicyIcon, SettingsSuggest as SettingsIcon, AccessTime as TravelTimeIcon, History as HistoryIcon, Restore as RestoreIcon } from '@mui/icons-material'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -51,10 +52,15 @@ const emptyPolicyForm = { tax_year: '2024/25', vehicle_type: 'car', fuel_categor
    ════════════════════════════════════════════════════════════════ */
 export default function MileagePage() {
   const [tab, setTab] = useState(0)
+  const [searchParams] = useSearchParams()
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7))
   const user = useMemo(() => { try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} } }, [])
   const isManager = user.role === 'ORG_ADMIN' || user.role === 'MANAGER'
   const qc = useQueryClient()
+
+  useEffect(() => {
+    if (searchParams.get('tab') === 'profiles' && isManager) setTab(2)
+  }, [isManager, searchParams])
 
   const from = `${month}-01`
   const to = new Date(new Date(from).getFullYear(), new Date(from).getMonth() + 1, 0).toISOString().slice(0, 10)

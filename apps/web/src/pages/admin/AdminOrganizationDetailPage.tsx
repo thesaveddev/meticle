@@ -26,6 +26,8 @@ export default function AdminOrganizationDetailPage() {
   const [confirmDialog, setConfirmDialog] = useState<'suspend' | 'reactivate' | null>(null)
   const [billingDialog, setBillingDialog] = useState(false)
   const [billingForm, setBillingForm] = useState({ subscription_status: '', plan: '', trial_ends_at: '' })
+  const [domiciliaryQuoteForm, setDomiciliaryQuoteForm] = useState({ monthly_price: '', vat_behavior: '' as '' | 'inclusive' | 'exclusive' })
+  const [quoteSaving, setQuoteSaving] = useState(false)
 
   const loadOrg = async () => {
     try {
@@ -38,6 +40,25 @@ export default function AdminOrganizationDetailPage() {
   }
 
   useEffect(() => { if (id) loadOrg() }, [id])
+
+  const handleDomiciliaryQuoteSave = async () => {
+    const monthlyPrice = Number(domiciliaryQuoteForm.monthly_price)
+    if (!Number.isFinite(monthlyPrice) || monthlyPrice <= 0) {
+      setMessage('Enter a valid monthly quote amount.')
+      return
+    }
+    setQuoteSaving(true)
+    try {
+      await api.put(`/platform-admin/organizations/${id}/domiciliary-quote`, {
+        monthly_price_pence: Math.round(monthlyPrice * 100),
+        vat_behavior: domiciliaryQuoteForm.vat_behavior,
+      })
+      setMessage('Domiciliary quote saved. The organisation must review and accept the changed quote before it can be charged.')
+      await loadOrg()
+    } catch (err: any) {
+      setMessage(err?.response?.data?.message || 'Failed to save domiciliary quote.')
+    } finally { setQuoteSaving(false) }
+  }
 
   const handleBillingSave = async () => {
     setActionLoading(true)
@@ -95,6 +116,32 @@ export default function AdminOrganizationDetailPage() {
           )}
         </Stack>
       </Paper>
+
+      {(org.primary_service_type === 'domiciliary' || org.primary_service_type === 'live_in' || org.service_types?.some((type: string) => ['domiciliary', 'live_in'].includes(type))) && (
+        <Paper sx={{ p: 4, borderRadius: 2.5, mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Domiciliary subscription quote</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Set the agreed monthly subscription. This is a draft until the organisation admin accepts it in Billing. Changing price or VAT treatment resets that acceptance; it does not immediately change any live Stripe charge.
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-start' }}>
+            <TextField size="small" type="number" label="Monthly amount (£)" inputProps={{ min: 0.01, step: 0.01 }}
+              value={domiciliaryQuoteForm.monthly_price || (org.domiciliary_monthly_price_pence ? (org.domiciliary_monthly_price_pence / 100).toFixed(2) : '')} onChange={e => setDomiciliaryQuoteForm({ ...domiciliaryQuoteForm, monthly_price: e.target.value })} />
+            <TextField size="small" select label="VAT treatment" value={domiciliaryQuoteForm.vat_behavior || org.domiciliary_price_vat_behavior || 'exclusive'}
+              onChange={e => setDomiciliaryQuoteForm({ ...domiciliaryQuoteForm, vat_behavior: e.target.value as 'inclusive' | 'exclusive' })} sx={{ minWidth: 190 }}>
+              <MenuItem value="exclusive">VAT added to quoted price</MenuItem>
+              <MenuItem value="inclusive">VAT included in quoted price</MenuItem>
+            </TextField>
+            <Button variant="contained" onClick={handleDomiciliaryQuoteSave} disabled={quoteSaving || !domiciliaryQuoteForm.monthly_price}>
+              {quoteSaving ? 'Saving…' : 'Save quote'}
+            </Button>
+          </Stack>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={4}><Typography variant="caption" color="text.secondary">Draft quote</Typography><Typography fontWeight={700}>{org.domiciliary_monthly_price_pence ? `£${(org.domiciliary_monthly_price_pence / 100).toFixed(2)} / month` : 'Not set'}</Typography></Grid>
+            <Grid item xs={12} sm={4}><Typography variant="caption" color="text.secondary">Active Stripe amount</Typography><Typography fontWeight={700}>{org.domiciliary_active_monthly_price_pence ? `£${(org.domiciliary_active_monthly_price_pence / 100).toFixed(2)} / month` : 'No recorded active contract'}</Typography></Grid>
+            <Grid item xs={12} sm={4}><Typography variant="caption" color="text.secondary">Acceptance</Typography><Typography fontWeight={700}>{org.domiciliary_quote_accepted_at ? `Accepted ${new Date(org.domiciliary_quote_accepted_at).toLocaleDateString('en-GB')}` : 'Awaiting organisation acceptance'}</Typography></Grid>
+          </Grid>
+        </Paper>
+      )}
 
       {/* Billing override */}
       <Paper sx={{ p: 4, borderRadius: 2.5, mb: 3 }}>

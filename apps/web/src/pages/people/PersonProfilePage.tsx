@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
+import { useTheme } from '@mui/material/styles'
 import {
   Box, Typography, Paper, Stack, Chip, Button, Tabs, Tab, Avatar,
   Grid, TextField, CircularProgress, Alert, Dialog, DialogTitle,
@@ -103,6 +104,7 @@ const TAB_SLUGS: Record<number, string> = {
 const SLUG_TO_TAB: Record<string, number> = { ...Object.fromEntries(Object.entries(TAB_SLUGS).map(([k, v]) => [v, Number(k)])), discharge: 18 }
 
 export default function PersonProfilePage() {
+  const theme = useTheme()
   const { id } = useParams()
   const queryClient = useQueryClient()
   const { showSnackbar } = useSnackbar()
@@ -189,7 +191,10 @@ export default function PersonProfilePage() {
     queryKey: ['organisation-settings'],
     queryFn: () => api.get('/settings/org').then(r => r.data),
   })
-  const isDomiciliary = (organisationSettings?.service_types || []).some((type: string) => ['domiciliary', 'live_in'].includes(type))
+  const effectiveServiceTypes = organisationSettings?.primary_service_type
+    ? [organisationSettings.primary_service_type]
+    : (organisationSettings?.service_types || [])
+  const isDomiciliary = effectiveServiceTypes.some((type: string) => ['domiciliary', 'live_in'].includes(type))
 
   const { data: portalMembers = [] } = useQuery({
     queryKey: ['family-members', id],
@@ -527,7 +532,10 @@ export default function PersonProfilePage() {
     <PageContainer>
 
       {/* Profile Header */}
-      <Paper sx={{ p: 3, mb: 3, borderRadius: 2.5, border: '1px solid', borderColor: 'grey.200', background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
+      <Paper sx={{
+        p: 3, mb: 3, borderRadius: 2.5, border: '1px solid', borderColor: 'divider',
+        bgcolor: theme.palette.background.paper,
+      }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} spacing={2}>
           <Stack direction="row" spacing={2.5} alignItems="center">
             {/* Photo */}
@@ -622,18 +630,18 @@ export default function PersonProfilePage() {
       )}
 
       {/* Category Navigation */}
-      <Paper sx={{ mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', overflow: 'hidden' }}>
-        <Stack direction="row" sx={{ bgcolor: 'grey.50', px: 1, py: 0.5, borderBottom: '1px solid #E5E7EB' }}>
+      <Paper sx={{ mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden', bgcolor: 'background.paper' }}>
+        <Stack direction="row" sx={{ bgcolor: 'action.hover', px: 1, py: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}>
           {CATEGORIES.map((cat, i) => (
             <Box key={cat.label}
               onClick={() => handleTabChange(cat.tabs[0])}
               sx={{
                 px: 1.5, py: 0.75, cursor: 'pointer', borderRadius: 1.5,
                 bgcolor: activeCategory === i ? '#0F4C81' : 'transparent',
-                color: activeCategory === i ? 'white' : '#374151',
+                color: activeCategory === i ? '#fff' : theme.palette.text.primary,
                 fontWeight: 700, fontSize: 12, textTransform: 'none',
                 transition: 'all 0.15s',
-                '&:hover': { bgcolor: activeCategory === i ? '#0F4C81' : '#E5E7EB' },
+                '&:hover': { bgcolor: activeCategory === i ? '#0F4C81' : 'action.selected' },
               }}>
               {cat.label}
             </Box>
