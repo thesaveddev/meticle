@@ -142,11 +142,46 @@ describe('Homecare E2E critical workflows', () => {
     const approveRes = await request(app).patch(`/homecare/timesheets/${tsId}`).set('Authorization', `Bearer ${managerToken}`).send({ status: 'approved' })
     expect(approveRes.status).toBe(200)
     expect(approveRes.body.status).toBe('approved')
+    expect(approveRes.body.hourly_rate_source).toBeTruthy()
+    expect(approveRes.body.hourly_rate_source_label).toBeTruthy()
+    expect(approveRes.body.mileage_rate_source).toBeTruthy()
+    expect(approveRes.body.paid_travel_policy_source).toBeTruthy()
+    expect(approveRes.body.rate_calculated_at).toBeTruthy()
 
     // Export payroll CSV
     const csvRes = await request(app).get('/homecare/payroll/export.csv?from=2026-01-01&to=2027-12-31').set('Authorization', `Bearer ${managerToken}`)
     expect(csvRes.status).toBe(200)
     expect(csvRes.headers['content-type']).toContain('text/csv')
+    expect(csvRes.text).toContain('hourly_rate_source_label')
+    expect(csvRes.text).toContain('mileage_rate_source_label')
+    expect(csvRes.text).toContain('paid_travel_policy_source')
+    expect(csvRes.headers['x-payroll-export-id']).toBeTruthy()
+    const exportId = csvRes.headers['x-payroll-export-id']
+    const exportList = await request(app).get('/homecare/payroll/exports').set('Authorization', `Bearer ${managerToken}`)
+    expect(exportList.status).toBe(200)
+    const payrollExport = exportList.body.find((item: any) => item.id === exportId)
+    expect(payrollExport.exported_count).toBeGreaterThan(0)
+    const reconRows = await request(app).get(`/homecare/payroll/reconciliations?exportId=${exportId}`).set('Authorization', `Bearer ${managerToken}`)
+    expect(reconRows.status).toBe(200)
+    const recon = reconRows.body[0]
+    expect(recon.status).toBe('exported')
+    const beforeAcknowledgement = await request(app).patch(`/homecare/payroll/reconciliations/${recon.id}`).set('Authorization', `Bearer ${managerToken}`)
+      .send({ action: 'reconcile', reconciled_gross_pay_pence: recon.exported_gross_pay_pence })
+    expect(beforeAcknowledgement.status).toBe(409)
+    const ack = await request(app).post(`/homecare/payroll/exports/${exportId}/acknowledge`).set('Authorization', `Bearer ${managerToken}`)
+    expect(ack.status).toBe(200)
+    const ackRows = await request(app).get(`/homecare/payroll/reconciliations?exportId=${exportId}`).set('Authorization', `Bearer ${managerToken}`)
+    expect(ackRows.body[0].status).toBe('acknowledged')
+    const variance = await request(app).patch(`/homecare/payroll/reconciliations/${recon.id}`).set('Authorization', `Bearer ${managerToken}`)
+      .send({ action: 'reconcile', external_reference: 'PAY-RUN-42', reconciled_gross_pay_pence: Number(recon.exported_gross_pay_pence) + 100, note: 'Provider included a manual adjustment' })
+    expect(variance.status).toBe(200)
+    expect(variance.body.status).toBe('exception')
+    const reconciled = await request(app).patch(`/homecare/payroll/reconciliations/${recon.id}`).set('Authorization', `Bearer ${managerToken}`)
+      .send({ action: 'reconcile', external_reference: 'PAY-RUN-42', reconciled_gross_pay_pence: recon.exported_gross_pay_pence, note: 'Corrected after review' })
+    expect(reconciled.status, JSON.stringify(reconciled.body)).toBe(200)
+    expect(reconciled.body.status).toBe('matched')
+    const finalExports = await request(app).get('/homecare/payroll/exports').set('Authorization', `Bearer ${managerToken}`)
+    expect(finalExports.body.find((item: any) => item.id === exportId).status).toBe('reconciled')
   })
 
   it('manager can create, approve, and download a client billing invoice', async () => {
@@ -157,13 +192,25 @@ describe('Homecare E2E critical workflows', () => {
     const carerProfile = await createStaffProfile({ userId: carer.id })
     const managerToken = generateToken(manager)
     const carerToken = generateToken(carer)
-
-    // Create package with client rate
+    const visitTime = nearDate(5)
+    const payerRes = await request(app).post('/homecare/client-billing/payers').set('Authorization', `Bearer ${managerToken}`)
+      .send({ name: `Private payer ${Date.now()}`, funding_type: 'private', email: `payer-${Date.now()}@test.com`, address: 'Default payer address' })
+    expect(payerRes.status).toBe(201)
+    // Create package with client rate and a tenant-scoped payer
     const pkgRes = await request(app)
       .post('/homecare/packages')
       .set('Authorization', `Bearer ${managerToken}`)
-      .send({ person_id: person.id, name: 'Bill Test', status: 'active', start_date: '2026-08-01', client_rate_pence: 2000, funding_type: 'private' })
+      .send({ person_id: person.id, name: 'Bill Test', status: 'active', start_date: fd(1), client_rate_pence: 2000, funding_type: 'private', payer_account_id: payerRes.body.id })
+    expect(pkgRes.status, JSON.stringify(pkgRes.body)).toBe(201)
+    const recipientRes = await request(app).put('/homecare/client-billing/recipients').set('Authorization', `Bearer ${managerToken}`)
+      .send({ person_id: person.id, payer_account_id: payerRes.body.id, recipient_name: 'Ada Billing', recipient_email: `ada-billing-${Date.now()}@test.com`, recipient_address: '1 Client Street' })
+    expect(recipientRes.status).toBe(200)
     const pkgId = pkgRes.body.id
+    const otherOrg = await createOrg()
+    const otherManager = await createUser({ email: `invoice-other-${Date.now()}@test.com`, role: 'MANAGER', organization_id: otherOrg.id })
+    const crossTenantRecipient = await request(app).put('/homecare/client-billing/recipients').set('Authorization', `Bearer ${generateToken(otherManager)}`)
+      .send({ person_id: person.id, payer_account_id: payerRes.body.id, recipient_name: 'Cross tenant', recipient_email: 'cross@example.com' })
+    expect(crossTenantRecipient.status).toBe(404)
 
     // Create and complete a visit
     const visitRes = await request(app)
@@ -175,26 +222,87 @@ describe('Homecare E2E critical workflows', () => {
         assigned_staff_id: carerProfile.id,
         visit_type: 'morning',
         label: 'Morning call',
-        scheduled_start: '2026-08-15T09:00:00.000Z',
-        scheduled_end: '2026-08-15T10:00:00.000Z',
+        scheduled_start: visitTime.start,
+        scheduled_end: visitTime.end,
       })
+    expect(visitRes.status, JSON.stringify(visitRes.body)).toBe(201)
     const visitId = visitRes.body.id
 
-    await request(app).post(`/homecare/visits/${visitId}/check-in`).set('Authorization', `Bearer ${carerToken}`).send({ latitude: 51.5, longitude: -0.1, accuracy_meters: 10 })
-    await request(app).post(`/homecare/visits/${visitId}/check-out`).set('Authorization', `Bearer ${carerToken}`).send({ latitude: 51.5, longitude: -0.1 })
+    const checkedIn = await request(app).post(`/homecare/visits/${visitId}/check-in`).set('Authorization', `Bearer ${carerToken}`).send({ latitude: 51.5, longitude: -0.1, accuracy_meters: 10 })
+    expect(checkedIn.status, JSON.stringify(checkedIn.body)).toBe(200)
+    const checkedOut = await request(app).post(`/homecare/visits/${visitId}/check-out`).set('Authorization', `Bearer ${carerToken}`).send({ latitude: 51.5, longitude: -0.1 })
+    expect(checkedOut.status, JSON.stringify(checkedOut.body)).toBe(200)
+    // Ensure the billing fixture has a deterministic positive delivered duration.
+    await query(`UPDATE homecare_visits SET check_in_at = NOW() - INTERVAL '30 minutes', check_out_at = NOW(), status = 'completed' WHERE id = $1 AND organization_id = $2`, [visitId, org.id])
+
+    // A second client under the same payer must receive a separate invoice snapshot.
+    const secondPerson = await createPerson({ organizationId: org.id })
+    const secondPackage = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`)
+      .send({ person_id: secondPerson.id, name: 'Second client package', status: 'active', start_date: fd(1), client_rate_pence: 2000, funding_type: 'private', payer_account_id: payerRes.body.id })
+    expect(secondPackage.status, JSON.stringify(secondPackage.body)).toBe(201)
+    const secondVisit = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`)
+      .send({ package_id: secondPackage.body.id, person_id: secondPerson.id, visit_type: 'morning', label: 'Second client call', scheduled_start: visitTime.start, scheduled_end: visitTime.end })
+    expect(secondVisit.status, JSON.stringify(secondVisit.body)).toBe(201)
+    await query(`UPDATE homecare_visits SET check_in_at = NOW() - INTERVAL '30 minutes', check_out_at = NOW(), status = 'completed' WHERE id = $1 AND organization_id = $2`, [secondVisit.body.id, org.id])
 
     // Create billing run
+    const billingDate = visitTime.start.slice(0, 10)
     const runRes = await request(app)
       .post('/homecare/client-billing/runs')
       .set('Authorization', `Bearer ${managerToken}`)
-      .send({ from: '2026-08-01', to: '2026-08-31' })
+      .send({ from: billingDate, to: billingDate })
     expect(runRes.status).toBe(201)
+    expect(runRes.body.lines).toHaveLength(2)
+    expect(runRes.body.lines[0]).toMatchObject({ billing_status: 'billable', payer_account_id: payerRes.body.id })
     const runId = runRes.body.run.id
 
     // Approve billing run
     const approveRes = await request(app).post(`/homecare/client-billing/runs/${runId}/approve`).set('Authorization', `Bearer ${managerToken}`)
     expect(approveRes.status).toBe(200)
     expect(approveRes.body.invoice_number).toBeDefined()
+    expect(approveRes.body.invoices, JSON.stringify({ approval: approveRes.body, run: runRes.body })).toHaveLength(2)
+    const invoice = approveRes.body.invoices.find((item: any) => item.person_id === person.id)
+    const secondInvoice = approveRes.body.invoices.find((item: any) => item.person_id === secondPerson.id)
+    expect(invoice).toBeTruthy()
+    expect(secondInvoice).toBeTruthy()
+    expect(invoice.person_id).toBe(person.id)
+    expect(invoice.recipient_email).toBe(recipientRes.body.recipient_email)
+    expect(invoice.recipient_address).toBe('1 Client Street')
+
+    const invoiceList = await request(app).get(`/homecare/client-billing/invoices?runId=${runId}`).set('Authorization', `Bearer ${managerToken}`)
+    expect(invoiceList.status).toBe(200)
+    expect(invoiceList.body).toHaveLength(2)
+    expect(invoiceList.body.some((item: any) => item.person_name.includes(person.first_name))).toBe(true)
+    expect(invoiceList.body.some((item: any) => item.person_name.includes(secondPerson.first_name))).toBe(true)
+    const crossTenantInvoice = await request(app).get(`/homecare/client-billing/invoices/${invoice.id}`).set('Authorization', `Bearer ${generateToken(otherManager)}`)
+    expect(crossTenantInvoice.status).toBe(404)
+
+    const publicLink = await request(app).post(`/homecare/client-billing/invoices/${invoice.id}/send`).set('Authorization', `Bearer ${managerToken}`)
+    expect(publicLink.status).toBe(200)
+    expect(publicLink.body.status).toBe('sent')
+    const queueEmail = await query('SELECT html_body FROM email_queue WHERE to_email = $1 ORDER BY created_at DESC LIMIT 1', [invoice.recipient_email])
+    const tokenMatch = queueEmail.rows[0]?.html_body.match(/\/invoice\/([a-f0-9]{64})/)
+    expect(tokenMatch?.[1]).toBeTruthy()
+    const publicInvoice = await request(app).get(`/api/client-invoices/${tokenMatch[1]}`)
+    expect(publicInvoice.status).toBe(200)
+    expect(publicInvoice.body.invoice.status).toBe('viewed')
+    expect(publicInvoice.body.lines.length).toBeGreaterThan(0)
+    expect(publicInvoice.body.lines.every((line: any) => line.person_name === person.first_name + ' ' + person.last_name)).toBe(true)
+    expect(publicInvoice.body.lines.every((line: any) => line.package_name === 'Bill Test')).toBe(true)
+    expect(publicInvoice.body.lines.some((line: any) => line.package_name === 'Second client package')).toBe(false)
+    const publicPdf = await request(app).get(`/api/client-invoices/${tokenMatch[1]}/pdf`)
+    expect(publicPdf.status).toBe(200)
+    expect(publicPdf.headers['content-type']).toContain('application/pdf')
+    expect(publicPdf.headers['cache-control']).toContain('no-store')
+    const invalidPublicInvoice = await request(app).get(`/api/client-invoices/${'a'.repeat(64)}`)
+    expect(invalidPublicInvoice.status).toBe(404)
+
+    const payment = await request(app).post(`/homecare/client-billing/invoices/${invoice.id}/paid`).set('Authorization', `Bearer ${managerToken}`).send({ payment_reference: 'BANK-REF-001' })
+    expect(payment.status).toBe(200)
+    expect(payment.body.status).toBe('paid')
+    const events = await request(app).get(`/homecare/client-billing/invoices/${invoice.id}/events`).set('Authorization', `Bearer ${managerToken}`)
+    expect(events.status).toBe(200)
+    expect(events.body.map((entry: any) => entry.event_type)).toEqual(expect.arrayContaining(['approved', 'sent', 'viewed', 'paid']))
 
     // Download MTD export
     const mtdRes = await request(app).get(`/homecare/client-billing/runs/${runId}/mtd-export`).set('Authorization', `Bearer ${managerToken}`)
@@ -278,6 +386,66 @@ describe('Homecare E2E critical workflows', () => {
     // Manual visit uses package rate (null if not set on package)
     // Org defaults are available but not auto-applied to manual visits
     expect(visitRes.body.hourly_rate_pence).toBeNull()
+  })
+
+  it('billing and pay rate profiles can be edited, deactivated, reactivated and audited', async () => {
+    const org = await createOrg()
+    const manager = await createUser({ email: `e2e-rate-profile-mgr-${Date.now()}@test.com`, role: 'MANAGER', organization_id: org.id })
+    const otherManager = await createUser({ email: `e2e-rate-profile-other-${Date.now()}@test.com`, role: 'MANAGER', organization_id: org.id })
+    const managerToken = generateToken(manager)
+    const otherOrg = await createOrg()
+    const outsider = await createUser({ email: `e2e-rate-profile-outside-${Date.now()}@test.com`, role: 'MANAGER', organization_id: otherOrg.id })
+
+    const billing = await request(app).post('/homecare/billing-profiles').set('Authorization', `Bearer ${managerToken}`)
+      .send({ name: 'Standard private', funding_type: 'private', client_rate_pence: 2800 })
+    expect(billing.status).toBe(201)
+    const pay = await request(app).post('/homecare/pay-profiles').set('Authorization', `Bearer ${managerToken}`)
+      .send({ name: 'Core carer', hourly_rate_pence: 1400 })
+    expect(pay.status).toBe(201)
+
+    const billingUpdated = await request(app).patch(`/homecare/billing-profiles/${billing.body.id}`).set('Authorization', `Bearer ${managerToken}`)
+      .send({ client_rate_pence: 3000, description: 'Reviewed rate' })
+    expect(billingUpdated.status).toBe(200)
+    expect(billingUpdated.body.client_rate_pence).toBe(3000)
+    const payUpdated = await request(app).patch(`/homecare/pay-profiles/${pay.body.id}`).set('Authorization', `Bearer ${managerToken}`)
+      .send({ hourly_rate_pence: 1500 })
+    expect(payUpdated.status).toBe(200)
+    expect(payUpdated.body.hourly_rate_pence).toBe(1500)
+
+    const deactivated = await request(app).delete(`/homecare/billing-profiles/${billing.body.id}`).set('Authorization', `Bearer ${managerToken}`)
+    expect(deactivated.status).toBe(200)
+    expect(deactivated.body.deactivated).toBe(true)
+    const listed = await request(app).get('/homecare/billing-profiles').set('Authorization', `Bearer ${managerToken}`)
+    expect(listed.body.find((profile: any) => profile.id === billing.body.id)?.is_active).toBe(false)
+
+    const billingReactivated = await request(app).patch(`/homecare/billing-profiles/${billing.body.id}`).set('Authorization', `Bearer ${managerToken}`)
+      .send({ is_active: true })
+    expect(billingReactivated.status).toBe(200)
+    expect(billingReactivated.body.is_active).toBe(true)
+
+    const history = await request(app).get(`/homecare/rate-profiles/billing/${billing.body.id}/history`).set('Authorization', `Bearer ${managerToken}`)
+    expect(history.status).toBe(200)
+    expect(history.body.map((entry: any) => entry.action)).toEqual(expect.arrayContaining(['created', 'updated', 'deactivated', 'reactivated']))
+    expect(history.body[0].actor_name).toBeTruthy()
+
+    const outsiderHistory = await request(app).get(`/homecare/rate-profiles/billing/${billing.body.id}/history`)
+      .set('Authorization', `Bearer ${generateToken(outsider)}`)
+    expect(outsiderHistory.status).toBe(200)
+    expect(outsiderHistory.body).toHaveLength(0)
+
+    const crossTenantEdit = await request(app).patch(`/homecare/pay-profiles/${pay.body.id}`).set('Authorization', `Bearer ${generateToken(outsider)}`)
+      .send({ hourly_rate_pence: 1 })
+    expect(crossTenantEdit.status).toBe(404)
+
+    const carePackage = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`)
+      .send({ person_id: (await createPerson({ organizationId: org.id })).id, name: 'Profile-linked package', status: 'active', start_date: fd(1), billing_profile_id: billing.body.id })
+    expect(carePackage.status).toBe(201)
+    const editedLinkedProfile = await request(app).patch(`/homecare/billing-profiles/${billing.body.id}`).set('Authorization', `Bearer ${managerToken}`)
+      .send({ client_rate_pence: 3100 })
+    expect(editedLinkedProfile.status).toBe(200)
+    expect(editedLinkedProfile.body.client_rate_pence).toBe(3100)
+    const refreshedHistory = await request(app).get(`/homecare/rate-profiles/billing/${billing.body.id}/history`).set('Authorization', `Bearer ${managerToken}`)
+    expect(refreshedHistory.body[0].after_data.client_rate_pence).toBe(3100)
   })
 
   it('mileage policy CRUD and per-policy rates', async () => {

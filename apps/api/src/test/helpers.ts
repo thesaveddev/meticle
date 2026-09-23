@@ -62,7 +62,7 @@ import eventRoutes from '../modules/events/events.routes'
 import platformAdminRoutes from '../modules/platform-admin/platform-admin.routes'
 import shiftAuditRoutes from '../modules/shift-audit/shift-audit.routes'
 import missionControlRoutes from '../modules/mission-control/mission-control.routes'
-import homecareRoutes from '../modules/homecare/homecare.routes'
+import homecareRoutes, { publicInvoiceRouter } from '../modules/homecare/homecare.routes'
 
 export function createTestApp(): Express {
   const app = express()
@@ -123,6 +123,7 @@ export function createTestApp(): Express {
   app.use('/shift-audit', shiftAuditRoutes)
   app.use('/mission-control', missionControlRoutes)
   app.use('/homecare', authenticate, requireDomiciliaryOnly, homecareRoutes)
+  app.use('/api/client-invoices', publicInvoiceRouter)
 
   app.get('/health/live', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 

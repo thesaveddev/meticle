@@ -4,6 +4,7 @@ import pool, { query } from '../../shared/database';
 import { AuditRepository } from '../audit/audit.repository';
 import { sendPushToUser } from '../notifications/push.service';
 import { safeIo } from '../../shared/socket';
+import { EmailService } from '../../shared/utils/email.service';
 
 import * as repo from './homecare.repository';
 import { summariseEarnings, getYearToDateTotals, buildPayslipData, renderPayslipPdf } from './payslip.service';
@@ -19,6 +20,35 @@ function userId(req: Request): string {
   return req.user!.userId;
 }
 
+function dateDisplay(value: string) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]!));
+}
+
+async function renderClientInvoicePdf(invoice: any, lines: any[], supplier: any) {
+  const { generateClientInvoicePdf } = await import('./client-invoice.pdf' as string);
+  return generateClientInvoicePdf({
+    invoice_number: invoice.invoice_number,
+    invoice_date: invoice.approved_at || invoice.created_at,
+    tax_point: invoice.period_to,
+    period_from: invoice.period_from,
+    period_to: invoice.period_to,
+    status: invoice.status === 'void' ? 'void' : 'approved',
+    subtotal_pence: Number(invoice.subtotal_pence || 0),
+    vat_rate: invoice.vat_rate == null ? null : Number(invoice.vat_rate),
+    vat_inclusive: Boolean(invoice.vat_inclusive),
+    vat_amount_pence: Number(invoice.vat_amount_pence || 0),
+    gross_amount_pence: Number(invoice.gross_amount_pence || 0),
+    funding_breakdown: invoice.funding_breakdown || {},
+    voided_at: null,
+    void_reason: null,
+    lines,
+  }, supplier, { name: invoice.recipient_name || invoice.payer_name, address: invoice.recipient_address, contact_email: invoice.recipient_email });
+}
+
 function audit(req: Request, action: string, entityType: string, entityId?: string, newData?: unknown) {
   AuditRepository.log({ user_id: userId(req), action, entity_type: entityType, entity_id: entityId, new_data: newData, ip_address: req.ip }).catch(() => {});
 }
@@ -29,13 +59,16 @@ export class HomecareController {
   }
 
   static async listBillingProfiles(req: Request, res: Response) { res.json(await repo.listBillingProfiles(orgId(req))); }
-  static async createBillingProfile(req: Request, res: Response) { res.status(201).json(await repo.createBillingProfile(orgId(req), req.body)); }
-  static async updateBillingProfile(req: Request, res: Response) { res.json(await repo.updateBillingProfile(orgId(req), req.params.id, req.body)); }
-  static async deleteBillingProfile(req: Request, res: Response) { res.json({ deleted: await repo.deleteBillingProfile(orgId(req), req.params.id) }); }
+  static async createBillingProfile(req: Request, res: Response) { res.status(201).json(await repo.createBillingProfile(orgId(req), userId(req), req.body)); }
+  static async updateBillingProfile(req: Request, res: Response) { res.json(await repo.updateBillingProfile(orgId(req), userId(req), req.params.id, req.body)); }
+  static async deleteBillingProfile(req: Request, res: Response) { res.json({ deleted: true, deactivated: await repo.deactivateBillingProfile(orgId(req), userId(req), req.params.id) }); }
   static async listPayProfiles(req: Request, res: Response) { res.json(await repo.listPayProfiles(orgId(req))); }
-  static async createPayProfile(req: Request, res: Response) { res.status(201).json(await repo.createPayProfile(orgId(req), req.body)); }
-  static async updatePayProfile(req: Request, res: Response) { res.json(await repo.updatePayProfile(orgId(req), req.params.id, req.body)); }
-  static async deletePayProfile(req: Request, res: Response) { res.json({ deleted: await repo.deletePayProfile(orgId(req), req.params.id) }); }
+  static async createPayProfile(req: Request, res: Response) { res.status(201).json(await repo.createPayProfile(orgId(req), userId(req), req.body)); }
+  static async updatePayProfile(req: Request, res: Response) { res.json(await repo.updatePayProfile(orgId(req), userId(req), req.params.id, req.body)); }
+  static async deletePayProfile(req: Request, res: Response) { res.json({ deleted: true, deactivated: await repo.deactivatePayProfile(orgId(req), userId(req), req.params.id) }); }
+  static async listRateProfileHistory(req: Request, res: Response) {
+    res.json(await repo.listRateProfileHistory(orgId(req), req.params.type as 'billing' | 'pay', req.params.id));
+  }
 
   static async createPackage(req: Request, res: Response) {
     const result = await repo.createPackage(orgId(req), userId(req), req.body);
@@ -730,29 +763,119 @@ export class HomecareController {
     res.json(result);
   }
 
+  static async listPayrollExports(req: Request, res: Response) {
+    res.json(await repo.listPayrollExports(orgId(req)));
+  }
+
   static async listPayrollReconciliations(req: Request, res: Response) {
     res.json(await repo.listPayrollReconciliations(orgId(req), req.query.exportId as string | undefined));
   }
 
+  static async acknowledgePayrollExport(req: Request, res: Response) {
+    const result = await repo.acknowledgePayrollExport(orgId(req), userId(req), req.params.id);
+    audit(req, 'acknowledge', 'homecare_payroll_export', req.params.id, result);
+    res.json(result);
+  }
+
   static async reconcilePayroll(req: Request, res: Response) {
     const result = await repo.reconcilePayroll(orgId(req), userId(req), req.params.id, req.body);
-    audit(req, 'reconcile', 'homecare_payroll_reconciliation', req.params.id, req.body);
+    audit(req, req.body.action, 'homecare_payroll_reconciliation', req.params.id, req.body);
     res.json(result);
   }
 
   static async exportPayroll(req: Request, res: Response) {
     const rows = await repo.getApprovedPayrollRows(orgId(req), { from: req.query.from as string, to: req.query.to as string, provider: req.query.provider as any });
-    const headers = ['timesheet_id', 'staff_id', 'staff_name', 'client_name', 'visit_label', 'scheduled_start', 'scheduled_end', 'work_minutes', 'travel_minutes', 'paid_travel_minutes', 'mileage_miles', 'mileage_rate_pence', 'hourly_rate_pence', 'gross_pay_pence'];
+    const headers = ['timesheet_id', 'staff_id', 'staff_name', 'client_name', 'visit_label', 'scheduled_start', 'scheduled_end', 'work_minutes', 'travel_minutes', 'paid_travel_minutes', 'mileage_miles', 'mileage_rate_pence', 'mileage_rate_source', 'mileage_rate_source_label', 'hourly_rate_pence', 'hourly_rate_source', 'hourly_rate_source_label', 'paid_travel_policy_source', 'rate_calculated_at', 'gross_pay_pence'];
     const escape = (value: unknown) => {
       const text = value == null ? '' : String(value);
       return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
     };
     const csv = [headers.join(','), ...rows.map(row => headers.map(header => escape(row[header])).join(','))].join('\n') + '\n';
     const checksum = require('crypto').createHash('sha256').update(csv).digest('hex');
-    await repo.createPayrollExport(orgId(req), userId(req), { from: req.query.from as string, to: req.query.to as string, provider: req.query.provider as any }, rows, checksum);
+    const payrollExport = await repo.createPayrollExport(orgId(req), userId(req), { from: req.query.from as string, to: req.query.to as string, provider: req.query.provider as any }, rows, checksum);
+    res.setHeader('X-Payroll-Export-Id', payrollExport.id);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="homecare-payroll-${req.query.from}-${req.query.to}.csv"`);
     res.send(csv);
+  }
+
+  static async listBillingPayers(req: Request, res: Response) {
+    res.json(await repo.listBillingPayers(orgId(req)));
+  }
+
+  static async createBillingPayer(req: Request, res: Response) {
+    const result = await repo.createBillingPayer(orgId(req), userId(req), req.body);
+    audit(req, 'create', 'homecare_billing_payer', result.id, { ...req.body, email: result.email });
+    res.status(201).json(result);
+  }
+
+  static async updateBillingPayer(req: Request, res: Response) {
+    const result = await repo.updateBillingPayer(orgId(req), req.params.id, req.body);
+    audit(req, 'update', 'homecare_billing_payer', result.id, req.body);
+    res.json(result);
+  }
+
+  static async listClientBillingInvoices(req: Request, res: Response) {
+    res.json(await repo.listClientBillingInvoices(orgId(req), req.query.runId as string | undefined));
+  }
+
+  static async listClientInvoiceRecipients(req: Request, res: Response) {
+    res.json(await repo.listClientInvoiceRecipients(orgId(req)));
+  }
+
+  static async upsertClientInvoiceRecipient(req: Request, res: Response) {
+    const result = await repo.upsertClientInvoiceRecipient(orgId(req), userId(req), req.body);
+    audit(req, 'upsert_invoice_recipient', 'homecare_client_invoice_recipient', result.id, {
+      person_id: result.person_id, payer_account_id: result.payer_account_id, recipient_email: result.recipient_email,
+    });
+    res.json(result);
+  }
+
+  static async listClientBillingInvoiceEvents(req: Request, res: Response) {
+    const invoice = await repo.getClientInvoiceForOrganisation(orgId(req), req.params.invoiceId);
+    if (!invoice) throw new AppError(404, 'Invoice not found');
+    res.json(await repo.listClientBillingInvoiceEvents(orgId(req), req.params.invoiceId));
+  }
+
+  static async getClientInvoiceForOrganisation(req: Request, res: Response) {
+    const invoice = await repo.getClientInvoiceForOrganisation(orgId(req), req.params.invoiceId);
+    if (!invoice) throw new AppError(404, 'Invoice not found');
+    const lines = await repo.listClientInvoiceLines(orgId(req), invoice.id);
+    res.json({ invoice, lines });
+  }
+
+  static async sendClientInvoice(req: Request, res: Response) {
+    const oid = orgId(req);
+    const invoice = await repo.prepareClientInvoiceDelivery(oid, req.params.invoiceId);
+    const invoiceUrl = `${process.env.FRONTEND_URL || 'https://meticlecare.com'}/invoice/${invoice.access_token}`;
+    const html = `<p>Hello ${escapeHtml(invoice.recipient_name)},</p><p>Invoice <strong>${escapeHtml(invoice.invoice_number)}</strong> for ${escapeHtml(invoice.person_name)} from ${escapeHtml(dateDisplay(invoice.period_from))} to ${escapeHtml(dateDisplay(invoice.period_to))} is ready.</p><p>Amount due: <strong>£${(Number(invoice.gross_amount_pence) / 100).toFixed(2)}</strong>.</p><p><a href="${invoiceUrl}">View your invoice securely</a></p><p>This link expires in 90 days.</p>`;
+    await EmailService.sendQueued(invoice.recipient_email, `Invoice ${invoice.invoice_number}`, html, 'billing');
+    const sent = await repo.markClientInvoiceSent(oid, userId(req), invoice.id);
+    audit(req, 'send', 'homecare_client_billing_invoice', invoice.id, { invoice_number: invoice.invoice_number, recipient_email: invoice.recipient_email });
+    res.json(sent);
+  }
+
+  static async markClientInvoicePaid(req: Request, res: Response) {
+    const result = await repo.markClientInvoicePaid(orgId(req), userId(req), req.params.invoiceId, req.body.payment_reference);
+    audit(req, 'mark_paid', 'homecare_client_billing_invoice', result.id, { payment_reference: result.payment_reference, gross_amount_pence: result.gross_amount_pence });
+    res.json(result);
+  }
+
+  static async getPublicClientInvoice(req: Request, res: Response) {
+    const result = await repo.getPublicClientInvoice(req.params.token);
+    if (!result) throw new AppError(404, 'Invoice link is invalid or expired');
+    res.set('Cache-Control', 'no-store');
+    res.json(result);
+  }
+
+  static async getPublicClientInvoicePdf(req: Request, res: Response) {
+    const result = await repo.getPublicClientInvoice(req.params.token);
+    if (!result) throw new AppError(404, 'Invoice link is invalid or expired');
+    const pdf = await renderClientInvoicePdf(result.invoice, result.lines, result.supplier);
+    res.set('Cache-Control', 'no-store');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="invoice-${result.invoice.invoice_number.replace(/[^A-Za-z0-9-_]/g, '')}.pdf"`);
+    res.send(pdf);
   }
 
   static async listClientBillingRuns(req: Request, res: Response) {
@@ -775,7 +898,7 @@ export class HomecareController {
 
   static async approveClientBillingRun(req: Request, res: Response) {
     const result = await repo.approveClientBillingRun(orgId(req), userId(req), req.params.runId);
-    audit(req, 'approve', 'homecare_client_billing_run', req.params.runId, { invoice_number: result.invoice_number });
+    audit(req, 'approve', 'homecare_client_billing_run', req.params.runId, { invoice_number: result.invoice_number, invoice_count: result.invoices.length });
     res.json(result);
   }
 
@@ -792,35 +915,12 @@ export class HomecareController {
   }
 
   static async downloadClientInvoicePdf(req: Request, res: Response) {
-    const run = await repo.getClientBillingRun(orgId(req), req.params.runId);
-    if (!run) throw new AppError(404, 'Billing run not found');
-    if (run.status !== 'approved') throw new AppError(409, 'Only approved billing runs have statutory invoices');
-
-    const lines = await repo.listClientBillingLines(orgId(req), req.params.runId);
-    const { buildClientInvoicePdf } = await import('./client-invoice.pdf' as string);
-
+    const invoice = await repo.getClientInvoiceForOrganisation(orgId(req), req.params.invoiceId);
+    if (!invoice) throw new AppError(404, 'Invoice not found');
+    const lines = await repo.listClientInvoiceLines(orgId(req), invoice.id);
     const supplier = await repo.getSupplierInfo(orgId(req));
-    const customer = await repo.getCustomerInfo(orgId(req), run);
-
-    const pdf = await buildClientInvoicePdf({
-      invoice_number: run.invoice_number || `HC-${run.id.slice(0, 8)}`,
-      invoice_date: run.approved_at || run.created_at,
-      tax_point: run.period_to,
-      period_from: run.period_from,
-      period_to: run.period_to,
-      status: run.status,
-      subtotal_pence: run.subtotal_pence,
-      vat_rate: run.vat_rate,
-      vat_inclusive: run.vat_inclusive,
-      vat_amount_pence: run.vat_amount_pence,
-      gross_amount_pence: run.gross_amount_pence,
-      funding_breakdown: run.funding_breakdown || {},
-      voided_at: run.voided_at,
-      void_reason: run.void_reason,
-      lines,
-    }, supplier, customer);
-
-    const filename = `invoice-${(run.invoice_number || run.id).replace(/[^A-Za-z0-9-_]/g, '')}.pdf`;
+    const pdf = await renderClientInvoicePdf(invoice, lines, supplier);
+    const filename = `invoice-${invoice.invoice_number.replace(/[^A-Za-z0-9-_]/g, '')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(pdf);

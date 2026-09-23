@@ -69,7 +69,7 @@ describe('Organizations — onboarding dismiss persistence', () => {
     const response = await request(app)
       .patch(`/organizations/${orgId}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Production Care Organisation', service_types: ['domiciliary'], primary_service_type: 'domiciliary', onboarding_step: 3, onboarding_completed: true })
+      .send({ name: `Production Care Organisation ${Date.now()}`, service_types: ['domiciliary'], primary_service_type: 'domiciliary', onboarding_step: 3, onboarding_completed: true })
 
     expect(response.status).toBe(200)
     expect(response.body.service_types).toEqual(['domiciliary'])
