@@ -5,6 +5,9 @@ export interface ClientBillingUtilisationRow {
   person_name: string;
   package_name: string;
   funding_type: string;
+  payer_account_id?: string | null;
+  payer_name?: string | null;
+  payer_email?: string | null;
   visit_status: string;
   scheduled_start: string;
   scheduled_minutes: number;

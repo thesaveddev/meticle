@@ -24,6 +24,7 @@ export interface HomecarePackageInput {
   client_rate_pence?: number | null;
   billing_profile_id?: string | null;
   pay_profile_id?: string | null;
+  payer_account_id?: string | null;
   travel_time_paid?: boolean;
   mileage_rate_pence?: number | null;
   notes?: string | null;
@@ -130,7 +131,7 @@ export interface HomecareMileagePolicyInput {
 }
 
 export interface HomecareReconciliationInput {
-  status: 'matched' | 'exception' | 'ignored';
+  action: 'acknowledge' | 'reconcile' | 'exception' | 'ignore';
   external_reference?: string | null;
   reconciled_gross_pay_pence?: number | null;
   note?: string | null;

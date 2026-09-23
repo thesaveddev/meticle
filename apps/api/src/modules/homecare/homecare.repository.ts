@@ -1,4 +1,5 @@
-import { query, transaction } from '../../shared/database';
+import { createHash, randomBytes } from 'crypto';
+import { query, transaction, migrateQuery } from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { HomecarePackageInput, HomecareVisitInput, HomecareVisitPlanInput, HomecareVisitUpdateInput, VisitExecutionInput, HomecareTimesheetUpdateInput, HomecareExceptionInput, PayrollExportFilters } from './homecare.types';
 import { applyVat, buildFundingBreakdown, calculateClientBillingLine, fundingLabel, cancellationPolicyLabel, type ClientBillingUtilisationRow } from './client-billing';
@@ -6,11 +7,15 @@ import { applyVat, buildFundingBreakdown, calculateClientBillingLine, fundingLab
 const PACKAGE_SELECT = `
   SELECT p.*, pe.first_name || ' ' || pe.last_name AS person_name,
     bp.name AS billing_profile_name,
-    pp.name AS pay_profile_name
+    pp.name AS pay_profile_name,
+    p.payer_account_id,
+    payer.name AS payer_name,
+    payer.email AS payer_email
   FROM homecare_packages p
   JOIN people pe ON pe.id = p.person_id
-  LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id AND bp.is_active = TRUE
-  LEFT JOIN homecare_pay_profiles pp ON pp.id = p.pay_profile_id AND pp.organization_id = p.organization_id AND pp.is_active = TRUE
+  LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id
+  LEFT JOIN homecare_pay_profiles pp ON pp.id = p.pay_profile_id AND pp.organization_id = p.organization_id
+  LEFT JOIN homecare_billing_payers payer ON payer.id = p.payer_account_id AND payer.organization_id = p.organization_id
 `;
 
 const VISIT_SELECT = `
@@ -26,8 +31,8 @@ const VISIT_SELECT = `
   JOIN homecare_packages p ON p.id = v.package_id AND p.organization_id = v.organization_id
   LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
   LEFT JOIN locations l ON l.id = pe.location_id
-  LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id AND bp.is_active = TRUE
-  LEFT JOIN homecare_pay_profiles pp ON pp.id = p.pay_profile_id AND pp.organization_id = p.organization_id AND pp.is_active = TRUE
+  LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id
+  LEFT JOIN homecare_pay_profiles pp ON pp.id = p.pay_profile_id AND pp.organization_id = p.organization_id
 `;
 
 async function assertPackage(packageId: string, orgId: string) {
@@ -106,7 +111,7 @@ export async function buildClientBillingUtilisation(orgId: string, from: string,
   const vat = await resolveBillingVat(orgId);
   const result = await query(`SELECT v.id AS visit_id, v.package_id, v.person_id,
       pe.first_name || ' ' || pe.last_name AS person_name, p.name AS package_name,
-      p.funding_type, v.status AS visit_status, v.scheduled_start,
+      p.funding_type, p.payer_account_id, payer.name AS payer_name, payer.email AS payer_email, v.status AS visit_status, v.scheduled_start,
       EXTRACT(EPOCH FROM (v.scheduled_end - v.scheduled_start)) / 60 AS scheduled_minutes,
       CASE WHEN v.status = 'completed' AND v.check_in_at IS NOT NULL AND v.check_out_at IS NOT NULL
         THEN EXTRACT(EPOCH FROM (v.check_out_at - v.check_in_at)) / 60 ELSE 0 END AS delivered_minutes,
@@ -114,7 +119,8 @@ export async function buildClientBillingUtilisation(orgId: string, from: string,
     FROM homecare_visits v
     JOIN homecare_packages p ON p.id = v.package_id AND p.organization_id = v.organization_id
     JOIN people pe ON pe.id = v.person_id
-    LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id AND bp.is_active = TRUE
+    LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id
+    LEFT JOIN homecare_billing_payers payer ON payer.id = p.payer_account_id AND payer.organization_id = p.organization_id
     WHERE v.organization_id = $1 AND v.scheduled_start >= $2::date
       AND v.scheduled_start < ($3::date + INTERVAL '1 day')
     ORDER BY v.scheduled_start, person_name`, [orgId, from, to]);
@@ -130,6 +136,9 @@ export async function buildClientBillingUtilisation(orgId: string, from: string,
     });
     return {
       ...row,
+      payer_account_id: row.payer_account_id || null,
+      payer_name: row.payer_name || null,
+      payer_email: row.payer_email || null,
       scheduled_start: new Date(row.scheduled_start).toISOString(),
       scheduled_minutes: line.scheduledMinutes,
       delivered_minutes: line.deliveredMinutes,
@@ -159,8 +168,7 @@ export async function createClientBillingRun(orgId: string, userId: string, from
   }
   const vat = await resolveBillingVat(orgId);
   const lines = await buildClientBillingUtilisation(orgId, from, to);
-  const fundedRows = lines.map((row) => ({
-    funding_type: row.funding_type,
+  const fundedRows = lines.map((row) => ({      funding_type: row.funding_type,
     gross_amount_pence: row.gross_amount_pence,
     net_amount_pence: row.net_amount_pence,
     vat_amount_pence: row.vat_amount_pence,
@@ -181,45 +189,325 @@ export async function createClientBillingRun(orgId: string, userId: string, from
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`, [orgId, from, to, lines.length, totals.gross, totals.net, vat.vatRate, vat.vatInclusive, totals.vat, totals.gross, JSON.stringify(fundingBreakdown), userId]);
     for (const line of lines) {
       await client.query(`INSERT INTO homecare_client_billing_lines
-        (organization_id, run_id, visit_id, package_id, person_id, funding_type, visit_status,
+        (organization_id, run_id, visit_id, package_id, person_id, funding_type, visit_status, payer_account_id,
          scheduled_minutes, delivered_minutes, client_rate_pence, amount_pence, net_amount_pence, vat_rate, vat_inclusive, vat_amount_pence, gross_amount_pence, funding_applied, cancellation_policy_applied, billing_status, exclusion_reason)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
-        [orgId, runResult.rows[0].id, line.visit_id, line.package_id, line.person_id, line.funding_type, line.visit_status,
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+        [orgId, runResult.rows[0].id, line.visit_id, line.package_id, line.person_id, line.funding_type, line.visit_status, line.payer_account_id || null,
           line.scheduled_minutes, line.delivered_minutes, line.client_rate_pence, line.amount_pence, line.net_amount_pence, line.vat_rate, line.vat_inclusive, line.vat_amount_pence, line.gross_amount_pence, line.funding_applied, line.cancellation_policy_applied, line.billing_status, line.exclusion_reason]);
     }
     return { run: runResult.rows[0], lines };
   });
 }
 
+export async function listClientInvoiceRecipients(orgId: string) {
+  return (await query(`SELECT pe.id AS person_id, pe.first_name || ' ' || pe.last_name AS person_name,
+      payer.id AS payer_account_id, payer.name AS payer_name, payer.funding_type,
+      COALESCE(recipient.recipient_name, payer.contact_name, payer.name) AS recipient_name,
+      COALESCE(recipient.recipient_email, payer.email) AS recipient_email,
+      COALESCE(recipient.recipient_address, payer.address) AS recipient_address,
+      recipient.id AS recipient_override_id
+    FROM homecare_packages p
+    JOIN people pe ON pe.id = p.person_id AND pe.organization_id = p.organization_id
+    JOIN homecare_billing_payers payer ON payer.id = p.payer_account_id AND payer.organization_id = p.organization_id
+    LEFT JOIN homecare_client_invoice_recipients recipient ON recipient.organization_id = p.organization_id
+      AND recipient.person_id = p.person_id AND recipient.payer_account_id = p.payer_account_id
+    WHERE p.organization_id = $1
+    GROUP BY pe.id, pe.first_name, pe.last_name, payer.id, payer.name, payer.funding_type,
+      payer.contact_name, payer.email, payer.address, recipient.id, recipient.recipient_name,
+      recipient.recipient_email, recipient.recipient_address
+    ORDER BY person_name, payer.name`, [orgId])).rows;
+}
+
+export async function upsertClientInvoiceRecipient(orgId: string, actorId: string, input: any) {
+  const linked = await query(`SELECT 1 FROM homecare_packages
+    WHERE organization_id = $1 AND person_id = $2 AND payer_account_id = $3 LIMIT 1`,
+  [orgId, input.person_id, input.payer_account_id]);
+  if (!linked.rows[0]) throw new AppError(404, 'Client and payer relationship not found in this organisation');
+  const result = await query(`INSERT INTO homecare_client_invoice_recipients
+      (organization_id, person_id, payer_account_id, recipient_name, recipient_email, recipient_address, updated_by)
+    VALUES ($1,$2,$3,$4,$5,$6,$7)
+    ON CONFLICT (organization_id, person_id, payer_account_id) DO UPDATE SET
+      recipient_name = EXCLUDED.recipient_name, recipient_email = EXCLUDED.recipient_email,
+      recipient_address = EXCLUDED.recipient_address, updated_by = EXCLUDED.updated_by, updated_at = NOW()
+    RETURNING *`, [orgId, input.person_id, input.payer_account_id, input.recipient_name, input.recipient_email, input.recipient_address || null, actorId]);
+  return result.rows[0];
+}
+
+export async function listBillingPayers(orgId: string) {
+  return (await query(`SELECT payer.*, COUNT(DISTINCT p.id)::int AS package_count
+    FROM homecare_billing_payers payer
+    LEFT JOIN homecare_packages p ON p.payer_account_id = payer.id AND p.organization_id = payer.organization_id
+    WHERE payer.organization_id = $1 GROUP BY payer.id ORDER BY payer.funding_type, payer.name`, [orgId])).rows;
+}
+
+export async function assertBillingPayer(orgId: string, payerId: string | null | undefined, fundingType?: string) {
+  if (!payerId) return;
+  const payer = await query('SELECT id, funding_type FROM homecare_billing_payers WHERE id = $1 AND organization_id = $2', [payerId, orgId]);
+  if (!payer.rows[0]) throw new AppError(400, 'Billing payer is not in this organisation');
+  if (fundingType && payer.rows[0].funding_type !== fundingType) {
+    throw new AppError(400, 'Billing payer funding type must match the care package funding type');
+  }
+}
+
+export async function createBillingPayer(orgId: string, actorId: string, input: any) {
+  const result = await query(`INSERT INTO homecare_billing_payers
+    (organization_id, name, funding_type, contact_name, email, address, created_by)
+    VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+  [orgId, input.name, input.funding_type, input.contact_name || null, input.email, input.address || null, actorId]);
+  return result.rows[0];
+}
+
+export async function updateBillingPayer(orgId: string, payerId: string, input: any) {
+  const allowed = ['name', 'funding_type', 'contact_name', 'email', 'address'];
+  const entries = Object.entries(input).filter(([key]) => allowed.includes(key));
+  if (!entries.length) throw new AppError(400, 'No payer fields to update');
+  const set = entries.map(([key], index) => `${key} = $${index + 1}`).join(', ');
+  const result = await query(`UPDATE homecare_billing_payers SET ${set}, updated_at = NOW()
+    WHERE id = $${entries.length + 1} AND organization_id = $${entries.length + 2} RETURNING *`,
+  [...entries.map(([, value]) => value), payerId, orgId]);
+  if (!result.rows[0]) throw new AppError(404, 'Billing payer not found');
+  return result.rows[0];
+}
+
 export async function listClientBillingLines(orgId: string, runId: string) {
-  return (await query(`SELECT l.*, pe.first_name || ' ' || pe.last_name AS person_name, p.name AS package_name
+  return (await query(`SELECT l.*, pe.first_name || ' ' || pe.last_name AS person_name, p.name AS package_name, payer.name AS payer_name
     FROM homecare_client_billing_lines l
     JOIN people pe ON pe.id = l.person_id
     JOIN homecare_packages p ON p.id = l.package_id
+    LEFT JOIN homecare_billing_payers payer ON payer.id = l.payer_account_id AND payer.organization_id = l.organization_id
     WHERE l.organization_id = $1 AND l.run_id = $2 ORDER BY l.created_at`, [orgId, runId])).rows;
 }
 
-export async function approveClientBillingRun(orgId: string, userId: string, runId: string) {
-  const existing = await query('SELECT id, status, voided_at FROM homecare_client_billing_runs WHERE id = $1 AND organization_id = $2', [runId, orgId]);
-  if (!existing.rows[0]) throw new AppError(404, 'Billing run not found');
-  if (existing.rows[0].voided_at) throw new AppError(409, 'A voided billing run cannot be approved');
-  const result = await query(`UPDATE homecare_client_billing_runs
-    SET status = 'approved', approved_by = $1, approved_at = NOW(), updated_at = NOW(),
-        invoice_number = COALESCE(invoice_number, 'HC-' || to_char(NOW(), 'YYYYMM') || '-' || substring(id::text from 1 for 8))
-    WHERE id = $2 AND organization_id = $3 AND status = 'draft' RETURNING *`, [userId, runId, orgId]);
-  if (!result.rows[0]) throw new AppError(409, 'Only a draft billing run can be approved');
-  return result.rows[0];
+export async function listClientBillingInvoices(orgId: string, runId?: string) {
+  const params: any[] = [orgId];
+  const filter = runId ? ' AND i.run_id = $2' : '';
+  if (runId) params.push(runId);
+  return (await query(`SELECT i.id, i.run_id, i.payer_account_id, i.person_id, COALESCE(pe.first_name || ' ' || pe.last_name, 'Legacy grouped invoice') AS person_name, i.invoice_number, i.status,
+      i.recipient_name, i.recipient_email, i.recipient_address, i.subtotal_pence, i.vat_amount_pence,
+      i.gross_amount_pence, i.sent_at, i.viewed_at, i.paid_at, i.payment_reference, i.created_at,
+      payer.name AS payer_name, payer.funding_type
+    FROM homecare_client_billing_invoices i
+    JOIN homecare_billing_payers payer ON payer.id = i.payer_account_id AND payer.organization_id = i.organization_id
+    LEFT JOIN people pe ON pe.id = i.person_id AND pe.organization_id = i.organization_id
+    WHERE i.organization_id = $1${filter} ORDER BY i.created_at DESC`, params)).rows;
 }
 
+function hashInvoiceToken(token: string) {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+export async function approveClientBillingRun(orgId: string, userId: string, runId: string) {
+  return transaction(async (client) => {
+    const existing = await client.query('SELECT id, status, voided_at FROM homecare_client_billing_runs WHERE id = $1 AND organization_id = $2 FOR UPDATE', [runId, orgId]);
+    if (!existing.rows[0]) throw new AppError(404, 'Billing run not found');
+    if (existing.rows[0].voided_at) throw new AppError(409, 'A voided billing run cannot be approved');
+    const unassignedPayer = await client.query(`SELECT COUNT(*)::int AS count
+      FROM homecare_client_billing_lines WHERE organization_id = $1 AND run_id = $2
+        AND billing_status = 'billable' AND payer_account_id IS NULL`, [orgId, runId]);
+    if (unassignedPayer.rows[0]?.count > 0) {
+      throw new AppError(409, `${unassignedPayer.rows[0].count} billable line(s) need a payer account before approval`);
+    }
+    const result = await client.query(`UPDATE homecare_client_billing_runs
+      SET status = 'approved', approved_by = $1, approved_at = NOW(), updated_at = NOW(),
+          invoice_number = COALESCE(invoice_number, 'HC-' || to_char(NOW(), 'YYYYMM') || '-' || substring(id::text from 1 for 8))
+      WHERE id = $2 AND organization_id = $3 AND status = 'draft' RETURNING *`, [userId, runId, orgId]);
+    if (!result.rows[0]) throw new AppError(409, 'Only a draft billing run can be approved');
+
+    const payerGroups = await client.query(`SELECT payer.id AS payer_account_id, payer.name AS payer_name,
+        l.person_id, pe.first_name || ' ' || pe.last_name AS person_name,
+        COALESCE(recipient.recipient_email, payer.email) AS recipient_email,
+        COALESCE(recipient.recipient_name, payer.contact_name, payer.name) AS recipient_name,
+        COALESCE(recipient.recipient_address, payer.address) AS recipient_address,
+        SUM(l.net_amount_pence)::int AS subtotal_pence, SUM(l.vat_amount_pence)::int AS vat_amount_pence,
+        SUM(l.gross_amount_pence)::int AS gross_amount_pence, MAX(l.vat_rate) AS vat_rate,
+        BOOL_OR(l.vat_inclusive) AS vat_inclusive,
+        jsonb_build_object(payer.funding_type, jsonb_build_object('count', COUNT(*)::int,
+          'billable_count', COUNT(*)::int, 'net_pence', SUM(l.net_amount_pence)::int,
+          'vat_pence', SUM(l.vat_amount_pence)::int, 'gross_pence', SUM(l.gross_amount_pence)::int)) AS funding_breakdown
+    FROM homecare_client_billing_lines l
+    JOIN homecare_billing_payers payer ON payer.id = l.payer_account_id AND payer.organization_id = l.organization_id
+    JOIN people pe ON pe.id = l.person_id AND pe.organization_id = l.organization_id
+      LEFT JOIN homecare_client_invoice_recipients recipient ON recipient.organization_id = l.organization_id
+        AND recipient.person_id = l.person_id AND recipient.payer_account_id = payer.id
+      WHERE l.organization_id = $1 AND l.run_id = $2 AND l.billing_status = 'billable'
+      GROUP BY payer.id, l.person_id, pe.first_name, pe.last_name,
+        recipient.recipient_email, recipient.recipient_name, recipient.recipient_address`, [orgId, runId]);
+
+    const invoices = [];
+    for (const payer of payerGroups.rows) {
+      const invoiceNumber = `${result.rows[0].invoice_number}-${String(payer.payer_account_id).slice(0, 8).toUpperCase()}-${String(payer.person_id).slice(0, 8).toUpperCase()}`;
+      const invoice = await client.query(`INSERT INTO homecare_client_billing_invoices
+        (organization_id, run_id, payer_account_id, person_id, invoice_number, recipient_name, recipient_email, recipient_address,
+         subtotal_pence, vat_rate, vat_inclusive, vat_amount_pence, gross_amount_pence, funding_breakdown)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        ON CONFLICT (run_id, payer_account_id, person_id) WHERE person_id IS NOT NULL DO UPDATE SET payer_account_id = EXCLUDED.payer_account_id
+        RETURNING id, invoice_number, payer_account_id, person_id, recipient_name, recipient_email, recipient_address,
+          subtotal_pence, vat_rate, vat_inclusive, vat_amount_pence, gross_amount_pence`,
+      [orgId, runId, payer.payer_account_id, payer.person_id, invoiceNumber, payer.recipient_name, payer.recipient_email, payer.recipient_address,
+        payer.subtotal_pence, payer.vat_rate, payer.vat_inclusive, payer.vat_amount_pence, payer.gross_amount_pence, JSON.stringify(payer.funding_breakdown)]);
+      await client.query(`INSERT INTO homecare_client_billing_invoice_events (organization_id, invoice_id, actor_id, event_type, details)
+        VALUES ($1,$2,$3,'approved',jsonb_build_object('invoice_number',$4::text,'person_id',$5::text))`, [orgId, invoice.rows[0].id, userId, invoice.rows[0].invoice_number, payer.person_id]);
+      invoices.push(invoice.rows[0]);
+    }
+    return { ...result.rows[0], invoices };
+  });
+}
+
+export async function prepareClientInvoiceDelivery(orgId: string, invoiceId: string) {
+  const invoice = await query(`SELECT i.id, i.run_id, i.person_id, pe.first_name || ' ' || pe.last_name AS person_name,
+      i.invoice_number, i.recipient_name, i.recipient_email, i.recipient_address,
+      i.subtotal_pence, i.vat_rate, i.vat_inclusive, i.vat_amount_pence, i.gross_amount_pence, i.funding_breakdown,
+      run.period_from, run.period_to, run.approved_at, run.funding_breakdown AS run_funding_breakdown
+    FROM homecare_client_billing_invoices i
+    JOIN people pe ON pe.id = i.person_id AND pe.organization_id = i.organization_id
+    JOIN homecare_client_billing_runs run ON run.id = i.run_id AND run.organization_id = i.organization_id
+    WHERE i.id = $1 AND i.organization_id = $2 AND i.person_id IS NOT NULL AND i.status IN ('approved','sent','viewed')`, [invoiceId, orgId]);
+  if (!invoice.rows[0]) throw new AppError(404, 'Invoice not found or is not eligible to send');
+  const rawToken = randomBytes(32).toString('hex');
+  const tokenHash = hashInvoiceToken(rawToken);
+  await transaction(async client => {
+    await client.query(`INSERT INTO homecare_client_invoice_access_tokens
+        (organization_id, invoice_id, person_id, token_hash, expires_at)
+      VALUES ($1,$2,$3,$4,NOW() + INTERVAL '90 days')`, [orgId, invoiceId, invoice.rows[0].person_id, tokenHash]);
+    await client.query(`UPDATE homecare_client_billing_invoices SET access_token_hash = $1, token_expires_at = NOW() + INTERVAL '90 days', updated_at = NOW()
+      WHERE id = $2 AND organization_id = $3`, [tokenHash, invoiceId, orgId]);
+  });
+  return { ...invoice.rows[0], access_token: rawToken };
+}
+
+export async function markClientInvoiceSent(orgId: string, actorId: string, invoiceId: string) {
+  return transaction(async (client) => {
+    const result = await client.query(`UPDATE homecare_client_billing_invoices SET status = CASE WHEN status = 'viewed' THEN 'viewed' ELSE 'sent' END, sent_at = NOW(), updated_at = NOW()
+      WHERE id = $1 AND organization_id = $2 AND person_id IS NOT NULL AND status IN ('approved','sent','viewed') RETURNING *`, [invoiceId, orgId]);
+    if (!result.rows[0]) throw new AppError(404, 'Invoice not found or is not eligible to send');
+    await client.query(`INSERT INTO homecare_client_billing_invoice_events (organization_id, invoice_id, actor_id, event_type, details)
+      VALUES ($1,$2,$3,'sent',jsonb_build_object('recipient_email',$4::text,'person_id',$5::text))`, [orgId, invoiceId, actorId, result.rows[0].recipient_email, result.rows[0].person_id]);
+    return result.rows[0];
+  });
+}
+
+export async function listClientBillingInvoiceEvents(orgId: string, invoiceId: string) {
+  return (await query(`SELECT e.id, e.event_type, e.details, e.created_at,
+      COALESCE(NULLIF(TRIM(sp.first_name || ' ' || sp.last_name), ''), u.email, 'Secure invoice link') AS actor_name
+    FROM homecare_client_billing_invoice_events e
+    LEFT JOIN users u ON u.id = e.actor_id
+    LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+    WHERE e.organization_id = $1 AND e.invoice_id = $2
+    ORDER BY e.created_at`, [orgId, invoiceId])).rows;
+}
+
+export async function markClientInvoicePaid(orgId: string, userId: string, invoiceId: string, paymentReference?: string | null) {
+  return transaction(async (client) => {
+    const result = await client.query(`UPDATE homecare_client_billing_invoices SET status = 'paid', paid_at = NOW(),
+        paid_by = $1, payment_reference = $2, updated_at = NOW()
+      WHERE id = $3 AND organization_id = $4 AND person_id IS NOT NULL AND status IN ('sent','viewed') RETURNING *`, [userId, paymentReference || null, invoiceId, orgId]);
+    if (!result.rows[0]) throw new AppError(409, 'Only a sent or viewed invoice can be marked paid');
+    await client.query(`INSERT INTO homecare_client_billing_invoice_events (organization_id, invoice_id, actor_id, event_type, details)
+      VALUES ($1,$2,$3,'paid',jsonb_build_object('payment_reference',$4::text))`, [orgId, invoiceId, userId, paymentReference || null]);
+    return result.rows[0];
+  });
+}
+
+export async function getClientInvoiceForOrganisation(orgId: string, invoiceId: string) {
+  const result = await query(`SELECT i.id, i.organization_id, i.run_id, i.payer_account_id, i.person_id,
+      i.invoice_number, i.status, i.recipient_name, i.recipient_email, i.recipient_address,
+      i.subtotal_pence, i.vat_rate, i.vat_inclusive, i.vat_amount_pence, i.gross_amount_pence,
+      i.funding_breakdown, i.sent_at, i.viewed_at, i.paid_at, i.payment_reference, i.created_at,
+      i.updated_at, r.period_from, r.period_to, r.approved_at, r.funding_breakdown AS run_funding_breakdown,
+      payer.name AS payer_name
+    FROM homecare_client_billing_invoices i
+    JOIN homecare_client_billing_runs r ON r.id = i.run_id AND r.organization_id = i.organization_id
+    JOIN homecare_billing_payers payer ON payer.id = i.payer_account_id AND payer.organization_id = i.organization_id
+    WHERE i.id = $1 AND i.organization_id = $2`, [invoiceId, orgId]);
+  return result.rows[0] || null;
+}
+
+export async function listClientInvoiceLines(orgId: string, invoiceId: string) {
+  return (await query(`SELECT pe.first_name || ' ' || pe.last_name AS person_name, p.name AS package_name,
+      v.label AS visit_label, v.scheduled_start, l.delivered_minutes, l.client_rate_pence, l.net_amount_pence,
+      l.vat_rate, l.vat_amount_pence, l.gross_amount_pence, l.billing_status, l.funding_applied
+    FROM homecare_client_billing_invoices i
+    JOIN homecare_client_billing_lines l ON l.organization_id = i.organization_id AND l.run_id = i.run_id
+      AND l.payer_account_id = i.payer_account_id AND (i.person_id IS NULL OR l.person_id = i.person_id) AND l.billing_status = 'billable'
+    JOIN people pe ON pe.id = l.person_id AND pe.organization_id = l.organization_id
+    JOIN homecare_packages p ON p.id = l.package_id AND p.organization_id = l.organization_id
+    JOIN homecare_visits v ON v.id = l.visit_id AND v.organization_id = l.organization_id
+    WHERE i.organization_id = $1 AND i.id = $2 ORDER BY v.scheduled_start, pe.first_name, pe.last_name`, [orgId, invoiceId])).rows;
+}
+
+export async function getPublicClientInvoice(token: string) {
+  const tokenHash = hashInvoiceToken(token);
+  const result = await migrateQuery(`SELECT i.id, i.organization_id, i.run_id, i.payer_account_id, i.person_id, i.invoice_number, i.status,
+      i.recipient_name, i.recipient_address, i.subtotal_pence, i.vat_rate, i.vat_inclusive,
+      i.vat_amount_pence, i.gross_amount_pence, i.sent_at, i.viewed_at, i.paid_at, i.payment_reference,
+      r.period_from, r.period_to, r.approved_at, i.funding_breakdown,
+      i.recipient_name AS payer_name, o.name AS provider_name, o.billing_config,
+      o.billing_config->'domiciliary'->>'registered_address' AS provider_address,
+      o.billing_config->'domiciliary'->>'vat_number' AS provider_vat_number,
+      o.billing_config->'domiciliary'->>'company_number' AS provider_company_number,
+      o.billing_config->'domiciliary'->>'invoice_email' AS provider_email
+    FROM homecare_client_billing_invoices i
+    JOIN homecare_client_billing_runs r ON r.id = i.run_id AND r.organization_id = i.organization_id
+    JOIN organizations o ON o.id = i.organization_id
+    WHERE ((i.access_token_hash = $1 AND i.token_expires_at > NOW()) OR EXISTS (
+      SELECT 1 FROM homecare_client_invoice_access_tokens access_token
+      WHERE access_token.token_hash = $1 AND access_token.invoice_id = i.id
+        AND access_token.organization_id = i.organization_id AND access_token.person_id = i.person_id
+        AND access_token.expires_at > NOW() AND access_token.revoked_at IS NULL
+    )) AND i.person_id IS NOT NULL AND i.status IN ('sent','viewed','paid')`, [tokenHash]);
+  const invoice = result.rows[0];
+  if (!invoice) return null;
+  if (invoice.status === 'sent') {
+    const viewed = await migrateQuery(`UPDATE homecare_client_billing_invoices SET status = 'viewed', viewed_at = NOW(), updated_at = NOW()
+      WHERE id = $1 AND organization_id = $2 AND status = 'sent' RETURNING viewed_at`, [invoice.id, invoice.organization_id]);
+    if (viewed.rows[0]) {
+      await migrateQuery(`INSERT INTO homecare_client_billing_invoice_events (organization_id, invoice_id, event_type, details)
+        VALUES ($1,$2,'viewed',jsonb_build_object('source','secure_link','person_id',$3::text))`, [invoice.organization_id, invoice.id, invoice.person_id]);
+      invoice.status = 'viewed';
+      invoice.viewed_at = viewed.rows[0].viewed_at;
+    }
+  }
+  const lines = await migrateQuery(`SELECT pe.first_name || ' ' || pe.last_name AS person_name, p.name AS package_name,
+      v.label AS visit_label, v.scheduled_start, l.delivered_minutes, l.client_rate_pence, l.net_amount_pence,
+      l.vat_rate, l.vat_amount_pence, l.gross_amount_pence
+    FROM homecare_client_billing_lines l
+    JOIN people pe ON pe.id = l.person_id AND pe.organization_id = l.organization_id
+    JOIN homecare_packages p ON p.id = l.package_id AND p.organization_id = l.organization_id
+    JOIN homecare_visits v ON v.id = l.visit_id AND v.organization_id = l.organization_id
+    WHERE l.organization_id = $1 AND l.run_id = $2 AND l.payer_account_id = $3 AND l.person_id = $4 AND l.billing_status = 'billable'
+    ORDER BY v.scheduled_start, pe.first_name, pe.last_name`, [invoice.organization_id, invoice.run_id, invoice.payer_account_id, invoice.person_id]);
+  return { invoice, supplier: {
+    name: invoice.provider_name, address: invoice.provider_address || 'United Kingdom',
+    vat_number: invoice.provider_vat_number, company_number: invoice.provider_company_number,
+    email: invoice.provider_email, phone: null,
+  }, lines: lines.rows };
+}
+
+
+
 export async function voidClientBillingRun(orgId: string, userId: string, runId: string, reason?: string | null) {
-  const current = await query('SELECT id, status, voided_at FROM homecare_client_billing_runs WHERE id = $1 AND organization_id = $2', [runId, orgId]);
-  if (!current.rows[0]) throw new AppError(404, 'Billing run not found');
-  if (current.rows[0].voided_at) throw new AppError(409, 'Billing run is already voided');
-  if (current.rows[0].status !== 'approved') throw new AppError(409, 'Only an approved billing run can be voided');
-  const result = await query(`UPDATE homecare_client_billing_runs
-    SET status = 'void', voided_at = NOW(), voided_by = $1, void_reason = $2, updated_at = NOW()
-    WHERE id = $3 AND organization_id = $4 RETURNING *`, [userId, reason || 'Voided by manager', runId, orgId]);
-  return result.rows[0];
+  return transaction(async client => {
+    const current = await client.query('SELECT id, status, voided_at FROM homecare_client_billing_runs WHERE id = $1 AND organization_id = $2 FOR UPDATE', [runId, orgId]);
+    if (!current.rows[0]) throw new AppError(404, 'Billing run not found');
+    if (current.rows[0].voided_at) throw new AppError(409, 'Billing run is already voided');
+    if (current.rows[0].status !== 'approved') throw new AppError(409, 'Only an approved billing run can be voided');
+    const paid = await client.query(`SELECT 1 FROM homecare_client_billing_invoices
+      WHERE organization_id = $1 AND run_id = $2 AND status = 'paid' LIMIT 1`, [orgId, runId]);
+    if (paid.rows[0]) throw new AppError(409, 'A billing run with a paid invoice cannot be voided');
+    const result = await client.query(`UPDATE homecare_client_billing_runs
+      SET status = 'void', voided_at = NOW(), voided_by = $1, void_reason = $2, updated_at = NOW()
+      WHERE id = $3 AND organization_id = $4 RETURNING *`, [userId, reason || 'Voided by manager', runId, orgId]);
+    const invoices = await client.query(`UPDATE homecare_client_billing_invoices
+      SET status = 'void', access_token_hash = NULL, token_expires_at = NULL, updated_at = NOW()
+      WHERE organization_id = $1 AND run_id = $2 AND status IN ('approved','sent','viewed') RETURNING id`, [orgId, runId]);
+    await client.query(`UPDATE homecare_client_invoice_access_tokens SET revoked_at = NOW()
+      WHERE organization_id = $1 AND invoice_id IN (SELECT id FROM homecare_client_billing_invoices WHERE organization_id = $1 AND run_id = $2) AND revoked_at IS NULL`, [orgId, runId]);
+    for (const invoice of invoices.rows) {
+      await client.query(`INSERT INTO homecare_client_billing_invoice_events (organization_id, invoice_id, actor_id, event_type, details)
+        VALUES ($1,$2,$3,'void',jsonb_build_object('reason',$4))`, [orgId, invoice.id, userId, reason || 'Voided by manager']);
+    }
+    return result.rows[0];
+  });
 }
 
 export async function listPackages(orgId: string) {
@@ -227,39 +515,100 @@ export async function listPackages(orgId: string) {
   return result.rows;
 }
 
+type RateProfileType = 'billing' | 'pay';
+type RateProfileAction = 'created' | 'updated' | 'deactivated' | 'reactivated';
+const RATE_PROFILE_TABLES: Record<RateProfileType, { table: string; fields: string[] }> = {
+  billing: { table: 'homecare_billing_profiles', fields: ['name', 'funding_type', 'client_rate_pence', 'description', 'is_active'] },
+  pay: { table: 'homecare_pay_profiles', fields: ['name', 'hourly_rate_pence', 'description', 'is_active'] },
+};
+
 export async function listBillingProfiles(orgId: string) {
   return (await query('SELECT * FROM homecare_billing_profiles WHERE organization_id = $1 ORDER BY is_active DESC, name', [orgId])).rows;
-}
-export async function createBillingProfile(orgId: string, input: any) {
-  const result = await query(`INSERT INTO homecare_billing_profiles (organization_id, name, funding_type, client_rate_pence, description, is_active) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`, [orgId, input.name, input.funding_type || 'all', input.client_rate_pence, input.description || null, input.is_active ?? true]);
-  return result.rows[0];
-}
-export async function updateBillingProfile(orgId: string, id: string, input: any) {
-  const result = await query(`UPDATE homecare_billing_profiles SET name = COALESCE($1,name), funding_type = COALESCE($2,funding_type), client_rate_pence = COALESCE($3,client_rate_pence), description = $4, is_active = COALESCE($5,is_active), updated_at = NOW() WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.name || null, input.funding_type || null, input.client_rate_pence ?? null, input.description || null, input.is_active, id, orgId]);
-  if (!result.rows[0]) throw new AppError(404, 'Billing profile not found');
-  return result.rows[0];
-}
-export async function deleteBillingProfile(orgId: string, id: string) {
-  const result = await query('DELETE FROM homecare_billing_profiles WHERE id = $1 AND organization_id = $2 RETURNING id', [id, orgId]);
-  if (!result.rows[0]) throw new AppError(404, 'Billing profile not found');
-  return true;
 }
 export async function listPayProfiles(orgId: string) {
   return (await query('SELECT * FROM homecare_pay_profiles WHERE organization_id = $1 ORDER BY is_active DESC, name', [orgId])).rows;
 }
-export async function createPayProfile(orgId: string, input: any) {
-  const result = await query(`INSERT INTO homecare_pay_profiles (organization_id, name, hourly_rate_pence, description, is_active) VALUES ($1,$2,$3,$4,$5) RETURNING *`, [orgId, input.name, input.hourly_rate_pence, input.description || null, input.is_active ?? true]);
-  return result.rows[0];
+
+async function recordRateProfileHistory(client: any, orgId: string, actorId: string, type: RateProfileType, profileId: string, action: RateProfileAction, before: unknown, after: unknown) {
+  await client.query(
+    `INSERT INTO homecare_rate_profile_history (organization_id, profile_type, profile_id, actor_id, action, before_data, after_data)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb)`,
+    [orgId, type, profileId, actorId, action, before == null ? null : JSON.stringify(before), after == null ? null : JSON.stringify(after)]
+  );
 }
-export async function updatePayProfile(orgId: string, id: string, input: any) {
-  const result = await query(`UPDATE homecare_pay_profiles SET name = COALESCE($1,name), hourly_rate_pence = COALESCE($2,hourly_rate_pence), description = $3, is_active = COALESCE($4,is_active), updated_at = NOW() WHERE id = $5 AND organization_id = $6 RETURNING *`, [input.name || null, input.hourly_rate_pence ?? null, input.description || null, input.is_active, id, orgId]);
-  if (!result.rows[0]) throw new AppError(404, 'Pay profile not found');
-  return result.rows[0];
+
+async function createRateProfile(orgId: string, actorId: string, type: RateProfileType, input: any) {
+  const config = RATE_PROFILE_TABLES[type];
+  const columns = type === 'billing'
+    ? ['organization_id', 'name', 'funding_type', 'client_rate_pence', 'description', 'is_active']
+    : ['organization_id', 'name', 'hourly_rate_pence', 'description', 'is_active'];
+  const values = type === 'billing'
+    ? [orgId, input.name, input.funding_type || 'all', input.client_rate_pence, input.description ?? null, input.is_active ?? true]
+    : [orgId, input.name, input.hourly_rate_pence, input.description ?? null, input.is_active ?? true];
+  return transaction(async client => {
+    const result = await client.query(
+      `INSERT INTO ${config.table} (${columns.join(', ')}) VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')}) RETURNING *`, values
+    );
+    const profile = result.rows[0];
+    await recordRateProfileHistory(client, orgId, actorId, type, profile.id, 'created', null, profile);
+    return profile;
+  });
 }
-export async function deletePayProfile(orgId: string, id: string) {
-  const result = await query('DELETE FROM homecare_pay_profiles WHERE id = $1 AND organization_id = $2 RETURNING id', [id, orgId]);
-  if (!result.rows[0]) throw new AppError(404, 'Pay profile not found');
-  return true;
+
+async function updateRateProfile(orgId: string, actorId: string, type: RateProfileType, id: string, input: any) {
+  const config = RATE_PROFILE_TABLES[type];
+  const entries = config.fields.filter(field => Object.prototype.hasOwnProperty.call(input, field));
+  if (!entries.length) throw new AppError(400, 'Provide at least one profile field to update');
+  return transaction(async client => {
+    const current = await client.query(`SELECT * FROM ${config.table} WHERE id = $1 AND organization_id = $2 FOR UPDATE`, [id, orgId]);
+    const before = current.rows[0];
+    if (!before) throw new AppError(404, `${type === 'billing' ? 'Billing' : 'Pay'} profile not found`);
+    const assignments = entries.map((field, index) => `${field} = $${index + 1}`).concat('updated_at = NOW()');
+    const values = entries.map(field => input[field]);
+    values.push(id, orgId);
+    const result = await client.query(
+      `UPDATE ${config.table} SET ${assignments.join(', ')} WHERE id = $${values.length - 1} AND organization_id = $${values.length} RETURNING *`, values
+    );
+    const after = result.rows[0];
+    const action: RateProfileAction = before.is_active && !after.is_active
+      ? 'deactivated'
+      : !before.is_active && after.is_active ? 'reactivated' : 'updated';
+    await recordRateProfileHistory(client, orgId, actorId, type, id, action, before, after);
+    return after;
+  });
+}
+
+async function deactivateRateProfile(orgId: string, actorId: string, type: RateProfileType, id: string) {
+  const config = RATE_PROFILE_TABLES[type];
+  return transaction(async client => {
+    const current = await client.query(`SELECT * FROM ${config.table} WHERE id = $1 AND organization_id = $2 FOR UPDATE`, [id, orgId]);
+    const before = current.rows[0];
+    if (!before) throw new AppError(404, `${type === 'billing' ? 'Billing' : 'Pay'} profile not found`);
+    if (!before.is_active) return false;
+    const result = await client.query(`UPDATE ${config.table} SET is_active = FALSE, updated_at = NOW() WHERE id = $1 AND organization_id = $2 RETURNING *`, [id, orgId]);
+    await recordRateProfileHistory(client, orgId, actorId, type, id, 'deactivated', before, result.rows[0]);
+    return true;
+  });
+}
+
+export async function createBillingProfile(orgId: string, actorId: string, input: any) { return createRateProfile(orgId, actorId, 'billing', input); }
+export async function updateBillingProfile(orgId: string, actorId: string, id: string, input: any) { return updateRateProfile(orgId, actorId, 'billing', id, input); }
+export async function deactivateBillingProfile(orgId: string, actorId: string, id: string) { return deactivateRateProfile(orgId, actorId, 'billing', id); }
+export async function createPayProfile(orgId: string, actorId: string, input: any) { return createRateProfile(orgId, actorId, 'pay', input); }
+export async function updatePayProfile(orgId: string, actorId: string, id: string, input: any) { return updateRateProfile(orgId, actorId, 'pay', id, input); }
+export async function deactivatePayProfile(orgId: string, actorId: string, id: string) { return deactivateRateProfile(orgId, actorId, 'pay', id); }
+
+export async function listRateProfileHistory(orgId: string, profileType: RateProfileType, profileId: string) {
+  return (await query(
+    `SELECT h.id, h.profile_type, h.profile_id, h.action, h.before_data, h.after_data, h.created_at,
+            COALESCE(sp.first_name || ' ' || sp.last_name, u.email, 'Former user') AS actor_name
+     FROM homecare_rate_profile_history h
+     LEFT JOIN users u ON u.id = h.actor_id
+     LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+     WHERE h.organization_id = $1 AND h.profile_type = $2 AND h.profile_id = $3
+     ORDER BY h.created_at DESC LIMIT 100`,
+    [orgId, profileType, profileId]
+  )).rows;
 }
 
 export async function createPackage(orgId: string, userId: string, input: HomecarePackageInput) {
@@ -272,14 +621,16 @@ export async function createPackage(orgId: string, userId: string, input: Homeca
     const profile = await query('SELECT id FROM homecare_pay_profiles WHERE id = $1 AND organization_id = $2 AND is_active = TRUE', [input.pay_profile_id, orgId]);
     if (!profile.rows[0]) throw new AppError(400, 'Pay profile is not active in this organisation');
   }
-  const result = await query(`INSERT INTO homecare_packages (organization_id, person_id, name, status, funding_type, start_date, end_date, weekly_hours, hourly_rate_pence, travel_time_paid, mileage_rate_pence, client_rate_pence, billing_profile_id, pay_profile_id, notes, created_by)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`, [orgId, input.person_id || null, input.name, input.status || 'draft', input.funding_type || 'private', input.start_date || new Date().toISOString().slice(0, 10), input.end_date || null, input.weekly_hours ?? null, input.hourly_rate_pence ?? null, input.travel_time_paid ?? true, input.mileage_rate_pence ?? null, (input as any).client_rate_pence ?? null, input.billing_profile_id || null, input.pay_profile_id || null, input.notes || null, userId]);
+  await assertBillingPayer(orgId, input.payer_account_id, input.funding_type || 'private');
+  const result = await query(`INSERT INTO homecare_packages (organization_id, person_id, name, status, funding_type, start_date, end_date, weekly_hours, hourly_rate_pence, travel_time_paid, mileage_rate_pence, client_rate_pence, billing_profile_id, pay_profile_id, payer_account_id, notes, created_by)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`, [orgId, input.person_id || null, input.name, input.status || 'draft', input.funding_type || 'private', input.start_date || new Date().toISOString().slice(0, 10), input.end_date || null, input.weekly_hours ?? null, input.hourly_rate_pence ?? null, input.travel_time_paid ?? true, input.mileage_rate_pence ?? null, (input as any).client_rate_pence ?? null, input.billing_profile_id || null, input.pay_profile_id || null, input.payer_account_id || null, input.notes || null, userId]);
   return result.rows[0];
 }
 
 export async function updatePackage(orgId: string, packageId: string, input: Partial<HomecarePackageInput>) {
-  await assertPackage(packageId, orgId);
-  const allowed = ['name','status','funding_type','start_date','end_date','weekly_hours','hourly_rate_pence','travel_time_paid','mileage_rate_pence','client_rate_pence','billing_profile_id','pay_profile_id','notes'];
+  const current = await assertPackage(packageId, orgId);
+  await assertBillingPayer(orgId, input.payer_account_id, input.funding_type || current.funding_type);
+  const allowed = ['name','status','funding_type','start_date','end_date','weekly_hours','hourly_rate_pence','travel_time_paid','mileage_rate_pence','client_rate_pence','billing_profile_id','pay_profile_id','payer_account_id','notes'];
   const entries = Object.entries(input).filter(([key]) => allowed.includes(key));
   if (!entries.length) return (await query(`${PACKAGE_SELECT} WHERE p.id = $1 AND p.organization_id = $2`, [packageId, orgId])).rows[0];
   const values = entries.map(([, value]) => value);
@@ -433,41 +784,95 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
     if (!updated.rows[0]) throw new AppError(404, 'Visit not found');
     const v = updated.rows[0];
     const workMinutes = Math.max(0, Math.round((new Date(v.check_out_at).getTime() - new Date(v.check_in_at).getTime()) / 60000));
-    const pkg = await client.query(`SELECT p.hourly_rate_pence, p.travel_time_paid, p.mileage_rate_pence, pp.hourly_rate_pence AS profile_hourly_rate_pence, spp.hourly_rate_pence AS staff_profile_hourly_rate_pence, bp.client_rate_pence AS profile_client_rate_pence
+    const pkg = await client.query(`SELECT p.hourly_rate_pence, p.travel_time_paid, p.mileage_rate_pence,
+        pp.hourly_rate_pence AS profile_hourly_rate_pence, pp.name AS package_pay_profile_name,
+        spp.hourly_rate_pence AS staff_profile_hourly_rate_pence, spp.name AS staff_pay_profile_name,
+        bp.client_rate_pence AS profile_client_rate_pence
       FROM homecare_packages p
-      LEFT JOIN homecare_pay_profiles pp ON pp.id = p.pay_profile_id AND pp.organization_id = p.organization_id AND pp.is_active = TRUE
+      LEFT JOIN homecare_pay_profiles pp ON pp.id = p.pay_profile_id AND pp.organization_id = p.organization_id
       LEFT JOIN staff_profiles sp ON sp.id = $3
-      LEFT JOIN homecare_pay_profiles spp ON spp.id = sp.pay_profile_id AND spp.organization_id = p.organization_id AND spp.is_active = TRUE
-      LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id AND bp.is_active = TRUE
+      LEFT JOIN homecare_pay_profiles spp ON spp.id = sp.pay_profile_id AND spp.organization_id = p.organization_id
+      LEFT JOIN homecare_billing_profiles bp ON bp.id = p.billing_profile_id AND bp.organization_id = p.organization_id
       WHERE p.id = $1 AND p.organization_id = $2`, [v.package_id, orgId, v.assigned_staff_id]);
     const policy = pkg.rows[0];
     const orgConfigResult = await client.query('SELECT billing_config FROM organizations WHERE id = $1', [orgId]);
     const domiciliaryConfig = orgConfigResult.rows[0]?.billing_config?.domiciliary || {};
     const travelMinutes = Number(v.actual_travel_minutes || 0);
     // Organisation rules are authoritative; package values remain a backwards-compatible fallback.
+    const hasOrganisationTravelPolicy = Object.prototype.hasOwnProperty.call(domiciliaryConfig, 'travel_time_paid')
+      || Object.prototype.hasOwnProperty.call(domiciliaryConfig, 'pay_inter_client_travel');
     const travelTimePaid = domiciliaryConfig.travel_time_paid ?? policy?.travel_time_paid ?? true;
     const payInterClientTravel = domiciliaryConfig.pay_inter_client_travel ?? true;
     const paidTravelMinutes = travelTimePaid && payInterClientTravel ? travelMinutes : 0;
+    const hourlyRateSource = v.hourly_rate_pence != null ? 'visit_override'
+      : policy?.hourly_rate_pence != null ? 'package'
+        : policy?.profile_hourly_rate_pence != null ? 'package_profile'
+          : policy?.staff_profile_hourly_rate_pence != null ? 'carer_profile' : 'unknown';
+    const hourlyRateSourceLabel = hourlyRateSource === 'visit_override' ? 'Call-specific rate'
+      : hourlyRateSource === 'package' ? 'Care package rate'
+        : hourlyRateSource === 'package_profile' ? `Package pay profile${policy.package_pay_profile_name ? `: ${policy.package_pay_profile_name}` : ''}`
+          : hourlyRateSource === 'carer_profile' ? `Carer pay profile${policy.staff_pay_profile_name ? `: ${policy.staff_pay_profile_name}` : ''}`
+            : 'No hourly rate configured';
     const workRateValue = v.hourly_rate_pence ?? policy?.hourly_rate_pence ?? policy?.profile_hourly_rate_pence ?? policy?.staff_profile_hourly_rate_pence;
     const workRate = workRateValue == null ? null : Number(workRateValue);
     // Auto-select mileage rate from the organisation policy if the package has none.
     let mileageRate = v.mileage_rate_pence ?? (policy?.mileage_rate_pence == null ? null : Number(policy.mileage_rate_pence));
+    let mileageRateSource = v.mileage_rate_pence != null ? 'visit_override'
+      : policy?.mileage_rate_pence != null ? 'package' : 'unknown';
+    let mileageRateSourceLabel = mileageRateSource === 'visit_override' ? 'Call-specific mileage rate'
+      : mileageRateSource === 'package' ? 'Care package mileage rate' : '';
     if (mileageRate == null) {
       const rateRow = await client.query(
-        `SELECT rate_pence FROM homecare_mileage_policies
+        `SELECT rate_pence, source_label FROM homecare_mileage_policies
          WHERE organization_id = $1 AND is_active = TRUE
          ORDER BY effective_from DESC NULLS LAST, created_at DESC LIMIT 1`, [orgId]);
-      mileageRate = rateRow.rows[0] ? Number(rateRow.rows[0].rate_pence) : 45; // HMRC default
+      if (rateRow.rows[0]) {
+        mileageRate = Number(rateRow.rows[0].rate_pence);
+        mileageRateSource = 'organisation_policy';
+        mileageRateSourceLabel = rateRow.rows[0].source_label || 'Organisation mileage policy';
+      } else {
+        mileageRate = 45;
+        mileageRateSource = 'hmrc_fallback';
+        mileageRateSourceLabel = 'Default fallback rate';
+      }
     }
     // Apply ride share split if applicable
     const splitPct = v.ride_share_split_pct != null ? Number(v.ride_share_split_pct) : 100;
     const effectiveMileage = Number(v.actual_mileage_miles || 0) * (splitPct / 100);
     const mileagePaymentMode = domiciliaryConfig.mileage_payment_mode || 'approved_rate';
-    if (mileagePaymentMode === 'none') mileageRate = 0;
-    if (mileagePaymentMode === 'custom_rate' && domiciliaryConfig.custom_mileage_rate_pence != null) mileageRate = Number(domiciliaryConfig.custom_mileage_rate_pence);
+    if (mileagePaymentMode === 'none') {
+      mileageRate = 0;
+      mileageRateSource = 'unpaid';
+      mileageRateSourceLabel = 'Mileage not paid by organisation policy';
+    }
+    if (mileagePaymentMode === 'custom_rate' && domiciliaryConfig.custom_mileage_rate_pence != null) {
+      mileageRate = Number(domiciliaryConfig.custom_mileage_rate_pence);
+      mileageRateSource = 'organisation_custom';
+      mileageRateSourceLabel = 'Organisation custom mileage rate';
+    }
+    const paidTravelPolicySource = hasOrganisationTravelPolicy ? 'organisation_policy'
+      : policy?.travel_time_paid === false ? 'unpaid' : 'package_fallback';
+    const paidTravelPolicyLabel = paidTravelPolicySource === 'organisation_policy'
+      ? `Organisation policy · ${travelTimePaid && payInterClientTravel ? 'travel paid' : 'travel unpaid'}`
+      : paidTravelPolicySource === 'unpaid' ? 'Care package · travel unpaid' : 'Care package · travel paid';
     const gross = workRate == null ? null : Math.round(((workMinutes + paidTravelMinutes) / 60) * workRate + effectiveMileage * Number(mileageRate || 0));
-    await client.query(`INSERT INTO homecare_timesheets (organization_id, visit_id, staff_id, work_minutes, travel_minutes, paid_travel_minutes, mileage_miles, mileage_rate_pence, hourly_rate_pence, gross_pay_pence, status)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'submitted') ON CONFLICT (visit_id) DO UPDATE SET work_minutes = EXCLUDED.work_minutes, travel_minutes = EXCLUDED.travel_minutes, paid_travel_minutes = EXCLUDED.paid_travel_minutes, mileage_miles = EXCLUDED.mileage_miles, mileage_rate_pence = EXCLUDED.mileage_rate_pence, hourly_rate_pence = EXCLUDED.hourly_rate_pence, gross_pay_pence = EXCLUDED.gross_pay_pence, updated_at = NOW()`, [orgId, visitId, v.assigned_staff_id, workMinutes, travelMinutes, paidTravelMinutes, effectiveMileage, mileageRate, workRate, gross]);
+    await client.query(`INSERT INTO homecare_timesheets
+        (organization_id, visit_id, staff_id, work_minutes, travel_minutes, paid_travel_minutes,
+         mileage_miles, mileage_rate_pence, hourly_rate_pence, gross_pay_pence, status,
+         hourly_rate_source, hourly_rate_source_label, mileage_rate_source, mileage_rate_source_label,
+         paid_travel_policy_source, paid_travel_policy_label, rate_calculated_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'submitted',$11,$12,$13,$14,$15,$16,NOW())
+      ON CONFLICT (visit_id) DO UPDATE SET work_minutes = EXCLUDED.work_minutes,
+        travel_minutes = EXCLUDED.travel_minutes, paid_travel_minutes = EXCLUDED.paid_travel_minutes,
+        mileage_miles = EXCLUDED.mileage_miles, mileage_rate_pence = EXCLUDED.mileage_rate_pence,
+        hourly_rate_pence = EXCLUDED.hourly_rate_pence, gross_pay_pence = EXCLUDED.gross_pay_pence,
+        hourly_rate_source = EXCLUDED.hourly_rate_source, hourly_rate_source_label = EXCLUDED.hourly_rate_source_label,
+        mileage_rate_source = EXCLUDED.mileage_rate_source, mileage_rate_source_label = EXCLUDED.mileage_rate_source_label,
+        paid_travel_policy_source = EXCLUDED.paid_travel_policy_source,
+        paid_travel_policy_label = EXCLUDED.paid_travel_policy_label, rate_calculated_at = NOW(), updated_at = NOW()`,
+    [orgId, visitId, v.assigned_staff_id, workMinutes, travelMinutes, paidTravelMinutes, effectiveMileage,
+      mileageRate, workRate, gross, hourlyRateSource, hourlyRateSourceLabel, mileageRateSource,
+      mileageRateSourceLabel, paidTravelPolicySource, paidTravelPolicyLabel]);
     return v;
   });
 }
@@ -565,7 +970,9 @@ export async function getApprovedPayrollRows(orgId: string, filters: PayrollExpo
   const result = await query(`SELECT t.id AS timesheet_id, t.staff_id, sp.first_name || ' ' || sp.last_name AS staff_name,
       pe.first_name || ' ' || pe.last_name AS client_name, v.label AS visit_label, v.scheduled_start, v.scheduled_end,
       t.work_minutes, t.travel_minutes, t.paid_travel_minutes, t.mileage_miles,
-      t.mileage_rate_pence, t.hourly_rate_pence, t.gross_pay_pence
+      t.mileage_rate_pence, t.hourly_rate_pence, t.gross_pay_pence,
+      t.hourly_rate_source, t.hourly_rate_source_label, t.mileage_rate_source, t.mileage_rate_source_label,
+      t.paid_travel_policy_source, t.paid_travel_policy_label, t.rate_calculated_at
     FROM homecare_timesheets t JOIN staff_profiles sp ON sp.id = t.staff_id
     JOIN homecare_visits v ON v.id = t.visit_id JOIN people pe ON pe.id = v.person_id
     WHERE t.organization_id = $1 AND t.status = 'approved' AND v.scheduled_start >= $2::date
@@ -924,33 +1331,104 @@ export async function createPayrollExport(orgId: string, userId: string, filters
     `SELECT id FROM homecare_payroll_exports
      WHERE organization_id = $1 AND provider = $2 AND period_from = $3 AND period_to = $4
      LIMIT 1`, [orgId, filters.provider || 'generic_csv', filters.from, filters.to]);
-  if (dupCheck.rows[0]) {
-    throw new AppError(409, 'A payroll export already exists for this period and provider');
-  }
-  const result = await query(`INSERT INTO homecare_payroll_exports (organization_id, provider, period_from, period_to, row_count, file_checksum, created_by)
-    VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`, [orgId, filters.provider || 'generic_csv', filters.from, filters.to, rows.length, fileChecksum || null, userId]);
-  for (const row of rows) await query(`INSERT INTO homecare_payroll_reconciliations (organization_id, export_id, timesheet_id, exported_gross_pay_pence)
-    VALUES ($1,$2,$3,$4) ON CONFLICT (export_id, timesheet_id) DO NOTHING`, [orgId, result.rows[0].id, row.timesheet_id, row.gross_pay_pence]);
-  return result.rows[0];
+  if (dupCheck.rows[0]) throw new AppError(409, 'A payroll export already exists for this period and provider');
+  return transaction(async client => {
+    const result = await client.query(`INSERT INTO homecare_payroll_exports (organization_id, provider, period_from, period_to, row_count, file_checksum, created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`, [orgId, filters.provider || 'generic_csv', filters.from, filters.to, rows.length, fileChecksum || null, userId]);
+    for (const row of rows) await client.query(`INSERT INTO homecare_payroll_reconciliations (organization_id, export_id, timesheet_id, exported_gross_pay_pence)
+      VALUES ($1,$2,$3,$4) ON CONFLICT (export_id, timesheet_id) DO NOTHING`, [orgId, result.rows[0].id, row.timesheet_id, row.gross_pay_pence]);
+    return result.rows[0];
+  });
+}
+
+export async function listPayrollExports(orgId: string) {
+  return (await query(`SELECT e.*,
+      COUNT(r.id)::int AS row_count_actual,
+      COUNT(r.id) FILTER (WHERE r.status = 'exported')::int AS exported_count,
+      COUNT(r.id) FILTER (WHERE r.status = 'acknowledged')::int AS acknowledged_count,
+      COUNT(r.id) FILTER (WHERE r.status = 'matched')::int AS reconciled_count,
+      COUNT(r.id) FILTER (WHERE r.status = 'exception')::int AS exception_count,
+      COUNT(r.id) FILTER (WHERE r.status = 'ignored')::int AS ignored_count,
+      COALESCE(SUM(r.exported_gross_pay_pence), 0)::int AS exported_total_pence,
+      COALESCE(SUM(r.reconciled_gross_pay_pence) FILTER (WHERE r.status = 'matched'), 0)::int AS reconciled_total_pence,
+      COALESCE(sp.first_name || ' ' || sp.last_name, u.email, 'Former user') AS created_by_name
+    FROM homecare_payroll_exports e
+    LEFT JOIN homecare_payroll_reconciliations r ON r.export_id = e.id AND r.organization_id = e.organization_id
+    LEFT JOIN users u ON u.id = e.created_by
+    LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+    WHERE e.organization_id = $1
+    GROUP BY e.id, sp.first_name, sp.last_name, u.email
+    ORDER BY e.created_at DESC LIMIT 100`, [orgId])).rows;
 }
 
 export async function listPayrollReconciliations(orgId: string, exportId?: string) {
   const params: any[] = [orgId];
   const filter = exportId ? ' AND r.export_id = $2' : '';
   if (exportId) params.push(exportId);
-  return (await query(`SELECT r.*, e.provider, e.period_from, e.period_to, sp.first_name || ' ' || sp.last_name AS staff_name
-    FROM homecare_payroll_reconciliations r JOIN homecare_payroll_exports e ON e.id = r.export_id
-    JOIN homecare_timesheets t ON t.id = r.timesheet_id JOIN staff_profiles sp ON sp.id = t.staff_id
+  return (await query(`SELECT r.*, e.provider, e.period_from, e.period_to, e.status AS export_status, e.file_checksum,
+      t.work_minutes, t.paid_travel_minutes, t.mileage_miles, t.gross_pay_pence,
+      v.scheduled_start, v.label AS visit_label, pe.first_name || ' ' || pe.last_name AS client_name,
+      sp.first_name || ' ' || sp.last_name AS staff_name,
+      COALESCE(r.reconciled_gross_pay_pence, r.exported_gross_pay_pence) - r.exported_gross_pay_pence AS variance_pence
+    FROM homecare_payroll_reconciliations r JOIN homecare_payroll_exports e ON e.id = r.export_id AND e.organization_id = r.organization_id
+    JOIN homecare_timesheets t ON t.id = r.timesheet_id AND t.organization_id = r.organization_id
+    JOIN homecare_visits v ON v.id = t.visit_id AND v.organization_id = t.organization_id
+    JOIN people pe ON pe.id = v.person_id AND pe.organization_id = v.organization_id
+    JOIN staff_profiles sp ON sp.id = t.staff_id
     WHERE r.organization_id = $1${filter} ORDER BY r.created_at DESC`, params)).rows;
 }
 
+export async function acknowledgePayrollExport(orgId: string, userId: string, exportId: string) {
+  return transaction(async client => {
+    const exportResult = await client.query('SELECT id, status FROM homecare_payroll_exports WHERE id = $1 AND organization_id = $2 FOR UPDATE', [exportId, orgId]);
+    const payrollExport = exportResult.rows[0];
+    if (!payrollExport) throw new AppError(404, 'Payroll export not found');
+    const updated = await client.query(`UPDATE homecare_payroll_reconciliations
+      SET status = 'acknowledged', acknowledged_by = $1, acknowledged_at = NOW(), updated_at = NOW()
+      WHERE export_id = $2 AND organization_id = $3 AND status = 'exported' RETURNING id`, [userId, exportId, orgId]);
+    if (!updated.rowCount) throw new AppError(409, 'This export has no rows awaiting acknowledgement');
+    await client.query(`UPDATE homecare_payroll_exports SET status = 'downloaded'
+      WHERE id = $1 AND organization_id = $2 AND status = 'generated'`, [exportId, orgId]);
+    return { acknowledged_count: updated.rowCount };
+  });
+}
+
 export async function reconcilePayroll(orgId: string, userId: string, reconciliationId: string, input: import('./homecare.types').HomecareReconciliationInput) {
-  const result = await query(`UPDATE homecare_payroll_reconciliations SET status = $1, external_reference = $2,
-    reconciled_gross_pay_pence = $3, note = $4, reconciled_by = $5, reconciled_at = NOW()
-    WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.status, input.external_reference || null, input.reconciled_gross_pay_pence ?? null, input.note || null, userId, reconciliationId, orgId]);
-  if (!result.rows[0]) throw new AppError(404, 'Payroll reconciliation row not found');
-  await query(`UPDATE homecare_payroll_exports SET status = CASE WHEN NOT EXISTS (SELECT 1 FROM homecare_payroll_reconciliations WHERE export_id = $1 AND status IN ('pending','exception')) THEN 'reconciled' ELSE status END WHERE id = (SELECT export_id FROM homecare_payroll_reconciliations WHERE id = $2)`, [result.rows[0].export_id, reconciliationId]);
-  return result.rows[0];
+  return transaction(async client => {
+    const currentResult = await client.query(`SELECT * FROM homecare_payroll_reconciliations
+      WHERE id = $1 AND organization_id = $2 FOR UPDATE`, [reconciliationId, orgId]);
+    const current = currentResult.rows[0];
+    if (!current) throw new AppError(404, 'Payroll reconciliation row not found');
+    if (input.action === 'acknowledge') {
+      if (current.status !== 'exported') throw new AppError(409, 'Only exported rows can be acknowledged');
+      const result = await client.query(`UPDATE homecare_payroll_reconciliations SET status = 'acknowledged', external_reference = COALESCE($1, external_reference),
+        note = COALESCE($2, note), acknowledged_by = $3, acknowledged_at = NOW(), updated_at = NOW() WHERE id = $4 AND organization_id = $5 RETURNING *`,
+      [input.external_reference || null, input.note || null, userId, reconciliationId, orgId]);
+      await client.query(`UPDATE homecare_payroll_exports SET status = 'downloaded'
+        WHERE id = $1 AND organization_id = $2 AND status = 'generated'`, [current.export_id, orgId]);
+      return result.rows[0];
+    }
+    if (!['acknowledged', 'exception'].includes(current.status) && input.action !== 'ignore') throw new AppError(409, 'A payroll row must be acknowledged before it can be reconciled');
+    const nextStatus = input.action === 'reconcile' ? 'matched' : input.action === 'exception' ? 'exception' : 'ignored';
+    const actual = input.reconciled_gross_pay_pence ?? null;
+    const note = input.note || null;
+    if (input.action === 'reconcile' && actual !== Number(current.exported_gross_pay_pence)) {
+      if (!note) throw new AppError(400, 'Add a note explaining the difference before saving this as an exception');
+    }
+    const finalStatus = input.action === 'reconcile' && actual !== Number(current.exported_gross_pay_pence) ? 'exception' : nextStatus;
+    const result = await client.query(`UPDATE homecare_payroll_reconciliations SET status = $1,
+      external_reference = COALESCE($2, external_reference), reconciled_gross_pay_pence = $3, note = COALESCE($4, note),
+      reconciled_by = $5, reconciled_at = NOW(), updated_at = NOW()
+      WHERE id = $6 AND organization_id = $7 RETURNING *`, [finalStatus, input.external_reference || null, actual, note, userId, reconciliationId, orgId]);
+    const exportId = current.export_id;
+    const outstanding = await client.query(`SELECT COUNT(*)::int AS count FROM homecare_payroll_reconciliations
+      WHERE export_id = $1 AND organization_id = $2 AND status IN ('exported','acknowledged','exception')`, [exportId, orgId]);
+    await client.query(`UPDATE homecare_payroll_exports SET status = CASE WHEN $3 = 0 THEN 'reconciled' ELSE 'downloaded' END,
+      reconciled_by = CASE WHEN $3 = 0 THEN $1 ELSE reconciled_by END,
+      reconciled_at = CASE WHEN $3 = 0 THEN NOW() ELSE NULL END
+      WHERE id = $2 AND organization_id = $4`, [userId, exportId, outstanding.rows[0].count, orgId]);
+    return result.rows[0];
+  });
 }
 
 export async function getCarerTimesheetDetail(orgId: string, staffId: string, from: string, to: string) {
@@ -1018,7 +1496,15 @@ export async function updateTimesheet(orgId: string, timesheetId: string, userId
   if (input.status === 'approved') {
     if (current.rows[0].status !== 'submitted') throw new AppError(409, 'Only submitted timesheets can be approved');
     return transaction(async (client) => {
-      const result = await client.query(`UPDATE homecare_timesheets SET status = 'approved', approved_by = $1, approved_at = NOW(), updated_at = NOW() WHERE id = $2 AND organization_id = $3 RETURNING *`, [userId, timesheetId, orgId]);
+      const result = await client.query(`UPDATE homecare_timesheets SET status = 'approved', approved_by = $1, approved_at = NOW(),
+        hourly_rate_source = COALESCE(hourly_rate_source, 'unknown'),
+        hourly_rate_source_label = COALESCE(hourly_rate_source_label, CASE WHEN hourly_rate_pence IS NULL THEN 'Rate source unavailable for legacy timesheet' ELSE 'Historical source not captured' END),
+        mileage_rate_source = COALESCE(mileage_rate_source, 'unknown'),
+        mileage_rate_source_label = COALESCE(mileage_rate_source_label, CASE WHEN mileage_rate_pence IS NULL THEN 'No recorded mileage rate' ELSE 'Historical source not captured' END),
+        paid_travel_policy_source = COALESCE(paid_travel_policy_source, 'unknown'),
+        paid_travel_policy_label = COALESCE(paid_travel_policy_label, 'Historical travel policy source not captured'),
+        rate_calculated_at = COALESCE(rate_calculated_at, NOW()), updated_at = NOW()
+        WHERE id = $2 AND organization_id = $3 RETURNING *`, [userId, timesheetId, orgId]);
       return result.rows[0];
     });
   }
@@ -1026,7 +1512,20 @@ export async function updateTimesheet(orgId: string, timesheetId: string, userId
   const entries = Object.entries(input).filter(([key]) => allowed.includes(key));
   if (!entries.length) return current.rows[0];
   const values = entries.map(([, value]) => value);
-  const set = entries.map(([key], index) => `${key} = $${index + 1}`).join(', ');
+  const setParts = entries.map(([key], index) => `${key} = $${index + 1}`);
+  if (Object.prototype.hasOwnProperty.call(input, 'hourly_rate_pence')) {
+    values.push('manager_override', input.hourly_rate_pence == null ? 'Manager cleared hourly rate' : 'Manager-adjusted hourly rate');
+    setParts.push(`hourly_rate_source = $${values.length - 1}`, `hourly_rate_source_label = $${values.length}`);
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'mileage_rate_pence')) {
+    values.push('manager_override', input.mileage_rate_pence == null ? 'Manager cleared mileage rate' : 'Manager-adjusted mileage rate');
+    setParts.push(`mileage_rate_source = $${values.length - 1}`, `mileage_rate_source_label = $${values.length}`);
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'paid_travel_minutes')) {
+    values.push('manager_override', 'Manager-adjusted paid travel minutes');
+    setParts.push("paid_travel_policy_source = $" + (values.length - 1), "paid_travel_policy_label = $" + values.length);
+  }
+  const set = setParts.join(', ');
   const statusParam = values.length + 1;
   const idParam = values.length + 2;
   const orgParam = values.length + 3;

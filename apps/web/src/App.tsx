@@ -67,6 +67,7 @@ const MileagePage = lazy(() => import('./pages/homecare/MileagePage'))
 const CallSchedulingPage = lazy(() => import('./pages/homecare/CallSchedulingPage'))
 const PayrollExportPage = lazy(() => import('./pages/homecare/PayrollExportPage'))
 const ClientBillingPage = lazy(() => import('./pages/homecare/ClientBillingPage'))
+const PublicClientInvoicePage = lazy(() => import('./pages/homecare/PublicClientInvoicePage'))
 const CarerTotalsPage = lazy(() => import('./pages/homecare/CarerTotalsPage'))
 const AvailabilityPage = lazy(() => import('./pages/homecare/AvailabilityPage'))
 const LiveMapPage = lazy(() => import('./pages/homecare/LiveMapPage'))
@@ -167,6 +168,7 @@ function App() {
       <Route path="/survey/engagement/:token" element={<ErrorBoundary><SurveyFormPage /></ErrorBoundary>} />
       <Route path="/family-portal/:token" element={<ErrorBoundary><FamilyPortalPage /></ErrorBoundary>} />
       <Route path="/family-portal/feedback/:token" element={<ErrorBoundary><FamilyFeedbackPage /></ErrorBoundary>} />
+      <Route path="/invoice/:token" element={<ErrorBoundary><Suspense fallback={<RouteLoading />}><PublicClientInvoicePage /></Suspense></ErrorBoundary>} />
       <Route path="/learn" element={<ErrorBoundary><Suspense fallback={null}><LearningCenterPage /></Suspense></ErrorBoundary>} />
       <Route path="/privacy" element={<ErrorBoundary><Suspense fallback={null}><PrivacyPolicyPage /></Suspense></ErrorBoundary>} />
       <Route path="/terms" element={<ErrorBoundary><Suspense fallback={null}><TermsOfUsePage /></Suspense></ErrorBoundary>} />

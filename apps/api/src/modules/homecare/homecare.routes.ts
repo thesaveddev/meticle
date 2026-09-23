@@ -25,6 +25,7 @@ const packageSchema = z.object({
   client_rate_pence: z.number().int().min(0).nullish(),
   billing_profile_id: uuid.nullish(),
   pay_profile_id: uuid.nullish(),
+  payer_account_id: uuid.nullish(),
   travel_time_paid: z.boolean().optional(),
   mileage_rate_pence: z.number().int().min(0).nullish(),
   notes: z.string().max(5000).nullish(),
@@ -53,14 +54,38 @@ const availabilitySchema = z.object({ staff_id: uuid.optional(), day_of_week: z.
 const disruptionSchema = z.object({ disruption_type: z.enum(['traffic','public_transport','weather','vehicle','client_unavailable','unsafe','other']), severity: z.enum(['low','medium','high']).optional(), delay_minutes: z.number().int().min(0).max(1440).optional(), description: z.string().trim().min(1).max(5000), expected_arrival: iso.nullish() });
 const mileagePolicySchema = z.object({ tax_year: z.string().trim().min(4).max(9), vehicle_type: z.enum(['car','motorcycle','bicycle','public_transport','other']), fuel_category: z.enum(['petrol','diesel','hybrid','electric','lpg','not_applicable','other']), rate_pence: z.number().int().min(0), effective_from: date.nullish(), effective_to: date.nullish(), source_label: z.string().max(255).nullish(), is_active: z.boolean().optional() });
 const followupSchema = z.object({ followup_type: z.enum(['communication','incident']), channel: z.string().max(30).nullish(), recipient: z.string().max(255).nullish(), outcome: z.enum(['recorded','attempted','completed','no_answer','escalated']).optional(), notes: z.string().trim().min(1).max(5000), incident_id: uuid.nullish() });
-const reconciliationSchema = z.object({ status: z.enum(['matched','exception','ignored']), external_reference: z.string().max(255).nullish(), reconciled_gross_pay_pence: z.number().int().min(0).nullish(), note: z.string().max(2000).nullish() });
+const reconciliationSchema = z.object({
+  action: z.enum(['acknowledge', 'reconcile', 'exception', 'ignore']),
+  external_reference: z.string().trim().max(255).nullish(),
+  reconciled_gross_pay_pence: z.number().int().min(0).nullish(),
+  note: z.string().trim().max(2000).nullish(),
+}).superRefine((value, ctx) => {
+  if (value.action === 'reconcile' && value.reconciled_gross_pay_pence == null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['reconciled_gross_pay_pence'], message: 'Enter the amount confirmed by payroll.' });
+  }
+  if (['exception', 'ignore'].includes(value.action) && !value.note?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['note'], message: 'A reason is required for exceptions and ignored rows.' });
+  }
+});
 const exceptionSchema = z.object({
   exception_type: z.enum(['late','missed','cancelled','no_show','other']),
   resolution_note: z.string().max(2000).nullish(),
 });
 const exportSchema = z.object({ from: date, to: date, provider: z.enum(['sage','xero','quickbooks','brightpay','staffology','generic_csv']).optional() });
 const billingPeriodSchema = z.object({ from: date, to: date });
+const billingPayerSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  funding_type: z.enum(['private','local_authority','nhs','other']),
+  contact_name: z.string().trim().max(255).nullish(),
+  email: z.string().trim().email().max(255),
+  address: z.string().trim().max(2000).nullish(),
+});
+const markInvoicePaidSchema = z.object({ payment_reference: z.string().trim().max(255).nullish() });
+const invoiceIdSchema = z.object({ invoiceId: uuid });
+const publicInvoiceTokenSchema = z.object({ token: z.string().regex(/^[a-f0-9]{64}$/) });
 const runIdSchema = z.object({ runId: uuid });
+const rateProfileHistoryParamsSchema = z.object({ type: z.enum(['billing', 'pay']), id: uuid });
+const payrollExportParamsSchema = z.object({ id: uuid });
 const visitSchema = z.object({
   package_id: uuid,
   visit_plan_id: uuid.nullish(),
@@ -114,6 +139,7 @@ router.get('/pay-profiles', requireRole(...managerRoles), asyncHandler(HomecareC
 router.post('/pay-profiles', requireRole(...managerRoles), validate(payProfileSchema), asyncHandler(HomecareController.createPayProfile));
 router.patch('/pay-profiles/:id', requireRole(...managerRoles), validate(payProfileSchema.partial()), asyncHandler(HomecareController.updatePayProfile));
 router.delete('/pay-profiles/:id', requireRole(...managerRoles), asyncHandler(HomecareController.deletePayProfile));
+router.get('/rate-profiles/:type/:id/history', requireRole(...managerRoles), validate(rateProfileHistoryParamsSchema, 'params'), asyncHandler(HomecareController.listRateProfileHistory));
 router.post('/packages', requireRole(...managerRoles), validate(packageSchema), asyncHandler(HomecareController.createPackage));
 router.patch('/packages/:id', requireRole(...managerRoles), validate(packagePatchSchema), asyncHandler(HomecareController.updatePackage));
 router.get('/staff', requireRole(...managerRoles), asyncHandler(HomecareController.listStaff));
@@ -134,6 +160,7 @@ router.post('/mileage-policies', requireRole(...managerRoles), validate(mileageP
 router.patch('/mileage-policies/:id', requireRole(...managerRoles), validate(mileagePolicySchema.partial()), asyncHandler(HomecareController.updateMileagePolicy));
 router.delete('/mileage-policies/:id', requireRole(...managerRoles), asyncHandler(HomecareController.deleteMileagePolicy));
 router.get('/followups', requireRole(...managerRoles), asyncHandler(HomecareController.listFollowups));
+router.get('/payroll/exports', requireRole(...managerRoles), asyncHandler(HomecareController.listPayrollExports));
 router.get('/payroll/reconciliations', requireRole(...managerRoles), asyncHandler(HomecareController.listPayrollReconciliations));
 
 // Swap / Transfer
@@ -154,6 +181,7 @@ router.get('/notifications', requireRole(...fieldRoles), asyncHandler(HomecareCo
 router.post('/notifications/read', requireRole(...fieldRoles), asyncHandler(HomecareController.markNotificationsRead));
 router.get('/week-visits', requireRole(...fieldRoles), asyncHandler(HomecareController.getWeekVisits));
 router.patch('/payroll/reconciliations/:id', requireRole(...managerRoles), validate(reconciliationSchema), asyncHandler(HomecareController.reconcilePayroll));
+router.post('/payroll/exports/:id/acknowledge', requireRole(...managerRoles), validate(payrollExportParamsSchema, 'params'), asyncHandler(HomecareController.acknowledgePayrollExport));
 router.get('/packages/:packageId/visit-plans', requireRole(...fieldRoles), asyncHandler(HomecareController.listVisitPlans));
 router.post('/packages/:packageId/visit-plans', requireRole(...managerRoles), validate(planSchema), asyncHandler(HomecareController.createVisitPlan));
 router.post('/visit-plans/:planId/generate', requireRole(...managerRoles), validate(generationSchema), asyncHandler(HomecareController.generateVisits));
@@ -184,6 +212,17 @@ router.get('/timesheets/carer/:staffId', requireRole(...managerRoles), validate(
 router.get('/timesheets/pending', requireRole(...managerRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getPendingTimesheets));
 router.patch('/timesheets/:id', requireRole(...managerRoles), validate(timesheetSchema), asyncHandler(HomecareController.updateTimesheet));
 router.get('/payroll/export.csv', requireRole(...managerRoles), validate(exportSchema, 'query'), asyncHandler(HomecareController.exportPayroll));
+router.get('/client-billing/payers', requireRole(...managerRoles), asyncHandler(HomecareController.listBillingPayers));
+router.get('/client-billing/recipients', requireRole(...managerRoles), asyncHandler(HomecareController.listClientInvoiceRecipients));
+router.put('/client-billing/recipients', requireRole(...managerRoles), validate(z.object({ person_id: uuid, payer_account_id: uuid, recipient_name: z.string().trim().min(1).max(255), recipient_email: z.string().trim().email().max(255), recipient_address: z.string().trim().max(2000).nullish() })), asyncHandler(HomecareController.upsertClientInvoiceRecipient));
+router.post('/client-billing/payers', requireRole(...managerRoles), validate(billingPayerSchema), asyncHandler(HomecareController.createBillingPayer));
+router.patch('/client-billing/payers/:id', requireRole(...managerRoles), validate(billingPayerSchema.partial()), asyncHandler(HomecareController.updateBillingPayer));
+router.get('/client-billing/invoices', requireRole(...managerRoles), asyncHandler(HomecareController.listClientBillingInvoices));
+router.get('/client-billing/invoices/:invoiceId', requireRole(...managerRoles), validate(invoiceIdSchema, 'params'), asyncHandler(HomecareController.getClientInvoiceForOrganisation));
+router.get('/client-billing/invoices/:invoiceId/events', requireRole(...managerRoles), validate(invoiceIdSchema, 'params'), asyncHandler(HomecareController.listClientBillingInvoiceEvents));
+router.post('/client-billing/invoices/:invoiceId/send', requireRole(...managerRoles), validate(invoiceIdSchema, 'params'), asyncHandler(HomecareController.sendClientInvoice));
+router.post('/client-billing/invoices/:invoiceId/paid', requireRole(...managerRoles), validate(invoiceIdSchema, 'params'), validate(markInvoicePaidSchema), asyncHandler(HomecareController.markClientInvoicePaid));
+router.get('/client-billing/invoices/:invoiceId/pdf', requireRole(...managerRoles), validate(invoiceIdSchema, 'params'), asyncHandler(HomecareController.downloadClientInvoicePdf));
 router.get('/client-billing/runs', requireRole(...managerRoles), asyncHandler(HomecareController.listClientBillingRuns));
 router.get('/client-billing/utilisation', requireRole(...managerRoles), validate(billingPeriodSchema, 'query'), asyncHandler(HomecareController.getClientBillingUtilisation));
 router.post('/client-billing/runs', requireRole(...managerRoles), validate(billingPeriodSchema), asyncHandler(HomecareController.createClientBillingRun));
@@ -193,6 +232,11 @@ router.post('/client-billing/runs/:runId/approve', requireRole(...managerRoles),
 router.post('/client-billing/runs/:runId/void', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.voidClientBillingRun));
 router.get('/client-billing/runs/:runId/invoice.pdf', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.downloadClientInvoicePdf));
 router.get('/client-billing/runs/:runId/mtd-export', requireRole(...managerRoles), validate(runIdSchema, 'params'), asyncHandler(HomecareController.getMtdExport));
+
+const publicInvoiceRouter = Router();
+publicInvoiceRouter.get('/:token', validate(publicInvoiceTokenSchema, 'params'), asyncHandler(HomecareController.getPublicClientInvoice));
+publicInvoiceRouter.get('/:token/pdf', validate(publicInvoiceTokenSchema, 'params'), asyncHandler(HomecareController.getPublicClientInvoicePdf));
+export { publicInvoiceRouter };
 
 // Organization location threshold
 const thresholdSchema = z.object({ location_threshold_meters: z.number().min(50).max(5000) });

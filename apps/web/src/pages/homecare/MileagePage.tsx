@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Typography } from '@mui/material'
-import { Download as DownloadIcon, Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, DirectionsCar as CarIcon, Policy as PolicyIcon, SettingsSuggest as SettingsIcon, AccessTime as TravelTimeIcon } from '@mui/icons-material'
+import { Download as DownloadIcon, Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, DirectionsCar as CarIcon, Policy as PolicyIcon, SettingsSuggest as SettingsIcon, AccessTime as TravelTimeIcon, History as HistoryIcon, Restore as RestoreIcon } from '@mui/icons-material'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PageContainer from '../../components/design/PageContainer'
 import AppButton from '../../components/design/AppButton'
@@ -407,36 +407,194 @@ export default function MileagePage() {
   )
 }
 
+interface RateProfile {
+  id: string
+  name: string
+  description?: string | null
+  funding_type?: string
+  client_rate_pence?: number
+  hourly_rate_pence?: number
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+type RateProfileType = 'billing' | 'pay'
+type RateProfileDraft = { id?: string; type: RateProfileType; name: string; description: string; funding_type: string; rate: string; is_active: boolean }
+
+const blankRateProfile = (type: RateProfileType): RateProfileDraft => ({ id: undefined, type, name: '', description: '', funding_type: 'all', rate: '', is_active: true })
+const historyLabels: Record<string, string> = {
+  name: 'Profile name', funding_type: 'Funding type', client_rate_pence: 'Client rate',
+  hourly_rate_pence: 'Carer rate', description: 'Description', is_active: 'Status',
+}
+const formatHistoryValue = (key: string, value: any) => {
+  if (key === 'is_active') return value ? 'Active' : 'Inactive'
+  if (key.endsWith('_rate_pence')) return `£${(Number(value || 0) / 100).toFixed(2)}/hour`
+  return value == null || value === '' ? '—' : String(value).replace(/_/g, ' ')
+}
+
 function RateProfilesTab() {
-  const [billingProfiles, setBillingProfiles] = useState<any[]>([])
-  const [payProfiles, setPayProfiles] = useState<any[]>([])
-  const [billingName, setBillingName] = useState('')
-  const [billingRate, setBillingRate] = useState('')
-  const [payName, setPayName] = useState('')
-  const [payRate, setPayRate] = useState('')
+  const [billingProfiles, setBillingProfiles] = useState<RateProfile[]>([])
+  const [payProfiles, setPayProfiles] = useState<RateProfile[]>([])
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [draft, setDraft] = useState<RateProfileDraft | null>(null)
+  const [deactivateTarget, setDeactivateTarget] = useState<{ type: RateProfileType; profile: RateProfile } | null>(null)
+  const [historyTarget, setHistoryTarget] = useState<{ type: RateProfileType; profile: RateProfile } | null>(null)
+  const [history, setHistory] = useState<any[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [workingId, setWorkingId] = useState<string | null>(null)
+
   const load = async () => {
+    setLoading(true)
     try {
       const [billing, pay] = await Promise.all([api.get('/homecare/billing-profiles'), api.get('/homecare/pay-profiles')])
-      setBillingProfiles(billing.data || []); setPayProfiles(pay.data || [])
-    } catch (e: any) { setError(e.response?.data?.message || 'Could not load rate profiles') }
+      setBillingProfiles(Array.isArray(billing.data) ? billing.data : [])
+      setPayProfiles(Array.isArray(pay.data) ? pay.data : [])
+      setError('')
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Could not load rate profiles')
+    } finally { setLoading(false) }
   }
   useEffect(() => { void load() }, [])
-  const addBilling = async () => { if (!billingName.trim() || !billingRate) return; await api.post('/homecare/billing-profiles', { name: billingName.trim(), client_rate_pence: Number(billingRate), funding_type: 'all' }); setBillingName(''); setBillingRate(''); await load() }
-  const addPay = async () => { if (!payName.trim() || !payRate) return; await api.post('/homecare/pay-profiles', { name: payName.trim(), hourly_rate_pence: Number(payRate) }); setPayName(''); setPayRate(''); await load() }
+
+  const openEdit = (type: RateProfileType, profile: RateProfile) => setDraft({
+    id: profile.id, type, name: profile.name, description: profile.description || '',
+    funding_type: profile.funding_type || 'all',
+    rate: String(type === 'billing' ? profile.client_rate_pence ?? '' : profile.hourly_rate_pence ?? ''),
+    is_active: profile.is_active,
+  })
+
+  const saveProfile = async () => {
+    if (!draft || !draft.name.trim() || draft.rate === '' || Number(draft.rate) < 0) return
+    setSaving(true); setError('')
+    const endpoint = draft.type === 'billing' ? '/homecare/billing-profiles' : '/homecare/pay-profiles'
+    const payload = draft.type === 'billing'
+      ? { name: draft.name.trim(), description: draft.description || null, funding_type: draft.funding_type, client_rate_pence: Number(draft.rate), is_active: draft.is_active }
+      : { name: draft.name.trim(), description: draft.description || null, hourly_rate_pence: Number(draft.rate), is_active: draft.is_active }
+    try {
+      if (draft.id) await api.patch(`${endpoint}/${draft.id}`, payload)
+      else await api.post(endpoint, payload)
+      setDraft(null); await load()
+    } catch (e: any) { setError(e.response?.data?.message || 'Could not save rate profile') }
+    finally { setSaving(false) }
+  }
+
+  const setActive = async (type: RateProfileType, profile: RateProfile, isActive: boolean) => {
+    setWorkingId(profile.id); setError('')
+    const endpoint = type === 'billing' ? '/homecare/billing-profiles' : '/homecare/pay-profiles'
+    try {
+      if (isActive) await api.patch(`${endpoint}/${profile.id}`, { is_active: true })
+      else await api.delete(`${endpoint}/${profile.id}`)
+      setDeactivateTarget(null); await load()
+    } catch (e: any) { setError(e.response?.data?.message || 'Could not update profile status') }
+    finally { setWorkingId(null) }
+  }
+
+  const openHistory = async (type: RateProfileType, profile: RateProfile) => {
+    setHistoryTarget({ type, profile }); setHistory([]); setHistoryLoading(true)
+    try {
+      const response = await api.get(`/homecare/rate-profiles/${type}/${profile.id}/history`)
+      setHistory(Array.isArray(response.data) ? response.data : [])
+    } catch (e: any) { setError(e.response?.data?.message || 'Could not load profile history') }
+    finally { setHistoryLoading(false) }
+  }
+
+  const renderHistoryChanges = (entry: any) => {
+    const before = entry.before_data || {}
+    const after = entry.after_data || {}
+    const changedKeys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]))
+      .filter(key => historyLabels[key] && before[key] !== after[key])
+    if (!changedKeys.length) return <Typography variant="body2" color="text.secondary">Profile recorded</Typography>
+    return <Stack spacing={0.25} sx={{ mt: 0.5 }}>{changedKeys.map(key => <Typography key={key} variant="body2" color="text.secondary">
+      {historyLabels[key]}: {before[key] === undefined ? '—' : formatHistoryValue(key, before[key])} → {formatHistoryValue(key, after[key])}
+    </Typography>)}</Stack>
+  }
+
+  const renderProfiles = (type: RateProfileType, profiles: RateProfile[]) => <Stack spacing={1} sx={{ mt: 2 }}>
+    {profiles.length === 0 && <Typography variant="body2" color="text.secondary">No profiles yet.</Typography>}
+    {profiles.map(profile => <Paper key={profile.id} variant="outlined" sx={{ p: 1.5, opacity: profile.is_active ? 1 : 0.7 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={1}>
+        <Box sx={{ minWidth: 0 }}>
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+            <Typography fontWeight={700}>{profile.name}</Typography>
+            <Chip size="small" label={profile.is_active ? 'Active' : 'Inactive'} color={profile.is_active ? 'success' : 'default'} />
+          </Stack>
+          <Typography variant="body2" color="text.secondary">
+            {fmtMoney(type === 'billing' ? profile.client_rate_pence : profile.hourly_rate_pence)}/hr
+            {type === 'billing' ? ` · ${String(profile.funding_type || 'all').replace(/_/g, ' ')}` : ''}
+            {profile.description ? ` · ${profile.description}` : ''}
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={0.5} flexWrap="wrap">
+          <Button size="small" startIcon={<EditIcon />} onClick={() => openEdit(type, profile)}>Edit</Button>
+          <Button size="small" startIcon={<HistoryIcon />} onClick={() => void openHistory(type, profile)}>History</Button>
+          {profile.is_active
+            ? <Button size="small" color="error" startIcon={<DeleteIcon />} disabled={workingId === profile.id} onClick={() => setDeactivateTarget({ type, profile })}>Deactivate</Button>
+            : <Button size="small" startIcon={<RestoreIcon />} disabled={workingId === profile.id} onClick={() => void setActive(type, profile, true)}>Reactivate</Button>}
+        </Stack>
+      </Stack>
+    </Paper>)}
+  </Stack>
+
   return <Stack spacing={2}>
-    {error && <Alert severity="error">{error}</Alert>}
-    <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
-      <Typography variant="h6" sx={{ fontWeight: 800 }}>Client billing profiles</Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Reusable hourly charges for client packages. A package can choose a profile and still override the charge when required.</Typography>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><TextField size="small" label="Profile name" value={billingName} onChange={e => setBillingName(e.target.value)} sx={{ flex: 1 }} /><TextField size="small" label="Client rate (pence/hr)" type="number" value={billingRate} onChange={e => setBillingRate(e.target.value)} /><Button variant="contained" onClick={addBilling} disabled={!billingName.trim() || !billingRate}>Add profile</Button></Stack>
-      <Stack spacing={1} sx={{ mt: 2 }}>{billingProfiles.map(profile => <Paper key={profile.id} variant="outlined" sx={{ p: 1.5 }}><Typography fontWeight={700}>{profile.name}</Typography><Typography variant="body2" color="text.secondary">£{(Number(profile.client_rate_pence) / 100).toFixed(2)}/hr · {profile.is_active ? 'Active' : 'Inactive'}</Typography></Paper>)}</Stack>
-    </Paper>
-    <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
-      <Typography variant="h6" sx={{ fontWeight: 800 }}>Carer pay profiles</Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Reusable hourly pay rates assigned to carer profiles. A call-level rate override takes precedence for that call.</Typography>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><TextField size="small" label="Profile name" value={payName} onChange={e => setPayName(e.target.value)} sx={{ flex: 1 }} /><TextField size="small" label="Carer rate (pence/hr)" type="number" value={payRate} onChange={e => setPayRate(e.target.value)} /><Button variant="contained" onClick={addPay} disabled={!payName.trim() || !payRate}>Add profile</Button></Stack>
-      <Stack spacing={1} sx={{ mt: 2 }}>{payProfiles.map(profile => <Paper key={profile.id} variant="outlined" sx={{ p: 1.5 }}><Typography fontWeight={700}>{profile.name}</Typography><Typography variant="body2" color="text.secondary">£{(Number(profile.hourly_rate_pence) / 100).toFixed(2)}/hr · {profile.is_active ? 'Active' : 'Inactive'}</Typography></Paper>)}</Stack>
-    </Paper>
+    {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
+    {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress /></Box> : <>
+      <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
+          <Box><Typography variant="h6" sx={{ fontWeight: 800 }}>Client billing profiles</Typography><Typography variant="body2" color="text.secondary">Reusable hourly charges for client packages. A package can override the selected rate.</Typography></Box>
+          <AppButton variant="primary" startIcon={<AddIcon />} onClick={() => setDraft(blankRateProfile('billing'))}>Add billing profile</AppButton>
+        </Stack>
+        {renderProfiles('billing', billingProfiles)}
+      </Paper>
+      <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
+          <Box><Typography variant="h6" sx={{ fontWeight: 800 }}>Carer pay profiles</Typography><Typography variant="body2" color="text.secondary">Reusable hourly pay rates assigned to carers. A call-level pay rate takes precedence.</Typography></Box>
+          <AppButton variant="primary" startIcon={<AddIcon />} onClick={() => setDraft(blankRateProfile('pay'))}>Add pay profile</AppButton>
+        </Stack>
+        {renderProfiles('pay', payProfiles)}
+      </Paper>
+    </>}
+
+    <Dialog open={Boolean(draft)} onClose={() => !saving && setDraft(null)} fullWidth maxWidth="sm">
+      <DialogTitle>{draft?.id ? 'Edit rate profile' : draft?.type === 'billing' ? 'Add billing profile' : 'Add carer pay profile'}</DialogTitle>
+      <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
+        <TextField label="Profile name" value={draft?.name || ''} onChange={e => setDraft(d => d && ({ ...d, name: e.target.value }))} required autoFocus />
+        {draft?.type === 'billing' && <TextField select label="Funding type" value={draft.funding_type} onChange={e => setDraft(d => d && ({ ...d, funding_type: e.target.value }))}>
+          <MenuItem value="all">All funding types</MenuItem><MenuItem value="private">Private</MenuItem><MenuItem value="local_authority">Local authority</MenuItem><MenuItem value="nhs">NHS</MenuItem><MenuItem value="other">Other</MenuItem>
+        </TextField>}
+        <TextField type="number" label={draft?.type === 'billing' ? 'Client charge (pence per hour)' : 'Carer pay (pence per hour)'} inputProps={{ min: 0, step: 1 }} value={draft?.rate || ''} onChange={e => setDraft(d => d && ({ ...d, rate: e.target.value }))} required />
+        <TextField label="Description" value={draft?.description || ''} onChange={e => setDraft(d => d && ({ ...d, description: e.target.value }))} multiline minRows={2} />
+        {draft?.id && <TextField select label="Status" value={draft.is_active ? 'active' : 'inactive'} onChange={e => setDraft(d => d && ({ ...d, is_active: e.target.value === 'active' }))}>
+          <MenuItem value="active">Active</MenuItem><MenuItem value="inactive">Inactive</MenuItem>
+        </TextField>}
+      </Stack></DialogContent>
+      <DialogActions><Button onClick={() => setDraft(null)} disabled={saving}>Cancel</Button><AppButton variant="primary" onClick={() => void saveProfile()} disabled={saving || !draft?.name.trim() || draft.rate === ''}>{saving ? <CircularProgress size={18} /> : 'Save profile'}</AppButton></DialogActions>
+    </Dialog>
+
+    <Dialog open={Boolean(deactivateTarget)} onClose={() => setDeactivateTarget(null)} maxWidth="xs" fullWidth>
+      <DialogTitle>Deactivate rate profile?</DialogTitle>
+      <DialogContent><Typography variant="body2" color="text.secondary">“{deactivateTarget?.profile.name}” will no longer be available for new packages or carer assignments. Existing records and historical rates are retained. You can reactivate this profile later.</Typography></DialogContent>
+      <DialogActions><Button onClick={() => setDeactivateTarget(null)}>Cancel</Button><Button color="error" variant="contained" disabled={Boolean(workingId)} onClick={() => deactivateTarget && void setActive(deactivateTarget.type, deactivateTarget.profile, false)}>Deactivate</Button></DialogActions>
+    </Dialog>
+
+    <Dialog open={Boolean(historyTarget)} onClose={() => setHistoryTarget(null)} fullWidth maxWidth="sm">
+      <DialogTitle>Rate profile history</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{historyTarget?.profile.name} · {historyTarget?.type === 'billing' ? 'Client billing' : 'Carer pay'}</Typography>
+        {historyLoading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box> : history.length === 0
+          ? <Typography variant="body2" color="text.secondary">No history entries found.</Typography>
+          : <Stack spacing={1}>{history.map(entry => <Paper key={entry.id} variant="outlined" sx={{ p: 1.5 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={0.5}>
+              <Typography fontWeight={700}>{String(entry.action).replace(/_/g, ' ')}</Typography>
+              <Typography variant="caption" color="text.secondary">{new Date(entry.created_at).toLocaleString('en-GB')}</Typography>
+            </Stack>
+            <Typography variant="body2" color="text.secondary">By {entry.actor_name || 'Former user'}</Typography>
+            {renderHistoryChanges(entry)}
+          </Paper>)}</Stack>}
+      </DialogContent>
+      <DialogActions><Button onClick={() => setHistoryTarget(null)}>Close</Button></DialogActions>
+    </Dialog>
   </Stack>
 }
