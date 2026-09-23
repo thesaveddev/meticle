@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
-import pool from '../../shared/database';
+import pool, { transaction } from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { EmailService } from '../../shared/utils/email.service';
 import { AuditRepository } from '../audit/audit.repository';
+import { isDomiciliaryServiceTypes } from '../../shared/billing/domiciliaryPricing';
 
 function pageParams(page: unknown, limit: unknown) {
   const parsedPage = Number.parseInt(String(page ?? '1'), 10);
@@ -29,9 +30,17 @@ export class PlatformAdminController {
       pool.query(`SELECT COUNT(*)::int as total FROM users WHERE created_at > NOW() - INTERVAL '30 days'`),
     ]);
 
-    // MRR from active plans
+    // Commercial plan revenue is never inferred from domiciliary quotes unless
+    // the quote was explicitly accepted and a Stripe subscription is recorded.
     const mrr = await pool.query(`
-      SELECT COALESCE(SUM(CASE WHEN plan = 'professional' THEN 299 WHEN plan = 'starter' THEN 99 ELSE 0 END), 0) as mrr
+      SELECT COALESCE(SUM(CASE
+        WHEN primary_service_type IN ('domiciliary', 'live_in') OR 'domiciliary' = ANY(COALESCE(service_types, '{}')) OR 'live_in' = ANY(COALESCE(service_types, '{}'))
+          THEN CASE WHEN domiciliary_quote_accepted_at IS NOT NULL
+              AND domiciliary_stripe_subscription_id IS NOT NULL AND subscription_status = 'active'
+            THEN COALESCE(domiciliary_active_monthly_price_pence, 0) / 100.0 ELSE 0 END
+        WHEN plan = 'professional' THEN 299
+        WHEN plan = 'starter' THEN 99
+        ELSE 0 END), 0) as mrr
       FROM organizations WHERE subscription_status = 'active'
     `);
 
@@ -83,7 +92,9 @@ export class PlatformAdminController {
     const orgResult = await pool.query(`
       SELECT id, name, plan, COALESCE(subscription_status, 'trial') as subscription_status,
         trial_ends_at, stripe_customer_id, created_at, updated_at,
-        COALESCE(addons, '[]') as addons
+        primary_service_type, service_types, domiciliary_monthly_price_pence, domiciliary_active_monthly_price_pence,
+        domiciliary_price_vat_behavior, domiciliary_quote_accepted_at, domiciliary_quote_updated_at,
+        domiciliary_stripe_subscription_id, COALESCE(addons, '[]') as addons
       FROM organizations WHERE id = $1
     `, [id]);
 
@@ -129,9 +140,7 @@ export class PlatformAdminController {
       orgData.stats.recentShifts = shiftsResult.rows[0].total;
     } catch {
       orgData.stats.recentShifts = 0;
-    }
-
-    res.json(orgData);
+    }      res.json(orgData);
   }
 
   static async updateOrganizationStatus(req: Request, res: Response) {
@@ -185,11 +194,21 @@ export class PlatformAdminController {
   static async getFinanceOverview(_req: Request, res: Response) {
     const [mrr, arr, revenue30d, churnRate, failedPayments, invoicesDue] = await Promise.all([
       pool.query(`
-        SELECT COALESCE(SUM(CASE WHEN plan = 'professional' THEN 299 WHEN plan = 'starter' THEN 99 ELSE 0 END), 0) as mrr
+        SELECT COALESCE(SUM(CASE
+          WHEN primary_service_type IN ('domiciliary', 'live_in') OR 'domiciliary' = ANY(COALESCE(service_types, '{}')) OR 'live_in' = ANY(COALESCE(service_types, '{}'))
+            THEN CASE WHEN domiciliary_quote_accepted_at IS NOT NULL
+              AND domiciliary_stripe_subscription_id IS NOT NULL AND subscription_status = 'active'
+              THEN COALESCE(domiciliary_active_monthly_price_pence, 0) / 100.0 ELSE 0 END
+          WHEN plan = 'professional' THEN 299 WHEN plan = 'starter' THEN 99 ELSE 0 END), 0) as mrr
         FROM organizations WHERE subscription_status = 'active'
       `),
       pool.query(`
-        SELECT COALESCE(SUM(CASE WHEN plan = 'professional' THEN 299*12 WHEN plan = 'starter' THEN 99*12 ELSE 0 END), 0) as arr
+        SELECT COALESCE(SUM(CASE
+          WHEN primary_service_type IN ('domiciliary', 'live_in') OR 'domiciliary' = ANY(COALESCE(service_types, '{}')) OR 'live_in' = ANY(COALESCE(service_types, '{}'))
+            THEN CASE WHEN domiciliary_quote_accepted_at IS NOT NULL
+              AND domiciliary_stripe_subscription_id IS NOT NULL AND subscription_status = 'active'
+              THEN COALESCE(domiciliary_active_monthly_price_pence, 0) / 100.0 ELSE 0 END
+          WHEN plan = 'professional' THEN 299 WHEN plan = 'starter' THEN 99 ELSE 0 END), 0) * 12 as arr
         FROM organizations WHERE subscription_status = 'active'
       `),
       pool.query(`
@@ -218,13 +237,22 @@ export class PlatformAdminController {
       ? ((churnRate.rows[0].churned / (churnRate.rows[0].active + churnRate.rows[0].churned)) * 100).toFixed(1)
       : '0';
 
-    // Revenue by plan
+    // Break out sales-led domiciliary agreements instead of grouping them by a
+    // stale Starter/Professional label on the organization.
     const revenueByPlan = await pool.query(`
-      SELECT plan,
+      SELECT CASE
+          WHEN primary_service_type IN ('domiciliary', 'live_in') OR 'domiciliary' = ANY(COALESCE(service_types, '{}')) OR 'live_in' = ANY(COALESCE(service_types, '{}'))
+            THEN 'domiciliary_sales_led'
+          ELSE COALESCE(plan, 'unassigned') END as plan,
         COUNT(*)::int as org_count,
-        COALESCE(SUM(CASE WHEN plan = 'professional' THEN 299 WHEN plan = 'starter' THEN 99 ELSE 0 END), 0) as mrr
+        COALESCE(SUM(CASE
+          WHEN primary_service_type IN ('domiciliary', 'live_in') OR 'domiciliary' = ANY(COALESCE(service_types, '{}')) OR 'live_in' = ANY(COALESCE(service_types, '{}'))
+            THEN CASE WHEN domiciliary_quote_accepted_at IS NOT NULL
+              AND domiciliary_stripe_subscription_id IS NOT NULL AND subscription_status = 'active'
+              THEN COALESCE(domiciliary_active_monthly_price_pence, 0) / 100.0 ELSE 0 END
+          WHEN plan = 'professional' THEN 299 WHEN plan = 'starter' THEN 99 ELSE 0 END), 0) as mrr
       FROM organizations WHERE subscription_status = 'active'
-      GROUP BY plan
+      GROUP BY 1
     `);
 
     // Recent revenue trend (last 6 months)
@@ -401,6 +429,64 @@ export class PlatformAdminController {
     await pool.query('UPDATE users SET status = $1 WHERE id = $2', [status, id]);
 
     res.json({ message: `User ${status === 'deactivated' ? 'deactivated' : 'activated'}`, status });
+  }
+
+  static async updateDomiciliaryQuote(req: Request, res: Response) {
+    const { id } = req.params;
+    const monthlyPricePence = req.body.monthly_price_pence;
+    if (!Number.isSafeInteger(monthlyPricePence) || monthlyPricePence <= 0 || monthlyPricePence > 100_000_000) {
+      throw new AppError(400, 'monthly_price_pence must be a positive integer no greater than £1,000,000');
+    }
+    const vatBehavior = req.body.vat_behavior;
+    if (!['inclusive', 'exclusive'].includes(vatBehavior)) {
+      throw new AppError(400, 'vat_behavior must be inclusive or exclusive');
+    }
+    const result = await transaction(async (client) => {
+      // Serialize quote edits against org acceptance while Stripe is being updated.
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [id]);
+      const org = await client.query(
+        `SELECT id, name, primary_service_type, service_types, subscription_status,
+                domiciliary_monthly_price_pence, domiciliary_price_vat_behavior,
+                domiciliary_quote_accepted_at, domiciliary_stripe_subscription_id
+         FROM organizations WHERE id = $1 FOR UPDATE`,
+        [id],
+      );
+      if (!org.rows[0]) throw new AppError(404, 'Organization not found');
+      const row = org.rows[0];
+      if (!isDomiciliaryServiceTypes(row.primary_service_type, row.service_types)) {
+        throw new AppError(409, 'A domiciliary contract quote can only be set for a domiciliary or live-in organisation');
+      }
+      const changed = Number(row.domiciliary_monthly_price_pence) !== monthlyPricePence
+        || vatBehavior !== (row.domiciliary_price_vat_behavior || null);
+      const hasActiveAgreement = !!row.domiciliary_quote_accepted_at
+        && !!row.domiciliary_stripe_subscription_id
+        && ['active', 'trial', 'past_due'].includes(row.subscription_status);
+      if (changed && hasActiveAgreement) {
+        throw new AppError(409, 'An active domiciliary agreement cannot be repriced without first ending the current contract');
+      }
+      const updated = await client.query(
+        `UPDATE organizations SET domiciliary_monthly_price_pence = $1,
+          domiciliary_stripe_price_id = CASE WHEN $2 THEN NULL ELSE domiciliary_stripe_price_id END,
+          domiciliary_quote_accepted_at = CASE WHEN $2 THEN NULL ELSE domiciliary_quote_accepted_at END,
+          domiciliary_quote_updated_at = CASE WHEN $2 THEN NOW() ELSE domiciliary_quote_updated_at END,
+          domiciliary_quote_updated_by = CASE WHEN $2 THEN $3 ELSE domiciliary_quote_updated_by END,
+          domiciliary_price_vat_behavior = $4
+         WHERE id = $5
+         RETURNING id, name, domiciliary_monthly_price_pence, domiciliary_active_monthly_price_pence, domiciliary_quote_accepted_at,
+                   domiciliary_quote_updated_at, domiciliary_price_vat_behavior`,
+        [monthlyPricePence, changed, req.user!.userId, vatBehavior, id],
+      );
+      if (changed) {
+        await client.query(
+          `INSERT INTO domiciliary_billing_audit (organization_id, actor_user_id, action, monthly_price_pence, details)
+           VALUES ($1, $2, 'quote_set', $3, $4::jsonb)`,
+          [id, req.user!.userId, monthlyPricePence, JSON.stringify({ previous_price_pence: row.domiciliary_monthly_price_pence ?? null, previous_vat_behavior: row.domiciliary_price_vat_behavior ?? null, vat_behavior: vatBehavior })],
+        );
+      }
+      return updated.rows[0];
+    });
+    await AuditRepository.log({ user_id: req.user!.userId, action: 'SET_DOMICILIARY_SUBSCRIPTION_QUOTE', entity_type: 'organization', entity_id: id, new_data: { monthly_price_pence: monthlyPricePence, vat_behavior: vatBehavior }, ip_address: req.ip });
+    res.json(result);
   }
 
   static async updateOrgBilling(req: Request, res: Response) {

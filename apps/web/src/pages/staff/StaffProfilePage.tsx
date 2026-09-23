@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   Box, Typography, Paper, Stack, Chip, CircularProgress,
   Button, LinearProgress, Table, TableBody,
@@ -17,7 +17,7 @@ import {
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
-import { fetchUserPermissions, updateUserPermissions, formatPermissionLabel, LEVEL_LABELS } from '../../utils/permissions'
+import { fetchUserPermissions, updateUserPermissions, formatPermissionLabel, LEVEL_LABELS, type PermissionLevel, type RolePermissionDefaults } from '../../utils/permissions'
 import { formatDateOnly } from '../../utils/dateFormat'
 import { LoadingState, StatusBadge, EmptyRow, NAVY } from '../../components/ui'
 import { EmptyState } from '../../components/design/EmptyState'
@@ -76,6 +76,7 @@ const TAB_ACCESS = 'access'
 
 export default function StaffProfilePage() {
   const { userId } = useParams<{ userId: string }>()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState(TAB_OVERVIEW)
   const [editOpen, setEditOpen] = useState(false)
@@ -154,11 +155,20 @@ export default function StaffProfilePage() {
     },
   })
 
-  const { data: payProfiles = [] } = useQuery({
+  const { data: organizationSettings } = useQuery({
+    queryKey: ['organisation-settings'],
+    queryFn: () => api.get('/settings/org').then(res => res.data),
+  })
+  const effectiveServiceTypes: string[] = organizationSettings?.primary_service_type
+    ? [organizationSettings.primary_service_type]
+    : (Array.isArray(organizationSettings?.service_types) ? organizationSettings.service_types : [])
+  const isDomiciliaryOrganisation = effectiveServiceTypes.some(type => ['domiciliary', 'live_in'].includes(type))
+  const { data: payProfiles = [], isLoading: payProfilesLoading, error: payProfilesError } = useQuery({
     queryKey: ['homecare-pay-profiles'],
     queryFn: () => api.get('/homecare/pay-profiles').then(res => Array.isArray(res.data) ? res.data : []),
-    enabled: canEdit,
+    enabled: canEdit && isDomiciliaryOrganisation,
   })
+  const activePayProfiles = payProfiles.filter((pay: any) => pay.is_active !== false)
   const [payProfileId, setPayProfileId] = useState('')
   useEffect(() => { if (profile) setPayProfileId(profile.pay_profile_id || '') }, [profile])
   const payProfileMutation = useMutation({
@@ -248,7 +258,8 @@ export default function StaffProfilePage() {
     setEditReqOpen(true)
   }
 
-  const [permData, setPermData] = useState<Array<{ module: string; permission_level: string }>>([])
+  const [permData, setPermData] = useState<Array<{ module: string; permission_level: PermissionLevel }>>([])
+  const [rolePermissionDefaults, setRolePermissionDefaults] = useState<RolePermissionDefaults>({})
   const permDataRef = useRef(permData)
   useEffect(() => { permDataRef.current = permData }, [permData])
   const [permDirty, setPermDirty] = useState(false)
@@ -263,6 +274,7 @@ export default function StaffProfilePage() {
   useEffect(() => {
     if (permissionsData) {
       setPermData(permissionsData.permissions)
+      setRolePermissionDefaults(permissionsData.role_defaults || {})
     }
   }, [permissionsData])
 
@@ -280,8 +292,9 @@ export default function StaffProfilePage() {
 
   const changeRoleMutation = useMutation({
     mutationFn: (role: string) => api.patch(`/staff/${userId}/role`, { role }),
-    onSuccess: () => {
+    onSuccess: (_result, newRole) => {
       setRoleSaved(true)
+      setChangeRoleValue(newRole)
       setTimeout(() => setRoleSaved(false), 3000)
       queryClient.invalidateQueries({ queryKey: ['org-members'] })
       queryClient.invalidateQueries({ queryKey: ['org-member', userId] })
@@ -443,12 +456,14 @@ export default function StaffProfilePage() {
                 <Typography variant="caption" color="text.secondary">Weekly max hours</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{profile.max_hours_weekly ? `${profile.max_hours_weekly}h` : '—'}</Typography>
               </Grid>
-              {canEdit && <Grid item xs={12} sm={6}>
-                <TextField select fullWidth size="small" label="Carer pay profile" value={payProfileId} onChange={e => setPayProfileId(e.target.value)} helperText="Used when a call does not have its own pay override.">
+              {canEdit && isDomiciliaryOrganisation && <Grid item xs={12} sm={6}>
+                {payProfilesError && <Alert severity="error" sx={{ mb: 1 }}>Could not load carer pay profiles. Please retry or check your access.</Alert>}
+                <TextField select fullWidth size="small" label="Carer pay profile" value={payProfileId} onChange={e => setPayProfileId(e.target.value)} disabled={payProfilesLoading || Boolean(payProfilesError)} helperText={payProfilesLoading ? 'Loading available pay profiles…' : activePayProfiles.length === 0 ? 'No active pay profiles are available. Create or reactivate one to assign a rate.' : 'Used when a call does not have its own pay override.'}>
                   <MenuItem value="">No profile assigned</MenuItem>
-                  {payProfiles.map((pay: any) => <MenuItem key={pay.id} value={pay.id}>{pay.name} · £{(Number(pay.hourly_rate_pence) / 100).toFixed(2)}/hr</MenuItem>)}
+                  {activePayProfiles.map((pay: any) => <MenuItem key={pay.id} value={pay.id}>{pay.name} · £{(Number(pay.hourly_rate_pence) / 100).toFixed(2)}/hr</MenuItem>)}
                 </TextField>
-                <Button size="small" variant="outlined" sx={{ mt: 1 }} disabled={payProfileMutation.isPending} onClick={() => payProfileMutation.mutate(payProfileId || null)}>Save pay profile</Button>
+                {activePayProfiles.length === 0 && !payProfilesLoading && !payProfilesError && <Button size="small" variant="text" sx={{ mt: 0.5 }} onClick={() => navigate('/mileage?tab=profiles')}>Manage pay profiles</Button>}
+                <Button size="small" variant="outlined" sx={{ mt: 1, ml: activePayProfiles.length === 0 ? 1 : 0 }} disabled={payProfilesLoading || Boolean(payProfilesError) || payProfileMutation.isPending} onClick={() => payProfileMutation.mutate(payProfileId || null)}>Save pay profile</Button>
               </Grid>}
             </Grid>
           </Paper>
@@ -615,7 +630,19 @@ export default function StaffProfilePage() {
                     value={changeRoleValue || effectiveRole || 'CARE_WORKER'}
                     label="Role"
                     disabled={!isOrgAdmin || isSelf}
-                    onChange={(e) => setChangeRoleValue(e.target.value)}
+                    onChange={(e) => {
+                      const nextRole = e.target.value
+                      setChangeRoleValue(nextRole)
+                      const roleDefaults = rolePermissionDefaults[nextRole]
+                      if (roleDefaults) {
+                        setPermData(current => current.map(permission => ({
+                          ...permission,
+                          permission_level: roleDefaults[permission.module] || 'none',
+                        })))
+                        // The role endpoint persists these defaults when Save role is pressed.
+                        setPermDirty(false)
+                      }
+                    }}
                   >
                     {ROLE_OPTIONS.filter(o => !o.adminOnly || isOrgAdmin).map(opt => (
                       <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
@@ -631,6 +658,11 @@ export default function StaffProfilePage() {
                   {changeRoleMutation.isPending ? 'Saving...' : 'Save role'}
                 </Button>
               </Stack>
+              {isOrgAdmin && !isSelf && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
+                  Choose a role to preview its organisation-specific module access, then save the role to apply those defaults.
+                </Typography>
+              )}
               {!isOrgAdmin && (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
                   Only organization admins can change roles.
@@ -638,7 +670,7 @@ export default function StaffProfilePage() {
               )}
               {isSelf && (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
-                  You cannot change your own role.
+                  Role changes are disabled for your own account.
                 </Typography>
               )}
             </Box>
@@ -675,7 +707,7 @@ export default function StaffProfilePage() {
                       }}
                     >
                       {Object.entries(LEVEL_LABELS).map(([key, label]) => (
-                        <ToggleButton key={key} value={key} sx={{ textTransform: 'none', fontSize: 12, py: 0.5 }}>
+                        <ToggleButton key={key} value={key} disabled={changeRoleMutation.isPending} sx={{ textTransform: 'none', fontSize: 12, py: 0.5 }}>
                           {label}
                         </ToggleButton>
                       ))}

@@ -62,12 +62,15 @@ export default function DomiciliaryDashboard() {
 
   const load = useCallback(async (date: string) => {
     setLoading(true)
+    setError('')
     try {
-      const res = await api.get('/dashboard/domiciliary', { params: { date } })
+      const res = await api.get('/dashboard/domiciliary', { params: { date }, timeout: 15000 })
       setData(res.data)
-      api.get('/reporting/overview').then(r => setOverview(r.data)).catch(() => {})
+      api.get('/reporting/overview', { timeout: 15000 }).then(r => setOverview(r.data)).catch(() => {})
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load dashboard')
+      setError(err.code === 'ECONNABORTED'
+        ? 'Dashboard data is taking too long to respond. Please try again.'
+        : err.response?.data?.message || 'Failed to load dashboard')
     } finally { setLoading(false) }
   }, [])
 
@@ -76,7 +79,7 @@ export default function DomiciliaryDashboard() {
   const VISIBLE_CALLS = 8
 
   if (loading) return <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
-  if (error) return <Container maxWidth="lg" sx={{ py: 4 }}><Typography color="error">{error}</Typography></Container>
+  if (error) return <Container maxWidth="lg" sx={{ py: 4 }}><Stack spacing={2} alignItems="flex-start"><Typography color="error">{error}</Typography><Button variant="outlined" onClick={() => load(selectedDate)}>Retry</Button></Stack></Container>
   if (!data) return null
 
   const dateLabel = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import pool from '../../shared/database';
 import { AppError } from '../../shared/middleware/error.middleware';
-import { getStripe, getOrCreateCustomer, getOrCreatePrice } from '../../shared/services/stripe.service';
+import { getStripe, getOrCreateCustomer, getOrCreatePrice, getOrCreateDomiciliaryPrice, isExpectedDomiciliaryContractPrice, PLAN_PRICE_CONFIG, DomiciliaryVatBehavior } from '../../shared/services/stripe.service';
 import { selectDunningMilestone, HARD_DECLINES } from './dunning';
 import { AuditRepository } from '../audit/audit.repository';
 import { NotificationsController } from '../notifications/notifications.controller';
@@ -10,6 +10,7 @@ import { EmailService } from '../../shared/utils/email.service';
 import { buildEmailHtml } from '../../shared/utils/email.template';
 import { logWarn } from '../../shared/utils/logger';
 import { buildInvoiceHtml, generatePdf } from './billing.pdf';
+import { isDomiciliaryServiceTypes, isInvoiceForSubscription, isStripeSubscriptionForCustomer, stripeSubscriptionIdFromInvoice } from '../../shared/billing/domiciliaryPricing';
 
 export class BillingController {
   static async getSubscription(req: Request, res: Response) {
@@ -17,7 +18,7 @@ export class BillingController {
     const orgId = req.params.id || userOrgId;
     if (orgId !== userOrgId) throw new AppError(403, 'Access denied');
     const result = await pool.query(
-      `SELECT plan, COALESCE(subscription_status, 'trial') as subscription_status, trial_ends_at, current_period_end, COALESCE(stripe_customer_id, '') as stripe_customer_id FROM organizations WHERE id = $1`,
+      `SELECT plan, COALESCE(subscription_status, 'trial') as subscription_status, trial_ends_at, current_period_end, COALESCE(stripe_customer_id, '') as stripe_customer_id, service_types, primary_service_type, domiciliary_monthly_price_pence, domiciliary_active_monthly_price_pence, domiciliary_quote_accepted_at, domiciliary_quote_updated_at, domiciliary_price_vat_behavior, domiciliary_stripe_subscription_id FROM organizations WHERE id = $1`,
       [orgId]
     );
     if (result.rows.length === 0) throw new AppError(404, 'Organization not found');
@@ -25,6 +26,7 @@ export class BillingController {
     if (org.stripe_customer_id && typeof org.stripe_customer_id !== 'string') {
       throw new AppError(500, 'Invalid Stripe customer configuration');
     }
+    const isDomiciliary = isDomiciliaryServiceTypes(org.primary_service_type, org.service_types);
     const trialEndsAt = org.trial_ends_at ? new Date(org.trial_ends_at) : null;
     const daysRemaining = trialEndsAt
       ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / 86400000))
@@ -33,32 +35,75 @@ export class BillingController {
     const stripe = getStripe();
     let stripeSubscription: any = null;
     let stripeUnavailable = false;
+    let domiciliaryBillingAddress: any = null;
     // Guard: skip ALL Stripe reconciliation when stripe_customer_id is missing.
     // Without this guard, clearing the customer ID for local trial testing causes
     // the billing controller to overwrite local trial dates or cancel the org.
     const hasStripeCustomer = !!(stripe && typeof org.stripe_customer_id === 'string' && org.stripe_customer_id.trim() !== '');
-    if (hasStripeCustomer) {
-      let subs: Stripe.ApiList<Stripe.Subscription>;
+    if (hasStripeCustomer && req.user!.role === 'ORG_ADMIN') {
       try {
-        subs = await stripe.subscriptions.list({ customer: org.stripe_customer_id, limit: 1, status: 'all' });
+        const customer = await stripe.customers.retrieve(org.stripe_customer_id);
+        if (!('deleted' in customer) || !customer.deleted) {
+          domiciliaryBillingAddress = customer.address ? {
+            line1: customer.address.line1 || '',
+            line2: customer.address.line2 || '',
+            city: customer.address.city || '',
+            postal_code: customer.address.postal_code || '',
+            country: customer.address.country || 'GB',
+          } : null;
+        }
+      } catch (err) { logWarn('stripe billing address lookup')(err); }
+    }
+    if (hasStripeCustomer) {
+      let subscriptionList: Stripe.Subscription[] = [];
+      try {
+        if (org.domiciliary_stripe_subscription_id) {
+          const domiciliarySub = await stripe.subscriptions.retrieve(org.domiciliary_stripe_subscription_id);
+          if (!isStripeSubscriptionForCustomer(domiciliarySub.customer as any, org.stripe_customer_id)) {
+            throw new Error('Recorded domiciliary subscription belongs to a different Stripe customer');
+          }
+          subscriptionList = [domiciliarySub];
+        } else if (!isDomiciliary) {
+          let hasMore = true;
+          let startingAfter: string | undefined;
+          while (hasMore) {
+            const subs = await stripe.subscriptions.list({ customer: org.stripe_customer_id, limit: 100, status: 'all', ...(startingAfter ? { starting_after: startingAfter } : {}) });
+            subscriptionList.push(...subs.data.filter(sub => sub.metadata?.organizationId === orgId));
+            hasMore = subs.has_more;
+            startingAfter = subs.data.at(-1)?.id;
+            if (!subs.data.length || subscriptionList.length) hasMore = false;
+          }
+          if (!subscriptionList.length && !org.primary_service_type && !org.service_types?.length) {
+            const fallback = await stripe.subscriptions.list({ customer: org.stripe_customer_id, limit: 1, status: 'all' });
+            subscriptionList = fallback.data;
+          }
+        }
       } catch (err: any) {
         logWarn('stripe subscription lookup')(err);
         stripeUnavailable = true;
         res.json({
-          plan: org.plan,
+          plan: isDomiciliary ? 'sales_led' : org.plan,
           subscriptionStatus: org.subscription_status,
           trialEndsAt: org.trial_ends_at,
           currentPeriodEnd: org.current_period_end,
           daysRemaining,
-          stripeCustomerId: org.stripe_customer_id,
           stripeSubscription: null,
           hasUnpaidInvoice: false,
           stripeUnavailable,
+          ...(req.user!.role === 'ORG_ADMIN' ? {
+            domiciliaryMonthlyPricePence: org.domiciliary_monthly_price_pence ?? null,
+            domiciliaryActiveMonthlyPricePence: org.domiciliary_active_monthly_price_pence ?? null,
+            domiciliaryQuoteAcceptedAt: org.domiciliary_quote_accepted_at ?? null,
+            domiciliaryQuoteUpdatedAt: org.domiciliary_quote_updated_at ?? null,
+            domiciliaryPriceVatBehavior: org.domiciliary_price_vat_behavior ?? null,
+            domiciliaryStripeSubscriptionId: org.domiciliary_stripe_subscription_id ?? null,
+            domiciliaryBillingAddress,
+          } : {}),
         });
         return;
       }
-      if (subs.data.length > 0) {
-        const sub = subs.data[0];
+      if (subscriptionList.length > 0) {
+        const sub = subscriptionList[0];
         stripeSubscription = {
           id: sub.id,
           status: sub.status,
@@ -80,16 +125,25 @@ export class BillingController {
         const subPeriodEnd = (sub as any).current_period_end;
         const subTrialEnd = (sub as any).trial_end;
         if (stripeMapped || subPeriodEnd || subTrialEnd) {
-          await pool.query(
-            `UPDATE organizations SET
-               subscription_status = COALESCE($1, subscription_status),
-               current_period_end = COALESCE($2::timestamptz, current_period_end),
-               trial_ends_at = $3::timestamptz,
-               grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5::timestamptz ELSE NULL END
-             WHERE id = $4`,
-            [stripeMapped, subPeriodEnd ? new Date(subPeriodEnd * 1000).toISOString() : null, subTrialEnd ? new Date(subTrialEnd * 1000).toISOString() : null, orgId, subPeriodEnd ? new Date((subPeriodEnd + 7 * 86400) * 1000).toISOString() : null]
+          await pool.query(`UPDATE organizations SET subscription_status = COALESCE($1, subscription_status), plan = COALESCE($6, plan), current_period_end = COALESCE($2::timestamptz, current_period_end), trial_ends_at = $3::timestamptz, grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $2 IS NOT NULL THEN $5::timestamptz ELSE NULL END WHERE id = $4`,
+            [stripeMapped, subPeriodEnd ? new Date(subPeriodEnd * 1000).toISOString() : null, subTrialEnd ? new Date(subTrialEnd * 1000).toISOString() : null, orgId, subPeriodEnd ? new Date((subPeriodEnd + 7 * 86400) * 1000).toISOString() : null, sub.metadata?.plan || null]
           );
           if (stripeMapped) org.subscription_status = stripeMapped;
+          if (!isDomiciliary && sub.metadata?.plan) org.plan = sub.metadata.plan;
+          if (isDomiciliary && org.domiciliary_stripe_subscription_id === sub.id) {
+            if (sub.status === 'canceled') {
+              await pool.query(`UPDATE organizations SET subscription_status = 'canceled', domiciliary_quote_accepted_at = NULL, domiciliary_active_monthly_price_pence = NULL WHERE id = $1 AND domiciliary_stripe_subscription_id = $2`, [orgId, sub.id]);
+              org.domiciliary_quote_accepted_at = null;
+              org.domiciliary_active_monthly_price_pence = null;
+              org.subscription_status = 'canceled';
+            } else if (sub.status === 'active') {
+              await pool.query(`UPDATE organizations SET subscription_status = 'active' WHERE id = $1`, [orgId]);
+              org.subscription_status = 'active';
+            } else if (sub.status === 'past_due' || sub.status === 'unpaid') {
+              await pool.query(`UPDATE organizations SET subscription_status = 'past_due' WHERE id = $1`, [orgId]);
+              org.subscription_status = 'past_due';
+            }
+          }
           if (subPeriodEnd) org.current_period_end = new Date(subPeriodEnd * 1000).toISOString();
           if (subTrialEnd) org.trial_ends_at = new Date(subTrialEnd * 1000).toISOString();
         }
@@ -97,7 +151,9 @@ export class BillingController {
         // No Stripe subscription found but DB thinks it's active — mark expired
         // ONLY if this org actually has a Stripe subscription (not a local trial).
         // Trial orgs without a Stripe customer should never be auto-canceled here.
-        if ((org.subscription_status === 'active' || org.subscription_status === 'past_due') && org.stripe_customer_id) {
+        if ((org.subscription_status === 'active' || org.subscription_status === 'past_due')
+          && org.stripe_customer_id
+          && (!isDomiciliary || org.domiciliary_stripe_subscription_id)) {
           await pool.query(
             `UPDATE organizations SET subscription_status = 'canceled' WHERE id = $1`,
             [orgId]
@@ -109,24 +165,211 @@ export class BillingController {
 
     // Expose whether there's an open (unpaid) invoice so the UI can offer a manual retry
     let hasUnpaidInvoice = false;
-    if (hasStripeCustomer) {
+    if (hasStripeCustomer && (!isDomiciliary || org.domiciliary_stripe_subscription_id)) {
       try {
-        const openInvoices = await stripe.invoices.list({ customer: org.stripe_customer_id, status: 'open', limit: 1 });
-        hasUnpaidInvoice = openInvoices.data.length > 0;
+        const openInvoices = await stripe.invoices.list({
+          customer: org.stripe_customer_id,
+          status: 'open',
+          limit: 100,
+          ...(isDomiciliary ? { subscription: org.domiciliary_stripe_subscription_id } : {}),
+        });
+        hasUnpaidInvoice = openInvoices.data.some(invoice => !isDomiciliary
+          || isInvoiceForSubscription(invoice as any, org.domiciliary_stripe_subscription_id));
       } catch { /* best-effort */ }
     }
 
     res.json({
-      plan: org.plan,
+      plan: isDomiciliary ? 'sales_led' : org.plan,
       subscriptionStatus: org.subscription_status,
       trialEndsAt: org.trial_ends_at,
       currentPeriodEnd: org.current_period_end,
       daysRemaining,
-      stripeCustomerId: org.stripe_customer_id,
       stripeSubscription,
       hasUnpaidInvoice,
       stripeUnavailable,
+      ...(req.user!.role === 'ORG_ADMIN' ? {
+        domiciliaryMonthlyPricePence: org.domiciliary_monthly_price_pence ?? null,
+        domiciliaryActiveMonthlyPricePence: org.domiciliary_active_monthly_price_pence ?? null,
+        domiciliaryQuoteAcceptedAt: org.domiciliary_quote_accepted_at ?? null,
+        domiciliaryQuoteUpdatedAt: org.domiciliary_quote_updated_at ?? null,
+        domiciliaryPriceVatBehavior: org.domiciliary_price_vat_behavior ?? null,
+        domiciliaryStripeSubscriptionId: org.domiciliary_stripe_subscription_id ?? null,
+        domiciliaryBillingAddress,
+      } : {}),
     });
+  }
+
+  static async updateDomiciliaryBillingAddress(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    const address = req.body.address;
+    if (!address || typeof address !== 'object' || address.country !== 'GB'
+      || typeof address.line1 !== 'string' || !address.line1.trim()
+      || typeof address.city !== 'string' || !address.city.trim()
+      || typeof address.postal_code !== 'string' || !address.postal_code.trim()) {
+      throw new AppError(400, 'A valid UK billing address is required');
+    }
+    const org = await pool.query(
+      `SELECT stripe_customer_id, primary_service_type, service_types FROM organizations WHERE id = $1`,
+      [orgId],
+    );
+    if (!org.rows[0]) throw new AppError(404, 'Organization not found');
+    if (!isDomiciliaryServiceTypes(org.rows[0].primary_service_type, org.rows[0].service_types)) {
+      throw new AppError(403, 'This action is only available for domiciliary organisations');
+    }
+    const stripe = getStripe();
+    if (!stripe) throw new AppError(503, 'Stripe is not configured for secure domiciliary billing');
+    const customerId = org.rows[0].stripe_customer_id || await getOrCreateCustomer(
+      orgId, ((req.user as any).email as string) || orgId, 'MeticleCare domiciliary organisation',
+    );
+    if (!customerId) throw new AppError(503, 'Stripe customer could not be created');
+    await stripe.customers.update(customerId, {
+      address: {
+        line1: address.line1.trim(),
+        ...(address.line2?.trim() ? { line2: address.line2.trim() } : {}),
+        city: address.city.trim(),
+        postal_code: address.postal_code.trim().toUpperCase(),
+        country: 'GB',
+      },
+    });
+    res.json({ message: 'UK billing address saved' });
+  }
+
+  static async acceptDomiciliaryQuote(req: Request, res: Response) {
+    const orgId = req.user!.organizationId!;
+    const org = await pool.query(
+      `SELECT domiciliary_monthly_price_pence, domiciliary_stripe_price_id,
+              domiciliary_quote_accepted_at, domiciliary_quote_updated_at,
+              domiciliary_subscription_generation, primary_service_type, service_types, subscription_status, domiciliary_price_vat_behavior
+       FROM organizations WHERE id = $1`,
+      [orgId],
+    );
+    if (!org.rows[0]) throw new AppError(404, 'Organization not found');
+    let row = org.rows[0];
+    if (!isDomiciliaryServiceTypes(row.primary_service_type, row.service_types)) {
+      throw new AppError(403, 'This action is only available for domiciliary organisations');
+    }
+    if (!Number.isSafeInteger(row.domiciliary_monthly_price_pence) || row.domiciliary_monthly_price_pence <= 0) {
+      throw new AppError(409, 'Your organisation does not have an agreed subscription price yet. Please contact sales.');
+    }
+    if (!['inclusive', 'exclusive'].includes(row.domiciliary_price_vat_behavior)) {
+      throw new AppError(409, 'Your quote does not specify VAT treatment. Please contact sales.');
+    }
+    const stripe = getStripe();
+    if (!stripe) throw new AppError(503, 'Stripe is not configured for secure domiciliary billing');
+    let advisoryLocked = false;
+    try {
+      const lockResult = await pool.query('SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS locked', [orgId]);
+      if (!lockResult.rows[0]?.locked) throw new AppError(409, 'A billing update is already in progress for this organisation. Please try again.');
+      advisoryLocked = true;
+      // Reload under the same org-scoped advisory lock used by quote updates,
+      // so Stripe can never activate an amount that sales changed concurrently.
+      const lockedQuote = await pool.query(
+        `SELECT domiciliary_monthly_price_pence, domiciliary_stripe_price_id,
+                domiciliary_quote_accepted_at, domiciliary_quote_updated_at,
+                domiciliary_subscription_generation, primary_service_type, service_types, subscription_status, domiciliary_price_vat_behavior
+         FROM organizations WHERE id = $1`,
+        [orgId],
+      );
+      row = lockedQuote.rows[0];
+      if (!row || !isDomiciliaryServiceTypes(row.primary_service_type, row.service_types)
+        || !Number.isSafeInteger(row.domiciliary_monthly_price_pence) || row.domiciliary_monthly_price_pence <= 0
+        || !['inclusive', 'exclusive'].includes(row.domiciliary_price_vat_behavior)) {
+        throw new AppError(409, 'Your domiciliary quote changed. Review the latest quote and try again.');
+      }
+      const userEmail = ((req.user as any).email as string) || orgId;
+      const customerId = await getOrCreateCustomer(orgId, userEmail, 'MeticleCare domiciliary organisation');
+      if (!customerId) throw new AppError(503, 'Stripe customer could not be created');
+      const defaultPaymentMethod = await pool.query(
+        'SELECT stripe_payment_method_id FROM payment_methods WHERE organization_id = $1 AND is_default = TRUE LIMIT 1',
+        [orgId],
+      );
+      const paymentMethodId = defaultPaymentMethod.rows[0]?.stripe_payment_method_id;
+      if (!paymentMethodId) throw new AppError(409, 'Add a default payment card before activating your domiciliary subscription');
+      const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+      if (paymentMethod.customer && paymentMethod.customer !== customerId) {
+        throw new AppError(409, 'The default payment card belongs to another billing account');
+      }
+      if (!paymentMethod.customer) await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+      await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: paymentMethodId } });
+      const customer = await stripe.customers.retrieve(customerId);
+      if ('deleted' in customer && customer.deleted) throw new AppError(409, 'Stripe customer is unavailable');
+      if (!customer.address?.line1 || !customer.address?.city || !customer.address?.postal_code || customer.address.country !== 'GB') {
+        throw new AppError(409, 'Add your UK billing address in Billing settings before activating the subscription');
+      }
+      const vatBehavior = row.domiciliary_price_vat_behavior as DomiciliaryVatBehavior;
+      const priceId = row.domiciliary_stripe_price_id || await getOrCreateDomiciliaryPrice(row.domiciliary_monthly_price_pence, vatBehavior);
+      const price = await stripe.prices.retrieve(priceId);
+      if (!isExpectedDomiciliaryContractPrice(row.domiciliary_monthly_price_pence, vatBehavior, price)) {
+        throw new AppError(409, 'The saved Stripe price does not match your agreed quote. Contact sales.');
+      }
+      const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 });
+      const current = subscriptions.data.filter(sub => ['active', 'trialing', 'past_due', 'unpaid', 'incomplete'].includes(sub.status));
+      if (current.length > 1) throw new AppError(409, 'Multiple subscriptions need billing support review');
+      if (current.length === 1 && current[0].metadata?.pricingModel !== 'sales_led') {
+        throw new AppError(409, 'An existing subscription needs a billing review before the domiciliary agreement can be activated');
+      }
+      const generation = Number(row.domiciliary_subscription_generation || 0)
+        + (!current.length && row.domiciliary_stripe_subscription_id
+          && !row.domiciliary_quote_accepted_at ? 1 : 0);
+      let subscription: Stripe.Subscription;
+      if (current.length === 1) {
+        const item = current[0].items.data[0];
+        if (!item?.id) throw new AppError(409, 'Existing Stripe subscription has no billable item');
+        subscription = await stripe.subscriptions.update(current[0].id, {
+          items: [{ id: item.id, price: priceId }],
+          proration_behavior: 'none',
+          cancel_at_period_end: false,
+          default_payment_method: paymentMethodId,
+          automatic_tax: { enabled: true },
+          metadata: { organizationId: orgId, serviceType: 'domiciliary', pricingModel: 'sales_led', vatBehavior },
+        });
+      } else {
+        subscription =          await stripe.subscriptions.create({
+          customer: customerId,
+          items: [{ price: priceId }],
+          default_payment_method: paymentMethodId,
+          automatic_tax: { enabled: true },
+          metadata: { organizationId: orgId, serviceType: 'domiciliary', pricingModel: 'sales_led', vatBehavior },
+        }, { idempotencyKey: `domiciliary-contract-${orgId}-${new Date(row.domiciliary_quote_updated_at || 0).getTime()}-${generation}` });
+      }
+      if (!['active', 'trialing', 'past_due'].includes(subscription.status)) {
+        throw new AppError(409, `Stripe subscription is ${subscription.status}; complete payment setup before activating the agreement`);
+      }
+      const persisted = await pool.query(
+        `UPDATE organizations SET          domiciliary_quote_accepted_at = COALESCE(domiciliary_quote_accepted_at, NOW()),
+          domiciliary_subscription_generation = $10,
+          domiciliary_active_monthly_price_pence = $7,
+          domiciliary_stripe_price_id = $1, domiciliary_stripe_subscription_id = $2,
+          subscription_status = CASE WHEN $3 = 'trialing' THEN 'trial' WHEN $3 = 'past_due' THEN 'past_due' ELSE 'active' END,
+          current_period_end = to_timestamp($4), trial_ends_at = to_timestamp($5)
+         WHERE id = $6
+           AND domiciliary_monthly_price_pence = $7
+           AND domiciliary_price_vat_behavior = $8
+           AND domiciliary_quote_updated_at IS NOT DISTINCT FROM $9::timestamptz`,
+        [priceId, subscription.id, subscription.status, (subscription as any).current_period_end || null, (subscription as any).trial_end || null, orgId, row.domiciliary_monthly_price_pence, vatBehavior, row.domiciliary_quote_updated_at, generation],
+      );
+      if (persisted.rowCount !== 1) {
+        if (current.length === 0) {
+          await stripe.subscriptions.cancel(subscription.id, { invoice_now: false, prorate: false }).catch(logWarn('cancel stale domiciliary subscription'));
+        }
+        throw new AppError(409, 'The domiciliary quote changed during activation. Review the latest quote and try again.');
+      }
+      await pool.query(
+        `INSERT INTO domiciliary_billing_audit (organization_id, actor_user_id, action, monthly_price_pence, stripe_price_id, details)
+         VALUES ($1, $2, 'subscription_activated', $3, $4, $5::jsonb)`,
+        [orgId, req.user!.userId, row.domiciliary_monthly_price_pence, priceId, JSON.stringify({ subscription_id: subscription.id, status: subscription.status })],
+      );
+      res.json({ message: 'Domiciliary subscription activated', status: subscription.status });
+    } catch (err: any) {
+      logWarn('domiciliary subscription acceptance')(err);
+      if (err instanceof AppError) throw err;
+      if (process.env.NODE_ENV === 'production') throw new AppError(503, 'Stripe could not activate the agreed domiciliary subscription');
+      throw new AppError(502, 'Stripe could not activate the agreed domiciliary subscription');
+    } finally {
+      if (advisoryLocked) {
+        await pool.query('SELECT pg_advisory_unlock(hashtextextended($1, 0))', [orgId]).catch(logWarn('release domiciliary billing lock'));
+      }
+    }
   }
 
   static async updatePlan(req: Request, res: Response) {
@@ -134,14 +377,17 @@ export class BillingController {
     const userEmail = ((req.user as any).email as string) || orgId;
     const { plan } = req.body;
     const orgState = await pool.query(
-      'SELECT subscription_status, trial_ends_at FROM organizations WHERE id = $1',
+      'SELECT subscription_status, trial_ends_at, service_types, primary_service_type FROM organizations WHERE id = $1',
       [orgId]
     );
     if (orgState.rows.length === 0) throw new AppError(404, 'Organization not found');
     const currentSubscriptionStatus = orgState.rows[0].subscription_status || 'trial';
     const currentTrialEndsAt = orgState.rows[0].trial_ends_at ? new Date(orgState.rows[0].trial_ends_at) : null;
+    const isDomiciliary = isDomiciliaryServiceTypes(orgState.rows[0].primary_service_type, orgState.rows[0].service_types);
+    const planType = typeof plan === 'string' ? plan : '';
+    if (isDomiciliary) throw new AppError(409, 'Domiciliary subscriptions are sales-led. Contact the MeticleCare team to agree your plan and price.');
     const validPlans = ['starter', 'professional'];
-    if (!validPlans.includes(plan)) throw new AppError(400, 'Invalid plan');
+    if (!validPlans.includes(planType)) throw new AppError(400, 'Invalid plan');
 
     const stripe = getStripe();
     if (!stripe && process.env.NODE_ENV === 'production') throw new AppError(503, 'Stripe is not configured for production billing');
@@ -154,12 +400,14 @@ export class BillingController {
         if (customerId) {
           const price = await getOrCreatePrice(plan);
           if (price) {
-            // Defensive: verify the price amount one more time before any charge
+            // Defensive: verify the exact recurring GBP price before a charge.
             const verifyPrice = await stripe.prices.retrieve(price);
-            const expectedAmount = plan === 'starter' ? 9900 : 29900;
-            console.log(`[billing] updatePlan: org=${orgId}, plan=${plan}, price=${price}, verified_amount=${verifyPrice.unit_amount}, expected=${expectedAmount}`);
-            if (verifyPrice.unit_amount !== expectedAmount) {
-              throw new AppError(500, `Stripe price ${price} charges £${((verifyPrice.unit_amount || 0) / 100).toFixed(2)} but the app expects £${(expectedAmount / 100).toFixed(2)}. Contact support to correct the Stripe price configuration.`);
+            const expectedPrice = PLAN_PRICE_CONFIG[plan as keyof typeof PLAN_PRICE_CONFIG];
+            if (!verifyPrice.active || verifyPrice.currency !== expectedPrice.currency
+              || verifyPrice.unit_amount !== expectedPrice.amount
+              || verifyPrice.recurring?.interval !== expectedPrice.interval
+              || (verifyPrice.recurring?.interval_count ?? 1) !== 1) {
+              throw new AppError(500, `Stripe price ${price} does not match the configured ${plan} subscription price. Contact support to correct Stripe configuration.`);
             }
             const defaultPaymentMethod = await pool.query(
               'SELECT stripe_payment_method_id FROM payment_methods WHERE organization_id = $1 AND is_default = TRUE LIMIT 1',
@@ -196,6 +444,7 @@ export class BillingController {
                 items: [{ id: subscriptionItem.id, price }],
                 proration_behavior: 'none',
                 cancel_at_period_end: false,
+                metadata: { organizationId: orgId, plan },
                 ...(paymentMethodId ? { default_payment_method: paymentMethodId } : {}),
               });
               sub = await stripe.subscriptions.retrieve(existingSubscription.id);
@@ -262,14 +511,26 @@ export class BillingController {
     const orgId = req.user!.organizationId!;
     // Backfill from Stripe so invoices appear (and can be downloaded) even if a
     // webhook was missed or the org subscribed outside the app.
-    const org = await pool.query('SELECT stripe_customer_id FROM organizations WHERE id = $1', [orgId]);
+    const org = await pool.query(
+      'SELECT stripe_customer_id, primary_service_type, service_types, domiciliary_stripe_subscription_id FROM organizations WHERE id = $1',
+      [orgId],
+    );
+    const isDomiciliary = isDomiciliaryServiceTypes(org.rows[0]?.primary_service_type, org.rows[0]?.service_types);
+    const domiciliarySubscriptionId = org.rows[0]?.domiciliary_stripe_subscription_id as string | null;
     const stripe = getStripe();
-    if (stripe && org.rows[0]?.stripe_customer_id) {
+    if (stripe && org.rows[0]?.stripe_customer_id && (!isDomiciliary || domiciliarySubscriptionId)) {
       try {
-        const stripeInvoices = await stripe.invoices.list({ customer: org.rows[0].stripe_customer_id, limit: 24 });
+        const stripeInvoices = await stripe.invoices.list({
+          customer: org.rows[0].stripe_customer_id,
+          limit: 100,
+          ...(isDomiciliary ? { subscription: domiciliarySubscriptionId! } : {}),
+        });
         for (const inv of stripeInvoices.data) {
+          if (isDomiciliary && !isInvoiceForSubscription(inv as any, domiciliarySubscriptionId)) continue;
           const amount = (inv.amount_paid || inv.amount_due || 0) / 100;
-          const status = inv.status === 'paid' ? 'paid' : inv.status === 'open' ? 'open' : inv.status;
+          const status = inv.status === 'paid' ? 'paid' : inv.status === 'open'
+            ? (inv.attempted && inv.next_payment_attempt == null ? 'past_due' : 'open')
+            : inv.status || 'open';
           const description = inv.lines?.data?.[0]?.description || inv.description || 'Meticle Care subscription';
           const existing = await pool.query(
             'SELECT id FROM invoices WHERE organization_id = $1 AND stripe_invoice_id = $2',
@@ -277,14 +538,14 @@ export class BillingController {
           );
           if (existing.rows.length > 0) {
             await pool.query(
-              `UPDATE invoices SET status = $1, amount = $2, description = $3, issued_at = to_timestamp($4) WHERE id = $5`,
-              [status, amount, description, inv.created, existing.rows[0].id]
+              `UPDATE invoices SET status = $1, amount = $2, description = $3, issued_at = to_timestamp($4), paid_at = CASE WHEN $1 = 'paid' THEN COALESCE(paid_at, to_timestamp($6)) ELSE NULL END WHERE id = $5`,
+              [status, amount, description, inv.created, existing.rows[0].id, inv.status_transitions?.paid_at || inv.created]
             );
           } else {
             await pool.query(
               `INSERT INTO invoices (organization_id, invoice_number, description, amount, currency, status, stripe_invoice_id, issued_at, paid_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, to_timestamp($8), CASE WHEN $6 = 'paid' THEN to_timestamp($8) ELSE NULL END)`,
-              [orgId, inv.number || `STRIPE-${inv.id.slice(-8)}`, description, amount, inv.currency?.toUpperCase() || 'GBP', status, inv.id, inv.created]
+               VALUES ($1, $2, $3, $4, $5, $6, $7, to_timestamp($8), CASE WHEN $6 = 'paid' THEN to_timestamp($9) ELSE NULL END)`,
+              [orgId, inv.number || `STRIPE-${inv.id.slice(-8)}`, description, amount, inv.currency?.toUpperCase() || 'GBP', status, inv.id, inv.created, inv.status_transitions?.paid_at || inv.created]
             );
           }
         }
@@ -292,9 +553,12 @@ export class BillingController {
         logWarn('stripe invoice backfill')(err);
       }
     }
+    // Invoice history is organisation-owned, so preserve historical invoices
+    // from previous agreements. Only the live backfill is narrowed to the
+    // recorded domiciliary subscription; retries are scoped separately.
     const result = await pool.query(
       `SELECT * FROM invoices WHERE organization_id = $1 ORDER BY issued_at DESC NULLS LAST, created_at DESC`,
-      [orgId]
+      [orgId],
     );
     res.json(result.rows);
   }
@@ -564,6 +828,14 @@ export class BillingController {
         const invoice = event.data.object as Stripe.Invoice;
         const customer = await stripe.customers.retrieve(invoice.customer as string) as Stripe.Customer;
         const orgId = invoice.metadata?.organizationId || customer.metadata?.organizationId || invoice.metadata?.orgId || customer.metadata?.orgId;
+        const invoiceSubscriptionId = stripeSubscriptionIdFromInvoice(invoice as any);
+        const invoiceOrganization = orgId ? await pool.query(
+          `SELECT primary_service_type, service_types, domiciliary_stripe_subscription_id FROM organizations WHERE id = $1`,
+          [orgId],
+        ) : { rows: [] as any[] };
+        if (!invoiceOrganization.rows[0]) break;
+        const isDomiciliaryInvoice = isDomiciliaryServiceTypes(invoiceOrganization.rows[0].primary_service_type, invoiceOrganization.rows[0].service_types);
+        if (isDomiciliaryInvoice && (!invoiceSubscriptionId || invoiceOrganization.rows[0].domiciliary_stripe_subscription_id !== invoiceSubscriptionId)) break;
         if (orgId && invoice.id) {
           const existing = await pool.query(
             'SELECT id FROM invoices WHERE organization_id = $1 AND stripe_invoice_id = $2',
@@ -571,31 +843,35 @@ export class BillingController {
           );
           if (existing.rows.length > 0) {
             await pool.query(
-              `UPDATE invoices SET status = 'paid', paid_at = NOW() WHERE id = $1`,
-              [existing.rows[0].id]
+              `UPDATE invoices SET status = 'paid', paid_at = COALESCE(to_timestamp($2), NOW()) WHERE id = $1`,
+              [existing.rows[0].id, invoice.status_transitions?.paid_at || null]
             );
           } else {
             await pool.query(
               `INSERT INTO invoices (organization_id, invoice_number, description, amount, currency, status, stripe_invoice_id, issued_at, paid_at)
-               VALUES ($1, $2, $3, $4, $5, 'paid', $6, to_timestamp($7), NOW())`,
-              [orgId, `STRIPE-${invoice.number || Date.now()}`, `Stripe invoice ${invoice.id}`, (invoice.amount_paid || 0) / 100, invoice.currency?.toUpperCase() || 'GBP', invoice.id, invoice.created]
+               VALUES ($1, $2, $3, $4, $5, 'paid', $6, to_timestamp($7), to_timestamp($8))`,
+              [orgId, `STRIPE-${invoice.number || Date.now()}`, `Stripe invoice ${invoice.id}`, (invoice.amount_paid || 0) / 100, invoice.currency?.toUpperCase() || 'GBP', invoice.id, invoice.created, invoice.status_transitions?.paid_at || invoice.created]
             );
           }
-          // Payment succeeded after failures — reset tracking and reactivate
+          // Payment succeeded after failures — only the current domiciliary
+          // subscription may clear dunning and reactivate its organisation.
           await pool.query(
-            `UPDATE organizations SET failed_payment_count = 0, first_payment_failed_at = NULL, last_payment_failed_at = NULL, dunning_email_milestones = '{}', subscription_status = 'active' WHERE id = $1 AND subscription_status = 'past_due'`,
-            [orgId]
+            `UPDATE organizations SET failed_payment_count = 0, first_payment_failed_at = NULL, last_payment_failed_at = NULL, dunning_email_milestones = '{}', subscription_status = 'active'
+             WHERE id = $1 AND subscription_status = 'past_due'
+               AND ($2 = FALSE OR domiciliary_stripe_subscription_id = $3)`,
+            [orgId, isDomiciliaryInvoice, invoiceSubscriptionId]
           );
           // Persist the period end for reminder/win-back jobs
           const periodEnd = invoice.lines?.data?.[0]?.period?.end;
           if (periodEnd) {
             await pool.query(
-              `UPDATE organizations SET current_period_end = to_timestamp($1), grace_period_ends_at = to_timestamp($1 + (COALESCE(grace_period_days, 7) * 86400)) WHERE id = $2`,
-              [periodEnd, orgId]
+              `UPDATE organizations SET current_period_end = to_timestamp($1), grace_period_ends_at = to_timestamp($1 + (COALESCE(grace_period_days, 7) * 86400))
+               WHERE id = $2 AND ($3 = FALSE OR domiciliary_stripe_subscription_id = $4)`,
+              [periodEnd, orgId, isDomiciliaryInvoice, invoiceSubscriptionId]
             );
           }
           // Send the customer a receipt — only for paid subscription invoices (amount > 0)
-          if ((invoice as any).subscription && (invoice.amount_paid || 0) > 0) {
+          if (invoiceSubscriptionId && (invoice.amount_paid || 0) > 0) {
             const admins = await pool.query(
               "SELECT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'",
               [orgId]
@@ -621,14 +897,19 @@ export class BillingController {
         const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer as string) as Stripe.Customer;
         const orgIdFailed = failedInvoice.metadata?.organizationId || failedCustomer.metadata?.organizationId || failedInvoice.metadata?.orgId || failedCustomer.metadata?.orgId;
         if (!orgIdFailed) break;
-        // Track failure
+        const failedSubscriptionId = stripeSubscriptionIdFromInvoice(failedInvoice as any);
+        const failedOrg = await pool.query('SELECT primary_service_type, service_types, domiciliary_stripe_subscription_id FROM organizations WHERE id = $1', [orgIdFailed]);
+        if (!failedOrg.rows[0]) break;
+        const isDomiciliaryFailure = isDomiciliaryServiceTypes(failedOrg.rows[0].primary_service_type, failedOrg.rows[0].service_types);
+        if (isDomiciliaryFailure && (!failedSubscriptionId || failedOrg.rows[0].domiciliary_stripe_subscription_id !== failedSubscriptionId)) break;
+        // Track failure only for the current subscription on sales-led accounts.
         await pool.query(
           `UPDATE organizations SET
             failed_payment_count = COALESCE(failed_payment_count, 0) + 1,
             last_payment_failed_at = NOW(),
             first_payment_failed_at = COALESCE(first_payment_failed_at, NOW())
-          WHERE id = $1`,
-          [orgIdFailed]
+          WHERE id = $1 AND ($2 = FALSE OR domiciliary_stripe_subscription_id = $3)`,
+          [orgIdFailed, isDomiciliaryFailure, failedSubscriptionId]
         );
 
         const orgRow = await pool.query(
@@ -636,6 +917,7 @@ export class BillingController {
           [orgIdFailed]
         );
         const attemptCount = failedInvoice.attempt_count || 0;
+        if (isDomiciliaryFailure && !orgRow.rows[0]) break;
         const firstFailedAt = orgRow.rows[0]?.first_payment_failed_at;
         const daysSinceFirstFailure = firstFailedAt
           ? Math.floor((Date.now() - new Date(firstFailedAt).getTime()) / 86400000)
@@ -662,8 +944,9 @@ export class BillingController {
         const dunning = selectDunningMilestone({ daysSinceFirstFailure, declineCode, sentMilestones: milestones });
         if (dunning) {
           await pool.query(
-            `UPDATE organizations SET dunning_email_milestones = array_append(COALESCE(dunning_email_milestones, '{}'::int[]), $1) WHERE id = $2`,
-            [dunning.milestoneDay, orgIdFailed]
+            `UPDATE organizations SET dunning_email_milestones = array_append(COALESCE(dunning_email_milestones, '{}'::int[]), $1)
+             WHERE id = $2 AND ($3 = FALSE OR domiciliary_stripe_subscription_id = $4)`,
+            [dunning.milestoneDay, orgIdFailed, isDomiciliaryFailure, failedSubscriptionId]
           );
           const admins = await pool.query(
             "SELECT u.email, COALESCE(NULLIF(sp.first_name || ' ' || sp.last_name, ''), u.email) as name, COALESCE((SELECT name FROM organizations WHERE id = $1), '') as org_name FROM users u LEFT JOIN staff_profiles sp ON u.id = sp.user_id WHERE u.organization_id = $1 AND u.role = 'ORG_ADMIN' AND u.status = 'active'",
@@ -691,8 +974,9 @@ export class BillingController {
         // grace state. Access is still kept (grace period) while dunning continues.
         if (attemptCount >= 5 || daysSinceFirstFailure >= 7) {
           await pool.query(
-            `UPDATE organizations SET subscription_status = 'past_due' WHERE id = $1`,
-            [orgIdFailed]
+            `UPDATE organizations SET subscription_status = 'past_due' WHERE id = $1
+             AND ($2 = FALSE OR domiciliary_stripe_subscription_id = $3)`,
+            [orgIdFailed, isDomiciliaryFailure, failedSubscriptionId]
           );
         }
         break;
@@ -702,6 +986,10 @@ export class BillingController {
         const actionCustomer = await stripe.customers.retrieve(actionInvoice.customer as string) as Stripe.Customer;
         const orgIdAction = actionInvoice.metadata?.organizationId || actionCustomer.metadata?.organizationId || actionInvoice.metadata?.orgId || actionCustomer.metadata?.orgId;
         if (orgIdAction && (actionInvoice.amount_due || 0) > 0) {
+          const actionSubscriptionId = stripeSubscriptionIdFromInvoice(actionInvoice as any);
+          const actionOrg = await pool.query('SELECT primary_service_type, service_types, domiciliary_stripe_subscription_id FROM organizations WHERE id = $1', [orgIdAction]);
+          if (actionOrg.rows[0] && isDomiciliaryServiceTypes(actionOrg.rows[0].primary_service_type, actionOrg.rows[0].service_types)
+            && (!actionSubscriptionId || actionOrg.rows[0].domiciliary_stripe_subscription_id !== actionSubscriptionId)) break;
           const amount = (actionInvoice.amount_due || 0) / 100;
           const currency = (actionInvoice.currency || 'gbp').toUpperCase();
           const admins = await pool.query(
@@ -721,9 +1009,26 @@ export class BillingController {
         const orgIdSub = sub.metadata?.organizationId || customer.metadata?.organizationId || sub.metadata?.orgId || customer.metadata?.orgId;
         if (orgIdSub) {
           const status = sub.status === 'active' ? 'active' : sub.status === 'trialing' ? 'trial' : sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' : sub.status === 'canceled' ? 'canceled' : null;
+          const orgService = await pool.query('SELECT primary_service_type, service_types, domiciliary_stripe_subscription_id FROM organizations WHERE id = $1', [orgIdSub]);
+          const domiciliary = sub.metadata?.pricingModel === 'sales_led' || sub.metadata?.serviceType === 'domiciliary'
+            || (!!orgService.rows[0] && isDomiciliaryServiceTypes(orgService.rows[0].primary_service_type, orgService.rows[0].service_types));
+          if (domiciliary && orgService.rows[0]?.domiciliary_stripe_subscription_id !== sub.id) break;
           await pool.query(
-            `UPDATE organizations SET subscription_status = COALESCE($1, subscription_status), current_period_end = COALESCE(to_timestamp($3), current_period_end), trial_ends_at = COALESCE(to_timestamp($4), trial_ends_at), grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $3 IS NOT NULL THEN to_timestamp($3 + (COALESCE(grace_period_days, 7) * 86400)) ELSE NULL END WHERE id = $2`,
-            [status, orgIdSub, (sub as any).current_period_end || null, (sub as any).trial_end || null]
+            `UPDATE organizations SET subscription_status = COALESCE($1, subscription_status),
+              domiciliary_quote_accepted_at = CASE WHEN $2 AND $1 = 'canceled' AND domiciliary_stripe_subscription_id = $7 THEN NULL ELSE domiciliary_quote_accepted_at END,
+              domiciliary_active_monthly_price_pence = CASE WHEN $2 AND $1 = 'canceled' AND domiciliary_stripe_subscription_id = $7 THEN NULL ELSE domiciliary_active_monthly_price_pence END,
+              plan = CASE WHEN $2 THEN plan ELSE COALESCE($3, plan) END,
+              current_period_end = COALESCE(to_timestamp($5), current_period_end),
+              trial_ends_at = COALESCE(to_timestamp($6), trial_ends_at),
+              grace_period_ends_at = CASE WHEN $1 IN ('active', 'past_due') AND $5 IS NOT NULL THEN to_timestamp($5 + (COALESCE(grace_period_days, 7) * 86400)) ELSE NULL END
+             WHERE id = $4
+               AND (NOT (
+                 primary_service_type IN ('domiciliary', 'live_in')
+                 OR 'domiciliary' = ANY(COALESCE(service_types, '{}'))
+                 OR 'live_in' = ANY(COALESCE(service_types, '{}'))
+                 OR $2 = TRUE
+               ) OR domiciliary_stripe_subscription_id = $7)`,
+            [status, domiciliary, sub.metadata?.plan || null, orgIdSub, (sub as any).current_period_end || null, (sub as any).trial_end || null, sub.id]
           );
         }
         break;
@@ -734,9 +1039,21 @@ export class BillingController {
         const orgIdDel = deletedSub.metadata?.organizationId || customer.metadata?.organizationId || deletedSub.metadata?.orgId || customer.metadata?.orgId;
         if (orgIdDel) {
           // Keep current_period_end so the win-back email can still fire
+          const orgService = await pool.query('SELECT primary_service_type, service_types FROM organizations WHERE id = $1', [orgIdDel]);
+          const domiciliary = deletedSub.metadata?.pricingModel === 'sales_led' || deletedSub.metadata?.serviceType === 'domiciliary'
+            || (!!orgService.rows[0] && isDomiciliaryServiceTypes(orgService.rows[0].primary_service_type, orgService.rows[0].service_types));
           await pool.query(
-            `UPDATE organizations SET subscription_status = 'canceled', current_period_end = COALESCE(to_timestamp($2), current_period_end), grace_period_ends_at = NULL WHERE id = $1`,
-            [orgIdDel, (deletedSub as any).current_period_end || null]
+            `UPDATE organizations SET subscription_status = 'canceled', current_period_end = COALESCE(to_timestamp($2), current_period_end), grace_period_ends_at = NULL,
+               domiciliary_quote_accepted_at = CASE WHEN $3 AND domiciliary_stripe_subscription_id = $4 THEN NULL ELSE domiciliary_quote_accepted_at END,
+               domiciliary_active_monthly_price_pence = CASE WHEN $3 AND domiciliary_stripe_subscription_id = $4 THEN NULL ELSE domiciliary_active_monthly_price_pence END
+             WHERE id = $1
+               AND (NOT (
+                 primary_service_type IN ('domiciliary', 'live_in')
+                 OR 'domiciliary' = ANY(COALESCE(service_types, '{}'))
+                 OR 'live_in' = ANY(COALESCE(service_types, '{}'))
+                 OR $3 = TRUE
+               ) OR domiciliary_stripe_subscription_id = $4)`,
+            [orgIdDel, (deletedSub as any).current_period_end || null, domiciliary, deletedSub.id]
           );
         }
         break;
@@ -747,6 +1064,11 @@ export class BillingController {
         const lifecycleInvoice = event.data.object as Stripe.Invoice;
         const lifecycleCustomer = await stripe.customers.retrieve(lifecycleInvoice.customer as string) as Stripe.Customer;
         const lifecycleOrgId = lifecycleInvoice.metadata?.organizationId || lifecycleCustomer.metadata?.organizationId || lifecycleInvoice.metadata?.orgId || lifecycleCustomer.metadata?.orgId;
+        const lifecycleSubscriptionId = stripeSubscriptionIdFromInvoice(lifecycleInvoice as any);
+        const lifecycleOrg = lifecycleOrgId ? await pool.query('SELECT primary_service_type, service_types, domiciliary_stripe_subscription_id FROM organizations WHERE id = $1', [lifecycleOrgId]) : { rows: [] as any[] };
+        if (!lifecycleOrg.rows[0]) break;
+        if (isDomiciliaryServiceTypes(lifecycleOrg.rows[0].primary_service_type, lifecycleOrg.rows[0].service_types)
+          && (!lifecycleSubscriptionId || lifecycleOrg.rows[0].domiciliary_stripe_subscription_id !== lifecycleSubscriptionId)) break;
         if (lifecycleOrgId && lifecycleInvoice.id) {
           const lifecycleStatus = event.type === 'invoice.voided' ? 'void' : event.type === 'invoice.marked_uncollectible' ? 'uncollectible' : 'deleted';
           await pool.query(
@@ -764,6 +1086,11 @@ export class BillingController {
         const finInvoice = event.data.object as Stripe.Invoice;
         const finCustomer = await stripe.customers.retrieve(finInvoice.customer as string) as Stripe.Customer;
         const orgIdFin = finInvoice.metadata?.organizationId || finCustomer.metadata?.organizationId || finInvoice.metadata?.orgId || finCustomer.metadata?.orgId;
+        const finalizedSubscriptionId = stripeSubscriptionIdFromInvoice(finInvoice as any);
+        const finalizedOrg = orgIdFin ? await pool.query('SELECT primary_service_type, service_types, domiciliary_stripe_subscription_id FROM organizations WHERE id = $1', [orgIdFin]) : { rows: [] as any[] };
+        if (!finalizedOrg.rows[0]) break;
+        if (isDomiciliaryServiceTypes(finalizedOrg.rows[0].primary_service_type, finalizedOrg.rows[0].service_types)
+          && (!finalizedSubscriptionId || finalizedOrg.rows[0].domiciliary_stripe_subscription_id !== finalizedSubscriptionId)) break;
         if (orgIdFin && finInvoice.id && (finInvoice.amount_due || 0) > 0) {
           const amount = (finInvoice.amount_due || 0) / 100;
           const currency = (finInvoice.currency || 'gbp').toUpperCase();
@@ -822,22 +1149,28 @@ export class BillingController {
     if (!stripe) throw new AppError(400, 'Stripe not configured');
 
     const org = await pool.query(
-      'SELECT stripe_customer_id, name FROM organizations WHERE id = $1',
+      'SELECT stripe_customer_id, name, primary_service_type, service_types, domiciliary_stripe_subscription_id FROM organizations WHERE id = $1',
       [orgId]
     );
     const customerId = org.rows[0]?.stripe_customer_id;
     if (!customerId) throw new AppError(400, 'No Stripe customer found');
+    const isDomiciliary = isDomiciliaryServiceTypes(org.rows[0]?.primary_service_type, org.rows[0]?.service_types);
+    const domiciliarySubscriptionId = org.rows[0]?.domiciliary_stripe_subscription_id as string | null;
+    if (isDomiciliary && !domiciliarySubscriptionId) {
+      throw new AppError(409, 'There is no active domiciliary subscription to retry payment for');
+    }
 
-    // Find the latest open/unpaid invoice
+    // Never retry a legacy invoice or a different subscription under the same
+    // Stripe customer. Domiciliary retries must be tied to the recorded contract.
     const invoices = await stripe.invoices.list({
       customer: customerId,
       status: 'open',
-      limit: 1,
+      limit: 100,
+      ...(isDomiciliary ? { subscription: domiciliarySubscriptionId! } : {}),
     });
-
-    if (invoices.data.length === 0) throw new AppError(400, 'No unpaid invoices found');
-
-    const invoice = invoices.data[0];
+    const invoice = invoices.data.find(candidate => !isDomiciliary
+      || isInvoiceForSubscription(candidate as any, domiciliarySubscriptionId));
+    if (!invoice) throw new AppError(400, 'No unpaid invoices found for the current subscription');
     const amount = (invoice.amount_due || 0) / 100;
     const currency = (invoice.currency || 'gbp').toUpperCase();
 
@@ -906,14 +1239,16 @@ export class BillingController {
 
     // Payment succeeded — sync DB immediately (don't wait for the webhook)
     await pool.query(
-      `UPDATE organizations SET subscription_status = 'active', failed_payment_count = 0, first_payment_failed_at = NULL, last_payment_failed_at = NULL, dunning_email_milestones = '{}' WHERE id = $1`,
-      [orgId]
+      `UPDATE organizations SET subscription_status = 'active', failed_payment_count = 0, first_payment_failed_at = NULL, last_payment_failed_at = NULL, dunning_email_milestones = '{}'
+       WHERE id = $1 AND ($2 = FALSE OR domiciliary_stripe_subscription_id = $3)`,
+      [orgId, isDomiciliary, domiciliarySubscriptionId],
     );
     const periodEnd = paid.lines?.data?.[0]?.period?.end;
     if (periodEnd) {
       await pool.query(
-        `UPDATE organizations SET current_period_end = to_timestamp($1), grace_period_ends_at = to_timestamp($1 + (COALESCE(grace_period_days, 7) * 86400)) WHERE id = $2`,
-        [periodEnd, orgId]
+        `UPDATE organizations SET current_period_end = to_timestamp($1), grace_period_ends_at = to_timestamp($1 + (COALESCE(grace_period_days, 7) * 86400))
+         WHERE id = $2 AND ($3 = FALSE OR domiciliary_stripe_subscription_id = $4)`,
+        [periodEnd, orgId, isDomiciliary, domiciliarySubscriptionId],
       );
     }
 
@@ -993,6 +1328,8 @@ export class BillingController {
       [orgId]
     );
     if (result.rows.length === 0) throw new AppError(404, 'Organization not found');
+    // Do not materialize defaults here: a UI save sends the loaded JSON back,
+    // and implicit policy defaults would override existing package-level rules.
     res.json(result.rows[0].billing_config || {});
   }
 

@@ -19,16 +19,17 @@ const stripePublishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_K
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null
 
 const PLANS = [
-  { id: Plan.STARTER, name: 'Starter', price: '99', description: 'For small care teams', features: ['Up to 25 staff', 'Staff profiles', 'Basic compliance', 'Email support'] },
-  { id: Plan.PROFESSIONAL, name: 'Professional', price: '299', description: 'Complete compliance suite', popular: true, features: ['Up to 100 staff', 'All Starter features', 'Automated rota', 'DBS monitoring', 'Full compliance', 'Priority support'] },
+  { id: Plan.STARTER, name: 'Starter', price: '99', description: 'For small care teams', features: ['Core care records and staff tools', 'Scheduling and compliance essentials', 'Email support'] },
+  { id: Plan.PROFESSIONAL, name: 'Professional', price: '299', description: 'For growing care teams', popular: true, features: ['Everything in Starter', 'Expanded operational workflows', 'Advanced reporting and priority support'] },
 ]
+
+type BillingAddress = { line1: string; line2?: string; city: string; postal_code: string; country: 'GB' }
 
 type BillingConfig = {
   domiciliary?: {
-    per_client_monthly?: number
-    per_carer_monthly?: number
-    per_visit?: number
+    travel_time_paid?: boolean
     travel_pay_included?: boolean
+    pay_inter_client_travel?: boolean
     vat_inclusive?: boolean
     vat_rate?: number
   }
@@ -163,7 +164,7 @@ function CardDisplay({ pm, onSetDefault, onRemove }: { pm: any; onSetDefault: ()
 }
 
 function BillingPageInner() {
-  const [subscription, setSubscription] = useState<{ plan: string; subscriptionStatus: string; trialEndsAt: string; currentPeriodEnd: string | null; daysRemaining: number; hasUnpaidInvoice?: boolean; stripeUnavailable?: boolean } | null>(null)
+  const [subscription, setSubscription] = useState<{ plan: string; subscriptionStatus: string; trialEndsAt: string; currentPeriodEnd: string | null; daysRemaining: number; hasUnpaidInvoice?: boolean; stripeUnavailable?: boolean; domiciliaryMonthlyPricePence?: number | null; domiciliaryActiveMonthlyPricePence?: number | null; domiciliaryQuoteAcceptedAt?: string | null; domiciliaryQuoteUpdatedAt?: string | null; domiciliaryPriceVatBehavior?: 'inclusive' | 'exclusive' | null; domiciliaryStripeSubscriptionId?: string | null; domiciliaryBillingAddress?: BillingAddress | null } | null>(null)
   const [invoices, setInvoices] = useState<any[]>([])
   const [paymentMethods, setPaymentMethods] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -177,6 +178,10 @@ function BillingPageInner() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [billingConfig, setBillingConfig] = useState<BillingConfig | null>(null)
   const [savingBillingConfig, setSavingBillingConfig] = useState(false)
+  const [isDomiciliary, setIsDomiciliary] = useState(false)
+  const [billingAddress, setBillingAddress] = useState<BillingAddress>({ line1: '', line2: '', city: '', postal_code: '', country: 'GB' })
+  const [savingAddress, setSavingAddress] = useState(false)
+  const [acceptingQuote, setAcceptingQuote] = useState(false)
 
   const userStr = localStorage.getItem('user')
   let user: any = null
@@ -187,6 +192,11 @@ function BillingPageInner() {
     try {
       const subRes = await api.get('/billing/subscription')
       setSubscription(subRes.data)
+      if (subRes.data?.domiciliaryBillingAddress) {
+        setBillingAddress(current => ({ ...current, ...subRes.data.domiciliaryBillingAddress, country: 'GB' }))
+      } else if (subRes.data?.plan === 'sales_led') {
+        setBillingAddress(current => ({ ...current, line1: '', line2: '', city: '', postal_code: '', country: 'GB' }))
+      }
     } catch { /* non-critical */ }
     try {
       const invRes = await api.get('/billing/invoices')
@@ -198,8 +208,16 @@ function BillingPageInner() {
     } catch { /* non-critical */ }
     if (isOrgAdmin) {
       try {
-        const configRes = await api.get('/billing/pricing-config')
-        setBillingConfig(configRes.data)
+        const orgRes = await api.get('/settings/org')
+        const types: string[] = orgRes.data?.primary_service_type
+          ? [orgRes.data.primary_service_type]
+          : (Array.isArray(orgRes.data?.service_types) ? orgRes.data.service_types : [])
+        const domiciliary = types.some(type => ['domiciliary', 'live_in'].includes(type))
+        setIsDomiciliary(domiciliary)
+        if (domiciliary) {
+          const configRes = await api.get('/billing/pricing-config')
+          setBillingConfig(configRes.data)
+        }
       } catch { /* non-critical: non-admins do not have access */ }
     }
   }
@@ -212,6 +230,29 @@ function BillingPageInner() {
         [field]: value,
       },
     }))
+  }
+
+  const saveDomiciliaryAddress = async () => {
+    setSavingAddress(true)
+    try {
+      await api.put('/billing/domiciliary/billing-address', { address: billingAddress })
+      setMessage('UK billing address saved.')
+      await loadBillingData()
+    } catch (err: any) {
+      setMessage(err?.response?.data?.message || 'Could not save billing address.')
+    } finally { setSavingAddress(false) }
+  }
+
+  const acceptDomiciliaryQuote = async () => {
+    setAcceptingQuote(true)
+    try {
+      const { data } = await api.post('/billing/domiciliary/accept-quote')
+      setMessage(data?.message || 'Domiciliary subscription activated.')
+      await loadBillingData()
+      window.dispatchEvent(new Event('subscriptionUpdated'))
+    } catch (err: any) {
+      setMessage(err?.response?.data?.message || 'Could not activate the agreed subscription.')
+    } finally { setAcceptingQuote(false) }
   }
 
   const saveBillingConfig = async () => {
@@ -332,7 +373,7 @@ function BillingPageInner() {
         </Alert>
       )}
 
-      {!isActive && (
+      {!isActive && !isDomiciliary && (
         <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '2px solid #FEE2E2', bgcolor: 'error.light' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <Box sx={{ flex: 1 }}>
@@ -413,11 +454,70 @@ function BillingPageInner() {
       )}
 
 
+      {isDomiciliary && (
+        <Paper sx={{ p: 3, mb: 4, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>Domiciliary subscription</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
+            Pricing is agreed with our team for your organisation. Your care-package billing profiles are separate and do not affect this platform subscription.
+          </Typography>
+          {subscription?.domiciliaryMonthlyPricePence ? (
+            <Stack spacing={1} sx={{ mb: 2 }}>
+              <Typography variant="h5" fontWeight={800}>
+                Quote: £{(subscription.domiciliaryMonthlyPricePence / 100).toFixed(2)} / month
+                <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                  {subscription.domiciliaryPriceVatBehavior === 'inclusive' ? 'VAT included' : 'VAT added where applicable'}
+                </Typography>
+              </Typography>
+              {subscription.domiciliaryActiveMonthlyPricePence != null && (
+                <Typography variant="body2" color="text.secondary">
+                  Currently billed: £{(subscription.domiciliaryActiveMonthlyPricePence / 100).toFixed(2)} / month
+                </Typography>
+              )}
+              <Typography variant="body2" color="text.secondary">
+                {subscription.domiciliaryQuoteAcceptedAt && subscription.domiciliaryStripeSubscriptionId && subscription.subscriptionStatus !== 'canceled'
+                  ? `Agreed and active${subscription.currentPeriodEnd ? ` · next billing date ${new Date(subscription.currentPeriodEnd).toLocaleDateString('en-GB')}` : ''}`
+                  : 'Draft quote for review. It will not be charged until an organisation admin accepts it.'}
+              </Typography>
+            </Stack>
+          ) : (
+            <Alert severity="info" sx={{ mb: 2 }}>No monthly subscription quote is on file yet. Contact the MeticleCare team to agree your price.</Alert>
+          )}
+          {subscription?.domiciliaryStripeSubscriptionId && subscription?.subscriptionStatus === 'canceled' && (
+            <Alert severity="warning" sx={{ mb: 2 }}>The previous domiciliary subscription has been cancelled. Your current quote remains available for review and activation.</Alert>
+          )}
+          {isOrgAdmin && subscription?.domiciliaryMonthlyPricePence && (
+            <Stack spacing={2}>
+              <Typography variant="subtitle2" fontWeight={700}>UK billing address for VAT invoices</Typography>
+              <Grid container spacing={1.5}>
+                <Grid item xs={12} sm={6}><TextField fullWidth size="small" label="Address line 1" value={billingAddress.line1} onChange={e => setBillingAddress({ ...billingAddress, line1: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth size="small" label="Address line 2 (optional)" value={billingAddress.line2 || ''} onChange={e => setBillingAddress({ ...billingAddress, line2: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth size="small" label="Town / city" value={billingAddress.city} onChange={e => setBillingAddress({ ...billingAddress, city: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth size="small" label="Postcode" value={billingAddress.postal_code} onChange={e => setBillingAddress({ ...billingAddress, postal_code: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={4}><TextField fullWidth size="small" label="Country" value="United Kingdom" disabled /></Grid>
+              </Grid>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                <Button variant="outlined" onClick={saveDomiciliaryAddress} disabled={savingAddress || !billingAddress.line1 || !billingAddress.city || !billingAddress.postal_code}>
+                  {savingAddress ? <CircularProgress size={18} /> : 'Save billing address'}
+                </Button>
+                {!paymentMethods.length && <Button variant="outlined" onClick={() => setAddCardOpen(true)}>Add payment card</Button>}
+                {!!paymentMethods.length && !subscription?.domiciliaryBillingAddress?.line1 && <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>Save the address before accepting the quote.</Typography>}
+                {!(subscription?.domiciliaryQuoteAcceptedAt && subscription?.domiciliaryStripeSubscriptionId && subscription?.subscriptionStatus !== 'canceled') && (
+                  <Button variant="contained" onClick={acceptDomiciliaryQuote}
+                    disabled={acceptingQuote || !paymentMethods.length || !subscription?.domiciliaryBillingAddress?.line1 || !subscription?.domiciliaryBillingAddress?.city || !subscription?.domiciliaryBillingAddress?.postal_code}>
+                    {acceptingQuote ? <CircularProgress size={18} color="inherit" /> : 'Accept quote & activate subscription'}
+                  </Button>
+                )}
+              </Stack>
+            </Stack>
+          )}
+        </Paper>
+      )}
+
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, borderRadius: 2.5, height: '100%' }}>
             <Typography variant="body2" color="#6B7280">Current Plan</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 800, textTransform: 'capitalize' }}>{subscription?.plan || '—'}</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 800, textTransform: 'capitalize' }}>{isDomiciliary ? 'Sales-led agreement' : subscription?.plan || '—'}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={4}>
@@ -443,13 +543,13 @@ function BillingPageInner() {
         </Grid>
       </Grid>
 
-      {isOrgAdmin && billingConfig?.domiciliary && (
+      {isOrgAdmin && isDomiciliary && billingConfig?.domiciliary && (
         <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '1px solid', borderColor: 'grey.200' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2} sx={{ mb: 1 }}>
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>Internal care pricing & VAT</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>Domiciliary VAT & travel settings</Typography>
               <Typography variant="body2" color="#6B7280" sx={{ mt: 0.5 }}>
-                Organisation-only settings for domiciliary cost modelling. These figures are not shown on the public pricing page and do not change the Starter or Professional Stripe charge.
+                Client charges are calculated from each care package’s billing profile or package override in Visits & Packages. These settings control invoice VAT and paid travel policy; they do not change your MeticleCare subscription.
               </Typography>
             </Box>
             <Button variant="contained" onClick={saveBillingConfig} disabled={savingBillingConfig} sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' }, bgcolor: '#0F4C81', textTransform: 'none' }}>
@@ -457,21 +557,6 @@ function BillingPageInner() {
             </Button>
           </Stack>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={4}>
-              <TextField fullWidth size="small" type="number" label="Client rate / month (£)" inputProps={{ min: 0, step: 0.01 }}
-                value={((billingConfig.domiciliary.per_client_monthly || 0) / 100).toFixed(2)}
-                onChange={(e) => updateDomiciliaryConfig('per_client_monthly', Math.max(0, Math.round(Number(e.target.value || 0) * 100)))} />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField fullWidth size="small" type="number" label="Carer rate / month (£)" inputProps={{ min: 0, step: 0.01 }}
-                value={((billingConfig.domiciliary.per_carer_monthly || 0) / 100).toFixed(2)}
-                onChange={(e) => updateDomiciliaryConfig('per_carer_monthly', Math.max(0, Math.round(Number(e.target.value || 0) * 100)))} />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField fullWidth size="small" type="number" label="Per visit (£, optional)" inputProps={{ min: 0, step: 0.01 }}
-                value={((billingConfig.domiciliary.per_visit || 0) / 100).toFixed(2)}
-                onChange={(e) => updateDomiciliaryConfig('per_visit', Math.max(0, Math.round(Number(e.target.value || 0) * 100)))} />
-            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField fullWidth size="small" type="number" label="VAT rate (%)" inputProps={{ min: 0, max: 100, step: 0.1 }}
                 value={billingConfig.domiciliary.vat_rate ?? 20}
@@ -482,24 +567,27 @@ function BillingPageInner() {
                 control={<Switch checked={!!billingConfig.domiciliary.vat_inclusive} onChange={(e) => updateDomiciliaryConfig('vat_inclusive', e.target.checked)} />}
                 label={billingConfig.domiciliary.vat_inclusive ? 'Rates include VAT' : 'Rates exclude VAT'} />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <FormControlLabel sx={{ ml: 0 }}
-                control={<Switch checked={!!billingConfig.domiciliary.travel_pay_included} onChange={(e) => updateDomiciliaryConfig('travel_pay_included', e.target.checked)} />}
-                label="Include travel time in the organisation's paid travel policy" />
+                control={<Switch checked={billingConfig.domiciliary.travel_time_paid ?? billingConfig.domiciliary.travel_pay_included ?? true} onChange={(e) => updateDomiciliaryConfig('travel_time_paid', e.target.checked)} />}
+                label="Pay carers for travel time" />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControlLabel sx={{ ml: 0 }}
+                control={<Switch checked={billingConfig.domiciliary.pay_inter_client_travel ?? true} onChange={(e) => updateDomiciliaryConfig('pay_inter_client_travel', e.target.checked)} />}
+                label="Include travel between client visits" />
             </Grid>
           </Grid>
         </Paper>
       )}
 
       {/* Payment Methods */}
-      <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
+      {isOrgAdmin && <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>Payment Methods</Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddCardOpen(true)}
-            sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>Payment Methods</Typography>            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddCardOpen(true)}
+              sx={{ bgcolor: '#0F4C81', textTransform: 'none', borderRadius: 2 }}>
             Add Card
           </Button>
-          <AddCardModal open={addCardOpen} onClose={() => setAddCardOpen(false)} onAdded={handleCardAdded} stripeAvailable={!!stripePromise} />
         </Stack>
 
         {paymentMethods.length === 0 ? (
@@ -511,10 +599,10 @@ function BillingPageInner() {
             ))}
           </Stack>
         )}
-      </Paper>
+      </Paper>}
 
       {/* Plans */}
-      <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
+      {!isDomiciliary && <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5 }}>
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 4 }}>Choose a Plan</Typography>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
           {PLANS.map((plan) => (
@@ -547,11 +635,13 @@ function BillingPageInner() {
             </Card>
           ))}
         </Stack>
-      </Paper>
+      </Paper>}
+
+      {isDomiciliary && isOrgAdmin && <AddCardModal open={addCardOpen} onClose={() => setAddCardOpen(false)} onAdded={handleCardAdded} stripeAvailable={!!stripePromise} />}
 
       {/* Billing History */}
       <Paper sx={{ p: 4, borderRadius: 2.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>Billing History</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>Subscription Billing History</Typography>
         {invoices.length === 0 ? (
           <EmptyState title="No invoices yet" description="Billing history will appear here" variant="default" />
         ) : (
@@ -567,7 +657,7 @@ function BillingPageInner() {
                     <TableCell>{inv.issued_at ? new Date(inv.issued_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</TableCell>
                     <TableCell>{inv.description}</TableCell>
                     <TableCell>£{parseFloat(inv.amount).toFixed(2)}</TableCell>
-                    <TableCell><Chip label={inv.status === 'paid' ? 'Paid' : 'Upcoming'} size="small" color={inv.status === 'paid' ? 'success' : 'default'} /></TableCell>
+                    <TableCell><Chip label={String(inv.status || 'open').replace(/_/g, ' ')} size="small" color={inv.status === 'paid' ? 'success' : ['past_due', 'uncollectible'].includes(inv.status) ? 'error' : ['void', 'deleted'].includes(inv.status) ? 'default' : 'warning'} sx={{ textTransform: 'capitalize' }} /></TableCell>
                     <TableCell align="right">
                       <IconButton
                         size="small"

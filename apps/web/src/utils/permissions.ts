@@ -23,6 +23,10 @@ const MODULE_LABELS: Record<string, string> = {
   settings: 'Settings',
   billing: 'Billing',
   learn: 'Learning Center',
+  call_scheduling: 'Call Scheduling',
+  mileage_travel: 'Mileage & Travel',
+  payroll_export: 'Payroll & Timesheets',
+  client_billing: 'Client Billing',
 }
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -43,11 +47,18 @@ export function formatPermissionLabel(module: string): string {
 
 export { MODULE_LABELS, LEVEL_LABELS }
 
-export async function fetchUserPermissions(userId: string): Promise<{ permissions: Array<{ module: string; permission_level: string }>; role: string }> {
+export type PermissionLevel = 'none' | 'view' | 'edit'
+export type RolePermissionDefaults = Record<string, Record<string, PermissionLevel>>
+
+export async function fetchUserPermissions(userId: string): Promise<{
+  permissions: Array<{ module: string; permission_level: PermissionLevel }>
+  role: string
+  role_defaults?: RolePermissionDefaults
+}> {
   const res = await api.get(`/permissions/${userId}`)
   return res.data
 }
 
-export async function updateUserPermissions(userId: string, permissions: Array<{ module: string; permission_level: string }>) {
+export async function updateUserPermissions(userId: string, permissions: Array<{ module: string; permission_level: PermissionLevel }>) {
   await api.put(`/permissions/${userId}`, { permissions })
 }

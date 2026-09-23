@@ -526,7 +526,7 @@ export async function listBillingProfiles(orgId: string) {
   return (await query('SELECT * FROM homecare_billing_profiles WHERE organization_id = $1 ORDER BY is_active DESC, name', [orgId])).rows;
 }
 export async function listPayProfiles(orgId: string) {
-  return (await query('SELECT * FROM homecare_pay_profiles WHERE organization_id = $1 ORDER BY is_active DESC, name', [orgId])).rows;
+  return (await query('SELECT * FROM homecare_pay_profiles WHERE organization_id = $1 AND is_active = TRUE ORDER BY name', [orgId])).rows;
 }
 
 async function recordRateProfileHistory(client: any, orgId: string, actorId: string, type: RateProfileType, profileId: string, action: RateProfileAction, before: unknown, after: unknown) {

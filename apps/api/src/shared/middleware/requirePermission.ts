@@ -11,6 +11,12 @@ interface CacheEntry {
 
 const permissionCache = new Map<string, CacheEntry>();
 
+export function clearPermissionCacheForUser(userId: string) {
+  for (const key of permissionCache.keys()) {
+    if (key.startsWith(`${userId}:`)) permissionCache.delete(key);
+  }
+}
+
 // Periodic cleanup
 setInterval(() => {
   const now = Date.now();

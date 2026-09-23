@@ -5,6 +5,67 @@ dotenv.config();
 
 export type BillingPlan = 'starter' | 'professional';
 
+export type DomiciliaryVatBehavior = 'inclusive' | 'exclusive';
+
+export function domiciliaryContractPriceLookupKey(
+  monthlyPricePence: number,
+  vatBehavior: DomiciliaryVatBehavior,
+): string {
+  if (!Number.isSafeInteger(monthlyPricePence) || monthlyPricePence <= 0) {
+    throw new Error('Domiciliary contract price must be a positive integer number of pence');
+  }
+  return `meticle-domiciliary-monthly-${monthlyPricePence}-gbp-${vatBehavior}-v1`;
+}
+
+export async function getOrCreateDomiciliaryPrice(
+  monthlyPricePence: number,
+  vatBehavior: DomiciliaryVatBehavior,
+): Promise<string> {
+  const stripe = getStripe();
+  if (!stripe) throw new Error('Stripe is not configured');
+  const lookupKey = domiciliaryContractPriceLookupKey(monthlyPricePence, vatBehavior);
+  const existing = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
+  if (existing.data[0]) {
+    if (!isExpectedDomiciliaryContractPrice(monthlyPricePence, vatBehavior, existing.data[0])) {
+      throw new Error(`Stripe price ${existing.data[0].id} does not match the agreed domiciliary contract amount and VAT treatment`);
+    }
+    return existing.data[0].id;
+  }
+  const products = await stripe.products.list({ active: true, limit: 100 });
+  let product = products.data.find(item => item.name === 'MeticleCare Domiciliary');
+  if (!product) product = await stripe.products.create({
+    name: 'MeticleCare Domiciliary',
+    description: 'Sales-agreed monthly subscription for a domiciliary care organisation',
+  });
+  const created = await stripe.prices.create({
+    product: product.id,
+    unit_amount: monthlyPricePence,
+    currency: 'gbp',
+    recurring: { interval: 'month' },
+    tax_behavior: vatBehavior,
+    lookup_key: lookupKey,
+    metadata: { serviceType: 'domiciliary', pricingModel: 'sales_led', vatBehavior },
+  });
+  return created.id;
+}
+
+export function isExpectedDomiciliaryContractPrice(
+  monthlyPricePence: number,
+  vatBehavior: DomiciliaryVatBehavior,
+  price: Pick<Stripe.Price, 'active' | 'currency' | 'unit_amount' | 'recurring' | 'tax_behavior' | 'metadata'>,
+): boolean {
+  return Number.isSafeInteger(monthlyPricePence)
+    && monthlyPricePence > 0
+    && price.active
+    && price.currency === 'gbp'
+    && price.unit_amount === monthlyPricePence
+    && price.recurring?.interval === 'month'
+    && (price.recurring?.interval_count ?? 1) === 1
+    && price.tax_behavior === vatBehavior
+    && price.metadata?.pricingModel === 'sales_led'
+    && price.metadata?.vatBehavior === vatBehavior;
+}
+
 /**
  * The application-facing catalogue is deliberately kept separate from Stripe
  * price IDs. Stripe IDs are environment-specific; these are the invariants the
@@ -21,8 +82,8 @@ export const PLAN_PRICE_CONFIG: Record<BillingPlan, {
 
 /**
  * Per-type pricing for domiciliary care organisations.
- * These are configurable per organisation via the billing settings.
- * Amounts are in pence (e.g., 600 = £6.00).
+ * These are internal domiciliary service billing defaults, not the provider's
+ * MeticleCare Stripe subscription charge. Amounts are pence (600 = £6.00).
  */
 export interface DomiciliaryPricing {
   per_client_monthly: number;   // pence per client per month

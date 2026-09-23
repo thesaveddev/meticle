@@ -62,11 +62,10 @@ export class StaffController {
   static async getProfile(req: Request, res: Response) {
     const { userId } = req.params;
     const orgId = req.user!.organizationId;
-    const profile = await StaffRepository.getProfileByUserId(userId);
-    if (!profile) throw new AppError(404, 'Profile not found');
-    // Verify user belongs to same org
     const userCheck = await pool.query('SELECT 1 FROM users WHERE id = $1 AND organization_id = $2', [userId, orgId]);
     if (userCheck.rows.length === 0) throw new AppError(404, 'Profile not found');
+    const profile = await StaffRepository.getProfileByUserId(userId);
+    if (!profile) throw new AppError(404, 'Profile not found');
     res.json(profile);
   }
 
@@ -113,8 +112,9 @@ export class StaffController {
       return updateResult;
     });
 
-    // Re-seed default permissions for the new role (fire-and-forget)
-    PermissionsController.setDefaultPermissions(userId, role).catch(logWarn('setDefaultPermissions'));
+    // Seed the new role's organisation-available defaults before returning. This
+    // keeps the access screen and permission checks in sync after a role change.
+    await PermissionsController.setDefaultPermissions(userId, role);
 
     // Auto-assign compliance profile based on new role
     const profile = await pool.query(
@@ -283,8 +283,19 @@ export class StaffController {
     const orgId = req.user!.organizationId;
     const { userId } = req.params;
     const payProfileId = req.body?.pay_profile_id || null;
-    const userCheck = await pool.query('SELECT 1 FROM users WHERE id = $1 AND organization_id = $2', [userId, orgId]);
+    const userCheck = await pool.query(
+      `SELECT u.id, o.primary_service_type, o.service_types
+       FROM users u JOIN organizations o ON o.id = u.organization_id
+       WHERE u.id = $1 AND u.organization_id = $2`,
+      [userId, orgId],
+    );
     if (!userCheck.rows[0]) throw new AppError(404, 'Staff member not found');
+    const primaryServiceType = userCheck.rows[0].primary_service_type;
+    const serviceTypes: string[] = Array.isArray(userCheck.rows[0].service_types) ? userCheck.rows[0].service_types : [];
+    const isDomiciliary = primaryServiceType
+      ? ['domiciliary', 'live_in'].includes(primaryServiceType)
+      : serviceTypes.some(type => ['domiciliary', 'live_in'].includes(type));
+    if (!isDomiciliary) throw new AppError(403, 'Carer pay profiles are only available to domiciliary organisations');
     if (payProfileId) {
       const profile = await pool.query('SELECT id FROM homecare_pay_profiles WHERE id = $1 AND organization_id = $2 AND is_active = TRUE', [payProfileId, orgId]);
       if (!profile.rows[0]) throw new AppError(400, 'Pay profile is not active in this organisation');

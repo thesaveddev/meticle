@@ -4,6 +4,8 @@ import { requireRole } from '../../shared/middleware/requireRole';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { PlatformAdminController } from './platform-admin.controller';
 import { UserRole } from '@meticle/shared';
+import { validate } from '../../shared/middleware/validate.middleware';
+import { updateDomiciliaryQuoteSchema } from '../../shared/validation/schemas';
 
 const router = Router();
 
@@ -18,6 +20,7 @@ router.get('/organizations', asyncHandler(PlatformAdminController.listOrganizati
 router.get('/organizations/:id', asyncHandler(PlatformAdminController.getOrganization));
 router.patch('/organizations/:id/status', asyncHandler(PlatformAdminController.updateOrganizationStatus));
 router.patch('/organizations/:id/billing', asyncHandler(PlatformAdminController.updateOrgBilling));
+router.put('/organizations/:id/domiciliary-quote', validate(updateDomiciliaryQuoteSchema), asyncHandler(PlatformAdminController.updateDomiciliaryQuote));
 router.get('/users', asyncHandler(PlatformAdminController.listUsers));
 router.get('/trial-followups', asyncHandler(PlatformAdminController.listTrialFollowups));
 router.post('/trial-followups/:organizationId/email', asyncHandler(PlatformAdminController.sendTrialFollowupEmail));

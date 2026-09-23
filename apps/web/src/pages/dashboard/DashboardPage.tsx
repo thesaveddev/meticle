@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Grid, Typography, Box, Stack, LinearProgress, Divider, Button, List, ListItem, CircularProgress, Chip } from '@mui/material'
+import { Grid, Typography, Box, Stack, LinearProgress, Divider, Button, List, ListItem, CircularProgress, Chip, Alert } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@mui/material/styles'
 import DomiciliaryDashboard from './DomiciliaryDashboard'
@@ -89,6 +89,8 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const theme = useTheme()
   const [loading, setLoading] = useState(true)
+  const [dashboardError, setDashboardError] = useState('')
+  const [retryCount, setRetryCount] = useState(0)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [widgets, setWidgets] = useState<DashboardWidgets | null>(null)
   const [compliance, setCompliance] = useState<ComplianceItem[]>([])
@@ -120,8 +122,9 @@ export default function DashboardPage() {
         setLoading(false)
         return
       }
+      setDashboardError('')
       try {
-        const orgRes = await api.get(`/organizations/${orgId}`)
+        const orgRes = await api.get(`/organizations/${orgId}`, { timeout: 15000 })
         const orgData = orgRes.data
         setOrg(orgData)
         localStorage.setItem('organization', JSON.stringify(orgData))
@@ -136,25 +139,26 @@ export default function DashboardPage() {
         const isDomiciliaryOrg = effectiveTypes.some(type => ['domiciliary', 'live_in'].includes(type))
         const todayStr = new Date().toISOString().split('T')[0]
         if (isDomiciliaryOrg && !isStaff) {
-          api.get('/dashboard/domiciliary').then(res => setDomiciliaryData(res.data)).catch(() => {})
           setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
+          setLoading(false)
+          api.get('/dashboard/domiciliary').then(res => setDomiciliaryData(res.data)).catch(() => {})
           return
         }
         if (isStaff) {
           const [rotaRes, aptRes] = await Promise.all([
-            api.get('/dashboard/today-rota'),
-            api.get(`/appointments?date=${todayStr}`),
+            api.get('/dashboard/today-rota', { timeout: 15000 }),
+            api.get(`/appointments?date=${todayStr}`, { timeout: 15000 }),
           ])
           setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
           setTodayRota(rotaRes.data)
           setTodayAppointments(aptRes.data)
         } else {
           const [statsRes, complianceRes, rotaRes, widgetsRes, aptRes] = await Promise.all([
-            api.get('/dashboard/stats'),
-            api.get('/dashboard/compliance'),
-            api.get('/dashboard/today-rota'),
-            api.get('/dashboard/widgets'),
-            api.get(`/appointments?date=${todayStr}`),
+            api.get('/dashboard/stats', { timeout: 15000 }),
+            api.get('/dashboard/compliance', { timeout: 15000 }),
+            api.get('/dashboard/today-rota', { timeout: 15000 }),
+            api.get('/dashboard/widgets', { timeout: 15000 }),
+            api.get(`/appointments?date=${todayStr}`, { timeout: 15000 }),
           ])
           setStats(statsRes.data)
           setCompliance(complianceRes.data)
@@ -163,7 +167,10 @@ export default function DashboardPage() {
           setTodayAppointments(aptRes.data)
 
         }
-      } catch {
+      } catch (error: any) {
+        setDashboardError(error.code === 'ECONNABORTED'
+          ? 'Dashboard data is taking too long to respond.'
+          : error.response?.data?.message || 'Could not load dashboard data.')
         setStats({ total_staff: 0, compliance_rate: 0, open_shifts: 0, agency_saved: 0, active_people: 0, staff_on_duty: 0, open_incidents: 0, locations: 0 })
         setCompliance([
           { label: 'Mandatory Training', val: 0, color: '#10B981' },
@@ -171,11 +178,12 @@ export default function DashboardPage() {
           { label: 'Identity Checks', val: 0, color: '#D97706' },
         ])
         setTodayRota([])
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     fetchData()
-  }, [orgId])
+  }, [orgId, retryCount])
 
   if (loading) {
     return (
@@ -185,7 +193,18 @@ export default function DashboardPage() {
     )
   }
 
-  // If this is a domiciliary care organisation, show the dedicated dom care dashboard
+  if (dashboardError) {
+    return (
+      <PageContainer>
+        <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => { setLoading(true); setRetryCount(count => count + 1) }}>Retry</Button>}>
+          {dashboardError}
+        </Alert>
+      </PageContainer>
+    )
+  }
+
+  // If this is a domiciliary care organisation, show the dedicated dom care dashboard.
+  // The child owns its data loading; do not keep the parent spinner mounted while it loads.
   if (serviceTypes.some(type => ['domiciliary', 'live_in'].includes(type)) && !isStaff) {
     return <DomiciliaryDashboard />
   }
