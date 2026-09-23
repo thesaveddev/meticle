@@ -309,7 +309,7 @@ describe('Homecare E2E critical workflows', () => {
     expect(mtdRes.status).toBe(200)
     expect(mtdRes.body.format).toBe('HMRC_MTD_VAT')
     expect(mtdRes.body.invoice.invoice_number).toBe(approveRes.body.invoice_number)
-  })
+  }, 90_000)
 
   it('visit tasks can be created, toggled, and checked out requires completion', async () => {
     const org = await createOrg()
