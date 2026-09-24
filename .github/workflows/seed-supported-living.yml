@@ -1,0 +1,45 @@
+name: Seed DreakCare Supported Living Org
+
+on:
+  push:
+    branches: [seed/supported-living]
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get commit SHA
+        id: sha
+        run: echo "SHA=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Seed DreakCare Supported Living on VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            CONTAINER=$(docker ps -q -f name=api | head -1)
+            if [ -z "$CONTAINER" ]; then CONTAINER=$(docker ps -q | head -1); fi
+            if [ -z "$CONTAINER" ]; then docker ps -a; echo "No containers"; exit 1; fi
+            echo "Container: $CONTAINER"
+            EXISTS=$(docker exec "$CONTAINER" node -e "const p=require('pg');new p.Pool().query(\"SELECT id FROM organizations WHERE name='DreakCare Supported Living'\").then(r=>{process.stdout.write(r.rows.length?'YES':'NO')}).catch(()=>{process.stdout.write('NO')}).finally(()=>process.exit())" 2>/dev/null) || true
+            if [ "$EXISTS" = "YES" ]; then echo "Already seeded"; exit 0; fi
+            SHA="${{ steps.sha.outputs.SHA }}"
+            echo "Downloading seed script (commit $SHA)..."
+            curl -fsSL "https://raw.githubusercontent.com/thesaveddev/meticle/${SHA}/scripts/seed-supported-living.js" -o /tmp/seed.js
+            echo "Copying to container..."
+            docker cp /tmp/seed.js "$CONTAINER:/app/seed.js"
+            echo "Running seed..."
+            docker exec -w /app "$CONTAINER" node seed.js
+            RC=$?
+            echo "Exit code: $RC"
+            docker exec "$CONTAINER" rm -f /app/seed.js
+            rm -f /tmp/seed.js
+            echo "Done"
+            exit $RC
