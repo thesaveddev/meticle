@@ -11,24 +11,43 @@ import { createIncidentSchema, updateIncidentSchema, createIncidentCategorySchem
 const router = Router();
 router.use(authenticate);
 
-// Read routes (MANAGER or ORG_ADMIN)
-router.get('/stats', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(IncidentsController.getStats));
-router.get('/categories', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(IncidentsController.getCategories));
-router.get('/', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(IncidentsController.list));
-router.get('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(IncidentsController.getById));
-router.get('/:id/actions', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(IncidentsController.getActions));
-router.get('/:id/attachments', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(IncidentsController.getAttachments));
-router.get('/:id/timeline', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(IncidentsController.getTimeline));
+// The reporter of an incident must be able to see it, and only it. This wraps
+// the controller's visibility rule as middleware so the sub-resource reads
+// below cannot be reached by skipping the check on the incident itself.
+const visibleIncident = (req: any, _res: any, next: any) =>
+  IncidentsController.requireVisibleIncident(req).then(() => next(), next);
 
-// Mutation routes (MANAGER or ORG_ADMIN)
-router.post('/', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createIncidentSchema), asyncHandler(IncidentsController.create));
+// Reference data. Any authenticated user can read the category list because a
+// support worker needs it in order to file a report at all.
+router.get('/categories', asyncHandler(IncidentsController.getCategories));
+
+// Manager-only aggregate.
+router.get('/stats', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(IncidentsController.getStats));
+
+// Read routes. A support worker reaches these too, but the controller scopes
+// them to incidents they reported, so filing a concern never exposes the
+// organisation's whole incident history to them.
+router.get('/', asyncHandler(IncidentsController.list));
+router.get('/:id', visibleIncident, asyncHandler(IncidentsController.getById));
+router.get('/:id/actions', visibleIncident, asyncHandler(IncidentsController.getActions));
+router.get('/:id/attachments', visibleIncident, asyncHandler(IncidentsController.getAttachments));
+router.get('/:id/timeline', visibleIncident, asyncHandler(IncidentsController.getTimeline));
+
+// Reporting. Any authenticated user may raise a concern; a support worker's
+// submission is reduced to the reporting fields, and triage fields are set by
+// a manager afterwards.
+router.post('/', validate(createIncidentSchema), asyncHandler(IncidentsController.create));
+
+// Investigation routes (MANAGER or ORG_ADMIN)
 router.patch('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateIncidentSchema), asyncHandler(IncidentsController.update));
 router.delete('/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(IncidentsController.deleteIncident));
 
 // Categories (ORG_ADMIN)
-router.post('/categories', requireRole(UserRole.ORG_ADMIN), validate(createIncidentCategorySchema), asyncHandler(IncidentsController.createCategory));
-router.put('/categories/:id', requireRole(UserRole.ORG_ADMIN), validate(updateIncidentCategorySchema), asyncHandler(IncidentsController.updateCategory));
-router.delete('/categories/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(IncidentsController.deleteCategory));
+// Incident categories are operational reference data managers maintain
+// alongside the incident triage they already perform.
+router.post('/categories', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createIncidentCategorySchema), asyncHandler(IncidentsController.createCategory));
+router.put('/categories/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateIncidentCategorySchema), asyncHandler(IncidentsController.updateCategory));
+router.delete('/categories/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(IncidentsController.deleteCategory));
 
 // Involved residents
 router.post('/:id/involved', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(addInvolvedResidentSchema), asyncHandler(IncidentsController.addInvolvedResident));

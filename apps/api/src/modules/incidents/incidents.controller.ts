@@ -26,6 +26,19 @@ export class IncidentsController {
     return req.user?.role === UserRole.ORG_ADMIN;
   }
 
+  static isReporter(req: Request): boolean {
+    return req.user?.role === UserRole.CARE_WORKER;
+  }
+
+  static isManagerRole(req: Request): boolean {
+    return req.user?.role === UserRole.ORG_ADMIN || req.user?.role === UserRole.MANAGER;
+  }
+
+  /**
+   * Support workers may open an incident and follow the ones they raised, but
+   * they must not be able to read the organisation's whole incident history.
+   * Everyone else keeps the full view.
+   */
   static async requireVisibleIncident(req: Request): Promise<any> {
     const incident = await IncidentsRepository.findById(
       req.params.id,
@@ -33,6 +46,9 @@ export class IncidentsController {
       IncidentsController.isAdmin(req)
     );
     if (!incident) throw new AppError(404, 'Incident not found');
+    if (IncidentsController.isReporter(req) && incident.reported_by !== req.user!.userId) {
+      throw new AppError(403, 'You can only view incidents you reported');
+    }
     return incident;
   }
 
@@ -112,11 +128,13 @@ export class IncidentsController {
       include_confidential: IncidentsController.isAdmin(req),
       limit: limit ? parseInt(limit as string) : undefined,
       offset: offset ? parseInt(offset as string) : undefined,
+      reportedBy: IncidentsController.isReporter(req) ? req.user!.userId : undefined,
     });
     res.json(data);
   }
 
   static async getById(req: Request, res: Response) {
+    await IncidentsController.requireVisibleIncident(req);
     const incident = await IncidentsRepository.findById(req.params.id, IncidentsController.getOrgId(req), IncidentsController.isAdmin(req));
     if (!incident) throw new AppError(404, 'Incident not found');
     const involved = await IncidentsRepository.getInvolvedResidents(req.params.id);
@@ -125,10 +143,32 @@ export class IncidentsController {
     res.json({ ...incident, involved, actions, attachments });
   }
 
+  /**
+   * The fields a support worker is allowed to supply when raising a concern.
+   * Investigation and regulatory fields are decided during triage by a manager,
+   * so accepting them here would let the first person to file an incident set
+   * its own CQC reportability, status and root cause.
+   */
+  private static readonly REPORTER_FIELDS = [
+    'title', 'description', 'incident_date', 'incident_time', 'location',
+    'severity', 'category_id', 'is_near_miss', 'is_confidential',
+  ] as const;
+
+  static sanitiseForReporter(body: any): any {
+    const permitted: Record<string, unknown> = {};
+    for (const field of IncidentsController.REPORTER_FIELDS) {
+      if (body?.[field] !== undefined) permitted[field] = body[field];
+    }
+    return permitted;
+  }
+
   static async create(req: Request, res: Response) {
     const orgId = IncidentsController.getOrgId(req);
     const userId = IncidentsController.getUserId(req) || '';
-    const incident = await IncidentsRepository.create(orgId, req.body, userId);
+    const payload = IncidentsController.isReporter(req)
+      ? IncidentsController.sanitiseForReporter(req.body)
+      : req.body;
+    const incident = await IncidentsRepository.create(orgId, payload, userId);
     // Awaited so the event is recorded before the request is reported as done:
     // the insert auto-commits on this connection, so without the await a client
     // (and a test) could observe 201 while the event is still in flight.

@@ -1,7 +1,15 @@
 import { query } from '../../shared/database';
 
 export class RoomCheckRepository {
-  private static readonly ROOM_CHECK_UPDATE_COLUMNS = new Set(['location_id', 'room_number', 'checked_by', 'check_date', 'status', 'cleanliness_rating', 'safety_rating', 'notes', 'photo_url']);
+  // checked_by is deliberately absent: it is set from the signed-in user on
+  // create and must never be reassigned, or a check could be attributed to
+  // someone who did not perform it.
+  private static readonly ROOM_CHECK_UPDATE_COLUMNS = new Set(['location_id', 'room_number', 'check_date', 'status', 'cleanliness_rating', 'safety_rating', 'notes', 'photo_url']);
+
+  static async findById(id: string, orgId: string) {
+    const result = await query('SELECT * FROM room_checks WHERE id = $1 AND organization_id = $2', [id, orgId]);
+    return result.rows[0] || null;
+  }
   static async findAll(orgId: string, filters?: { location_id?: string; status?: string; date?: string; room_number?: string }) {
     let sql = `SELECT rc.*, l.name as location_name,
                COALESCE(sp.first_name || ' ' || sp.last_name, '') as checked_by_name

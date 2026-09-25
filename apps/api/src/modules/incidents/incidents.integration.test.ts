@@ -422,17 +422,28 @@ describe('Incidents Integration — categories CRUD', () => {
     expect(deleted.status).toBe(204)
   })
 
-  it('should block MANAGER from creating categories', async () => {
+  it('should let MANAGER manage categories (settings access)', async () => {
     const org = await createOrg()
     const mgr = await createUser({ email: `mgr-${Date.now()}@inc-test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
     await createStaffProfile({ userId: mgr.id })
     const token = generateToken(mgr)
 
-    const res = await request(app)
+    const created = await request(app)
       .post('/incidents/categories')
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Nope' })
-    expect(res.status).toBe(403)
+      .send({ name: 'Medication Error', severity: 'high', is_cqc_reportable: true })
+    expect(created.status).toBe(201)
+
+    const updated = await request(app)
+      .put(`/incidents/categories/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ severity: 'medium' })
+    expect(updated.status).toBe(200)
+
+    const deleted = await request(app)
+      .delete(`/incidents/categories/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(deleted.status).toBe(204)
   })
 })
 

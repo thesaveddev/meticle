@@ -41,6 +41,10 @@ export default function IncidentDetailPage() {
   const queryClient = useQueryClient()
   const currentUser = (() => { const s = localStorage.getItem('user'); try { const p = s ? JSON.parse(s) : {}; return p && typeof p === 'object' ? p : {} } catch { return {} } })()
   const isOrgAdmin = currentUser.role === 'ORG_ADMIN'
+  // Support workers can raise an incident and follow it, but triage and
+  // investigation are a manager's job, so the edit affordance is hidden from
+  // them rather than left to fail on save.
+  const canTriage = currentUser.role === 'ORG_ADMIN' || currentUser.role === 'MANAGER'
   const [tab, setTab] = useState(0)
   const [addResidentOpen, setAddResidentOpen] = useState(false)
   const [addActionOpen, setAddActionOpen] = useState(false)
@@ -163,9 +167,11 @@ export default function IncidentDetailPage() {
               <Button variant="outlined" color="error" size="small" startIcon={<DeleteIcon />}
                 onClick={() => setDeleteOpen(true)} sx={{ textTransform: 'none' }}>Delete</Button>
             )}
-            <Button variant="outlined" size="small" startIcon={<EditIcon />}
-              onClick={() => { setUpdateForm({ ...incident }); setUpdateOpen(true) }}
-              sx={{ textTransform: 'none' }}>Edit</Button>
+            {canTriage && (
+              <Button variant="outlined" size="small" startIcon={<EditIcon />}
+                onClick={() => { setUpdateForm({ ...incident }); setUpdateOpen(true) }}
+                sx={{ textTransform: 'none' }}>Edit</Button>
+            )}
           </Stack>
         }
       />
@@ -344,12 +350,14 @@ export default function IncidentDetailPage() {
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="subtitle1" fontWeight={800}>Involved People</Typography>
-            <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddResidentOpen(true)}
-              sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Add Person</Button>
+            {canTriage && (
+              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddResidentOpen(true)}
+                sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Add Person</Button>
+            )}
           </Stack>
           {(!incident.involved || incident.involved.length === 0) ? (
             <EmptyRow message="No people linked to this incident" action={
-              <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddResidentOpen(true)} sx={{ textTransform: 'none' }}>Add Person</Button>
+              canTriage && <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddResidentOpen(true)} sx={{ textTransform: 'none' }}>Add Person</Button>
             } />
           ) : (
             <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
@@ -392,12 +400,14 @@ export default function IncidentDetailPage() {
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="subtitle1" fontWeight={800}>Action Items</Typography>
-            <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddActionOpen(true)}
-              sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Add Action</Button>
+            {canTriage && (
+              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddActionOpen(true)}
+                sx={{ bgcolor: NAVY, textTransform: 'none', fontWeight: 700 }}>Add Action</Button>
+            )}
           </Stack>
           {(!incident.actions || incident.actions.length === 0) ? (
             <EmptyRow message="No actions recorded" action={
-              <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddActionOpen(true)} sx={{ textTransform: 'none' }}>Add Action</Button>
+              canTriage && <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddActionOpen(true)} sx={{ textTransform: 'none' }}>Add Action</Button>
             } />
           ) : (
             <Stack spacing={1.5}>
@@ -432,17 +442,19 @@ export default function IncidentDetailPage() {
                         </Stack>
                       </Box>
                       <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0, ml: 1 }}>
-                        <IconButton size="small" title="Edit" onClick={() => { setEditActionForm({ ...a, assigned_to: a.assigned_to || '' }); setEditActionOpen(true) }}>
+                        {canTriage && <IconButton size="small" title="Edit" onClick={() => { setEditActionForm({ ...a, assigned_to: a.assigned_to || '' }); setEditActionOpen(true) }}>
                           <EditIcon fontSize="small" />
-                        </IconButton>
-                        {!a.completed_at && a.status !== 'cancelled' && (
+                        </IconButton>}
+                        {canTriage && !a.completed_at && a.status !== 'cancelled' && (
                           <IconButton size="small" title="Complete" color="success" onClick={() => completeActionMutation.mutate(a.id)}>
                             <CheckIcon fontSize="small" />
                           </IconButton>
                         )}
-                        <IconButton size="small" title="Delete" onClick={() => deleteActionMutation.mutate(a.id)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
+                        {canTriage && (
+                          <IconButton size="small" title="Delete" onClick={() => deleteActionMutation.mutate(a.id)}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        )}
                       </Stack>
                     </Stack>
                   </Paper>
