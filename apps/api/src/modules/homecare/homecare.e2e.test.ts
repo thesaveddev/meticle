@@ -3,7 +3,7 @@ import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import { migrateQuery as query } from '../../shared/database'
-import { createOrg, createUser, createPerson, createStaffProfile, generateToken } from '../../test/factories'
+import { createOrg, createUser, createPerson, createStaffProfile, generateToken, sessionDay } from '../../test/factories'
 import { signEmailDsnPayload } from '../../shared/utils/email.dsn'
 
 let app: Express
@@ -247,7 +247,7 @@ describe('Homecare E2E critical workflows', () => {
     await query(`UPDATE homecare_visits SET check_in_at = NOW() - INTERVAL '30 minutes', check_out_at = NOW(), status = 'completed' WHERE id = $1 AND organization_id = $2`, [secondVisit.body.id, org.id])
 
     // Create billing run
-    const billingDate = visitTime.start.slice(0, 10)
+    const billingDate = await sessionDay(visitTime.start)
     const runRes = await request(app)
       .post('/homecare/client-billing/runs')
       .set('Authorization', `Bearer ${managerToken}`)

@@ -2,8 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
-import { createOrg, createUser, createPerson, createStaffProfile, generateToken } from '../../test/factories'
-import { migrateQuery as query } from '../../shared/database'
+import { createOrg, createUser, createPerson, createStaffProfile, generateToken, sessionDay } from '../../test/factories'
 
 let app: Express
 beforeAll(() => { app = createTestApp() })
@@ -12,23 +11,17 @@ beforeAll(() => { app = createTestApp() })
  * A call window starting imminently, plus the calendar day the payslip queries
  * will actually match it on.
  *
- * The day cannot be taken from the UTC timestamp. The payslip and earnings
- * queries bound the period with bare `::date` casts, which Postgres resolves in
- * the session TimeZone, so "a whole day" in Europe/London ends at 23:00Z rather
- * than midnight. Slicing the ISO string gives the UTC date, and during the last
- * hour of a UTC day that is a different day from the one the query sees — the
- * suite would then fail only when CI happened to run in that hour. Asking the
- * database for the date in its own timezone is the only version that agrees
- * with the query.
+ * The day comes from the database's own timezone rather than the UTC timestamp:
+ * these queries bound the period with bare `::date` casts, so a UTC date can be
+ * a different day from the one the query sees. See `sessionDay`.
+ *
+ * The visit has to be due now, because check-in refuses one that is not, so
+ * this cannot be moved to a fixed midday the way a pure scheduling test can.
  */
 const nearDate = async (minsFromNow: number, durationMins = 60) => {
   const start = new Date(Date.now() + minsFromNow * 60000)
   const end = new Date(start.getTime() + durationMins * 60000)
-  const { rows } = await query(
-    `SELECT to_char($1::timestamptz AT TIME ZONE current_setting('TimeZone'), 'YYYY-MM-DD') AS day`,
-    [start.toISOString()]
-  )
-  return { start: start.toISOString(), end: end.toISOString(), day: rows[0].day }
+  return { start: start.toISOString(), end: end.toISOString(), day: await sessionDay(start) }
 }
 const fd = (daysAhead: number) => new Date(Date.now() + daysAhead * 86400000).toISOString().split('T')[0]
 const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
