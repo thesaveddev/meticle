@@ -48,7 +48,7 @@ export default function SettingsPage() {
   const logoInputRef = useRef<HTMLInputElement>(null)
   const { showSnackbar } = useSnackbar()
   const { mode, toggleTheme, updateBranding, zoomScale, setZoomScale } = useThemeMode()
-  const [tab, setTab] = useState<number>(0)
+  const [tab, setTab] = useState<'profile' | 'security' | 'appearance' | 'org' | 'compliance' | 'delegations' | 'ai' | 'leave' | 'incidents'>('profile')
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [deactDialogOpen, setDeactDialogOpen] = useState(false)
@@ -60,6 +60,11 @@ export default function SettingsPage() {
   try { user = userStr ? JSON.parse(userStr) : null } catch { user = null }
   const orgId = user?.organizationId || user?.organization_id || ''
   const isOrgAdmin = user?.role === 'ORG_ADMIN'
+  const isManager = user?.role === 'MANAGER'
+  // Managers run day-to-day operations: org settings (operational fields),
+  // compliance configuration, leave types and incident categories. Identity,
+  // branding, security policy, delegations and AI config stay admin-only.
+  const canManage = isOrgAdmin || isManager
 
   // Org settings
   const [orgSettings, setOrgSettings] = useState<any>({})
@@ -125,7 +130,7 @@ export default function SettingsPage() {
       } catch {
         setProfile({ first_name: user.first_name || '', last_name: user.last_name || '', birth_date: '', phone: '', address: '', city: '', country: '', postal_code: '', profile_picture_url: user.profile_picture_url || '' })
       }
-      if (isOrgAdmin) {
+      if (canManage) {
         const [orgRes, staffRes, compRes, delRes, compProfileRes, orgDetRes] = await Promise.allSettled([
           api.get('/settings/org'),
           api.get('/settings/staff'),
@@ -162,7 +167,7 @@ export default function SettingsPage() {
       setLoading(false)
     }
     load()
-  }, [user?.id, isOrgAdmin, user?.first_name, user?.last_name, user?.profile_picture_url])
+  }, [user?.id, canManage, user?.first_name, user?.last_name, user?.profile_picture_url])
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => api.patch(`/staff/${user.id}/profile`, data),
@@ -716,14 +721,14 @@ export default function SettingsPage() {
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><SettingsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Organization Details</Typography>
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6}>
-              <TextField label="Organization Name" fullWidth size="small"
+              <TextField label="Organization Name" fullWidth size="small" disabled={!isOrgAdmin}
                 value={orgDetails.name || ''}
                 onChange={e => setOrgDetails((p: any) => ({ ...p, name: e.target.value }))} />
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size="small">
                 <InputLabel>Status</InputLabel>
-                <Select value={orgDetails.status || 'active'} label="Status"
+                <Select value={orgDetails.status || 'active'} label="Status" disabled={!isOrgAdmin}
                   onChange={e => setOrgDetails((p: any) => ({ ...p, status: e.target.value }))}>
                   <MenuItem value="active">Active</MenuItem>
                   <MenuItem value="inactive">Inactive</MenuItem>
@@ -734,7 +739,7 @@ export default function SettingsPage() {
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size="small">
                 <InputLabel>Plan</InputLabel>
-                <Select value={orgDetails.plan || 'starter'} label="Plan"
+                <Select value={orgDetails.plan || 'starter'} label="Plan" disabled={!isOrgAdmin}
                   onChange={e => setOrgDetails((p: any) => ({ ...p, plan: e.target.value }))}>
                   <MenuItem value="starter">Starter</MenuItem>
                   <MenuItem value="professional">Professional</MenuItem>
@@ -745,7 +750,7 @@ export default function SettingsPage() {
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size="small">
                 <InputLabel>Regulatory Framework</InputLabel>
-                <Select value={orgDetails.regulator || 'cqc'} label="Regulatory Framework"
+                <Select value={orgDetails.regulator || 'cqc'} label="Regulatory Framework" disabled={!isOrgAdmin}
                   onChange={e => setOrgDetails((p: any) => ({ ...p, regulator: e.target.value }))}>
                   <MenuItem value="cqc">CQC â€” England</MenuItem>
                   <MenuItem value="ciw">CIW â€” Wales</MenuItem>
@@ -821,8 +826,8 @@ export default function SettingsPage() {
       </Paper>
       )}
 
-      {/* Branding */}
-      <Paper sx={{ p: 4 }}>
+      {/* Branding — admin-only */}
+      {isOrgAdmin && <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}><PaletteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Branding</Typography>
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
@@ -872,9 +877,9 @@ export default function SettingsPage() {
         <Button variant="contained" onClick={saveBranding} disabled={brandingSaving} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> {brandingSaving ? 'Saving...' : 'Save Branding'}
         </Button>
-      </Paper>
+      </Paper>}
 
-      <Paper sx={{ p: 4 }}>
+      {isOrgAdmin && <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <SecurityIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Security Policies
         </Typography>
@@ -891,7 +896,7 @@ export default function SettingsPage() {
         <Button variant="contained" onClick={() => saveOrgSettings({ force_mfa: orgSettings.force_mfa })} sx={{ mt: 3, bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>
           <SaveIcon sx={{ mr: 1 }} /> Save Security Settings
         </Button>
-      </Paper>
+      </Paper>}
 
       <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
@@ -1025,7 +1030,7 @@ export default function SettingsPage() {
         </Button>
       </Paper>
 
-      <Paper sx={{ p: 4 }}>
+      {isOrgAdmin && <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           <PhoneIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Emergency Contacts
         </Typography>
@@ -1073,7 +1078,7 @@ export default function SettingsPage() {
         >
           <SaveIcon sx={{ mr: 1 }} /> Save Emergency Contacts
         </Button>
-      </Paper>
+      </Paper>}
 
       <Paper sx={{ p: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
@@ -1149,10 +1154,10 @@ export default function SettingsPage() {
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}><ComplianceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Compliance Configuration</Typography>
             <Stack direction="row" spacing={1}>
-              <Button variant="outlined" startIcon={<HistoryIcon />} onClick={seedComplianceRecords}
+              {isOrgAdmin && <Button variant="outlined" startIcon={<HistoryIcon />} onClick={seedComplianceRecords}
                 disabled={complianceConfigs.length === 0 || actionLoading === 'seed-records'}>
                 {actionLoading === 'seed-records' ? 'Seeding...' : 'Seed Records from Config'}
-              </Button>
+              </Button>}
               <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditComp({ name: '', description: '', category: 'document', is_mandatory: true, days_warning: 30 }); setCompDialog(true) }}
                 sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add Requirement</Button>
             </Stack>
@@ -1181,7 +1186,7 @@ export default function SettingsPage() {
                     <TableCell>{c.days_warning}d</TableCell>
                     <TableCell>
                       <IconButton size="small" onClick={() => { setEditComp(c); setCompDialog(true) }}><EditIcon fontSize="small" /></IconButton>
-                      <IconButton size="small" color="error" disabled={actionLoading === 'delete-config-' + c.id} onClick={() => deleteComplianceConfig(c.id)}><DeleteIcon fontSize="small" /></IconButton>
+                      {isOrgAdmin && <IconButton size="small" color="error" disabled={actionLoading === 'delete-config-' + c.id} onClick={() => deleteComplianceConfig(c.id)}><DeleteIcon fontSize="small" /></IconButton>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -1201,7 +1206,7 @@ export default function SettingsPage() {
               <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { setEditCompProfile({ name: '', description: '', role_name: '', requirement_ids: [] }); setCompProfileDialog(true) }}>
                 Add Profile
               </Button>
-              <Button variant="outlined" size="small" disabled={actionLoading === 'auto-assign'} onClick={autoAssignProfiles}>{actionLoading === 'auto-assign' ? 'Assigning...' : 'Auto-Assign'}</Button>
+              {isOrgAdmin && <Button variant="outlined" size="small" disabled={actionLoading === 'auto-assign'} onClick={autoAssignProfiles}>{actionLoading === 'auto-assign' ? 'Assigning...' : 'Auto-Assign'}</Button>}
             </Stack>
           </Stack>
           {complianceProfiles.length === 0 ? (
@@ -1225,7 +1230,7 @@ export default function SettingsPage() {
                       <TableCell>{p.requirements?.length || 0} requirements</TableCell>
                       <TableCell>
                         <IconButton size="small" onClick={() => { setEditCompProfile(p); setCompProfileDialog(true) }}><EditIcon fontSize="small" /></IconButton>
-                        <IconButton size="small" color="error" disabled={actionLoading === 'delete-profile-' + p.id} onClick={() => deleteComplianceProfile(p.id)}><DeleteIcon fontSize="small" /></IconButton>
+                        {isOrgAdmin && <IconButton size="small" color="error" disabled={actionLoading === 'delete-profile-' + p.id} onClick={() => deleteComplianceProfile(p.id)}><DeleteIcon fontSize="small" /></IconButton>}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1721,26 +1726,26 @@ export default function SettingsPage() {
       <Paper sx={{ mb: 3 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto"
           sx={{ '& .MuiTab-root': { fontWeight: 700, textTransform: 'none', minHeight: 48 } }}>
-          <Tab icon={<ProfileIcon />} iconPosition="start" label="My Profile" />
-          {user && <Tab icon={<SecurityIcon />} iconPosition="start" label="Security" />}
-          <Tab icon={<PaletteIcon />} iconPosition="start" label="Appearance" />
-          {isOrgAdmin && <Tab icon={<SettingsIcon />} iconPosition="start" label="Organization" />}
-          {isOrgAdmin && <Tab icon={<ComplianceIcon />} iconPosition="start" label="Compliance" />}
-          {isOrgAdmin && <Tab icon={<GroupIcon />} iconPosition="start" label="Delegations" />}
-          {isOrgAdmin && <Tab icon={<SmartToyIcon />} iconPosition="start" label="AI" />}
-          {isOrgAdmin && <Tab icon={<LeaveIcon />} iconPosition="start" label="Leave" />}
-          {isOrgAdmin && <Tab icon={<WarningIcon />} iconPosition="start" label="Incident Categories" />}
+          <Tab value="profile" icon={<ProfileIcon />} iconPosition="start" label="My Profile" />
+          {user && <Tab value="security" icon={<SecurityIcon />} iconPosition="start" label="Security" />}
+          <Tab value="appearance" icon={<PaletteIcon />} iconPosition="start" label="Appearance" />
+          {canManage && <Tab value="org" icon={<SettingsIcon />} iconPosition="start" label="Organization" />}
+          {canManage && <Tab value="compliance" icon={<ComplianceIcon />} iconPosition="start" label="Compliance" />}
+          {isOrgAdmin && <Tab value="delegations" icon={<GroupIcon />} iconPosition="start" label="Delegations" />}
+          {isOrgAdmin && <Tab value="ai" icon={<SmartToyIcon />} iconPosition="start" label="AI" />}
+          {canManage && <Tab value="leave" icon={<LeaveIcon />} iconPosition="start" label="Leave" />}
+          {canManage && <Tab value="incidents" icon={<WarningIcon />} iconPosition="start" label="Incident Categories" />}
         </Tabs>
       </Paper>
-      {tab === 0 && renderProfileTab()}
-      {user && tab === 1 && renderSecurityTab()}
-      {tab === 2 && renderAppearanceTab()}
-      {isOrgAdmin && tab === 3 && renderOrgSettingsTab()}
-      {isOrgAdmin && tab === 4 && renderComplianceTab()}
-      {isOrgAdmin && tab === 5 && renderDelegationsTab()}
-      {isOrgAdmin && tab === 6 && renderAITab()}
-      {isOrgAdmin && tab === 7 && <LeaveTypesSettings staffCount={staffList.length} />}
-      {isOrgAdmin && tab === 8 && <IncidentCategoriesSettings />}
+      {tab === 'profile' && renderProfileTab()}
+      {user && tab === 'security' && renderSecurityTab()}
+      {tab === 'appearance' && renderAppearanceTab()}
+      {tab === 'org' && renderOrgSettingsTab()}
+      {tab === 'compliance' && renderComplianceTab()}
+      {isOrgAdmin && tab === 'delegations' && renderDelegationsTab()}
+      {isOrgAdmin && tab === 'ai' && renderAITab()}
+      {tab === 'leave' && <LeaveTypesSettings staffCount={staffList.length} />}
+      {tab === 'incidents' && <IncidentCategoriesSettings />}
     </Box>
   )
 }

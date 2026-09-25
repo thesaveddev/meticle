@@ -69,6 +69,34 @@ export class StaffController {
     res.json(profile);
   }
 
+  /**
+   * The contact-details half of a staff record, scoped to the caller's own
+   * organisation. "My profile" reads this to populate the form; the name and
+   * email always come from the users row so the response is usable even for a
+   * member who has never had a staff_profiles row created.
+   */
+  static async getStaffProfile(req: Request, res: Response) {
+    const { userId } = req.params;
+    const orgId = req.user!.organizationId;
+    const user = await pool.query(
+      `SELECT u.id AS user_id, u.email, u.role, u.status,
+              COALESCE(sp.first_name, '') AS first_name,
+              COALESCE(sp.last_name, '') AS last_name
+         FROM users u
+         LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+        WHERE u.id = $1 AND u.organization_id = $2`,
+      [userId, orgId]
+    );
+    if (user.rows.length === 0) throw new AppError(404, 'Staff member not found');
+    const profile = await pool.query(
+      `SELECT phone, address, city, country, postal_code, birth_date, profile_picture_url,
+              location_id, employment_type, contracted_hours_weekly, max_hours_weekly
+         FROM staff_profiles WHERE user_id = $1`,
+      [userId]
+    );
+    res.json({ ...user.rows[0], ...(profile.rows[0] || {}) });
+  }
+
   static async addQualification(req: Request, res: Response) {
     const user = req.user!;
     const { staffId } = req.params;

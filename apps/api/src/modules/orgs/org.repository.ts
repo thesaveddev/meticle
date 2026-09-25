@@ -189,7 +189,7 @@ export class OrgRepository {
     service_types: string[];
     primary_service_type: string;
   }>): Promise<OrganizationRow> {
-    const allowedFields = new Set(['name', 'status', 'plan', 'regulator', 'onboarding_step', 'onboarding_completed', 'onboarding_dismissed_at', 'force_mfa', 'logo_url', 'primary_color', 'secondary_color', 'accent_color', 'auto_approve_documents', 'compliance_digest_enabled', 'predictive_alerts_enabled', 'service_types', 'primary_service_type']);
+    const allowedFields = new Set(['name', 'status', 'plan', 'regulator', 'onboarding_step', 'onboarding_completed', 'onboarding_dismissed_at', 'force_mfa', 'logo_url', 'primary_color', 'secondary_color', 'accent_color', 'auto_approve_documents', 'compliance_digest_enabled', 'predictive_alerts_enabled', 'default_hourly_rate_pence', 'default_mileage_rate_pence', 'service_types', 'primary_service_type']);
     const fields = Object.keys(updates).filter(f => allowedFields.has(f));
     if (fields.length === 0) {
       return this.getOrgById(id) as Promise<OrganizationRow>;

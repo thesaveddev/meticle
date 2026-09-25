@@ -93,15 +93,18 @@ export class SettingsController {
     const user = req.user!;
     const orgId = user.organizationId;
 
-    // MANAGERs may only change medication/alert related safety settings
-    const managerAllowed = new Set(['daily_shift_audit_enabled', 'daily_shift_audit_time', 'reorder_alert_enabled', 'late_med_alert_enabled', 'late_med_alert_delay_minutes', 'overdue_alert_frequency_minutes', 'unassigned_alert_frequency_minutes', 'emedication_count_convention']);
+    // MANAGERs may change day-to-day operational settings: staffing rules,
+    // leave policy, notification/alert behaviour and medication safety.
+    // Identity and security policy (force_mfa, regulator, service model) and
+    // SOS contacts stay with the org admin.
+    const managerAllowed = new Set(['daily_shift_audit_enabled', 'daily_shift_audit_time', 'reorder_alert_enabled', 'late_med_alert_enabled', 'late_med_alert_delay_minutes', 'overdue_alert_frequency_minutes', 'unassigned_alert_frequency_minutes', 'emedication_count_convention', 'minimum_compliance_percent', 'overtime_requires_approval', 'compliance_digest_enabled', 'predictive_alerts_enabled', 'auto_evidence_pack_enabled', 'auto_evidence_pack_frequency', 'leave_start_month', 'leave_calculation_type', 'default_hours_per_leave_day', 'base_leave_hours', 'base_contracted_hours']);
     if (user.role === 'MANAGER') {
       const filtered: any = {};
       for (const k of Object.keys(req.body)) {
         if (managerAllowed.has(k)) filtered[k] = req.body[k];
       }
       if (Object.keys(filtered).length === 0) {
-        throw new AppError(403, 'Managers can only update medication and alert related settings');
+        throw new AppError(403, 'Managers can only update operational settings');
       }
       req.body = filtered;
     }
@@ -368,6 +371,46 @@ export class SettingsController {
       estimated_revenue_pence_this_month: Number(row.estimated_revenue_pence_this_month || 0),
       open_calls: Number(row.open_calls || 0),
     });
+  }
+
+  /**
+   * Carers for one area (location). Domiciliary areas group clients and carers
+   * geographically, so a carer "belongs" to an area either by assignment
+   * (staff_profiles.location_id) or by actually covering calls for clients in
+   * the area (homecare_visits). Supported-living locations only resolve the
+   * assigned case.
+   */
+  static async getLocationCarers(req: Request, res: Response) {
+    const user = req.user!;
+    const { locationId } = req.params;
+    const location = await pool.query(
+      'SELECT id, name FROM locations WHERE id = $1 AND organization_id = $2',
+      [locationId, user.organizationId]
+    );
+    if (location.rows.length === 0) throw new AppError(404, 'Area not found');
+
+    const result = await pool.query(
+      `SELECT sp.id, sp.user_id, u.email, u.role, sp.first_name, sp.last_name,
+              sp.employment_type, sp.contracted_hours_weekly, sp.location_id,
+              home.name AS location_name,
+              CASE WHEN sp.location_id = $2 THEN 'assigned' ELSE 'covering' END AS area_link,
+              (SELECT COUNT(*)::int FROM homecare_visits v
+                JOIN people pe ON pe.id = v.person_id
+                WHERE v.organization_id = $1 AND v.assigned_staff_id = sp.id AND pe.location_id = $2
+                  AND v.scheduled_start >= CURRENT_DATE - INTERVAL '30 days') AS recent_visits
+       FROM staff_profiles sp
+       JOIN users u ON u.id = sp.user_id
+       LEFT JOIN locations home ON home.id = sp.location_id
+       WHERE u.organization_id = $1 AND u.status = 'active'
+         AND (sp.location_id = $2 OR EXISTS (
+           SELECT 1 FROM homecare_visits v
+           JOIN people pe ON pe.id = v.person_id
+           WHERE v.organization_id = $1 AND v.assigned_staff_id = sp.id AND pe.location_id = $2
+             AND v.scheduled_start >= CURRENT_DATE - INTERVAL '30 days'))
+       ORDER BY CASE WHEN sp.location_id = $2 THEN 0 ELSE 1 END, sp.first_name, sp.last_name`,
+      [user.organizationId, locationId]
+    );
+    res.json(result.rows);
   }
 
   static async getDomiciliaryAreaComparison(req: Request, res: Response) {

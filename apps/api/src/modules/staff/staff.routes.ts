@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { StaffController } from './staff.controller';
 import { authenticate } from '../../shared/middleware/auth.middleware';
-import { requireRole } from '../../shared/middleware/requireRole';
+import { requireRole, requireSelfOrRole } from '../../shared/middleware/requireRole';
 import { validate } from '../../shared/middleware/validate.middleware';
 import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { SettingsController } from '../settings/settings.controller';
@@ -22,7 +22,11 @@ router.get('/org-members', asyncHandler(StaffController.getOrgMembers));
 router.patch('/:userId/role', requireRole(UserRole.ORG_ADMIN), validate(updateStaffRoleSchema), asyncHandler(StaffController.updateUserRole));
 router.patch('/:userId/status', requireRole(UserRole.ORG_ADMIN), validate(updateStaffStatusSchema), asyncHandler(StaffController.updateUserStatus));
 router.delete('/:userId', requireRole(UserRole.ORG_ADMIN), asyncHandler(StaffController.deleteUser));
-router.patch('/:userId/profile', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateStaffProfileSchema), asyncHandler(StaffController.updateStaffProfile));
+// Readable and writable by the person themselves as well as by an
+// administrator or manager. Carers maintain their own contact details from
+// "My profile", so a role-only gate here silently broke self-service.
+router.get('/:userId/profile', requireSelfOrRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(StaffController.getStaffProfile));
+router.patch('/:userId/profile', requireSelfOrRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateStaffProfileSchema), asyncHandler(StaffController.updateStaffProfile));
 router.patch('/:userId/pay-profile', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(StaffController.updatePayProfile));
 router.post('/self-deactivate', asyncHandler(StaffController.selfDeactivate));
 router.get('/:userId', asyncHandler(StaffController.getProfile));
