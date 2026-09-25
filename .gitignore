@@ -17,3 +17,9 @@ apps/mobile/android/
 apps/mobile/ios/
 packages/shared/src/*.js
 packages/shared/src/*.js.map
+
+# Local tooling, scratch output and private collateral
+.agents/
+.freebuff/
+brag-output-*/
+outreach/

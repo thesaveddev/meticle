@@ -2,27 +2,41 @@
   "expo": {
     "name": "Meticle Care",
     "slug": "meticlecare",
+    "description": "Meticle Care keeps care teams, visits, records and compliance in one secure place, on the move.",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "meticlecare",
+    "icon": "./assets/icon.png",
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.meticlecare.mobile",
+      "buildNumber": "1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Meticle Care uses your location only when you check in or out of an assigned visit.",
-        "NSUserNotificationsUsageDescription": "Meticle Care sends reminders for your assigned care visits and urgent operational updates."
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.meticlecare.mobile",
+      "versionCode": 1,
+      "allowBackup": false,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1A2332",
+        "monochromeImage": "./assets/adaptive-icon.png"
+      },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "plugins": [
@@ -36,13 +50,41 @@
         "expo-notifications",
         {
           "color": "#0F4C81",
-          "icon": null,
+          "icon": "./assets/notification-icon.png",
           "sounds": []
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF",
+          "dark": {
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#0B0E14"
+          }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Meticle Care needs access to your photos so you can attach evidence to care records and incident reports.",
+          "cameraPermission": "Meticle Care needs the camera so you can capture evidence for care records and incident reports.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Meticle Care uses Face ID to confirm it is you before opening records that contain personal health information."
         }
       ],
       "expo-font",
       "expo-sharing",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-asset"
     ],
     "extra": {
       "apiBaseUrl": "https://meticlecare.com/api",

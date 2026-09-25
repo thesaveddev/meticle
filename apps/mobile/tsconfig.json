@@ -1,4 +1,7 @@
 {
+  // TypeScript 6 no longer auto-includes every package under node_modules/@types,
+  // so the test globals have to be named explicitly. `node` is here because the
+  // service tests reach for `global.fetch` when stubbing the API client.
   "compilerOptions": {
     "target": "es2022",
     "module": "esnext",
@@ -6,7 +9,8 @@
     "noEmit": true,
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["jest", "node"]
   },
   "include": [
     "**/*.ts",
