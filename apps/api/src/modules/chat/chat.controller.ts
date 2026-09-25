@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { query } from '../../shared/database';
 import { safeIo } from '../../shared/socket';
+import { fetchLinkPreview } from '../../shared/utils/linkPreview';
+import { UserRole } from '@meticle/shared';
+
+const FILE_LIST_LIMIT = 100;
 
 function orgId(req: Request): string {
   const value = req.user?.organizationId;
@@ -27,6 +31,130 @@ export class ChatController {
   static async uploadFile(req: Request, res: Response) {
     if (!req.file) throw new AppError(400, 'No file provided');
     res.json({ url: `/files/private/${req.file.filename}`, originalName: req.file.originalname });
+  }
+
+  // ─── Shared files ──────────────────────────────────────────
+  // A shared file is an ordinary chat message that carries an attachment. The
+  // gallery therefore reads from the message table rather than a second store,
+  // so a file can never appear in the list without existing in the channel.
+
+  private static fileSelect() {
+    return `SELECT m.id,
+                   m.channel AS channel_id,
+                   m.file_name,
+                   m.file_url,
+                   m.file_size,
+                   m.file_type,
+                   m.created_at,
+                   u.id AS sender_id,
+                   sp.first_name,
+                   sp.last_name,
+                   u.email`;
+  }
+
+  static async listChannelFiles(req: Request, res: Response) {
+    const oid = orgId(req);
+    const uid = userId(req);
+    const { channelId } = req.params;
+    await requireChannelMember(oid, channelId, uid);
+
+    const result = await query(
+      `${ChatController.fileSelect()}
+       FROM org_chat_messages m
+       JOIN users u ON u.id = m.sender_id
+       LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+       WHERE m.organization_id = $1
+         AND m.channel = $2
+         AND m.file_url IS NOT NULL
+         AND m.deleted = FALSE
+       ORDER BY m.created_at DESC
+       LIMIT ${FILE_LIST_LIMIT}`,
+      [oid, channelId]
+    );
+    res.json(result.rows);
+  }
+
+  static async uploadChannelFile(req: Request, res: Response) {
+    const oid = orgId(req);
+    const uid = userId(req);
+    const { channelId } = req.params;
+    await requireChannelMember(oid, channelId, uid);
+    if (!req.file) throw new AppError(400, 'No file provided');
+
+    const fileUrl = `/files/private/${req.file.filename}`;
+    const result = await query(
+      `INSERT INTO org_chat_messages (organization_id, sender_id, channel, message, file_url, file_name, file_size, file_type)
+       VALUES ($1, $2, $3, '', $4, $5, $6, $7)
+       RETURNING id, channel AS channel_id, file_name, file_url, file_size, file_type, created_at`,
+      [oid, uid, channelId, fileUrl, req.file.originalname, req.file.size, req.file.mimetype]
+    );
+
+    const senderResult = await query(
+      `SELECT COALESCE(sp.first_name || ' ' || sp.last_name, u.email) AS sender_name
+       FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id WHERE u.id = $1`,
+      [uid]
+    );
+
+    const record = {
+      ...result.rows[0],
+      sender_id: uid,
+      first_name: senderResult.rows[0]?.sender_name || '',
+      email: '',
+    };
+
+    await query('UPDATE chat_channels SET updated_at = NOW() WHERE organization_id = $1 AND id = $2', [oid, channelId])
+      .catch(() => {});
+
+    // The client listens for chat:file_added to refresh the gallery and for
+    // chat:message to show the attachment in the conversation, so emit both.
+    safeIo().to(`channel:${channelId}`).emit('chat:file_added', { channelId });
+    safeIo().to(`channel:${channelId}`).emit('chat:message', {
+      ...record,
+      message: '',
+      content: '',
+      channel_id: channelId,
+      sender_name: senderResult.rows[0]?.sender_name || 'Unknown',
+    });
+
+    res.status(201).json(record);
+  }
+
+  static async deleteChannelFile(req: Request, res: Response) {
+    const oid = orgId(req);
+    const uid = userId(req);
+    const { channelId, fileId } = req.params;
+    await requireChannelMember(oid, channelId, uid);
+
+    const existing = await query(
+      `SELECT id, sender_id FROM org_chat_messages
+       WHERE id = $1 AND organization_id = $2 AND channel = $3 AND file_url IS NOT NULL`,
+      [fileId, oid, channelId]
+    );
+    if (!existing.rows.length) throw new AppError(404, 'File not found');
+    if (existing.rows[0].sender_id !== uid && req.user!.role !== UserRole.ORG_ADMIN) {
+      throw new AppError(403, 'You can only remove files you shared');
+    }
+
+    // Clear the attachment rather than deleting the message, so a message that
+    // carried both text and a file keeps its text.
+    await query(
+      `UPDATE org_chat_messages
+       SET file_url = NULL, file_name = NULL, file_size = NULL, file_type = NULL, updated_at = NOW()
+       WHERE id = $1`,
+      [fileId]
+    );
+    safeIo().to(`channel:${channelId}`).emit('chat:file_added', { channelId });
+    safeIo().to(`channel:${channelId}`).emit('chat:message_deleted', { channelId, messageId: fileId });
+    res.json({ deleted: true });
+  }
+
+  static async getLinkPreview(req: Request, res: Response) {
+    const url = typeof req.query.url === 'string' ? req.query.url.trim() : '';
+    if (!url) throw new AppError(400, 'A url is required');
+    const preview = await fetchLinkPreview(url);
+    // A link with no readable metadata is normal, not an error: the client
+    // falls back to showing the plain link.
+    res.json(preview || { url, title: '', description: '', image: '' });
   }
 
   static async listChannels(req: Request, res: Response) {

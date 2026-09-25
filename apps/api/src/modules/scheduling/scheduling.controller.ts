@@ -4,7 +4,7 @@ import { SchedulingRepository } from './scheduling.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { EmailService } from '../../shared/utils/email.service';
-import { requireLocationInOrg, requireShiftInOrg, requireSameOrgForStaff } from '../../shared/database/tenant';
+import { requireLocationInOrg, requirePersonInOrg, requireShiftInOrg, requireSameOrgForStaff } from '../../shared/database/tenant';
 import { logDelegationAction } from '../delegations/delegation.audit';
 
 /** Check that a shift is not in the past. Throws if its end_time has passed. */
@@ -22,6 +22,9 @@ export class SchedulingController {
     if (req.body.location_id) {
       await requireLocationInOrg(user, req.body.location_id);
       await SchedulingRepository.requireCanEditLocation(user.userId, user.role, user.organizationId!, req.body.location_id);
+    }
+    if (req.body.person_id) {
+      await requirePersonInOrg(user, req.body.person_id);
     }
     if (req.body.assigned_staff_ids?.length) {
       for (const sid of req.body.assigned_staff_ids) {

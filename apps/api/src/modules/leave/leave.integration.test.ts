@@ -16,6 +16,29 @@ beforeAll(async () => {
 }, 30_000)
 
 describe('Leave Integration — POST /leave/types', () => {
+  it('should let a manager create leave types (settings access)', async () => {
+    const org = await createOrg({ base_leave_hours: 75, default_hours_per_leave_day: 7.5 })
+    const manager = await createUser({ email: `mgr-${Date.now()}@leave-test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    const token = generateToken(manager)
+
+    const created = await request(app)
+      .post('/leave/types')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Carers Leave', color: '#0F4C81', days_allowed: 10, duration_type: 'days' })
+    expect(created.status).toBe(201)
+
+    const updated = await request(app)
+      .put(`/leave/types/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Carer Support Leave' })
+    expect(updated.status).toBe(200)
+
+    const deleted = await request(app)
+      .delete(`/leave/types/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(deleted.status).toBe(200)
+  })
+
   it('should create a leave type as ORG_ADMIN', async () => {
     // 10 days x 7.5h/day = 75h — set the org total to match so the type balances
     const org = await createOrg({ base_leave_hours: 75, default_hours_per_leave_day: 7.5 })

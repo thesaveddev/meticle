@@ -68,7 +68,8 @@ import shiftAuditRoutes from './modules/shift-audit/shift-audit.routes';
 import contactRoutes from './modules/contact/contact.routes';
 import eventRoutes from './modules/events/events.routes';
 import missionControlRoutes from './modules/mission-control/mission-control.routes';
-import homecareRoutes, { publicInvoiceRouter } from './modules/homecare/homecare.routes';
+import homecareRoutes, { publicInvoiceRouter, publicEmailDsnRouter } from './modules/homecare/homecare.routes';
+import supervisionRoutes from './modules/supervisions/supervisions.routes';
 import { BillingController } from './modules/billing/billing.controller';
 import { ComplianceController } from './modules/compliance/compliance.controller';
 import { ComplianceNotificationService } from './modules/compliance/compliance.notifications';
@@ -218,6 +219,7 @@ app.use((req, _res, next) => {
 });
 
 app.post('/billing/webhook', express.raw({ type: 'application/json' }), asyncHandler(BillingController.handleWebhook));
+app.use('/homecare/email/dsn-callback', express.raw({ type: 'application/json' }), publicEmailDsnRouter);
 app.use(express.json({ limit: '15mb' }));
 app.get('/files/private/:filename', authenticate, asyncHandler(ComplianceController.servePrivateFile));
 app.get('/files/:id', authenticate, asyncHandler(ComplianceController.serveFile));
@@ -320,6 +322,7 @@ app.use('/shift-audit', shiftAuditRoutes);
 app.use('/events', eventRoutes);
 app.use('/contact', contactRoutes); // public — website contact form
 app.use('/homecare', authenticate, requireDomiciliaryOnly, homecareRoutes); // Phase 2 domiciliary-care operations
+app.use('/supervisions', supervisionRoutes);
 // chat routes already registered above
 
 // Prometheus metrics — restricted to localhost/internal IPs in production

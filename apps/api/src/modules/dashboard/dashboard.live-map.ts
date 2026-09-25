@@ -15,6 +15,19 @@ export interface LiveMapVisit {
   longitude: number | null;
   last_updated: string;
   is_active: boolean;
+  location_id: string | null;
+  location_name: string | null;
+}
+
+export interface LiveMapArea {
+  id: string;
+  name: string;
+}
+
+export interface LiveMapAreaStat {
+  location_id: string | null;
+  total: number;
+  completed: number;
 }
 
 export interface LiveMapData {
@@ -23,6 +36,8 @@ export interface LiveMapData {
   completed_today: number;
   total_today: number;
   centre: { lat: number; lng: number } | null;
+  areas: LiveMapArea[];
+  area_stats: LiveMapAreaStat[];
 }
 
 export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
@@ -36,6 +51,8 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
            COALESCE(v.check_in_longitude, v.check_out_longitude) AS longitude,
            pe.first_name || ' ' || pe.last_name AS person_name,
            l.address AS person_address,
+           pe.location_id AS location_id,
+           l.name AS location_name,
            sp.first_name || ' ' || sp.last_name AS carer_name,
            v.assigned_staff_id AS carer_id
     FROM homecare_visits v
@@ -58,6 +75,22 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
       AND scheduled_start < $3
   `, [orgId, today, tomorrow]);
 
+  const areasResult = await query(`
+    SELECT id, name FROM locations WHERE organization_id = $1 ORDER BY name
+  `, [orgId]);
+
+  const areaStatsResult = await query(`
+    SELECT pe.location_id,
+           COUNT(*)::int AS total,
+           COUNT(*) FILTER (WHERE v.status = 'completed')::int AS completed
+    FROM homecare_visits v
+    JOIN people pe ON pe.id = v.person_id
+    WHERE v.organization_id = $1
+      AND v.scheduled_start >= $2
+      AND v.scheduled_start < $3
+    GROUP BY pe.location_id
+  `, [orgId, today, tomorrow]);
+
   const visits: LiveMapVisit[] = result.rows.map((v: any) => ({
     id: v.id,
     label: v.label,
@@ -73,6 +106,8 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
     longitude: v.longitude != null ? Number(v.longitude) : null,
     last_updated: v.updated_at,
     is_active: ['en_route', 'checked_in'].includes(v.status),
+    location_id: v.location_id ?? null,
+    location_name: v.location_name ?? null,
   }));
 
   // Centre the map on the average of available GPS points
@@ -90,5 +125,11 @@ export async function getLiveMapData(orgId: string): Promise<LiveMapData> {
     completed_today: Number(allToday.rows[0]?.completed || 0),
     total_today: Number(allToday.rows[0]?.total || 0),
     centre,
+    areas: areasResult.rows.map((a: any) => ({ id: a.id, name: a.name })),
+    area_stats: areaStatsResult.rows.map((s: any) => ({
+      location_id: s.location_id ?? null,
+      total: Number(s.total),
+      completed: Number(s.completed),
+    })),
   };
 }

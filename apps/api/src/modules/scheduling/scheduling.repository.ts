@@ -658,8 +658,21 @@ export class SchedulingRepository {
     );
     if (alreadyAssigned.rows.length > 0) throw new AppError(409, 'Already assigned to this shift');
 
-    const hasConflict = await this.checkStaffShiftConflict(staffId, shift.start_time, shift.end_time);
+    // Open calls naming a client are care calls: keep travel time between them.
+    const bufferMinutes = shift.person_id ? 30 : 0;
+    const bufferedStart = new Date(new Date(shift.start_time).getTime() - bufferMinutes * 60000).toISOString();
+    const bufferedEnd = new Date(new Date(shift.end_time).getTime() + bufferMinutes * 60000).toISOString();
+    const hasConflict = await this.checkStaffShiftConflict(staffId, bufferedStart, bufferedEnd);
     if (hasConflict) throw new AppError(409, 'You already have a shift during this time');
+
+    // Never claim an open call on top of an assigned homecare call — travel time included.
+    const callConflict = await query(
+      `SELECT id FROM homecare_visits
+       WHERE organization_id = $1 AND assigned_staff_id = $2 AND status NOT IN ('cancelled', 'missed')
+         AND scheduled_start < ($4::timestamptz + INTERVAL '30 minutes')
+         AND scheduled_end > ($3::timestamptz - INTERVAL '30 minutes')
+       LIMIT 1`, [orgId, staffId, shift.start_time, shift.end_time]);
+    if (callConflict.rows.length) throw new AppError(409, 'You already have a care call around this open call — travel time included');
 
     const conflictingRest = await this.checkRestPeriod(staffId, shift.start_time, shift.end_time);
     if (conflictingRest) {

@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { buildEmailHtml, buildCodeEmailHtml, buildStatusEmailHtml } from './email.template';
 import { buildInvoiceHtml, generatePdf } from '../../modules/billing/billing.pdf';
+import type { EmailQueueOptions } from './email.queue';
 import pool from '../database';
 import logger from './logger';
 
@@ -42,11 +43,12 @@ export function getTransporter(): nodemailer.Transporter | null {
   return transporter;
 }
 
-async function sendMail(to: string, subject: string, html: string, category: SenderCategory = 'notifications', attachments?: { filename: string; content: Buffer; contentType?: string }[]) {
+async function sendMail(to: string, subject: string, html: string, category: SenderCategory = 'notifications', attachments?: { filename: string; content: Buffer; contentType?: string }[], queueOptions?: EmailQueueOptions) {
   try {
     const { EmailQueue } = await import('./email.queue');
-    await EmailQueue.enqueue(to, subject, html, SENDERS[category], attachments);
-    logger.info({ to, subject, category, from: SENDERS[category] }, 'Email queued');
+    const queued = await EmailQueue.enqueue(to, subject, html, SENDERS[category], attachments, queueOptions);
+    logger.info({ to, subject, category, from: SENDERS[category], queueId: queued?.rows?.[0]?.id }, 'Email queued');
+    return queued;
   } catch (err: any) {
     logger.error({ err: err.message, to, subject, category }, 'Email enqueue failed');
     throw err;
@@ -474,9 +476,9 @@ export class EmailService {
         { label: 'View Compliance', url: `${baseUrl()}/compliance` }));
   }
 
-  static async sendQueued(to: string, subject: string, htmlBody: string, category: SenderCategory = 'notifications') {
+  static async sendQueued(to: string, subject: string, htmlBody: string, category: SenderCategory = 'notifications', queueOptions?: EmailQueueOptions) {
     const html = buildEmailHtml(subject, subject, htmlBody);
-    await sendMail(to, subject, html, category);
+    return sendMail(to, subject, html, category, undefined, queueOptions);
   }
 
   static buildTrialFollowupEmailHtml(name: string, orgName: string, message: string) {
