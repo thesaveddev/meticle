@@ -445,7 +445,7 @@ export default function DomiciliaryDashboard() {
             { label: 'All calls', path: '/homecare', color: '#10B981' },
             { label: 'Schedule', path: '/call-scheduling', color: '#0F4C81' },
             { label: 'Mileage', path: '/mileage', color: '#7C3AED' },
-            { label: 'Carer totals', path: '/carer-totals', color: '#D97706' },
+            { label: 'Carer totals', path: '/payroll-timesheets?view=carer-totals', color: '#D97706' },
             { label: 'Payroll', path: '/payroll-export', color: '#047857' },
             { label: 'Billing', path: '/client-billing', color: '#0F4C81' },
           ].map(action => (

@@ -140,22 +140,30 @@ export default function LocationDetailPage() {
   })
   const location = locations?.find((l: any) => l.id === locationId)
 
+  const storedOrg = (() => { try { const raw = localStorage.getItem('organization'); return raw ? JSON.parse(raw) : {} } catch { return {} } })()
+  const isDomFromStorage = storedOrg.primary_service_type
+    ? ['domiciliary', 'live_in'].includes(storedOrg.primary_service_type)
+    : (Array.isArray(storedOrg.service_types) && storedOrg.service_types.some((type: string) => ['domiciliary', 'live_in'].includes(type)))
+
   const { data: orgSettings } = useQuery({
     queryKey: ['settings-org'],
     queryFn: async () => (await api.get('/settings/org')).data,
   })
-  const isDomiciliary = orgSettings?.primary_service_type
-    ? ['domiciliary', 'live_in'].includes(orgSettings.primary_service_type)
-    : (orgSettings?.service_types || []).some((type: string) => ['domiciliary', 'live_in'].includes(type))
+  const isDomiciliary = orgSettings
+    ? (orgSettings.primary_service_type
+        ? ['domiciliary', 'live_in'].includes(orgSettings.primary_service_type)
+        : (orgSettings.service_types || []).some((type: string) => ['domiciliary', 'live_in'].includes(type)))
+    : isDomFromStorage
+  const domConfirmed = orgSettings !== undefined && isDomiciliary
   const showResidentialTabs = orgSettings !== undefined && !isDomiciliary
 
   const { data: areaSummary } = useQuery({
     queryKey: ['area-summary', locationId],
     queryFn: async () => (await api.get(`/settings/locations/${locationId}/area-summary`)).data,
-    enabled: !!locationId && isDomiciliary,
+    enabled: !!locationId && domConfirmed,
   })
 
-  const { data: staff, isLoading: staffLoading } = useQuery({
+  const { data: staff } = useQuery({
     queryKey: ['settings-staff'],
     queryFn: async () => {
       const res = await api.get('/settings/staff')
@@ -163,6 +171,18 @@ export default function LocationDetailPage() {
     },
   })
   const locationStaff = (staff || []).filter((s: any) => s.location_id === locationId)
+
+  // Carers for this area: assigned carers plus carers who cover calls for
+  // clients in the area (see SettingsController.getLocationCarers).
+  const { data: locationCarers, isLoading: carersLoading } = useQuery({
+    queryKey: ['location-carers', locationId],
+    queryFn: async () => {
+      const res = await api.get(`/settings/locations/${locationId}/carers`)
+      return res.data as any[]
+    },
+    enabled: !!locationId,
+  })
+  const carerRows = locationCarers || []
 
   const { data: certificates, isLoading: certsLoading } = useQuery({
     queryKey: ['location-certificates', locationId],
@@ -297,7 +317,7 @@ export default function LocationDetailPage() {
   const loading = locationsLoading
 
   if (loading) {
-    return <LoadingState label="Loading location..." />
+    return <LoadingState label={isDomiciliary ? 'Loading area...' : 'Loading location...'} />
   }
 
   if (!location) {
@@ -305,13 +325,14 @@ export default function LocationDetailPage() {
       <PageContainer>
 
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
-          <Typography color="#9CA3AF">Location not found.</Typography>
+          <Typography color="#9CA3AF">{isDomiciliary ? 'Area not found.' : 'Location not found.'}</Typography>
         </Paper>
       </PageContainer>
     )
   }
 
   const staffCount = locationStaff.length
+  const carerCount = carerRows.length
   const noManager = !location.manager_id
 
   const staffingRows = [
@@ -336,27 +357,27 @@ export default function LocationDetailPage() {
             <BuildingIcon sx={{ fontSize: 36 }} />
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>              <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: NAVY, textTransform: 'uppercase', mb: 0.5 }}>
-              {isDomiciliary ? 'Care area' : 'Location'}
+              {isDomiciliary ? 'Area' : 'Location'}
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 0.5 }}>
               <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 {location.name}
               </Typography>
-              {noManager && <StatusBadge label="No manager" tone="warning" />}
+              {noManager && <StatusBadge label={isDomiciliary ? 'No area manager' : 'No manager'} tone="warning" />}
             </Stack>
             <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
               {location.manager_first_name ? (
-                <Chip label={`Manager: ${location.manager_first_name} ${location.manager_last_name}`} size="small" variant="outlined" sx={{ height: 22, fontSize: 12 }} />
+                <Chip label={`${isDomiciliary ? 'Area manager' : 'Manager'}: ${location.manager_first_name} ${location.manager_last_name}`} size="small" variant="outlined" sx={{ height: 22, fontSize: 12 }} />
               ) : (
-                <Chip label="No manager assigned" size="small" variant="outlined" sx={{ height: 22, fontSize: 12, color: '#B45309', borderColor: '#F59E0B' }} />
+                <Chip label={isDomiciliary ? 'No area manager assigned' : 'No manager assigned'} size="small" variant="outlined" sx={{ height: 22, fontSize: 12, color: '#B45309', borderColor: '#F59E0B' }} />
               )}
-              <Chip label={`${staffCount} staff`} size="small" variant="outlined" sx={{ height: 22, fontSize: 12 }} />
+              <Chip label={isDomiciliary ? `${carerCount} carers` : `${staffCount} staff`} size="small" variant="outlined" sx={{ height: 22, fontSize: 12 }} />
             </Stack>
           </Box>
           {isOrgAdmin && (
             <Box sx={{ flexShrink: 0 }}>
                 <Button variant="outlined" startIcon={<EditIcon />} onClick={openEditLocation}>
-                Edit location
+                {isDomiciliary ? 'Edit area' : 'Edit location'}
               </Button>
             </Box>
           )}
@@ -364,8 +385,8 @@ export default function LocationDetailPage() {
         <Divider sx={{ borderColor: '#F1F5F9' }} />
         <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ p: 2 }}>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, lineHeight: 1.1 }}>{staffCount}</Typography>
-            <Typography variant="caption" color="text.secondary">Staff assigned</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, lineHeight: 1.1 }}>{isDomiciliary ? carerCount : staffCount}</Typography>
+            <Typography variant="caption" color="text.secondary">{isDomiciliary ? 'Carers in area' : 'Staff assigned'}</Typography>
           </Box>
           <Box sx={{ flex: 1, px: { sm: 2 }, py: 1 }}>
             <Typography variant="h5" sx={{ fontWeight: 900, color: NAVY, lineHeight: 1.1 }}>{isDomiciliary ? (areaSummary?.workload_hours_next_7_days ?? '—') : (certificates?.length ?? 0)}</Typography>
@@ -597,11 +618,17 @@ export default function LocationDetailPage() {
 
       {tab === TAB_STAFF && (
         <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
-          {staffLoading ? (
+          {carersLoading ? (
             <Box sx={{ p: 6, textAlign: 'center' }}><CircularProgress /></Box>
-          ) : locationStaff.length === 0 ? (
+          ) : carerRows.length === 0 ? (
             <Box sx={{ p: 4 }}>
-              <EmptyState title="No staff assigned" description="Assign staff to this location from the Staff Directory" variant="default" action={{ label: 'Go to Staff Directory', onClick: () => navigate('/staff') }} />
+              <EmptyState
+                title={isDomiciliary ? 'No carers cover this area yet' : 'No staff assigned'}
+                description={isDomiciliary
+                  ? 'Carers appear here when they are assigned to this area or have covered a call for a client in it in the last 30 days.'
+                  : 'No staff are currently assigned to this location.'}
+                variant="default"
+              />
             </Box>
           ) : (
             <>
@@ -610,27 +637,38 @@ export default function LocationDetailPage() {
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
+                      {!isDomiciliary && <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>}
                       <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Employment</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Contracted Hours</TableCell>
+                      {isDomiciliary && <TableCell sx={{ fontWeight: 700 }}>Area link</TableCell>}
+                      {isDomiciliary && <TableCell sx={{ fontWeight: 700 }}>Calls · 30 days</TableCell>}
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {locationStaff.slice(staffPage * 10, staffPage * 10 + 10).map(s => (
-                      <TableRow key={s.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/staff/${s.id}`)}>
+                    {carerRows.slice(staffPage * 10, staffPage * 10 + 10).map((s: any) => (
+                      <TableRow key={s.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/staff/${s.user_id || s.id}`)}>
                         <TableCell sx={{ fontWeight: 600 }}>{[s.first_name, s.last_name].filter(Boolean).join(' ') || s.email}</TableCell>
-                        <TableCell>{s.email}</TableCell>
+                        {!isDomiciliary && <TableCell>{s.email}</TableCell>}
                         <TableCell><StatusBadge label={ROLE_LABEL[s.role] || s.role || '—'} tone={ROLE_TONE[s.role] || 'neutral'} /></TableCell>
                         <TableCell>{EMPLOYMENT_LABEL[s.employment_type] || s.employment_type || '—'}</TableCell>
                         <TableCell>{s.contracted_hours_weekly ? `${s.contracted_hours_weekly}h` : '—'}</TableCell>
+                        {isDomiciliary && (
+                          <TableCell>
+                            <StatusBadge
+                              label={s.area_link === 'assigned' ? 'Assigned to area' : 'Covers calls here'}
+                              tone={s.area_link === 'assigned' ? 'success' : 'info'}
+                            />
+                          </TableCell>
+                        )}
+                        {isDomiciliary && <TableCell>{s.recent_visits ?? 0}</TableCell>}
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </TableContainer>
-              {locationStaff.length > 10 && (
-                <TablePagination component="div" count={locationStaff.length} page={staffPage} onPageChange={(_, p) => setStaffPage(p)}
+              {carerRows.length > 10 && (
+                <TablePagination component="div" count={carerRows.length} page={staffPage} onPageChange={(_, p) => setStaffPage(p)}
                   rowsPerPage={10} rowsPerPageOptions={[10]} />
               )}
             </>
@@ -785,63 +823,69 @@ export default function LocationDetailPage() {
       />
 
       <Dialog open={locDialogOpen} onClose={() => setLocDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Edit Location</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>{isDomiciliary ? 'Edit Area' : 'Edit Location'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {locError && <Alert severity="error">{locError}</Alert>}
             <TextField label="Name" fullWidth size="small" value={locForm.name || ''} onChange={e => setLocForm((p: any) => ({ ...p, name: e.target.value }))} />
             <TextField label="Address" fullWidth size="small" value={locForm.address || ''} onChange={e => setLocForm((p: any) => ({ ...p, address: e.target.value }))} />
-            <Stack direction="row" spacing={2}>
-              <FormControl size="small" sx={{ minWidth: 180 }}>
-                <InputLabel>Service Type</InputLabel>
-                <Select label="Service Type" value={locForm.service_type || ''} onChange={e => setLocForm((p: any) => ({ ...p, service_type: e.target.value }))}>
-                  <MenuItem value=""><em>None</em></MenuItem>
-                  <MenuItem value="supported_living">Supported Living</MenuItem>
-                  <MenuItem value="residential">Residential</MenuItem>
-                  <MenuItem value="domiciliary">Domiciliary</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField label="Service Capacity" type="number" fullWidth size="small" value={locForm.service_capacity ?? ''}
-                onChange={e => setLocForm((p: any) => ({ ...p, service_capacity: e.target.value }))} />
-            </Stack>
+            {!isDomiciliary && (
+              <Stack direction="row" spacing={2}>
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <InputLabel>Service Type</InputLabel>
+                  <Select label="Service Type" value={locForm.service_type || ''} onChange={e => setLocForm((p: any) => ({ ...p, service_type: e.target.value }))}>
+                    <MenuItem value=""><em>None</em></MenuItem>
+                    <MenuItem value="supported_living">Supported Living</MenuItem>
+                    <MenuItem value="residential">Residential</MenuItem>
+                    <MenuItem value="domiciliary">Domiciliary</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField label="Service Capacity" type="number" fullWidth size="small" value={locForm.service_capacity ?? ''}
+                  onChange={e => setLocForm((p: any) => ({ ...p, service_capacity: e.target.value }))} />
+              </Stack>
+            )}
             <Stack direction="row" spacing={2}>
               <TextField label="Phone" fullWidth size="small" value={locForm.phone || ''} onChange={e => setLocForm((p: any) => ({ ...p, phone: e.target.value }))} />
               <TextField label="Email" fullWidth size="small" value={locForm.email || ''} onChange={e => setLocForm((p: any) => ({ ...p, email: e.target.value }))} />
             </Stack>
-            <TextField label="Minimum Staff Required Per Day" type="number" fullWidth size="small"
-              value={locForm.minimum_staff_per_day ?? 1}
-              onChange={e => setLocForm((p: any) => ({ ...p, minimum_staff_per_day: Number(e.target.value) }))}
-              helperText="Minimum safe staffing level for this location each day" />
-            <Stack direction="row" spacing={2}>
-              <TextField label="Min Day Staff" type="number" fullWidth size="small" value={locForm.min_day_staff ?? ''} onChange={e => setLocForm((p: any) => ({ ...p, min_day_staff: e.target.value }))} />
-              <TextField label="Min Night Staff" type="number" fullWidth size="small" value={locForm.min_night_staff ?? ''} onChange={e => setLocForm((p: any) => ({ ...p, min_night_staff: e.target.value }))} />
-              <TextField label="Min Sleep Staff" type="number" fullWidth size="small" value={locForm.min_sleep_staff ?? ''} onChange={e => setLocForm((p: any) => ({ ...p, min_sleep_staff: e.target.value }))} />
-            </Stack>
+            {!isDomiciliary && <>
+              <TextField label="Minimum Staff Required Per Day" type="number" fullWidth size="small"
+                value={locForm.minimum_staff_per_day ?? 1}
+                onChange={e => setLocForm((p: any) => ({ ...p, minimum_staff_per_day: Number(e.target.value) }))}
+                helperText="Minimum safe staffing level for this location each day" />
+              <Stack direction="row" spacing={2}>
+                <TextField label="Min Day Staff" type="number" fullWidth size="small" value={locForm.min_day_staff ?? ''} onChange={e => setLocForm((p: any) => ({ ...p, min_day_staff: e.target.value }))} />
+                <TextField label="Min Night Staff" type="number" fullWidth size="small" value={locForm.min_night_staff ?? ''} onChange={e => setLocForm((p: any) => ({ ...p, min_night_staff: e.target.value }))} />
+                <TextField label="Min Sleep Staff" type="number" fullWidth size="small" value={locForm.min_sleep_staff ?? ''} onChange={e => setLocForm((p: any) => ({ ...p, min_sleep_staff: e.target.value }))} />
+              </Stack>
+            </>}
             <FormControl size="small" fullWidth>
-              <InputLabel>Manager</InputLabel>
-              <Select label="Manager" value={locForm.manager_id || ''} onChange={e => setLocForm((p: any) => ({ ...p, manager_id: e.target.value }))}>
+              <InputLabel>{isDomiciliary ? 'Area manager' : 'Manager'}</InputLabel>
+              <Select label={isDomiciliary ? 'Area manager' : 'Manager'} value={locForm.manager_id || ''} onChange={e => setLocForm((p: any) => ({ ...p, manager_id: e.target.value }))}>
                 <MenuItem value=""><em>None</em></MenuItem>
                 {(staff || []).map(s => (
                   <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}{s.role ? ` (${s.role})` : ''}</MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <Stack direction="row" spacing={2}>
-              <FormControl size="small" sx={{ minWidth: 200 }}>
-                <InputLabel>CQC Rating</InputLabel>
-                <Select label="CQC Rating" value={locForm.cqc_rating || ''} onChange={e => setLocForm((p: any) => ({ ...p, cqc_rating: e.target.value }))}>
-                  <MenuItem value=""><em>None</em></MenuItem>
-                  <MenuItem value="outstanding">Outstanding</MenuItem>
-                  <MenuItem value="good">Good</MenuItem>
-                  <MenuItem value="requires_improvement">Requires Improvement</MenuItem>
-                  <MenuItem value="inadequate">Inadequate</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField label="Food Hygiene Rating (0-5)" type="number" inputProps={{ min: 0, max: 5 }} fullWidth size="small"
-                value={locForm.food_hygiene_rating ?? ''} onChange={e => setLocForm((p: any) => ({ ...p, food_hygiene_rating: e.target.value }))} />
-            </Stack>
-            <TextField label="Last CQC Inspection" type="date" size="small" fullWidth value={locForm.last_cqc_inspection || ''}
-              onChange={e => setLocForm((p: any) => ({ ...p, last_cqc_inspection: e.target.value }))} InputLabelProps={{ shrink: true }} />
+            {!isDomiciliary && <>
+              <Stack direction="row" spacing={2}>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>CQC Rating</InputLabel>
+                  <Select label="CQC Rating" value={locForm.cqc_rating || ''} onChange={e => setLocForm((p: any) => ({ ...p, cqc_rating: e.target.value }))}>
+                    <MenuItem value=""><em>None</em></MenuItem>
+                    <MenuItem value="outstanding">Outstanding</MenuItem>
+                    <MenuItem value="good">Good</MenuItem>
+                    <MenuItem value="requires_improvement">Requires Improvement</MenuItem>
+                    <MenuItem value="inadequate">Inadequate</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField label="Food Hygiene Rating (0-5)" type="number" inputProps={{ min: 0, max: 5 }} fullWidth size="small"
+                  value={locForm.food_hygiene_rating ?? ''} onChange={e => setLocForm((p: any) => ({ ...p, food_hygiene_rating: e.target.value }))} />
+              </Stack>
+              <TextField label="Last CQC Inspection" type="date" size="small" fullWidth value={locForm.last_cqc_inspection || ''}
+                onChange={e => setLocForm((p: any) => ({ ...p, last_cqc_inspection: e.target.value }))} InputLabelProps={{ shrink: true }} />
+            </>}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>

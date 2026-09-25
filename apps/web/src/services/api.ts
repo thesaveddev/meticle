@@ -5,6 +5,13 @@ const api = axios.create({
   withCredentials: true,
 })
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    /** Suppress the global error toast for this request — the caller handles failures itself. */
+    silentError?: boolean
+  }
+}
+
 type ErrorHandler = (message: string) => void
 let onApiError: ErrorHandler | null = null
 
@@ -110,7 +117,7 @@ api.interceptors.response.use(
 
     if (error.response?.status && error.response.status >= 400 && error.response.status < 500 && originalRequest?.url) {
       const skipPaths = ['/auth/me', '/auth/login', '/auth/register', '/billing']
-      if (!skipPaths.some(p => originalRequest.url.includes(p))) {
+      if (!originalRequest.silentError && !skipPaths.some(p => originalRequest.url.includes(p))) {
         onApiError?.(getErrorMessage(error))
       }
     }

@@ -52,6 +52,7 @@ const CompetencyAssessmentsPage = lazy(() => import('./pages/compliance/Competen
 const EvidencePacksPage = lazy(() => import('./pages/compliance/EvidencePacksPage'))
 const CqcReadinessPage = lazy(() => import('./pages/compliance/CqcReadinessPage'))
 const HomecareCompliancePage = lazy(() => import('./pages/compliance/HomecareCompliancePage'))
+const SupervisionsPage = lazy(() => import('./pages/compliance/SupervisionsPage'))
 const SatisfactionSurveysPage = lazy(() => import('./pages/compliance/SatisfactionSurveysPage'))
 const StaffEngagementPage = lazy(() => import('./pages/compliance/StaffEngagementPage'))
 const DSPTPage = lazy(() => import('./pages/dspt/DSPTPage'))
@@ -68,7 +69,6 @@ const CallSchedulingPage = lazy(() => import('./pages/homecare/CallSchedulingPag
 const PayrollExportPage = lazy(() => import('./pages/homecare/PayrollExportPage'))
 const ClientBillingPage = lazy(() => import('./pages/homecare/ClientBillingPage'))
 const PublicClientInvoicePage = lazy(() => import('./pages/homecare/PublicClientInvoicePage'))
-const CarerTotalsPage = lazy(() => import('./pages/homecare/CarerTotalsPage'))
 const AvailabilityPage = lazy(() => import('./pages/homecare/AvailabilityPage'))
 const LiveMapPage = lazy(() => import('./pages/homecare/LiveMapPage'))
 const CallAssignmentBoard = lazy(() => import('./pages/homecare/CallAssignmentBoard'))
@@ -77,9 +77,18 @@ const WeeklyCallPlanner = lazy(() => import('./pages/homecare/WeeklyCallPlanner'
 const MyProfilePage = lazy(() => import('./pages/homecare/MyProfilePage'))
 const MyWeekPage = lazy(() => import('./pages/homecare/MyWeekPage'))
 const SwapTransferPage = lazy(() => import('./pages/homecare/SwapTransferPage'))
-const EarningsPage = lazy(() => import('./pages/homecare/EarningsPage'))
+
+/** Carers reach the payroll page for their own pay (scoped by their homecare
+ * access); managers need the payroll module itself. */
+const payrollModuleForRole = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    return user.role === UserRole.CARE_WORKER ? 'homecare' : 'payroll_export'
+  } catch {
+    return 'payroll_export'
+  }
+}
 const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'))
-const IncidentsPage = lazy(() => import('./pages/incidents/IncidentsPage'))
 const PersonDirectoryPage = lazy(() => import('./pages/people/PersonDirectoryPage'))
 const PersonProfilePage = lazy(() => import('./pages/people/PersonProfilePage'))
 const IncidentDirectoryPage = lazy(() => import('./pages/incidents/IncidentDirectoryPage'))
@@ -96,6 +105,7 @@ const FamilyFeedbackPage = lazy(() => import('./pages/FamilyFeedbackPage'))
 const ComplianceRecordsPage = lazy(() => import('./pages/compliance/ComplianceRecordsPage'))
 const AppointmentsPage = lazy(() => import('./pages/appointments/AppointmentsPage'))
 const PoliciesPage = lazy(() => import('./pages/policies/PoliciesPage'))
+const PolicyDetailPage = lazy(() => import('./pages/policies/PolicyDetailPage'))
 const MissionControlPage = lazy(() => import('./pages/mission-control/MissionControlPage'))
 const HomecareMissionControl = lazy(() => import('./pages/mission-control/HomecareMissionControl'))
 const CompliancePortalPage = lazy(() => import('./pages/compliance-portal/CompliancePortalPage'))
@@ -124,8 +134,14 @@ function MissionControlSwitch() {
   useEffect(() => {
     import('./services/api').then(({ default: api }) => {
       api.get('/settings/org').then(res => {
-        const types: string[] = res.data?.service_types || []
-        setIsDom(types.some(t => ['domiciliary', 'live_in'].includes(t)))
+        // The primary service model is authoritative, matching Layout and
+        // ModuleGuard. Falling back to service_types alone would send a
+        // domiciliary organisation carrying a legacy supported-living value to
+        // the supported-living dashboard, whose endpoints it is refused by.
+        const primary = typeof res.data?.primary_service_type === 'string' ? res.data.primary_service_type : null
+        const types: string[] = Array.isArray(res.data?.service_types) ? res.data.service_types : []
+        const domTypes = ['domiciliary', 'live_in']
+        setIsDom(primary ? domTypes.includes(primary) : types.some(t => domTypes.includes(t)))
       }).catch(() => setIsDom(false))
     })
   }, [])
@@ -192,6 +208,7 @@ function App() {
           <Route path="/compliance/evidence" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><EvidencePacksPage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/readiness" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><CqcReadinessPage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/homecare" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><HomecareCompliancePage /></ModuleGuard></AuthGuard>} />
+          <Route path="/compliance/supervisions" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><SupervisionsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/records" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><ComplianceRecordsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/training" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><TrainingMatrixPage /></ModuleGuard></AuthGuard>} />
           <Route path="/compliance/satisfaction" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="compliance"><SatisfactionSurveysPage /></ModuleGuard></AuthGuard>} />
@@ -221,8 +238,8 @@ function App() {
           {/* Call scheduling is the single home for daily assignment and weekly planning. */}
           <Route path="/call-scheduling" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="call_scheduling"><WeeklyCallPlanner /></ModuleGuard></AuthGuard>} />
           <Route path="/call-scheduling/day" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="call_scheduling"><CallSchedulingPage /></ModuleGuard></AuthGuard>} />
-          <Route path="/payroll-export" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="payroll_export"><PayrollExportPage /></ModuleGuard></AuthGuard>} />
-          <Route path="/payroll-timesheets" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="payroll_export"><PayrollExportPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/payroll-export" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module={payrollModuleForRole()}><PayrollExportPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/payroll-timesheets" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module={payrollModuleForRole()}><PayrollExportPage /></ModuleGuard></AuthGuard>} />
           <Route path="/availability" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="homecare"><AvailabilityPage /></ModuleGuard></AuthGuard>} />
           <Route path="/live-map" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="homecare"><LiveMapPage /></ModuleGuard></AuthGuard>} />
           <Route path="/call-assignment" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="call_scheduling"><CallAssignmentBoard /></ModuleGuard></AuthGuard>} />
@@ -231,10 +248,9 @@ function App() {
           <Route path="/my-profile" element={<MyProfilePage />} />
           <Route path="/my-week" element={<MyWeekPage />} />
           <Route path="/swap-transfer" element={<SwapTransferPage />} />
-          <Route path="/earnings" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="homecare"><EarningsPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/earnings" element={<Navigate to="/payroll-timesheets" replace />} />
           <Route path="/notifications" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><NotificationsPage /></AuthGuard>} />
-          <Route path="/incidents" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><IncidentsPage /></AuthGuard>} />
-          <Route path="/carer-totals" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="payroll_export"><CarerTotalsPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/carer-totals" element={<Navigate to="/payroll-timesheets?view=carer-totals" replace />} />
           <Route path="/client-billing" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER]}><ModuleGuard module="client_billing"><ClientBillingPage /></ModuleGuard></AuthGuard>} />
           <Route path="/people" element={<ModuleGuard module="people"><PersonDirectoryPage /></ModuleGuard>} />
           <Route path="/people/:id" element={<ModuleGuard module="people"><PersonProfilePage /></ModuleGuard>} />
@@ -244,6 +260,7 @@ function App() {
           <Route path="/chat" element={<ModuleGuard module="chat"><ChatPage /></ModuleGuard>} />
           <Route path="/appointments" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER]}><ModuleGuard module="appointments"><AppointmentsPage /></ModuleGuard></AuthGuard>} />
           <Route path="/policies" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="policies"><PoliciesPage /></ModuleGuard></AuthGuard>} />
+          <Route path="/policies/:id" element={<AuthGuard allowedRoles={[UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER]}><ModuleGuard module="policies"><PolicyDetailPage /></ModuleGuard></AuthGuard>} />
           <Route path="/room-checks" element={<ModuleGuard module="room_checks"><RoomChecksPage /></ModuleGuard>} />
           <Route path="/mobile/check-in" element={<CheckInPage />} />
           <Route path="/mobile/voice-notes" element={<VoiceNotesPage />} />

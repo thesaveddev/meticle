@@ -154,7 +154,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       items: [
         { text: 'Compliance', icon: <ComplianceIcon />, path: isDom ? '/compliance/homecare' : '/compliance', module: 'compliance', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.COMPLIANCE_OFFICER] },
         { text: 'Policies', icon: <PolicyIcon />, path: '/policies', module: 'policies', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER, UserRole.COMPLIANCE_OFFICER] },
-        { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'incidents', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] },
+        { text: 'Incidents', icon: <WarningIcon />, path: '/incidents', module: 'incidents', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER] },
       ],
     },
     {
@@ -189,9 +189,10 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         { text: 'Call Scheduling', icon: <ScheduleIcon />, path: '/call-scheduling', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Mileage & Travel', icon: <DirectionsCarIcon />, path: '/mileage', module: 'mileage_travel', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
 
+        // One payroll destination, scoped by role: managers get the org-wide
+        // workspace, carers get their own pay on the same page.
         { text: 'Payroll & Timesheets', icon: <ReceiptIcon />, path: '/payroll-timesheets', module: 'payroll_export', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
-        { text: 'Carer Totals', icon: <ReportsIcon />, path: '/carer-totals', module: 'payroll_export', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
-        { text: 'My Earnings', icon: <ReceiptIcon />, path: '/earnings', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
+        { text: 'My Pay & Timesheets', icon: <ReceiptIcon />, path: '/payroll-timesheets', module: 'homecare', roles: [UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Client Billing', icon: <ReceiptIcon />, path: '/client-billing', module: 'client_billing', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
       ],
     },
@@ -218,7 +219,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   )
   const activeNavItem = [...filteredGroups.flatMap(group => group.items), ...filteredBottomItems]
     .find(item => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
-  const activeModuleLabel = activeNavItem?.text || (location.pathname.startsWith('/platform-admin') ? 'Platform Admin' : 'Overview')
+  const activeModuleLabel = (activeNavItem ? labelOverride[activeNavItem.text] || activeNavItem.text : '') || (location.pathname.startsWith('/platform-admin') ? 'Platform Admin' : 'Overview')
 
   useEffect(() => {
     if (!rawUser.id) return
