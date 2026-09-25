@@ -55,6 +55,19 @@ export default function AvailabilityPage() {
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [selectedStaff, setSelectedStaff] = useState('')
   const [tab, setTab] = useState(0)
+  // The visible tab set depends on role, so panels must not be pinned to
+  // hard-coded indices. They used to be: the tab list conditionally omits
+  // "Weekly summary" for carers, which shifted "Add a time window" from index 3
+  // to index 2 while its panel still rendered only at index 3. The "Add
+  // availability" button then showed managers the Weekly summary, and gave
+  // carers — the main users of this screen — a blank panel.
+  const visibleTabs = [
+    { key: 'pattern', label: 'Weekly pattern' },
+    { key: 'schedule', label: 'Schedule' },
+    ...(!isCarer ? [{ key: 'summary', label: 'Weekly summary' }] : []),
+    ...(canEdit ? [{ key: 'add', label: 'Add a time window' }] : []),
+  ]
+  const activeTab = visibleTabs[tab]?.key
   const [weeklySummary, setWeeklySummary] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -146,7 +159,7 @@ export default function AvailabilityPage() {
             <ContextualLearnLink topic="dom-availability-areas" />
           </Box>
         </Stack>
-        {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={() => setTab(2)} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add availability</Button>}
+        {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={() => setTab(visibleTabs.findIndex(t => t.key === 'add'))} sx={{ bgcolor: '#0F4C81', '&:hover': { bgcolor: '#0A3A5C' } }}>Add availability</Button>}
       </Stack>
 
       {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
@@ -173,13 +186,10 @@ export default function AvailabilityPage() {
 
       <Paper variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden', borderColor: '#E5E7EB' }}>
         <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ px: 1, borderBottom: '1px solid #E5E7EB', '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 50 } }}>
-          <Tab label="Weekly pattern" />
-          <Tab label="Schedule" />
-          {!isCarer && <Tab label="Weekly summary" />}
-          {canEdit && <Tab label="Add a time window" />}
+          {visibleTabs.map(t => <Tab key={t.key} label={t.label} />)}
         </Tabs>
 
-        {tab === 0 && (
+        {activeTab === 'pattern' && (
           <Box>
             <Box sx={{ px: 2, py: 1.25, bgcolor: '#F8FAFC', borderBottom: '1px solid #E5E7EB' }}>
               <Typography variant="caption" color="text.secondary">Compact view · select a time window to remove it</Typography>
@@ -203,7 +213,7 @@ export default function AvailabilityPage() {
           </Box>
         )}
 
-        {tab === 1 && (
+        {activeTab === 'schedule' && (
           <Box sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Next 7 days</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Availability and booked leave are shown together so the schedule reflects real capacity.</Typography>
@@ -230,7 +240,7 @@ export default function AvailabilityPage() {
           </Box>
         )}
 
-        {tab === 2 && !isCarer && (
+        {activeTab === 'summary' && (
           <Box sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Weekly availability summary</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>Total available hours per carer per day of the week.</Typography>
@@ -273,7 +283,7 @@ export default function AvailabilityPage() {
           </Box>
         )}
 
-        {tab === 3 && canEdit && (
+        {activeTab === 'add' && (
           <Box sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Add one availability window</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>Choose a day and time. You can add more windows without leaving this page.</Typography>
