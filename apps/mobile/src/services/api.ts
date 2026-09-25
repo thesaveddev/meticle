@@ -17,7 +17,11 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
+// The endpoints that mint a session must never be retried through a refresh:
+// a failed refresh that then refreshed again would recurse.
+const SESSION_ENDPOINTS = ['/auth/login', '/auth/refresh', '/auth/logout']
+
+async function request<T>(path: string, options: RequestInit = {}, token?: string, isRetry = false): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
@@ -25,7 +29,16 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
   const raw = await response.text()
   let data: any = null
   try { data = raw ? JSON.parse(raw) : null } catch { data = raw }
-  if (!response.ok) throw new ApiError(response.status, data?.message || data?.error?.message || 'Request failed', data)
+  if (!response.ok) {
+    // An access token lasts 15 minutes but the refresh token lasts 7 days.
+    // Without this the carer is signed out mid-shift, and worse, reopening the
+    // app after 15 minutes locks them out until they retype their password.
+    if (response.status === 401 && token && !isRetry && !SESSION_ENDPOINTS.includes(path)) {
+      const fresh = await refreshAccessToken()
+      return request<T>(path, options, fresh, true)
+    }
+    throw new ApiError(response.status, data?.message || data?.error?.message || 'Request failed', data)
+  }
   return data as T
 }
 
@@ -45,10 +58,47 @@ export async function refreshSession(): Promise<AuthSession> {
   return session
 }
 
+/**
+ * Refresh tokens are single-use — the server claims each one on first use and
+ * refuses a replay. If several screens 401 at the same moment, only one of
+ * them may refresh, so the rest wait on that same refresh and reuse its result.
+ */
+let refreshInFlight: Promise<string> | null = null
+
+async function refreshAccessToken(): Promise<string> {
+  if (refreshInFlight) return refreshInFlight
+  refreshInFlight = (async () => {
+    try {
+      const session = await refreshSession()
+      return session.accessToken
+    } finally {
+      refreshInFlight = null
+    }
+  })()
+  try {
+    return await refreshInFlight
+  } catch (error) {
+    // The refresh token is spent, revoked, or the account is no longer valid.
+    // Nothing further can succeed, so drop the stored session and let the app
+    // fall back to the sign-in screen rather than looping on dead tokens.
+    await clearSession()
+    throw error instanceof ApiError ? error : new ApiError(401, 'Your session has expired')
+  }
+}
+
 export async function logout() {
   const session = await readSession()
   if (session?.accessToken) await request('/auth/logout', { method: 'POST' }, session.accessToken).catch(() => {})
   await clearSession()
+}
+
+/**
+ * Deactivates the signed-in user's own account. This is the in-app account
+ * deletion path Google Play requires for any app that lets people create an
+ * account; without it the listing cannot be approved.
+ */
+export async function selfDeactivate(token: string): Promise<{ message: string }> {
+  return request<{ message: string }>('/staff/self-deactivate', { method: 'POST' }, token)
 }
 
 export async function getCurrentUser(token: string) {

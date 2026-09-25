@@ -56,12 +56,15 @@ const session: AuthSession = {
   user: { id: 'me', email: 'me@example.com', role: 'CARE_WORKER', first_name: 'Test', last_name: 'Carer' },
 }
 
+// Shaped the way GET /chat/channels actually responds: the last message is
+// plain text, with its timestamp in a sibling field and no sender attached.
 const channel = {
   id: 'chan-1',
   name: 'Amy Adams',
   channel_type: 'dm' as const,
   other_member: { id: 'them', name: 'Amy Adams', email: 'amy@example.com' },
-  last_message: { content: 'Morning!', sender_name: 'Amy Adams', created_at: '2026-01-02T09:00:00.000Z' },
+  last_message: 'Morning!',
+  last_message_at: '2026-01-02T09:00:00.000Z',
   unread_count: 0,
   member_count: 2,
   created_at: '2026-01-01T00:00:00.000Z',
@@ -210,5 +213,40 @@ describe('ChatScreen message context menu', () => {
     })
 
     expect(mockDeleteChatMessage).toHaveBeenCalledWith('token-1', 'm2')
+  })
+})
+
+describe('ChatScreen channel list', () => {
+  // The channel list returns the last message as plain text with its timestamp
+  // alongside. It never included a sender, and reading one off a string is
+  // what took the whole chat screen down with a TypeError.
+  it('renders a conversation whose last message is a plain string', async () => {
+    mockGetChatChannels.mockResolvedValueOnce([
+      {
+        id: 'channel-1', name: 'general', channel_type: 'general', other_member: null,
+        last_message: 'Morning, running ten minutes late', last_message_at: '2026-09-25T08:00:00.000Z',
+        unread_count: 2, member_count: 4, created_at: null,
+      },
+    ] as any)
+
+    const screen = render(<ChatScreen session={session} />)
+
+    await waitFor(() => expect(screen.getByText('general')).toBeTruthy())
+    expect(screen.getByText('Morning, running ten minutes late')).toBeTruthy()
+    expect(screen.getByText('2')).toBeTruthy()
+  })
+
+  it('reads as empty rather than blank for a channel with no messages', async () => {
+    mockGetChatChannels.mockResolvedValueOnce([
+      {
+        id: 'channel-2', name: 'shift-handover', channel_type: 'group', other_member: null,
+        last_message: null, last_message_at: null, unread_count: 0, member_count: 3, created_at: null,
+      },
+    ] as any)
+
+    const screen = render(<ChatScreen session={session} />)
+
+    await waitFor(() => expect(screen.getByText('shift-handover')).toBeTruthy())
+    expect(screen.getByText('No messages yet')).toBeTruthy()
   })
 })

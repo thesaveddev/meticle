@@ -60,7 +60,7 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
   const [records, setRecords] = useState<Record<string, any[]>>({ assessments: [], timeline: [], documents: [], clinicalScores: [], wellbeing: [], capacity: [], pathways: [], communications: [], timeAway: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [tab] = useState<TabKey>(initialTab)
+  const [tab, setTab] = useState<TabKey>(initialTab)
   const [mapPickerOpen, setMapPickerOpen] = useState(false)
   const [navDest, setNavDest] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
   const [refreshing, setRefreshing] = useState(false)
@@ -99,6 +99,12 @@ export function ClientDetailScreen({ personId, session, onBack, onBodyMap, onNut
     }
   }, [session.accessToken, personId])
   useEffect(() => { loadData() }, [loadData])
+
+  // Opening a section reuses this same screen instance rather than mounting a
+  // fresh one, so the tab has to follow the requested section. Reading
+  // initialTab only as useState's initial value left every section showing the
+  // overview, because that first render always resolved to 'overview'.
+  useEffect(() => { setTab(initialTab) }, [initialTab, personId])
 
   if (loading) {
     return (

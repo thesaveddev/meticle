@@ -6,6 +6,7 @@ import { dyn } from '../utils/dynamicStyles'
 import type { HomecareVisit, MobileUser, OfflineVisitAction } from '../types'
 import { listRideShareRequests, respondRideShareRequest } from '../services/api'
 import { IconCheck, IconClock, IconAlert, IconSyncSmall, IconOffline, IconTwoPerson } from '../components/Icons'
+import { SyncRail } from '../components/SyncRail'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
 import { localDateTimeStart } from '../utils/dateRange'
@@ -270,6 +271,11 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
             </View>
           )}
         </View>
+      )}
+
+      {/* Anything the carer recorded offline that has not reached the server */}
+      {queue.length > 0 && (
+        <SyncRail queue={queue} onSync={onSync} />
       )}
 
       {/* Section heading */}
