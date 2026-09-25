@@ -236,7 +236,10 @@ router.get('/client-billing/runs/:runId/mtd-export', requireRole(...managerRoles
 const publicInvoiceRouter = Router();
 publicInvoiceRouter.get('/:token', validate(publicInvoiceTokenSchema, 'params'), asyncHandler(HomecareController.getPublicClientInvoice));
 publicInvoiceRouter.get('/:token/pdf', validate(publicInvoiceTokenSchema, 'params'), asyncHandler(HomecareController.getPublicClientInvoicePdf));
-export { publicInvoiceRouter };
+
+const publicEmailDsnRouter = Router();
+publicEmailDsnRouter.post('/', asyncHandler(HomecareController.reportInvoiceEmailDsn));
+export { publicInvoiceRouter, publicEmailDsnRouter };
 
 // Organization location threshold
 const thresholdSchema = z.object({ location_threshold_meters: z.number().min(50).max(5000) });

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { Box, Chip, Paper, Stack, Typography, Skeleton } from '@mui/material'
+import { Box, Chip, Paper, Stack, Typography, Skeleton, TextField, MenuItem, TablePagination } from '@mui/material'
 import { Refresh as RefreshIcon, MyLocation as LocationIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
@@ -30,6 +30,8 @@ interface MapVisit {
   longitude: number | null
   last_updated: string
   is_active: boolean
+  location_id: string | null
+  location_name: string | null
 }
 
 interface LiveMapData {
@@ -38,6 +40,8 @@ interface LiveMapData {
   completed_today: number
   total_today: number
   centre: { lat: number; lng: number } | null
+  areas: { id: string; name: string }[]
+  area_stats: { location_id: string | null; total: number; completed: number }[]
 }
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
@@ -171,6 +175,8 @@ export default function LiveMapPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [loadTimedOut, setLoadTimedOut] = useState(false)
+  const [areaId, setAreaId] = useState('')
+  const [upcomingPage, setUpcomingPage] = useState(0)
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['homecare-live-map', refreshKey],
@@ -190,10 +196,28 @@ export default function LiveMapPage() {
     return () => window.clearTimeout(timer)
   }, [isLoading, refreshKey])
 
-  const allVisits = useMemo(() => {
-    if (!data) return []
-    return [...data.active_visits, ...data.scheduled_visits]
-  }, [data])
+  const activeVisits = useMemo(() => {
+    const list = data?.active_visits || []
+    if (areaId === '') return list
+    return list.filter(v => (areaId === 'none' ? v.location_id == null : v.location_id === areaId))
+  }, [data, areaId])
+
+  const scheduledVisits = useMemo(() => {
+    const list = data?.scheduled_visits || []
+    if (areaId === '') return list
+    return list.filter(v => (areaId === 'none' ? v.location_id == null : v.location_id === areaId))
+  }, [data, areaId])
+
+  const allVisits = useMemo(() => [...activeVisits, ...scheduledVisits], [activeVisits, scheduledVisits])
+
+  const areaStats = useMemo(() => {
+    if (!data) return { total: 0, completed: 0 }
+    if (areaId === '') return { total: data.total_today, completed: data.completed_today }
+    const row = data.area_stats.find(s => (areaId === 'none' ? s.location_id == null : s.location_id === areaId))
+    return { total: row?.total ?? 0, completed: row?.completed ?? 0 }
+  }, [data, areaId])
+
+  const upcomingPageSafe = Math.min(upcomingPage, Math.max(0, Math.ceil(scheduledVisits.length / 10) - 1))
 
   if (isLoading && !loadTimedOut) {
     return (
@@ -230,7 +254,16 @@ export default function LiveMapPage() {
             Real-time view of active carers and today's scheduled calls
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+          <TextField
+            select size="small" label="Area" value={areaId}
+            onChange={e => { setAreaId(e.target.value); setUpcomingPage(0) }}
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value="">All areas</MenuItem>
+            {(data?.areas || []).map(a => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
+            <MenuItem value="none">No area</MenuItem>
+          </TextField>
           <AppButton variant="secondary" size="small" onClick={() => setAutoRefresh(!autoRefresh)}>
             {autoRefresh ? 'Auto-refresh on' : 'Auto-refresh off'}
           </AppButton>
@@ -243,19 +276,19 @@ export default function LiveMapPage() {
       {/* Summary bar */}
       <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
         <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F4C81' }}>{data?.total_today || 0}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F4C81' }}>{areaStats.total}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Total calls today</Typography>
         </Paper>
         <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#047857' }}>{data?.active_visits?.length || 0}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#047857' }}>{activeVisits.length}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Active now</Typography>
         </Paper>
         <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.secondary' }}>{data?.scheduled_visits?.length || 0}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.secondary' }}>{scheduledVisits.length}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Upcoming</Typography>
         </Paper>
         <Paper elevation={0} sx={{ p: 2, flex: '1 1 120px', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#10b981' }}>{data?.completed_today || 0}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#10b981' }}>{areaStats.completed}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>Completed</Typography>
         </Paper>
       </Stack>
@@ -265,7 +298,7 @@ export default function LiveMapPage() {
         {allVisits.length === 0 ? (
           <Box sx={{ p: 6, textAlign: 'center' }}>
             <LocationIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 1 }} />
-            <Typography sx={{ color: 'text.secondary' }}>No active or scheduled calls today</Typography>
+            <Typography sx={{ color: 'text.secondary' }}>{areaId === '' ? 'No active or scheduled calls today' : 'No active or scheduled calls in this area today'}</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>Carer locations appear here once they check in to a call</Typography>
           </Box>
         ) : (
@@ -274,11 +307,11 @@ export default function LiveMapPage() {
       </Paper>
 
       {/* Active visits list */}
-      {data && data.active_visits.length > 0 && (
+      {activeVisits.length > 0 && (
         <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', borderRadius: 2, mb: 3 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Active carers</Typography>
           <Stack spacing={1}>
-            {data.active_visits.map(v => {
+            {activeVisits.map(v => {
               const cfg = statusConfig[v.status] || statusConfig.scheduled
               return (
                 <Stack key={v.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1, borderBottom: '1px solid #F3F4F6' }}>
@@ -307,11 +340,11 @@ export default function LiveMapPage() {
       )}
 
       {/* Upcoming visits */}
-      {data && data.scheduled_visits.length > 0 && (
+      {scheduledVisits.length > 0 && (
         <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Upcoming calls</Typography>
           <Stack spacing={1}>
-            {data.scheduled_visits.slice(0, 10).map(v => (
+            {scheduledVisits.slice(upcomingPageSafe * 10, upcomingPageSafe * 10 + 10).map(v => (
               <Stack key={v.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1, borderBottom: '1px solid #F3F4F6' }}>
                 <Box>
                   <Stack direction="row" alignItems="center" gap={1}>
@@ -328,6 +361,16 @@ export default function LiveMapPage() {
               </Stack>
             ))}
           </Stack>
+          {scheduledVisits.length > 10 && (
+            <TablePagination
+              component="div"
+              count={scheduledVisits.length}
+              page={upcomingPageSafe}
+              onPageChange={(_, p) => setUpcomingPage(p)}
+              rowsPerPage={10}
+              rowsPerPageOptions={[10]}
+            />
+          )}
         </Paper>
       )}
     </PageContainer>

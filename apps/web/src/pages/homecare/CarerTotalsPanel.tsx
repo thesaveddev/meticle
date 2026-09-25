@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  Box, Button, Chip, CircularProgress, IconButton, Paper, Stack,
+  Box, Chip, CircularProgress, IconButton, Paper, Stack,
   TextField, Typography, Collapse,
 } from '@mui/material'
 import {
@@ -11,7 +11,7 @@ import {
   ExpandMore as ExpandIcon, ExpandLess as CollapseIcon,
   AccessTime as TimeIcon, MapOutlined as MileageIcon,
 } from '@mui/icons-material'
-import PageContainer from '../../components/design/PageContainer'
+import AppButton from '../../components/design/AppButton'
 import api from '../../services/api'
 
 /* ── Types ── */
@@ -73,11 +73,16 @@ const normaliseCarerTotal = (row: any): CarerTotal => ({
   exception_count: Number(row?.exception_count || 0),
 })
 
+// Local-date formatting: slicing ISO strings shifts month boundaries a day for
+// any timezone off UTC, so the roll-up window missed its own last day.
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
 function getMonthRange(monthsBack = 0) {
   const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1)
-  const to = new Date(now.getFullYear(), now.getMonth() - monthsBack + 1, 0, 23, 59, 59)
-  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }
+  return {
+    from: ymd(new Date(now.getFullYear(), now.getMonth() - monthsBack, 1)),
+    to: ymd(new Date(now.getFullYear(), now.getMonth() - monthsBack + 1, 0)),
+  }
 }
 
 /* ── Stat Card ── */
@@ -170,7 +175,7 @@ function CarerCard({ carer, onClick }: { carer: CarerTotal; onClick: () => void 
 }
 
 /* ═══════ Main Page ═══════ */
-export default function CarerTotalsPage() {
+export default function CarerTotalsPanel() {
   const [totals, setTotals] = useState<CarerTotal[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -263,34 +268,32 @@ export default function CarerTotalsPage() {
   const goBack = () => { setView('overview'); setSelectedCarer(null); setCarerVisits([]); setPendingVisits([]); setExpandedVisit(null) }
 
   return (
-    <PageContainer>
+    <>
       {/* Header */}
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Stack direction="row" alignItems="center" gap={1.5}>
           {view !== 'overview' && <IconButton onClick={goBack} sx={{ color: '#0F4C81' }}><BackIcon /></IconButton>}
           <TrendingIcon sx={{ color: '#10b981', fontSize: 28 }} />
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>               {view === 'carer-detail' ? displayText(selectedCarer?.staff_name, 'Carer Details') :
-
-               view === 'pending-approvals' ? 'Pending Approvals' : 'Carer Totals'}
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+              {view === 'carer-detail' ? displayText(selectedCarer?.staff_name, 'Carer details') :
+               view === 'pending-approvals' ? 'Timesheets needing action' : 'Carer totals'}
             </Typography>
             <Typography variant="body2" sx={{ color: '#94A3B8' }}>
               {view === 'carer-detail' ? `${fmtD(from)} — ${fmtD(to)}` :
-               view === 'pending-approvals' ? `${pendingVisits.length} timesheet${pendingVisits.length !== 1 ? 's' : ''} awaiting review` :
+               view === 'pending-approvals' ? `${pendingVisits.length} timesheet${pendingVisits.length !== 1 ? 's' : ''} not yet paid — add pay or reject for correction` :
                'Per-carer summary of work, travel, mileage and pay'}
             </Typography>
           </Box>
         </Stack>
         {view === 'overview' && (
-          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv} disabled={!totals.length}
-            sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: '#374151', borderRadius: 2 }}>Export CSV</Button>
+          <AppButton variant="secondary" startIcon={<DownloadIcon />} onClick={exportCsv} disabled={!totals.length}>Export CSV</AppButton>
         )}
         {view === 'carer-detail' && selectedCarer && (
-          <Button variant="outlined" startIcon={payslipBusy ? <CircularProgress size={16} /> : <DownloadIcon />}
-            onClick={downloadCarerPayslip} disabled={payslipBusy || !selectedCarer.visit_count}
-            sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: '#374151', borderRadius: 2 }}>
+          <AppButton variant="secondary" startIcon={payslipBusy ? <CircularProgress size={16} /> : <DownloadIcon />}
+            onClick={downloadCarerPayslip} disabled={payslipBusy || !selectedCarer.visit_count}>
             {payslipBusy ? 'Preparing…' : 'Download payslip'}
-          </Button>
+          </AppButton>
         )}
       </Stack>
 
@@ -301,12 +304,9 @@ export default function CarerTotalsPage() {
             InputLabelProps={{ shrink: true }} sx={{ minWidth: 150 }} />
           <TextField label="To" type="date" size="small" value={to} onChange={e => setTo(e.target.value)}
             InputLabelProps={{ shrink: true }} sx={{ minWidth: 150 }} />
-          <Button variant="contained" onClick={load} disabled={loading}
-            sx={{ textTransform: 'none', bgcolor: '#0F4C81', borderRadius: 2, '&:hover': { bgcolor: '#0D3D6B' } }}>Load</Button>
-          <Button variant="text" onClick={() => { const r = getMonthRange(); setFrom(r.from); setTo(r.to) }}
-            sx={{ textTransform: 'none', color: '#0F4C81' }}>This month</Button>
-          <Button variant="text" onClick={() => { const r = getMonthRange(1); setFrom(r.from); setTo(r.to) }}
-            sx={{ textTransform: 'none', color: '#0F4C81' }}>Last month</Button>
+          <AppButton variant="primary" onClick={load} disabled={loading}>Load</AppButton>
+          <AppButton variant="quiet" onClick={() => { const r = getMonthRange(); setFrom(r.from); setTo(r.to) }}>This month</AppButton>
+          <AppButton variant="quiet" onClick={() => { const r = getMonthRange(1); setFrom(r.from); setTo(r.to) }}>Last month</AppButton>
         </Stack>
       )}
 
@@ -324,7 +324,7 @@ export default function CarerTotalsPage() {
             <StatCard icon={<MoneyIcon sx={{ fontSize: 22 }} />} label="Gross pay" value={fmtP(grandGross)} color="#0F4C81" />
             <StatCard icon={<WarningIcon sx={{ fontSize: 22 }} />} label="Exceptions" value={grandExceptions}
               color={grandExceptions > 0 ? '#DC2626' : '#10b981'} />
-            <StatCard icon={<PendingCheckIcon sx={{ fontSize: 22 }} />} label="Pending" value={grandPending}
+            <StatCard icon={<PendingCheckIcon sx={{ fontSize: 22 }} />} label="Not yet paid" value={grandPending}
               color={grandPending > 0 ? '#D97706' : '#10b981'}
               onClick={grandPending > 0 ? loadPendingApprovals : undefined}
               accent={grandPending > 0} />
@@ -362,13 +362,11 @@ export default function CarerTotalsPage() {
                     </Stack>
                     {totalPages > 1 && (
                       <Stack direction="row" justifyContent="center" alignItems="center" gap={1} sx={{ mt: 3 }}>
-                        <Button size="small" disabled={page === 0} onClick={() => setPage(p => p - 1)}
-                          sx={{ textTransform: 'none', minWidth: 0, px: 1.5 }}>← Prev</Button>
+                        <AppButton variant="quiet" size="small" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</AppButton>
                         <Typography sx={{ fontSize: '0.8rem', color: '#64748B' }}>
                           Page {page + 1} of {totalPages}
                         </Typography>
-                        <Button size="small" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-                          sx={{ textTransform: 'none', minWidth: 0, px: 1.5 }}>Next →</Button>
+                        <AppButton variant="quiet" size="small" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next →</AppButton>
                       </Stack>
                     )}
                     {filtered.length === 0 && search && (
@@ -431,7 +429,7 @@ export default function CarerTotalsPage() {
                       <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
                         <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>{v.label || v.visit_type}</Typography>
                         <Chip label={v.status} size="small" sx={{ bgcolor: sc.bg, color: sc.fg, fontWeight: 600, fontSize: '0.65rem', height: 20 }} />
-                        <Chip label={tc.fg === '#D97706' ? 'submitted' : tc.fg === '#047857' ? 'approved' : tc.fg === '#B91C1C' ? 'rejected' : 'draft'}
+                        <Chip label={v.timesheet_status === 'approved' ? 'Pay added' : v.timesheet_status === 'rejected' ? 'Rejected' : v.timesheet_status === 'submitted' ? 'Not yet paid' : 'No pay entry'}
                           size="small" sx={{ bgcolor: tc.bg, color: tc.fg, fontWeight: 600, fontSize: '0.65rem', height: 20 }} />
                         {v.exception_type && (
                           <Chip label={v.exception_type} size="small"
@@ -500,7 +498,7 @@ export default function CarerTotalsPage() {
           ) : pendingVisits.length === 0 ? (
             <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid #F1F5F9', borderRadius: 3 }}>
               <CheckIcon sx={{ fontSize: 48, color: '#10b981', mb: 1 }} />
-              <Typography sx={{ color: '#94A3B8' }}>All timesheets have been reviewed</Typography>
+              <Typography sx={{ color: '#94A3B8' }}>Nothing needs action — every timesheet has pay added</Typography>
             </Paper>
           ) : (
             <Stack gap={1.5}>
@@ -512,7 +510,7 @@ export default function CarerTotalsPage() {
                     <Box>
                       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
                         <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>{v.visit_label}</Typography>
-                        <Chip label={v.timesheet_status} size="small"
+                        <Chip label="Not yet paid" size="small"
                           sx={{ bgcolor: '#FFFBEB', color: '#D97706', fontWeight: 600, fontSize: '0.65rem', height: 20 }} />
                       </Stack>
                       <Typography sx={{ fontSize: '0.8rem', color: '#64748B' }}>
@@ -525,16 +523,14 @@ export default function CarerTotalsPage() {
                       </Stack>
                     </Box>
                     <Stack direction="row" gap={1}>
-                      <Button variant="contained" size="small"
-                        onClick={() => handleTimesheetAction(v.timesheet_id, 'approved')}
-                        sx={{ textTransform: 'none', bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' }, borderRadius: 1.5, fontWeight: 600 }}>
-                        Approve
-                      </Button>
-                      <Button variant="outlined" size="small"
-                        onClick={() => handleTimesheetAction(v.timesheet_id, 'rejected')}
-                        sx={{ textTransform: 'none', borderColor: '#E5E7EB', color: '#B91C1C', borderRadius: 1.5, fontWeight: 600 }}>
+                      <AppButton variant="primary" size="small"
+                        onClick={() => handleTimesheetAction(v.timesheet_id, 'approved')}>
+                        Add pay
+                      </AppButton>
+                      <AppButton variant="danger" size="small"
+                        onClick={() => handleTimesheetAction(v.timesheet_id, 'rejected')}>
                         Reject
-                      </Button>
+                      </AppButton>
                     </Stack>
                   </Stack>
                 </Paper>
@@ -542,8 +538,7 @@ export default function CarerTotalsPage() {
             </Stack>
           )}
         </>
-      )}
-    </PageContainer>
+      )}    </>
   )
 }
 

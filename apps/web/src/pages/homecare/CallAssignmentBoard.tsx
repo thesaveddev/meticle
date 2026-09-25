@@ -191,8 +191,8 @@ export default function CallAssignmentBoard() {
     setAutoAssignError('')
     setAutoAssignDialog(false)
     try {
-      const nextDate = new Date(new Date(date).getTime() + 86400000).toISOString().slice(0, 10)
-      const res = await api.post(`/homecare/visits/bulk-auto-assign?from=${date}&to=${nextDate}`)
+      // The endpoint treats `to` as an inclusive date, so from=to covers the selected day only.
+      const res = await api.post(`/homecare/visits/bulk-auto-assign?from=${date}&to=${date}`)
       setAutoAssignResult(res.data)
       qc.invalidateQueries({ queryKey: ['homecare-visits-assign'] })
       qc.invalidateQueries({ queryKey: ['homecare-live-map'] })
@@ -301,7 +301,7 @@ export default function CallAssignmentBoard() {
   const [viewMode, setViewMode] = useState<'board' | 'timeline'>('board')
 
   // AI carer suggestion query
-  const { data: suggestions = [], isLoading: suggestionsLoading } = useQuery({
+  const { data: suggestions = [], isLoading: suggestionsLoading, isError: suggestionsError } = useQuery({
     queryKey: ['carer-suggestions', showSuggestions],
     queryFn: () => api.get(`/homecare/visits/${showSuggestions}/suggest-carers`).then(r => Array.isArray(r.data) ? r.data : []),
     enabled: !!showSuggestions,
@@ -432,6 +432,10 @@ export default function CallAssignmentBoard() {
           </Stack>
           {suggestionsLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={20} /></Box>
+          ) : suggestionsError ? (
+            <Typography variant="body2" sx={{ color: '#B91C1C', py: 1 }}>Could not load suggestions. Close this panel and try again.</Typography>
+          ) : suggestions.length === 0 ? (
+            <Typography variant="body2" sx={{ color: 'text.secondary', py: 1 }}>No carers available to suggest for this call.</Typography>
           ) : (
             <Stack spacing={0.75}>
               {suggestions.slice(0, 5).map((s: any) => (

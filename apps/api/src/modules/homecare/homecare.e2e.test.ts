@@ -4,6 +4,7 @@ import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import { migrateQuery as query } from '../../shared/database'
 import { createOrg, createUser, createPerson, createStaffProfile, generateToken } from '../../test/factories'
+import { signEmailDsnPayload } from '../../shared/utils/email.dsn'
 
 let app: Express
 beforeAll(() => { app = createTestApp() })
@@ -279,10 +280,75 @@ describe('Homecare E2E critical workflows', () => {
 
     const publicLink = await request(app).post(`/homecare/client-billing/invoices/${invoice.id}/send`).set('Authorization', `Bearer ${managerToken}`)
     expect(publicLink.status).toBe(200)
-    expect(publicLink.body.status).toBe('sent')
-    const queueEmail = await query('SELECT html_body FROM email_queue WHERE to_email = $1 ORDER BY created_at DESC LIMIT 1', [invoice.recipient_email])
+    expect(publicLink.body.status).toBe('approved')
+    expect(publicLink.body.delivery_status).toBe('queued')
+    const queueEmail = await query(`SELECT id, dsn_id, html_body FROM email_queue
+      WHERE related_entity_type = 'homecare_invoice' AND related_entity_id = $1 ORDER BY created_at DESC LIMIT 1`, [invoice.id])
     const tokenMatch = queueEmail.rows[0]?.html_body.match(/\/invoice\/([a-f0-9]{64})/)
     expect(tokenMatch?.[1]).toBeTruthy()
+    expect(queueEmail.rows[0]?.dsn_id).toBeTruthy()
+
+    const previousDsnSecret = process.env.EMAIL_DSN_WEBHOOK_SECRET
+    process.env.EMAIL_DSN_WEBHOOK_SECRET = 'test-email-dsn-secret'
+    // Provider event ids are globally unique in production, so the DSN dedupe is global by design.
+    // Test event ids must therefore be unique per run — a persistent test DB would else flag reruns as duplicates.
+    const dsnRunId = Date.now().toString(36)
+    const reportDsn = async (eventId: string, dsnId: string, recipient: string, status: 'delivered' | 'delayed' | 'bounced', diagnostic?: string) => {
+      const payload = Buffer.from(JSON.stringify({ event_id: eventId, dsn_id: dsnId, recipient, status, diagnostic }))
+      const timestamp = String(Math.floor(Date.now() / 1000))
+      return request(app).post('/homecare/email/dsn-callback')
+        .set('Content-Type', 'application/json')
+        .set('x-email-dsn-timestamp', timestamp)
+        .set('x-email-dsn-signature', signEmailDsnPayload(payload, timestamp, process.env.EMAIL_DSN_WEBHOOK_SECRET!))
+        .send(payload.toString('utf8'))
+    }
+    try {
+      const payload = Buffer.from(JSON.stringify({ event_id: 'invoice-invalid-signature', dsn_id: queueEmail.rows[0].dsn_id, recipient: invoice.recipient_email, status: 'delivered' }))
+      const timestamp = String(Math.floor(Date.now() / 1000))
+      const rejectedDsn = await request(app).post('/homecare/email/dsn-callback')
+        .set('Content-Type', 'application/json')
+        .set('x-email-dsn-timestamp', timestamp)
+        .set('x-email-dsn-signature', 'sha256=' + '0'.repeat(64))
+        .send(payload.toString('utf8'))
+      expect(rejectedDsn.status).toBe(401)
+
+      const mismatchedRecipient = await reportDsn(`invoice-wrong-recipient-${dsnRunId}`, queueEmail.rows[0].dsn_id, `wrong-${invoice.recipient_email}`, 'delivered')
+      expect(mismatchedRecipient.status).toBe(200)
+      expect(mismatchedRecipient.body.matched).toBe(false)
+
+      const deliveredDsn = await reportDsn(`invoice-delivered-1-${dsnRunId}`, queueEmail.rows[0].dsn_id, invoice.recipient_email, 'delivered')
+      expect(deliveredDsn.status).toBe(200)
+      expect(deliveredDsn.body).toMatchObject({ matched: true, duplicate: false, invoiceUpdated: true })
+      const deliveredInvoice = await request(app).get(`/homecare/client-billing/invoices/${invoice.id}`).set('Authorization', `Bearer ${managerToken}`)
+      expect(deliveredInvoice.body.invoice).toMatchObject({ status: 'sent', delivery_status: 'delivered' })
+
+      const duplicateDsn = await reportDsn(`invoice-delivered-1-${dsnRunId}`, queueEmail.rows[0].dsn_id, invoice.recipient_email, 'delivered')
+      expect(duplicateDsn.status).toBe(200)
+      expect(duplicateDsn.body.duplicate).toBe(true)
+
+      const bouncedSend = await request(app).post(`/homecare/client-billing/invoices/${secondInvoice.id}/send`).set('Authorization', `Bearer ${managerToken}`)
+      expect(bouncedSend.status).toBe(200)
+      expect(bouncedSend.body).toMatchObject({ status: 'approved', delivery_status: 'queued' })
+      const bouncedQueue = await query(`SELECT dsn_id FROM email_queue
+        WHERE related_entity_type = 'homecare_invoice' AND related_entity_id = $1 ORDER BY created_at DESC LIMIT 1`, [secondInvoice.id])
+      const delayedDsn = await reportDsn(`invoice-delayed-1-${dsnRunId}`, bouncedQueue.rows[0].dsn_id, secondInvoice.recipient_email, 'delayed', 'Remote server temporarily unavailable')
+      expect(delayedDsn.status).toBe(200)
+      const delayedInvoice = await request(app).get(`/homecare/client-billing/invoices/${secondInvoice.id}`).set('Authorization', `Bearer ${managerToken}`)
+      expect(delayedInvoice.body.invoice).toMatchObject({ status: 'approved', delivery_status: 'delayed', delivery_diagnostic: 'Remote server temporarily unavailable' })
+
+      const bouncedDsn = await reportDsn(`invoice-bounced-1-${dsnRunId}`, bouncedQueue.rows[0].dsn_id, secondInvoice.recipient_email, 'bounced', '550 mailbox unavailable')
+      expect(bouncedDsn.status).toBe(200)
+      const bouncedInvoice = await request(app).get(`/homecare/client-billing/invoices/${secondInvoice.id}`).set('Authorization', `Bearer ${managerToken}`)
+      expect(bouncedInvoice.body.invoice).toMatchObject({ status: 'approved', delivery_status: 'bounced', delivery_diagnostic: '550 mailbox unavailable' })
+      const lateDeliveredDsn = await reportDsn(`invoice-late-delivery-1-${dsnRunId}`, bouncedQueue.rows[0].dsn_id, secondInvoice.recipient_email, 'delivered')
+      expect(lateDeliveredDsn.status).toBe(200)
+      const stillBouncedInvoice = await request(app).get(`/homecare/client-billing/invoices/${secondInvoice.id}`).set('Authorization', `Bearer ${managerToken}`)
+      expect(stillBouncedInvoice.body.invoice.delivery_status).toBe('bounced')
+    } finally {
+      if (previousDsnSecret === undefined) delete process.env.EMAIL_DSN_WEBHOOK_SECRET
+      else process.env.EMAIL_DSN_WEBHOOK_SECRET = previousDsnSecret
+    }
+
     const publicInvoice = await request(app).get(`/api/client-invoices/${tokenMatch[1]}`)
     expect(publicInvoice.status).toBe(200)
     expect(publicInvoice.body.invoice.status).toBe('viewed')
@@ -302,7 +368,7 @@ describe('Homecare E2E critical workflows', () => {
     expect(payment.body.status).toBe('paid')
     const events = await request(app).get(`/homecare/client-billing/invoices/${invoice.id}/events`).set('Authorization', `Bearer ${managerToken}`)
     expect(events.status).toBe(200)
-    expect(events.body.map((entry: any) => entry.event_type)).toEqual(expect.arrayContaining(['approved', 'sent', 'viewed', 'paid']))
+    expect(events.body.map((entry: any) => entry.event_type)).toEqual(expect.arrayContaining(['approved', 'queued', 'delivered', 'viewed', 'paid']))
 
     // Download MTD export
     const mtdRes = await request(app).get(`/homecare/client-billing/runs/${runId}/mtd-export`).set('Authorization', `Bearer ${managerToken}`)

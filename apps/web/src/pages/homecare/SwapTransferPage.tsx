@@ -213,7 +213,26 @@ export default function SwapTransferPage() {
 
             <FormControl fullWidth>
               <InputLabel>Select a call</InputLabel>
-              <Select value={selectedVisit?.id || ''} label="Select a call" onChange={e => setSelectedVisit(myVisits.find((v: any) => v.id === e.target.value) || null)}>
+              <Select
+                value={selectedVisit?.id || ''}
+                label="Select a call"
+                displayEmpty
+                renderValue={(value) => {
+                  if (value) {
+                    const visit: any = myVisits.find((v: any) => v.id === value)
+                    return <Typography variant="body2">{visit ? `${visit.label} — ${visit.person_name} · ${new Date(visit.scheduled_start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}` : ''}</Typography>
+                  }
+                  return (
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                      {myVisits.length === 0 ? `No calls available to ${requestType}` : 'Select a call'}
+                    </Typography>
+                  )
+                }}
+                onChange={e => setSelectedVisit(myVisits.find((v: any) => v.id === e.target.value) || null)}
+              >
+                {myVisits.length === 0 && (
+                  <MenuItem disabled value=""><em>No calls available to {requestType}</em></MenuItem>
+                )}
                 {myVisits.map((v: any) => (
                   <MenuItem key={v.id} value={v.id}>
                     {v.label} — {v.person_name} · {new Date(v.scheduled_start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}

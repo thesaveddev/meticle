@@ -10,9 +10,9 @@
   --homecare-rule: #E5E7EB;
   --homecare-navy: #0F4C81;
   --homecare-green: #10B981;
+  /* Full content width like every other app page — no boxed column or side margins. */
   min-width: 0;
-  max-width: 1180px;
-  margin: 0 auto;
+  width: 100%;
   color: var(--homecare-ink);
   overflow-x: clip;
 }

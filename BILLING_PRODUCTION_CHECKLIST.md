@@ -86,7 +86,17 @@ Copy the endpoint signing secret into `STRIPE_WEBHOOK_SECRET`. The API verifies 
 
 All transactional email (verification, reminders, receipts, dunning, portal links) is sent from the API via SMTP. Configure SMTP credentials as secrets in the production environment. Never store secret values in this checklist.
 
-Notes:
+Invoice delivery deliberately has separate states: queued, accepted by the SMTP server, delayed, delivered, bounced, failed, or unverified. Queue acceptance is not reported as delivery or as a sent invoice. A signed delivery-status-notification (DSN) callback or opening the secure invoice link is required to confirm the invoice reached a recipient. Other message types do not require a callback.
+
+To enable invoice delivery reports:
+
+- Set a long random `EMAIL_DSN_WEBHOOK_SECRET` in the API environment and the trusted DSN relay. The relay should POST the JSON event to `https://meticlecare.com/api/homecare/email/dsn-callback` with `x-email-dsn-timestamp` (Unix seconds) and `x-email-dsn-signature` (`sha256=` plus HMAC-SHA256 of `<timestamp>.<exact raw request body>`).
+- Configure the SMTP provider or a trusted relay to support SMTP DSN (`SUCCESS`, `FAILURE`, and `DELAY`) and forward the DSN `ENVID` to the callback as `dsn_id`, along with a stable unique `event_id`, recipient and status. SMTP servers are not required to support DSN; test this with the actual production provider before relying on automatic delivery/bounce updates.
+- Keep the API callback raw-body handling intact. The callback rejects stale timestamps, invalid signatures, unknown DSN IDs and recipient mismatches; duplicate events are idempotent.
+- A secure-link open is recorded separately as a recipient access event and provides evidence the invoice was accessed, even if the SMTP provider does not support DSN.
+- Retain invoice-related failed queue rows for audit/retry; do not purge these with generic email cleanup.
+
+General mail setup:
 
 - Create the billing/notification mailbox at your email host first.
 - Keep `SMTP_FROM` aligned with the authenticated sender where possible.
