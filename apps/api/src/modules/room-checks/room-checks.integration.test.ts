@@ -43,16 +43,10 @@ describe('Room checks — CRUD', () => {
     expect(deleted.status).toBe(200)
   })
 
-  it('should reject a CARE_WORKER creating a room check (403)', async () => {
-    const org = await createOrg()
-    const worker = await createUser({ email: `rc3-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
-
-    const res = await request(app)
-      .post('/room-checks')
-      .set('Authorization', `Bearer ${generateToken(worker)}`)
-      .send({ room_number: '9', status: 'pass' })
-    expect(res.status).toBe(403)
-  })
+  // Recording a room check is shift work, so care workers are now allowed to
+  // create one and it is attributed to them from the session. That behaviour,
+  // along with the boundaries that remain manager-only, is covered in
+  // tasks.completion.integration.test.ts.
 
   it('should reject without auth (401)', async () => {
     const res = await request(app).get('/room-checks')
