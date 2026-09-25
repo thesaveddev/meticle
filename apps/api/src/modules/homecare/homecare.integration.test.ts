@@ -19,6 +19,21 @@ const futureDate = (daysAhead: number, h = 9, m = 0) => {
   d.setUTCHours(h, m, 0, 0)
   return d.toISOString()
 }
+/**
+ * A fixed mid-day UTC window on a future day.
+ *
+ * Deliberately not relative to now. bulk-auto-assign filters on
+ * `scheduled_start < (to::date + INTERVAL '1 day')`, and a bare `date` cast is
+ * resolved in the session TimeZone, so "the whole of the to-date" is not
+ * 00:00-24:00 UTC — in Europe/London it ends at 23:00Z. Scheduling an
+ * appointment "120 minutes from now" therefore drops out of its own day's
+ * window once the wall clock passes 22:00 UTC. Pinning the visit to midday
+ * keeps it inside the window whatever the timezone or the hour.
+ */
+const midDayWindow = (daysAhead: number) => ({
+  start: futureDate(daysAhead, 12, 0),
+  end: futureDate(daysAhead, 13, 0),
+})
 const fd = (daysAhead: number) => new Date(Date.now() + daysAhead * 86400000).toISOString().split('T')[0]
 
 describe('Homecare Phase 2 foundation', () => {
@@ -80,7 +95,7 @@ describe('Homecare Phase 2 foundation', () => {
       await migrateQuery(`INSERT INTO staff_availability (staff_id, day_of_week, start_time, end_time, is_available) VALUES ($1, $2, '00:00', '23:59', TRUE)`, [carerProfile.id, day])
     }
 
-    const when = nearDate(120)
+    const when = midDayWindow(7)
     const visitDay = when.start.slice(0, 10)
     const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Auto-assign calls', status: 'active', start_date: fd(1) })
     expect(pkg.status).toBe(201)
