@@ -228,6 +228,24 @@ export class StaffController {
     res.json({ message: 'User deactivated' });
   }
 
+  /**
+   * Self-service account closure required by Google Play and Apple.
+   *
+   * This deactivates the login and erases the data that identifies the person
+   * as an individual — contact details, date of birth, address, photo and every
+   * third-party record naming them. It deliberately does NOT erase the
+   * professional name, role or staff id.
+   *
+   * A visit, incident or room check is only evidence if it can be attributed to
+   * the person who performed it. Safeguarding enquiries, CQC inspections and
+   * court proceedings all need to resolve a historical action back to a named
+   * worker, and that attribution is retained here on a legal-obligation basis
+   * rather than as a convenience. Erasing the name would destroy evidence and
+   * put the organisation in breach; keeping the account contactable would not
+   * satisfy the right to erasure. So the account goes, the attribution stays.
+   *
+   * The user row and its id are kept so every historical reference resolves.
+   */
   static async selfDeactivate(req: Request, res: Response) {
     const userId = req.user!.userId;
     const orgId = req.user!.organizationId;
@@ -237,7 +255,51 @@ export class StaffController {
       await checkNotLastAdmin(orgId, userId);
     }
 
-    await pool.query('UPDATE users SET status = $1 WHERE id = $2 AND organization_id = $3', ['deactivated', userId, orgId]);
+    // A placeholder that cannot be delivered to and cannot be reversed to the
+    // original address, and a hash that matches no password so the row can
+    // never be signed into again even if the status is later changed.
+    const deadEmail = `deleted-${userId}@deleted.invalid`;
+    const deadHash = crypto.randomBytes(48).toString('hex');
+
+    await transaction(async (client) => {
+      await client.query(
+        `UPDATE users
+            SET status = 'deactivated',
+                email = $1,
+                password_hash = $2,
+                email_verified = FALSE,
+                force_password_reset = FALSE,
+                mfa_secret = NULL,
+                backup_codes = NULL
+          WHERE id = $3 AND organization_id = $4`,
+        [deadEmail, deadHash, userId, orgId]
+      );
+
+      // first_name, last_name, employment_status and compliance_profile_id are
+      // intentionally left in place for record attribution.
+      await client.query(
+        `UPDATE staff_profiles
+            SET birth_date = NULL,
+                phone = NULL,
+                address = NULL,
+                city = NULL,
+                country = NULL,
+                postal_code = NULL,
+                profile_picture_url = NULL
+          WHERE user_id = $1`,
+        [userId]
+      );
+
+      // Emergency contacts are third-party personal data, not the user's own
+      // record, and serve no evidential purpose once the account is closed.
+      await client.query(
+        'DELETE FROM emergency_contacts WHERE staff_id IN (SELECT id FROM staff_profiles WHERE user_id = $1)',
+        [userId]
+      );
+
+      // Outstanding password-reset and email-verification links.
+      await client.query('DELETE FROM verification_tokens WHERE user_id = $1', [userId]);
+    });
 
     AuditRepository.log({
       user_id: userId,
@@ -247,7 +309,7 @@ export class StaffController {
       ip_address: req.ip,
     }).catch(logWarn('selfDeactivateAuditLog'));
 
-    res.json({ message: 'Account deactivated' });
+    res.json({ message: 'Account deleted' });
   }
 
   static async updateStaffProfile(req: Request, res: Response) {
