@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Alert,
   Box,
   Button,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
-  Drawer,
   FormControl,
   Grid,
   IconButton,
@@ -26,132 +22,46 @@ import {
 } from '@mui/material'
 import {
   Add as AddIcon,
-  ArchiveOutlined as ArchiveIcon,
   ArticleOutlined as ArticleIcon,
   CheckCircleOutline as PublishedIcon,
-  Close as CloseIcon,
-  DeleteOutline as DeleteIcon,
   EditOutlined as EditIcon,
   EventOutlined as ReviewIcon,
   GridView as GridViewIcon,
   KeyboardArrowRight as ArrowRightIcon,
-  PictureAsPdf as PdfIcon,
   Search as SearchIcon,
-  Share as ShareIcon,
   ViewList as ViewListIcon,
   WarningAmberOutlined as WarningIcon,
 } from '@mui/icons-material'
 import api from '../../services/api'
 import PageContainer from '../../components/design/PageContainer'
+import PolicyFormDialog from './PolicyFormDialog'
+import {
+  CATEGORIES,
+  EMERALD,
+  HAIRLINE,
+  INK,
+  MUTED,
+  NAVY,
+  STATUS_OPTIONS,
+  categoryColors,
+  formatDate,
+  isReviewDue,
+  statusLabel,
+  type Policy,
+} from './policyShared'
 
-interface Policy {
-  id: string
-  title: string
-  category: string
-  content: string
-  version: string
-  status: string
-  updated_by?: string
-  updated_by_name?: string
-  review_due_at?: string
-  created_at: string
-  updated_at?: string
-}
 
-interface Channel {
-  id: string
-  name: string
-  type: string
-}
-
-const CATEGORIES = [
-  'Risk Management',
-  'Human Resources',
-  'Health & Safety',
-  'GDPR & Data Protection',
-  'Infection Control',
-  'Equality & Diversity',
-  'Mental Health',
-  'Fire Safety',
-  'Medication',
-  'Safeguarding',
-]
-
-const STATUS_OPTIONS = [
-  { value: '', label: 'All statuses' },
-  { value: 'published', label: 'Published' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'archived', label: 'Archived' },
-]
-
-const initialForm = {
-  title: '',
-  category: 'Health & Safety',
-  content: '',
-  version: '1.0',
-  status: 'draft',
-  review_due_at: '',
-}
-
-const categoryColors: Record<string, string> = {
-  'Risk Management': '#B42318',
-  'Human Resources': '#0F4C81',
-  'Health & Safety': '#B54708',
-  'GDPR & Data Protection': '#6941C6',
-  'Infection Control': '#027A8B',
-  'Equality & Diversity': '#087443',
-  'Mental Health': '#087E8B',
-  'Fire Safety': '#C4320A',
-  Medication: '#047857',
-  Safeguarding: '#9F1239',
-}
-
-const INK = '#17212B'
-const MUTED = '#607080'
-const NAVY = '#0F4C81'
-const EMERALD = '#047857'
-const BONE = '#F7F4EE'
-const HAIRLINE = '#E2E8F0'
-
-function statusLabel(status: string) {
-  return status === 'active' ? 'Published' : status.charAt(0).toUpperCase() + status.slice(1)
-}
-
-function statusColor(status: string) {
-  if (status === 'published' || status === 'active') return EMERALD
-  if (status === 'archived') return '#667085'
-  return '#B54708'
-}
-
-function formatDate(date?: string) {
-  if (!date) return 'Not set'
-  return new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function isReviewDue(date?: string) {
-  return Boolean(date && new Date(`${date}T23:59:59`) < new Date())
-}
 
 export default function PoliciesPage() {
   const [policies, setPolicies] = useState<Policy[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null)
-  const [editing, setEditing] = useState<Policy | null>(null)
-  const [form, setForm] = useState(initialForm)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<Policy | null>(null)
-  const [shareDialog, setShareDialog] = useState<Policy | null>(null)
-  const [channels, setChannels] = useState<Channel[]>([])
-  const [loadingChannels, setLoadingChannels] = useState(false)
-  const [sharing, setSharing] = useState(false)
-  const [shareResult, setShareResult] = useState<'success' | 'error' | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
   const [error, setError] = useState('')
+  const navigate = useNavigate()
   const currentUser = useMemo(() => {
     try {
       const stored = localStorage.getItem('user')
@@ -194,107 +104,7 @@ export default function PoliciesPage() {
     due: policies.filter((policy) => isReviewDue(policy.review_due_at)).length,
   }), [policies])
 
-  const openCreate = () => {
-    setEditing(null)
-    setForm(initialForm)
-    setDialogOpen(true)
-  }
-
-  const openEdit = (policy: Policy) => {
-    setEditing(policy)
-    setForm({
-      title: policy.title,
-      category: policy.category,
-      content: policy.content,
-      version: policy.version,
-      status: policy.status === 'active' ? 'published' : policy.status,
-      review_due_at: policy.review_due_at?.slice(0, 10) || '',
-    })
-    setDialogOpen(true)
-  }
-
-  const handleSave = async () => {
-    setSaving(true)
-    setError('')
-    try {
-      const payload = { ...form, review_due_at: form.review_due_at || null }
-      if (editing) {
-        const response = await api.patch(`/policies/${editing.id}`, payload)
-        setSelectedPolicy(response.data)
-      } else {
-        await api.post('/policies', payload)
-      }
-      setDialogOpen(false)
-      await fetchPolicies()
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'We could not save this policy.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!deleteTarget) return
-    setDeleting(true)
-    try {
-      await api.delete(`/policies/${deleteTarget.id}`)
-      if (selectedPolicy?.id === deleteTarget.id) setSelectedPolicy(null)
-      setDeleteTarget(null)
-      await fetchPolicies()
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'We could not delete this policy.')
-    } finally {
-      setDeleting(false)
-    }
-  }
-
-  const downloadPolicy = (policy: Policy) => {
-    const content = [
-      policy.title,
-      `Category: ${policy.category}`,
-      `Version: ${policy.version}`,
-      `Status: ${statusLabel(policy.status)}`,
-      `Review due: ${formatDate(policy.review_due_at)}`,
-      '',
-      policy.content,
-    ].join('\n')
-    const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${policy.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-v${policy.version}.txt`
-    link.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const openShare = async (policy: Policy) => {
-    setShareDialog(policy)
-    setShareResult(null)
-    setLoadingChannels(true)
-    try {
-      const response = await api.get('/chat/channels')
-      setChannels(response.data)
-    } catch {
-      setChannels([])
-    } finally {
-      setLoadingChannels(false)
-    }
-  }
-
-  const handleShare = async (channelId: string) => {
-    if (!shareDialog) return
-    setSharing(true)
-    try {
-      const preview = shareDialog.content.length > 500 ? `${shareDialog.content.slice(0, 500)}...` : shareDialog.content
-      await api.post(`/chat/channels/${channelId}/messages`, {
-        content: `Policy: ${shareDialog.title} (v${shareDialog.version})\n\n${preview}`,
-      })
-      setShareResult('success')
-    } catch {
-      setShareResult('error')
-    } finally {
-      setSharing(false)
-    }
-  }
+  const openCreate = () => setFormOpen(true)
 
   if (loading) {
     return <Box sx={{ minHeight: '60vh', display: 'grid', placeItems: 'center' }}><CircularProgress sx={{ color: NAVY }} /></Box>
@@ -303,13 +113,6 @@ export default function PoliciesPage() {
   return (
     <PageContainer>
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
-
-      <Paper variant="outlined" sx={{ mb: 4, p: { xs: 2, md: 2.5 }, borderRadius: 2, borderColor: HAIRLINE, bgcolor: 'background.paper' }}>
-        <Typography sx={{ color: INK, fontWeight: 900, mb: 0.5 }}>Policy control standard</Typography>
-        <Typography variant="body2" sx={{ color: MUTED, maxWidth: 780 }}>
-          The same review, approval and evidence rules apply across domiciliary care and supported living. Every published policy has an owner, version, review date and audit trail; evidence must be attributable, dated and linked to the policy it supports.
-        </Typography>
-      </Paper>
 
       <Box sx={{ mb: 4 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} gap={2}>
@@ -397,10 +200,9 @@ export default function PoliciesPage() {
                   component="button"
                   type="button"
                   variant="outlined"
-                  onClick={() => setSelectedPolicy(policy)}
+                  onClick={() => navigate(`/policies/${policy.id}`)}
                   sx={{ width: '100%', textAlign: 'left', p: 0, overflow: 'hidden', borderColor: HAIRLINE, borderRadius: 2, bgcolor: 'background.paper', cursor: 'pointer', transition: 'border-color 0.15s ease', '&:hover': { borderColor: NAVY } }}
                 >
-                  <Box sx={{ height: 5, bgcolor: color }} />
                   <Box sx={{ p: 2.5 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1} sx={{ mb: 2 }}>
                       <Chip label={policy.category} size="small" sx={{ color, bgcolor: `${color}14`, fontWeight: 800, fontSize: '0.68rem', maxWidth: '80%' }} />
@@ -428,7 +230,7 @@ export default function PoliciesPage() {
             const color = categoryColors[policy.category] || NAVY
             const due = isReviewDue(policy.review_due_at)
             return (
-              <Box key={policy.id} component="button" type="button" onClick={() => setSelectedPolicy(policy)} sx={{ width: '100%', border: 0, borderBottom: index < visiblePolicies.length - 1 ? `1px solid ${HAIRLINE}` : 0, bgcolor: 'background.paper', p: 2, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--card-gap)', '&:hover': { bgcolor: 'grey.50' } }}>
+              <Box key={policy.id} component="button" type="button" onClick={() => navigate(`/policies/${policy.id}`)} sx={{ width: '100%', border: 0, borderBottom: index < visiblePolicies.length - 1 ? `1px solid ${HAIRLINE}` : 0, bgcolor: 'background.paper', p: 2, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--card-gap)', '&:hover': { bgcolor: 'grey.50' } }}>
                 <Box sx={{ width: 8, alignSelf: 'stretch', minHeight: 42, borderRadius: 1, bgcolor: color, flexShrink: 0 }} />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ sm: 1 }} alignItems={{ sm: 'center' }}>
@@ -447,77 +249,12 @@ export default function PoliciesPage() {
         </Paper>
       )}
 
-      <Drawer anchor="right" open={Boolean(selectedPolicy)} onClose={() => setSelectedPolicy(null)} PaperProps={{ sx: { width: { xs: '100%', sm: 560 }, maxWidth: '100%' } }}>
-        {selectedPolicy && (
-          <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ p: 3, bgcolor: BONE, borderBottom: `1px solid ${HAIRLINE}` }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2}>
-                <Box>
-                  <Chip label={selectedPolicy.category} size="small" sx={{ color: categoryColors[selectedPolicy.category] || NAVY, bgcolor: `${categoryColors[selectedPolicy.category] || NAVY}14`, fontWeight: 800, mb: 1.5 }} />
-                  <Typography variant="h5" sx={{ color: INK, fontWeight: 900, lineHeight: 1.15 }}>{selectedPolicy.title}</Typography>
-                </Box>
-                <IconButton aria-label="Close policy" onClick={() => setSelectedPolicy(null)}><CloseIcon /></IconButton>
-              </Stack>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 2 }}>
-                <Chip label={statusLabel(selectedPolicy.status)} size="small" icon={selectedPolicy.status === 'published' || selectedPolicy.status === 'active' ? <PublishedIcon /> : selectedPolicy.status === 'archived' ? <ArchiveIcon /> : <EditIcon />} sx={{ color: statusColor(selectedPolicy.status), bgcolor: `${statusColor(selectedPolicy.status)}14`, fontWeight: 800 }} />
-                <Chip label={`Version ${selectedPolicy.version}`} size="small" sx={{ fontWeight: 800 }} />
-              </Stack>
-            </Box>
-            <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
-              <Stack direction="row" spacing={3} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
-                <Box><Typography sx={{ color: MUTED, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Last updated</Typography><Typography sx={{ color: INK, fontWeight: 700 }}>{formatDate(selectedPolicy.updated_at || selectedPolicy.created_at)}</Typography></Box>
-                <Box><Typography sx={{ color: MUTED, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Review due</Typography><Typography sx={{ color: isReviewDue(selectedPolicy.review_due_at) ? '#B42318' : INK, fontWeight: 700 }}>{formatDate(selectedPolicy.review_due_at)}</Typography></Box>
-                {selectedPolicy.updated_by_name && <Box><Typography sx={{ color: MUTED, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Updated by</Typography><Typography sx={{ color: INK, fontWeight: 700 }}>{selectedPolicy.updated_by_name}</Typography></Box>}
-              </Stack>
-              <Divider sx={{ mb: 3 }} />
-              <Typography sx={{ color: INK, whiteSpace: 'pre-wrap', lineHeight: 1.85, fontSize: '0.98rem' }}>{selectedPolicy.content}</Typography>
-            </Box>
-            <Box sx={{ p: 2, borderTop: `1px solid ${HAIRLINE}` }}>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {canManagePolicies && <Button size="small" startIcon={<EditIcon />} onClick={() => openEdit(selectedPolicy)}>Edit</Button>}
-                <Button size="small" startIcon={<ShareIcon />} onClick={() => openShare(selectedPolicy)}>Share</Button>
-                <Button size="small" startIcon={<PdfIcon />} onClick={() => downloadPolicy(selectedPolicy)}>Download</Button>
-                {canManagePolicies && <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => setDeleteTarget(selectedPolicy)}>Delete</Button>}
-              </Stack>
-            </Box>
-          </Box>
-        )}
-      </Drawer>
-
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ color: INK, fontWeight: 900 }}>{editing ? 'Edit policy' : 'Add policy'}</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="Policy title" fullWidth value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <FormControl fullWidth><InputLabel>Category</InputLabel><Select value={form.category} label="Category" onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}>{CATEGORIES.map((category) => <MenuItem key={category} value={category}>{category}</MenuItem>)}</Select></FormControl>
-              <TextField label="Version" fullWidth value={form.version} onChange={(event) => setForm((current) => ({ ...current, version: event.target.value }))} />
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <FormControl fullWidth><InputLabel>Status</InputLabel><Select value={form.status} label="Status" onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}><MenuItem value="draft">Draft</MenuItem><MenuItem value="published">Published</MenuItem><MenuItem value="archived">Archived</MenuItem></Select></FormControl>
-              <TextField label="Review due" type="date" fullWidth value={form.review_due_at} onChange={(event) => setForm((current) => ({ ...current, review_due_at: event.target.value }))} InputLabelProps={{ shrink: true }} />
-            </Stack>
-            <TextField label="Policy content" helperText="Use headings and clear responsibilities so the policy is easy to follow during an inspection." fullWidth multiline minRows={12} value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} />
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 2.5 }}><Button onClick={() => setDialogOpen(false)}>Cancel</Button><Button variant="contained" onClick={handleSave} disabled={saving || !form.title.trim() || !form.content.trim()} sx={{ bgcolor: NAVY }}>{saving ? <CircularProgress size={20} /> : 'Save policy'}</Button></DialogActions>
-      </Dialog>
-
-      <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 900 }}>Delete this policy?</DialogTitle>
-        <DialogContent><Typography sx={{ color: MUTED }}>“{deleteTarget?.title}” will be removed from your library. This cannot be undone.</Typography></DialogContent>
-        <DialogActions><Button onClick={() => setDeleteTarget(null)}>Keep policy</Button><Button color="error" variant="contained" onClick={handleDelete} disabled={deleting}>{deleting ? <CircularProgress size={20} /> : 'Delete policy'}</Button></DialogActions>
-      </Dialog>
-
-      <Dialog open={Boolean(shareDialog)} onClose={() => setShareDialog(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 900 }}>Share policy to chat</DialogTitle>
-        <DialogContent>
-          {shareResult === 'success' && <Alert severity="success" sx={{ mb: 2 }}>Policy shared successfully.</Alert>}
-          {shareResult === 'error' && <Alert severity="error" sx={{ mb: 2 }}>The policy could not be shared. Try again.</Alert>}
-          {loadingChannels ? <Box sx={{ display: 'grid', placeItems: 'center', py: 5 }}><CircularProgress /></Box> : channels.length === 0 ? <Typography sx={{ color: MUTED, textAlign: 'center', py: 5 }}>No chat channels are available.</Typography> : <Stack>{channels.map((channel) => <Button key={channel.id} variant="text" onClick={() => handleShare(channel.id)} disabled={sharing} sx={{ justifyContent: 'flex-start', py: 1.5, color: INK }}># {channel.name}{channel.type === 'dm' ? ' · Direct message' : ''}</Button>)}</Stack>}
-        </DialogContent>
-        <DialogActions><Button onClick={() => setShareDialog(null)}>Close</Button></DialogActions>
-      </Dialog>
+      <PolicyFormDialog
+        open={formOpen}
+        editing={null}
+        onClose={() => setFormOpen(false)}
+        onSaved={() => { setFormOpen(false); fetchPolicies() }}
+      />
     </PageContainer>
   )
 }

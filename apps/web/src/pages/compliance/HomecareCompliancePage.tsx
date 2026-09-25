@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import {
-  Box, Typography, Grid, Stack, Chip, Button,
+  Box, Typography, Grid, Stack, Chip, Button, Paper,
   CircularProgress, Card, CardContent, Divider, IconButton, Collapse,
 } from '@mui/material'
 import {
   ExpandMore as ExpandIcon, Refresh as RefreshIcon,
   Shield, Assignment, EventBusy, School, Badge,
-  Assessment, LocalHospital, RateReview,
+  Assessment, LocalHospital, RateReview, ChevronRight,
 } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -186,16 +186,16 @@ export default function HomecareCompliancePage() {
   const kloeColor = getScoreColor(d.overallScore)
 
   // Build priority actions from gaps
-  const actions: Array<{ area: string; action: string; priority: 'high' | 'medium' | 'low'; detail: string }> = []
-  if (d.carePlans.overdue > 0) actions.push({ area: 'Care Plans', action: 'Review overdue care plans', priority: 'high', detail: `${d.carePlans.overdue} care plans have no review date or are overdue` })
-  if (d.riskAssessments.overdue > 0) actions.push({ area: 'Risk Assessments', action: 'Review overdue risk assessments', priority: 'high', detail: `${d.riskAssessments.overdue} risk assessments need review` })
-  if (d.incidents.serious > 0) actions.push({ area: 'Incidents', action: 'Investigate serious incidents', priority: 'high', detail: `${d.incidents.serious} serious incidents in the last 30 days` })
-  if (d.incidents.open > 0) actions.push({ area: 'Incidents', action: 'Resolve open incidents', priority: 'medium', detail: `${d.incidents.open} incidents still open or investigating` })
-  if (d.missedVisits7d > 0) actions.push({ area: 'Visits', action: 'Follow up missed visits', priority: 'medium', detail: `${d.missedVisits7d} visits missed in the last 7 days` })
-  if (d.staffTraining.rate < 90) actions.push({ area: 'Training', action: 'Complete outstanding training', priority: 'medium', detail: `${d.staffTraining.nonCompliant} staff need training completion` })
-  if (d.dbs.rate < 100) actions.push({ area: 'DBS', action: 'Renew DBS checks', priority: 'high', detail: `${d.dbs.total - d.dbs.compliant} staff without valid DBS` })
-  if (d.supervision.rate < 80) actions.push({ area: 'Supervision', action: 'Schedule staff supervisions', priority: 'medium', detail: `${d.supervision.total - d.supervision.done} staff without recent supervision` })
-  if (d.visitCompletion.rate < 95) actions.push({ area: 'Visits', action: 'Improve visit completion rate', priority: 'low', detail: `Current completion rate is ${d.visitCompletion.rate}%` })
+  const actions: Array<{ area: string; action: string; priority: 'high' | 'medium' | 'low'; detail: string; path: string }> = []
+  if (d.carePlans.overdue > 0) actions.push({ area: 'Care Plans', action: 'Review overdue care plans', priority: 'high', detail: `${d.carePlans.overdue} care plans have no review date or are overdue`, path: '/people' })
+  if (d.riskAssessments.overdue > 0) actions.push({ area: 'Risk Assessments', action: 'Review overdue risk assessments', priority: 'high', detail: `${d.riskAssessments.overdue} risk assessments need review`, path: '/people' })
+  if (d.incidents.serious > 0) actions.push({ area: 'Incidents', action: 'Investigate serious incidents', priority: 'high', detail: `${d.incidents.serious} serious incidents in the last 30 days`, path: '/incidents' })
+  if (d.incidents.open > 0) actions.push({ area: 'Incidents', action: 'Resolve open incidents', priority: 'medium', detail: `${d.incidents.open} incidents still open or investigating`, path: '/incidents' })
+  if (d.missedVisits7d > 0) actions.push({ area: 'Visits', action: 'Follow up missed visits', priority: 'medium', detail: `${d.missedVisits7d} visits missed in the last 7 days`, path: '/homecare' })
+  if (d.staffTraining.rate < 90) actions.push({ area: 'Training', action: 'Complete outstanding training', priority: 'medium', detail: `${d.staffTraining.nonCompliant} staff need training completion`, path: '/compliance/training' })
+  if (d.dbs.rate < 100) actions.push({ area: 'DBS', action: 'Renew DBS checks', priority: 'high', detail: `${d.dbs.total - d.dbs.compliant} staff without valid DBS`, path: '/compliance/identity' })
+  if (d.visitCompletion.rate < 95) actions.push({ area: 'Visits', action: 'Improve visit completion rate', priority: 'low', detail: `Current completion rate is ${d.visitCompletion.rate}%`, path: '/homecare' })
+  if (d.supervision.total > 0 && d.supervision.rate < 100) actions.push({ area: 'Supervision', action: 'Record outstanding supervisions', priority: 'medium', detail: `${d.supervision.total - d.supervision.done} staff have no supervision recorded in the last 6 months`, path: '/compliance/supervisions' })
 
   const priorityOrder = { high: 0, medium: 1, low: 2 }
   actions.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
@@ -292,8 +292,11 @@ export default function HomecareCompliancePage() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard icon={<RateReview />} label="Supervisions" value={`${d.supervision.rate}%`}
-            sub={`${d.supervision.done}/${d.supervision.total} staff supervised`}
-            color={d.supervision.rate >= 80 ? '#16A34A' : '#F59E0B'} />
+            sub={d.supervision.total > 0
+              ? `${d.supervision.done}/${d.supervision.total} staff supervised in 6 months`
+              : 'No active staff to supervise yet'}
+            color={d.supervision.rate >= 90 ? '#16A34A' : d.supervision.rate >= 70 ? '#F59E0B' : '#DC2626'}
+            onClick={() => navigate('/compliance/supervisions')} />
         </Grid>
       </Grid>
 
@@ -301,18 +304,41 @@ export default function HomecareCompliancePage() {
       {actions.length > 0 && (
         <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           <CardContent sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Priority Actions</Typography>
-            <Stack spacing={1.5}>
-              {actions.slice(0, 8).map((a, i) => (
-                <Stack key={i} direction="row" spacing={2} alignItems="flex-start" sx={{ p: 1.5, borderRadius: 2, bgcolor: a.priority === 'high' ? 'error.light' : a.priority === 'medium' ? 'warning.light' : 'grey.50' }}>
-                  <Chip label={a.priority.toUpperCase()} size="small" sx={{ fontWeight: 700, bgcolor: a.priority === 'high' ? 'error.main' : a.priority === 'medium' ? 'warning.main' : 'grey.500', color: '#fff', minWidth: 64 }} />
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 600 }}>{a.action}</Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>{a.detail}</Typography>
-                  </Box>
-                  <Chip label={a.area} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
-                </Stack>
-              ))}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'baseline' }} sx={{ mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Priority Actions</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Select an action to go straight to the area that needs attention</Typography>
+            </Stack>
+            <Stack spacing={1}>
+              {actions.slice(0, 8).map((a, i) => {
+                const accent = a.priority === 'high' ? 'error.main' : a.priority === 'medium' ? 'warning.main' : 'grey.500'
+                return (
+                  <Paper
+                    key={i}
+                    component="button"
+                    type="button"
+                    variant="outlined"
+                    onClick={() => navigate(a.path)}
+                    sx={{
+                      width: '100%', p: 0, m: 0, textAlign: 'left', display: 'flex', alignItems: 'stretch',
+                      borderRadius: 2, borderColor: 'divider', bgcolor: 'background.paper', cursor: 'pointer',
+                      transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                      '&:hover': { borderColor: accent, boxShadow: 2 },
+                      '&:focus-visible': { outline: '2px solid', outlineColor: accent },
+                    }}
+                  >
+                    <Box sx={{ width: 5, flexShrink: 0, bgcolor: accent }} />
+                    <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1, minWidth: 0, px: 2, py: 1.5 }}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="overline" sx={{ color: accent, fontWeight: 800, letterSpacing: 1 }}>{a.priority}</Typography>
+                        <Typography sx={{ fontWeight: 700 }}>{a.action}</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>{a.detail}</Typography>
+                      </Box>
+                      <Chip label={a.area} size="small" variant="outlined" sx={{ fontWeight: 600, flexShrink: 0 }} />
+                      <ChevronRight sx={{ color: 'text.secondary', flexShrink: 0 }} />
+                    </Stack>
+                  </Paper>
+                )
+              })}
             </Stack>
           </CardContent>
         </Card>
@@ -351,7 +377,7 @@ export default function HomecareCompliancePage() {
               <Grid item xs={12} sm={6} md={4} key={link.path}>
                 <Box
                   onClick={() => navigate(link.path)}
-                  sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'all 0.2s', '&:hover': { borderColor: 'primary.main', bgcolor: 'primary.light' } }}
+                  sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'border-color 0.15s ease, box-shadow 0.15s ease', '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover', boxShadow: 1 } }}
                 >
                   <Typography sx={{ fontWeight: 600 }}>{link.label}</Typography>
                   <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>{link.desc}</Typography>

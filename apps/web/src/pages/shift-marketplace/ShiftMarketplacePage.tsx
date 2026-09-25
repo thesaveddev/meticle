@@ -76,7 +76,9 @@ export default function ShiftMarketplacePage() {
   const [reassigning, setReassigning] = useState(false)
   const [openCallDialog, setOpenCallDialog] = useState(false)
   const [openCallSaving, setOpenCallSaving] = useState(false)
-  const [openCall, setOpenCall] = useState({ location_id: '', start_time: '', end_time: '', shift_type: 'day' })
+  const [openCall, setOpenCall] = useState({ location_id: '', person_id: '', start_time: '', end_time: '', shift_type: 'day' })
+  const [clients, setClients] = useState<any[]>([])
+  const [clientsLoading, setClientsLoading] = useState(false)
 
   const fetchOpenShifts = async () => {
     setShiftsLoading(true)
@@ -107,20 +109,35 @@ export default function ShiftMarketplacePage() {
 
   const fetchLocations = async () => {
     try {
-      const res = await api.get('/leave/locations')
+      const res = await api.get('/leave/locations', { silentError: true })
       setLocations(res.data)
     } catch {}
   }
 
+  // Agencies are supported-living-only. Never request them for a domiciliary
+  // organisation — the API rejects the call and the rejection surfaces as a
+  // global "This feature is not available for your organisation type" toast.
+  // Agencies load lazily when a supported-living manager opens the dialog.
   const fetchAgencies = async () => {
+    if (isDomiciliary || agencies.length > 0) return
     try {
-      const res = await api.get('/agencies')
+      const res = await api.get('/agencies', { silentError: true })
       setAgencies(res.data)
     } catch {}
   }
 
+  const fetchClients = async () => {
+    if (clients.length > 0) return
+    setClientsLoading(true)
+    try {
+      const res = await api.get('/people', { silentError: true })
+      setClients(Array.isArray(res.data) ? res.data : [])
+    } catch {}
+    finally { setClientsLoading(false) }
+  }
+
   useEffect(() => { fetchOpenShifts() }, [selectedLocation, openDateFrom, openDateTo])
-  useEffect(() => { fetchLocations(); if (isAdminOrManager) fetchAgencies() }, [])
+  useEffect(() => { fetchLocations() }, [])
   useEffect(() => {
     if (tab !== 1) return
     setClaimsLoading(true)
@@ -130,14 +147,25 @@ export default function ShiftMarketplacePage() {
   }, [tab])
   useEffect(() => { const t = setInterval(fetchOpenShifts, 60000); return () => clearInterval(t) }, [selectedLocation, openDateFrom, openDateTo])
 
+  const openCreateOpenCall = () => {
+    setOpenCall({ location_id: '', person_id: '', start_time: '', end_time: '', shift_type: 'day' })
+    setError('')
+    setOpenCallDialog(true)
+    fetchClients()
+  }
+
   const resetOpenCall = () => {
     setOpenCallDialog(false)
-    setOpenCall({ location_id: '', start_time: '', end_time: '', shift_type: 'day' })
+    setOpenCall({ location_id: '', person_id: '', start_time: '', end_time: '', shift_type: 'day' })
   }
 
   const handlePostOpenCall = async () => {
     if (!openCall.location_id || !openCall.start_time || !openCall.end_time) {
       setError('Choose an area and both start and end times')
+      return
+    }
+    if (isDomiciliary && !openCall.person_id) {
+      setError('Select the client this call is for')
       return
     }
     const start = new Date(openCall.start_time)
@@ -150,6 +178,7 @@ export default function ShiftMarketplacePage() {
     try {
       await api.post('/shifts', {
         location_id: openCall.location_id,
+        ...(openCall.person_id ? { person_id: openCall.person_id } : {}),
         start_time: start.toISOString(),
         end_time: end.toISOString(),
         shift_type: openCall.shift_type,
@@ -202,7 +231,7 @@ export default function ShiftMarketplacePage() {
   const fetchStaff = async () => {
     if (staffList.length > 0) return
     try {
-      const res = await api.get('/shifts/staff')
+      const res = await api.get('/shifts/staff', { silentError: true })
       setStaffList(res.data)
     } catch {}
   }
@@ -289,6 +318,7 @@ export default function ShiftMarketplacePage() {
   }
 
   const openAgencyDialog = (shift: any) => {
+    fetchAgencies()
     setAgencyData({ agency_id: '', agency_cost: '', agency_contact_name: '', agency_contact_phone: '', agency_shift_reference: '', agency_notes: '' })
     setAgencyRate('')
     setAgencyDialog({
@@ -307,7 +337,7 @@ export default function ShiftMarketplacePage() {
     setAgencyRate('')
     if (!agencyId || !agencyDialog.start_time) return
     try {
-      const rateRes = await api.get(`/agencies/${agencyId}/rates`)
+      const rateRes = await api.get(`/agencies/${agencyId}/rates`, { silentError: true })
       const rates = rateRes.data
       const rate = rates.find((r: any) => r.shift_type === agencyDialog.shift_type)
       if (rate) {
@@ -330,6 +360,17 @@ export default function ShiftMarketplacePage() {
       setError(err.response?.data?.message || 'Failed to send to agency')
     } finally { setSendingToAgency(false) }
   }
+
+  const clientOptions = useMemo(() => {
+    const areaName = (id: string) => locations.find((l: any) => l.id === id)?.name || ''
+    const list = (clients || []).map((c: any) => ({ ...c, _areaName: c.location_id ? areaName(c.location_id) : '' }))
+    return list.sort((a: any, b: any) => {
+      const aIn = a.location_id && a.location_id === openCall.location_id ? 0 : 1
+      const bIn = b.location_id && b.location_id === openCall.location_id ? 0 : 1
+      if (aIn !== bIn) return aIn - bIn
+      return `${a.first_name || ''} ${a.last_name || ''}`.localeCompare(`${b.first_name || ''} ${b.last_name || ''}`)
+    })
+  }, [clients, locations, openCall.location_id])
 
   const groupedByDate = useMemo(() => {
     const grouped: Record<string, any[]> = {}
@@ -407,7 +448,7 @@ export default function ShiftMarketplacePage() {
         </Stack>
         <Box sx={{ flexGrow: 1 }} />
         {tab === 0 && <Chip label={`${shifts.length} available`} color="primary" variant="outlined" sx={{ fontWeight: 700 }} />}
-        {isAdminOrManager && <AppButton onClick={() => setOpenCallDialog(true)}>Post open call</AppButton>}
+        {isAdminOrManager && <AppButton onClick={openCreateOpenCall}>Post open call</AppButton>}
         {tab === 1 && isAdminOrManager && reviewCount > 0 && <Chip label={`${reviewCount} to review`} color="warning" sx={{ fontWeight: 700 }} />}
       </Stack>
 
@@ -421,9 +462,9 @@ export default function ShiftMarketplacePage() {
             <Tab label="Claims" icon={<History />} iconPosition="start" />
           </Tabs>
           <FormControl size="small" sx={{ m: 1, minWidth: 180 }}>
-            <InputLabel>Location</InputLabel>
-            <Select value={selectedLocation} label="Location" onChange={e => setSelectedLocation(e.target.value)}>
-              <MenuItem value="all">All Locations</MenuItem>
+            <InputLabel>{isDomiciliary ? 'Area' : 'Location'}</InputLabel>
+            <Select value={selectedLocation} label={isDomiciliary ? 'Area' : 'Location'} onChange={e => setSelectedLocation(e.target.value)}>
+              <MenuItem value="all">{isDomiciliary ? 'All Areas' : 'All Locations'}</MenuItem>
               {locations.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
             </Select>
           </FormControl>
@@ -535,7 +576,7 @@ export default function ShiftMarketplacePage() {
                               disabled={new Date(s.start_time) < new Date()}>
                               {new Date(s.start_time) < new Date() ? 'Call started' : 'Claim Open Call'}
                             </AppButton>
-                            {isAdminOrManager && (
+                            {isAdminOrManager && !isDomiciliary && (
                               <Button fullWidth variant="outlined" size="small"
                                 startIcon={<SendIcon />}
                                 onClick={(e) => { e.stopPropagation(); openAgencyDialog(s) }}
@@ -579,7 +620,7 @@ export default function ShiftMarketplacePage() {
                     {isAdminOrManager && <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>}
                     <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Time</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{isDomiciliary ? 'Area' : 'Location'}</TableCell>
                     {!isAdminOrManager && <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>}
                     <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                     {isAdminOrManager && <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>}
@@ -653,6 +694,20 @@ export default function ShiftMarketplacePage() {
                 {locations.map((location: any) => <MenuItem key={location.id} value={location.id}>{location.name}</MenuItem>)}
               </Select>
             </FormControl>
+            <FormControl fullWidth required={isDomiciliary}>
+              <InputLabel id="open-call-client-label">{isDomiciliary ? 'Client' : 'Person'}</InputLabel>
+              <Select labelId="open-call-client-label" label={isDomiciliary ? 'Client' : 'Person'} value={openCall.person_id}
+                onChange={e => setOpenCall(p => ({ ...p, person_id: e.target.value }))}>
+                <MenuItem value=""><em>{isDomiciliary ? 'Select the client this call is for' : 'Not person-specific'}</em></MenuItem>
+                {clientOptions.map((c: any) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {[c.first_name, c.last_name].filter(Boolean).join(' ')}
+                    {c._areaName ? ` · ${c._areaName}` : ''}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {clientsLoading && <Typography variant="caption" color="text.secondary">Loading {isDomiciliary ? 'clients' : 'people'}…</Typography>}
             <TextField label="Starts" type="datetime-local" required value={openCall.start_time} onChange={e => setOpenCall(p => ({ ...p, start_time: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
             <TextField label="Ends" type="datetime-local" required value={openCall.end_time} onChange={e => setOpenCall(p => ({ ...p, end_time: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
             <FormControl fullWidth>
@@ -681,7 +736,7 @@ export default function ShiftMarketplacePage() {
                   <ScheduleIcon sx={{ color: '#0F4C81' }} />
                   <Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                      {shiftTypeLabel(detail.shift_type)} shift
+                      {shiftTypeLabel(detail.shift_type)} {isDomiciliary ? 'call' : 'shift'}
                     </Typography>
                     <Typography variant="caption" color="#6B7280">{fmtLongDate(detail.start_time)}</Typography>
                   </Box>
@@ -691,12 +746,12 @@ export default function ShiftMarketplacePage() {
             </DialogTitle>
             <DialogContent dividers>
               <Stack spacing={1.5}>
-                <DetailRow icon={<LocationIcon />} label="Location" value={detail.location_name || '—'} />
+                <DetailRow icon={<LocationIcon />} label={isDomiciliary ? 'Area' : 'Location'} value={detail.location_name || '—'} />
                 <DetailRow icon={<AccessTimeIcon />} label="Time" value={`${fmtTime(detail.start_time)} – ${fmtTime(detail.end_time)}`} />
                 <DetailRow icon={<ScheduleIcon />} label="Duration" value={`${shiftHours(detail)} hours`} />
                 {detail.department_name && <DetailRow label="Department" value={detail.department_name} />}
                 {(detail.su_first_name || detail.su_last_name) && (
-                  <DetailRow icon={<PersonIcon />} label="Service user" value={`${detail.su_first_name} ${detail.su_last_name}`} />
+                  <DetailRow icon={<PersonIcon />} label={isDomiciliary ? 'Client' : 'Service user'} value={`${detail.su_first_name} ${detail.su_last_name}`} />
                 )}
                 {detail.isOwn !== undefined && (
                   <DetailRow icon={<PersonIcon />} label="Claimed by" value={detail.isOwn ? 'You' : `${detail.first_name || ''} ${detail.last_name || ''}`.trim() || '—'} />

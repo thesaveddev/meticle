@@ -61,7 +61,7 @@ export default function LocationsPage() {
       setLocations(locRes.data)
       setStaffList(staffRes.data)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load locations')
+      setError(err.response?.data?.message || (isDomiciliary ? 'Failed to load areas' : 'Failed to load locations'))
     } finally {
       setLoading(false)
     }
@@ -139,7 +139,7 @@ export default function LocationsPage() {
       if (err.response?.status === 400 && err.response?.data?.message?.includes('manager')) {
         setUpgradeDialog({ open: true, userId: editLoc.manager_id, name: staffList.find(s => s.id === editLoc.manager_id)?.first_name || '' })
       }
-      setError(err.response?.data?.message || 'Failed to save location')
+      setError(err.response?.data?.message || (isDomiciliary ? 'Failed to save area' : 'Failed to save location'))
     } finally {
       setSaving(false)
     }
@@ -162,7 +162,7 @@ export default function LocationsPage() {
       setLocations(prev => prev.filter(l => l.id !== id))
       setDeleteTarget(null)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete location')
+      setError(err.response?.data?.message || (isDomiciliary ? 'Failed to delete area' : 'Failed to delete location'))
       setDeleteTarget(null)
     } finally {
       setDeleting(false)
@@ -175,10 +175,10 @@ export default function LocationsPage() {
     <PageContainer>
 
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}><BuildingIcon sx={{ mr: 1, verticalAlign: 'middle', color: NAVY }} />{isDomiciliary ? 'Care areas' : 'Locations'}</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 800 }}><BuildingIcon sx={{ mr: 1, verticalAlign: 'middle', color: NAVY }} />{isDomiciliary ? 'Areas' : 'Locations'}</Typography>
         {isOrgAdmin && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}
-            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>Add Location</Button>
+            sx={{ bgcolor: NAVY, '&:hover': { bgcolor: '#0A3A5C' } }}>{isDomiciliary ? 'Add area' : 'Add location'}</Button>
         )}
       </Stack>
 
@@ -186,7 +186,7 @@ export default function LocationsPage() {
 
       {noManagerCount > 0 && (
         <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
-          {noManagerCount} location{noManagerCount !== 1 ? 's' : ''} {noManagerCount !== 1 ? 'have' : 'has'} no manager assigned. Every location should have a MANAGER so cover, leave approvals and medication escalations are reviewed. Org admins are notified automatically.
+          {noManagerCount} {isDomiciliary ? `area${noManagerCount !== 1 ? 's' : ''}` : `location${noManagerCount !== 1 ? 's' : ''}`} {noManagerCount !== 1 ? 'have' : 'has'} no {isDomiciliary ? 'area manager' : 'manager'} assigned. Every {isDomiciliary ? 'area' : 'location'} should have a MANAGER so cover, leave approvals and escalations are reviewed. Org admins are notified automatically.
         </Alert>
       )}
 
@@ -231,7 +231,7 @@ export default function LocationsPage() {
               </TableHead>
               <TableBody>
                 {locations.length === 0 ? (
-                  <TableRow><TableCell colSpan={isDomiciliary ? (isOrgAdmin ? 5 : 4) : (isOrgAdmin ? 8 : 7)} sx={{ borderBottom: 'none' }}><EmptyState title="No locations yet" description="Create your first location to get started" variant="default" action={{ label: 'Add location', onClick: () => setLocDialog(true) }} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={isDomiciliary ? (isOrgAdmin ? 5 : 4) : (isOrgAdmin ? 8 : 7)} sx={{ borderBottom: 'none' }}><EmptyState title={isDomiciliary ? 'No areas yet' : 'No locations yet'} description={isDomiciliary ? 'Create your first service area — for example Cardiff or Cathays' : 'Create your first location to get started'} variant="default" action={{ label: isDomiciliary ? 'Add area' : 'Add location', onClick: openAdd }} /></TableCell></TableRow>
                 ) : locations.slice(locPage * rowsPerPage, locPage * rowsPerPage + rowsPerPage).map(loc => (
                   <TableRow key={loc.id} hover sx={{
                     cursor: 'pointer',
@@ -273,7 +273,7 @@ export default function LocationsPage() {
       </Paper>
 
       <Dialog open={locDialog} onClose={() => setLocDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>{editLoc.id ? 'Edit Location' : 'Add Location'}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>{isDomiciliary ? (editLoc.id ? 'Edit area' : 'Add area') : (editLoc.id ? 'Edit Location' : 'Add Location')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
@@ -332,30 +332,32 @@ export default function LocationsPage() {
               </Stack>
             </>}
             <FormControl size="small" fullWidth>
-              <InputLabel>Manager</InputLabel>
-              <Select label="Manager" value={editLoc.manager_id || ''} onChange={e => setEditLoc((p: any) => ({ ...p, manager_id: e.target.value }))}>
+              <InputLabel>{isDomiciliary ? 'Area manager' : 'Manager'}</InputLabel>
+              <Select label={isDomiciliary ? 'Area manager' : 'Manager'} value={editLoc.manager_id || ''} onChange={e => setEditLoc((p: any) => ({ ...p, manager_id: e.target.value }))}>
                 <MenuItem value=""><em>None</em></MenuItem>
                 {staffList.map(s => (
                   <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}{s.role ? ` (${s.role})` : ''}</MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <Stack direction="row" spacing={2}>
-              <FormControl size="small" sx={{ minWidth: 200 }}>
-                <InputLabel>CQC Rating</InputLabel>
-                <Select label="CQC Rating" value={editLoc.cqc_rating || ''} onChange={e => setEditLoc((p: any) => ({ ...p, cqc_rating: e.target.value }))}>
-                  <MenuItem value=""><em>None</em></MenuItem>
-                  <MenuItem value="outstanding">Outstanding</MenuItem>
-                  <MenuItem value="good">Good</MenuItem>
-                  <MenuItem value="requires_improvement">Requires Improvement</MenuItem>
-                  <MenuItem value="inadequate">Inadequate</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField label="Food Hygiene Rating (0-5)" type="number" inputProps={{ min: 0, max: 5 }} fullWidth size="small"
-                value={editLoc.food_hygiene_rating ?? ''} onChange={e => setEditLoc((p: any) => ({ ...p, food_hygiene_rating: e.target.value }))} />
-            </Stack>
-            <TextField label="Last CQC Inspection" type="date" size="small" fullWidth value={editLoc.last_cqc_inspection || ''}
-              onChange={e => setEditLoc((p: any) => ({ ...p, last_cqc_inspection: e.target.value }))} InputLabelProps={{ shrink: true }} />
+            {!isDomiciliary && <>
+              <Stack direction="row" spacing={2}>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>CQC Rating</InputLabel>
+                  <Select label="CQC Rating" value={editLoc.cqc_rating || ''} onChange={e => setEditLoc((p: any) => ({ ...p, cqc_rating: e.target.value }))}>
+                    <MenuItem value=""><em>None</em></MenuItem>
+                    <MenuItem value="outstanding">Outstanding</MenuItem>
+                    <MenuItem value="good">Good</MenuItem>
+                    <MenuItem value="requires_improvement">Requires Improvement</MenuItem>
+                    <MenuItem value="inadequate">Inadequate</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField label="Food Hygiene Rating (0-5)" type="number" inputProps={{ min: 0, max: 5 }} fullWidth size="small"
+                  value={editLoc.food_hygiene_rating ?? ''} onChange={e => setEditLoc((p: any) => ({ ...p, food_hygiene_rating: e.target.value }))} />
+              </Stack>
+              <TextField label="Last CQC Inspection" type="date" size="small" fullWidth value={editLoc.last_cqc_inspection || ''}
+                onChange={e => setEditLoc((p: any) => ({ ...p, last_cqc_inspection: e.target.value }))} InputLabelProps={{ shrink: true }} />
+            </>}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
@@ -369,7 +371,7 @@ export default function LocationsPage() {
         <DialogTitle>Upgrade to Manager?</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="#6B7280">
-            {upgradeDialog.name} needs to be a MANAGER to be a location manager. Upgrade their role now?
+            {upgradeDialog.name} needs to be a MANAGER to be {isDomiciliary ? 'an area manager' : 'a location manager'}. Upgrade their role now?
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -380,8 +382,10 @@ export default function LocationsPage() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete location?"
-        message={`Delete "${deleteTarget?.name}"? This removes the location and its certificates permanently. This cannot be undone.`}
+        title={isDomiciliary ? 'Delete area?' : 'Delete location?'}
+        message={isDomiciliary
+          ? `Delete "${deleteTarget?.name}"? This removes the area permanently. This cannot be undone.`
+          : `Delete "${deleteTarget?.name}"? This removes the location and its certificates permanently. This cannot be undone.`}
         confirmLabel="Delete"
         danger
         loading={deleting}

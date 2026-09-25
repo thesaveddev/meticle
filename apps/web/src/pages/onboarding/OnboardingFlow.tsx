@@ -310,7 +310,7 @@ export default function OnboardingFlow() {
                   { num: 3, title: 'Add visit plans', desc: 'Inside the package, create visit plans — morning call, lunch call, evening call, etc. Set the days of week and time window for each visit type.', link: '/homecare' },
                   { num: 4, title: 'Assign care staff', desc: 'Go to Staff Directory and invite your carers. Once they accept, assign them to the care package so visits appear on their mobile app.', link: '/staff' },
                   { num: 5, title: 'Set your mileage policy', desc: 'Go to Settings → Billing and configure your HMRC mileage rate, travel time payment rules, and whether you pay for inter-client travel.', link: '/settings' },
-                  { num: 6, title: 'Review the dashboard', desc: 'Once visits are scheduled, the dashboard shows daily route, carer locations, and exceptions. Check Carer Totals for payroll summaries.', link: '/dashboard' },
+                  { num: 6, title: 'Review the dashboard', desc: 'Once visits are scheduled, the dashboard shows daily route, carer locations, and exceptions. Payroll summaries live on Payroll & Timesheets under Carer totals.', link: '/dashboard' },
                 ].map(item => (
                   <Box key={item.num} sx={{ display: 'flex', gap: 'var(--card-gap)', alignItems: 'flex-start' }}>
                     <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5 }}>
