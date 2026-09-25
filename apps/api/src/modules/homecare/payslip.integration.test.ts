@@ -3,14 +3,32 @@ import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import { createOrg, createUser, createPerson, createStaffProfile, generateToken } from '../../test/factories'
+import { migrateQuery as query } from '../../shared/database'
 
 let app: Express
 beforeAll(() => { app = createTestApp() })
 
-const nearDate = (minsFromNow: number, durationMins = 60) => {
+/**
+ * A call window starting imminently, plus the calendar day the payslip queries
+ * will actually match it on.
+ *
+ * The day cannot be taken from the UTC timestamp. The payslip and earnings
+ * queries bound the period with bare `::date` casts, which Postgres resolves in
+ * the session TimeZone, so "a whole day" in Europe/London ends at 23:00Z rather
+ * than midnight. Slicing the ISO string gives the UTC date, and during the last
+ * hour of a UTC day that is a different day from the one the query sees — the
+ * suite would then fail only when CI happened to run in that hour. Asking the
+ * database for the date in its own timezone is the only version that agrees
+ * with the query.
+ */
+const nearDate = async (minsFromNow: number, durationMins = 60) => {
   const start = new Date(Date.now() + minsFromNow * 60000)
   const end = new Date(start.getTime() + durationMins * 60000)
-  return { start: start.toISOString(), end: end.toISOString(), day: start.toISOString().slice(0, 10) }
+  const { rows } = await query(
+    `SELECT to_char($1::timestamptz AT TIME ZONE current_setting('TimeZone'), 'YYYY-MM-DD') AS day`,
+    [start.toISOString()]
+  )
+  return { start: start.toISOString(), end: end.toISOString(), day: rows[0].day }
 }
 const fd = (daysAhead: number) => new Date(Date.now() + daysAhead * 86400000).toISOString().split('T')[0]
 const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -30,7 +48,7 @@ async function carerWithCompletedCall() {
   })
   expect(pkg.status).toBe(201)
 
-  const when = nearDate(5)
+  const when = await nearDate(5)
   const visit = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({
     package_id: pkg.body.id, person_id: person.id, assigned_staff_id: carerProfile.id, visit_type: 'morning', label: 'Morning call', scheduled_start: when.start, scheduled_end: when.end,
   })
