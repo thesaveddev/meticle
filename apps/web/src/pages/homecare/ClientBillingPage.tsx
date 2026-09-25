@@ -29,20 +29,35 @@ import PageContainer from '../../components/design/PageContainer'
 const money = (pence: unknown) => pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
 const dateLabel = (value: string) => new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 const timeLabel = (value: string) => new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+const deliveryStatusPresentation: Record<string, { label: string; color: 'default' | 'info' | 'success' | 'warning' | 'error' }> = {
+  not_sent: { label: 'Not sent', color: 'default' },
+  queued: { label: 'Queued', color: 'info' },
+  accepted: { label: 'Accepted by mail server', color: 'info' },
+  delayed: { label: 'Delivery delayed', color: 'warning' },
+  delivered: { label: 'Delivered', color: 'success' },
+  bounced: { label: 'Bounced', color: 'error' },
+  failed: { label: 'Send failed', color: 'error' },
+  unverified: { label: 'Delivery unverified', color: 'warning' },
+}
 const minutesLabel = (value: unknown) => { const mins = Number(value || 0); return `${Math.floor(mins / 60)}h ${mins % 60}m` }
+
+// Local-date formatting: slicing ISO strings shifts billing-period boundaries
+// a day for any timezone off UTC (a UK user's "this month" started on the 31st
+// of the previous month). Billing windows must match the calendar exactly.
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 function monthRange(offset = 0) {
   const now = new Date()
   const from = new Date(now.getFullYear(), now.getMonth() - offset, 1)
   const to = new Date(now.getFullYear(), now.getMonth() - offset + 1, 0)
-  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }
+  return { from: ymd(from), to: ymd(to) }
 }
 
 function quarterRange() {
   const now = new Date(); const quarter = Math.floor(now.getMonth() / 3)
   return {
-    from: new Date(now.getFullYear(), quarter * 3, 1).toISOString().slice(0, 10),
-    to: new Date(now.getFullYear(), quarter * 3 + 3, 0).toISOString().slice(0, 10),
+    from: ymd(new Date(now.getFullYear(), quarter * 3, 1)),
+    to: ymd(new Date(now.getFullYear(), quarter * 3 + 3, 0)),
   }
 }
 
@@ -154,10 +169,21 @@ function InvoiceRow({ invoice, onSend, onPaid, busy }: { invoice: any; onSend: (
     <TableRow hover>
       <TableCell><Typography fontWeight={700}>{invoice.invoice_number}</Typography><Typography variant="caption" color="text.secondary">{invoice.person_name} · {invoice.payer_name}</Typography></TableCell>
       <TableCell><Typography variant="body2">{invoice.recipient_name}</Typography><Typography variant="caption" color="text.secondary">{invoice.recipient_email}</Typography></TableCell>
-      <TableCell><Chip size="small" label={statusLabel} color={invoice.status === 'paid' ? 'success' : invoice.status === 'viewed' ? 'info' : invoice.status === 'void' ? 'default' : 'warning'} sx={{ textTransform: 'capitalize' }} /></TableCell>
+      <TableCell>
+        <Stack spacing={0.5} alignItems="flex-start">
+          <Chip size="small" label={statusLabel} color={invoice.status === 'paid' ? 'success' : invoice.status === 'viewed' ? 'info' : invoice.status === 'void' ? 'default' : 'warning'} sx={{ textTransform: 'capitalize' }} />
+          {invoice.person_id && (() => {
+            const delivery = deliveryStatusPresentation[invoice.delivery_status || 'not_sent'] || deliveryStatusPresentation.not_sent
+            return <Box>
+              <Chip size="small" variant="outlined" color={delivery.color} label={delivery.label} sx={{ height: 22, fontSize: '0.7rem' }} />
+              {invoice.delivery_diagnostic && <Typography variant="caption" color={invoice.delivery_status === 'bounced' || invoice.delivery_status === 'failed' ? 'error.main' : 'text.secondary'} display="block" sx={{ maxWidth: 240, mt: 0.25 }}>{invoice.delivery_diagnostic}</Typography>}
+            </Box>
+          })()}
+        </Stack>
+      </TableCell>
       <TableCell align="right"><Typography fontWeight={800}>{money(invoice.gross_amount_pence)}</Typography></TableCell>
       <TableCell align="right"><Stack direction="row" spacing={0.5} justifyContent="flex-end">
-        {invoice.person_id && invoice.status !== 'paid' && invoice.status !== 'void' && <AppButton size="small" variant="secondary" loading={busy && invoice.status !== 'paid'} startIcon={<SendIcon />} onClick={onSend}>{invoice.sent_at ? 'Resend' : 'Send'}</AppButton>}
+        {invoice.person_id && invoice.status !== 'paid' && invoice.status !== 'void' && <AppButton size="small" variant="secondary" loading={busy && invoice.status !== 'paid'} startIcon={<SendIcon />} onClick={onSend}>{invoice.sent_at || !['not_sent', 'unverified'].includes(invoice.delivery_status || 'not_sent') ? 'Resend' : 'Send'}</AppButton>}
         {invoice.person_id && ['sent', 'viewed'].includes(invoice.status) && <AppButton size="small" loading={busy} startIcon={<PaidIcon />} onClick={onPaid}>Mark paid</AppButton>}
         <AppButton size="small" variant="quiet" aria-label="Invoice history" onClick={() => setExpanded(v => !v)}><HistoryIcon fontSize="small" /></AppButton>
       </Stack></TableCell>
@@ -205,7 +231,7 @@ export default function ClientBillingPage() {
   const invoices = useQuery({ queryKey: ['homecare-client-billing-invoices'], queryFn: () => api.get('/homecare/client-billing/invoices').then(r => Array.isArray(r.data) ? r.data : []), enabled: isManager })
   const recipients = useQuery({ queryKey: ['homecare-client-invoice-recipients'], queryFn: () => api.get('/homecare/client-billing/recipients').then(r => Array.isArray(r.data) ? r.data : []), enabled: isManager })
   const saveRecipient = useMutation({ mutationFn: () => api.put('/homecare/client-billing/recipients', { person_id: editingRecipient.person_id, payer_account_id: editingRecipient.payer_account_id, recipient_name: recipientName, recipient_email: recipientEmail, recipient_address: recipientAddress || null }), onSuccess: () => { setEditingRecipient(null); setNotice({ type: 'success', text: 'Client invoice recipient saved. New invoice snapshots will use these details.' }); queryClient.invalidateQueries({ queryKey: ['homecare-client-invoice-recipients'] }) }, onError: (e: any) => setNotice({ type: 'error', text: e.response?.data?.message || 'Could not save recipient details.' }) })
-  const sendInvoice = useMutation({ mutationFn: (id: string) => api.post(`/homecare/client-billing/invoices/${id}/send`), onSuccess: () => { setNotice({ type: 'success', text: 'Invoice email queued for delivery.' }); queryClient.invalidateQueries({ queryKey: ['homecare-client-billing-invoices'] }); queryClient.invalidateQueries({ queryKey: ['homecare-client-billing-runs'] }) }, onError: (e: any) => setNotice({ type: 'error', text: e.response?.data?.message || 'Could not send invoice.' }) })
+  const sendInvoice = useMutation({ mutationFn: (id: string) => api.post(`/homecare/client-billing/invoices/${id}/send`), onSuccess: () => { setNotice({ type: 'success', text: 'Invoice email queued. Its status will change to delivered only after a delivery report or secure-link access.' }); queryClient.invalidateQueries({ queryKey: ['homecare-client-billing-invoices'] }); queryClient.invalidateQueries({ queryKey: ['homecare-client-billing-runs'] }) }, onError: (e: any) => setNotice({ type: 'error', text: e.response?.data?.message || 'Could not send invoice.' }) })
   const markPaid = useMutation({ mutationFn: ({ id, reference }: { id: string; reference: string }) => api.post(`/homecare/client-billing/invoices/${id}/paid`, { payment_reference: reference || null }), onSuccess: () => { setPaymentInvoice(null); setPaymentReference(''); setNotice({ type: 'success', text: 'Invoice marked as paid.' }); queryClient.invalidateQueries({ queryKey: ['homecare-client-billing-invoices'] }) }, onError: (e: any) => setNotice({ type: 'error', text: e.response?.data?.message || 'Could not update payment status.' }) })
   const createRun = useMutation({ mutationFn: () => api.post('/homecare/client-billing/runs', { from, to }), onSuccess: (r) => { setSelectedRun(r.data.run.id); setTab(1); setNotice({ type: 'success', text: `Draft created with ${r.data.lines.length} visit lines. Review exceptions before approval.` }); queryClient.invalidateQueries({ queryKey: ['homecare-client-billing-runs'] }) }, onError: (e: any) => setNotice({ type: 'error', text: e.response?.data?.message || 'Could not create the billing run.' }) })
   const approveRun = useMutation({ mutationFn: (id: string) => api.post(`/homecare/client-billing/runs/${id}/approve`), onSuccess: (r) => { setNotice({ type: 'success', text: `Run approved${r.data?.invoice_number ? ` as ${r.data.invoice_number}` : ''}.` }); queryClient.invalidateQueries({ queryKey: ['homecare-client-billing-runs'] }) }, onError: (e: any) => setNotice({ type: 'error', text: e.response?.data?.message || 'Could not approve the run.' }) })

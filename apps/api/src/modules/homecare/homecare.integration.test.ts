@@ -51,9 +51,11 @@ describe('Homecare Phase 2 foundation', () => {
 
     const timesheets = await request(app).get('/homecare/timesheets').set('Authorization', `Bearer ${managerToken}`)
     expect(timesheets.status).toBe(200)
-    expect(timesheets.body[0].status).toBe('submitted')
+    // Pay is added automatically at clock-out — there is no approval gate.
+    expect(timesheets.body[0].status).toBe('approved')
     expect(timesheets.body[0].paid_travel_minutes).toBeGreaterThanOrEqual(18)
 
+    // Re-approving is a harmless no-op kept for older clients.
     const approved = await request(app).patch(`/homecare/timesheets/${timesheets.body[0].id}`).set('Authorization', `Bearer ${managerToken}`).send({ status: 'approved' })
     expect(approved.status).toBe(200)
     expect(approved.body.status).toBe('approved')
@@ -63,6 +65,46 @@ describe('Homecare Phase 2 foundation', () => {
     expect(exportResponse.headers['content-type']).toContain('text/csv')
     expect(exportResponse.text).toContain('paid_travel_minutes')
     expect(exportResponse.text).toContain(carerProfile.id)
+  })
+
+  it('auto-assigns unassigned calls, suggests carers and lists available staff', async () => {
+    const org = await createOrg()
+    const person = await createPerson({ organizationId: org.id })
+    const manager = await createUser({ email: `hc-assign-manager-${Date.now()}@test.com`, role: 'MANAGER', organization_id: org.id })
+    const carer = await createUser({ email: `hc-assign-carer-${Date.now()}@test.com`, role: 'CARE_WORKER', organization_id: org.id })
+    const carerProfile = await createStaffProfile({ userId: carer.id })
+    const managerToken = generateToken(manager)
+
+    // Available every day so day-of-week/timezone handling cannot skew the test
+    for (let day = 0; day <= 6; day++) {
+      await migrateQuery(`INSERT INTO staff_availability (staff_id, day_of_week, start_time, end_time, is_available) VALUES ($1, $2, '00:00', '23:59', TRUE)`, [carerProfile.id, day])
+    }
+
+    const when = nearDate(120)
+    const visitDay = when.start.slice(0, 10)
+    const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Auto-assign calls', status: 'active', start_date: fd(1) })
+    expect(pkg.status).toBe(201)
+    const visit = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({
+      package_id: pkg.body.id, person_id: person.id, visit_type: 'routine', label: 'Unassigned call',
+      scheduled_start: when.start, scheduled_end: when.end,
+    })
+    expect(visit.status).toBe(201)
+
+    const suggestions = await request(app).get(`/homecare/visits/${visit.body.id}/suggest-carers`).set('Authorization', `Bearer ${managerToken}`)
+    expect(suggestions.status).toBe(200)
+    expect(Array.isArray(suggestions.body)).toBe(true)
+    expect(suggestions.body.length).toBeGreaterThan(0)
+    expect(suggestions.body[0]).toHaveProperty('score')
+
+    const available = await request(app).get(`/homecare/available-staff?start=${when.start}&end=${when.end}`).set('Authorization', `Bearer ${managerToken}`)
+    expect(available.status).toBe(200)
+
+    const auto = await request(app).post(`/homecare/visits/bulk-auto-assign?from=${visitDay}&to=${visitDay}`).set('Authorization', `Bearer ${managerToken}`)
+    expect(auto.status).toBe(200)
+    expect(auto.body.total_unassigned).toBe(1)
+    expect(auto.body.assigned_count).toBe(1)
+    expect(auto.body.assignments[0].visit_id).toBe(visit.body.id)
+    expect(auto.body.assignments[0].staff_id).toBe(carerProfile.id)
   })
 
   it('generates recurring visits once and rejects unavailable or overlapping assignments', async () => {
@@ -171,6 +213,97 @@ describe('Homecare Phase 2 foundation', () => {
     const lines = await request(app).get(`/homecare/client-billing/runs/${run.body.run.id}/lines`).set('Authorization', `Bearer ${managerToken}`)
     expect(lines.status).toBe(200)
     expect(lines.body[0].visit_id).toBe(visit.body.id)
+  })
+
+  it('never double-books a carer, keeps travel time between calls and holds mileage until check-in', async () => {
+    const org = await createOrg()
+    const person = await createPerson({ organizationId: org.id })
+    const manager = await createUser({ email: `hc-conflict-manager-${Date.now()}@test.com`, role: 'MANAGER', organization_id: org.id })
+    const carerA = await createUser({ email: `hc-conflict-a-${Date.now()}@test.com`, role: 'CARE_WORKER', organization_id: org.id })
+    const carerB = await createUser({ email: `hc-conflict-b-${Date.now()}@test.com`, role: 'CARE_WORKER', organization_id: org.id })
+    const profileA = await createStaffProfile({ userId: carerA.id })
+    const profileB = await createStaffProfile({ userId: carerB.id })
+    const managerToken = generateToken(manager)
+    const carerAToken = generateToken(carerA)
+    const carerBToken = generateToken(carerB)
+
+    for (const profileId of [profileA.id, profileB.id]) {
+      for (let day = 0; day <= 6; day++) {
+        await migrateQuery(`INSERT INTO staff_availability (staff_id, day_of_week, start_time, end_time, is_available) VALUES ($1, $2, '00:00', '23:59', TRUE)`, [profileId, day])
+      }
+    }
+
+    const pkg = await request(app).post('/homecare/packages').set('Authorization', `Bearer ${managerToken}`).send({ person_id: person.id, name: 'Conflict package', status: 'active', start_date: fd(1), mileage_rate_pence: 45 })
+    expect(pkg.status).toBe(201)
+
+    // Carer A holds a call and checks in — the travel to it has happened
+    const held = nearDate(10, 60)
+    const visit1 = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({
+      package_id: pkg.body.id, person_id: person.id, assigned_staff_id: profileA.id, visit_type: 'morning', label: 'Held call',
+      scheduled_start: held.start, scheduled_end: held.end,
+    })
+    expect(visit1.status).toBe(201)
+    const checkIn = await request(app).post(`/homecare/visits/${visit1.body.id}/check-in`).set('Authorization', `Bearer ${carerAToken}`).send({ latitude: 51.5, longitude: -0.1, accuracy_meters: 10, actual_mileage_miles: 2.5 })
+    expect(checkIn.status).toBe(200)
+
+    // A second call for carer A starting 5 minutes after the first ends is refused — travel time required
+    const clash = nearDate(75, 60)
+    const visit2 = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({
+      package_id: pkg.body.id, person_id: person.id, assigned_staff_id: profileA.id, visit_type: 'lunch', label: 'Buffer clash',
+      scheduled_start: clash.start, scheduled_end: clash.end,
+    })
+    expect(visit2.status).toBe(409)
+
+    // Auto-assign must not double-book carer A over their checked-in call — it goes to carer B
+    const open = nearDate(20, 60)
+    const visit3 = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({
+      package_id: pkg.body.id, person_id: person.id, visit_type: 'routine', label: 'Overlapping open call',
+      scheduled_start: open.start, scheduled_end: open.end,
+    })
+    expect(visit3.status).toBe(201)
+    const auto = await request(app).post(`/homecare/visits/bulk-auto-assign?from=${open.start.slice(0, 10)}&to=${open.start.slice(0, 10)}`).set('Authorization', `Bearer ${managerToken}`)
+    expect(auto.status).toBe(200)
+    expect(auto.body.assigned_count).toBe(1)
+    expect(auto.body.assignments[0].staff_id).toBe(profileB.id)
+
+    // Manual reassignment onto the busy carer is refused too
+    const reassign = await request(app).patch(`/homecare/visits/${visit3.body.id}`).set('Authorization', `Bearer ${managerToken}`).send({ assigned_staff_id: profileA.id })
+    expect(reassign.status).toBe(409)
+
+    // Transferring a call onto a busy carer is refused and the request stays pending
+    const transfer = await request(app).post('/homecare/swap-requests').set('Authorization', `Bearer ${carerBToken}`).send({ visit_id: visit3.body.id, target_staff_id: profileA.id, request_type: 'transfer', message: 'Cover please' })
+    expect([201, 200]).toContain(transfer.status)
+    const refused = await request(app).patch(`/homecare/swap-requests/${transfer.body.id}/respond`).set('Authorization', `Bearer ${carerAToken}`).send({ status: 'accepted' })
+    expect(refused.status).toBe(409)
+
+    // A true swap exchanges the two calls — each carer still holds exactly one call in the slot
+    const far = nearDate(240, 60)
+    const visit4 = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({
+      package_id: pkg.body.id, person_id: person.id, assigned_staff_id: profileA.id, visit_type: 'evening', label: 'A evening call',
+      scheduled_start: far.start, scheduled_end: far.end,
+    })
+    const visit5 = await request(app).post('/homecare/visits').set('Authorization', `Bearer ${managerToken}`).send({
+      package_id: pkg.body.id, person_id: person.id, assigned_staff_id: profileB.id, visit_type: 'evening', label: 'B evening call',
+      scheduled_start: far.start, scheduled_end: far.end,
+    })
+    expect(visit4.status).toBe(201)
+    expect(visit5.status).toBe(201)
+    const swap = await request(app).post('/homecare/swap-requests').set('Authorization', `Bearer ${carerAToken}`).send({ visit_id: visit4.body.id, target_staff_id: profileB.id, target_visit_id: visit5.body.id, request_type: 'swap', message: 'Swap evenings' })
+    expect([201, 200]).toContain(swap.status)
+    const accepted = await request(app).patch(`/homecare/swap-requests/${swap.body.id}/respond`).set('Authorization', `Bearer ${carerBToken}`).send({ status: 'accepted' })
+    expect(accepted.status).toBe(200)
+    const afterSwap = await request(app).get(`/homecare/visits?from=${far.start}&to=${far.end}`).set('Authorization', `Bearer ${managerToken}`)
+    expect(afterSwap.status).toBe(200)
+    const v4 = afterSwap.body.find((v: any) => v.id === visit4.body.id)
+    const v5 = afterSwap.body.find((v: any) => v.id === visit5.body.id)
+    expect(v4.assigned_staff_id).toBe(profileB.id)
+    expect(v5.assigned_staff_id).toBe(profileA.id)
+
+    // Mileage is held until the carer checks in to the call
+    const hold = await request(app).patch(`/homecare/visits/${visit5.body.id}`).set('Authorization', `Bearer ${managerToken}`).send({ actual_mileage_miles: 3, mileage_status: 'approved' })
+    expect(hold.status).toBe(409)
+    const award = await request(app).patch(`/homecare/visits/${visit1.body.id}`).set('Authorization', `Bearer ${managerToken}`).send({ mileage_status: 'approved' })
+    expect(award.status).toBe(200)
   })
 
   it('rejects unauthenticated access', async () => {

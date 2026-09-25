@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Typography } from '@mui/material'
-import { Download as DownloadIcon, Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, DirectionsCar as CarIcon, Policy as PolicyIcon, SettingsSuggest as SettingsIcon, AccessTime as TravelTimeIcon, History as HistoryIcon, Restore as RestoreIcon } from '@mui/icons-material'
+import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Download as DownloadIcon, Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, DirectionsCar as CarIcon, Policy as PolicyIcon, SettingsSuggest as SettingsIcon, AccessTime as TravelTimeIcon, History as HistoryIcon, Restore as RestoreIcon, Person as PersonIcon, ArrowBack as BackIcon } from '@mui/icons-material'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PageContainer from '../../components/design/PageContainer'
 import AppButton from '../../components/design/AppButton'
@@ -11,6 +11,80 @@ import api from '../../services/api'
 const fmtMoney = (pence: number | null | undefined) => pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
 const fmtRate = (pence: number | null | undefined) => pence == null ? '—' : `${Number(pence).toFixed(1)}p/mi`
 const fmtMiles = (m: number | null | undefined) => m == null ? '—' : `${Number(m).toFixed(1)} mi`
+const fmtDateTime = (value: string | null | undefined) => value ? new Date(value).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
+// Mileage is awarded only once the carer has checked in to the call: check-in is the proof the travel happened.
+const isAwarded = (v: any) => Boolean(v.check_in_at)
+const mileagePay = (v: any) => (Number(v.actual_mileage_miles) || 0) * (Number(v.mileage_rate_pence) || 0)
+
+/* ── Carer roll-up list for the "By carer" view ── */
+function CarerMileageList({ rows, onSelect }: { rows: any[]; onSelect: (staffId: string) => void }) {
+  return <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Carer</TableCell>
+          <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Awarded trips</TableCell>
+          <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Miles</TableCell>
+          <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Travel time</TableCell>
+          <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Mileage pay</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {rows.length === 0 ? (
+          <TableRow><TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.secondary' }}>No mileage records for this period</TableCell></TableRow>
+        ) : rows.map((r: any) => (
+          <TableRow key={r.staff_id || 'unassigned'} hover sx={{ cursor: 'pointer' }} onClick={() => onSelect(r.staff_id || 'unassigned')}>
+            <TableCell>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <PersonIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                <Typography sx={{ fontWeight: 600 }}>{r.name}</Typography>
+              </Stack>
+            </TableCell>
+            <TableCell align="right">{r.awarded_trips} / {r.trips}</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600 }}>{fmtMiles(r.miles)}</TableCell>
+            <TableCell align="right">{`${Math.floor(r.travel_minutes / 60)}h ${r.travel_minutes % 60}m`}</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, color: '#10b981' }}>{fmtMoney(r.pay_pence)}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </TableContainer>
+}
+
+/* ── Which call owns this mileage ── */
+function CallOwnerDialog({ visit, onClose }: { visit: any; onClose: () => void }) {
+  const awarded = visit ? isAwarded(visit) : false
+  const row = (label: string, value: React.ReactNode) => (
+    <Stack direction="row" justifyContent="space-between" gap={2} sx={{ py: 0.75, borderBottom: '1px solid #F3F4F6' }}>
+      <Typography variant="body2" sx={{ color: 'text.secondary' }}>{label}</Typography>
+      <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'right' }}>{value}</Typography>
+    </Stack>
+  )
+  return <Dialog open={Boolean(visit)} onClose={onClose} fullWidth maxWidth="sm">
+    <DialogTitle>Call owning this mileage</DialogTitle>
+    <DialogContent>
+      {visit && <Stack spacing={0.5} sx={{ pt: 1 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>{visit.label || visit.visit_type || 'Care call'}</Typography>
+        {row('Client', visit.person_name || '—')}
+        {row('Carer', visit.assigned_staff_name || 'Unassigned')}
+        {row('Scheduled', `${fmtDateTime(visit.scheduled_start)} → ${fmtDateTime(visit.scheduled_end)}`)}
+        {row('Status', String(visit.status || 'scheduled').replace(/_/g, ' '))}
+        {row('Checked in', fmtDateTime(visit.check_in_at))}
+        {row('Checked out', fmtDateTime(visit.check_out_at))}
+        {row('Travel time', visit.actual_travel_minutes != null ? `${Math.floor(visit.actual_travel_minutes / 60)}h ${visit.actual_travel_minutes % 60}m` : '—')}
+        {row('Miles', fmtMiles(visit.actual_mileage_miles))}
+        {row('Rate', visit.mileage_rate_pence ? fmtRate(visit.mileage_rate_pence) : '—')}
+        {row('Mileage pay', awarded ? fmtMoney(mileagePay(visit)) : '—')}
+        <Alert severity={awarded ? 'success' : 'info'} sx={{ mt: 1.5 }}>
+          {awarded
+            ? `Awarded — the carer checked in to this call on ${fmtDateTime(visit.check_in_at)}, confirming the travel.`
+            : 'Not awarded yet — mileage is awarded when the carer checks in to the call, because that confirms the travel happened.'}
+        </Alert>
+      </Stack>}
+    </DialogContent>
+    <DialogActions><AppButton variant="quiet" onClick={onClose}>Close</AppButton></DialogActions>
+  </Dialog>
+}
 
 /* ── Policy types ── */
 const VEHICLE_TYPES = [
@@ -75,13 +149,33 @@ export default function MileagePage() {
     visits.filter((v: any) => v.actual_mileage_miles != null && Number(v.actual_mileage_miles) > 0),
     [visits]
   )
+  // Awarded = the carer checked in, so the travel happened. Everything else waits for check-in.
+  const awardedVisits = useMemo(() => mileageVisits.filter(isAwarded), [mileageVisits])
+  const pendingVisits = useMemo(() => mileageVisits.filter((v: any) => !isAwarded(v)), [mileageVisits])
 
-  const totalMiles = mileageVisits.reduce((sum: number, v: any) => sum + (Number(v.actual_mileage_miles) || 0), 0)
-  const totalMileagePay = mileageVisits.reduce((sum: number, v: any) => sum + ((Number(v.actual_mileage_miles) || 0) * (Number(v.mileage_rate_pence) || 0)), 0)
-  const totalTravelMinutes = mileageVisits.reduce((sum: number, v: any) => sum + (Number(v.actual_travel_minutes) || 0), 0)
+  const totalMiles = awardedVisits.reduce((sum: number, v: any) => sum + (Number(v.actual_mileage_miles) || 0), 0)
+  const totalMileagePay = awardedVisits.reduce((sum: number, v: any) => sum + mileagePay(v), 0)
+  const totalTravelMinutes = awardedVisits.reduce((sum: number, v: any) => sum + (Number(v.actual_travel_minutes) || 0), 0)
+  const pendingMiles = pendingVisits.reduce((sum: number, v: any) => sum + (Number(v.actual_mileage_miles) || 0), 0)
+
+  // Carer roll-up for the "By carer" view.
+  const carerMileage = useMemo(() => {
+    const map = new Map<string, any>()
+    for (const v of mileageVisits) {
+      const key = v.assigned_staff_id || 'unassigned'
+      const row = map.get(key) || { staff_id: v.assigned_staff_id, name: v.assigned_staff_name || 'Unassigned', trips: 0, awarded_trips: 0, miles: 0, travel_minutes: 0, pay_pence: 0 }
+      row.trips += 1
+      row.awarded_trips += isAwarded(v) ? 1 : 0
+      row.miles += Number(v.actual_mileage_miles) || 0
+      row.travel_minutes += Number(v.actual_travel_minutes) || 0
+      row.pay_pence += isAwarded(v) ? mileagePay(v) : 0
+      map.set(key, row)
+    }
+    return [...map.values()].sort((a, b) => b.miles - a.miles)
+  }, [mileageVisits])
 
   const exportCsv = () => {
-    const headers = ['visit_id', 'carer', 'client', 'scheduled_start', 'miles', 'rate_pence', 'mileage_pay_pence', 'travel_minutes']
+    const headers = ['visit_id', 'carer', 'client', 'scheduled_start', 'miles', 'rate_pence', 'mileage_pay_pence', 'travel_minutes', 'check_in_at', 'awarded']
     const escape = (value: unknown) => {
       const text = value == null ? '' : String(value)
       return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
@@ -89,8 +183,8 @@ export default function MileagePage() {
     const csv = [headers.join(','), ...mileageVisits.map((v: any) => [
       v.id, v.assigned_staff_name || '', v.person_name || '', v.scheduled_start,
       v.actual_mileage_miles || 0, v.mileage_rate_pence || 0,
-      (Number(v.actual_mileage_miles) || 0) * (Number(v.mileage_rate_pence) || 0),
-      v.actual_travel_minutes || 0,
+      isAwarded(v) ? mileagePay(v) : 0,
+      v.actual_travel_minutes || 0, v.check_in_at || '', isAwarded(v) ? 'yes' : 'no',
     ].map(escape).join(','))].join('\n') + '\n'
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `homecare-mileage-${month}.csv`; anchor.click(); URL.revokeObjectURL(url)
@@ -142,19 +236,23 @@ export default function MileagePage() {
     catch (e: any) { setPolicyError(e.response?.data?.message || 'Could not delete mileage policy') }
   }
 
-  // Travel tab: search and pagination
+  // Travel tab: view mode, search and pagination
+  const [travelView, setTravelView] = useState<'mileage' | 'carer'>('mileage')
+  const [selectedCarer, setSelectedCarer] = useState<string | null>(null)
+  const [detailVisit, setDetailVisit] = useState<any>(null)
   const [travelSearch, setTravelSearch] = useState('')
   const [travelPage, setTravelPage] = useState(0)
   const TRAVEL_PAGE_SIZE = 15
 
   const filteredMileage = useMemo(() => {
-    if (!travelSearch.trim()) return mileageVisits
+    let rows = selectedCarer ? mileageVisits.filter((v: any) => (v.assigned_staff_id || 'unassigned') === selectedCarer) : mileageVisits
+    if (!travelSearch.trim()) return rows
     const q = travelSearch.toLowerCase()
-    return mileageVisits.filter((v: any) =>
+    return rows.filter((v: any) =>
       (v.assigned_staff_name || '').toLowerCase().includes(q) ||
       (v.person_name || '').toLowerCase().includes(q)
     )
-  }, [mileageVisits, travelSearch])
+  }, [mileageVisits, travelSearch, selectedCarer])
 
   const travelTotalPages = Math.ceil(filteredMileage.length / TRAVEL_PAGE_SIZE)
   const paginatedMileage = filteredMileage.slice(travelPage * TRAVEL_PAGE_SIZE, (travelPage + 1) * TRAVEL_PAGE_SIZE)
@@ -210,69 +308,98 @@ export default function MileagePage() {
       {/* ═══════ TAB 0: Travel & Mileage ═══════ */}
       {tab === 0 && (
         <>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }} alignItems={{ sm: 'center' }}>
             <TextField type="month" size="small" value={month} onChange={e => setMonth(e.target.value)} sx={{ minWidth: 180 }} />
+            <ToggleButtonGroup size="small" exclusive value={travelView} onChange={(_, v: 'mileage' | 'carer' | null) => { if (v) { setTravelView(v); setSelectedCarer(null); setTravelPage(0) } }} aria-label="Mileage view mode">
+              <ToggleButton value="mileage" sx={{ textTransform: 'none', fontWeight: 600 }}>By mileage</ToggleButton>
+              <ToggleButton value="carer" sx={{ textTransform: 'none', fontWeight: 600 }}>By carer</ToggleButton>
+            </ToggleButtonGroup>
             <TextField size="small" placeholder="Search by carer or client..." value={travelSearch} onChange={e => { setTravelSearch(e.target.value); setTravelPage(0) }} sx={{ flex: 1, minWidth: 200 }} />
           </Stack>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
             <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F4C81' }}>{totalMiles.toFixed(1)}</Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total miles</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded miles</Typography>
             </Paper>
             <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, color: '#10b981' }}>{fmtMoney(totalMileagePay)}</Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total mileage pay</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded mileage pay</Typography>
             </Paper>
             <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, color: '#3b82f6' }}>{`${Math.floor(totalTravelMinutes / 60)}h ${totalTravelMinutes % 60}m`}</Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Total travel time</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded travel time</Typography>
             </Paper>
             <Paper elevation={0} sx={{ p: 3, flex: 1, textAlign: 'center', border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800 }}>{mileageVisits.length}</Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Tracked visits</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 800 }}>{awardedVisits.length} / {mileageVisits.length}</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Awarded trips</Typography>
             </Paper>
           </Stack>
 
+          {pendingVisits.length > 0 && (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              {fmtMiles(pendingMiles)} across {pendingVisits.length} call{pendingVisits.length === 1 ? '' : 's'} is not awarded yet — mileage is awarded when the carer checks in to the call, because that confirms the travel happened.
+            </Alert>
+          )}
+
           {isLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+          ) : travelView === 'carer' && !selectedCarer ? (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>Select a carer to see their mileage, then open any mileage record to see the call it belongs to.</Typography>
+              <CarerMileageList rows={carerMileage} onSelect={(id) => { setSelectedCarer(id); setTravelPage(0) }} />
+            </>
           ) : (
-            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Carer</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Client</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Date</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Miles</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Travel time</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Rate</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Mileage pay</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedMileage.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>{travelSearch ? 'No records match your search' : 'No mileage records for this period'}</TableCell></TableRow>
-                  ) : paginatedMileage.map((v: any) => (
-                    <TableRow key={v.id} hover>
-                      <TableCell>
-                        <Typography sx={{ fontWeight: 600 }}>{v.assigned_staff_name || 'Unassigned'}</Typography>
-                      </TableCell>
-                      <TableCell>{v.person_name || '—'}</TableCell>
-                      <TableCell>{new Date(v.scheduled_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>{fmtMiles(v.actual_mileage_miles)}</TableCell>
-                      <TableCell align="right">
-                        {v.actual_travel_minutes != null ? `${Math.floor(v.actual_travel_minutes / 60)}h ${v.actual_travel_minutes % 60}m` : '—'}
-                      </TableCell>
-                      <TableCell align="right" sx={{ color: 'text.secondary' }}>{v.mileage_rate_pence ? fmtRate(v.mileage_rate_pence) : '—'}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#10b981' }}>
-                        {fmtMoney((Number(v.actual_mileage_miles) || 0) * (Number(v.mileage_rate_pence) || 0))}
-                      </TableCell>
+            <>
+              {travelView === 'carer' && selectedCarer && (
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                  <AppButton variant="quiet" size="small" startIcon={<BackIcon />} onClick={() => { setSelectedCarer(null); setTravelPage(0) }}>All carers</AppButton>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{carerMileage.find((c: any) => (c.staff_id || 'unassigned') === selectedCarer)?.name || 'Carer'}</Typography>
+                </Stack>
+              )}
+              <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 3 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      {travelView === 'mileage' && <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Carer</TableCell>}
+                      <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Client</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Date</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Miles</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Travel time</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Rate</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>Mileage pay</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>Award</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedMileage.length === 0 ? (
+                      <TableRow><TableCell colSpan={travelView === 'mileage' ? 8 : 7} align="center" sx={{ py: 6, color: 'text.secondary' }}>{travelSearch ? 'No records match your search' : 'No mileage records for this period'}</TableCell></TableRow>
+                    ) : paginatedMileage.map((v: any) => (
+                      <TableRow key={v.id} hover sx={{ cursor: 'pointer' }} onClick={() => setDetailVisit(v)}>
+                        {travelView === 'mileage' && (
+                          <TableCell>
+                            <Typography sx={{ fontWeight: 600 }}>{v.assigned_staff_name || 'Unassigned'}</Typography>
+                          </TableCell>
+                        )}
+                        <TableCell>{v.person_name || '—'}</TableCell>
+                        <TableCell>{new Date(v.scheduled_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>{fmtMiles(v.actual_mileage_miles)}</TableCell>
+                        <TableCell align="right">
+                          {v.actual_travel_minutes != null ? `${Math.floor(v.actual_travel_minutes / 60)}h ${v.actual_travel_minutes % 60}m` : '—'}
+                        </TableCell>
+                        <TableCell align="right" sx={{ color: 'text.secondary' }}>{v.mileage_rate_pence ? fmtRate(v.mileage_rate_pence) : '—'}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, color: isAwarded(v) ? '#10b981' : 'text.disabled' }}>
+                          {isAwarded(v) ? fmtMoney(mileagePay(v)) : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Chip size="small" label={isAwarded(v) ? 'Awarded' : 'Awaits check-in'} sx={{ bgcolor: isAwarded(v) ? '#E9F7F0' : '#FEF3C7', color: isAwarded(v) ? '#047857' : '#92400E', fontWeight: 600 }} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </>
           )}
 
           {/* Travel pagination */}
@@ -365,6 +492,9 @@ export default function MileagePage() {
       )}
 
       {tab === 2 && isManager && <RateProfilesTab />}
+
+      {/* Which call owns a mileage record */}
+      <CallOwnerDialog visit={detailVisit} onClose={() => setDetailVisit(null)} />
 
       {/* ═══════ Policy Create/Edit Dialog ═══════ */}
       <Dialog open={policyDialog} onClose={() => setPolicyDialog(false)} fullWidth maxWidth="sm">

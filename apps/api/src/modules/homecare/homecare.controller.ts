@@ -5,6 +5,7 @@ import { AuditRepository } from '../audit/audit.repository';
 import { sendPushToUser } from '../notifications/push.service';
 import { safeIo } from '../../shared/socket';
 import { EmailService } from '../../shared/utils/email.service';
+import { processEmailDsnWebhook } from '../../shared/utils/email.dsn';
 
 import * as repo from './homecare.repository';
 import { summariseEarnings, getYearToDateTotals, buildPayslipData, renderPayslipPdf } from './payslip.service';
@@ -288,7 +289,7 @@ export class HomecareController {
     );
     const allVisits = visitsResult.rows;
     const unassigned = allVisits.filter((v: any) => !v.assigned_staff_id);
-    if (unassigned.length === 0) return res.json({ assignments: [], message: 'No unassigned calls' });
+    if (unassigned.length === 0) return res.json({ assignments: [], total_unassigned: 0, assigned_count: 0, unassigned_count: 0, message: 'No unassigned calls' });
 
     // Get all active staff
     const staffResult = await query(
@@ -298,25 +299,57 @@ export class HomecareController {
       [oid]
     );
     const staffList = staffResult.rows;
-    if (staffList.length === 0) return res.json({ assignments: [], message: 'No active staff' });
+    if (staffList.length === 0) return res.json({ assignments: [], total_unassigned: unassigned.length, assigned_count: 0, unassigned_count: unassigned.length, message: 'No active staff' });
 
-    // Get availability for all staff
+    // Get availability for all staff (staff_availability is org-scoped via staff_profiles -> users)
     const availResult = await query(
-      `SELECT * FROM staff_availability WHERE organization_id = $1`, [oid]
+      `SELECT sa.* FROM staff_availability sa
+       JOIN staff_profiles sp ON sp.id = sa.staff_id
+       JOIN users u ON u.id = sp.user_id
+       WHERE u.organization_id = $1`, [oid]
     );
     const availability = availResult.rows;
 
-    // Get pending/approved leave for the period
+    // Get pending/approved leave for the period (leave_requests is org-scoped via staff_profiles -> users)
     const leaveResult = await query(
-      `SELECT * FROM leave_requests WHERE organization_id = $1
-         AND status IN ('pending', 'approved')
-         AND start_date <= $3::date AND end_date >= $2::date`,
+      `SELECT lr.* FROM leave_requests lr
+       JOIN staff_profiles sp ON sp.id = lr.staff_id
+       JOIN users u ON u.id = sp.user_id
+       WHERE u.organization_id = $1
+         AND lr.status IN ('pending', 'approved')
+         AND lr.start_date <= $3::date AND lr.end_date >= $2::date`,
       [oid, from, to]
     );
     const leaves = leaveResult.rows;
 
-    // Get existing assigned visits for conflict checking
-    const assignedVisits = allVisits.filter((v: any) => v.assigned_staff_id);
+    // Conflict set: every call the carers already hold in ANY state — including en route,
+    // checked in and completed calls — plus claimed open calls / rota shifts. The old set only
+    // covered 'scheduled' visits inside the window, so auto-assign double-booked carers over
+    // in-progress and finished calls.
+    const busyVisitsResult = await query(
+      `SELECT hv.id, hv.assigned_staff_id, hv.scheduled_start, hv.scheduled_end,
+              l.latitude, l.longitude
+       FROM homecare_visits hv
+       JOIN people pe ON pe.id = hv.person_id
+       LEFT JOIN locations l ON l.id = pe.location_id
+       WHERE hv.organization_id = $1 AND hv.assigned_staff_id IS NOT NULL
+         AND hv.status NOT IN ('cancelled', 'missed')
+         AND hv.scheduled_start >= ($2::date - INTERVAL '1 day')
+         AND hv.scheduled_start < ($3::date + INTERVAL '2 days')`,
+      [oid, from, to]
+    );
+    const busyShiftsResult = await query(
+      `SELECT s.id, sa.staff_id AS assigned_staff_id, s.start_time AS scheduled_start, s.end_time AS scheduled_end
+       FROM shift_assignments sa
+       JOIN shifts s ON s.id = sa.shift_id
+       JOIN staff_profiles sp ON sp.id = sa.staff_id
+       JOIN users u ON u.id = sp.user_id
+       WHERE u.organization_id = $1 AND s.status IN ('filled', 'pending')
+         AND s.start_time >= ($2::date - INTERVAL '1 day')
+         AND s.start_time < ($3::date + INTERVAL '2 days')`,
+      [oid, from, to]
+    );
+    const assignedVisits = [...busyVisitsResult.rows, ...busyShiftsResult.rows];
 
     // Haversine distance
     const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -335,18 +368,30 @@ export class HomecareController {
       const onLeave = leaves.some((l: any) => l.staff_id === staffId && new Date(l.start_date) <= new Date(visit.scheduled_end) && new Date(l.end_date) >= new Date(visit.scheduled_start));
       if (onLeave) return -1;
 
-      // Check availability match
+      // Check availability match (dated entries override weekly recurring slots)
       const visitDay = new Date(visit.scheduled_start).getDay();
+      const vd = new Date(visit.scheduled_start);
+      const visitDate = `${vd.getFullYear()}-${String(vd.getMonth() + 1).padStart(2, '0')}-${String(vd.getDate()).padStart(2, '0')}`;
       const visitStart = new Date(visit.scheduled_start).getHours() * 60 + new Date(visit.scheduled_start).getMinutes();
       const visitEnd = new Date(visit.scheduled_end).getHours() * 60 + new Date(visit.scheduled_end).getMinutes();
-      const avail = availability.find((a: any) => a.staff_id === staffId && a.day_of_week === visitDay);
-      if (avail && !avail.is_unavailable) {
-        const aStart = avail.start_time ? parseTime(avail.start_time) : 0;
-        const aEnd = avail.end_time ? parseTime(avail.end_time) : 1440;
-        if (visitStart >= aStart && visitEnd <= aEnd) score += 25;
+      const rowDate = (value: any) => {
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+        const d = new Date(value);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
+      const dated = availability.filter((a: any) => a.staff_id === staffId && a.availability_date && rowDate(a.availability_date) === visitDate);
+      const weekly = availability.filter((a: any) => a.staff_id === staffId && !a.availability_date && a.day_of_week === visitDay);
+      const availRows: any[] = dated.length > 0 ? dated : weekly;
+      if (availRows.length > 0) {
+        if (availRows.every((a: any) => !a.is_available)) return -1;
+        const coversWindow = availRows.some((a: any) => {
+          if (!a.is_available) return false;
+          const aStart = a.start_time ? parseTime(a.start_time) : 0;
+          const aEnd = a.end_time ? parseTime(a.end_time) : 1440;
+          return visitStart >= aStart && visitEnd <= aEnd;
+        });
+        if (coversWindow) score += 25;
         else score -= 10;
-      } else if (avail?.is_unavailable) {
-        return -1;
       }
 
       // Check time overlap with existing assignments
@@ -406,6 +451,10 @@ export class HomecareController {
       }
 
       if (bestStaff && bestScore > 0) {
+        // Hard guard at write time: a manager may be assigning in parallel.
+        try {
+          await repo.assertNoAssignmentConflict(oid, bestStaff, visit.scheduled_start, visit.scheduled_end);
+        } catch { continue; }
         // Actually assign
         await query('UPDATE homecare_visits SET assigned_staff_id = $1 WHERE id = $2 AND organization_id = $3', [bestStaff, visit.id, oid]);
         if (!tempAssignments.has(bestStaff)) tempAssignments.set(bestStaff, []);
@@ -849,10 +898,23 @@ export class HomecareController {
     const invoice = await repo.prepareClientInvoiceDelivery(oid, req.params.invoiceId);
     const invoiceUrl = `${process.env.FRONTEND_URL || 'https://meticlecare.com'}/invoice/${invoice.access_token}`;
     const html = `<p>Hello ${escapeHtml(invoice.recipient_name)},</p><p>Invoice <strong>${escapeHtml(invoice.invoice_number)}</strong> for ${escapeHtml(invoice.person_name)} from ${escapeHtml(dateDisplay(invoice.period_from))} to ${escapeHtml(dateDisplay(invoice.period_to))} is ready.</p><p>Amount due: <strong>£${(Number(invoice.gross_amount_pence) / 100).toFixed(2)}</strong>.</p><p><a href="${invoiceUrl}">View your invoice securely</a></p><p>This link expires in 90 days.</p>`;
-    await EmailService.sendQueued(invoice.recipient_email, `Invoice ${invoice.invoice_number}`, html, 'billing');
-    const sent = await repo.markClientInvoiceSent(oid, userId(req), invoice.id);
-    audit(req, 'send', 'homecare_client_billing_invoice', invoice.id, { invoice_number: invoice.invoice_number, recipient_email: invoice.recipient_email });
-    res.json(sent);
+    const queued = await EmailService.sendQueued(
+      invoice.recipient_email,
+      `Invoice ${invoice.invoice_number}`,
+      html,
+      'billing',
+      { requestDsn: true, organizationId: oid, relatedEntityType: 'homecare_invoice', relatedEntityId: invoice.id, createdBy: userId(req) },
+    );
+    if (!queued?.rows?.[0]) throw new AppError(503, 'Invoice email could not be queued. Please try again.');
+    const updated = await repo.getClientInvoiceForOrganisation(oid, invoice.id);
+    audit(req, 'queue_delivery', 'homecare_client_billing_invoice', invoice.id, {
+      invoice_number: invoice.invoice_number, recipient_email: invoice.recipient_email, email_queue_id: queued.rows[0].id,
+    });
+    res.json(updated);
+  }
+
+  static async reportInvoiceEmailDsn(req: Request, res: Response) {
+    res.json(await processEmailDsnWebhook(req.body, req.header('x-email-dsn-timestamp'), req.header('x-email-dsn-signature')));
   }
 
   static async markClientInvoicePaid(req: Request, res: Response) {
@@ -1146,23 +1208,45 @@ export class HomecareController {
     if (!swapResult.rows.length) throw new AppError(404, 'Request not found');
     const swap = swapResult.rows[0];
     if (swap.status !== 'pending') throw new AppError(400, 'Request is no longer pending');
+    // staff_profiles.id of the requester — also the FK target for call_assignment_notifications.
+    const requesterProfileId: string | null = (await query('SELECT id FROM staff_profiles WHERE user_id = $1', [swap.requested_by])).rows[0]?.id ?? null;
+
+    // Resolve the visit moves BEFORE marking the request accepted, so a refused move
+    // (double-booking, not enough travel time) leaves the request pending and nothing half-applied.
+    const pendingMoves: { visitId: string; staffId: string }[] = [];
+    if (status === 'accepted') {
+      const visit = (await query('SELECT * FROM homecare_visits WHERE id = $1 AND organization_id = $2', [swap.visit_id, oid])).rows[0];
+      if (!visit) throw new AppError(404, 'Visit not found');
+      const responderProfile = (await query('SELECT id FROM staff_profiles WHERE user_id = $1', [uid])).rows[0];
+      const receivingStaffId = swap.target_staff_id || responderProfile?.id;
+      if (!receivingStaffId) throw new AppError(400, 'No receiving carer for this request');
+      const excludeIds = [visit.id];
+      let targetVisit: any = null;
+      if (swap.request_type === 'swap' && swap.target_visit_id) {
+        targetVisit = (await query('SELECT * FROM homecare_visits WHERE id = $1 AND organization_id = $2', [swap.target_visit_id, oid])).rows[0];
+        if (!targetVisit) throw new AppError(404, 'The offered call no longer exists');
+        if (targetVisit.assigned_staff_id !== receivingStaffId) throw new AppError(400, 'The offered call is not assigned to the receiving carer');
+        excludeIds.push(targetVisit.id);
+      }
+      // The receiving carer must stay free at the new slot — travel time between calls included.
+      await repo.assertNoAssignmentConflict(oid, receivingStaffId, visit.scheduled_start, visit.scheduled_end, excludeIds);
+      pendingMoves.push({ visitId: visit.id, staffId: receivingStaffId });
+      if (targetVisit) {
+        const requestedById = requesterProfileId;
+        if (!requestedById) throw new AppError(400, 'The requesting carer no longer has a staff profile');
+        // A true swap exchanges the two calls, so each carer still holds exactly one call.
+        await repo.assertNoAssignmentConflict(oid, requestedById, targetVisit.scheduled_start, targetVisit.scheduled_end, excludeIds);
+        pendingMoves.push({ visitId: targetVisit.id, staffId: requestedById });
+      }
+    }
 
     await query(
       `UPDATE visit_swap_requests SET status = $1, responded_by = $2, responded_at = NOW(), response_message = $3, updated_at = NOW() WHERE id = $4`,
       [status, uid, response_message || null, id]
     );
 
-    if (status === 'accepted' && swap.request_type === 'swap' && swap.target_staff_id) {
-      // Swap the assigned staff
-      const visit = (await query('SELECT assigned_staff_id FROM homecare_visits WHERE id = $1', [swap.visit_id])).rows[0];
-      if (visit) {
-        const staffResult = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [uid]);
-        if (staffResult.rows.length) {
-          await query('UPDATE homecare_visits SET assigned_staff_id = $1 WHERE id = $2', [staffResult.rows[0].id, swap.visit_id]);
-        }
-      }
-    } else if (status === 'accepted' && swap.request_type === 'transfer' && swap.target_staff_id) {
-      await query('UPDATE homecare_visits SET assigned_staff_id = $1 WHERE id = $2', [swap.target_staff_id, swap.visit_id]);
+    for (const move of pendingMoves) {
+      await query('UPDATE homecare_visits SET assigned_staff_id = $1, updated_at = NOW() WHERE id = $2', [move.staffId, move.visitId]);
     }
 
     // Notify requester
@@ -1170,11 +1254,15 @@ export class HomecareController {
     const staffName = await query('SELECT COALESCE(sp.first_name, u.email) as name FROM users u LEFT JOIN staff_profiles sp ON sp.user_id = u.id WHERE u.id = $1', [uid]);
     const msg = `${staffName.rows[0]?.name || 'Someone'} ${status}d your ${swap.request_type} request`;
     sendPushToUser(reqUser, { type: 'swap_response', title: `Request ${status}`, body: msg, url: '/homecare' }, 'homecare').catch(() => {});
-    await query(
-      `INSERT INTO call_assignment_notifications (organization_id, visit_id, staff_id, notification_type, message)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [oid, swap.visit_id, reqUser, status === 'accepted' ? 'swap_accepted' : 'swap_rejected', msg]
-    );
+    try {
+      if (requesterProfileId) {
+        await query(
+          `INSERT INTO call_assignment_notifications (organization_id, visit_id, staff_id, notification_type, message)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [oid, swap.visit_id, requesterProfileId, status === 'accepted' ? 'swap_accepted' : 'swap_rejected', msg]
+        );
+      }
+    } catch { /* notification bookkeeping is best-effort */ }
 
     audit(req, 'SWAP_REQUEST_RESPONDED', 'visit_swap_request', id, { status });
     res.json({ message: `Request ${status}` });
@@ -1269,35 +1357,42 @@ export class HomecareController {
   static async getMyEarnings(req: Request, res: Response) {
     const oid = orgId(req); const uid = userId(req);
     const staffId = await repo.getStaffProfileIdForUser(oid, uid);
-    if (!staffId) return res.json({ summary: {}, visits: [], ytd: null });
     const from = req.query.from as string;
     const to = req.query.to as string;
     if (!from || !to) throw new AppError(400, 'from and to date parameters are required');
+    // A login with no linked staff profile (an admin account, for example) has
+    // no personal pay. Say so explicitly instead of returning empty figures
+    // that render as a page of zeros.
+    if (!staffId) {
+      return res.json({ staff_profile_linked: false, summary: summariseEarnings([]), visits: [], scheduled: [], ytd: null });
+    }
 
     // Completed visits and their timesheet figures for the period. The same
     // repository query and the same totals function build the carer's payslip,
-    // so the screen and the payslip can never disagree.
-    const visits = await repo.getStaffPeriodEarnings(oid, staffId, from, to);
+    // so the screen and the payslip can never disagree. All three reads run
+    // together: they are independent, and the sequential round trips made
+    // this screen noticeably slow to load.
+    const [visits, ytd, scheduled] = await Promise.all([
+      repo.getStaffPeriodEarnings(oid, staffId, from, to),
+      getYearToDateTotals(oid, staffId, to),
+      query(
+        `SELECT hv.id, hv.label, hv.visit_type, hv.scheduled_start, hv.scheduled_end, hv.status,
+                pe.first_name || ' ' || pe.last_name AS person_name,
+                p.hourly_rate_pence, p.mileage_rate_pence, p.travel_time_paid,
+                hv.actual_mileage_miles, hv.actual_travel_minutes
+         FROM homecare_visits hv
+         JOIN people pe ON pe.id = hv.person_id
+         JOIN homecare_packages p ON p.id = hv.package_id
+         WHERE hv.organization_id = $1 AND hv.assigned_staff_id = $2
+           AND hv.scheduled_start >= $3 AND hv.scheduled_start <= $4
+           AND hv.status IN ('scheduled', 'en_route')
+         ORDER BY hv.scheduled_start`,
+        [oid, staffId, from, to]
+      ),
+    ]);
     const totals = summariseEarnings(visits);
-    const ytd = await getYearToDateTotals(oid, staffId, to);
     const avgHourlyRate = totals.hourly_rate_pence;
     const avgMileageRate = totals.mileage_rate_pence;
-
-    // Also get upcoming scheduled visits for the same period to show projected earnings
-    const scheduled = await query(
-      `SELECT hv.id, hv.label, hv.visit_type, hv.scheduled_start, hv.scheduled_end, hv.status,
-              pe.first_name || ' ' || pe.last_name AS person_name,
-              p.hourly_rate_pence, p.mileage_rate_pence, p.travel_time_paid,
-              hv.actual_mileage_miles, hv.actual_travel_minutes
-       FROM homecare_visits hv
-       JOIN people pe ON pe.id = hv.person_id
-       JOIN homecare_packages p ON p.id = hv.package_id
-       WHERE hv.organization_id = $1 AND hv.assigned_staff_id = $2
-         AND hv.scheduled_start >= $3 AND hv.scheduled_start <= $4
-         AND hv.status IN ('scheduled', 'en_route')
-       ORDER BY hv.scheduled_start`,
-      [oid, staffId, from, to]
-    );
 
     const projectedWorkMinutes = scheduled.rows.reduce((s: number, v: any) => {
       const dur = Math.round((new Date(v.scheduled_end).getTime() - new Date(v.scheduled_start).getTime()) / 60000);
@@ -1308,6 +1403,7 @@ export class HomecareController {
     const projectedMileagePay = avgMileageRate ? scheduled.rows.length * 0.5 * Number(avgMileageRate) : 0; // rough estimate
 
     res.json({
+      staff_profile_linked: true,
       summary: {
         ...totals,
         scheduled_count: scheduled.rows.length,

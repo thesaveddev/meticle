@@ -285,6 +285,7 @@ export async function listClientBillingInvoices(orgId: string, runId?: string) {
   return (await query(`SELECT i.id, i.run_id, i.payer_account_id, i.person_id, COALESCE(pe.first_name || ' ' || pe.last_name, 'Legacy grouped invoice') AS person_name, i.invoice_number, i.status,
       i.recipient_name, i.recipient_email, i.recipient_address, i.subtotal_pence, i.vat_amount_pence,
       i.gross_amount_pence, i.sent_at, i.viewed_at, i.paid_at, i.payment_reference, i.created_at,
+      i.delivery_status, i.delivery_accepted_at, i.delivery_delayed_at, i.delivered_at, i.bounced_at, i.delivery_diagnostic,
       payer.name AS payer_name, payer.funding_type
     FROM homecare_client_billing_invoices i
     JOIN homecare_billing_payers payer ON payer.id = i.payer_account_id AND payer.organization_id = i.organization_id
@@ -375,17 +376,6 @@ export async function prepareClientInvoiceDelivery(orgId: string, invoiceId: str
   return { ...invoice.rows[0], access_token: rawToken };
 }
 
-export async function markClientInvoiceSent(orgId: string, actorId: string, invoiceId: string) {
-  return transaction(async (client) => {
-    const result = await client.query(`UPDATE homecare_client_billing_invoices SET status = CASE WHEN status = 'viewed' THEN 'viewed' ELSE 'sent' END, sent_at = NOW(), updated_at = NOW()
-      WHERE id = $1 AND organization_id = $2 AND person_id IS NOT NULL AND status IN ('approved','sent','viewed') RETURNING *`, [invoiceId, orgId]);
-    if (!result.rows[0]) throw new AppError(404, 'Invoice not found or is not eligible to send');
-    await client.query(`INSERT INTO homecare_client_billing_invoice_events (organization_id, invoice_id, actor_id, event_type, details)
-      VALUES ($1,$2,$3,'sent',jsonb_build_object('recipient_email',$4::text,'person_id',$5::text))`, [orgId, invoiceId, actorId, result.rows[0].recipient_email, result.rows[0].person_id]);
-    return result.rows[0];
-  });
-}
-
 export async function listClientBillingInvoiceEvents(orgId: string, invoiceId: string) {
   return (await query(`SELECT e.id, e.event_type, e.details, e.created_at,
       COALESCE(NULLIF(TRIM(sp.first_name || ' ' || sp.last_name), ''), u.email, 'Secure invoice link') AS actor_name
@@ -413,6 +403,7 @@ export async function getClientInvoiceForOrganisation(orgId: string, invoiceId: 
       i.invoice_number, i.status, i.recipient_name, i.recipient_email, i.recipient_address,
       i.subtotal_pence, i.vat_rate, i.vat_inclusive, i.vat_amount_pence, i.gross_amount_pence,
       i.funding_breakdown, i.sent_at, i.viewed_at, i.paid_at, i.payment_reference, i.created_at,
+      i.delivery_status, i.delivery_accepted_at, i.delivery_delayed_at, i.delivered_at, i.bounced_at, i.delivery_diagnostic,
       i.updated_at, r.period_from, r.period_to, r.approved_at, r.funding_breakdown AS run_funding_breakdown,
       payer.name AS payer_name
     FROM homecare_client_billing_invoices i
@@ -441,6 +432,7 @@ export async function getPublicClientInvoice(token: string) {
       i.recipient_name, i.recipient_address, i.subtotal_pence, i.vat_rate, i.vat_inclusive,
       i.vat_amount_pence, i.gross_amount_pence, i.sent_at, i.viewed_at, i.paid_at, i.payment_reference,
       r.period_from, r.period_to, r.approved_at, i.funding_breakdown,
+      i.delivery_status, i.delivery_diagnostic, i.delivery_accepted_at, i.delivered_at, i.bounced_at,
       i.recipient_name AS payer_name, o.name AS provider_name, o.billing_config,
       o.billing_config->'domiciliary'->>'registered_address' AS provider_address,
       o.billing_config->'domiciliary'->>'vat_number' AS provider_vat_number,
@@ -454,16 +446,26 @@ export async function getPublicClientInvoice(token: string) {
       WHERE access_token.token_hash = $1 AND access_token.invoice_id = i.id
         AND access_token.organization_id = i.organization_id AND access_token.person_id = i.person_id
         AND access_token.expires_at > NOW() AND access_token.revoked_at IS NULL
-    )) AND i.person_id IS NOT NULL AND i.status IN ('sent','viewed','paid')`, [tokenHash]);
+    )) AND i.person_id IS NOT NULL AND i.status <> 'void'
+      AND (i.status IN ('sent','viewed','paid') OR i.delivery_status IN ('queued','accepted','delayed','delivered','unverified'))`, [tokenHash]);
   const invoice = result.rows[0];
   if (!invoice) return null;
-  if (invoice.status === 'sent') {
-    const viewed = await migrateQuery(`UPDATE homecare_client_billing_invoices SET status = 'viewed', viewed_at = NOW(), updated_at = NOW()
-      WHERE id = $1 AND organization_id = $2 AND status = 'sent' RETURNING viewed_at`, [invoice.id, invoice.organization_id]);
+  if (['approved', 'sent'].includes(invoice.status)) {
+    const viewed = await migrateQuery(`UPDATE homecare_client_billing_invoices SET status = 'viewed',
+        delivery_status = CASE WHEN delivery_status IN ('queued','accepted','delayed','unverified','failed') THEN 'delivered' ELSE delivery_status END,
+        sent_at = CASE WHEN status = 'approved' THEN COALESCE(sent_at, NOW()) ELSE sent_at END,
+        delivered_at = COALESCE(delivered_at, NOW()),
+        viewed_at = NOW(), updated_at = NOW()
+      WHERE id = $1 AND organization_id = $2 AND status IN ('approved','sent') RETURNING viewed_at, delivery_status`, [invoice.id, invoice.organization_id]);
     if (viewed.rows[0]) {
+      if (viewed.rows[0].delivery_status === 'delivered' && invoice.delivery_status !== 'delivered') {
+        await migrateQuery(`INSERT INTO homecare_client_billing_invoice_events (organization_id, invoice_id, event_type, details)
+          VALUES ($1,$2,'delivered',jsonb_build_object('source','secure_link_access','person_id',$3::text))`, [invoice.organization_id, invoice.id, invoice.person_id]);
+      }
       await migrateQuery(`INSERT INTO homecare_client_billing_invoice_events (organization_id, invoice_id, event_type, details)
         VALUES ($1,$2,'viewed',jsonb_build_object('source','secure_link','person_id',$3::text))`, [invoice.organization_id, invoice.id, invoice.person_id]);
       invoice.status = 'viewed';
+      invoice.delivery_status = viewed.rows[0].delivery_status;
       invoice.viewed_at = viewed.rows[0].viewed_at;
     }
   }
@@ -683,18 +685,44 @@ export async function createVisit(orgId: string, userId: string, input: Homecare
   return result.rows[0];
 }
 
-async function hasVisitConflict(orgId: string, staffId: string, start: string, end: string, excludeVisitId?: string, travelBufferMinutes = 30) {
-  // Check for overlap considering travel buffer: extend end time by buffer
-  // and check if any existing visit falls within [start - buffer, end + buffer]
+/**
+ * True when the carer is already busy in [start, end] once travel time between calls is respected.
+ * Counts every live call (scheduled, en route, checked in, completed) plus claimed open calls and
+ * rota shifts. Cancelled and missed work does not reserve a carer's time.
+ */
+async function hasAssignmentConflict(orgId: string, staffId: string, start: string, end: string, excludeVisitIds: string[] = [], travelBufferMinutes = 30) {
+  // Travel buffer: require a clear gap of `travelBufferMinutes` on both sides of the new call
+  // so the carer can actually travel between the two addresses.
   const bufferedEnd = new Date(new Date(end).getTime() + travelBufferMinutes * 60000).toISOString();
   const bufferedStart = new Date(new Date(start).getTime() - travelBufferMinutes * 60000).toISOString();
   const params: any[] = [orgId, staffId, bufferedStart, bufferedEnd];
   let sql = `SELECT 1 FROM homecare_visits
     WHERE organization_id = $1 AND assigned_staff_id = $2 AND status NOT IN ('cancelled', 'missed')
       AND scheduled_start < $4::timestamptz AND scheduled_end > $3::timestamptz`;
-  if (excludeVisitId) { sql += ' AND id <> $5'; params.push(excludeVisitId); }
+  if (excludeVisitIds.length) { sql += ' AND NOT id = ANY($5::uuid[])'; params.push(excludeVisitIds); }
   sql += ' LIMIT 1';
-  return (await query(sql, params)).rows.length > 0;
+  if ((await query(sql, params)).rows.length > 0) return true;
+  // Claimed open calls and rota shifts occupy the carer as well.
+  const shifts = await query(
+    `SELECT 1 FROM shift_assignments sa
+     JOIN shifts s ON s.id = sa.shift_id
+     JOIN staff_profiles sp ON sp.id = sa.staff_id
+     JOIN users u ON u.id = sp.user_id
+     WHERE sa.staff_id = $2 AND u.organization_id = $1 AND s.status IN ('filled', 'pending')
+       AND s.start_time < $4::timestamptz AND s.end_time > $3::timestamptz
+     LIMIT 1`, [orgId, staffId, bufferedStart, bufferedEnd]);
+  return shifts.rows.length > 0;
+}
+
+async function hasVisitConflict(orgId: string, staffId: string, start: string, end: string, excludeVisitId?: string, travelBufferMinutes = 30) {
+  return hasAssignmentConflict(orgId, staffId, start, end, excludeVisitId ? [excludeVisitId] : [], travelBufferMinutes);
+}
+
+/** Throws 409 when giving this call to the carer would double-book them or skip travel time. */
+export async function assertNoAssignmentConflict(orgId: string, staffId: string, start: string, end: string, excludeVisitIds: string[] = [], travelBufferMinutes = 30) {
+  if (await hasAssignmentConflict(orgId, staffId, start, end, excludeVisitIds, travelBufferMinutes)) {
+    throw new AppError(409, 'This carer already has a call at that time or too close to it — leave travel time between calls');
+  }
 }
 
 async function assertVisit(visitId: string, orgId: string) {
@@ -718,6 +746,10 @@ export async function assertVisitForUser(orgId: string, userId: string, visitId:
 export async function updateVisit(orgId: string, visitId: string, input: HomecareVisitUpdateInput) {
   await assertStaff(input.assigned_staff_id, orgId);
   const existingVisit = await assertVisit(visitId, orgId);
+  // Mileage is only awarded once the carer has checked in — that check-in proves the travel happened.
+  if (input.mileage_status === 'approved' && !existingVisit.check_in_at) {
+    throw new AppError(409, 'Mileage can only be awarded after the carer checks in to the call — the travel is confirmed at check-in');
+  }
   if (input.assigned_staff_id && input.assigned_staff_id !== existingVisit.assigned_staff_id && await hasVisitConflict(orgId, input.assigned_staff_id, existingVisit.scheduled_start, existingVisit.scheduled_end, visitId)) {
     throw new AppError(409, 'Assigned carer already has an overlapping homecare visit');
   }
@@ -860,8 +892,8 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
         (organization_id, visit_id, staff_id, work_minutes, travel_minutes, paid_travel_minutes,
          mileage_miles, mileage_rate_pence, hourly_rate_pence, gross_pay_pence, status,
          hourly_rate_source, hourly_rate_source_label, mileage_rate_source, mileage_rate_source_label,
-         paid_travel_policy_source, paid_travel_policy_label, rate_calculated_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'submitted',$11,$12,$13,$14,$15,$16,NOW())
+         paid_travel_policy_source, paid_travel_policy_label, rate_calculated_at, approved_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'approved',$11,$12,$13,$14,$15,$16,NOW(),NOW())
       ON CONFLICT (visit_id) DO UPDATE SET work_minutes = EXCLUDED.work_minutes,
         travel_minutes = EXCLUDED.travel_minutes, paid_travel_minutes = EXCLUDED.paid_travel_minutes,
         mileage_miles = EXCLUDED.mileage_miles, mileage_rate_pence = EXCLUDED.mileage_rate_pence,
@@ -869,7 +901,8 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
         hourly_rate_source = EXCLUDED.hourly_rate_source, hourly_rate_source_label = EXCLUDED.hourly_rate_source_label,
         mileage_rate_source = EXCLUDED.mileage_rate_source, mileage_rate_source_label = EXCLUDED.mileage_rate_source_label,
         paid_travel_policy_source = EXCLUDED.paid_travel_policy_source,
-        paid_travel_policy_label = EXCLUDED.paid_travel_policy_label, rate_calculated_at = NOW(), updated_at = NOW()`,
+        paid_travel_policy_label = EXCLUDED.paid_travel_policy_label, rate_calculated_at = NOW(),
+        status = 'approved', approved_at = COALESCE(homecare_timesheets.approved_at, NOW()), updated_at = NOW()`,
     [orgId, visitId, v.assigned_staff_id, workMinutes, travelMinutes, paidTravelMinutes, effectiveMileage,
       mileageRate, workRate, gross, hourlyRateSource, hourlyRateSourceLabel, mileageRateSource,
       mileageRateSourceLabel, paidTravelPolicySource, paidTravelPolicyLabel]);
@@ -985,7 +1018,9 @@ export async function listTimesheets(orgId: string, status?: string) {
   const conditions = ['t.organization_id = $1'];
   const params: any[] = [orgId];
   if (status) { conditions.push('t.status = $2'); params.push(status); }
-  return (await query(`SELECT t.*, sp.first_name || ' ' || sp.last_name AS staff_name, v.label, v.scheduled_start, pe.first_name || ' ' || pe.last_name AS person_name FROM homecare_timesheets t JOIN staff_profiles sp ON sp.id = t.staff_id JOIN homecare_visits v ON v.id = t.visit_id JOIN people pe ON pe.id = v.person_id WHERE ${conditions.join(' AND ')} ORDER BY t.created_at DESC`, params)).rows;
+  return (await query(`SELECT t.*, sp.first_name || ' ' || sp.last_name AS staff_name, v.label, v.visit_type, v.scheduled_start, v.scheduled_end,
+    v.check_in_at, v.check_out_at, v.status AS visit_status,
+    pe.first_name || ' ' || pe.last_name AS person_name FROM homecare_timesheets t JOIN staff_profiles sp ON sp.id = t.staff_id JOIN homecare_visits v ON v.id = t.visit_id JOIN people pe ON pe.id = v.person_id WHERE ${conditions.join(' AND ')} ORDER BY t.created_at DESC`, params)).rows;
 }
 
 export async function listCarePlans(orgId: string, personId: string) {
@@ -1150,13 +1185,13 @@ export async function listAvailableStaff(orgId: string, start: string, end: stri
           ${excludeVisitId ? 'AND conflict.id <> $4' : ''}
       ) AND NOT EXISTS (
         SELECT 1 FROM leave_requests lr
-        WHERE lr.staff_id = sp.id AND lr.organization_id = $1
+        WHERE lr.staff_id = sp.id
           AND lr.status IN ('approved', 'pending')
           AND lr.start_date <= $3::date AND lr.end_date >= $2::date
       ) THEN TRUE ELSE FALSE END AS available_in_window,
       EXISTS (
         SELECT 1 FROM leave_requests lr2
-        WHERE lr2.staff_id = sp.id AND lr2.organization_id = $1
+        WHERE lr2.staff_id = sp.id
           AND lr2.status IN ('approved', 'pending')
           AND lr2.start_date <= $3::date AND lr2.end_date >= $2::date
       ) AS on_leave,
@@ -1494,6 +1529,8 @@ export async function updateTimesheet(orgId: string, timesheetId: string, userId
   const current = await query('SELECT * FROM homecare_timesheets WHERE id = $1 AND organization_id = $2', [timesheetId, orgId]);
   if (!current.rows[0]) throw new AppError(404, 'Timesheet not found');
   if (input.status === 'approved') {
+    // Pay is added automatically at clock-out; approving again is a harmless no-op for old clients.
+    if (current.rows[0].status === 'approved') return current.rows[0];
     if (current.rows[0].status !== 'submitted') throw new AppError(409, 'Only submitted timesheets can be approved');
     return transaction(async (client) => {
       const result = await client.query(`UPDATE homecare_timesheets SET status = 'approved', approved_by = $1, approved_at = NOW(),
@@ -1541,9 +1578,10 @@ export async function updateTimesheet(orgId: string, timesheetId: string, userId
 export async function suggestCarersForVisit(orgId: string, visitId: string) {
   // Get the visit details
   const visitResult = await query(`
-    SELECT hv.*, p.latitude, p.longitude
+    SELECT hv.*, l.latitude, l.longitude
     FROM homecare_visits hv
     JOIN people p ON p.id = hv.person_id AND p.organization_id = $1
+    LEFT JOIN locations l ON l.id = p.location_id
     WHERE hv.id = $2 AND hv.organization_id = $1`, [orgId, visitId]);
   if (!visitResult.rows[0]) throw new AppError(404, 'Visit not found');
   const visit = visitResult.rows[0];
@@ -1564,19 +1602,31 @@ export async function suggestCarersForVisit(orgId: string, visitId: string) {
     ),
     avail_check AS (
       SELECT sb.id,
-        EXISTS (
-          SELECT 1 FROM staff_availability sa
-          WHERE sa.staff_id = sb.id AND sa.is_available = TRUE
-            AND sa.day_of_week = vw.dow
-            AND sa.start_time <= vw.ws::time AND sa.end_time >= vw.we::time
-        ) AS has_availability
+        CASE
+          WHEN EXISTS (
+            SELECT 1 FROM staff_availability sa
+            WHERE sa.staff_id = sb.id AND sa.availability_date = vw.ws::date
+          ) THEN EXISTS (
+            SELECT 1 FROM staff_availability sa
+            WHERE sa.staff_id = sb.id AND sa.availability_date = vw.ws::date
+              AND sa.is_available = TRUE
+              AND sa.start_time <= vw.ws::time AND sa.end_time >= vw.we::time
+          )
+          ELSE EXISTS (
+            SELECT 1 FROM staff_availability sa
+            WHERE sa.staff_id = sb.id AND sa.availability_date IS NULL
+              AND sa.is_available = TRUE
+              AND sa.day_of_week = vw.dow
+              AND sa.start_time <= vw.ws::time AND sa.end_time >= vw.we::time
+          )
+        END AS has_availability
       FROM staff_base sb, visit_window vw
     ),
     leave_check AS (
       SELECT sb.id,
         EXISTS (
           SELECT 1 FROM leave_requests lr
-          WHERE lr.staff_id = sb.id AND lr.organization_id = $1
+          WHERE lr.staff_id = sb.id
             AND lr.status IN ('approved', 'pending')
             AND lr.start_date <= vw.we::date AND lr.end_date >= vw.ws::date
         ) AS on_leave
@@ -1605,27 +1655,33 @@ export async function suggestCarersForVisit(orgId: string, visitId: string) {
       GROUP BY sp2.id
     ),
     prev_call AS (
-      SELECT hv2.assigned_staff_id, hv2.scheduled_end, hv2.latitude AS prev_lat, hv2.longitude AS prev_lon
+      SELECT DISTINCT ON (hv2.assigned_staff_id)
+        hv2.assigned_staff_id, hv2.scheduled_end,
+        l2.latitude AS prev_lat, l2.longitude AS prev_lon
       FROM homecare_visits hv2
+      JOIN people p2 ON p2.id = hv2.person_id
+      LEFT JOIN locations l2 ON l2.id = p2.location_id
+      CROSS JOIN visit_window vw
       WHERE hv2.organization_id = $1 AND hv2.id <> $5
         AND hv2.assigned_staff_id IS NOT NULL
         AND hv2.scheduled_end <= vw.ws
         AND hv2.scheduled_end > vw.ws - INTERVAL '4 hours'
         AND hv2.status NOT IN ('cancelled', 'missed')
-      ORDER BY hv2.scheduled_end DESC
-      LIMIT 1
+      ORDER BY hv2.assigned_staff_id, hv2.scheduled_end DESC
     )
     SELECT sb.id, sb.first_name, sb.last_name,
       COALESCE(ac.has_availability, FALSE) AS available,
       COALESCE(lc.on_leave, FALSE) AS on_leave,
       COALESCE(cc.has_conflict, FALSE) AS has_conflict,
       COALESCE(wl.assigned_minutes, 0) AS workload_minutes,
-      COALESCE(wl.assigned_calls, 0) AS workload_calls
+      COALESCE(wl.assigned_calls, 0) AS workload_calls,
+      pc.scheduled_end AS prev_end, pc.prev_lat, pc.prev_lon
     FROM staff_base sb
     LEFT JOIN avail_check ac ON ac.id = sb.id
     LEFT JOIN leave_check lc ON lc.id = sb.id
     LEFT JOIN conflict_check cc ON cc.id = sb.id
     LEFT JOIN workload wl ON wl.staff_id = sb.id
+    LEFT JOIN prev_call pc ON pc.assigned_staff_id = sb.id
     ORDER BY (COALESCE(ac.has_availability, FALSE)) DESC, (COALESCE(cc.has_conflict, FALSE)) ASC, (COALESCE(lc.on_leave, FALSE)) ASC, COALESCE(wl.assigned_minutes, 0) ASC`, [orgId, startTime, endTime, dayOfWeek, visitId]);
 
   // Score each carer: 0-100 scale
@@ -1653,6 +1709,27 @@ export async function suggestCarersForVisit(orgId: string, visitId: string) {
     score += workloadScore;
     if (s.workload_calls > 0) reasons.push(`${s.workload_calls} calls today (${s.workload_minutes} min)`);
     else reasons.push('No calls today');
+
+    // Travel feasibility from the carer's previous call
+    if (s.prev_lat != null && s.prev_lon != null && s.prev_end && visitLat != null && visitLon != null) {
+      const toRad = (n: number) => (n * Math.PI) / 180;
+      const lat1 = Number(s.prev_lat); const lon1 = Number(s.prev_lon);
+      const lat2 = Number(visitLat); const lon2 = Number(visitLon);
+      const dLat = toRad(lat2 - lat1); const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+      const distKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const gapMins = (new Date(startTime).getTime() - new Date(s.prev_end).getTime()) / 60000;
+      const travelNeeded = distKm * 3; // ~20 km/h UK urban average
+      if (travelNeeded <= gapMins) {
+        score += 15;
+        reasons.push(`${distKm.toFixed(1)} km from previous call — travel fits the gap`);
+      } else if (travelNeeded > gapMins + 15) {
+        score -= 25;
+        reasons.push(`Previous call is ~${Math.round(distKm)} km away with only ${Math.round(gapMins)} min before this one`);
+      } else {
+        reasons.push(`Tight travel from previous call (~${Math.round(distKm)} km)`);
+      }
+    }
 
     return {
       staff_id: s.id,

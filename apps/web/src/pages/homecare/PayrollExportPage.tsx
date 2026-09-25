@@ -1,15 +1,30 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Tab, TextField, Typography } from '@mui/material'
-import { CheckCircleOutline as ApprovedIcon, Download as DownloadIcon, ReceiptLong as PayrollIcon, Rule as ReviewIcon, FactCheck as ReconcileIcon, VisibilityOutlined as AuditIcon } from '@mui/icons-material'
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { CheckCircleOutline as ApprovedIcon, Download as DownloadIcon, ReceiptLong as PayrollIcon, Rule as ReviewIcon, FactCheck as ReconcileIcon, VisibilityOutlined as AuditIcon, Person as PersonIcon, ArrowBack as BackIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import PageContainer from '../../components/design/PageContainer'
 import AppButton from '../../components/design/AppButton'
+import MyEarningsPanel from './MyEarningsPanel'
+import CarerTotalsPanel from './CarerTotalsPanel'
 import api from '../../services/api'
 
 const money = (pence: number | null | undefined) => pence == null ? '—' : `£${(Number(pence) / 100).toFixed(2)}`
 const dateOnly = (value: unknown) => {
   const date = new Date(String(value || ''))
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+const when = (value: unknown) => value ? new Date(String(value)).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
+const fmtDuration = (minutes: unknown) => { const m = Number(minutes || 0); return `${Math.floor(m / 60)}h ${m % 60}m` }
+const rateLabel = (row: any, labelKey: string, sourceKey: string) => String(row[labelKey] || (row[sourceKey] === 'unknown' ? 'Historical source not captured' : 'Source not recorded'))
+const rate = (pence: number | null | undefined, unit: 'hour' | 'mile') => pence == null ? 'Not recorded' : `${money(pence)} / ${unit}`
+// Pay is added automatically at clock-out; a timesheet status is a record state, not an approval queue.
+const statusChip = (status: unknown): { label: string; color: 'success' | 'default' | 'error' } => {
+  const s = String(status || 'draft')
+  if (s === 'approved') return { label: 'Pay added', color: 'success' }
+  if (s === 'submitted') return { label: 'Not yet paid', color: 'default' }
+  if (s === 'rejected') return { label: 'Rejected', color: 'error' }
+  return { label: s.replace(/_/g, ' '), color: 'default' }
 }
 
 const PAYROLL_PROVIDERS = [
@@ -22,12 +37,18 @@ const PAYROLL_PROVIDERS = [
 ]
 
 export default function PayrollExportPage() {
-  const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10) })
-  const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10))
+  // Local-date defaults: toISOString() slices shift the day for any timezone
+  // off UTC, so the window opened on the previous month's last day.
+  const [from, setFrom] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01` })
+  const [to, setTo] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })
   const [provider, setProvider] = useState('generic_csv')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [timesheetView, setTimesheetView] = useState<'review' | 'audit'>('review')
-  const [auditTarget, setAuditTarget] = useState<any>(null)
+  const [searchParams] = useSearchParams()
+  const [timesheetView, setTimesheetView] = useState<'review' | 'carer-totals' | 'audit'>(() => (searchParams.get('view') === 'carer-totals' ? 'carer-totals' : 'review'))
+  const [payView, setPayView] = useState<'calls' | 'carer'>('calls')
+  const [selectedCarer, setSelectedCarer] = useState<string | null>(null)
+  const [detailRow, setDetailRow] = useState<any>(null)
+  const [page, setPage] = useState(0)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [selectedExportId, setSelectedExportId] = useState('')
@@ -69,21 +90,28 @@ export default function PayrollExportPage() {
     return timestamp >= new Date(`${from}T00:00:00`).getTime() && timestamp < new Date(`${to}T23:59:59`).getTime()
   })())
   const approvedAuditRows = approved
-  const rateLabel = (row: any, labelKey: string, sourceKey: string) => String(row[labelKey] || (row[sourceKey] === 'unknown' ? 'Historical source not captured' : 'Source not recorded'))
-  const rate = (pence: number | null | undefined, unit: 'hour' | 'mile') => pence == null ? 'Not recorded' : `${money(pence)} / ${unit}`
-  const pendingCount = rawTimesheets.filter((row: any) => {
-    const timestamp = new Date(row.scheduled_start).getTime()
-    return row.status === 'submitted' && timestamp >= new Date(`${from}T00:00:00`).getTime() && timestamp < new Date(`${to}T23:59:59`).getTime()
-  }).length
+  const carerRows = useMemo(() => {
+    const map = new Map<string, any>()
+    for (const row of timesheets) {
+      const key = row.staff_id || 'unassigned'
+      const entry = map.get(key) || { staff_id: row.staff_id, name: row.staff_name || 'Unassigned', calls: 0, hours: 0, travel: 0, mileage: 0, pay: 0 }
+      entry.calls += 1
+      entry.hours += Number(row.work_minutes || 0) + Number(row.paid_travel_minutes || 0)
+      entry.travel += Number(row.paid_travel_minutes || 0)
+      entry.mileage += Number(row.mileage_miles || 0)
+      entry.pay += Number(row.gross_pay_pence || 0)
+      map.set(key, entry)
+    }
+    return [...map.values()].sort((a, b) => b.pay - a.pay)
+  }, [timesheets])
+  const viewRows = payView === 'carer' && selectedCarer ? timesheets.filter((row: any) => (row.staff_id || 'unassigned') === selectedCarer) : timesheets
+  const PAGE_SIZE = 15
+  const viewPages = Math.max(1, Math.ceil(viewRows.length / PAGE_SIZE))
+  const pageSafe = Math.min(page, viewPages - 1)
+  const pagedRows = viewRows.slice(pageSafe * PAGE_SIZE, (pageSafe + 1) * PAGE_SIZE)
   const totalMinutes = approved.reduce((sum: number, t: any) => sum + Number(t.work_minutes || 0) + Number(t.paid_travel_minutes || 0), 0)
   const totalPay = approved.reduce((sum: number, t: any) => sum + Number(t.gross_pay_pence || 0), 0)
   const totalMileage = approved.reduce((sum: number, t: any) => sum + Number(t.mileage_miles || 0), 0)
-
-  const approve = useMutation({
-    mutationFn: (id: string) => api.patch(`/homecare/timesheets/${id}`, { status: 'approved' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['homecare-payroll-timesheets'] }); setMessage('Timesheet approved for payroll.'); setError('') },
-    onError: (e: any) => setError(e.response?.data?.message || 'Could not approve this timesheet.'),
-  })
 
   const exportPayroll = async () => {
     setError(''); setMessage('')
@@ -120,7 +148,20 @@ export default function PayrollExportPage() {
     onError: (e: any) => setError(e.response?.data?.message || 'Could not update this payroll row.'),
   })
 
-  if (!isManager) return <PageContainer><Alert severity="info">Only managers can review timesheets and export payroll inputs.</Alert></PageContainer>
+  // Role-based access: carers see only their own pay on this page; managers
+  // and admins get the organisation-wide payroll workspace above.
+  if (!isManager) return (
+    <PageContainer>
+      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
+        <Box>
+          <Typography variant="overline" color="primary" sx={{ fontWeight: 800, letterSpacing: 1.2 }}>Payroll workspace</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>My pay & timesheets</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Pay is added automatically when you clock in and out of a call — no approval needed. Download a payslip for any completed period.</Typography>
+        </Box>
+      </Stack>
+      <MyEarningsPanel />
+    </PageContainer>
+  )
 
   return (
     <PageContainer>
@@ -128,10 +169,10 @@ export default function PayrollExportPage() {
         <Box>
           <Typography variant="overline" color="primary" sx={{ fontWeight: 800, letterSpacing: 1.2 }}>Payroll workspace</Typography>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Timesheets & payroll</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Review completed visit inputs, approve pay and prepare a provider-ready export.</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Pay is added automatically when a carer clocks in and out of a call — no approval needed. Export provider-ready payroll inputs and reconcile what payroll actually pays.</Typography>
         </Box>
         <AppButton variant="primary" startIcon={<DownloadIcon />} onClick={exportPayroll} disabled={!from || !to || from > to || approved.length === 0}>
-          Export approved inputs
+          Export payroll inputs
         </AppButton>
       </Stack>
 
@@ -141,7 +182,7 @@ export default function PayrollExportPage() {
         <TextField type="date" label="From" size="small" value={from} onChange={e => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
         <TextField type="date" label="To" size="small" value={to} onChange={e => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />
         <TextField select label="Review status" size="small" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} sx={{ minWidth: 160 }}>
-          <MenuItem value="all">All statuses</MenuItem><MenuItem value="submitted">Needs review</MenuItem><MenuItem value="approved">Approved</MenuItem><MenuItem value="rejected">Rejected</MenuItem>
+          <MenuItem value="all">All statuses</MenuItem><MenuItem value="submitted">Not yet paid</MenuItem><MenuItem value="approved">Pay added</MenuItem><MenuItem value="rejected">Rejected</MenuItem>
         </TextField>
         <TextField select label="Provider" size="small" value={provider} onChange={e => setProvider(e.target.value)} sx={{ minWidth: 180 }}>
           {PAYROLL_PROVIDERS.map(item => <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>)}
@@ -149,40 +190,75 @@ export default function PayrollExportPage() {
       </Stack>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3 }}>
-        <SummaryCard icon={<ReviewIcon />} label="Needs review" value={pendingCount} />
-        <SummaryCard icon={<ApprovedIcon />} label="Approved hours" value={`${(totalMinutes / 60).toFixed(1)}h`} />
-        <SummaryCard icon={<PayrollIcon />} label="Approved pay" value={money(totalPay)} />
-        <SummaryCard icon={<PayrollIcon />} label="Approved mileage" value={`${totalMileage.toFixed(1)} mi`} />
+        <SummaryCard icon={<ApprovedIcon />} label="Paid calls" value={approved.length} />
+        <SummaryCard icon={<ReviewIcon />} label="Paid hours" value={`${(totalMinutes / 60).toFixed(1)}h`} />
+        <SummaryCard icon={<PayrollIcon />} label="Pay added" value={money(totalPay)} />
+        <SummaryCard icon={<PayrollIcon />} label="Paid mileage" value={`${totalMileage.toFixed(1)} mi`} />
       </Stack>
 
       <Tabs value={timesheetView} onChange={(_, value) => setTimesheetView(value)} sx={{ mb: 2 }} aria-label="Timesheet views">
-        <Tab value="review" label="Review timesheets" />
-        <Tab value="audit" label="Approved rate audit" />
+        <Tab value="review" label="Calls & pay" />
+        <Tab value="carer-totals" label="Carer totals" />
+        <Tab value="audit" label="Rate audit" />
       </Tabs>
 
-      {isLoading ? <Box sx={{ py: 8, textAlign: 'center' }}><Typography color="text.secondary">Loading payroll inputs…</Typography></Box> : timesheetView === 'review' ? (
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-          <Table size="small">
-            <TableHead><TableRow>{['Carer', 'Client', 'Date', 'Hours', 'Travel', 'Pay', 'Status', 'Action'].map(label => <TableCell key={label} sx={{ fontWeight: 700 }}>{label}</TableCell>)}</TableRow></TableHead>
-            <TableBody>
-              {timesheets.length === 0 ? <TableRow><TableCell colSpan={8} align="center" sx={{ py: 6 }}><Typography color="text.secondary">No timesheet inputs match this view.</Typography>{isError && <AppButton variant="secondary" size="small" onClick={() => refetch()} sx={{ mt: 1 }}>Try again</AppButton>}</TableCell></TableRow> : timesheets.map((row: any) => {
-                const status = String(row.status || 'draft')
-                return <TableRow key={row.id} hover>
-                  <TableCell>{String(row.staff_name || 'Unassigned')}</TableCell><TableCell>{String(row.person_name || '—')}</TableCell><TableCell>{dateOnly(row.scheduled_start)}</TableCell>
-                  <TableCell>{((Number(row.work_minutes || 0) + Number(row.paid_travel_minutes || 0)) / 60).toFixed(1)}</TableCell><TableCell>{Number(row.paid_travel_minutes || 0)}m</TableCell><TableCell>{money(row.gross_pay_pence)}</TableCell>
-                  <TableCell><Chip size="small" label={status.replace(/_/g, ' ')} color={status === 'approved' ? 'success' : status === 'submitted' ? 'warning' : status === 'rejected' ? 'error' : 'default'} /></TableCell>
-                  <TableCell>{status === 'submitted' && <AppButton size="small" variant="primary" loading={approve.isPending} onClick={() => approve.mutate(row.id)}>Approve</AppButton>}</TableCell>
-                </TableRow>
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
+      {timesheetView === 'carer-totals' ? <CarerTotalsPanel /> : isLoading ? <Box sx={{ py: 8, textAlign: 'center' }}><Typography color="text.secondary">Loading payroll inputs…</Typography></Box> : timesheetView === 'review' ? (
+        <>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }} sx={{ mb: 2 }}>
+            <ToggleButtonGroup size="small" exclusive value={payView} onChange={(_, v: 'calls' | 'carer' | null) => { if (v) { setPayView(v); setSelectedCarer(null); setPage(0) } }} aria-label="Payroll view mode">
+              <ToggleButton value="calls" sx={{ textTransform: 'none', fontWeight: 600 }}>By calls</ToggleButton>
+              <ToggleButton value="carer" sx={{ textTransform: 'none', fontWeight: 600 }}>By carer</ToggleButton>
+            </ToggleButtonGroup>
+            {payView === 'carer' && selectedCarer && <AppButton variant="quiet" size="small" startIcon={<BackIcon />} onClick={() => { setSelectedCarer(null); setPage(0) }}>All carers</AppButton>}
+            <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+              {payView === 'carer' && !selectedCarer ? 'Select a carer to see their calls and pay.' : 'Click any row to see the call that generated the pay entry.'}
+            </Typography>
+          </Stack>
+          <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+            <Table size="small">
+              <TableHead><TableRow>
+                {(payView === 'carer' && !selectedCarer
+                  ? ['Carer', 'Calls', 'Hours', 'Travel', 'Mileage', 'Pay']
+                  : [...(payView === 'carer' ? [] : ['Carer']), 'Client', 'Date', 'Hours', 'Travel', 'Pay', 'Status']
+                ).map(label => <TableCell key={label} sx={{ fontWeight: 700 }}>{label}</TableCell>)}
+              </TableRow></TableHead>
+              <TableBody>
+                {payView === 'carer' && !selectedCarer ? (
+                  carerRows.length === 0 ? <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6 }}><Typography color="text.secondary">No paid calls match this view.</Typography></TableCell></TableRow> : carerRows.map((row: any) => (
+                    <TableRow key={row.staff_id || 'unassigned'} hover sx={{ cursor: 'pointer' }} onClick={() => { setSelectedCarer(row.staff_id || 'unassigned'); setPage(0) }}>
+                      <TableCell><Stack direction="row" alignItems="center" spacing={1}><PersonIcon fontSize="small" sx={{ color: 'text.secondary' }} /><Typography sx={{ fontWeight: 600 }}>{row.name}</Typography></Stack></TableCell>
+                      <TableCell>{row.calls}</TableCell><TableCell>{(row.hours / 60).toFixed(1)}</TableCell><TableCell>{row.travel}m</TableCell><TableCell>{Number(row.mileage).toFixed(1)} mi</TableCell><TableCell>{money(row.pay)}</TableCell>
+                    </TableRow>
+                  ))
+                ) : pagedRows.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6 }}><Typography color="text.secondary">No timesheet inputs match this view.</Typography>{isError && <AppButton variant="secondary" size="small" onClick={() => refetch()} sx={{ mt: 1 }}>Try again</AppButton>}</TableCell></TableRow>
+                ) : pagedRows.map((row: any) => {
+                  const chip = statusChip(row.status)
+                  return <TableRow key={row.id} hover sx={{ cursor: 'pointer' }} onClick={() => setDetailRow(row)}>
+                    {payView !== 'carer' && <TableCell>{String(row.staff_name || 'Unassigned')}</TableCell>}
+                    <TableCell>{String(row.person_name || '—')}</TableCell><TableCell>{dateOnly(row.scheduled_start)}</TableCell>
+                    <TableCell>{((Number(row.work_minutes || 0) + Number(row.paid_travel_minutes || 0)) / 60).toFixed(1)}</TableCell><TableCell>{Number(row.paid_travel_minutes || 0)}m</TableCell><TableCell>{money(row.gross_pay_pence)}</TableCell>
+                    <TableCell><Chip size="small" label={chip.label} color={chip.color} /></TableCell>
+                  </TableRow>
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          {viewRows.length > PAGE_SIZE && <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
+            <Typography variant="caption" color="text.secondary">Showing {pageSafe * PAGE_SIZE + 1}–{Math.min((pageSafe + 1) * PAGE_SIZE, viewRows.length)} of {viewRows.length}</Typography>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <AppButton variant="quiet" size="small" disabled={pageSafe === 0} onClick={() => setPage(pageSafe - 1)}>Previous</AppButton>
+              <Typography variant="body2">Page {pageSafe + 1} of {viewPages}</Typography>
+              <AppButton variant="quiet" size="small" disabled={pageSafe >= viewPages - 1} onClick={() => setPage(pageSafe + 1)}>Next</AppButton>
+            </Stack>
+          </Stack>}
+        </>
       ) : (
         <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto' }}>
-          <Table size="small" aria-label="Approved timesheet rate audit">
-            <TableHead><TableRow>{['Carer / client', 'Date', 'Hourly rate source', 'Mileage source', 'Travel policy', 'Approved pay', 'Audit'].map(label => <TableCell key={label} sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
+          <Table size="small" aria-label="Timesheet rate audit">
+            <TableHead><TableRow>{['Carer / client', 'Date', 'Hourly rate source', 'Mileage source', 'Travel policy', 'Gross pay', 'Audit'].map(label => <TableCell key={label} sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</TableCell>)}</TableRow></TableHead>
             <TableBody>
-              {!approvedAuditRows.length ? <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6 }}><Typography color="text.secondary">No approved timesheets in this date range.</Typography></TableCell></TableRow> : approvedAuditRows.map((row: any) => (
+              {!approvedAuditRows.length ? <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6 }}><Typography color="text.secondary">No paid calls in this date range.</Typography></TableCell></TableRow> : approvedAuditRows.map((row: any) => (
                 <TableRow key={row.id} hover>
                   <TableCell><Typography variant="body2" fontWeight={700}>{String(row.staff_name || 'Unassigned')}</Typography><Typography variant="caption" color="text.secondary">{String(row.person_name || '—')}</Typography></TableCell>
                   <TableCell>{dateOnly(row.scheduled_start)}</TableCell>
@@ -190,7 +266,7 @@ export default function PayrollExportPage() {
                   <TableCell><Typography variant="body2">{rateLabel(row, 'mileage_rate_source_label', 'mileage_rate_source')}</Typography><Typography variant="caption" color="text.secondary">{rate(row.mileage_rate_pence, 'mile')}</Typography></TableCell>
                   <TableCell><Typography variant="body2">{rateLabel(row, 'paid_travel_policy_label', 'paid_travel_policy_source')}</Typography><Typography variant="caption" color="text.secondary">{Number(row.paid_travel_minutes || 0)} paid minutes</Typography></TableCell>
                   <TableCell>{money(row.gross_pay_pence)}</TableCell>
-                  <TableCell><AppButton size="small" variant="secondary" startIcon={<AuditIcon />} onClick={() => setAuditTarget(row)}>View breakdown</AppButton></TableCell>
+                  <TableCell><AppButton size="small" variant="secondary" startIcon={<AuditIcon />} onClick={() => setDetailRow(row)}>View breakdown</AppButton></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -198,19 +274,8 @@ export default function PayrollExportPage() {
         </TableContainer>
       )}
 
-      <Dialog open={Boolean(auditTarget)} onClose={() => setAuditTarget(null)} fullWidth maxWidth="sm">
-        <DialogTitle>Approved timesheet rate audit</DialogTitle>
-        <DialogContent>
-          {auditTarget && <Stack spacing={2} sx={{ pt: 1 }}>
-            <Alert severity="info">Rate source recorded at {auditTarget.rate_calculated_at ? new Date(auditTarget.rate_calculated_at).toLocaleString('en-GB') : 'approval time; original calculation time unavailable'}.</Alert>
-            <Box><Typography variant="subtitle2">Hourly pay</Typography><Typography>{rateLabel(auditTarget, 'hourly_rate_source_label', 'hourly_rate_source')}</Typography><Typography variant="body2" color="text.secondary">{rate(auditTarget.hourly_rate_pence, 'hour')} · {Number(auditTarget.work_minutes || 0)} work minutes</Typography></Box>
-            <Box><Typography variant="subtitle2">Mileage</Typography><Typography>{rateLabel(auditTarget, 'mileage_rate_source_label', 'mileage_rate_source')}</Typography><Typography variant="body2" color="text.secondary">{rate(auditTarget.mileage_rate_pence, 'mile')} · {Number(auditTarget.mileage_miles || 0).toFixed(2)} miles</Typography></Box>
-            <Box><Typography variant="subtitle2">Paid travel</Typography><Typography>{rateLabel(auditTarget, 'paid_travel_policy_label', 'paid_travel_policy_source')}</Typography><Typography variant="body2" color="text.secondary">{Number(auditTarget.paid_travel_minutes || 0)} of {Number(auditTarget.travel_minutes || 0)} travel minutes included</Typography></Box>
-            <Paper variant="outlined" sx={{ p: 1.5 }}><Typography variant="body2" color="text.secondary">Approved gross pay</Typography><Typography variant="h6" fontWeight={800}>{money(auditTarget.gross_pay_pence)}</Typography><Typography variant="caption" color="text.secondary">The displayed rate sources and timesheet inputs are snapshots; current profile changes do not rewrite this record.</Typography></Paper>
-          </Stack>}
-        </DialogContent>
-        <DialogActions><AppButton variant="secondary" onClick={() => setAuditTarget(null)}>Close</AppButton></DialogActions>
-      </Dialog>
+      {/* Which call generated this pay entry */}
+      <PayEntryDialog row={detailRow} onClose={() => setDetailRow(null)} />
 
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={1.5} sx={{ mt: 5, mb: 1.5 }}>
         <Box>
@@ -222,7 +287,7 @@ export default function PayrollExportPage() {
         </TextField>
       </Stack>
 
-      {!payrollExports.length ? <Paper variant="outlined" sx={{ p: 3, textAlign: 'center' }}><Typography fontWeight={700}>No payroll exports yet</Typography><Typography variant="body2" color="text.secondary">After approving timesheets, create an export above. Each exported timesheet will appear here for acknowledgement and reconciliation.</Typography></Paper> : <>
+      {!payrollExports.length ? <Paper variant="outlined" sx={{ p: 3, textAlign: 'center' }}><Typography fontWeight={700}>No payroll exports yet</Typography><Typography variant="body2" color="text.secondary">Once calls are clocked out and paid, create an export above. Each exported timesheet will appear here for acknowledgement and reconciliation.</Typography></Paper> : <>
         {(() => {
           const selected = payrollExports.find((item: any) => item.id === selectedExportId)
           if (!selected) return null
@@ -275,6 +340,39 @@ export default function PayrollExportPage() {
       </Dialog>
     </PageContainer>
   )
+}
+
+function PayEntryDialog({ row, onClose }: { row: any; onClose: () => void }) {
+  const line = (label: string, value: React.ReactNode) => (
+    <Stack direction="row" justifyContent="space-between" gap={2} sx={{ py: 0.6, borderBottom: '1px solid #F3F4F6' }}>
+      <Typography variant="body2" color="text.secondary">{label}</Typography>
+      <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'right' }}>{value}</Typography>
+    </Stack>
+  )
+  return <Dialog open={Boolean(row)} onClose={onClose} fullWidth maxWidth="sm">
+    <DialogTitle>Call &amp; pay entry</DialogTitle>
+    <DialogContent>
+      {row && <Stack spacing={0.5} sx={{ pt: 1 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{row.label || row.visit_type || 'Care call'}</Typography>
+        <Alert severity="info" sx={{ mb: 1 }}>Pay is added automatically when the carer clocks in and out of this call — no approval needed.</Alert>
+        {line('Client', row.person_name || '—')}
+        {line('Carer', row.staff_name || 'Unassigned')}
+        {line('Scheduled', `${when(row.scheduled_start)} → ${when(row.scheduled_end)}`)}
+        {line('Call status', String(row.visit_status || '—').replace(/_/g, ' '))}
+        {line('Checked in', when(row.check_in_at))}
+        {line('Checked out', when(row.check_out_at))}
+        {line('Work time', fmtDuration(row.work_minutes))}
+        {line('Paid travel', `${Number(row.paid_travel_minutes || 0)} of ${Number(row.travel_minutes || 0)} travel minutes · ${rateLabel(row, 'paid_travel_policy_label', 'paid_travel_policy_source')}`)}
+        {line('Mileage', `${Number(row.mileage_miles || 0).toFixed(2)} mi · ${rate(row.mileage_rate_pence, 'mile')} · ${rateLabel(row, 'mileage_rate_source_label', 'mileage_rate_source')}`)}
+        {line('Hourly rate', `${rate(row.hourly_rate_pence, 'hour')} · ${rateLabel(row, 'hourly_rate_source_label', 'hourly_rate_source')}`)}
+        {line('Gross pay', money(row.gross_pay_pence))}
+        {line('Pay state', statusChip(row.status).label)}
+        {row.rejection_reason ? line('Rejection reason', row.rejection_reason) : null}
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>Rate sources are snapshots recorded when the pay was calculated{row.rate_calculated_at ? ` on ${when(row.rate_calculated_at)}` : ''}; later profile changes do not rewrite this entry.</Typography>
+      </Stack>}
+    </DialogContent>
+    <DialogActions><AppButton variant="secondary" onClick={onClose}>Close</AppButton></DialogActions>
+  </Dialog>
 }
 
 function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
