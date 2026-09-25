@@ -270,20 +270,19 @@ export class CqcController {
     const riskTotal = parseInt(risks.total || '0');
     const riskOverdue = parseInt(risks.overdue || '0');
 
-    // 8. Supervision / appraisal tracking
+    // 8. Supervision / appraisal tracking.
+    // Counted from the staff_supervisions log. This previously read from
+    // audit_logs rows with action = 'supervision', which nothing ever wrote,
+    // so the rate was always zero regardless of what had actually happened.
     const supervisionResult = await pool.query(
       `SELECT
-        COUNT(DISTINCT sp.user_id) as total,
-        COUNT(DISTINCT sp.user_id) FILTER (
-          WHERE EXISTS (
-            SELECT 1 FROM audit_logs al
-            WHERE al.user_id = sp.user_id AND al.action = 'supervision'
-              AND al.created_at >= CURRENT_DATE - INTERVAL '6 months'
-          )
-        ) as supervised
-       FROM staff_profiles sp
-       JOIN users u ON sp.user_id = u.id
-       WHERE u.organization_id = $1 AND u.status = 'active'`, [orgId]
+        (SELECT COUNT(*)::int FROM users u
+          WHERE u.organization_id = $1 AND u.status = 'active') as total,
+        (SELECT COUNT(DISTINCT s.staff_user_id)::int
+           FROM staff_supervisions s
+           JOIN users u ON u.id = s.staff_user_id
+          WHERE s.organization_id = $1
+            AND s.supervised_at >= CURRENT_DATE - INTERVAL '6 months') as supervised`, [orgId]
     );
     const supervision = supervisionResult.rows[0];
     const supervisionTotal = parseInt(supervision.total || '0');

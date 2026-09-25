@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
-import { createOrg, createUser, generateToken } from '../../test/factories'
+import { createOrg, createUser, createStaffProfile, generateToken } from '../../test/factories'
 
 let app: Express
 
@@ -43,6 +43,38 @@ describe('CQC — readiness, frameworks, action items', () => {
     expect(response.status).toBe(200)
     expect(response.body).toHaveProperty('visitCompletion')
     expect(response.body).toHaveProperty('riskAssessments')
+  })
+
+  it('should count recorded supervisions in the domiciliary compliance score', async () => {
+    // The supervision figure used to be derived from audit_logs rows that
+    // nothing ever wrote, so it could never move off zero. It now reads the
+    // supervision log, and this proves the two agree.
+    const org = await createOrg({ service_types: ['domiciliary'] })
+    const manager = await createUser({ email: `sup-mgr-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    const carer = await createUser({ email: `sup-carer-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', organization_id: org.id })
+    await createStaffProfile({ userId: manager.id })
+    await createStaffProfile({ userId: carer.id })
+    const token = generateToken(manager)
+
+    const before = await request(app)
+      .get('/cqc/homecare-compliance')
+      .set('Authorization', `Bearer ${token}`)
+    expect(before.body.supervision.done).toBe(0)
+
+    await request(app)
+      .post('/supervisions')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ staff_user_id: carer.id, supervisor_user_id: manager.id, supervised_at: '2026-09-01' })
+      .expect(201)
+
+    const after = await request(app)
+      .get('/cqc/homecare-compliance')
+      .set('Authorization', `Bearer ${token}`)
+
+    expect(after.status).toBe(200)
+    expect(after.body.supervision.done).toBe(1)
+    expect(after.body.supervision.total).toBe(2)
+    expect(after.body.supervision.rate).toBe(50)
   })
 
   it('should create, list, update and delete an action item as MANAGER', async () => {

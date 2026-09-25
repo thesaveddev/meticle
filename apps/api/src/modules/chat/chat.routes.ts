@@ -20,6 +20,10 @@ router.patch('/channels/:channel/messages/:id', ChatController.editMessage);
 router.delete('/channels/:channel/messages/:id', ChatController.deleteMessage);
 
 // Channel management
+router.get('/link-preview', asyncHandler(ChatController.getLinkPreview));
+router.get('/channels/:channelId/files', asyncHandler(ChatController.listChannelFiles));
+router.post('/channels/:channelId/files', ...uploadWithScan('file'), asyncHandler(ChatController.uploadChannelFile));
+router.delete('/channels/:channelId/files/:fileId', asyncHandler(ChatController.deleteChannelFile));
 router.post('/ensure-general', ChatController.ensureGeneral);
 router.get('/org-members', ChatController.listOrgMembers);
 router.get('/channels/:channelId/members', ChatController.listChannelMembers);

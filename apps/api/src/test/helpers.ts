@@ -18,6 +18,7 @@ import pool from '../shared/database'
 import authRoutes from '../modules/auth/auth.routes'
 import orgRoutes from '../modules/orgs/org.routes'
 import staffRoutes from '../modules/staff/staff.routes'
+import supervisionRoutes from '../modules/supervisions/supervisions.routes'
 import complianceRoutes from '../modules/compliance/compliance.routes'
 import schedulingRoutes from '../modules/scheduling/scheduling.routes'
 import personRoutes from '../modules/people/people.routes'
@@ -62,7 +63,7 @@ import eventRoutes from '../modules/events/events.routes'
 import platformAdminRoutes from '../modules/platform-admin/platform-admin.routes'
 import shiftAuditRoutes from '../modules/shift-audit/shift-audit.routes'
 import missionControlRoutes from '../modules/mission-control/mission-control.routes'
-import homecareRoutes, { publicInvoiceRouter } from '../modules/homecare/homecare.routes'
+import homecareRoutes, { publicInvoiceRouter, publicEmailDsnRouter } from '../modules/homecare/homecare.routes'
 
 export function createTestApp(): Express {
   const app = express()
@@ -73,6 +74,7 @@ export function createTestApp(): Express {
   app.use('/api', rateLimit(1000, 60_000))
   app.use(metricsMiddleware)
   app.use(rlsMiddleware)
+  app.use('/homecare/email/dsn-callback', express.raw({ type: 'application/json' }), publicEmailDsnRouter)
   app.use(express.json({ limit: '15mb' }))
 
   app.use('/auth', authRoutes)
@@ -123,6 +125,7 @@ export function createTestApp(): Express {
   app.use('/shift-audit', shiftAuditRoutes)
   app.use('/mission-control', missionControlRoutes)
   app.use('/homecare', authenticate, requireDomiciliaryOnly, homecareRoutes)
+  app.use('/supervisions', supervisionRoutes)
   app.use('/api/client-invoices', publicInvoiceRouter)
 
   app.get('/health/live', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))

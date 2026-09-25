@@ -22,9 +22,11 @@ router.get('/locations', asyncHandler(LeaveController.getLocations));
 
 // Manager/Admin routes
 router.get('/types', asyncHandler(LeaveController.getLeaveTypes));
-router.post('/types', requireRole(UserRole.ORG_ADMIN), validate(createLeaveTypeSchema), asyncHandler(LeaveController.createLeaveType));
-router.put('/types/:id', requireRole(UserRole.ORG_ADMIN), validate(updateLeaveTypeSchema), asyncHandler(LeaveController.updateLeaveType));
-router.delete('/types/:id', requireRole(UserRole.ORG_ADMIN), asyncHandler(LeaveController.deleteLeaveType));
+// Leave types are operational reference data managers need to maintain
+// alongside the leave requests they already approve.
+router.post('/types', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createLeaveTypeSchema), asyncHandler(LeaveController.createLeaveType));
+router.put('/types/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateLeaveTypeSchema), asyncHandler(LeaveController.updateLeaveType));
+router.delete('/types/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(LeaveController.deleteLeaveType));
 router.get('/requests', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(LeaveController.getAllLeaveRequests));
 router.patch('/requests/:id/review', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(reviewLeaveRequestSchema), asyncHandler(LeaveController.reviewLeaveRequest));
 router.get('/balances/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(LeaveController.getStaffLeaveBalances));
