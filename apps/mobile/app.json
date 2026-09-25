@@ -26,8 +26,8 @@
       "allowBackup": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1A2332",
-        "monochromeImage": "./assets/adaptive-icon.png"
+        "backgroundColor": "#0E4D89",
+        "monochromeImage": "./assets/monochrome-icon.png"
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
@@ -49,7 +49,7 @@
       [
         "expo-notifications",
         {
-          "color": "#0F4C81",
+          "color": "#0E4D89",
           "icon": "./assets/notification-icon.png",
           "sounds": []
         }
@@ -63,7 +63,7 @@
           "backgroundColor": "#FFFFFF",
           "dark": {
             "image": "./assets/splash-icon-dark.png",
-            "backgroundColor": "#0B0E14"
+            "backgroundColor": "#001C46"
           }
         }
       ],
