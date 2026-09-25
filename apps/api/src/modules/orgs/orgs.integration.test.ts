@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, vi } from 'vitest'
 import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
+import { createOrg, createUser, generateToken } from '../../test/factories'
 
 vi.mock('../../shared/middleware/rateLimit.middleware', () => ({
   rateLimit: () => (_req: any, _res: any, next: any) => next(),
@@ -75,6 +76,32 @@ describe('Organizations — onboarding dismiss persistence', () => {
     expect(response.body.service_types).toEqual(['domiciliary'])
     expect(response.body.primary_service_type).toBe('domiciliary')
     expect(response.body.onboarding_completed).toBe(true)
+  }, 30_000)
+
+  it('lets a manager update operational fields like default rates', async () => {
+    const org = await createOrg()
+    const manager = await createUser({ email: `orgmgr-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+
+    const res = await request(app)
+      .patch(`/organizations/${org.id}`)
+      .set('Authorization', `Bearer ${generateToken(manager)}`)
+      .send({ default_hourly_rate_pence: 1800, default_mileage_rate_pence: 45, auto_approve_documents: true })
+
+    expect(res.status).toBe(200)
+    expect(Number(res.body.default_hourly_rate_pence)).toBe(1800)
+    expect(Number(res.body.default_mileage_rate_pence)).toBe(45)
+  }, 30_000)
+
+  it('rejects a manager changing identity or commercial fields', async () => {
+    const org = await createOrg()
+    const manager = await createUser({ email: `orgmgr2-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+
+    const res = await request(app)
+      .patch(`/organizations/${org.id}`)
+      .set('Authorization', `Bearer ${generateToken(manager)}`)
+      .send({ plan: 'enterprise', status: 'suspended' })
+
+    expect(res.status).toBe(403)
   }, 30_000)
 
   it('allows clearing onboarding_dismissed_at back to null', async () => {

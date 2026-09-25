@@ -194,6 +194,54 @@ describe('Settings — org, locations, compliance, delegations', () => {
     expect(asWorker.status).toBe(403)
   })
 
+  it('should let a manager manage areas and operational settings, but not security policy', async () => {
+    const org = await createOrg()
+    const manager = await createUser({ email: `setmgr-${Date.now()}@test.com`, password: 'TestPass123!', role: 'MANAGER', organization_id: org.id })
+    const token = generateToken(manager)
+
+    // Areas/locations: create, update, delete (the Areas page needs these)
+    const created = await request(app)
+      .post('/settings/locations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Cathays', address: 'Cathays, Cardiff' })
+    expect(created.status).toBe(201)
+    const updated = await request(app)
+      .put(`/settings/locations/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Cathays East' })
+    expect(updated.status).toBe(200)
+
+    // Operational org settings allowed
+    const ops = await request(app)
+      .patch('/settings/org')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ minimum_compliance_percent: 92, overtime_requires_approval: true })
+    expect(ops.status).toBe(200)
+
+    // Security policy and SOS contacts stay admin-only at field level
+    const mfa = await request(app)
+      .patch('/settings/org')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ force_mfa: true })
+    expect(mfa.status).toBe(403)
+
+    // Compliance configuration: managers may create, not delete
+    const comp = await request(app)
+      .post('/settings/compliance-config')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'DBS Check', description: 'Enhanced DBS', category: 'document', is_mandatory: true, days_warning: 30 })
+    expect(comp.status).toBe(201)
+    const delComp = await request(app)
+      .delete(`/settings/compliance-config/${comp.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(delComp.status).toBe(403)
+
+    const deleted = await request(app)
+      .delete(`/settings/locations/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(deleted.status).toBe(200)
+  }, 30_000)
+
   it('should reject without auth (401)', async () => {
     const res = await request(app).get('/settings/org')
     expect(res.status).toBe(401)

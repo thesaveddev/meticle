@@ -12,7 +12,7 @@ const router = Router();
 
 router.post('/', authenticate, requireRole(UserRole.ORG_ADMIN), rateLimit(5, 60000), validate(createOrganizationSchema), asyncHandler(OrgController.createOrganization));
 router.get('/:id', authenticate, asyncHandler(OrgController.getOrganization));
-router.patch('/:id', authenticate, requireRole(UserRole.ORG_ADMIN), validate(updateOrganizationSchema), asyncHandler(OrgController.updateOrganization));
+router.patch('/:id', authenticate, requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateOrganizationSchema), asyncHandler(OrgController.updateOrganization));
 router.post('/:orgId/locations', authenticate, requireRole(UserRole.ORG_ADMIN), validate(createLocationSchema), asyncHandler(OrgController.createLocation));
 router.get('/:orgId/locations', authenticate, asyncHandler(OrgController.getLocationsByOrg));
 router.post('/:locationId/departments', authenticate, requireRole(UserRole.ORG_ADMIN), validate(createDepartmentSchema), asyncHandler(OrgController.createDepartment));

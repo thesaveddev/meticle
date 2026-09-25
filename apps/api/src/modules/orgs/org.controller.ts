@@ -52,7 +52,21 @@ export class OrgController {
     const user = req.user!;
     const { id } = req.params;
     if (id !== user.organizationId) throw new AppError(403, 'Access denied');
-    const updates = req.body;
+    let updates: any = req.body;
+
+    // MANAGERs may only change day-to-day operational fields. Identity,
+    // commercial and onboarding fields stay with the org admin.
+    if (user.role === 'MANAGER') {
+      const managerAllowed = new Set(['default_hourly_rate_pence', 'default_mileage_rate_pence', 'auto_approve_documents']);
+      const filtered: any = {};
+      for (const k of Object.keys(updates)) {
+        if (managerAllowed.has(k)) filtered[k] = updates[k];
+      }
+      if (Object.keys(filtered).length === 0) {
+        throw new AppError(403, 'Managers can only update operational organisation settings');
+      }
+      updates = filtered;
+    }
     const current = await OrgRepository.getOrgById(id);
     if (!current) throw new AppError(404, 'Organization not found');
 

@@ -228,6 +228,11 @@ export const updateOrganizationSchema = z.object({
   onboarding_completed: z.boolean().optional(),
   onboarding_dismissed_at: z.string().nullable().optional(),
   auto_approve_documents: z.boolean().optional(),
+  // Organisation default pay/mileage rates used as fallbacks for calls and
+  // packages without their own rate. Long omitted here, which silently
+  // stripped them from every save of the Organization settings tab.
+  default_hourly_rate_pence: z.number().int().min(0).nullable().optional(),
+  default_mileage_rate_pence: z.number().int().min(0).nullable().optional(),
   service_types: serviceTypesSchema.optional(),
   primary_service_type: z.enum(SERVICE_TYPES).optional(),
 });
@@ -1398,6 +1403,17 @@ export const updateAppointmentSchema = z.object({
 });
 
 // === Person Goals ===
+export const createSupervisionSchema = z.object({
+  staff_user_id: z.string().uuid(),
+  supervisor_user_id: z.string().uuid(),
+  supervised_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  supervision_type: z.enum(['individual', 'group', 'remote', 'appraisal']).optional().nullable(),
+  agenda: z.string().max(2000).optional().nullable(),
+  notes: z.string().max(5000).optional().nullable(),
+  actions: z.string().max(5000).optional().nullable(),
+  next_due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+});
+
 export const createGoalSchema = z.object({
   person_id: z.string().uuid(),
   title: z.string().min(1).max(500),
