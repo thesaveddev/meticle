@@ -329,6 +329,17 @@ modules/<name>/
 - Document Drive (file management UI)
 - Full reporting suite (live PDF exports from all modules)
 - Family Portal Finances tab
+- Supported-living mobile app (see `docs/MOBILE_SUPPORTED_LIVING_BLUEPRINT.md`)
+
+> **Mobile, supported living.** The shipped mobile app is domiciliary-only: its data
+> layer calls `/homecare/*`, which is mounted behind `requireDomiciliaryOnly`, so a
+> supported-living organisation is refused every endpoint it uses. The target
+> capability set for managers and support workers, and the backend work it depends
+> on, are specified in `docs/MOBILE_SUPPORTED_LIVING_BLUEPRINT.md`. Two findings
+> there are not mobile-only and affect the web app today: support workers cannot
+> report incidents (`POST /incidents` is manager-only) and cannot complete tasks
+> (`PATCH /tasks/:id` is manager-only while the navigation offers Tasks to care
+> workers).
 
 ---
 
