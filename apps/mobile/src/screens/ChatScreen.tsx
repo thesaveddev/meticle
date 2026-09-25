@@ -44,7 +44,11 @@ interface ChatChannel {
   name: string
   channel_type: 'general' | 'group' | 'dm'
   other_member?: { id: string; name: string; email: string; profile_picture_url?: string } | null
-  last_message?: { content: string; sender_name: string; created_at: string } | null
+  // The channel list carries the last message as plain text, with its
+  // timestamp alongside. It does not carry who sent it, so the preview must
+  // not try to name the sender.
+  last_message?: string | null
+  last_message_at?: string | null
   unread_count: number
   member_count: number
   created_at: string | null
@@ -88,6 +92,12 @@ function getAvatarColor(id: string) {
 function getInitials(name: string) {
   if (!name) return '?'
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+}
+
+/** A channel with no messages yet should read as empty, not as a blank line. */
+function previewText(preview: string | null | undefined) {
+  if (!preview) return 'No messages yet'
+  return preview.length > 40 ? `${preview.slice(0, 40)}…` : preview
 }
 
 function formatListTime(dateStr: string) {
@@ -416,9 +426,8 @@ export function ChatScreen({ session, onBack }: Props) {
 
   const renderConversation = ({ item }: { item: ChatChannel }) => {
     const color = getAvatarColor(item.id)
-    const lastMsg = item.last_message
-    const preview = lastMsg ? `${lastMsg.sender_name.split(' ')[0]}: ${lastMsg.content}` : 'No messages yet'
-    const time = lastMsg ? formatListTime(lastMsg.created_at) : ''
+    const preview = previewText(item.last_message)
+    const time = item.last_message_at ? formatListTime(item.last_message_at) : ''
     const hasUnread = item.unread_count > 0
 
     return (

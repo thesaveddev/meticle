@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, elevation, radii, spacing, FONT, useTheme } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
@@ -9,7 +9,7 @@ import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
 import { IconSyncSmall, IconBell, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
-export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onAvailability, onAnnualLeave }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onAvailability, onAnnualLeave, onDeleteAccount }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
@@ -17,12 +17,14 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, on
   onLearn?: () => void
   onAvailability?: () => void
   onAnnualLeave?: () => void
+  onDeleteAccount?: () => Promise<void>
 }) {
   const { mode, scheme, setMode, colors: c } = useTheme()
   const s = useDynamicStyles(styles)
   const [reminders, setReminders] = useState<'unknown' | 'enabled' | 'disabled'>('unknown')
   const [message, setMessage] = useState('')
   const [hapticOn, setHapticOn] = useState(true)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     requestReminderPermission()
@@ -220,6 +222,50 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, on
             <Text style={[s.msgText, { color: c.successDeep }]}>{message}</Text>
           </View>
         ) : null}
+
+        {/* Account deletion. Google Play requires any app with account creation
+            to give its users a way to request deletion, and this is the only
+            place a member of staff can start that from the app. */}
+        <View style={s.group}>
+          <Text style={[s.groupLabel, { color: c.subtle }]}>ACCOUNT</Text>
+          <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Pressable
+              disabled={deleting}
+              onPress={() => {
+                hapticLight()
+                if (!onDeleteAccount) return
+                Alert.alert(
+                  'Delete your account?',
+                  'Your account will be deactivated and you will be signed out. Your care records are retained by your organisation for regulatory reasons — contact your manager to have your personal data erased.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete my account',
+                      style: 'destructive',
+                      onPress: async () => {
+                        setDeleting(true)
+                        try { await onDeleteAccount() }
+                        finally { setDeleting(false) }
+                      },
+                    },
+                  ],
+                )
+              }}
+              style={s.menuRow}
+            >
+              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
+                <IconSettings size={18} color={c.danger} />
+              </View>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Delete my account</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>
+                  {deleting ? 'Deactivating…' : 'Deactivates your account and signs you out'}
+                </Text>
+              </View>
+              <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
+            </Pressable>
+          </View>
+        </View>
 
         {/* Sign out */}
         <Pressable onPress={() => { hapticLight(); onSignOut() }} style={({ pressed }) => [s.signOutBtn, { borderColor: c.danger + '30', backgroundColor: c.dangerSurface }, pressed && { opacity: 0.7 }]}>

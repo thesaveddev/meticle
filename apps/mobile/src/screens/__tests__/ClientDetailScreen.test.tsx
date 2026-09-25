@@ -66,3 +66,58 @@ describe('ClientDetailScreen', () => {
   })
 
 })
+
+describe('ClientDetailScreen section navigation', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  // Opening a section from a card keeps the same screen mounted and hands it a
+  // different section, so the section has to be read as live state. Treating it
+  // as a one-time initial value meant every card opened the overview instead.
+  it('shows the requested section when the same screen instance is reused', async () => {
+    const screen = render(<ClientDetailScreen personId="person-1" session={session} onBack={jest.fn()} onOpenSection={jest.fn()} />)
+    await waitFor(() => expect(screen.getByText('Ada Lovelace')).toBeTruthy())
+
+    for (const [section, expected, absent] of [
+      ['care', 'Personal care', 'Initial assessment'],
+      ['risks', 'Falls', 'Personal care'],
+      ['records', 'Support plan', 'Personal care'],
+    ] as const) {
+      screen.rerender(
+        <ClientDetailScreen
+          personId="person-1" session={session} onBack={jest.fn()}
+          initialTab={section as any} sectionOnly
+        />,
+      )
+      await waitFor(() => expect(screen.getByText(expected)).toBeTruthy())
+      expect(screen.queryByText(absent)).toBeNull()
+    }
+  })
+
+  it('switches directly between sections without reloading through the overview', async () => {
+    const screen = render(
+      <ClientDetailScreen personId="person-1" session={session} onBack={jest.fn()} initialTab="risks" sectionOnly />,
+    )
+    await waitFor(() => expect(screen.getByText('Falls')).toBeTruthy())
+
+    screen.rerender(
+      <ClientDetailScreen personId="person-1" session={session} onBack={jest.fn()} initialTab="care" sectionOnly />,
+    )
+    await waitFor(() => expect(screen.getByText('Personal care')).toBeTruthy())
+    expect(screen.queryByText('Falls')).toBeNull()
+  })
+
+  it('returns to the overview when a section is dismissed', async () => {
+    const screen = render(
+      <ClientDetailScreen personId="person-1" session={session} onBack={jest.fn()} initialTab="contacts" sectionOnly />,
+    )
+    await waitFor(() => expect(screen.getByText('Ada Lovelace')).toBeTruthy())
+
+    screen.rerender(
+      <ClientDetailScreen personId="person-1" session={session} onBack={jest.fn()} initialTab="overview" sectionOnly />,
+    )
+    // Back on the overview, the section page shows the overview tab again
+    // rather than whichever section was last opened.
+    await waitFor(() => expect(screen.getAllByText('Overview').length).toBeGreaterThan(0))
+    expect(screen.queryByText('Personal care')).toBeNull()
+  })
+})

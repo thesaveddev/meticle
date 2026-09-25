@@ -77,6 +77,14 @@ export interface OfflineVisitAction {
   createdAt: string
   state: SyncState
   error?: string
+  /** How many times this action has been sent to the server. */
+  attempts?: number
+  /**
+   * Set when the server rejected the payload itself (a 4xx that will keep
+   * failing). Such an action is kept for the record but never retried, so a
+   * check-in that can never succeed does not block the queue forever.
+   */
+  permanent?: boolean
 }
 
 export interface AvailabilityRecord {

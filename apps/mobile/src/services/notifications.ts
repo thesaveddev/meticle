@@ -73,7 +73,13 @@ export async function scheduleVisitReminder(visit: HomecareVisit, minutesBefore 
     const triggerAt = new Date(new Date(visit.scheduled_start).getTime() - minutesBefore * 60_000)
     if (triggerAt.getTime() <= Date.now()) return null
     const id = await N.scheduleNotificationAsync({
-      content: { title: 'Upcoming care visit', body: `${visit.label}${visit.person_name ? ` with ${visit.person_name}` : ''} starts in ${minutesBefore} minutes.` },
+      content: {
+        title: 'Upcoming care visit',
+        body: `${visit.label}${visit.person_name ? ` with ${visit.person_name}` : ''} starts in ${minutesBefore} minutes.`,
+        // Carried so tapping the reminder opens the visit rather than dropping
+        // the carer on the Today tab with no idea what it referred to.
+        data: { type: 'visit_reminder', visitId: visit.id },
+      },
       trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: triggerAt },
     })
     return id
@@ -160,6 +166,22 @@ export function removeNotificationListeners() {
     notificationListeners.sub?.remove()
     notificationListeners.responseSub?.remove()
     notificationListeners = null
+  }
+}
+
+/**
+ * The notification that opened the app, if the app was launched by tapping one.
+ * Without this, a cold start from a notification is indistinguishable from a
+ * normal launch, and the tap the carer made appears to do nothing.
+ */
+export async function getLaunchNotification(): Promise<Record<string, any> | null> {
+  try {
+    const N = await getNotifications()
+    if (!N) return null
+    const response = await N.getLastNotificationResponseAsync()
+    return response?.notification?.request?.content?.data || null
+  } catch {
+    return null
   }
 }
 

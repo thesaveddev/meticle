@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ActivityIndicator, BackHandler, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, BackHandler, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter'
 import { ThemeProvider, useTheme, elevation, radii, spacing, FONT } from './src/theme'
@@ -8,10 +8,10 @@ import { TabIcon } from './src/components/TabIcons'
 import { Ionicons } from '@expo/vector-icons'
 import { hapticLight, hapticMedium } from './src/services/haptics'
 import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitAction } from './src/types'
-import { readSession } from './src/services/storage'
-import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount, getChatUnread } from './src/services/api'
+import { readSession, clearSession } from './src/services/storage'
+import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount, getChatUnread, selfDeactivate } from './src/services/api'
 import { enqueueVisitAction, flushQueue, getQueue } from './src/services/visitQueue'
-import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners } from './src/services/notifications'
+import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners, getLaunchNotification } from './src/services/notifications'
 import { LoginScreen } from './src/screens/LoginScreen'
 import { TodayScreen, dayRange } from './src/screens/TodayScreen'
 import { VisitScreen } from './src/screens/VisitScreen'
@@ -163,7 +163,12 @@ function AppInner() {
       if (!stored) { setBooting(false); return }
       try {
         const current = await getCurrentUser(stored.accessToken)
-        const active = { ...stored, user: current.user, organization: current.organization }
+        // If the stored access token had expired, that call refreshed it and
+        // rewrote the session. Use the new token rather than the stale one, so
+        // the app does not burn another single-use refresh token on the very
+        // next request.
+        const live = (await readSession()) || stored
+        const active = { ...live, user: current.user, organization: current.organization }
         setSession(active); await loadQueue(); await loadVisits(active)
         registerForPushNotifications(active.accessToken).catch(() => {})
         getUnreadNotificationCount(active.accessToken).then(setUnreadCount).catch(() => {})
@@ -174,6 +179,33 @@ function AppInner() {
     return () => { removeNotificationListeners() }
   }, [loadQueue, loadVisits])
 
+  /* ─── Notification taps ───────────────────────────────────── */
+  // A tapped notification should take the carer to the thing it is about.
+  // Previously a tap only cleared the chat badge, and a notification that
+  // launched the app was ignored entirely.
+  const openFromNotification = useCallback((data: Record<string, any> | null) => {
+    if (!data) return
+    const visitId = data.visitId as string | undefined
+    if (visitId) {
+      const target = visits.find(v => v.id === visitId)
+      if (target) { setScreenStack([{ kind: 'tabs' }, { kind: 'visit', visit: target }]); return }
+    }
+    if (data.type === 'chat' || data.channelId) {
+      setTab('chat')
+      setScreenStack([{ kind: 'tabs' }])
+    }
+  }, [visits])
+
+  // A notification that launched the app is delivered once the session exists
+  // and the day's visits are loaded, otherwise the target visit is not known.
+  const launchHandled = useRef(false)
+  useEffect(() => {
+    if (launchHandled.current || !session?.accessToken || visits.length === 0) return
+    launchHandled.current = true
+    getLaunchNotification().then(openFromNotification).catch(() => {})
+  }, [session?.accessToken, visits.length, openFromNotification])
+
+
   // Keep push registration and chat notification handling tied to the authenticated session.
   useEffect(() => {
     if (!session?.accessToken) return
@@ -182,11 +214,12 @@ function AppInner() {
       if (type !== 'chat' || disposed) return
       hapticMedium()
       setChatUnreadCount(count => count + 1)
-    }, (type) => {
-      if (type === 'chat') setChatUnreadCount(0)
+    }, (_type, data) => {
+      setChatUnreadCount(0)
+      openFromNotification(data)
     })
     return () => { disposed = true; removeNotificationListeners() }
-  }, [session?.accessToken])
+  }, [session?.accessToken, openFromNotification])
 
   useEffect(() => {
     if (!session?.accessToken) return
@@ -240,9 +273,38 @@ function AppInner() {
   }
 
   async function handleSignOut() {
+    // Visit evidence that has not reached the server yet would be destroyed by
+    // signing out, because the queue lives behind the session. Try to sync
+    // first and make the carer choose knowingly if anything is left.
+    if (session?.accessToken) {
+      await flushQueue(session.accessToken).catch(() => null)
+      const stranded = (await getQueue()).filter(item => item.state !== 'synced').length
+      if (stranded > 0) {
+        const proceed = await new Promise<boolean>(resolve => {
+          Alert.alert(
+            `${stranded} action${stranded === 1 ? '' : 's'} not yet saved`,
+            'These are visit check-ins or check-outs that have not reached the server. Signing out now will lose them.',
+            [
+              { text: 'Keep me signed in', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Sign out anyway', style: 'destructive', onPress: () => resolve(true) },
+            ],
+            { cancelable: true, onDismiss: () => resolve(false) },
+          )
+        })
+        if (!proceed) { await loadQueue(); return }
+      }
+    }
     await logout()
     setSession(null); setVisits([]); setQueue([]); setScreenStack([{ kind: 'tabs' }])
   }
+
+  /** Deactivates the signed-in account, then signs out. Wired to Settings. */
+  const handleDeleteAccount = useCallback(async () => {
+    if (!session?.accessToken) return
+    await selfDeactivate(session.accessToken)
+    await clearSession()
+    setSession(null); setVisits([]); setQueue([]); setScreenStack([{ kind: 'tabs' }])
+  }, [session?.accessToken])
 
   const user: MobileUser | null = session?.user || null
   const activeQueue = useMemo(() => queue.filter(item => item.state !== 'synced'), [queue])
@@ -389,7 +451,7 @@ function AppInner() {
 
           {/* Shared tabs */}
           {tab === 'chat' && <ChatScreen session={session} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} onDeleteAccount={handleDeleteAccount} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>
