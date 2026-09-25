@@ -40,6 +40,7 @@ export class IncidentsRepository {
     status?: string; category_id?: string; severity?: string; is_near_miss?: string;
     date_from?: string; date_to?: string; include_confidential?: boolean;
     limit?: number; offset?: number;
+    reportedBy?: string;
   } = {}) {
     let sql = `SELECT i.*, to_char(i.incident_time, 'HH24:MI') AS incident_time, ic.name AS category_name, sp.first_name AS reported_by_first, sp.last_name AS reported_by_last,
                       (SELECT COUNT(*)::int FROM incident_actions ia WHERE ia.incident_id = i.id AND ia.completed_at IS NULL) AS open_actions
@@ -50,6 +51,9 @@ export class IncidentsRepository {
     const params: any[] = [orgId];
     let idx = 2;
     if (!opts.include_confidential) { sql += ` AND i.is_confidential = FALSE`; }
+    // A support worker sees only what they raised, so filing a concern never
+    // exposes them to the organisation's whole incident history.
+    if (opts.reportedBy) { sql += ` AND i.reported_by = $${idx}`; params.push(opts.reportedBy); idx++; }
     if (opts.status) { sql += ` AND i.status = $${idx}`; params.push(opts.status); idx++; }
     if (opts.category_id) { sql += ` AND i.category_id = $${idx}`; params.push(opts.category_id); idx++; }
     if (opts.severity) { sql += ` AND i.severity = $${idx}`; params.push(opts.severity); idx++; }

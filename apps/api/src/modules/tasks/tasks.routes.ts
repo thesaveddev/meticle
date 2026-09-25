@@ -13,7 +13,10 @@ router.use(authenticate);
 router.get('/', asyncHandler(TaskController.list));
 router.get('/:id', asyncHandler(TaskController.getById));
 router.post('/', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(createTaskSchema), asyncHandler(TaskController.create));
-router.patch('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateTaskSchema), asyncHandler(TaskController.update));
+// A support worker can complete or annotate a task, which is the whole point of
+// the task list appearing in their navigation. The controller reduces their
+// submission to status and notes.
+router.patch('/:id', validate(updateTaskSchema), asyncHandler(TaskController.update));
 router.delete('/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(TaskController.delete));
 
 export default router;
