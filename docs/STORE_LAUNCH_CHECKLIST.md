@@ -35,7 +35,7 @@ the account-deletion fix. Detail lives in `docs/STORE_RELEASE_RUNBOOK.md` and
 - **Store screenshots** — still not done, but they cannot be faked. See the
   runbook.
 
-## Two real bugs found and fixed while verifying
+## Three real bugs found and fixed while verifying
 
 - **`self-deactivate` did not delete anything.** It set
   `status = 'deactivated'` and stopped there, leaving email, date of birth,
@@ -43,12 +43,17 @@ the account-deletion fix. Detail lives in `docs/STORE_RELEASE_RUNBOOK.md` and
   reset tokens in the database. Now erased, with the professional name kept on
   purpose so care records stay attributable. I originally reported this as
   "genuinely implemented" — it was not.
-- **Two homecare suites failed depending on the hour they ran.** Both scheduled a
-  visit relative to "now" and derived the day by slicing a UTC timestamp, while
-  the endpoints bound the period with bare `::date` casts resolved in the
-  session timezone (`Europe/London`, where a day ends at 23:00Z). Between 22:00
-  and 24:00 UTC the visit fell outside the window of its own date. Caught only
-  because the suite happened to run late in the evening.
+- **The API suite failed for an hour every evening.** Four homecare tests
+  scheduled a record relative to "now" and derived the query day by slicing its
+  UTC timestamp, while the endpoints bound the period with bare `::date` casts
+  resolved in the session timezone (`Europe/London`, where a day ends at 23:00Z).
+  After 22:40 UTC a visit twenty minutes out fell outside the window of its own
+  date. It presented as a different unrelated module failing on each run.
+- **The web "Add availability" button did nothing useful for anyone.** Tab
+  panels were pinned to fixed indices while the tabs themselves were
+  conditionally rendered on role, so they drifted. Managers landed on the
+  Weekly summary; carers got a blank panel. Care workers could not add their
+  own availability window at all.
 
 ## Still blocked — needs credentials, a device, or a legal decision
 
