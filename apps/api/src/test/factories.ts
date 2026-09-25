@@ -2,6 +2,26 @@ import { migrateQuery as query } from '../shared/database'
 import { hashPassword } from '../modules/auth/password.util'
 import { v4 as uuidv4 } from 'uuid'
 
+/**
+ * The calendar day a timestamp falls on, in the database session's timezone.
+ *
+ * Date-range endpoints bound the period with bare `::date` casts, which
+ * Postgres resolves in the session TimeZone. Slicing a UTC ISO string to get the
+ * day therefore disagrees with the query whenever the local day is not the UTC
+ * day — with Europe/London sessions, a visit twenty minutes from now falls
+ * outside the window of its own date once the clock passes 22:40 UTC, and the
+ * suite fails only during that hour. Ask the database, which is the only thing
+ * guaranteed to agree with the query.
+ */
+export async function sessionDay(iso: string | Date): Promise<string> {
+  const value = iso instanceof Date ? iso.toISOString() : iso
+  const { rows } = await query(
+    `SELECT to_char($1::timestamptz AT TIME ZONE current_setting('TimeZone'), 'YYYY-MM-DD') AS day`,
+    [value]
+  )
+  return rows[0].day
+}
+
 /** Create an organization with defaults. Returns the full row. */
 export async function createOrg(overrides: Record<string, any> = {}) {
   const id = uuidv4()
@@ -38,19 +58,40 @@ export async function createOrg(overrides: Record<string, any> = {}) {
 /** Create a user. Returns the full row (without password_hash). */
 export async function createUser(overrides: Record<string, any> = {}) {
   const id = overrides.id || uuidv4()
-  const email = overrides.email || `test-${id.slice(0, 8)}@example.com`
+  const requestedEmail = overrides.email || `test-${id.slice(0, 8)}@example.com`
   const passwordHash = await hashPassword(overrides.password || 'TestPass123!')
   const role = overrides.role || 'CARE_WORKER'
   const status = overrides.status || 'active'
   const organizationId = overrides.organization_id || overrides.organizationId || null
   const createdAt = overrides.created_at || new Date().toISOString()
 
-  await query(
-    `INSERT INTO users (id, email, password_hash, role, status, organization_id, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
-     ON CONFLICT (email) DO NOTHING`,
-    [id, email, passwordHash, role, status, organizationId, createdAt]
-  )
+  // Suites run in parallel against one shared database and most of them build
+  // the address from Date.now(), which is only unique per millisecond. Two
+  // files can therefore ask for the same address, and a bare
+  // ON CONFLICT (email) DO NOTHING silently returns the *other* suite's user.
+  // The result is a baffling failure much later, in an unrelated
+  // organisation-scoped assertion. Disambiguate on collision so the row handed
+  // back is always the row we just created.
+  const disambiguate = (value: string) => {
+    const at = value.indexOf('@')
+    const local = at === -1 ? value : value.slice(0, at)
+    const domain = at === -1 ? 'example.com' : value.slice(at)
+    return `${local}-${Math.random().toString(36).slice(2, 10)}${domain}`
+  }
+
+  let email = requestedEmail
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const inserted = await query(
+      `INSERT INTO users (id, email, password_hash, role, status, organization_id, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (email) DO NOTHING
+       RETURNING id`,
+      [id, email, passwordHash, role, status, organizationId, createdAt]
+    )
+    if (inserted.rows.length > 0) break
+    email = disambiguate(requestedEmail)
+  }
+
   const result = await query('SELECT * FROM users WHERE id = $1', [id])
   return result.rows[0]
 }

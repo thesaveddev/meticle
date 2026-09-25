@@ -3,7 +3,7 @@ import request from 'supertest'
 import fs from 'fs'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
-import { createOrg, createUser, createPerson, createStaffProfile, generateToken } from '../../test/factories'
+import { createOrg, createUser, createPerson, createStaffProfile, generateToken, sessionDay } from '../../test/factories'
 
 let app: Express
 beforeAll(() => { app = createTestApp() })
@@ -40,7 +40,7 @@ describe.skipIf(!browserAvailable)('payslip render', () => {
     await request(app).post(`/homecare/visits/${visit.body.id}/check-in`).set('Authorization', `Bearer ${carerToken}`).send({ latitude: 51.5, longitude: -0.1, accuracy_meters: 12, actual_travel_minutes: 15, actual_mileage_miles: 4.2 })
     await request(app).post(`/homecare/visits/${visit.body.id}/check-out`).set('Authorization', `Bearer ${carerToken}`).send({ latitude: 51.5, longitude: -0.1, accuracy_meters: 10, actual_mileage_miles: 4.2, note: 'Done.' })
 
-    const day = start.toISOString().slice(0, 10)
+    const day = await sessionDay(start)
     const res = await request(app)
       .get(`/homecare/my-payslip?from=${day}&to=${day}`)
       .set('Authorization', `Bearer ${carerToken}`)

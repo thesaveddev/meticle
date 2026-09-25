@@ -3,7 +3,7 @@ import request from 'supertest'
 import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import { migrateQuery } from '../../shared/database'
-import { createOrg, createUser, createPerson, createStaffProfile, generateToken } from '../../test/factories'
+import { createOrg, createUser, createPerson, createStaffProfile, generateToken, sessionDay } from '../../test/factories'
 
 let app: Express
 beforeAll(() => { app = createTestApp() })
@@ -276,7 +276,8 @@ describe('Homecare Phase 2 foundation', () => {
       scheduled_start: open.start, scheduled_end: open.end,
     })
     expect(visit3.status).toBe(201)
-    const auto = await request(app).post(`/homecare/visits/bulk-auto-assign?from=${open.start.slice(0, 10)}&to=${open.start.slice(0, 10)}`).set('Authorization', `Bearer ${managerToken}`)
+    const openDay = await sessionDay(open.start)
+    const auto = await request(app).post(`/homecare/visits/bulk-auto-assign?from=${openDay}&to=${openDay}`).set('Authorization', `Bearer ${managerToken}`)
     expect(auto.status).toBe(200)
     expect(auto.body.assigned_count).toBe(1)
     expect(auto.body.assignments[0].staff_id).toBe(profileB.id)
