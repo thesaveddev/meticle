@@ -16,7 +16,20 @@
  *   environment says. This is the guard that matters: a store build must never
  *   be able to show invented data.
  * - `EXPO_PUBLIC_CAPTURE_MODE=1` — Metro inlines this at bundle time, so a build
- *   made without it compiles the whole capture path down to dead code.
+ *   made without it has no way to switch capture mode on.
+ *
+ * Neither of those removes the fixture *data* from a store bundle. Both are
+ * runtime conditions, and a static import — or a `require` inside a function —
+ * is a module-graph edge Metro follows regardless of whether the code can ever
+ * run, so a release build still shipped every invented care record. It shipped
+ * the AAB that started this: a client called Eileen, a care plan and a
+ * medication list, present and unreachable.
+ *
+ * So the data never enters the graph in the first place. `metro.config.js`
+ * resolves everything under `src/capture` to `release-stub.js` unless this flag
+ * is `1`, which is keyed on the same variable so the two cannot disagree.
+ * `npm run verify:no-fixtures` bundles the app the way a release does and fails
+ * if any of it reappears. The claim here is tested, not asserted.
  *
  * See `docs/STORE_RELEASE_RUNBOOK.md` for how the host script drives this.
  */

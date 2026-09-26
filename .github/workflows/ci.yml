@@ -67,4 +67,13 @@ jobs:
         run: npm test -- --ci
         working-directory: apps/mobile
 
+      # The store-screenshot fixtures are invented care records, and a release
+      # build shipped them once because the __DEV__ gate stops code running but
+      # cannot stop Metro bundling it. Only a real bundle proves they are gone,
+      # so this cannot be a unit test. Slow, and deliberately not part of
+      # `verify` because it exports the whole app.
+      - name: Check no capture fixtures ship in a store bundle
+        run: npm run verify:no-fixtures
+        working-directory: apps/mobile
+
   # Deploy is now handled by .github/workflows/deploy.yml
