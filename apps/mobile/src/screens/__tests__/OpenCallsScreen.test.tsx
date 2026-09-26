@@ -7,10 +7,12 @@ import * as api from '../../services/api'
 
 jest.mock('../../services/api', () => ({
   getOpenCalls: jest.fn(async () => []),
+  getMyOpenCallClaims: jest.fn(async () => []),
   claimOpenCall: jest.fn(async () => ({ id: 'a1', shift_id: 's1', status: 'assigned' })),
 }))
 
 const mockGetOpenCalls = api.getOpenCalls as jest.MockedFunction<typeof api.getOpenCalls>
+const mockGetMyOpenCallClaims = api.getMyOpenCallClaims as jest.MockedFunction<typeof api.getMyOpenCallClaims>
 const mockClaimOpenCall = api.claimOpenCall as jest.MockedFunction<typeof api.claimOpenCall>
 
 const session: AuthSession = {
@@ -31,6 +33,29 @@ function openCall(overrides: Record<string, unknown> = {}) {
     shift_type: 'day',
     staff_count: 0,
     assignments: [],
+    ...overrides,
+  }
+}
+
+/** A claim as `GET /shifts/my-claims` returns it. */
+function claim(overrides: Record<string, unknown> = {}) {
+  return {
+    assignment_id: 'assign-1',
+    assignment_status: 'pending',
+    claimed_at: '2026-02-01T10:00:00.000Z',
+    is_overtime: true,
+    shift_id: 'shift-1',
+    start_time: '2026-02-10T09:00:00.000Z',
+    end_time: '2026-02-10T17:00:00.000Z',
+    shift_status: 'pending',
+    shift_type: 'day',
+    location_name: 'Riverside',
+    department_name: 'Day team',
+    su_first_name: 'Amy',
+    su_last_name: 'Adams',
+    staff_id: 'staff-1',
+    first_name: 'Test',
+    last_name: 'Carer',
     ...overrides,
   }
 }
@@ -107,5 +132,92 @@ describe('OpenCallsScreen', () => {
     render(<OpenCallsScreen session={session} onBack={jest.fn()} />)
 
     expect(await screen.findByText('2 people have already claimed this')).toBeTruthy()
+  })
+})
+
+describe('OpenCallsScreen my claims', () => {
+  beforeEach(() => { jest.clearAllMocks() })
+
+  it('shows each claim with the status the backend gave it', async () => {
+    mockGetMyOpenCallClaims.mockResolvedValue([
+      claim({ assignment_id: 'a1', assignment_status: 'pending' }),
+      claim({ assignment_id: 'a2', assignment_status: 'assigned', claimed_at: '2026-02-02T10:00:00.000Z' }),
+      claim({ assignment_id: 'a3', assignment_status: 'rejected', claimed_at: '2026-02-03T10:00:00.000Z' }),
+    ] as any)
+
+    render(<OpenCallsScreen session={session} onBack={jest.fn()} />)
+    fireEvent.press(await screen.findByText('My claims (3)'))
+
+    // Every status is spelled the way the web claims page spells it, so the
+    // same claim is not called something different depending on the device.
+    expect(await screen.findByText('Pending')).toBeTruthy()
+    expect(screen.getByText('Approved')).toBeTruthy()
+    expect(screen.getByText('Rejected')).toBeTruthy()
+    expect(screen.getByText(/Waiting on your manager to approve/)).toBeTruthy()
+    expect(screen.getByText(/Added to your schedule/)).toBeTruthy()
+    expect(screen.getByText(/Not approved/)).toBeTruthy()
+    expect(mockGetMyOpenCallClaims).toHaveBeenCalledWith('token-1')
+  })
+
+  it('counts each status so a held claim is obvious', async () => {
+    mockGetMyOpenCallClaims.mockResolvedValue([
+      claim({ assignment_id: 'a1', assignment_status: 'pending' }),
+      claim({ assignment_id: 'a2', assignment_status: 'assigned' }),
+      claim({ assignment_id: 'a3', assignment_status: 'assigned' }),
+    ] as any)
+
+    render(<OpenCallsScreen session={session} onBack={jest.fn()} />)
+    fireEvent.press(await screen.findByText('My claims (3)'))
+
+    expect(await screen.findByText('Pending (1)')).toBeTruthy()
+    expect(screen.getByText('Approved (2)')).toBeTruthy()
+  })
+
+  it('filters to one status', async () => {
+    mockGetMyOpenCallClaims.mockResolvedValue([
+      claim({ assignment_id: 'a1', assignment_status: 'pending' }),
+      claim({ assignment_id: 'a2', assignment_status: 'assigned' }),
+    ] as any)
+
+    render(<OpenCallsScreen session={session} onBack={jest.fn()} />)
+    fireEvent.press(await screen.findByText('My claims (2)'))
+    await screen.findByText('Pending (1)')
+
+    fireEvent.press(screen.getByText('Pending (1)'))
+
+    await waitFor(() => expect(screen.queryByText(/Added to your schedule/)).toBeNull())
+    expect(screen.getByText(/Waiting on your manager to approve/)).toBeTruthy()
+  })
+
+  it('explains an empty claims history', async () => {
+    mockGetMyOpenCallClaims.mockResolvedValue([] as any)
+
+    render(<OpenCallsScreen session={session} onBack={jest.fn()} />)
+    fireEvent.press(await screen.findByText('My claims'))
+
+    expect(await screen.findByText('No claims yet')).toBeTruthy()
+  })
+
+  it('marks a call the worker already claimed instead of offering it again', async () => {
+    mockGetOpenCalls.mockResolvedValue([openCall()] as any)
+    mockGetMyOpenCallClaims.mockResolvedValue([claim({ assignment_status: 'pending' })] as any)
+
+    render(<OpenCallsScreen session={session} onBack={jest.fn()} />)
+    expect(await screen.findByText('Riverside · Day team')).toBeTruthy()
+
+    // Claiming again would only earn a 409, so the button is gone and the
+    // status of the existing claim takes its place.
+    expect(screen.getByText('Waiting on your manager')).toBeTruthy()
+    expect(screen.queryByLabelText('Claim this call')).toBeNull()
+  })
+
+  it('re-offers a call whose claim was rejected', async () => {
+    mockGetOpenCalls.mockResolvedValue([openCall()] as any)
+    mockGetMyOpenCallClaims.mockResolvedValue([claim({ assignment_status: 'rejected' })] as any)
+
+    render(<OpenCallsScreen session={session} onBack={jest.fn()} />)
+    expect(await screen.findByText('Riverside · Day team')).toBeTruthy()
+
+    expect(screen.getByLabelText('Claim this call')).toBeTruthy()
   })
 })
