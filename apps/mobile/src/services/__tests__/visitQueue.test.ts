@@ -31,7 +31,10 @@ const storage = require('../storage')
 
 jest.mock('../api', () => ({
   executeVisitAction: jest.fn(),
-  ApiError: class ApiError extends Error {
+  // Named distinctly from the import it shadows. The export key is unchanged, so
+  // the test still constructs the same class the mocked module exposes and
+  // `instanceof` checks inside visitQueue still match.
+  ApiError: class MockApiError extends Error {
     status: number
     constructor(status: number, message: string) { super(message); this.status = status }
   },
