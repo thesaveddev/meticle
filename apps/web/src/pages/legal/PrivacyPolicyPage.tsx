@@ -43,7 +43,7 @@ export default function PrivacyPolicyPage() {
       </Section>
 
       <Section title="5. Data Storage and Security">
-        <ul><li>All data stored in the United Kingdom on ISO 27001-certified infrastructure</li><li>Encrypted in transit (TLS 1.3) and at rest (AES-256)</li><li>Multi-tenant isolation ensures your data is never mixed with other organisations</li><li>JWT authentication with MFA support</li><li>All staff access to data is logged and auditable</li></ul>
+        <ul><li>Hosted in the United Kingdom with a GDPR-compliant infrastructure provider, under a signed data processing agreement</li><li>Encrypted in transit (TLS 1.3) and at rest (AES-256)</li><li>Tenant isolation enforced in the database itself, so your data is never mixed with another organisation's</li><li>JWT authentication with multi-factor authentication</li><li>Every staff access to a record is logged and auditable</li></ul>
       </Section>
 
       <Section title="6. Data Retention">
