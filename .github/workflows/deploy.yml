@@ -8,6 +8,7 @@ on:
     branches: [master]
 
 permissions:
+  actions: read
   contents: read
   packages: write
 
@@ -20,10 +21,195 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Classify the release before doing anything expensive. A commit that only
+  # touches the mobile app cannot change the API or web images by a single byte,
+  # and mobile ships through EAS rather than here — so rebuilding both images,
+  # pushing them to ghcr and SSHing into production to restart the same
+  # containers is pure churn. This decides whether there is a server release at
+  # all, and `report` always runs so a skipped deploy says so out loud rather
+  # than looking like a run that quietly did nothing.
+  changes:
+    name: Classify the release
+    runs-on: ubuntu-latest
+    outputs:
+      server_changed: ${{ steps.classify.outputs.server_changed }}
+      previous_sha: ${{ steps.classify.outputs.previous_sha }}
+      reason: ${{ steps.classify.outputs.reason }}
+    steps:
+      - name: Check out the release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          fetch-depth: 0
+
+      - name: Work out whether the server changed
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RELEASE_SHA: ${{ env.RELEASE_SHA }}
+          CURRENT_RUN: ${{ github.run_id }}
+        run: |
+          set -Eeuo pipefail
+
+          # The last release that actually reached production. The deploy script
+          # on the host records these, but the run history is the same fact and
+          # needs no SSH to read.
+          previous=$(gh api "repos/$REPOSITORY/actions/workflows/deploy.yml/runs?status=success&per_page=30" \
+            --paginate --jq ".workflow_runs[] | select(.id != $CURRENT_RUN) | [.head_sha, .conclusion] | @tsv" \
+            | head -n1 | cut -f1)
+
+          if [ -z "$previous" ]; then
+            echo "No previous successful deploy found — treating this as the first release and deploying."
+            echo "server_changed=true" >> "$GITHUB_OUTPUT"
+            echo "previous_sha=" >> "$GITHUB_OUTPUT"
+            echo "reason=first release" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "previous_sha=$previous" >> "$GITHUB_OUTPUT"
+          echo "Comparing against the last deployed commit $previous"
+
+          changed=$(git diff --name-only "$previous" "$RELEASE_SHA" || true)
+          if [ -z "$changed" ]; then
+            echo "server_changed=true" >> "$GITHUB_OUTPUT"
+            echo "reason=identical to the deployed commit" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Changed paths:"
+          echo "$changed" | sed 's/^/  /'
+
+          # Anything that can end up in either image, or that changes how the
+          # release is performed, means a deploy. Everything else — the mobile
+          # app, the docs, the store assets — does not.
+          server_paths=$(printf '%s\n' "$changed" | grep -E \
+            '^(apps/api/|apps/web/|packages/|deploy\.sh$|docker-compose)' || true)
+          workflow_paths=$(printf '%s\n' "$changed" | grep -E '^\.github/workflows/deploy\.yml$' || true)
+
+          if [ -n "$server_paths" ] || [ -n "$workflow_paths" ]; then
+            echo "server_changed=true" >> "$GITHUB_OUTPUT"
+            echo "reason=server or release configuration changed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "server_changed=false" >> "$GITHUB_OUTPUT"
+          echo "reason=mobile, docs or assets only" >> "$GITHUB_OUTPUT"
+
+      - name: Say what was decided
+        run: |
+          {
+            echo "### Release classification"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Commit | \`${{ env.RELEASE_SHA }}\` |"
+            echo "| Previous release | \`${{ steps.classify.outputs.previous_sha || 'none' }}\` |"
+            echo "| Server release needed | **${{ steps.classify.outputs.server_changed }}** |"
+            echo "| Reason | ${{ steps.classify.outputs.reason }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Nothing below this job may run until it passes. It exists because a red
+  # master used to fail *quietly*: the `if: conclusion == 'success'` conditions
+  # on the jobs below meant a failed CI produced a Deploy run in which every job
+  # was simply "skipped", which reads like nothing happened and raises no alert.
+  # Worse, `workflow_dispatch` bypassed that condition entirely, so any commit —
+  # including one from a branch that had never passed CI — could be deployed to
+  # production by hand with nothing checking it. This job fails loudly instead,
+  # and it checks the commit rather than the trigger, so it applies to manual
+  # deploys too.
+  verify-release-is-green:
+    name: Verify the release commit passed CI
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.server_changed == 'true' }}
+    outputs:
+      ci_run_url: ${{ steps.verify.outputs.ci_run_url }}
+    steps:
+      - name: Check out the release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          fetch-depth: 0
+
+      - name: Refuse to deploy a commit that has not passed CI
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RELEASE_SHA: ${{ env.RELEASE_SHA }}
+          TRIGGER_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -Eeuo pipefail
+          echo "Release commit: $RELEASE_SHA"
+
+          # The Actions API's `head_sha` filter only matches a full 40-character
+          # SHA. A short one matches nothing at all, which is indistinguishable
+          # from "never checked" — so resolve it here rather than let a manual
+          # dispatch with a short SHA look like an unverified commit.
+          RELEASE_SHA=$(git rev-parse "$RELEASE_SHA")
+          echo "Resolved to: $RELEASE_SHA"
+
+          # 1. The triggering CI run is the authority when there is one.
+          if [ "$EVENT_NAME" = "workflow_run" ] && [ "$TRIGGER_CONCLUSION" != "success" ]; then
+            echo "::error::CI concluded '$TRIGGER_CONCLUSION' for $RELEASE_SHA. Refusing to deploy a commit that has not passed CI."
+            exit 1
+          fi
+
+          # 2. The commit has to be on master. This is what stops a manual deploy
+          #    of a feature branch from reaching production.
+          git fetch origin master --quiet
+          if ! git merge-base --is-ancestor "$RELEASE_SHA" origin/master; then
+            echo "::error::$RELEASE_SHA is not on master. Refusing to deploy a commit that was never merged."
+            exit 1
+          fi
+
+          # 3. A *completed, successful* CI run must exist for exactly this
+          #    commit. Fails closed: if the check itself cannot be made, the
+          #    deploy does not happen. This is the check that was missing.
+          runs=$(gh api "repos/$REPOSITORY/actions/runs?head_sha=$RELEASE_SHA&per_page=100" --paginate \
+            --jq '.workflow_runs[] | select(.name == "CI") | [.id, .status, .conclusion, .html_url] | @tsv')
+
+          verdict=""
+          run_url=""
+          # The API returns newest first, so the first completed run is the
+          # latest verdict for this commit, including any re-run.
+          while IFS=$'\t' read -r run_id run_status run_conclusion run_link; do
+            [ -n "${run_id:-}" ] || continue
+            if [ "$run_status" = "completed" ]; then
+              verdict="$run_conclusion"
+              run_url="$run_link"
+              break
+            fi
+          done <<< "$runs"
+
+          if [ -z "$verdict" ]; then
+            echo "::error::No completed CI run found for $RELEASE_SHA. Refusing to deploy an unverified commit."
+            exit 1
+          fi
+          if [ "$verdict" != "success" ]; then
+            echo "::error::CI for $RELEASE_SHA concluded '$verdict' ($run_url). Refusing to deploy."
+            exit 1
+          fi
+          echo "ci_run_url=$run_url" >> "$GITHUB_OUTPUT"
+          echo "CI passed for $RELEASE_SHA ($run_url)"
+
+          # 4. Deploying an older, verified commit while master's tip is red is
+          #    a legitimate rollback, so this is a warning rather than a block.
+          master_sha=$(git rev-parse origin/master)
+          if [ "$master_sha" != "$RELEASE_SHA" ]; then
+            tip=$(gh api "repos/$REPOSITORY/actions/runs?head_sha=$master_sha&per_page=100" \
+              --jq '[.workflow_runs[] | select(.name == "CI")][0].conclusion // "unknown"' 2>/dev/null || echo unknown)
+            if [ "$tip" != "success" ]; then
+              echo "::warning::master tip $master_sha has CI conclusion '$tip'. Deploying the earlier verified commit $RELEASE_SHA — if this was not a deliberate rollback, check what is red on master."
+            fi
+          fi
+
   validate-production-config:
     name: Validate production deploy configuration
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    needs: [changes, verify-release-is-green]
+    if: ${{ needs.changes.outputs.server_changed == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
     environment: production
     steps:
       - name: Require deployment variables and smoke-test credentials
@@ -60,7 +246,7 @@ jobs:
     name: Build API image
     runs-on: ubuntu-latest
     environment: production
-    if: ${{ (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') && needs.validate-production-config.result == 'success' }}
+    if: ${{ needs.changes.outputs.server_changed == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') && needs.validate-production-config.result == 'success' }}
     needs: validate-production-config
     outputs:
       digest: ${{ steps.build.outputs.digest }}
@@ -92,7 +278,7 @@ jobs:
     name: Build web image
     runs-on: ubuntu-latest
     environment: production
-    if: ${{ (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') && needs.validate-production-config.result == 'success' }}
+    if: ${{ needs.changes.outputs.server_changed == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') && needs.validate-production-config.result == 'success' }}
     needs: validate-production-config
     outputs:
       digest: ${{ steps.build.outputs.digest }}
@@ -192,10 +378,31 @@ jobs:
             chmod 750 "$DEPLOY_SCRIPT_PATH"
             exec "$DEPLOY_SCRIPT_PATH"
 
+  # A mobile-only release is a real, successful outcome — not a run that quietly
+  # did nothing. This job is what makes that legible: it is the only job that
+  # runs, and it says why nothing was deployed.
+  report:
+    name: Report release classification
+    runs-on: ubuntu-latest
+    needs: [changes, verify-release-is-green, validate-production-config, build-api, build-web, deploy]
+    if: ${{ always() && needs.changes.outputs.server_changed != 'true' }}
+    steps:
+      - name: Explain the skipped deploy
+        run: |
+          echo "No server release needed for ${{ env.RELEASE_SHA }} — ${{ needs.changes.outputs.reason }}."
+          echo "The API and web images are byte-identical to the last deploy, and the mobile app ships through EAS."
+          {
+            echo "### No deploy needed"
+            echo ""
+            echo "This release changed **${{ needs.changes.outputs.reason }}** only, so the API and web images"
+            echo "would be identical to the last deploy. Nothing was rebuilt and production was not touched."
+            echo "The mobile app ships through EAS, separately from this pipeline."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   notify-failure:
     name: Notify failed deployment
-    if: ${{ always() && (needs.validate-production-config.result == 'failure' || needs.build-api.result == 'failure' || needs.build-web.result == 'failure' || needs.deploy.result == 'failure') }}
-    needs: [validate-production-config, build-api, build-web, deploy]
+    if: ${{ always() && (needs.changes.result == 'failure' || needs.verify-release-is-green.result == 'failure' || needs.validate-production-config.result == 'failure' || needs.build-api.result == 'failure' || needs.build-web.result == 'failure' || needs.deploy.result == 'failure') }}
+    needs: [changes, verify-release-is-green, validate-production-config, build-api, build-web, deploy]
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -212,6 +419,8 @@ jobs:
           DEPLOY_SMTP_FROM: ${{ secrets.DEPLOY_SMTP_FROM }}
           DEPLOY_ALERT_TO: ${{ vars.DEPLOY_ALERT_TO }}
           BUILD_CONFIG_RESULT: ${{ needs.validate-production-config.result }}
+          VERIFY_RESULT: ${{ needs.verify-release-is-green.result }}
+          CHANGES_RESULT: ${{ needs.changes.result }}
           BUILD_API_RESULT: ${{ needs.build-api.result }}
           BUILD_WEB_RESULT: ${{ needs.build-web.result }}
           DEPLOY_RESULT: ${{ needs.deploy.result }}
@@ -220,7 +429,11 @@ jobs:
           BRANCH_NAME: ${{ env.RELEASE_BRANCH }}
         run: |
           set -euo pipefail
-          if [ "$BUILD_CONFIG_RESULT" = "failure" ]; then
+          if [ "$CHANGES_RESULT" = "failure" ]; then
+            FAILED_STAGE="release classification"
+          elif [ "$VERIFY_RESULT" = "failure" ]; then
+            FAILED_STAGE="release verification (the commit did not pass CI)"
+          elif [ "$BUILD_CONFIG_RESULT" = "failure" ]; then
             FAILED_STAGE="production configuration validation"
           elif [ "$BUILD_API_RESULT" = "failure" ] || [ "$BUILD_WEB_RESULT" = "failure" ]; then
             FAILED_STAGE="image build"
