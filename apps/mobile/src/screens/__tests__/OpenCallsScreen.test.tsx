@@ -9,11 +9,19 @@ jest.mock('../../services/api', () => ({
   getOpenCalls: jest.fn(async () => []),
   getMyOpenCallClaims: jest.fn(async () => []),
   claimOpenCall: jest.fn(async () => ({ id: 'a1', shift_id: 's1', status: 'assigned' })),
+  withdrawOpenCallClaim: jest.fn(async () => ({ id: 'a1', shift_id: 's1', status: 'rejected' })),
+  getPendingOpenCallClaims: jest.fn(async () => []),
+  approveOpenCallClaim: jest.fn(async () => ({ id: 'a1', status: 'assigned' })),
+  rejectOpenCallClaim: jest.fn(async () => ({ id: 'a1', status: 'rejected' })),
 }))
 
 const mockGetOpenCalls = api.getOpenCalls as jest.MockedFunction<typeof api.getOpenCalls>
 const mockGetMyOpenCallClaims = api.getMyOpenCallClaims as jest.MockedFunction<typeof api.getMyOpenCallClaims>
 const mockClaimOpenCall = api.claimOpenCall as jest.MockedFunction<typeof api.claimOpenCall>
+const mockWithdrawOpenCallClaim = api.withdrawOpenCallClaim as jest.MockedFunction<typeof api.withdrawOpenCallClaim>
+const mockGetPendingOpenCallClaims = api.getPendingOpenCallClaims as jest.MockedFunction<typeof api.getPendingOpenCallClaims>
+const mockApproveOpenCallClaim = api.approveOpenCallClaim as jest.MockedFunction<typeof api.approveOpenCallClaim>
+const mockRejectOpenCallClaim = api.rejectOpenCallClaim as jest.MockedFunction<typeof api.rejectOpenCallClaim>
 
 const session: AuthSession = {
   accessToken: 'token-1',
@@ -219,5 +227,162 @@ describe('OpenCallsScreen my claims', () => {
     expect(await screen.findByText('Riverside · Day team')).toBeTruthy()
 
     expect(screen.getByLabelText('Claim this call')).toBeTruthy()
+  })
+})
+
+/* ─── Withdrawing a claim ──────────────────────────────────── */
+
+describe('OpenCallsScreen withdrawing a claim', () => {
+  it('offers to withdraw only a claim still waiting on a manager', async () => {
+    mockGetMyOpenCallClaims.mockResolvedValue([
+      claim({ assignment_id: 'a-pending', shift_id: 'shift-1', assignment_status: 'pending' }),
+      claim({ assignment_id: 'a-approved', shift_id: 'shift-2', assignment_status: 'assigned' }),
+      claim({ assignment_id: 'a-rejected', shift_id: 'shift-3', assignment_status: 'rejected' }),
+    ] as any)
+
+    render(<OpenCallsScreen session={session} onBack={jest.fn()} />)
+    fireEvent.press(await screen.findByText('My claims (3)'))
+
+    const withdraw = await screen.findByText('Withdraw claim')
+    expect(withdraw).toBeTruthy()
+    // Once approved the worker is rostered on, so there is nothing to withdraw.
+    expect(screen.getAllByText('Withdraw claim')).toHaveLength(1)
+  })
+
+  it('confirms, then withdraws and reloads', async () => {
+    mockGetMyOpenCallClaims.mockResolvedValue([claim({ shift_id: 'shift-1' })] as any)
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => {
+      const withdraw = (buttons || []).find(button => button.text === 'Withdraw')
+      withdraw?.onPress?.()
+    })
+
+    render(<OpenCallsScreen session={session} onBack={jest.fn()} />)
+    fireEvent.press(await screen.findByText('My claims (1)'))
+    fireEvent.press(await screen.findByText('Withdraw claim'))
+
+    expect(alertSpy).toHaveBeenCalled()
+    await waitFor(() => expect(mockWithdrawOpenCallClaim).toHaveBeenCalledWith('token-1', 'shift-1'))
+    alertSpy.mockRestore()
+  })
+
+  it('says why when the manager got there first', async () => {
+    mockGetMyOpenCallClaims.mockResolvedValue([claim({ shift_id: 'shift-1' })] as any)
+    mockWithdrawOpenCallClaim.mockRejectedValueOnce(new Error('This claim has already been approved or withdrawn'))
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => {
+      const withdraw = (buttons || []).find(button => button.text === 'Withdraw')
+      withdraw?.onPress?.()
+    })
+
+    render(<OpenCallsScreen session={session} onBack={jest.fn()} />)
+    fireEvent.press(await screen.findByText('My claims (1)'))
+    fireEvent.press(await screen.findByText('Withdraw claim'))
+
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith(
+      'Could not withdraw',
+      'This claim has already been approved or withdrawn',
+    ))
+    alertSpy.mockRestore()
+  })
+})
+
+/* ─── The manager's side ───────────────────────────────────── */
+
+describe('OpenCallsScreen for a manager', () => {
+  const managerSession: AuthSession = {
+    accessToken: 'token-1',
+    refreshToken: 'refresh-1',
+    user: { id: 'boss', email: 'boss@example.com', role: 'MANAGER', first_name: 'Boss', last_name: 'Manager' },
+  }
+
+  function pendingClaim(overrides: Record<string, unknown> = {}) {
+    return {
+      assignment_id: 'assign-9',
+      assignment_status: 'pending',
+      claimed_at: '2026-02-01T10:00:00.000Z',
+      shift_id: 'shift-9',
+      start_time: '2026-02-10T09:00:00.000Z',
+      end_time: '2026-02-10T17:00:00.000Z',
+      shift_status: 'open',
+      shift_type: 'day',
+      location_id: 'loc-9',
+      location_name: 'Riverside',
+      su_first_name: 'Eileen',
+      su_last_name: 'Fairweather',
+      staff_id: 'staff-9',
+      first_name: 'Rosa',
+      last_name: 'Mendes',
+      ...overrides,
+    }
+  }
+
+  it('shows the claims waiting on them, not the marketplace', async () => {
+    mockGetPendingOpenCallClaims.mockResolvedValue([pendingClaim()] as any)
+
+    render(<OpenCallsScreen session={managerSession} onBack={jest.fn()} />)
+
+    expect(await screen.findByText('Rosa Mendes')).toBeTruthy()
+    expect(screen.getByText('For Eileen Fairweather')).toBeTruthy()
+    // A manager must not be offered shifts to claim.
+    expect(screen.queryByText('Claim this call')).toBeNull()
+    expect(mockGetOpenCalls).not.toHaveBeenCalled()
+  })
+
+  it('approves a claim, confirming first and telling the worker', async () => {
+    mockGetPendingOpenCallClaims.mockResolvedValue([pendingClaim()] as any)
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => {
+      const approve = (buttons || []).find(button => button.text === 'Approve')
+      approve?.onPress?.()
+    })
+
+    render(<OpenCallsScreen session={managerSession} onBack={jest.fn()} />)
+    fireEvent.press(await screen.findByLabelText('Approve the claim from Rosa Mendes'))
+
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Approve this claim?',
+      expect.stringContaining('They are notified straight away.'),
+      expect.anything(),
+    )
+    await waitFor(() => expect(mockApproveOpenCallClaim).toHaveBeenCalledWith('token-1', 'shift-9', 'staff-9'))
+    alertSpy.mockRestore()
+  })
+
+  it('declines a claim against the right shift and staff member', async () => {
+    mockGetPendingOpenCallClaims.mockResolvedValue([pendingClaim()] as any)
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => {
+      const decline = (buttons || []).find(button => button.text === 'Decline')
+      decline?.onPress?.()
+    })
+
+    render(<OpenCallsScreen session={managerSession} onBack={jest.fn()} />)
+    fireEvent.press(await screen.findByLabelText('Decline the claim from Rosa Mendes'))
+
+    await waitFor(() => expect(mockRejectOpenCallClaim).toHaveBeenCalledWith('token-1', 'shift-9', 'staff-9'))
+    alertSpy.mockRestore()
+  })
+
+  it('reports a decision the server refused rather than failing silently', async () => {
+    mockGetPendingOpenCallClaims.mockResolvedValue([pendingClaim()] as any)
+    mockApproveOpenCallClaim.mockRejectedValueOnce(new Error('Cannot modify a shift that has already ended'))
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => {
+      const approve = (buttons || []).find(button => button.text === 'Approve')
+      approve?.onPress?.()
+    })
+
+    render(<OpenCallsScreen session={managerSession} onBack={jest.fn()} />)
+    fireEvent.press(await screen.findByLabelText('Approve the claim from Rosa Mendes'))
+
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith(
+      'Could not approve',
+      'Cannot modify a shift that has already ended',
+    ))
+    alertSpy.mockRestore()
+  })
+
+  it('says so when there is nothing waiting', async () => {
+    mockGetPendingOpenCallClaims.mockResolvedValue([] as any)
+
+    render(<OpenCallsScreen session={managerSession} onBack={jest.fn()} />)
+
+    expect(await screen.findByText('Nothing waiting on you')).toBeTruthy()
   })
 })

@@ -30,6 +30,17 @@ const SEVERITY_LEVELS = [
   { key: 'critical', label: 'Critical', color: '#7F1D1D', desc: 'Life-threatening' },
 ] as const
 
+/** Pre-filled form state. Only the store-screenshot capture tour supplies this. */
+export interface IncidentDraft {
+  category?: string
+  severity?: string
+  title?: string
+  description?: string
+  location?: string
+  witnesses?: string
+  isNearMiss?: boolean
+}
+
 interface Props {
   session: AuthSession
   visitId?: string
@@ -37,18 +48,19 @@ interface Props {
   personName?: string
   onBack: () => void
   onSubmitted?: () => void
+  initialDraft?: IncidentDraft
 }
 
-export function ReportIncidentScreen({ session, visitId, personId, personName, onBack, onSubmitted }: Props) {
+export function ReportIncidentScreen({ session, visitId, personId, personName, onBack, onSubmitted, initialDraft }: Props) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
-  const [category, setCategory] = useState('')
-  const [severity, setSeverity] = useState('medium')
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [location, setLocation] = useState('')
-  const [witnesses, setWitnesses] = useState('')
-  const [isNearMiss, setIsNearMiss] = useState(false)
+  const [category, setCategory] = useState(initialDraft?.category || '')
+  const [severity, setSeverity] = useState(initialDraft?.severity || 'medium')
+  const [title, setTitle] = useState(initialDraft?.title || '')
+  const [description, setDescription] = useState(initialDraft?.description || '')
+  const [location, setLocation] = useState(initialDraft?.location || '')
+  const [witnesses, setWitnesses] = useState(initialDraft?.witnesses || '')
+  const [isNearMiss, setIsNearMiss] = useState(initialDraft?.isNearMiss || false)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
 

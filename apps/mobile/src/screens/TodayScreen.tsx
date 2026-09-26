@@ -137,12 +137,14 @@ function StatusPill({ status, overdue, c }: { status: string; overdue?: boolean;
 }
 
 /* ─── Custom refresh indicator ──────────────────────────────── */
-export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, onRefresh, refreshing, onSync, session }: {
+export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, pendingClaimsCount = 0, onRefresh, refreshing, onSync, session }: {
   user: MobileUser
   visits: HomecareVisit[]
   queue: OfflineVisitAction[]
   onVisit: (v: HomecareVisit) => void
   onOpenCalls?: () => void
+  /** Claims the caller's manager has not decided yet. */
+  pendingClaimsCount?: number
   onRefresh: () => void
   refreshing: boolean
   onSync: () => void
@@ -286,7 +288,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, onRefre
         <Pressable
           onPress={() => { hapticLight(); onOpenCalls() }}
           accessibilityRole="button"
-          accessibilityLabel="Open Calls"
+          accessibilityLabel={pendingClaimsCount > 0 ? `Open Calls, ${pendingClaimsCount} claims waiting on a manager` : 'Open Calls'}
           style={({ pressed }) => [styles.openCallsCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '30' }, pressed && { opacity: 0.8 }]}
         >
           <View style={[styles.openCallsIcon, { backgroundColor: c.primary }]}>
@@ -294,8 +296,17 @@ export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, onRefre
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.openCallsTitle, { color: c.ink }]}>Open Calls</Text>
-            <Text style={[styles.openCallsSub, { color: c.muted }]}>Pick up extra paid shifts</Text>
+            <Text style={[styles.openCallsSub, { color: c.muted }]}>
+              {pendingClaimsCount > 0
+                ? `${pendingClaimsCount} claim${pendingClaimsCount === 1 ? '' : 's'} waiting on a manager`
+                : 'Pick up extra paid shifts'}
+            </Text>
           </View>
+          {pendingClaimsCount > 0 ? (
+            <View style={[styles.openCallsBadge, { backgroundColor: c.warningSurface, borderColor: c.warning }]}>
+              <Text style={[styles.openCallsBadgeText, { color: c.warning }]}>{pendingClaimsCount}</Text>
+            </View>
+          ) : null}
           <Ionicons name="chevron-forward" size={18} color={c.muted} />
         </Pressable>
       )}
@@ -498,6 +509,11 @@ const styles = StyleSheet.create({
   openCallsIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   openCallsTitle: { fontFamily: FONT, fontSize: 15, fontWeight: '700' },
   openCallsSub: { fontFamily: FONT, fontSize: 13, fontWeight: '400', marginTop: 2 },
+  openCallsBadge: {
+    minWidth: 24, paddingHorizontal: 6, paddingVertical: 2, borderRadius: radii.full,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+  },
+  openCallsBadgeText: { fontFamily: FONT, fontSize: 12, fontWeight: '700' },
   syncBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: spacing.sm, paddingVertical: 4,

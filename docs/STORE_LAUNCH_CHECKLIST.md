@@ -32,8 +32,12 @@ the account-deletion fix. Detail lives in `docs/STORE_RELEASE_RUNBOOK.md` and
 - **Android release signing on `signingConfigs.debug`** — real in the local
   CNG output, but `android/` is gitignored and EAS signs with a managed
   keystore. Not a repo problem.
-- **Store screenshots** — still not done, but they cannot be faked. See the
-  runbook.
+- **Store screenshots** — the six planned images are now scripted
+  (`apps/mobile/src/capture`, `apps/mobile/scripts/capture-store-screenshots.mjs`).
+  The app serves fixture data, raises no prompts, walks the six screens in order
+  and announces each one; the host script takes the picture. **They have not
+  been captured yet** — that needs a machine with a booted simulator or a device.
+  The whole path is inert in a release build. See the runbook.
 
 ## Three real bugs found and fixed while verifying
 
@@ -66,7 +70,8 @@ the account-deletion fix. Detail lives in `docs/STORE_RELEASE_RUNBOOK.md` and
   deletion. A DPO or legal adviser should confirm the position.
 - **ISO 27001 claim** in the public privacy policy. If the host does not hold
   certification, that published claim needs correcting before submission.
-- **Store listing screenshots** for both platforms. Real device captures.
+- **Store listing screenshots** for both platforms. Scripted now, but nobody has
+  run the capture on a device yet, so the six images do not exist.
 
 ## Unverified
 

@@ -65,11 +65,6 @@ const channel = {
   created_at: '2026-01-01T00:00:00.000Z',
 }
 
-/** Every SafeAreaView the screen rendered, so a test can assert one wraps a given node. */
-function safeAreasIn(screen: ReturnType<typeof render>) {
-  return screen.UNSAFE_queryAllByType(SafeAreaView)
-}
-
 /** React Native's View is composite over a host node, so host styling is up one level. */
 function hostViewOf(node: { parent: any }): any {
   let parent = node.parent
@@ -123,25 +118,23 @@ beforeEach(() => {
 describe('ChatScreen status bar clearance', () => {
   // The list view used to be a bare View and the conversation a bare
   // KeyboardAvoidingView, so both headers drew underneath the clock and battery.
-  it('draws the channel list header inside a top-inset SafeAreaView', async () => {
+  // The screen then carried its own top inset — and was mounted two different
+  // ways, as a tab and as a stack screen, each of which now supplies the inset.
+  // So the screen must not supply one as well, and this asserts that it renders
+  // both views without reaching for one. App.test.tsx checks the other half:
+  // that both mounts do supply it.
+  it('draws the channel list without applying a top inset of its own', async () => {
     const screen = render(<ChatScreen session={session} />)
     await waitFor(() => expect(screen.getByText('Messages')).toBeTruthy())
 
-    const areas = safeAreasIn(screen)
-    expect(areas.length).toBeGreaterThan(0)
-    for (const area of areas) {
-      expect(area.props.edges).toEqual(expect.arrayContaining(['top']))
-    }
+    expect(screen.UNSAFE_queryAllByType(SafeAreaView)).toHaveLength(0)
   })
 
-  it('draws the conversation header inside a top-inset SafeAreaView', async () => {
+  it('draws the conversation without applying a top inset of its own', async () => {
     const screen = await openConversation()
 
-    const areas = safeAreasIn(screen)
-    expect(areas.length).toBeGreaterThan(0)
-    for (const area of areas) {
-      expect(area.props.edges).toEqual(expect.arrayContaining(['top']))
-    }
+    expect(screen.getByPlaceholderText('Message...')).toBeTruthy()
+    expect(screen.UNSAFE_queryAllByType(SafeAreaView)).toHaveLength(0)
   })
 })
 

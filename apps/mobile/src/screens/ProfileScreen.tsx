@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActionSheetIOS, Alert, Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import { Ionicons } from '@expo/vector-icons'
 
@@ -167,7 +166,7 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
   const displayPhoto = localPhotoUri || profilePhoto
 
   return (
-    <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]} edges={['top']}>
+    <View style={[s.screen, { backgroundColor: c.bg }]}>
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadProfile() }} tintColor="transparent" />}>
         <Pressable onPress={onBack} style={s.backBtn}>
           <Ionicons name="arrow-back" size={20} color={c.primary} />
@@ -245,7 +244,7 @@ export function ProfileScreen({ session, user, onBack, onSaved }: Props) {
 
         <PrimaryButton label="Save profile" onPress={handleSave} loading={saving} disabled={saving} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 

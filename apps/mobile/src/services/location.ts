@@ -1,6 +1,17 @@
 import * as Location from 'expo-location'
+import { isCaptureMode } from '../capture/mode'
+
+/**
+ * A position for the capture screenshots, standing in for the client's address.
+ * Real coordinates would be a client's address in a public store listing, and
+ * a real fix would need a device that is physically at that address.
+ */
+const CAPTURE_POSITION = { latitude: 53.4351, longitude: -2.2758, accuracy_meters: 8 }
+/** A believable "you have arrived" distance: inside the 150 m check-in threshold. */
+const CAPTURE_DISTANCE_METERS = 42
 
 export async function getVisitLocation() {
+  if (isCaptureMode()) return { ...CAPTURE_POSITION }
   const permission = await Location.requestForegroundPermissionsAsync()
   if (permission.status !== Location.PermissionStatus.GRANTED) {
     throw new Error('Location permission is needed to verify this visit.')
@@ -39,6 +50,13 @@ export function watchDistance(
   targetLon: number,
   onDistance: (distance: number, accuracy: number | null) => void
 ): { stop: () => void } {
+  // Capture mode must not raise a location permission dialog over a screenshot,
+  // and a simulator has no meaningful position to watch anyway.
+  if (isCaptureMode()) {
+    onDistance(CAPTURE_DISTANCE_METERS, CAPTURE_POSITION.accuracy_meters)
+    return { stop: () => {} }
+  }
+
   let subscription: Location.LocationSubscription | null = null
 
   Location.watchPositionAsync(

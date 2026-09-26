@@ -826,3 +826,54 @@ export interface MyOpenCallClaim {
 export async function getMyOpenCallClaims(token: string): Promise<MyOpenCallClaim[]> {
   return request<MyOpenCallClaim[]>('/shifts/my-claims', {}, token)
 }
+
+/**
+ * A claim waiting on a manager, for the manager's own locations. Same row shape
+ * as `MyOpenCallClaim` except the name in `first_name`/`last_name` is the
+ * *claimer*, which is the one thing a manager actually needs to decide.
+ */
+export interface PendingOpenCallClaim {
+  assignment_id: string
+  assignment_status: string
+  claimed_at?: string | null
+  shift_id: string
+  start_time: string
+  end_time: string
+  shift_status: string
+  shift_type: string
+  location_id?: string | null
+  location_name?: string | null
+  su_first_name?: string | null
+  su_last_name?: string | null
+  staff_id: string
+  first_name?: string | null
+  last_name?: string | null
+}
+
+/** Claims waiting on a decision, scoped server-side to the caller's locations. */
+export async function getPendingOpenCallClaims(token: string): Promise<PendingOpenCallClaim[]> {
+  return request<PendingOpenCallClaim[]>('/shifts/pending-claims', {}, token)
+}
+
+/** Approve a claim. `auto_approved` is not set here — a manager is deciding. */
+export async function approveOpenCallClaim(token: string, shiftId: string, staffId: string): Promise<{ id: string; status: string }> {
+  return request(`/shifts/${encodeURIComponent(shiftId)}/approve-claim/${encodeURIComponent(staffId)}`, { method: 'PATCH' }, token)
+}
+
+/** Decline a claim. The claimer is told either way; see the push in the API. */
+export async function rejectOpenCallClaim(token: string, shiftId: string, staffId: string): Promise<{ id: string; status: string }> {
+  return request(`/shifts/${encodeURIComponent(shiftId)}/reject-claim/${encodeURIComponent(staffId)}`, { method: 'PATCH' }, token)
+}
+
+/**
+ * Withdraw a claim of this care worker's own that a manager has not yet decided.
+ *
+ * There is no staff id here on purpose: the backend resolves the claimant from
+ * the session, so this can only ever withdraw the caller's own claim. It is a
+ * different endpoint from the manager's `cancel-claim`, which can also cancel a
+ * claim that has already been approved. Once a claim is approved the worker is
+ * rostered on and this answers 409 — that is a change of shift, not a withdrawal.
+ */
+export async function withdrawOpenCallClaim(token: string, shiftId: string): Promise<{ id: string; shift_id: string; status: string }> {
+  return request(`/shifts/${encodeURIComponent(shiftId)}/withdraw-claim`, { method: 'DELETE' }, token)
+}
