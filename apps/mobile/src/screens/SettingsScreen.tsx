@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { colors, elevation, radii, spacing, FONT, useTheme } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { dyn } from '../utils/dynamicStyles'
@@ -9,7 +10,7 @@ import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
 import { IconSyncSmall, IconBell, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
-export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onAvailability, onAnnualLeave, onDeleteAccount }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onAvailability, onAnnualLeave, onOpenCalls, onDeleteAccount }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
@@ -17,6 +18,7 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, on
   onLearn?: () => void
   onAvailability?: () => void
   onAnnualLeave?: () => void
+  onOpenCalls?: () => void
   onDeleteAccount?: () => Promise<void>
 }) {
   const { mode, scheme, setMode, colors: c } = useTheme()
@@ -192,6 +194,30 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, on
                 <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
               </Pressable>
             ) : null}
+          </View>
+        </View> : null}
+
+        {/* Open calls live here as well as on the Today card, so they stay
+            reachable once a worker has scrolled past it or is on another tab.
+            App only passes the handler for domiciliary organisations. */}
+        {onOpenCalls ? <View style={s.group}>
+          <Text style={[s.groupLabel, { color: c.subtle }]}>OPEN CALLS</Text>
+          <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
+            <Pressable
+              onPress={() => { hapticLight(); onOpenCalls() }}
+              style={s.menuRow}
+              accessibilityRole="button"
+              accessibilityLabel="Open Calls"
+            >
+              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
+                <Ionicons name="flash-outline" size={18} color={c.primary} />
+              </View>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Open calls</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>Pick up extra shifts and check your claims</Text>
+              </View>
+              <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
+            </Pressable>
           </View>
         </View> : null}
 

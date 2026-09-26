@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter'
 import { ThemeProvider, useTheme, spacing, FONT } from './src/theme'
 import { TabIcon } from './src/components/TabIcons'
+import { isDomiciliaryOrganisation } from './src/utils/serviceType'
 import MeticleSplashScreen from './src/components/MeticleSplashScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { hapticLight, hapticMedium } from './src/services/haptics'
@@ -125,6 +126,8 @@ function AppInner() {
 
   const isManager = session?.user?.role === 'ORG_ADMIN' || session?.user?.role === 'MANAGER'
   const tabs = isManager ? managerTabs : carerTabs
+  // Gates the open-call marketplace, the Learn screen and the Settings row.
+  const isDomiciliary = useMemo(() => isDomiciliaryOrganisation(session?.organization), [session?.organization])
   const currentScreen = screenStack[screenStack.length - 1]
   const pushScreen = useCallback((screen: Screen) => setScreenStack(prev => [...prev, screen]), [])
   const popScreen = useCallback(() => setScreenStack(prev => prev.length <= 1 ? prev : prev.slice(0, -1)), [])
@@ -407,7 +410,6 @@ function AppInner() {
     return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><RideShareScreen session={session} currentVisit={currentScreen.visit} onBack={goBack} /></SwipeBack></EmergencyLayer>
   }
   if (currentScreen.kind === 'learn' && session) {
-    const isDomiciliary = (session.organization?.service_types || []).some(type => ['domiciliary', 'live_in'].includes(type))
     return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><LearnScreen user={user} isDomiciliary={isDomiciliary} onBack={goBack} /></SwipeBack></SubScreenFrame></>
   }
 
@@ -456,7 +458,7 @@ function AppInner() {
 
           {/* Shared tabs */}
           {tab === 'chat' && <ChatScreen session={session} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} onDeleteAccount={handleDeleteAccount} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} onOpenCalls={isDomiciliary ? () => pushScreen({ kind: 'openCalls' }) : undefined} onDeleteAccount={handleDeleteAccount} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>
