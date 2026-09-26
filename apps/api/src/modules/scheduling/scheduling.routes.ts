@@ -37,6 +37,10 @@ router.patch('/:shiftId/reject-claim/:staffId', requireRole(UserRole.ORG_ADMIN, 
 router.delete('/:shiftId/assign/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.unassignStaff));
 router.delete('/:shiftId/revoke-claim/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.revokeOvertimeClaim));
 router.delete('/:shiftId/cancel-claim/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.cancelOvertimeClaim));
+// A care worker withdrawing their own pending claim. No staff id in the path
+// and no role gate: the claimant comes from the session, so this can only ever
+// withdraw the caller's own claim.
+router.delete('/:shiftId/withdraw-claim', asyncHandler(SchedulingController.withdrawOpenShiftClaim));
 router.post('/:shiftId/convert-claim/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.convertOvertimeClaim));
 router.post('/:shiftId/swap-claim/:staffId', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), requirePermission('scheduling', 'edit'), asyncHandler(SchedulingController.swapOvertimeClaim));
 router.get('/staff/:staffId/shifts', asyncHandler(SchedulingController.getStaffShifts));

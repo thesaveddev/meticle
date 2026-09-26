@@ -819,6 +819,33 @@ export class SchedulingRepository {
     });
   }
 
+  /**
+   * A care worker withdrawing their own claim, before a manager has decided.
+   * Only a `pending` claim can be withdrawn: once it is approved the worker is
+   * rostered on and the shift has to be dealt with by whoever manages the
+   * location, which is what the manager endpoints are for.
+   */
+  static async withdrawPendingClaim(shiftId: string, staffId: string) {
+    return transaction(async (client) => {
+      const assignment = await client.query(
+        "UPDATE shift_assignments SET status = 'rejected' WHERE shift_id = $1 AND staff_id = $2 AND status = 'pending' RETURNING *",
+        [shiftId, staffId]
+      );
+      if (assignment.rows.length === 0) {
+        throw new AppError(409, 'This claim has already been approved or withdrawn');
+      }
+      // The shift goes back on the board only if nobody else is holding it.
+      const remaining = await client.query(
+        "SELECT COUNT(*) as cnt FROM shift_assignments WHERE shift_id = $1 AND status IN ('pending', 'assigned') AND id != $2",
+        [shiftId, assignment.rows[0].id]
+      );
+      if (parseInt(remaining.rows[0]?.cnt) === 0) {
+        await client.query("UPDATE shifts SET status = 'open' WHERE id = $1", [shiftId]);
+      }
+      return assignment.rows[0];
+    });
+  }
+
   /** Admin/manager: cancel an overtime claim (pending or approved) and return the shift to the pool. */
   static async cancelOvertimeClaim(shiftId: string, staffId: string) {
     return transaction(async (client) => {
