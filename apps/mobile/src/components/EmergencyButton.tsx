@@ -10,6 +10,26 @@ const BTN_SIZE = 56
 const PADDING = 12
 const MIN_Y = 60
 
+/**
+ * How far a finger must travel before the button treats the gesture as a drag.
+ *
+ * Deliberately generous. This is a safety control, so a slightly slower drag to
+ * reposition it is a much better outcome than a tap that does not dial. Three
+ * pixels was within the range of ordinary hand tremor.
+ */
+const DRAG_THRESHOLD = 12
+
+/**
+ * Whether a movement should be read as a drag rather than a tap.
+ *
+ * Exported so the rule can be asserted directly, and so
+ * __tests__/EmergencyButtonGesture.test.tsx can check it without depending on how
+ * a particular React Native version plumbs PanResponder handlers onto a view.
+ */
+export function isDragGesture(dx: number, dy: number): boolean {
+  return Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD
+}
+
 export interface SosContact {
   label: string
   phone: string
@@ -86,14 +106,32 @@ export function EmergencyButton({ contacts = [], managerPhone }: Props) {
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: () => true,
+      // Only take the touch once the finger has genuinely travelled.
+      //
+      // This is the bug that made the button dead on the installed app. A
+      // PanResponder on this parent competes with the Pressable below it for the
+      // same touch, and this used to be `() => true` — claim the touch on the
+      // first move event, whatever its size. A finger never lands perfectly
+      // still: a real tap delivers a move of one or two pixels, that was enough
+      // for the parent to become the responder, the Pressable was terminated, and
+      // onPress never ran. The button rendered, looked fine, and did absolutely
+      // nothing — the emergency call could not be made from the app at all.
+      //
+      // It stayed hidden because every existing test used fireEvent.press, which
+      // invokes onPress directly and bypasses responder negotiation, so the whole
+      // suite passed while the button was dead on a device. See
+      // __tests__/EmergencyButtonGesture.test.tsx.
+      onMoveShouldSetPanResponder: (_event, gesture) => isDragGesture(gesture.dx, gesture.dy),
+      // Hand the touch back if something above needs it, so a drag that started
+      // on the button cannot trap the responder.
+      onPanResponderTerminationRequest: () => true,
       onPanResponderGrant: () => {
         isDragging.current = false
         gestureStartX.current = posX.current
         gestureStartY.current = posY.current
       },
       onPanResponderMove: (_, gs) => {
-        if (Math.abs(gs.dx) > 3 || Math.abs(gs.dy) > 3) isDragging.current = true
+        if (isDragGesture(gs.dx, gs.dy)) isDragging.current = true
 
         const nx = clamp(gestureStartX.current + gs.dx, PADDING, screenW - BTN_SIZE - PADDING)
         const ny = clamp(gestureStartY.current + gs.dy, MIN_Y, screenH - BTN_SIZE - 40)
@@ -163,6 +201,9 @@ export function EmergencyButton({ contacts = [], managerPhone }: Props) {
 
   return (
     <Animated.View
+      // Lets the responder contract be asserted directly; see
+      // __tests__/EmergencyButtonGesture.test.tsx.
+      testID="sos-drag-host"
       style={[styles.button, pressed && styles.pressed, {
         left: panX,
         top: panY,
