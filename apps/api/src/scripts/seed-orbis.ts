@@ -1,12 +1,31 @@
 // Comprehensive demo seed — creates a fresh org with a unique name each run
 // Run: npx tsx src/scripts/seed-orbis.ts
 // All staff login with: DemoPass123!
+//
+// Refuses to run against production. This creates a platform administrator with
+// a password printed in this file, which has no business existing in a real
+// environment. It is not in the production image, but "not deployed" is a weaker
+// guarantee than "refuses to run", and a credential that can be recreated on
+// demand is a Cyber Essentials secure-configuration failure even when unused.
+// Set ALLOW_DEMO_SEED=true if you genuinely need it against production.
+
+if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
+  console.error(
+    'Refusing to run the demo seed against production.\n' +
+      'It creates a platform administrator with a password published in this file.\n' +
+      'Set ALLOW_DEMO_SEED=true only if you have decided that is acceptable.',
+  );
+  process.exit(1);
+}
 
 import pool from '../shared/database'
 import { v4 as uuid } from 'uuid'
 import bcrypt from 'bcryptjs'
 
-const PWH = bcrypt.hashSync('DemoPass123!', 10)
+// Cost 12, not 10. OWASP treats anything below 12 as too cheap to resist
+// offline cracking, and this hash is the one a real login would be compared
+// against.
+const PWH = bcrypt.hashSync('DemoPass123!', 12)
 
 // Bypass RLS for seeding: wrap pool.query so every query runs on a connection
 // with the super-admin RLS session vars set (seed runs outside the request context).

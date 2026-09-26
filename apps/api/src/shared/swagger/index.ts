@@ -135,6 +135,17 @@ function buildOpenApiSpec(routes: RouteEntry[]): OpenAPIV3.Document {
 }
 
 export function setupSwagger(app: Express): void {
+  // The guard lives here rather than at the call site on purpose. The API
+  // specification is a complete map of the surface — every route, including the
+  // billing webhook and the file-serving endpoints — and it also widens the
+  // content security policy on /docs to script-src 'unsafe-eval' for Swagger
+  // UI. Publishing it was previously unconditional, so /api/docs.json answered
+  // any anonymous request. Keeping the check inside this function means no
+  // future caller can expose it by accident, which a call-site guard does not.
+  if (process.env.NODE_ENV === 'production' && process.env.SWAGGER_ENABLED !== 'true') {
+    return;
+  }
+
   const routes = extractRoutes(app);
   const spec = buildOpenApiSpec(routes);
 

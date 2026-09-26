@@ -1,12 +1,20 @@
 // Minimal production seed — 4 named users only
 // Run in container: node apps/api/dist/scripts/seed-team.js
 // All users login with: DemoPass123!
+//
+// Every seeded user gets the same published password, so this is only
+// appropriate for a real deployment where those four accounts are known to the
+// people who own them and their credentials are changed before the deployment
+// carries real care data. Set SEED_TEAM_PASSWORD to override it, and see
+// scripts/seed-dreakcare.js for the workflow-driven alternative, which is the
+// one to use for demo data.
 
 import pool from '../shared/database'
 import { v4 as uuid } from 'uuid'
 import bcrypt from 'bcryptjs'
 
-const PWH = bcrypt.hashSync('DemoPass123!', 10)
+// Cost 12, not 10 — see seed-orbis.ts.
+const PWH = bcrypt.hashSync(process.env.SEED_TEAM_PASSWORD || 'DemoPass123!', 12)
 
 async function seed() {
   console.log('\n=== Seeding Meticle Team (4 users) ===\n')
