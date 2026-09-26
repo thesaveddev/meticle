@@ -6,12 +6,13 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 import { ThemeProvider, useTheme, spacing, FONT } from './src/theme'
 import { TabIcon } from './src/components/TabIcons'
 import { isDomiciliaryOrganisation } from './src/utils/serviceType'
+import { canApproveOpenCalls, canClaimOpenCalls } from './src/utils/openCalls'
 import MeticleSplashScreen from './src/components/MeticleSplashScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { hapticLight, hapticMedium } from './src/services/haptics'
 import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitAction } from './src/types'
 import { readSession, clearSession } from './src/services/storage'
-import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount, getChatUnread, selfDeactivate } from './src/services/api'
+import { getCurrentUser, getMyVisits, login, logout, createDisruption, getUnreadNotificationCount, getChatUnread, selfDeactivate, getMyOpenCallClaims, getPendingOpenCallClaims } from './src/services/api'
 import { enqueueVisitAction, flushQueue, getQueue } from './src/services/visitQueue'
 import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners, getLaunchNotification } from './src/services/notifications'
 import { LoginScreen } from './src/screens/LoginScreen'
@@ -41,11 +42,30 @@ import { CarerTotalsScreen } from './src/screens/CarerTotalsScreen'
 import { RideShareScreen } from './src/screens/RideShareScreen'
 import { SwipeBack } from './src/components/SwipeBack'
 import { EmergencyButton, organisationSosContacts } from './src/components/EmergencyButton'
+// Store-screenshot capture. All of it is inert unless EXPO_PUBLIC_CAPTURE_MODE=1
+// is set in a dev build — see src/capture/mode.ts.
+import { isCaptureMode } from './src/capture/mode'
+import { installCaptureMode, captureQueueFor } from './src/capture/install'
+import { useCaptureTour } from './src/capture/useCaptureTour'
+import { CAPTURE_INCIDENT_DRAFT } from './src/capture/fixtures'
+import type { CaptureScene, CaptureTarget } from './src/capture/shots'
 
 type TabKey = 'today' | 'schedule' | 'chat' | 'mileage' | 'settings' | 'team' | 'clients' | 'visits'
 
-/** Provides the status-bar inset for stack screens that render their own root View. */
-function SubScreenFrame({ children, backgroundColor, contacts = [] }: { children: ReactNode; backgroundColor: string; contacts?: ReturnType<typeof organisationSosContacts> }) {
+/**
+ * The only mount path for a stack screen, and the only place in the app that
+ * applies safe-area insets.
+ *
+ * This was not always true. Screens were mounted through one of two wrappers,
+ * one of which applied no insets at all and left each screen to remember to
+ * apply its own — and `AnnualLeaveScreen` did not, so its header drew under
+ * the status bar. A per-screen responsibility that nothing checks is a bug
+ * waiting to be written, so `EmergencyLayer` is gone: `renderScreen` returns
+ * the screen and `frame` wraps it, and there is no path from the screen stack
+ * to a rendered screen that skips the insets. A screen must not add its own
+ * top padding either; `App.test.tsx` fails if one starts.
+ */
+function ScreenFrame({ children, backgroundColor, contacts = [] }: { children: ReactNode; backgroundColor: string; contacts?: ReturnType<typeof organisationSosContacts> }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['top', 'left', 'right', 'bottom']}>
       {children}
@@ -54,8 +74,9 @@ function SubScreenFrame({ children, backgroundColor, contacts = [] }: { children
   )
 }
 
-function EmergencyLayer({ children, contacts }: { children: ReactNode; contacts: ReturnType<typeof organisationSosContacts> }) {
-  return <View style={{ flex: 1 }}>{children}<EmergencyButton contacts={contacts} /></View>
+/** Compile-time exhaustiveness: a new `Screen` kind cannot be left unmounted. */
+function assertNever(value: never): never {
+  throw new Error(`Screen ${JSON.stringify(value)} has no mount in App.tsx`)
 }
 
 const carerTabs: { key: TabKey; label: string }[] = [
@@ -123,11 +144,22 @@ function AppInner() {
   const [screenStack, setScreenStack] = useState<Screen[]>([{ kind: 'tabs' }])
   const [unreadCount, setUnreadCount] = useState(0)
   const [chatUnreadCount, setChatUnreadCount] = useState(0)
+  // Which chat conversation the capture tour should open. Unset in every
+  // normal launch, where the chat tab lands on the channel list.
+  const [captureChannelId, setCaptureChannelId] = useState<string | undefined>(undefined)
 
   const isManager = session?.user?.role === 'ORG_ADMIN' || session?.user?.role === 'MANAGER'
   const tabs = isManager ? managerTabs : carerTabs
   // Gates the open-call marketplace, the Learn screen and the Settings row.
   const isDomiciliary = useMemo(() => isDomiciliaryOrganisation(session?.organization), [session?.organization])
+  // Open calls has two audiences and they must not overlap: a care worker picks
+  // shifts up, a manager decides on the claims that produces. A manager of a
+  // domiciliary agency used to be offered shifts of their own.
+  const canClaimCalls = useMemo(() => canClaimOpenCalls(session?.user, session?.organization), [session?.user, session?.organization])
+  const canApproveCalls = useMemo(() => canApproveOpenCalls(session?.user), [session?.user])
+  // "How many of my claims is a manager sitting on?" — the badge on the Open
+  // calls row and the Today card, so nobody has to open the screen to find out.
+  const [pendingClaimsCount, setPendingClaimsCount] = useState(0)
   const currentScreen = screenStack[screenStack.length - 1]
   const pushScreen = useCallback((screen: Screen) => setScreenStack(prev => [...prev, screen]), [])
   const popScreen = useCallback(() => setScreenStack(prev => prev.length <= 1 ? prev : prev.slice(0, -1)), [])
@@ -152,10 +184,38 @@ function AppInner() {
       const range = dayRange()
       const nextVisits = await getMyVisits(activeSession.accessToken, range.from, range.to)
       setVisits(nextVisits.sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime()))
-      for (const visit of nextVisits) await scheduleVisitReminder(visit, visit.travel_buffer_minutes || 30)
+      for (const visit of nextVisits) {
+        // Capture mode has no notification permission and no reminder to give.
+        if (isCaptureMode()) break
+        await scheduleVisitReminder(visit, visit.travel_buffer_minutes || 30)
+      }
     } catch (error: any) {
       if (error.status === 401) setSession(null)
     } finally { if (refresh) setRefreshing(false) }
+  }, [])
+
+  // Takes the session as an argument rather than closing over it: a useCallback
+  // that depends on `session` gets a new identity every time the boot effect
+  // stores a fresh session object, which re-runs the boot effect, which stores
+  // another one. The tabs and badge tests caught that as a hang.
+  const loadPendingClaims = useCallback(async (activeSession: AuthSession) => {
+    if (!activeSession) return
+    try {
+      if (canApproveOpenCalls(activeSession.user)) {
+        const waiting = await getPendingOpenCallClaims(activeSession.accessToken)
+        setPendingClaimsCount(Array.isArray(waiting) ? waiting.length : 0)
+        return
+      }
+      if (!canClaimOpenCalls(activeSession.user, activeSession.organization)) return
+      const mine = await getMyOpenCallClaims(activeSession.accessToken)
+      setPendingClaimsCount(
+        Array.isArray(mine) ? mine.filter(claim => claim.assignment_status === 'pending').length : 0
+      )
+    } catch {
+      // A badge that cannot be counted is not worth an error banner; the screen
+      // it points at still loads and shows the real count.
+      setPendingClaimsCount(0)
+    }
   }, [])
 
   const sync = useCallback(async (activeSession = session) => {
@@ -165,7 +225,12 @@ function AppInner() {
   }, [loadQueue, session])
 
   useEffect(() => {
-    readSession().then(async stored => {
+    ;(async () => {
+      // Capture mode signs the app in with fixture data before the normal boot
+      // path looks for a session, so every line below runs exactly as it does
+      // on a real launch.
+      if (isCaptureMode()) await installCaptureMode()
+      const stored = await readSession()
       if (!stored) { setBooting(false); return }
       try {
         const current = await getCurrentUser(stored.accessToken)
@@ -176,14 +241,55 @@ function AppInner() {
         const live = (await readSession()) || stored
         const active = { ...live, user: current.user, organization: current.organization }
         setSession(active); await loadQueue(); await loadVisits(active)
-        registerForPushNotifications(active.accessToken).catch(() => {})
+        if (!isCaptureMode()) registerForPushNotifications(active.accessToken).catch(() => {})
+        loadPendingClaims(active)
         getUnreadNotificationCount(active.accessToken).then(setUnreadCount).catch(() => {})
         getChatUnread(active.accessToken).then(counts => setChatUnreadCount(Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0))).catch(() => {})
       } catch { setSession(null) }
       finally { setBooting(false) }
-    })
+    })()
     return () => { removeNotificationListeners() }
-  }, [loadQueue, loadVisits])
+  }, [loadQueue, loadVisits, loadPendingClaims])
+
+  /* ─── Store-screenshot capture tour ─────────────────────────── */
+  // Inert unless EXPO_PUBLIC_CAPTURE_MODE=1 is set in a dev build. The tour asks
+  // for each of the six shots in turn, and the host script takes the picture once
+  // the app says the screen has settled. See src/capture/shots.ts.
+  const handleCaptureScene = useCallback((scene: CaptureScene) => {
+    setQueue(scene === 'offline-queue' ? captureQueueFor() : [])
+  }, [])
+
+  const handleCaptureTarget = useCallback((target: CaptureTarget) => {
+    setCaptureChannelId(undefined)
+    if (target.kind === 'tab') {
+      setScreenStack([{ kind: 'tabs' }])
+      setTab(target.tab)
+      return
+    }
+    if (target.kind === 'chatChannel') {
+      setScreenStack([{ kind: 'tabs' }])
+      setTab('chat')
+      setCaptureChannelId(target.channelId)
+      return
+    }
+    if (target.kind === 'visit') {
+      const visit = visits.find(candidate => candidate.id === target.visitId)
+      if (!visit) return
+      setScreenStack([{ kind: 'tabs' }, { kind: 'visit', visit }])
+      return
+    }
+    if (target.kind === 'clientDetail') {
+      setScreenStack([{ kind: 'tabs' }, { kind: 'clientDetail', personId: target.personId }])
+      return
+    }
+    setScreenStack([{ kind: 'tabs' }, { kind: 'incident', personId: target.personId, visitId: target.visitId }])
+  }, [visits])
+
+  useCaptureTour({
+    ready: !!session && visits.length > 0 && fontsLoaded,
+    onScene: handleCaptureScene,
+    onTarget: handleCaptureTarget,
+  })
 
   /* ─── Notification taps ───────────────────────────────────── */
   // A tapped notification should take the carer to the thing it is about.
@@ -247,11 +353,15 @@ function AppInner() {
   }, [session?.accessToken])
 
   // Refresh the bell badge when returning to the tabs, so it reflects what the
-  // carer has actually read rather than the count they arrived with.
+  // carer has actually read rather than the count they arrived with. The
+  // pending-claims badge is refreshed at the same moment, for the same reason:
+  // a manager who approved something on the web should not leave a stale "1
+  // waiting" on the phone.
   useEffect(() => {
     if (!session?.accessToken || currentScreen.kind !== 'tabs') return
     getUnreadNotificationCount(session.accessToken).then(setUnreadCount).catch(() => {})
-  }, [currentScreen.kind, session?.accessToken])
+    loadPendingClaims(session)
+  }, [currentScreen.kind, session?.accessToken, loadPendingClaims])
 
   async function handleLogin(email: string, password: string) {
     setLoginLoading(true); setLoginError('')
@@ -349,75 +459,74 @@ function AppInner() {
   }
 
   /* ─── Sub-screens ────────────────────────────────────────── */
-  if (currentScreen.kind === 'bodyMap' && session) {
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><BodyMapScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'nutrition' && session) {
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><NutritionScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'clientDetail' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} onOpenSection={(id, section) => pushScreen({ kind: 'clientSection', personId: id, section })} /></SwipeBack></SubScreenFrame></>
-  }
-  if (currentScreen.kind === 'clientSection' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} initialTab={currentScreen.section} sectionOnly onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} /></SwipeBack></SubScreenFrame></>
-  }
-  if (currentScreen.kind === 'visit' && session) {
-    // Find next visit after this one
-    const sortedVisits = [...visits].sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())
-    const currentIdx = sortedVisits.findIndex(v => v.id === currentScreen.visit.id)
-    const nextV = currentIdx >= 0 && currentIdx < sortedVisits.length - 1 ? sortedVisits[currentIdx + 1] : null
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} onTransfer={() => pushScreen({ kind: 'swap', mode: 'transfer', visitId: currentScreen.visit.id })} onRideShare={() => pushScreen({ kind: 'rideShare', visit: currentScreen.visit })} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'availability' && session) {
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AvailabilityScreen session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'annualLeave' && session) {
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AnnualLeaveScreen session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'profile' && session) {
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'openCalls' && session) {
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><OpenCallsScreen session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'swap' && session) {
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><SwapTransferScreen session={session} user={user} visits={visits} initialRequestType={currentScreen.mode} initialVisitId={currentScreen.visitId} onBack={goBack} onRefresh={() => loadVisits(session)} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'incident' && session) {
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'chat' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><ChatScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
-  }
-  if (currentScreen.kind === 'notifications' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
-  }
-  if (currentScreen.kind === 'allVisits' && session) {
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><AllVisitsScreen session={session} onBack={goBack} initialStatus={currentScreen.status} initialStaffName={currentScreen.staffName} initialStaffId={currentScreen.staffId} onSelect={(visit) => {
-      if (visit) { popScreen(); pushScreen({ kind: 'visit', visit }) }
-    }} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'staffDirectory' && session) {
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><StaffDirectoryScreen session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'timesheets' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><TimesheetsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
-  }
-  if (currentScreen.kind === 'carerTotals' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><CarerTotalsScreen session={session} onBack={goBack} /></SwipeBack></SubScreenFrame></>
-  }
-  if (currentScreen.kind === 'rideShare' && session) {
-    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><RideShareScreen session={session} currentVisit={currentScreen.visit} onBack={goBack} /></SwipeBack></EmergencyLayer>
-  }
-  if (currentScreen.kind === 'learn' && session) {
-    return <><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SubScreenFrame backgroundColor={c.bg} contacts={sosContacts}><SwipeBack onBack={goBack}><LearnScreen user={user} isDomiciliary={isDomiciliary} onBack={goBack} /></SwipeBack></SubScreenFrame></>
+  // One switch, one frame. Every case returns the screen itself; `frame` is the
+  // only thing that puts it on screen, so no screen can skip the safe-area
+  // insets, and a new kind in the `Screen` union has to be handled here or the
+  // build fails.
+  const frame = (element: ReactNode) => (
+    <>
+      <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
+      <ScreenFrame backgroundColor={c.bg} contacts={sosContacts}>{element}</ScreenFrame>
+    </>
+  )
+
+  switch (currentScreen.kind) {
+    case 'bodyMap':
+      return frame(<SwipeBack onBack={goBack}><BodyMapScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></SwipeBack>)
+    case 'nutrition':
+      return frame(<SwipeBack onBack={goBack}><NutritionScreen personId={currentScreen.personId} personName={currentScreen.personName} session={session} onBack={goBack} /></SwipeBack>)
+    case 'clientDetail':
+      return frame(<SwipeBack onBack={goBack}><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} onOpenSection={(id, section) => pushScreen({ kind: 'clientSection', personId: id, section })} /></SwipeBack>)
+    case 'clientSection':
+      return frame(<SwipeBack onBack={goBack}><ClientDetailScreen personId={currentScreen.personId} session={session} onBack={goBack} initialTab={currentScreen.section} sectionOnly onBodyMap={(id, name) => pushScreen({ kind: 'bodyMap', personId: id, personName: name })} onNutrition={(id, name) => pushScreen({ kind: 'nutrition', personId: id, personName: name })} /></SwipeBack>)
+    case 'visit': {
+      // Find next visit after this one
+      const sortedVisits = [...visits].sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())
+      const currentIdx = sortedVisits.findIndex(v => v.id === currentScreen.visit.id)
+      const nextV = currentIdx >= 0 && currentIdx < sortedVisits.length - 1 ? sortedVisits[currentIdx + 1] : null
+      return frame(<SwipeBack onBack={goBack}><VisitScreen visit={currentScreen.visit} session={session} queue={activeQueue} onBack={goBack} onAction={handleAction} onDisruption={handleDisruption} onClientDetail={(pid) => pushScreen({ kind: 'clientDetail', personId: pid })} onReportIncident={() => pushScreen({ kind: 'incident', visitId: currentScreen.visit.id, personId: currentScreen.visit.person_id, personName: currentScreen.visit.person_name })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} onTransfer={() => pushScreen({ kind: 'swap', mode: 'transfer', visitId: currentScreen.visit.id })} onRideShare={() => pushScreen({ kind: 'rideShare', visit: currentScreen.visit })} nextVisit={nextV} onVisitNext={(v) => pushScreen({ kind: 'visit', visit: v })} /></SwipeBack>)
+    }
+    case 'availability':
+      return frame(<SwipeBack onBack={goBack}><AvailabilityScreen session={session} onBack={goBack} /></SwipeBack>)
+    case 'annualLeave':
+      return frame(<SwipeBack onBack={goBack}><AnnualLeaveScreen session={session} onBack={goBack} /></SwipeBack>)
+    case 'profile':
+      return frame(<SwipeBack onBack={goBack}><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></SwipeBack>)
+    case 'openCalls':
+      return frame(<SwipeBack onBack={goBack}><OpenCallsScreen session={session} onBack={goBack} /></SwipeBack>)
+    case 'swap':
+      return frame(<SwipeBack onBack={goBack}><SwapTransferScreen session={session} user={user} visits={visits} initialRequestType={currentScreen.mode} initialVisitId={currentScreen.visitId} onBack={goBack} onRefresh={() => loadVisits(session)} /></SwipeBack>)
+    case 'incident':
+      return frame(<SwipeBack onBack={goBack}><ReportIncidentScreen session={session} visitId={currentScreen.visitId} personId={currentScreen.personId} personName={currentScreen.personName} initialDraft={isCaptureMode() ? CAPTURE_INCIDENT_DRAFT : undefined} onBack={goBack} onSubmitted={() => { goBack(); loadVisits(session) }} /></SwipeBack>)
+    case 'chat':
+      return frame(<SwipeBack onBack={goBack}><ChatScreen session={session} onBack={goBack} /></SwipeBack>)
+    case 'notifications':
+      return frame(<SwipeBack onBack={goBack}><NotificationsScreen session={session} onBack={goBack} /></SwipeBack>)
+    case 'allVisits':
+      return frame(<SwipeBack onBack={goBack}><AllVisitsScreen session={session} onBack={goBack} initialStatus={currentScreen.status} initialStaffName={currentScreen.staffName} initialStaffId={currentScreen.staffId} onSelect={(visit) => {
+        if (visit) { popScreen(); pushScreen({ kind: 'visit', visit }) }
+      }} /></SwipeBack>)
+    case 'staffDirectory':
+      return frame(<SwipeBack onBack={goBack}><StaffDirectoryScreen session={session} onBack={goBack} /></SwipeBack>)
+    case 'timesheets':
+      return frame(<SwipeBack onBack={goBack}><TimesheetsScreen session={session} onBack={goBack} /></SwipeBack>)
+    case 'carerTotals':
+      return frame(<SwipeBack onBack={goBack}><CarerTotalsScreen session={session} onBack={goBack} /></SwipeBack>)
+    case 'rideShare':
+      return frame(<SwipeBack onBack={goBack}><RideShareScreen session={session} currentVisit={currentScreen.visit} onBack={goBack} /></SwipeBack>)
+    case 'learn':
+      return frame(<SwipeBack onBack={goBack}><LearnScreen user={user} isDomiciliary={isDomiciliary} onBack={goBack} /></SwipeBack>)
+    case 'tabs':
+      break
+    default:
+      return assertNever(currentScreen)
   }
 
   /* ─── Main tab view ──────────────────────────────────────── */
   return (
     <>
       <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
-      <SafeAreaView style={[s.app, { backgroundColor: c.bg }]} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={[s.app, { backgroundColor: c.bg }]} edges={['top', 'left', 'right', 'bottom']}>
         {/* Header with notification bell */}
         <View style={[s.header, { backgroundColor: c.bg }]}>  
           <View style={{ flex: 1 }} />
@@ -439,7 +548,7 @@ function AppInner() {
         </View>
         <View style={[s.body, { backgroundColor: c.bg }]}>
           {/* Carer tabs */}
-          {!isManager && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onOpenCalls={() => pushScreen({ kind: 'openCalls' })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} session={session} />}
+          {!isManager && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} session={session} />}
           {!isManager && tab === 'schedule' && <WeekScreen session={session} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} />}
           {!isManager && tab === 'mileage' && <MileageScreen session={session} />}
 
@@ -457,8 +566,8 @@ function AppInner() {
           }} />}
 
           {/* Shared tabs */}
-          {tab === 'chat' && <ChatScreen session={session} />}
-          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} onOpenCalls={isDomiciliary ? () => pushScreen({ kind: 'openCalls' }) : undefined} onDeleteAccount={handleDeleteAccount} />}
+          {tab === 'chat' && <ChatScreen session={session} initialChannelId={captureChannelId} />}
+          {tab === 'settings' && <SettingsScreen user={user} onSignOut={handleSignOut} onSync={() => sync()} onProfile={() => pushScreen({ kind: 'profile' })} onLearn={() => pushScreen({ kind: 'learn' })} onAvailability={!isManager ? () => pushScreen({ kind: 'availability' }) : undefined} onAnnualLeave={!isManager ? () => pushScreen({ kind: 'annualLeave' }) : undefined} onOpenCalls={canClaimCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} onPendingClaims={canApproveCalls ? () => pushScreen({ kind: 'openCalls' }) : undefined} pendingClaimsCount={pendingClaimsCount} onDeleteAccount={handleDeleteAccount} />}
         </View>
 
         <View style={[s.tabBar, { backgroundColor: c.surface, borderTopColor: c.border }]}>
@@ -490,7 +599,11 @@ const s = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.md,
+    // The shell's bottom edge keeps the whole app, tab bar included, clear of
+    // the iOS home indicator, so the bar only has to add its own breathing
+    // room. Without that edge the bar sat under the indicator on every iPhone
+    // with a gesture bar.
+    paddingBottom: Platform.OS === 'ios' ? spacing.xs : spacing.md,
     paddingTop: spacing.xs,
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 4, gap: 2, minHeight: 48 },

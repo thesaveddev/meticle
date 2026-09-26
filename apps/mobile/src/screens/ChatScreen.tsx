@@ -4,11 +4,11 @@ import {
   RefreshControl, Alert, Pressable, Modal, ActivityIndicator, Image,
   Dimensions, ScrollView,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import * as Sharing from 'expo-sharing'
 import { connectChatSocket } from '../services/chatSocket'
+import { isCaptureMode } from '../capture/mode'
 import { elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import { dyn } from '../utils/dynamicStyles'
 import type { AuthSession } from '../types'
@@ -79,6 +79,12 @@ interface PreviewImage {
 interface Props {
   session?: AuthSession
   onBack?: () => void
+  /**
+   * Open straight into this channel instead of showing the channel list. Only
+   * the store-screenshot capture tour sets it; without it the screen always
+   * lands on the list, as it did before.
+   */
+  initialChannelId?: string
 }
 
 const AVATAR_COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#14B8A6']
@@ -115,7 +121,7 @@ function formatMsgTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
-export function ChatScreen({ session, onBack }: Props) {
+export function ChatScreen({ session, onBack, initialChannelId }: Props) {
   const c = useAppColors()
   const token = session?.accessToken || ''
   const currentUserId = session?.user?.id || ''
@@ -168,6 +174,18 @@ export function ChatScreen({ session, onBack }: Props) {
   }, [token])
 
   useEffect(() => { loadChannels() }, [loadChannels])
+
+  // The capture tour asks for a specific conversation rather than tapping into
+  // it, so the shot is the same thread every run.
+  const openedInitialChannel = useRef(false)
+  useEffect(() => {
+    if (!initialChannelId || openedInitialChannel.current) return
+    const match = channels.find(channel => channel.id === initialChannelId)
+    if (!match) return
+    openedInitialChannel.current = true
+    setActiveChannel(match)
+    setView('chat')
+  }, [initialChannelId, channels])
   useEffect(() => {
     const interval = setInterval(loadChannels, 15000)
     return () => clearInterval(interval)
@@ -229,6 +247,9 @@ export function ChatScreen({ session, onBack }: Props) {
 
   useEffect(() => {
     if (view !== 'chat' || !activeChannel || !token) return
+    // Capture mode has no server, so there is nothing to hold open. Without
+    // this the socket retries forever against a host that will never answer.
+    if (isCaptureMode()) return
     const socket = connectChatSocket(token)
     const join = () => socket.emit('chat:join', activeChannel.id)
     const onMessage = (incoming: ChatMessage & { channel_id?: string }) => {
@@ -548,7 +569,7 @@ export function ChatScreen({ session, onBack }: Props) {
 
   const renderImagePreview = () => (
     <Modal visible={Boolean(previewImage)} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => setPreviewImage(null)}>
-      <SafeAreaView style={[previewStyles.container, { backgroundColor: '#000000' }]}>
+      <View style={[previewStyles.container, { backgroundColor: '#000000' }]}>
         <View style={previewStyles.header}>
           <Pressable onPress={() => setPreviewImage(null)} accessibilityRole="button" accessibilityLabel="Close image preview">
             <Ionicons name="close" size={28} color="#FFFFFF" />
@@ -581,13 +602,13 @@ export function ChatScreen({ session, onBack }: Props) {
           <Ionicons name="download-outline" size={18} color="#FFFFFF" />
           <Text style={previewStyles.downloadText}>Save or share image</Text>
         </Pressable>
-      </SafeAreaView>
+      </View>
     </Modal>
   )
 
   const renderContactModal = () => (
     <Modal visible={showContact} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={[listStyles.container, { backgroundColor: c.bg }]} edges={['top']}>
+      <View style={[listStyles.container, { backgroundColor: c.bg }]}>
         <View style={[listStyles.header, { backgroundColor: c.bg }]}>
           <Pressable onPress={() => setShowContact(false)} style={listStyles.headerBtn}>
             <Text style={[listStyles.cancelText, { color: c.primary }]}>Close</Text>
@@ -617,13 +638,13 @@ export function ChatScreen({ session, onBack }: Props) {
             </Pressable>
           </View>
         ) : null}
-      </SafeAreaView>
+      </View>
     </Modal>
   )
 
   const renderChannelMembers = () => (
     <Modal visible={showChannelMembers} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={[listStyles.container, { backgroundColor: c.bg }]} edges={['top']}>
+      <View style={[listStyles.container, { backgroundColor: c.bg }]}>
         <View style={[listStyles.header, { backgroundColor: c.bg }]}>
           <Pressable onPress={() => setShowChannelMembers(false)} style={listStyles.headerBtn}>
             <Text style={[listStyles.cancelText, { color: c.primary }]}>Close</Text>
@@ -673,7 +694,7 @@ export function ChatScreen({ session, onBack }: Props) {
             }}
           />
         )}
-      </SafeAreaView>
+      </View>
     </Modal>
   )
 
@@ -733,7 +754,7 @@ export function ChatScreen({ session, onBack }: Props) {
 
   if (view === 'list') {
     return (
-    <SafeAreaView style={[listStyles.container, dyn(c).screen]} edges={['top']}>
+    <View style={[listStyles.container, dyn(c).screen]}>
         <View style={[listStyles.header, { backgroundColor: c.bg }]}>
           {onBack ? (
             <Pressable onPress={onBack} style={listStyles.headerBtn}>
@@ -773,7 +794,7 @@ export function ChatScreen({ session, onBack }: Props) {
         )}
 
         <Modal visible={showNewChat} animationType="slide" presentationStyle="pageSheet">
-          <SafeAreaView style={[listStyles.container, { backgroundColor: c.bg }]} edges={['top']}>
+          <View style={[listStyles.container, { backgroundColor: c.bg }]}>
             <View style={[listStyles.header, { backgroundColor: c.bg }]}>
               <Pressable onPress={() => { setShowNewChat(false); setMemberSearch('') }} style={listStyles.headerBtn}>
                 <Text style={[listStyles.cancelText, { color: c.primary }]}>Cancel</Text>
@@ -818,13 +839,13 @@ export function ChatScreen({ session, onBack }: Props) {
                 }}
               />
             )}
-          </SafeAreaView>
+          </View>
         </Modal>
 
         {renderContactModal()}
         {renderContextMenu()}
         {renderChannelMembers()}
-      </SafeAreaView>
+      </View>
     )
   }
 
@@ -835,7 +856,7 @@ export function ChatScreen({ session, onBack }: Props) {
   const canSend = inputText.trim() || pendingImage
 
   return (
-    <SafeAreaView style={[chatStyles.container, dyn(c).screen]} edges={['top']}>
+    <View style={[chatStyles.container, dyn(c).screen]}>
     <KeyboardAvoidingView
       style={chatStyles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -967,7 +988,7 @@ export function ChatScreen({ session, onBack }: Props) {
       {renderChannelMembers()}
       {renderImagePreview()}
     </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   )
 }
 

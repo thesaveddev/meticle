@@ -1,5 +1,4 @@
 import React from 'react'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import { AnnualLeaveScreen } from '../AnnualLeaveScreen'
 import * as api from '../../services/api'
@@ -38,16 +37,4 @@ describe('AnnualLeaveScreen', () => {
     expect(screen.getByText('Submit leave request')).toBeTruthy()
   })
 
-  // App.tsx wraps this screen in EmergencyLayer, a plain View, so the screen is
-  // the only thing that can keep its header clear of the clock and battery.
-  it('keeps the header below the status bar', async () => {
-    const screen = render(<AnnualLeaveScreen session={session} />)
-    await waitFor(() => expect(screen.getByText('Applied leave')).toBeTruthy())
-
-    const areas = screen.UNSAFE_queryAllByType(SafeAreaView)
-    expect(areas.length).toBeGreaterThan(0)
-    for (const area of areas) {
-      expect(area.props.edges).toEqual(expect.arrayContaining(['top']))
-    }
-  })
 })

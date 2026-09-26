@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
 import { RefreshControl, FlatList, StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { spacing, typography, FONT, useAppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
@@ -69,8 +68,6 @@ function getAvatarColor(name: string) {
 export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, initialStaffName, initialStaffId }: Props) {
   const c = useAppColors()
   const s = useDynamicStyles(styles)
-  const insets = useSafeAreaInsets()
-  const isTab = !onBack
   const [visits, setVisits] = useState<any[]>([])
   const [exceptionVisits, setExceptionVisits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -123,7 +120,10 @@ export function AllVisitsScreen({ session, onBack, onSelect, initialStatus, init
   const missed = visits.filter((v: any) => v.status === 'missed').length
 
   return (
-    <View style={[s.screen, dyn(c).screen, !isTab && { paddingTop: insets.top }]}>
+    // No top padding here: mounted as a tab the shell provides the status-bar
+    // inset, and as a stack screen the App frame does. Adding it again in this
+    // screen is how it used to be padded twice once the frame was introduced.
+    <View style={[s.screen, dyn(c).screen]}>
       {/* Header */}
       <View style={[s.header, { backgroundColor: c.surface, borderBottomColor: c.border }]}>
         <Pressable onPress={onBack} style={s.headerBtn}>

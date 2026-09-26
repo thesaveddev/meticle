@@ -1,5 +1,8 @@
 import React from 'react'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { BackHandler } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native'
 import App from '../../App'
 import type { AuthSession, MobileUser } from '../types'
@@ -307,5 +310,71 @@ describe('App session boot', () => {
 
     expect(await screen.findByText('screen:login')).toBeTruthy()
     expect(mockGetManagerDashboard).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * The safe-area guarantee. A screen that renders its own header from y=0 draws
+ * it under the clock and battery, and AnnualLeaveScreen did exactly that once.
+ * The fix was structural rather than a patch on that one screen: every stack
+ * screen is mounted through one frame that applies the insets, so there is no
+ * per-screen decision left to get wrong. These tests are what stop it drifting
+ * back.
+ */
+describe('App safe-area insets', () => {
+  const appSource = readFileSync(join(__dirname, '..', '..', 'App.tsx'), 'utf8')
+
+  it('mounts every stack screen through the one frame that applies the insets', () => {
+    // The old EmergencyLayer applied no insets at all and left each screen to
+    // remember. It is gone, and cannot come back unnoticed.
+    expect(appSource).not.toMatch(/function EmergencyLayer|<EmergencyLayer/)
+
+    // Every `case` in the screen switch returns through `frame(...)`, bar the one
+    // that is not a stack screen at all. If a new screen is added and returns raw
+    // JSX, the two counts stop matching.
+    const caseNames = Array.from(appSource.matchAll(/^ {4}case '([^']+)'/gm), match => match[1])
+    const framed = appSource.match(/return frame\(/g) || []
+    expect(caseNames).toContain('tabs')
+    expect(caseNames.length).toBeGreaterThan(1)
+    expect(framed).toHaveLength(caseNames.length - 1)
+  })
+
+  it('leaves no screen applying its own top inset, which would pad it twice', () => {
+    const screenDir = join(__dirname, '..', 'screens')
+    const offenders = readdirSync(screenDir)
+      .filter(file => file.endsWith('.tsx'))
+      .filter(file => {
+        const source = readFileSync(join(screenDir, file), 'utf8')
+        return /edges=\{\['top'\]\}/.test(source) || /insets\.top/.test(source)
+      })
+    expect(offenders).toEqual([])
+  })
+
+  it('keeps the tab bar clear of the iOS home indicator', async () => {
+    const { screen } = await mountApp('CARE_WORKER')
+
+    const areas = screen.UNSAFE_queryAllByType(SafeAreaView)
+    expect(areas.length).toBeGreaterThan(0)
+    for (const area of areas) {
+      expect(area.props.edges).toEqual(expect.arrayContaining(['top', 'bottom']))
+    }
+  })
+
+  it('keeps a stack screen below the status bar', async () => {
+    const { screen } = await mountApp('CARE_WORKER')
+    const back = installBackHandler()
+
+    await act(async () => { fireEvent.press(tabNamed(screen, 'Settings')) })
+    await act(async () => { screenProps.settings.onProfile() })
+    expect(screen.getByText('screen:profile')).toBeTruthy()
+
+    const areas = screen.UNSAFE_queryAllByType(SafeAreaView)
+    expect(areas.length).toBeGreaterThan(0)
+    for (const area of areas) {
+      expect(area.props.edges).toEqual(expect.arrayContaining(['top']))
+    }
+
+    await pressBack(back)
+    expect(screen.getByText('screen:settings')).toBeTruthy()
   })
 })

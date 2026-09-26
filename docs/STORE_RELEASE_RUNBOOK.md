@@ -93,18 +93,98 @@ Minimum requirements:
 Both also want a **feature graphic** (Play: 1024×500) and an **app icon**
 already generated at 1024×1024.
 
-Suggested shot list, in the order a reviewer reads them:
+### The six shots, and how to take them
+
+The shot list, in the order a reviewer reads them:
 
 1. Today / visit list — the first screen a care worker sees
 2. Visit in progress with check-in, showing the location capture
 3. Client detail — care notes, body map, medication
 4. Report an incident — the safeguarding path
 5. Chat — team communication
-6. Offline sync rail — the differentiator, and the hardest to screenshot because
-   it needs airplane mode
+6. Offline sync rail — the differentiator
 
-Screenshots 1–5 can be captured from a simulator; **6 needs a real device** to
-toggle connectivity.
+That list is written down once, in `apps/mobile/src/capture/shots.ts`, with the
+line of store copy that goes under each image. Re-shooting after a rebuild does
+not mean re-deciding what to photograph.
+
+**Do them by hand if you have to — but the scripted route is one command and
+gives you the same six images every time.**
+
+#### How the scripted capture works
+
+With `EXPO_PUBLIC_CAPTURE_MODE=1` in a development build, the app:
+
+- serves fixture data instead of calling the API (`src/capture/fixtures.ts`) —
+  the clients, visits, care record, medication, chat history and sync queue are
+  all invented, so nothing real appears in a public listing;
+- raises **no permission prompts**: no push, no location, no photo library, and
+  no chat socket;
+- signs itself in and loads the day through the ordinary boot path, then walks
+  the six screens in order, writing `capture-step.json` in its own documents
+  directory once each screen has settled.
+
+`scripts/capture-store-screenshots.mjs` watches that file and takes the
+photograph. There are no tap coordinates anywhere, so nothing breaks when a
+layout moves.
+
+The mode is gated twice, and both gates have to pass: `__DEV__` **and** the
+environment variable. A release bundle cannot enter it whatever the environment
+says — see `src/capture/mode.ts` and `mode.test.ts`.
+
+#### Running it
+
+Terminal one — start the app in capture mode:
+
+```bash
+cd apps/mobile
+EXPO_PUBLIC_CAPTURE_MODE=1 npx expo start --dev-client --ios
+```
+
+Terminal two — take the pictures:
+
+```bash
+cd apps/mobile
+npm run capture:ios        # or capture:android
+```
+
+Useful flags: `--dry-run` prints the plan and touches nothing (works with no
+device attached), `--only 05-chat` recaptures one image, `--udid` picks a
+specific simulator, and `--print-launch` prints the first command for you.
+
+The script writes into `store-assets/screenshots/<platform>/` (gitignored),
+alongside two files it generates for you:
+
+- `capture-manifest.json` — what was captured, when, on what, and any endpoint
+  the fixtures could not answer;
+- `store-listing-copy.md` — the caption for each image in order, ready to paste.
+
+**Check the images before uploading them.** The script reports endpoints the
+fixtures do not answer, which is how a screen that rendered emptier than it
+should have shows up. It cannot check anything else — that is what the six-shot
+test suite cannot do for you.
+
+#### What is deterministic, and what is not
+
+Visit times are derived from the moment the app starts and snapped to the half
+hour, because the Today screen decides "past / under way / next" against the
+real clock. A hard-coded 09:00 visit would be under way at 09:00 and overdue at
+15:00, so the set would break depending on when you ran it. The result is the
+same timeline at any hour of any day: one finished call, one under way, the
+next, and — when it is still the same calendar day — one after that. The
+greeting ("Good morning" / "Good afternoon") still follows the real clock, which
+is correct rather than a defect.
+
+Two things are deliberately **not** simulated, because faking them would be a
+composited image:
+
+- shot 6 shows the sync rail with actions waiting, seeded from the app's own
+  queue code. It does not toggle airplane mode. If you want the genuine article
+  on a physical device, put the app in airplane mode before the tour reaches
+  shot 6.
+- shot 4 is a *partly written* incident form, not a submitted one. The
+  submission path is not exercised, so nothing is posted.
+
 
 ## 3. Still requires a human decision
 

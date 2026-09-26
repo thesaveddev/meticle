@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { elevation, radii, spacing, FONT, useAppColors, type AppColors } from '../theme'
 import { useDynamicStyles } from '../utils/patchStaticStyles'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { SkeletonInline } from '../components/Skeleton'
-import { claimOpenCall, getMyOpenCallClaims, getOpenCalls, type MyOpenCallClaim, type OpenCall } from '../services/api'
+import { claimOpenCall, getMyOpenCallClaims, getOpenCalls, withdrawOpenCallClaim, approveOpenCallClaim, rejectOpenCallClaim, getPendingOpenCallClaims, type MyOpenCallClaim, type OpenCall, type PendingOpenCallClaim } from '../services/api'
+import { canApproveOpenCalls } from '../utils/openCalls'
 import { hapticLight, hapticWarning } from '../services/haptics'
 import type { AuthSession } from '../types'
 
@@ -78,7 +78,9 @@ function byUrgency(claims: MyOpenCallClaim[]) {
 
 /**
  * Open calls: extra shifts a care worker can pick up, and the outcome of the
- * ones they have already claimed.
+ * ones they have already claimed. A manager opening the same screen gets the
+ * other half of the workflow instead — the claims waiting on them — because
+ * `canClaimOpenCalls` keeps the marketplace itself to care workers.
  *
  * The list comes from `GET /shifts/open`, which returns published, unclaimed
  * shifts for the next fortnight. Claiming posts to `/shifts/:id/claim`, where
@@ -97,15 +99,26 @@ export function OpenCallsScreen({ session, onBack }: Props) {
   const [tab, setTab] = useState<Tab>('available')
   const [calls, setCalls] = useState<OpenCall[]>([])
   const [claims, setClaims] = useState<MyOpenCallClaim[]>([])
+  const [pending, setPending] = useState<PendingOpenCallClaim[]>([])
+  const [decidingId, setDecidingId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
+  /** A manager gets the claims waiting on them, not the marketplace. */
+  const managerMode = canApproveOpenCalls(session?.user)
+
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
     try {
+      if (managerMode) {
+        const waiting = await getPendingOpenCallClaims(session.accessToken)
+        setPending(Array.isArray(waiting) ? waiting : [])
+        setError('')
+        return
+      }
       // Both halves are needed whichever tab is open: a claimed shift stays in
       // the open list until a manager approves it, and only the claims list
       // says whose claim it is.
@@ -122,7 +135,7 @@ export function OpenCallsScreen({ session, onBack }: Props) {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [session.accessToken])
+  }, [session.accessToken, managerMode])
 
   useEffect(() => { load() }, [load])
 
@@ -181,6 +194,67 @@ export function OpenCallsScreen({ session, onBack }: Props) {
     }
   }
 
+  const handleWithdraw = (claim: MyOpenCallClaim) => {
+    Alert.alert(
+      'Withdraw this claim?',
+      `${dateLabel(claim.start_time)}, ${time(claim.start_time)}–${time(claim.end_time)} · ${claim.location_name || 'Location'}\n\nThe call goes back on offer for everyone else.`,
+      [
+        { text: 'Keep it', style: 'cancel' },
+        { text: 'Withdraw', style: 'destructive', onPress: () => submitWithdraw(claim) },
+      ],
+    )
+  }
+
+  const submitWithdraw = async (claim: MyOpenCallClaim) => {
+    hapticLight()
+    setClaimingId(claim.shift_id)
+    try {
+      await withdrawOpenCallClaim(session.accessToken, claim.shift_id)
+      await load()
+    } catch (e: any) {
+      hapticWarning()
+      // A claim a manager approved in the meantime is a 409, and saying so is
+      // more use than "something went wrong".
+      Alert.alert('Could not withdraw', e?.message || 'Please try again.')
+      await load()
+    } finally {
+      setClaimingId(null)
+    }
+  }
+
+  const handleDecision = (claim: PendingOpenCallClaim, approve: boolean) => {
+    const who = `${claim.first_name || ''} ${claim.last_name || ''}`.trim() || 'A staff member'
+    const when = `${dateLabel(claim.start_time)}, ${time(claim.start_time)}–${time(claim.end_time)}`
+    Alert.alert(
+      approve ? 'Approve this claim?' : 'Decline this claim?',
+      approve
+        ? `${who} will be rostered on for ${when}. They are notified straight away.`
+        : `${who} will be told the claim was declined. The call goes back on offer.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: approve ? 'Approve' : 'Decline', style: approve ? undefined : 'destructive', onPress: () => submitDecision(claim, approve) },
+      ],
+    )
+  }
+
+  const submitDecision = async (claim: PendingOpenCallClaim, approve: boolean) => {
+    hapticLight()
+    setDecidingId(claim.assignment_id)
+    try {
+      if (approve) await approveOpenCallClaim(session.accessToken, claim.shift_id, claim.staff_id)
+      else await rejectOpenCallClaim(session.accessToken, claim.shift_id, claim.staff_id)
+      await load()
+    } catch (e: any) {
+      hapticWarning()
+      // Someone else may have decided it while this phone was open, so say the
+      // server's reason rather than a generic failure.
+      Alert.alert(approve ? 'Could not approve' : 'Could not decline', e?.message || 'Please try again.')
+      await load()
+    } finally {
+      setDecidingId(null)
+    }
+  }
+
   const renderStatusBadge = (status: string) => {
     const view = claimStatus(status, c)
     return (
@@ -192,7 +266,7 @@ export function OpenCallsScreen({ session, onBack }: Props) {
   }
 
   return (
-    <SafeAreaView style={[s.screen, { backgroundColor: c.bg }]} edges={['top']}>
+    <View style={[s.screen, { backgroundColor: c.bg }]}>
       <ScrollView
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
@@ -210,7 +284,102 @@ export function OpenCallsScreen({ session, onBack }: Props) {
           <Ionicons name="chevron-back" size={24} color={c.primary} />
         </Pressable>
         <Text style={[s.title, { color: c.ink }]}>Open Calls</Text>
-        <Text style={[s.subtitle, { color: c.muted }]}>Extra paid shifts available to pick up</Text>
+        <Text style={[s.subtitle, { color: c.muted }]}>
+          {managerMode ? 'Extra shift claims waiting on you' : 'Extra paid shifts available to pick up'}
+        </Text>
+
+        {managerMode ? (
+          pending.length === 0 && !loading && !error ? (
+            <View style={s.empty}>
+              <View style={[s.emptyCircle, { backgroundColor: c.primarySurface }]}>
+                <Ionicons name="checkmark-done-outline" size={30} color={c.primary} />
+              </View>
+              <Text style={[s.emptyTitle, { color: c.ink }]}>Nothing waiting on you</Text>
+              <Text style={[s.emptySub, { color: c.muted }]}>
+                When a care worker claims an extra shift, it appears here to approve or decline.
+              </Text>
+            </View>
+          ) : (
+            <View style={s.list}>
+              {pending.map(claim => {
+                const who = `${claim.first_name || ''} ${claim.last_name || ''}`.trim() || 'A staff member'
+                const busy = decidingId === claim.assignment_id
+                return (
+                  <View key={claim.assignment_id} style={[s.card, { backgroundColor: c.surface, borderColor: c.borderLight }, elevation.sm]}>
+                    <View style={s.cardTop}>
+                      <View style={s.cardTopText}>
+                        <Text style={[s.cardDate, { color: c.ink }]}>{who}</Text>
+                        <Text style={[s.cardTime, { color: c.primary }]}>
+                          {dateLabel(claim.start_time)} · {time(claim.start_time)}–{time(claim.end_time)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={s.metaRow}>
+                      <Ionicons name="location-outline" size={14} color={c.muted} />
+                      <Text style={[s.meta, { color: c.muted }]} numberOfLines={1}>
+                        {claim.location_name || 'Location'}
+                      </Text>
+                    </View>
+
+                    <View style={s.metaRow}>
+                      <Ionicons name="time-outline" size={14} color={c.muted} />
+                      <Text style={[s.meta, { color: c.muted }]}>
+                        {durationLabel(claim.start_time, claim.end_time)}
+                        {` · ${SHIFT_TYPE_LABEL[claim.shift_type] || claim.shift_type}`}
+                      </Text>
+                    </View>
+
+                    {claim.su_first_name ? (
+                      <View style={s.metaRow}>
+                        <Ionicons name="person-outline" size={14} color={c.muted} />
+                        <Text style={[s.meta, { color: c.muted }]}>
+                          For {claim.su_first_name} {claim.su_last_name}
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    <Text style={[s.claimedAt, { color: c.muted }]}>
+                      {claimedAgo(claim.claimed_at) ? `Claimed ${claimedAgo(claim.claimed_at)}` : 'Waiting for a decision'}
+                    </Text>
+
+                    <View style={s.decisionRow}>
+                      <Pressable
+                        onPress={() => handleDecision(claim, false)}
+                        disabled={busy}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Decline the claim from ${who}`}
+                        style={({ pressed }) => [
+                          s.decisionBtn,
+                          { borderColor: c.border, backgroundColor: pressed ? c.surfaceAlt : 'transparent' },
+                          busy && { opacity: 0.5 },
+                        ]}
+                      >
+                        <Text style={[s.decisionText, { color: c.muted }]}>Decline</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => handleDecision(claim, true)}
+                        disabled={busy}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Approve the claim from ${who}`}
+                        style={({ pressed }) => [
+                          s.decisionBtn,
+                          { borderColor: c.primary, backgroundColor: pressed ? c.primarySurface : c.primary },
+                          busy && { opacity: 0.5 },
+                        ]}
+                      >
+                        <Text style={[s.decisionText, { color: c.inverse }]}>
+                          {busy ? 'Saving…' : 'Approve'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                )
+              })}
+            </View>
+          )
+        ) : (
+        <>
 
         <View style={[s.tabs, { backgroundColor: c.surfaceAlt, borderColor: c.border }]}>
           {([['available', 'Available'], ['mine', `My claims${claims.length ? ` (${claims.length})` : ''}`]] as [Tab, string][]).map(([key, label]) => {
@@ -408,12 +577,35 @@ export function OpenCallsScreen({ session, onBack }: Props) {
                       : 'Not approved — this call went back on offer'}
                   {claimedAgo(claim.claimed_at) ? ` · Claimed ${claimedAgo(claim.claimed_at)}` : ''}
                 </Text>
+
+                {claim.assignment_status === 'pending' ? (
+                  // Only while a manager has not decided. Once it is approved
+                  // the worker is rostered on, and giving up the shift is a
+                  // conversation with whoever manages the location.
+                  <Pressable
+                    onPress={() => handleWithdraw(claim)}
+                    disabled={claimingId === claim.shift_id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Withdraw your claim for ${dateLabel(claim.start_time)}`}
+                    style={({ pressed }) => [
+                      s.withdrawBtn,
+                      { borderColor: c.border, backgroundColor: pressed ? c.surfaceAlt : 'transparent' },
+                    ]}
+                  >
+                    <Ionicons name="arrow-undo-outline" size={15} color={c.muted} />
+                    <Text style={[s.withdrawText, { color: c.muted }]}>
+                      {claimingId === claim.shift_id ? 'Withdrawing…' : 'Withdraw claim'}
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
             ))}
           </View>
         )}
+        </>
+        )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -429,6 +621,17 @@ const styles = StyleSheet.create({
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   filterChip: { borderWidth: 1, borderRadius: radii.full, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
   filterText: { fontSize: 12, fontWeight: '600', fontFamily: FONT },
+  withdrawBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
+    marginTop: spacing.sm, paddingVertical: spacing.sm, borderRadius: radii.md, borderWidth: 1,
+  },
+  withdrawText: { fontSize: 13, fontWeight: '600', fontFamily: FONT },
+  decisionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  decisionBtn: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.md,
+    borderRadius: radii.md, borderWidth: 1,
+  },
+  decisionText: { fontSize: 14, fontWeight: '700', fontFamily: FONT },
   banner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radii.md, borderWidth: 1, marginBottom: spacing.sm },
   bannerText: { flex: 1, fontSize: 13, fontFamily: FONT },
   list: { gap: spacing.md },

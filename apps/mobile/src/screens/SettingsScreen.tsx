@@ -10,7 +10,7 @@ import { isHapticEnabled, setHapticEnabled } from '../services/haptics'
 import { IconSyncSmall, IconBell, IconSettings, IconSchedule, IconSun, IconMoon } from '../components/Icons'
 import { hapticLight } from '../services/haptics'
 
-export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onAvailability, onAnnualLeave, onOpenCalls, onDeleteAccount }: {
+export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, onAvailability, onAnnualLeave, onOpenCalls, onPendingClaims, pendingClaimsCount = 0, onDeleteAccount }: {
   user: MobileUser
   onSignOut: () => void
   onSync: () => void
@@ -18,7 +18,12 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, on
   onLearn?: () => void
   onAvailability?: () => void
   onAnnualLeave?: () => void
+  /** The marketplace. Only passed for a care worker who can actually claim. */
   onOpenCalls?: () => void
+  /** The other half: claims waiting on this manager to decide. */
+  onPendingClaims?: () => void
+  /** How many of the caller's own claims a manager has not yet decided. */
+  pendingClaimsCount?: number
   onDeleteAccount?: () => Promise<void>
 }) {
   const { mode, scheme, setMode, colors: c } = useTheme()
@@ -199,25 +204,60 @@ export function SettingsScreen({ user, onSignOut, onSync, onProfile, onLearn, on
 
         {/* Open calls live here as well as on the Today card, so they stay
             reachable once a worker has scrolled past it or is on another tab.
-            App only passes the handler for domiciliary organisations. */}
-        {onOpenCalls ? <View style={s.group}>
+            App decides who gets which row: the marketplace only for a care
+            worker who can claim, the queue only for a manager. */}
+        {onOpenCalls || onPendingClaims ? <View style={s.group}>
           <Text style={[s.groupLabel, { color: c.subtle }]}>OPEN CALLS</Text>
           <View style={[s.groupCard, { backgroundColor: c.surface, borderColor: c.borderLight }]}>
-            <Pressable
+            {onOpenCalls ? <Pressable
               onPress={() => { hapticLight(); onOpenCalls() }}
               style={s.menuRow}
               accessibilityRole="button"
-              accessibilityLabel="Open Calls"
+              accessibilityLabel={pendingClaimsCount > 0 ? `Open Calls, ${pendingClaimsCount} claims waiting on a manager` : 'Open Calls'}
             >
               <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
                 <Ionicons name="flash-outline" size={18} color={c.primary} />
               </View>
               <View style={s.menuContent}>
                 <Text style={[s.menuTitle, { color: c.ink }]}>Open calls</Text>
-                <Text style={[s.menuDesc, { color: c.muted }]}>Pick up extra shifts and check your claims</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>
+                  {pendingClaimsCount > 0
+                    ? `${pendingClaimsCount} claim${pendingClaimsCount === 1 ? '' : 's'} waiting on a manager`
+                    : 'Pick up extra shifts and check your claims'}
+                </Text>
               </View>
+              {pendingClaimsCount > 0 ? (
+                <View style={[s.countBadge, { backgroundColor: c.warningSurface, borderColor: c.warning }]}>
+                  <Text style={[s.countBadgeText, { color: c.warning }]}>{pendingClaimsCount}</Text>
+                </View>
+              ) : null}
               <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
-            </Pressable>
+            </Pressable> : null}
+
+            {onPendingClaims ? <Pressable
+              onPress={() => { hapticLight(); onPendingClaims() }}
+              style={s.menuRow}
+              accessibilityRole="button"
+              accessibilityLabel={pendingClaimsCount > 0 ? `Pending claims, ${pendingClaimsCount} waiting` : 'Pending claims'}
+            >
+              <View style={[s.menuIconWrap, { backgroundColor: c.bg }]}>
+                <Ionicons name="checkmark-done-outline" size={18} color={c.success} />
+              </View>
+              <View style={s.menuContent}>
+                <Text style={[s.menuTitle, { color: c.ink }]}>Pending claims</Text>
+                <Text style={[s.menuDesc, { color: c.muted }]}>
+                  {pendingClaimsCount > 0
+                    ? `${pendingClaimsCount} to approve or decline`
+                    : 'Extra shift claims waiting on you'}
+                </Text>
+              </View>
+              {pendingClaimsCount > 0 ? (
+                <View style={[s.countBadge, { backgroundColor: c.warningSurface, borderColor: c.warning }]}>
+                  <Text style={[s.countBadgeText, { color: c.warning }]}>{pendingClaimsCount}</Text>
+                </View>
+              ) : null}
+              <Text style={[s.menuArrow, { color: c.subtle }]}>→</Text>
+            </Pressable> : null}
           </View>
         </View> : null}
 
@@ -403,6 +443,11 @@ screen: { flex: 1 },
   modePillTextActive: { color: colors.primary },
 
   menuArrow: { fontFamily: FONT, fontSize: 16, fontWeight: '600', color: colors.subtle },
+  countBadge: {
+    minWidth: 24, paddingHorizontal: 6, paddingVertical: 2, borderRadius: radii.full,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+  },
+  countBadgeText: { fontFamily: FONT, fontSize: 12, fontWeight: '700' },
 
   /* Toggle */
   toggle: {
