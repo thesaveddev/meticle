@@ -281,17 +281,41 @@ available. What is unproven is that it is used. Sending a message and reading
 
 ### 7.3 Confirming DKIM from a real message
 
-This is the only reliable test, and it takes one email:
+This is the only reliable test, and it takes one email. Two obstacles, both
+found by trying them on 26 September 2026:
 
-1. Send a message from the application to an external mailbox (mail-tester.com
-   gives a scored breakdown and shows every header).
-2. Read the `Authentication-Results` header on receipt.
-3. `dkim=pass` with `d=meticlecare.com` is the answer we need. `dkim=none`,
-   `dkim=fail` or no DKIM line at all means it is not configured.
-4. The same header must also show `spf=pass` and `dmarc=pass`.
+**The password-reset form cannot be used to test it.** `forgotPassword` looks up
+the user and returns the same non-enumerable message whether or not an account
+exists, so it sends nothing to an unregistered address. That is correct — it is
+what stops the endpoint confirming which addresses have accounts — but it means
+a throwaway address produces a cheerful "check your inbox" and no email.
 
-The selector and public key to publish are shown in the MXRocket panel under
-DKIM for the domain.
+**mail-tester.com is refused.** `send-email-code` rejects disposable domains,
+and its MX lookup catches `srv1.mail-tester.com` even though that domain is not
+in the package list. Also correct behaviour.
+
+What works is `POST /api/auth/send-email-code` to a real address you control, so
+the application sends a genuine message to a real receiving server:
+
+1. `POST /api/auth/send-email-code` with an address you own that is not already
+   registered. No account is needed.
+2. Mail is **queued**, not sent inline — the request enqueues and a worker
+   delivers. Allow a minute.
+3. Read `Authentication-Results` on receipt: Gmail *Show original*, Outlook
+   *View message details*.
+4. `dkim=pass` with `d=meticlecare.com` and `s=x` is the answer we need.
+   `dkim=none`, `dkim=fail`, or no DKIM line at all means the key is not used.
+5. The same header should show `spf=pass` and `dmarc=pass`.
+
+A hand-written message from the sender's own mailbox does not count: it travels
+the mailbox's path, not the application's.
+
+**Why DKIM matters more here than SPF.** The nodemailer transport sets no
+`envelope` or `sender`, so `MAIL FROM` is whatever `SMTP_USER` authenticates as
+and MXRocket may rewrite `Return-Path` to its own bounce domain. If that domain
+is not `meticlecare.com`, SPF alignment fails and DKIM is the only thing left
+carrying the policy. That is not a reason to skip the SPF alignment check — it
+is a reason not to treat step 2 as optional.
 
 ### 7.4 Outstanding
 
@@ -307,7 +331,7 @@ DKIM for the domain.
 | `ruf=` pointing at a human-readable aggregate service | `rua` delivers compressed XML attachments that nobody reads unaided | Not set |
 | MTA-STS and TLS-RPT | Stops an active attacker downgrading the session to plaintext in transit | Not set |
 | Weekly review of DMARC reporting | A policy nobody reads is `p=none` with extra steps | Not started |
-| Aligned envelope sender (`MAIL FROM`) | DMARC SPF alignment fails if the envelope sender is not `@meticlecare.com` | **Verify against the MXRocket bounce domain** |
+| Aligned envelope sender (`MAIL FROM`) | DMARC SPF alignment fails if the envelope sender is not `@meticlecare.com`. The application sets no `envelope` or `sender` on the nodemailer transport, so `MAIL FROM` is whatever `SMTP_USER` authenticates as, and MXRocket may rewrite `Return-Path` to its bounce domain | **Verify in the MXRocket panel** — DKIM carries alignment either way, which is why step 2 is the gate |
 | A spoof test from a domain we do not own | Proves the policy is actually enforced rather than merely published | Not run |
 
 **Note on the change made on 26 September 2026.** The DMARC record was edited
