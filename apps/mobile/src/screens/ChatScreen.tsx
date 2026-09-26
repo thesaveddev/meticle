@@ -733,13 +733,13 @@ export function ChatScreen({ session, onBack }: Props) {
 
   if (view === 'list') {
     return (
-      <View style={[listStyles.container, dyn(c).screen]}>
+    <SafeAreaView style={[listStyles.container, dyn(c).screen]} edges={['top']}>
         <View style={[listStyles.header, { backgroundColor: c.bg }]}>
           {onBack ? (
             <Pressable onPress={onBack} style={listStyles.headerBtn}>
               <Ionicons name="arrow-back" size={22} color={c.primary} />
             </Pressable>
-          ) : <View style={{ width: 44 }} />}
+          ) : <View style={listStyles.headerBtn} />}
           <Text style={[listStyles.headerTitle, { color: c.ink }]}>Messages</Text>
           <Pressable onPress={openNewChat} style={listStyles.headerBtn}>
             <View style={[listStyles.composeBtn, { backgroundColor: c.primary }]}>
@@ -824,7 +824,7 @@ export function ChatScreen({ session, onBack }: Props) {
         {renderContactModal()}
         {renderContextMenu()}
         {renderChannelMembers()}
-      </View>
+      </SafeAreaView>
     )
   }
 
@@ -835,8 +835,9 @@ export function ChatScreen({ session, onBack }: Props) {
   const canSend = inputText.trim() || pendingImage
 
   return (
+    <SafeAreaView style={[chatStyles.container, dyn(c).screen]} edges={['top']}>
     <KeyboardAvoidingView
-      style={[chatStyles.container, dyn(c).screen]}
+      style={chatStyles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
     >
@@ -966,6 +967,7 @@ export function ChatScreen({ session, onBack }: Props) {
       {renderChannelMembers()}
       {renderImagePreview()}
     </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
@@ -973,12 +975,16 @@ export function ChatScreen({ session, onBack }: Props) {
 
 const listStyles = StyleSheet.create({
   container: { flex: 1 },
+  // The title takes the slack and centres itself, and both side slots are the
+  // same width, so the heading sits on the true centre line. Previously the
+  // right slot was 80pt against a 44pt left slot with `space-between`, which
+  // pushed the title off-centre and left the back arrow hugging the edge.
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.sm, paddingVertical: spacing.md,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: spacing.xs, paddingVertical: spacing.sm,
   },
-  headerBtn: { width: 80, height: 40, justifyContent: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '700', fontFamily: FONT, letterSpacing: -0.3 },
+  headerBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { flex: 1, fontSize: 17, fontWeight: '700', fontFamily: FONT, letterSpacing: -0.3, textAlign: 'center' },
   cancelText: { fontSize: 16, fontFamily: FONT, fontWeight: '500' },
   composeBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   searchWrap: {
@@ -1009,6 +1015,9 @@ const listStyles = StyleSheet.create({
 
 const chatStyles = StyleSheet.create({
   container: { flex: 1 },
+  // The KeyboardAvoidingView is now nested inside a SafeAreaView, so it fills
+  // its parent rather than owning the screen's flex.
+  flex: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xs,
     paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth,
