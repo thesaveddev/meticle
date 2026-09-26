@@ -33,24 +33,37 @@ Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
       Cloudflare DNS panel, then re-check that it resolves as
       `v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@meticlecare.com; pct=100`.
 
-- [ ] **2. Have the *application* send a test email to `mail-tester.com`.**
-      **Send it from the app, not from your own mailbox.** A message you compose
-      and send by hand travels your own mailbox's path, which is already known to
-      work. The thing worth proving is the path an attacker would impersonate:
-      the one the application uses, from `noreply@`, `notifications@`,
-      `security@` or `billing@` depending on which template fires.
+- [ ] **2. Have the *application* send a test email to a real inbox you control.**
+      **Do not use mail-tester.com, and do not use the password-reset form.**
+      Both were tried on 26 September 2026 and neither works:
 
-      The simplest trigger is the password reset, which needs no real account:
+      - `POST /api/auth/forgot-password` returns `200` and sends nothing when the
+        address has no account. `auth.controller.ts` looks the user up first and
+        returns the same non-enumerable message either way, so a throwaway
+        address produces a cheerful "check your inbox" and no email.
+      - `POST /api/auth/send-email-code` would send to any address, but rejects
+        disposable domains — and it rejects `srv1.mail-tester.com` on the
+        MX lookup even though the domain is not in the package list. Verified:
+        `400 Temporary email addresses are not allowed`.
 
-      1. Go to `https://meticlecare.com/forgot-password`.
-      2. Put the address `mail-tester.com` gives you into the email field.
-      3. Submit. The application sends its own message to that address.
-         (Rate-limited to 5 per hour, so this will not trip anything.)
-      4. Read the report and the headers on mail-tester.com.
+      Both are working as designed. Use an address you own on a real provider:
 
-      The DKIM *public key* being published proves nothing about whether
-      MXRocket *signs* with it — signing happens at send time, and can be off
-      while the key sits in DNS looking perfect. Look for:
+      1. `POST /api/auth/send-email-code` with your own address (any
+         non-disposable address not already registered — no account needed).
+         From a shell:
+
+         ```bash
+         curl -X POST https://meticlecare.com/api/auth/send-email-code \
+           -H "Content-Type: application/json" \
+           -d '{"email":"you@yourprovider.com"}'
+         ```
+
+      2. Wait for the message. Mail is **queued**, not sent inline — the request
+         only enqueues, and a worker delivers. Allow a minute.
+      3. In Gmail: *Show original*. In Outlook: *View message details*. Read the
+         `Authentication-Results` header.
+
+      Look for:
 
       ```
       dkim=pass   (d=meticlecare.com, s=x)
@@ -60,6 +73,10 @@ Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
 
       `dkim=none`, `dkim=fail`, or no DKIM line at all means the key is
       decorative. Record the result in this file.
+
+      **A hand-written email from your own mailbox does not count.** It travels
+      your mailbox's path, which is already known to work. The point is the
+      application's path, because that is the one an attacker impersonates.
 
 - [ ] **3. If step 2 shows no `dkim=pass` — enable DKIM signing in MXRocket.**
       The public key is already published at selector `x`, so this is a panel
