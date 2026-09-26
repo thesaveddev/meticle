@@ -46,6 +46,7 @@ const LearningCenterPage = lazy(() => import('./pages/learn/LearningCenterPage')
 const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'))
 const TermsOfUsePage = lazy(() => import('./pages/legal/TermsOfUsePage'))
 const CookiePolicyPage = lazy(() => import('./pages/legal/CookiePolicyPage'))
+const AccountDeletionPage = lazy(() => import('./pages/legal/AccountDeletionPage'))
 const CompliancePage = lazy(() => import('./pages/compliance/CompliancePage'))
 const IdentityMonitoringPage = lazy(() => import('./pages/compliance/IdentityMonitoringPage'))
 const CompetencyAssessmentsPage = lazy(() => import('./pages/compliance/CompetencyAssessmentsPage'))
@@ -189,6 +190,9 @@ function App() {
       <Route path="/privacy" element={<ErrorBoundary><Suspense fallback={null}><PrivacyPolicyPage /></Suspense></ErrorBoundary>} />
       <Route path="/terms" element={<ErrorBoundary><Suspense fallback={null}><TermsOfUsePage /></Suspense></ErrorBoundary>} />
       <Route path="/cookies" element={<ErrorBoundary><Suspense fallback={null}><CookiePolicyPage /></Suspense></ErrorBoundary>} />
+      {/* Play and Apple both require a public URL for requesting account
+          deletion, alongside the in-app path in Settings. */}
+      <Route path="/delete-account" element={<ErrorBoundary><Suspense fallback={null}><AccountDeletionPage /></Suspense></ErrorBoundary>} />
 
       {/* Compliance Portal (no auth guard - uses portal token) */}
       <Route path="/portal/login" element={<PortalLoginPage />} />

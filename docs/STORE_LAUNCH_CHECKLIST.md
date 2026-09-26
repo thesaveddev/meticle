@@ -73,11 +73,30 @@ the account-deletion fix. Detail lives in `docs/STORE_RELEASE_RUNBOOK.md` and
   code in `docs/STORE_PRIVACY_ANSWERS.md`. They need your sign-off, not more
   engineering.
 - **Retention lawful basis** for keeping a worker's professional name after
-  deletion. A DPO or legal adviser should confirm the position.
+  deletion. A DPO or legal adviser should confirm the position. The public
+  deletion page now states what is kept and why, so this position is published
+  and should be the one that has been checked.
 - **ISO 27001 claim** in the public privacy policy. If the host does not hold
   certification, that published claim needs correcting before submission.
-- **Store listing screenshots** for both platforms. Scripted now, but nobody has
-  run the capture on a device yet, so the six images do not exist.
+- **Store listing screenshots** for both platforms. Scripted and now proven not
+  to leak into a store build, but the capture still needs a machine with a
+  booted simulator or a device, and nobody has run one. This is the only gap
+  that is a hardware constraint rather than a missing decision.
+
+## Closed since the last pass
+
+- **Account-deletion web URL.** Play and Apple both want a public URL for
+  requesting deletion alongside the in-app path. `/delete-account` now exists,
+  is linked in the sitemap alongside the other legal pages, and describes the
+  in-app flow in `Settings → ACCOUNT → Delete my account` accurately. It states
+  plainly that a care provider's records are retained, because that is what the
+  app actually does.
+- **Store version bumping.** `cli.appVersionSource` is now `"local"`, so
+  `app.json` is the single source of truth and the EAS warning is gone.
+  `npm run bump:version` moves `ios.buildNumber` and `android.versionCode`
+  together — the two are separate keys and a bump that moves one and not the
+  other is rejected by the store at upload time, after the review queue.
+  `storeVersion.test.ts` asserts they stay in step, and fails on a half-bump.
 
 ## Unverified
 
