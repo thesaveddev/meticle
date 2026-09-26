@@ -343,8 +343,12 @@ app.get('/metrics', asyncHandler(async (req: Request, res: Response) => {
   res.end(await getMetrics());
 }));
 
-// Swagger docs
+// Swagger docs. The production guard is inside setupSwagger itself, so it
+// cannot be bypassed by a future call site. Off unless SWAGGER_ENABLED=true.
 setupSwagger(app);
+if (process.env.NODE_ENV === 'production' && process.env.SWAGGER_ENABLED !== 'true') {
+  logger.info('Swagger disabled in production. Set SWAGGER_ENABLED=true to expose it deliberately.');
+}
 
 // Socket.io — initialize only after migrations have completed.
 databaseReadyPromise.then(() => initSocketServer(httpServer)).catch((err) => {

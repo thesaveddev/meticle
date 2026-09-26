@@ -1,8 +1,10 @@
 name: Seed DreakCare Demo Org
 
 on:
-  push:
-    branches: [seed/dreakcare]
+  # workflow_dispatch only. This ran on every push to seed/dreakcare, which
+  # meant anyone with push access to that branch could choose the commit whose
+  # script this workflow then downloaded and executed as root inside the
+  # production container. Seeding demo data is a deliberate, manual act.
   workflow_dispatch:
 
 jobs:
@@ -31,15 +33,21 @@ jobs:
             EXISTS=$(docker exec "$CONTAINER" node -e "const p=require('pg');new p.Pool().query(\"SELECT id FROM organizations WHERE name='DreakCare'\").then(r=>{process.stdout.write(r.rows.length?'YES':'NO')}).catch(()=>{process.stdout.write('NO')}).finally(()=>process.exit())" 2>/dev/null) || true
             if [ "$EXISTS" = "YES" ]; then echo "Already seeded"; exit 0; fi
             SHA="${{ steps.sha.outputs.SHA }}"
-            echo "Downloading seed script (commit $SHA)..."
-            curl -fsSL "https://raw.githubusercontent.com/thesaveddev/meticle/${SHA}/scripts/seed-dreakcare.js" -o /tmp/seed.js
+            echo "Using the seed script from the checked-out commit $SHA..."
+            # The script is already in the checkout at the top of this job.
+            # Fetching it from raw.githubusercontent at a mutable ref meant the
+            # code executed as root in production was whatever that ref pointed
+            # at, rather than the commit under review. Use the reviewed file.
+            SEED_SRC="$GITHUB_WORKSPACE/scripts/seed-dreakcare.js"
+            if [ ! -f "$SEED_SRC" ]; then
+              echo "scripts/seed-dreakcare.js not present at $SHA"; exit 1
+            fi
             echo "Copying to container..."
-            docker cp /tmp/seed.js "$CONTAINER:/app/seed.js"
+            docker cp "$SEED_SRC" "$CONTAINER:/app/seed.js"
             echo "Running seed..."
             docker exec -w /app "$CONTAINER" node seed.js
             RC=$?
             echo "Exit code: $RC"
             docker exec "$CONTAINER" rm -f /app/seed.js
-            rm -f /tmp/seed.js
             echo "Done"
             exit $RC

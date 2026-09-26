@@ -1,0 +1,47 @@
+# Automated dependency updates.
+#
+# `npm audit` reported 14 high and 22 moderate advisories in production
+# dependencies at the time this was added, and nothing was surfacing them except
+# a human remembering to run the audit. Cyber Essentials asks how quickly
+# security updates are applied; having the update arrive as a pull request is the
+# evidence, where a policy document on its own is only an assertion.
+version: 2
+
+updates:
+  # Application dependencies. Grouped by ecosystem so a patch wave for one
+  # package family does not open six separate pull requests.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/London
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - security
+    groups:
+      # Security and correctness fixes for everything already in the tree.
+      production-patches:
+        applies-to: version-updates
+        update-types:
+          - patch
+          - minor
+    ignore:
+      # Ignoring nothing deliberately: advisories must not be muted so the tree
+      # can be declared clean. Exceptions belong in a review, recorded here with
+      # a reason and a date, not added silently.
+
+  # The workflow actions target deprecated Node runtimes and will start failing;
+  # GitHub's own warnings have been flagging this on every run.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/London
+    labels:
+      - dependencies
+      - ci
