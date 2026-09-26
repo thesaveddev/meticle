@@ -24,6 +24,17 @@ const MAIL = {
 };
 
 describe('outbound envelope sender', () => {
+  it('carries the recipient in the envelope, not only the sender', () => {
+    // Regression guard for a bug this suite missed once. Supplying an
+    // `envelope` object makes it authoritative for the whole SMTP envelope
+    // rather than a partial override, so `envelope: { from }` with no `to`
+    // leaves nodemailer with no recipient: every message is rejected with
+    // EENVELOPE "No recipients defined" before reaching the server. The
+    // alignment assertions below all passed while delivery was totally broken,
+    // because they only ever checked the sender.
+    expect(buildMailOptions(MAIL).envelope.to).toBe(MAIL.to_email);
+  });
+
   it('pins the envelope sender to the visible sender', () => {
     const options = buildMailOptions(MAIL);
     // Structural alignment: identical by construction, so no credential can
@@ -33,6 +44,14 @@ describe('outbound envelope sender', () => {
 
   it('keeps the envelope on the organisational domain', () => {
     expect(domainOf(buildMailOptions(MAIL).envelope.from)).toBe('meticlecare.com');
+  });
+
+  it('is deliverable, not merely aligned', () => {
+    // The two properties are independent and both are required: an aligned
+    // envelope with no recipient never sends, and a deliverable one on the
+    // wrong domain fails DMARC. Asserted together so neither can regress alone.
+    const options = buildMailOptions(MAIL);
+    expect(options.envelope).toEqual({ from: MAIL.from_email, to: MAIL.to_email });
   });
 
   it('aligns every sender category, not just the one that was reported', () => {
