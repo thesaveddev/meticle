@@ -122,19 +122,36 @@ surfacing them automatically.
 | All other security updates | 30 days |
 | Routine dependency updates (via Dependabot) | 30 days |
 
-**Outstanding.** The 14 high-severity advisories identified at the time of
-writing are not yet remediated. They are axios (prototype pollution affecting
-authentication sub-fields), multer (denial of service via deeply nested field
-names), xlsx, form-data (CRLF injection), and transitive dependencies. Until
-they are closed, this control should be declared as having known weaknesses, with
-a dated plan — which is an acceptable answer to an assessor, but a weak one.
+**Outstanding.** High-severity production advisories fell from 14 to 11. Closed
+so far:
+
+| Package | Advisory | Fix |
+| --- | --- | --- |
+| axios | Prototype pollution in auth sub-fields can inject Basic auth credentials | 1.20.0 |
+| multer | Denial of service via deeply nested field names | 2.4.0 |
+
+The remaining 11 are **not yet closed**, and two cannot be closed by a version
+bump at all:
+
+| Package | Why it is still open |
+| --- | --- |
+| `xlsx` | **No fix exists.** 0.18.5 is the last version published to npm; SheetJS now distributes only from its own CDN. Used in one place, `apps/web/src/pages/staff/StaffDirectoryPage.tsx`, to read and write staff spreadsheets. Accepted risk for now; the honest options are replacing it with a maintained library or removing the import/export feature. |
+| `nodemailer` | Fix is in 10.x; a major bump from 9.x, so it needs its own testing pass rather than a lockfile refresh. |
+| `vite` | Fix is in 8.x from 5.x, a dev-only dependency. It does not ship to production, so it is not a production exposure. |
+| `brace-expansion`, `browserslist`, `fast-uri`, `js-yaml`, `nanoid`, `shell-quote`, `socket.io-parser`, `undici` | Transitive. `npm overrides` was tried for each and npm retained the older versions to satisfy dependents, so forcing them is a per-package exercise rather than a blanket one. |
+
+`npm audit fix` at the repository root was tried first and made things worse —
+14 advisories became 16 including a new critical in `expo`, because it reshuffled
+the lockfile across the monorepo. The lockfile was reverted. Updating direct
+dependencies deliberately, one at a time, is the approach that works here.
 
 **Action list.**
 
-1. Remediate the 14 high-severity advisories.
-2. Confirm the Dependabot schedule is producing pull requests and they are being
-   reviewed weekly.
-3. Record the review cadence and owner below.
+1. Replace or remove `xlsx`; it has no upgrade path.
+2. Take `nodemailer` to 10.x as a tested change.
+3. Work the remaining transitive advisories package by package.
+4. Confirm the Dependabot schedule is producing pull requests and that they are
+   being reviewed weekly.
 
 **Reviewer:** _unassigned — assign a named owner_
 **Last dependency review:** September 2026
