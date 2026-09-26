@@ -133,4 +133,41 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Sign out')).toBeTruthy()
     await settleMountPermissionCheck()
   })
+
+  it('reaches open calls from settings, not only the Today card', async () => {
+    const onOpenCalls = jest.fn()
+    const screen = render(
+      <SettingsScreen
+        user={user}
+        onSignOut={jest.fn()}
+        onSync={jest.fn()}
+        onProfile={jest.fn()}
+        onLearn={jest.fn()}
+        onOpenCalls={onOpenCalls}
+      />
+    )
+
+    expect(screen.getByText('Open calls')).toBeTruthy()
+    fireEvent.press(screen.getByLabelText('Open Calls'))
+
+    expect(onOpenCalls).toHaveBeenCalledTimes(1)
+    await settleMountPermissionCheck()
+  })
+
+  it('hides open calls when the organisation cannot use them', async () => {
+    // App only passes the handler for domiciliary organisations, so a supported
+    // living account has no row at all rather than one that fails on tap.
+    const screen = render(
+      <SettingsScreen
+        user={user}
+        onSignOut={jest.fn()}
+        onSync={jest.fn()}
+        onProfile={jest.fn()}
+        onLearn={jest.fn()}
+      />
+    )
+
+    expect(screen.queryByText('Open calls')).toBeNull()
+    await settleMountPermissionCheck()
+  })
 })

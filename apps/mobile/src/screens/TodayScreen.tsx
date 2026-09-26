@@ -10,6 +10,7 @@ import { SyncRail } from '../components/SyncRail'
 import { hapticLight, hapticMedium } from '../services/haptics'
 import { isOverdue, overdueLabel } from '../utils/visitStatus'
 import { localDateTimeStart } from '../utils/dateRange'
+import { isDomiciliaryOrganisation } from '../utils/serviceType'
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -176,13 +177,7 @@ export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, onRefre
   // authoritative when the organisation has one — falling back to service_types
   // alone sends a domiciliary organisation carrying a legacy supported-living
   // value to the wrong place, which is the same trap the web dashboard hit.
-  const isDomiciliary = useMemo(() => {
-    const org = session?.organization
-    const primary = typeof org?.primary_service_type === 'string' ? org.primary_service_type : null
-    if (primary) return primary === 'domiciliary' || primary === 'live_in'
-    const types: string[] = Array.isArray(org?.service_types) ? org.service_types : []
-    return types.some((t: string) => t === 'domiciliary' || t === 'live_in')
-  }, [session?.organization])
+  const isDomiciliary = useMemo(() => isDomiciliaryOrganisation(session?.organization), [session?.organization])
 
   // Ride-share incoming requests
   const [rideRequests, setRideRequests] = useState<any[]>([])
