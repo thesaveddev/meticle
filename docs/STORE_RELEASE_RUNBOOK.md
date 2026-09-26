@@ -161,8 +161,11 @@ alongside two files it generates for you:
 
 **Check the images before uploading them.** The script reports endpoints the
 fixtures do not answer, which is how a screen that rendered emptier than it
-should have shows up. It cannot check anything else — that is what the six-shot
-test suite cannot do for you.
+should have shows up. Treat a non-empty list as a blocker rather than a note:
+it means some panel in one of the six images is empty, and the image still
+looks plausible enough to publish. The fix is to add the missing fixture to
+`src/capture/fixtures.ts` and re-run, not to upload and hope. The script cannot
+check anything else — that is what the six-shot test suite cannot do for you.
 
 #### What is deterministic, and what is not
 
