@@ -297,9 +297,9 @@ const featureGroups = [
         id: 'backup',
         category: 'Data Backup & Restore',
         materialIcon: <BackupMuiIcon sx={{ fontSize: 32 }} />,
-        description: 'Secure, GDPR-compliant data protection with UK-based ISO 27001 hosting.',
+        description: 'Secure, GDPR-compliant data protection, hosted in the UK with database-level tenant isolation.',
         items: [
-          { title: 'AES-256 Encryption', desc: 'All data encrypted at rest and in transit (TLS 1.3). UK-based ISO 27001-certified data centres.' },
+          { title: 'AES-256 Encryption', desc: 'Encrypted at rest and in transit (TLS 1.3). Hosted in the UK, with isolation between organisations enforced in the database.' },
           { title: 'Automated Daily Backups', desc: 'Point-in-time recovery available. Full database snapshots every 24 hours with 30-day retention.' },
           { title: 'Role-Based Access', desc: 'Granular permissions per module (view/edit). ORG_ADMIN only can change roles. Full audit trail of access.' },
           { title: 'UK GDPR & DPA 2018', desc: 'ICO registered. UK data sovereignty. No data leaves UK jurisdiction.' },

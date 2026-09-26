@@ -116,7 +116,7 @@ const TIMELINE_IMAGE = '/illustrations/timeline-card.svg'
 const WHY = [
   { icon: <ShieldIcon size={28} />, title: 'All four regulators', desc: 'CQC, CIW, Care Inspectorate Scotland and RQIA are natively supported — your evidence packs adjust automatically.' },
   { icon: <ManagerIcon size={28} />, title: '5-minute setup', desc: 'No lengthy onboarding. Configure your service, invite your team, and start recording care within the hour.' },
-  { icon: <CareWorkerIcon size={28} />, title: 'UK data sovereignty', desc: 'All data hosted in UK-locked ISO 27001-certified data centres. AES-256 encryption at rest, TLS 1.3 in transit.' },
+  { icon: <CareWorkerIcon size={28} />, title: 'UK data sovereignty', desc: 'Data hosted in the UK, encrypted at rest (AES-256) and in transit (TLS 1.3), with isolation between organisations enforced in the database.' },
   { icon: <CheckIcon sx={{ fontSize: 26, color: '#86EFAC' }} />, title: 'No long contracts', desc: 'Month-to-month pricing with no lock-in. Cancel anytime. Your data is yours to export — including read access after cancellation.' },
 ]
 

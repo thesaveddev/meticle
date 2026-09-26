@@ -196,9 +196,14 @@ composited image:
 - The **retention lawful basis** for keeping a worker's professional name after
   account deletion. The engineering is in place; the policy position is a legal
   call and should be confirmed with a DPO or adviser.
-- Whether the **ISO 27001** claim in the public privacy policy is accurate. If
-  the hosting provider does not hold it, the published policy needs correcting
-  before submission.
+- ~~Whether the **ISO 27001** claim is accurate.~~ **Resolved: removed.** Contabo
+  publishes no certificate and does not claim to hold it, so the claim has been
+  taken off the privacy policy and both marketing pages and replaced with
+  controls that can be evidenced. Do not put it back without a certificate to cite.
+- Whether the **"data stored in the United Kingdom"** claim is accurate *today*.
+  Contabo has a UK region (Portsmouth, delivered with Aptum), but the current
+  production host's location has not been confirmed. The claim is only true once
+  the UK VPS is live — check it before the app store submission goes in.
 
 ## 4. Not yet verified by anything
 

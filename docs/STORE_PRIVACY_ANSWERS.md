@@ -116,10 +116,17 @@ six tests asserting both halves: the erasure *and* the surviving attribution.
 ## Before you submit
 
 ⚠️ **Check the public privacy policy against reality.** Section 5 of
-`apps/web/src/pages/legal/PrivacyPolicyPage.tsx` claims ISO 27001-certified
-infrastructure and AES-256 at rest. If the hosting provider does not hold ISO
-27001, that is an inaccurate published claim about security, which is a
-compliance risk in its own right and a natural thing for a regulator to check.
+`apps/web/src/pages/legal/PrivacyPolicyPage.tsx` claimed ISO 27001-certified
+infrastructure. Contabo's own site does not substantiate it — they publish no
+certificate, and their only claim is that "most of our facilities hold
+internationally recognized ISO certifications", which names no standard and
+describes facilities rather than their own ISMS. The wording has been replaced
+across the site with claims that can be evidenced: UK hosting under a DPA, TLS
+1.3 in transit, AES-256 at rest, database-level tenant isolation, MFA, and
+auditable record access. Do not reintroduce an ISO 27001 claim until a certificate
+exists to cite. ISO 27001 remains a planned item (target Q2 2027) in the
+funding and sales documents, which describe it as preparation rather than held —
+that framing is correct and should stay.for a regulator to check.
 It is not something the store forms ask about.
 
 ⚠️ **Retention schedule.** The policy states "Account data: active period + 90
