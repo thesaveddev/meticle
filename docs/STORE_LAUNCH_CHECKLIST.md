@@ -4,6 +4,9 @@ Status after the config-only remediation pass, the real brand asset swap, and
 the account-deletion fix. Detail lives in `docs/STORE_RELEASE_RUNBOOK.md` and
 `docs/STORE_PRIVACY_ANSWERS.md`.
 
+The store work is separate from the email-domain work in
+`docs/EMAIL_SECURITY_RUNBOOK.md`, which has its own open decision.
+
 ## Done — verified, no credentials needed
 
 | Item | Where |
