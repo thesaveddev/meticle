@@ -59,7 +59,13 @@ export function buildMailOptions(mail: QueuedMail) {
     : [];
   return {
     from,
-    envelope: { from },
+    // `to` is required alongside `from`. Supplying an `envelope` object makes it
+    // authoritative for the whole SMTP envelope rather than a partial override:
+    // with only `from` set, nodemailer has no recipient and rejects the message
+    // with EENVELOPE "No recipients defined" before it reaches the server.
+    // Verified against MXRocket — `envelope: { from }` alone fails, and
+    // `envelope: { from, to }` is accepted with the sender as intended.
+    envelope: { from, to: mail.to_email },
     to: mail.to_email,
     subject: mail.subject,
     html: mail.html_body,
