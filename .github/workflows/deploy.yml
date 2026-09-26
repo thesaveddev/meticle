@@ -55,9 +55,19 @@ jobs:
           # The last release that actually reached production. The deploy script
           # on the host records these, but the run history is the same fact and
           # needs no SSH to read.
-          previous=$(gh api "repos/$REPOSITORY/actions/workflows/deploy.yml/runs?status=success&per_page=30" \
-            --paginate --jq ".workflow_runs[] | select(.id != $CURRENT_RUN) | [.head_sha, .conclusion] | @tsv" \
-            | head -n1 | cut -f1)
+          #
+          # No `--paginate` here. gh applies the jq filter once per page and
+          # concatenates the results, so selecting `.[0]` under pagination emits
+          # the newest run of *every* page, not the newest run overall. One page
+          # is enough: the API returns newest-first, and the previous release is
+          # at most a few deploys back.
+          #
+          # The selection also happens inside jq rather than in a shell pipeline.
+          # `gh api --paginate | head -n1` makes gh write to a closed pipe and die
+          # on SIGPIPE, which `set -o pipefail` reports as a failed step — the first
+          # live run of this job failed for exactly that reason.
+          previous=$(gh api "repos/$REPOSITORY/actions/workflows/deploy.yml/runs?status=success&per_page=100" \
+            --jq "[.workflow_runs[] | select(.id != $CURRENT_RUN)] | .[0].head_sha // empty")
 
           if [ -z "$previous" ]; then
             echo "No previous successful deploy found — treating this as the first release and deploying."
@@ -385,7 +395,7 @@ jobs:
     name: Report release classification
     runs-on: ubuntu-latest
     needs: [changes, verify-release-is-green, validate-production-config, build-api, build-web, deploy]
-    if: ${{ always() && needs.changes.outputs.server_changed != 'true' }}
+    if: ${{ always() && needs.changes.result == 'success' && needs.changes.outputs.server_changed != 'true' }}
     steps:
       - name: Explain the skipped deploy
         run: |
