@@ -2,7 +2,7 @@ import { usePageMeta } from '../../components/PageMeta'
 import { useState } from 'react'
 import {
   TextField, Button, Box, Typography, Container,
-  Link, Stack, CircularProgress, InputAdornment,
+  Link, Stack, CircularProgress, InputAdornment, Alert,
 } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { MarkEmailRead as MailIcon } from '@mui/icons-material'
@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
   usePageMeta({ title: 'Reset Password | Meticle Care', description: 'Reset your Meticle Care account password.', noindex: true })
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'white' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'background.default', color: 'text.primary' }}>
       <Box sx={{
         flex: { xs: 1, md: 0.8, lg: 0.6 },
         display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4,
@@ -53,7 +53,7 @@ export default function ForgotPasswordPage() {
             >
               Meticle Care
             </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
               Reset your password
             </Typography>
             <Typography sx={{ color: 'text.secondary' }}>
@@ -62,36 +62,40 @@ export default function ForgotPasswordPage() {
           </Box>
 
           {error && (
-            <Box sx={{
-              mb: 3, p: 2, borderRadius: 2,
-              bgcolor: 'error.light', border: '1px solid #FECACA',
-            }}>
-              <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 500 }}>{error}</Typography>
-            </Box>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>
+              {error}
+            </Alert>
           )}
 
           {submitted ? (
             <Box>
-              <Box sx={{
-                display: 'flex', alignItems: 'center', gap: 1.5, mb: 3,
-                p: 2.5, borderRadius: 2, bgcolor: 'success.light', border: '1px solid #BBF7D0',
-              }}>
-                <MailIcon sx={{ color: '#16A34A', fontSize: 22 }} />
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#166534' }}>Check your inbox</Typography>
-                  <Typography variant="caption" sx={{ color: '#15803D' }}>
-                    If an account exists for {email}, you'll receive a reset link shortly.
-                  </Typography>
-                </Box>
-              </Box>
+              {/* MUI Alert, not a hand-built coloured box.
+
+                  This notice was a div with `bgcolor: 'success.light'` and a
+                  hardcoded `#166534` label on top. `success.light` is a
+                  mid-saturated green in MUI's *light* palette, but the palette
+                  is theme-driven and this app persists a dark mode
+                  (ThemeContext writes `mode` to localStorage). In dark mode
+                  `success.light` is still that same green while `#166534` is
+                  near-black forest green — the confirmation a carer is asked to
+                  trust became the least legible thing on the page, and the
+                  `#BBF7D0` border read as a glowing outline. Alert derives its
+                  background, text and icon from the active palette, so it is
+                  correct in both modes. */}
+              <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }} icon={<MailIcon fontSize="inherit" />}>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>Check your inbox</Typography>
+                <Typography variant="caption" sx={{ display: 'block' }}>
+                  If an account exists for {email}, you'll receive a reset link shortly.
+                </Typography>
+              </Alert>
               <Button
                 fullWidth
                 variant="outlined"
                 onClick={() => navigate('/login')}
                 sx={{
-                  borderColor: '#E5E7EB', color: 'text.primary', fontWeight: 600,
+                  borderColor: 'divider', color: 'text.primary', fontWeight: 600,
                   textTransform: 'none', borderRadius: 2, py: 1.5,
-                  '&:hover': { borderColor: '#D1D5DB', bgcolor: 'grey.50' },
+                  '&:hover': { borderColor: 'text.secondary', bgcolor: 'action.hover' },
                 }}
               >
                 Back to sign in
@@ -142,7 +146,7 @@ export default function ForgotPasswordPage() {
                   {loading ? <CircularProgress size={24} color="inherit" /> : 'Send reset link'}
                 </Button>
 
-                <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
+                <Box sx={{ mt: 4, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Remember your password?{' '}
                     <Link
@@ -162,12 +166,12 @@ export default function ForgotPasswordPage() {
       <Box sx={{
         flex: { xs: 0, md: 1.2, lg: 1.6 },
         display: { xs: 'none', md: 'flex' },
-        flexDirection: 'column', bgcolor: 'grey.50', p: 8,
+        flexDirection: 'column', bgcolor: 'background.paper', p: 8,
         alignItems: 'center', justifyContent: 'center',
-        borderLeft: '1px solid #E5E7EB',
+        borderLeft: '1px solid', borderColor: 'divider',
       }}>
         <Box sx={{ maxWidth: '480px', textAlign: 'left' }}>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827', mb: 1.5, lineHeight: 1.3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 1.5, lineHeight: 1.3 }}>
             Your data stays safe
           </Typography>
           <Typography sx={{ color: 'text.secondary', lineHeight: 1.7 }}>
