@@ -270,7 +270,14 @@ export class AuthController {
     const user = await UserRepository.findByEmail(email);
     if (!user) throw new AppError(401, 'Invalid email or password');
 
-    if (user.status === 'deactivated') throw new AppError(403, 'Your account has been deactivated. Please contact your organization administrator.');
+    // Deliberately identical to the unknown-user response above. A distinct
+    // message here tells an unauthenticated caller that this address belongs
+    // to a real account on the system, and which state it is in — turning
+    // /auth/login into a staff-directory oracle for a care platform. The
+    // trade is that a deactivated user is told their credentials are wrong
+    // rather than who to contact; the administrator already knows, and the
+    // account remains genuinely unusable either way.
+    if (user.status === 'deactivated') throw new AppError(401, 'Invalid email or password');
 
     const isPasswordValid = await comparePassword(password, user.password_hash);
     if (!isPasswordValid) {
@@ -384,9 +391,18 @@ export class AuthController {
     if (isDisposableEmail(email)) throw new AppError(400, 'Temporary email addresses are not allowed');
     if (await isDisposableEmailByMx(email)) throw new AppError(400, 'Temporary email addresses are not allowed');
 
-    // Check if email is already registered
-    const existing = await UserRepository.findByEmail(email);
-    if (existing) throw new AppError(409, 'An account with this email already exists');
+    // No existence check, and none may be added back. Returning a different
+    // response for a registered address turns this into a staff-directory
+    // oracle for an unauthenticated caller: /auth/forgot-password is
+    // non-enumerable by design, and this undid that on the same surface — the
+    // one a prospective member of staff meets first.
+    //
+    // Ownership is what would make disclosure acceptable, and this endpoint
+    // cannot require it, because its purpose is to send the code. So the
+    // duplicate is not disclosed here. It surfaces at /auth/register, which
+    // runs only after the caller has proved control of the mailbox by entering
+    // the code — at which point knowing the address is registered is of no use
+    // to an attacker, who does not own that mailbox.
 
     // Rate limit: max 3 codes per email per 15 minutes
     const recent = await migrateQuery(

@@ -91,6 +91,32 @@ minutes, login 10 per 15 minutes, MFA verification 10 per minute, backup codes 3
 per minute, refresh 10 per minute. nginx does not rate limit; the application
 does, and the limits are per endpoint rather than global.
 
+**Account enumeration.** Knowing which addresses have accounts on a care platform
+is worth something: it is a list of the staff who hold client records, on the
+domains whose mail the organisation is trusted to send. Every unauthenticated
+auth endpoint therefore answers identically for a registered address and an
+unregistered one.
+
+`forgot-password` was already correct and returns the same message either way.
+Two endpoints were not, and were corrected on 26 September 2026:
+
+| Endpoint | Was | Now |
+| --- | --- | --- |
+| `/auth/send-email-code` | `409 An account with this email already exists` | Always `200 Verification code sent`. The code is still sent |
+| `/auth/login` | `403 Your account has been deactivated` for a deactivated account, `401` for an unknown one — distinguishing existence without comparing a password | `401 Invalid email or password` in both cases |
+
+The login change costs a deactivated user the message telling them who to
+contact. The account is equally unusable either way and the administrator
+already knows, so the disclosure is not worth it.
+
+`apps/api/src/test/authEnumeration.test.ts` asserts this contract, including
+that `forgot-password` does not drift.
+
+| Required | Why | Status |
+| --- | --- | --- |
+| `/auth/register` must require a verified email code server-side | It returns `400 An account with this email already exists`, and `registrationSchema` carries no verification code — so the duplicate error is currently an oracle with no proof of mailbox ownership. Disclosure is only safe once the caller has proved they own the address, which is the state the client enforces and the server does not | **Open — a change to the signup contract, not a one-line edit** |
+| Timing equalisation on `/auth/login` | An unknown address returns before any password hash comparison, so response time distinguishes it from a known one even with identical bodies | Not done |
+
 **Least privilege and tenant isolation.** PostgreSQL row-level security enforces
 organisation boundaries in the database itself. The application connects as
 `meticle_app`, a separate role that cannot bypass RLS; migrations run as a
