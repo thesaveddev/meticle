@@ -24,7 +24,8 @@
     "build:preview:android": "eas build --profile preview --platform android",
     "build:preview:ios": "eas build --profile preview --platform ios",
     "build:prod:android": "eas build --profile production --platform android",
-    "build:prod:ios": "eas build --profile production --platform ios"
+    "build:prod:ios": "eas build --profile production --platform ios",
+    "verify:no-fixtures": "node scripts/verify-no-fixtures-in-bundle.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

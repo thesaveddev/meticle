@@ -37,7 +37,13 @@ the account-deletion fix. Detail lives in `docs/STORE_RELEASE_RUNBOOK.md` and
   The app serves fixture data, raises no prompts, walks the six screens in order
   and announces each one; the host script takes the picture. **They have not
   been captured yet** — that needs a machine with a booted simulator or a device.
-  The whole path is inert in a release build. See the runbook.
+  The whole path is inert in a release build: `metro.config.js` resolves every
+  module under `src/capture` to an inert stub unless `EXPO_PUBLIC_CAPTURE_MODE=1`
+  is set, so the invented care records are never bundled at all. That matters
+  because the `__DEV__` gate alone did not achieve it — the first production AAB
+  shipped a client called Eileen with a care plan and medication list, present
+  but unreachable. `npm run verify:no-fixtures` bundles the app and fails if any
+  of it returns; it runs in CI. See the runbook.
 
 ## Three real bugs found and fixed while verifying
 
