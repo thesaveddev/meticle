@@ -302,7 +302,7 @@ DKIM for the domain.
 | Staff replies signed for the organisational domain | See §7.6 — a reply from a personal mailbox fails DMARC and is indistinguishable from a spoof | Not started |
 | DMARC moved to `p=quarantine; pct=100` | Makes receivers act on failures | **Change made 26 Sep 2026; still resolving as `p=none`** |
 | Then `p=reject` after a clean reporting period | Refuses spoofed mail outright | Not started; requires a quarantine period first |
-| `dmarc-reports@meticlecare.com` mailbox exists | Reports are sent by the receiving server; without the mailbox they are discarded or bounce | **Owner to confirm** |
+| `dmarc-reports@meticlecare.com` mailbox exists | Reports are sent by the receiving server; without the mailbox they are discarded or bounce | **Confirmed 26 Sep 2026** |
 | `v=spf1 -all` at `dmarc-reports.meticlecare.com` | Stops the report mailbox itself being spoofed, and stops report spam being treated as spam | Not set |
 | `ruf=` pointing at a human-readable aggregate service | `rua` delivers compressed XML attachments that nobody reads unaided | Not set |
 | MTA-STS and TLS-RPT | Stops an active attacker downgrading the session to plaintext in transit | Not set |
@@ -336,36 +336,99 @@ against `meticlecare.com` that is not MXRocket is an active spoofing attempt
 and is treated as a security incident in its own right. After a clean quarter,
 move to `p=reject`.
 
-### 7.6 The gap DMARC exposes: staff mail sent from other providers
+### 7.6 Where organisational mail is sent from, and what that means
 
-Enforcing DMARC does not only stop attackers. It also fails mail sent *by the
-organisation* from anywhere other than the authorised relay — and the most
-likely place is a member of staff replying from a personal phone or a personal
-Outlook account configured to send as `@meticlecare.com`.
+**Confirmed 26 September 2026:** the organisation runs on neither Microsoft 365
+nor Google Workspace. All `@meticlecare.com` mail — staff replies included — is
+handled by MXRocket, the same provider that hosts the MX record and sends the
+application's mail. There is one sending path, and it signs.
 
-That mail carries `From: security@meticlecare.com` and is signed by Microsoft
-(`d=outlook.com`) or not signed at all. DMARC sees an organisational domain that
-authorises neither, and under `p=quarantine` a colleague's legitimate reply
-lands in spam. Worse, from the receiving side it is **indistinguishable from an
-attacker's message**: the same alignment failure, from the same visible address.
-The difference is only in the reporting, and only once reporting is being read.
+This is the favourable answer, and it is worth being precise about why. A member
+of staff replying from a phone or a laptop, authenticating with their
+`@meticlecare.com` mailbox credentials over IMAP and SMTP, produces a message
+that leaves through MXRocket and is signed with the `x` key at
+`d=meticlecare.com`. That is aligned, so it passes DMARC. Enforcing
+`p=quarantine` therefore does **not** catch the organisation's own staff mail,
+which was the specific risk that made enforcement feel unsafe.
 
-This is the practical reason `p=none` had to give way to something enforced —
-but it has to be dealt with, not merely published:
+It is worth recording that this was checked rather than assumed. A staff member
+who instead configures a personal Microsoft or Google account to *send as*
+`@meticlecare.com` would produce exactly the failure described above — signed by
+`d=outlook.com`, unaligned, quarantined, and indistinguishable from an attack to
+the recipient. The difference is entirely which credentials authenticate the
+outgoing session.
+
+| Item | Position |
+| --- | --- |
+| Staff replies from the MXRocket mailbox | Signed and aligned. Passes DMARC. No action |
+| Office provider DKIM (365 / Google) | **Not applicable** — neither is in use. No second signer needed |
+| Staff send-as a personal account | Would fail DMARC. Prohibited by the rule below |
+| Client-side forwarding to a personal address | **Would fail DMARC.** See below — this is the real residual risk |
+| Third-party tools sending on the domain | Unknown. Each needs its own DKIM or it will be quarantined |
+
+**The residual risk is forwarding, not replying.** A mail-client rule that
+forwards a copy to a personal address re-sends the message from that provider.
+The copy carries `From: @meticlecare.com` and arrives signed by the forwarding
+service, unaligned — and it is sent *by the organisation's own mailbox*, so it
+looks entirely legitimate to the recipient. DMARC `p=quarantine` will quarantine
+it, which is the correct outcome, but the underlying habit is worth prohibiting
+rather than relying on the policy to absorb.
 
 | Required | Why | Status |
 | --- | --- | --- |
-| Staff send from the `@meticlecare.com` mailbox, not a personal device | Keeps signing inside the authorised provider | **Policy to issue** |
-| Documented DKIM CNAME for the office provider (Microsoft 365, Google Workspace) | Lets that provider sign for the organisational domain | Not set — depends on the office setup |
+| Staff send as `@meticlecare.com` only from the MXRocket account | The only path that stays signed | **Policy to issue** |
+| No client-side auto-forwarding to personal addresses | Forwards leave as unaligned mail from a trusted sender | **Policy to issue** |
+| No personal account configured with send-as for the domain | Would fail DMARC and be indistinguishable from an attack | **Policy to issue** |
+| Inventory of third-party tools sending as the domain | Each needs its own DKIM, or it will be quarantined | **Owner to confirm** |
 | Weekly report review for legitimate senders being failed | Distinguishes misconfiguration from attack | Not started |
-| Reply guidance in the security-awareness material | Staff cannot comply with a rule they have not been told | Not started |
 
-**Decision needed from the owner:** whether the office runs on Microsoft 365,
-Google Workspace, or neither. If it does, its DKIM CNAME goes in beside the
-MXRocket key and both sign. If staff genuinely have no organisational mailbox,
-then `p=quarantine` will quarantine their replies and the policy has to say
-that is accepted, with the workaround being that they send from a personal
-address and the recipient is told to expect it.
+**Concentration risk, stated plainly.** Because MXRocket is the sole path for
+all organisational mail, it is now a single point of failure for the entire
+anti-spoofing posture: if their signing is disabled, misconfigured, or
+unavailable, every `@meticlecare.com` message in the country fails DMARC at
+once. That is a consequence of the consolidation, accepted because the
+alternative — several providers each needing their own key and alignment — is
+materially more complex for a small organisation. It is the reason step 2 of
+`docs/EMAIL_SECURITY_RUNBOOK.md` matters more than it would in a split setup:
+the confirmation is not just about our mail, it is about our only mail path.
+
+### 7.7 Reducing the single-provider risk
+
+The realistic failure modes are not the ones a second provider would help with,
+so they are worth separating before spending money on the wrong one.
+
+| Failure | Would a second authorised sender help? | What actually helps |
+| --- | --- | --- |
+| MXRocket silently disables DKIM signing | No | Monitoring. Step 2 plus weekly report review catches it within days; nothing architectural catches it faster |
+| MXRocket has an outage | **Yes** | A second sender in DNS, and a break-glass contact route that does not use email |
+| Our SPF or DKIM record is deleted or overwritten in error | **Yes** | A second signer means one mistake is not total |
+| Staff cannot reach each other during an outage | No | A documented phone or in-person route. A business-continuity control, not a mail control |
+
+**The one mitigation worth doing.** Authorise a second sending provider in DNS
+now, without switching to it. Two records:
+
+1. A second DKIM public key (CNAME) for a low-cost transactional provider —
+   Amazon SES, Postmark or similar.
+2. Extend SPF, keeping the hard fail last:
+
+   ```
+   v=spf1 include:mxroute.com include:<second-provider> -all
+   ```
+
+   SPF permits ten DNS lookups; this uses two, so there is ample headroom. The
+   trailing `-all` must stay, or the record stops being a policy and starts
+   being a suggestion.
+
+With that in place, an MXRocket outage becomes a one-line `SMTP_HOST` change
+against a provider whose key is already published and aligned — a config
+rollback, not a DNS project worked out under pressure.
+
+**Two honest caveats.** Publishing a CNAME for a provider that has not been
+provisioned is inert, so provision the account first; the DNS record does
+nothing on its own. And this does not make MXRocket optional for *reading* mail
+— staff mailboxes are still there, so an outage stops both sending and
+receiving. The break-glass route is still needed, and it is the part that
+actually protects a care organisation.
 
 ## 8. Backups
 
