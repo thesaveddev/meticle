@@ -791,3 +791,38 @@ export async function getOpenCalls(token: string, params: { location_id?: string
 export async function claimOpenCall(token: string, shiftId: string): Promise<OpenCallClaim> {
   return request<OpenCallClaim>(`/shifts/${shiftId}/claim`, { method: 'POST' }, token)
 }
+
+/**
+ * A claim this care worker has made, exactly as `GET /shifts/my-claims` returns
+ * it. `assignment_status` is what the backend writes to `shift_assignments`:
+ * 'pending' while a manager still has to approve, 'assigned' once approved (or
+ * auto-approved), and 'rejected' once declined, cancelled or revoked. The web
+ * app labels the same three, so mobile uses the same words.
+ */
+export interface MyOpenCallClaim {
+  assignment_id: string
+  assignment_status: string
+  claimed_at?: string | null
+  is_overtime?: boolean
+  shift_id: string
+  start_time: string
+  end_time: string
+  shift_status: string
+  shift_type: string
+  location_name?: string | null
+  department_name?: string | null
+  su_first_name?: string | null
+  su_last_name?: string | null
+  staff_id: string
+  first_name?: string | null
+  last_name?: string | null
+}
+
+/**
+ * Every claim this care worker has made. The endpoint takes no date filter and
+ * orders by start time descending, so a caller wanting upcoming work first has
+ * to sort it itself.
+ */
+export async function getMyOpenCallClaims(token: string): Promise<MyOpenCallClaim[]> {
+  return request<MyOpenCallClaim[]>('/shifts/my-claims', {}, token)
+}
