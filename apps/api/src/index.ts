@@ -14,6 +14,7 @@ import { refreshDisposableEmailBlocklist } from './shared/utils/disposableEmail'
 import { rateLimit } from './shared/middleware/rateLimit.middleware';
 import { correlationId } from './shared/middleware/correlationId';
 import { getHttpsOptions } from './shared/https';
+import { senderDomain, misalignedSenders as senderAlignmentFailures } from './shared/utils/email.service';
 
 import { setupDatabase } from './shared/database/setup';
 import { closeDatabasePools } from './shared/database';
@@ -586,6 +587,21 @@ if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
   logger.warn('SMTP not configured — emails will NOT be delivered. Set SMTP_HOST, SMTP_USER, SMTP_PASS in .env');
 } else {
   logger.info({ host: process.env.SMTP_HOST, user: process.env.SMTP_USER }, 'Email: SMTP configured');
+}
+
+// DMARC alignment depends on the visible senders sharing one domain. A
+// `SMTP_FROM_*` override pointing somewhere else is easy to make and invisible
+// from DNS, so it is surfaced at boot rather than discovered from a spam
+// folder. The envelope sender is pinned to the visible sender, so this is the
+// only remaining way for alignment to drift.
+const misalignedSenders = senderAlignmentFailures();
+if (misalignedSenders.length > 0) {
+  logger.error(
+    { misalignedSenders, expectedDomain: senderDomain() },
+    'Email: sender addresses do not share one domain — DMARC alignment will fail for these categories',
+  );
+} else {
+  logger.info({ domain: senderDomain() }, 'Email: all sender categories aligned for DMARC');
 }
 
 // Start the domain event outbox worker
