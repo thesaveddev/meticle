@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import request from 'supertest'
 import { Express } from 'express'
-import { createTestApp } from '../../test/helpers'
+import { createTestApp, verifyEmailForRegistration } from '../../test/helpers'
 import { createOrg, createUser } from '../../test/factories'
 import { UserRepository } from './user.repository'
 
@@ -45,6 +45,7 @@ describe('Auth Integration — POST /auth/register', () => {
 
   it('should register a new CARE_WORKER user', async () => {
     const email = `worker-${Date.now()}@test.com`
+    await verifyEmailForRegistration(app, email)
     const res = await request(app)
       .post('/auth/register')
       // Registration derives the auto-created organisation name from this, so it
@@ -61,6 +62,7 @@ describe('Auth Integration — POST /auth/register', () => {
 
   it('should register a new ORG_ADMIN user', async () => {
     const email = `admin-${Date.now()}@test.com`
+    await verifyEmailForRegistration(app, email)
     const res = await request(app)
       .post('/auth/register')
       .send({ email, password: 'TestPass123!', role: 'ORG_ADMIN', name: `Test Admin ${Date.now()}` })
@@ -75,11 +77,37 @@ describe('Auth Integration — POST /auth/register', () => {
 
   it('should reject registration with existing email', async () => {
     const email = `duplicate-${Date.now()}@test.com`
+    await verifyEmailForRegistration(app, email)
     await request(app).post('/auth/register').send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: `First ${Date.now()}` })
     const res = await request(app).post('/auth/register').send({ email, password: 'TestPass123!', role: 'CARE_WORKER', name: `Second ${Date.now()}` })
 
     expect(res.status).toBe(400)
     expect(res.body.message).toContain('already exists')
+  }, 30_000)
+
+  it('will not reveal whether an account exists before the address is verified', async () => {
+    // The duplicate error above is only safe because ownership is proved first.
+    // Without proof it must be unreachable, and the refusal must be identical
+    // for an address that has an account and one that does not — otherwise this
+    // endpoint remains the oracle the check exists to close.
+    //
+    // The account is created through the factory rather than through
+    // /auth/register, so it has no verification row. Registering it the obvious
+    // way would leave proof behind and quietly test nothing.
+    const taken = `taken-${Date.now()}@test.com`
+    await createUser({ email: taken })
+
+    const existing = await request(app)
+      .post('/auth/register')
+      .send({ email: taken, password: 'TestPass123!', role: 'CARE_WORKER', name: 'Impostor' })
+    const unknown = await request(app)
+      .post('/auth/register')
+      .send({ email: `unknown-${Date.now()}@test.com`, password: 'TestPass123!', role: 'CARE_WORKER', name: 'Nobody' })
+
+    expect(existing.status).toBe(400)
+    expect(unknown.status).toBe(400)
+    expect(existing.body.message).toBe(unknown.body.message)
+    expect(existing.body.message).not.toContain('already exists')
   }, 30_000)
 
   it('should never attach an unauthenticated registration to an existing organization', async () => {
