@@ -27,6 +27,7 @@ import { NutritionScreen } from './src/screens/NutritionScreen'
 import { ProfileScreen } from './src/screens/ProfileScreen'
 import { WeekScreen } from './src/screens/WeekScreen'
 import { SwapTransferScreen } from './src/screens/SwapTransferScreen'
+import { OpenCallsScreen } from './src/screens/OpenCallsScreen'
 import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen'
 import { ChatScreen } from './src/screens/ChatScreen'
 import { NotificationsScreen } from './src/screens/NotificationsScreen'
@@ -92,6 +93,7 @@ type Screen =
   | { kind: 'timesheets' }
   | { kind: 'carerTotals' }
   | { kind: 'rideShare'; visit?: HomecareVisit }
+  | { kind: 'openCalls' }
   | { kind: 'learn' }
 
 export default function App() {
@@ -372,6 +374,9 @@ function AppInner() {
   if (currentScreen.kind === 'profile' && session) {
     return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><ProfileScreen session={session} user={user} onBack={goBack} onSaved={() => { goBack(); loadVisits(session) }} /></SwipeBack></EmergencyLayer>
   }
+  if (currentScreen.kind === 'openCalls' && session) {
+    return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><OpenCallsScreen session={session} onBack={goBack} /></SwipeBack></EmergencyLayer>
+  }
   if (currentScreen.kind === 'swap' && session) {
     return <EmergencyLayer contacts={sosContacts}><StatusBar barStyle={barStyle} backgroundColor={c.bg} /><SwipeBack onBack={goBack}><SwapTransferScreen session={session} user={user} visits={visits} initialRequestType={currentScreen.mode} initialVisitId={currentScreen.visitId} onBack={goBack} onRefresh={() => loadVisits(session)} /></SwipeBack></EmergencyLayer>
   }
@@ -432,7 +437,7 @@ function AppInner() {
         </View>
         <View style={[s.body, { backgroundColor: c.bg }]}>
           {/* Carer tabs */}
-          {!isManager && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} session={session} />}
+          {!isManager && tab === 'today' && <TodayScreen user={user} visits={visits} queue={activeQueue} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onOpenCalls={() => pushScreen({ kind: 'openCalls' })} onRefresh={() => loadVisits(session, true)} refreshing={refreshing} onSync={() => sync()} session={session} />}
           {!isManager && tab === 'schedule' && <WeekScreen session={session} onVisit={(v) => pushScreen({ kind: 'visit', visit: v })} onSwap={() => pushScreen({ kind: 'swap', mode: 'swap' })} />}
           {!isManager && tab === 'mileage' && <MileageScreen session={session} />}
 

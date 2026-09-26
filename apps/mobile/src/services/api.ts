@@ -739,3 +739,55 @@ export async function respondRideShareRequest(token: string, requestId: string, 
     body: JSON.stringify({ status }),
   }, token)
 }
+
+/* ─── Open calls ────────────────────────────────────────────── */
+
+export interface OpenCallAssignment {
+  id: string
+  staff_id: string
+  status: string
+  staff_name?: string | null
+}
+
+/** An unclaimed extra shift a care worker can pick up. */
+export interface OpenCall {
+  id: string
+  location_id: string
+  location_name?: string | null
+  department_name?: string | null
+  start_time: string
+  end_time: string
+  status: string
+  shift_type: string
+  person_id?: string | null
+  su_first_name?: string | null
+  su_last_name?: string | null
+  staff_count?: number
+  assignments?: OpenCallAssignment[]
+}
+
+/** Result of claiming. `auto_approved` is set when the claimant manages the location. */
+export interface OpenCallClaim {
+  id: string
+  shift_id: string
+  status: string
+  requires_approval?: boolean
+  auto_approved?: boolean
+}
+
+export async function getOpenCalls(token: string, params: { location_id?: string; date_from?: string; date_to?: string } = {}): Promise<OpenCall[]> {
+  const query = new URLSearchParams()
+  if (params.location_id) query.set('location_id', params.location_id)
+  if (params.date_from) query.set('date_from', params.date_from)
+  if (params.date_to) query.set('date_to', params.date_to)
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  return request<OpenCall[]>(`/shifts/open${suffix}`, {}, token)
+}
+
+/**
+ * Claim an open call. The backend resolves the claimant from the session, so no
+ * staff id is sent — a care worker can only ever claim on their own behalf.
+ */
+export async function claimOpenCall(token: string, shiftId: string): Promise<OpenCallClaim> {
+  return request<OpenCallClaim>(`/shifts/${shiftId}/claim`, { method: 'POST' }, token)
+}

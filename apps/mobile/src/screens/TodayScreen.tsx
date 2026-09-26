@@ -136,11 +136,12 @@ function StatusPill({ status, overdue, c }: { status: string; overdue?: boolean;
 }
 
 /* ─── Custom refresh indicator ──────────────────────────────── */
-export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshing, onSync, session }: {
+export function TodayScreen({ user, visits, queue, onVisit, onOpenCalls, onRefresh, refreshing, onSync, session }: {
   user: MobileUser
   visits: HomecareVisit[]
   queue: OfflineVisitAction[]
   onVisit: (v: HomecareVisit) => void
+  onOpenCalls?: () => void
   onRefresh: () => void
   refreshing: boolean
   onSync: () => void
@@ -170,6 +171,18 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
   ]
 
   const allDone = total > 0 && completed === total
+
+  // Open calls are a domiciliary feature. `primary_service_type` is
+  // authoritative when the organisation has one — falling back to service_types
+  // alone sends a domiciliary organisation carrying a legacy supported-living
+  // value to the wrong place, which is the same trap the web dashboard hit.
+  const isDomiciliary = useMemo(() => {
+    const org = session?.organization
+    const primary = typeof org?.primary_service_type === 'string' ? org.primary_service_type : null
+    if (primary) return primary === 'domiciliary' || primary === 'live_in'
+    const types: string[] = Array.isArray(org?.service_types) ? org.service_types : []
+    return types.some((t: string) => t === 'domiciliary' || t === 'live_in')
+  }, [session?.organization])
 
   // Ride-share incoming requests
   const [rideRequests, setRideRequests] = useState<any[]>([])
@@ -271,6 +284,25 @@ export function TodayScreen({ user, visits, queue, onVisit, onRefresh, refreshin
             </View>
           )}
         </View>
+      )}
+
+      {/* Open calls — domiciliary organisations only */}
+      {isDomiciliary && onOpenCalls && (
+        <Pressable
+          onPress={() => { hapticLight(); onOpenCalls() }}
+          accessibilityRole="button"
+          accessibilityLabel="Open Calls"
+          style={({ pressed }) => [styles.openCallsCard, { backgroundColor: c.primarySurface, borderColor: c.primary + '30' }, pressed && { opacity: 0.8 }]}
+        >
+          <View style={[styles.openCallsIcon, { backgroundColor: c.primary }]}>
+            <Ionicons name="flash-outline" size={18} color={c.inverse} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.openCallsTitle, { color: c.ink }]}>Open Calls</Text>
+            <Text style={[styles.openCallsSub, { color: c.muted }]}>Pick up extra paid shifts</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={c.muted} />
+        </Pressable>
       )}
 
       {/* Anything the carer recorded offline that has not reached the server */}
@@ -464,6 +496,13 @@ const styles = StyleSheet.create({
   userName: { fontFamily: FONT, fontSize: 26, fontWeight: '800', letterSpacing: -0.6, marginTop: 4 },
   subtitle: { fontFamily: FONT, fontSize: 14, fontWeight: '400', marginTop: 4 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  openCallsCard: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    padding: spacing.md, borderRadius: radii.lg, borderWidth: 1, marginBottom: spacing.base,
+  },
+  openCallsIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  openCallsTitle: { fontFamily: FONT, fontSize: 15, fontWeight: '700' },
+  openCallsSub: { fontFamily: FONT, fontSize: 13, fontWeight: '400', marginTop: 2 },
   syncBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: spacing.sm, paddingVertical: 4,
