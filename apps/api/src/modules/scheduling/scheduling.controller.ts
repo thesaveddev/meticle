@@ -228,6 +228,49 @@ export class SchedulingController {
     res.json(result);
   }
 
+  /**
+   * A care worker withdrawing their own claim, before a manager has decided.
+   *
+   * This is deliberately not the manager `cancel-claim` endpoint. That one is
+   * manager-only, it can cancel a claim that has already been approved, and it
+   * tells the worker their shift "has been cancelled by management". A worker
+   * changing their own mind is a different event with a different meaning, so it
+   * gets its own route — the claimant is resolved from the session, exactly as
+   * claiming is, and nobody can withdraw on anyone else's behalf.
+   */
+  static async withdrawOpenShiftClaim(req: Request, res: Response) {
+    const user = req.user!;
+    const { shiftId } = req.params;
+    await requireShiftInOrg(user, shiftId);
+    await requireShiftNotPast(shiftId, user.organizationId);
+    const staffProfile = await SchedulingRepository.getStaffIdByUserId(user.userId);
+    if (!staffProfile) throw new AppError(404, 'Staff profile not found');
+
+    const result = await SchedulingRepository.withdrawPendingClaim(shiftId, staffProfile.id);
+
+    // Whoever would have approved it needs to know it is no longer waiting, or
+    // they approve a claim for a shift the worker has already given back.
+    const shiftInfo = await SchedulingRepository.getShiftById(shiftId, user.organizationId);
+    if (shiftInfo) {
+      const managerRes = await pool.query('SELECT manager_id, name FROM locations WHERE id = $1', [shiftInfo.location_id]);
+      const managerId = managerRes.rows[0]?.manager_id;
+      if (managerId && managerId !== user.userId) {
+        const staffName = `${staffProfile.first_name || ''} ${staffProfile.last_name || ''}`.trim() || 'A staff member';
+        const date = new Date(shiftInfo.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        const locationName = managerRes.rows[0]?.name || 'this location';
+        await NotificationsController.createNotification(
+          managerId,
+          'Overtime Claim Withdrawn',
+          `${staffName} withdrew their claim for ${date} at ${locationName}. The shift is open again.`,
+          'shift'
+        ).catch(() => {});
+      }
+    }
+
+    logDelegationAction(user.userId, 'WITHDRAW_OVERTIME', 'shift', shiftId, `Withdrew own overtime claim on shift ${shiftId}`);
+    res.json(result);
+  }
+
   static async cancelOvertimeClaim(req: Request, res: Response) {
     const user = req.user!;
     const { shiftId, staffId } = req.params;
@@ -244,12 +287,15 @@ export class SchedulingController {
 
     const staffUserRes = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [staffId]);
     if (staffUserRes.rows[0]) {
-      await NotificationsController.createNotification(
-        staffUserRes.rows[0].user_id,
-        'Overtime Cancelled',
-        `Your overtime claim at ${locationName} on ${date} has been cancelled by management.`,
-        'error'
-      );
+      const userId = staffUserRes.rows[0].user_id;
+      const body = `Your overtime claim at ${locationName} on ${date} has been cancelled by management.`;
+      await NotificationsController.createNotification(userId, 'Overtime Cancelled', body, 'error');
+      const { sendPushNotification } = await import('../notifications/push.service');
+      await sendPushNotification(
+        userId,
+        { title: 'Overtime Cancelled', body, data: { type: 'overtime', shiftId }, url: '/scheduling/overtime' },
+        'overtime'
+      ).catch(() => {});
     }
     logDelegationAction(user.userId, 'CANCEL_OVERTIME', 'shift', shiftId, `Cancelled overtime claim for staff ${staffId}`);
     res.json(result);
@@ -339,7 +385,19 @@ export class SchedulingController {
 
     const staffUserRes = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [staffId]);
     if (staffUserRes.rows[0]) {
-      await NotificationsController.createNotification(staffUserRes.rows[0].user_id, 'Overtime Approved', `Your overtime claim for ${locationName} on ${date} (${time}) has been approved.`, 'success');
+      const userId = staffUserRes.rows[0].user_id;
+      const body = `Your overtime claim for ${locationName} on ${date} (${time}) has been approved.`;
+      await NotificationsController.createNotification(userId, 'Overtime Approved', body, 'success');
+      // The in-app row above only helps someone who opens the app. A carer who
+      // picked up a shift on the strength of the claim needs to hear the answer
+      // either way, and an approval that arrives after the shift has started is
+      // worse than no answer at all.
+      const { sendPushNotification } = await import('../notifications/push.service');
+      await sendPushNotification(
+        userId,
+        { title: 'Overtime Approved', body, data: { type: 'overtime', shiftId }, url: '/scheduling/overtime' },
+        'overtime'
+      ).catch(() => {});
     }
     if (staffEmail) {
       await EmailService.sendOvertimeApprovedEmail(staffEmail, staffName, locationName, date, time);
@@ -367,7 +425,17 @@ export class SchedulingController {
 
     const staffUserRes = await pool.query('SELECT user_id FROM staff_profiles WHERE id = $1', [staffId]);
     if (staffUserRes.rows[0]) {
-      await NotificationsController.createNotification(staffUserRes.rows[0].user_id, 'Overtime Declined', `Your overtime claim for ${locationName} on ${date} (${time}) has been declined.`, 'error');
+      const userId = staffUserRes.rows[0].user_id;
+      const body = `Your overtime claim for ${locationName} on ${date} (${time}) has been declined.`;
+      await NotificationsController.createNotification(userId, 'Overtime Declined', body, 'error');
+      // A decline is the case that most needs a push: the worker is waiting on
+      // someone else's decision and cannot do anything about it.
+      const { sendPushNotification } = await import('../notifications/push.service');
+      await sendPushNotification(
+        userId,
+        { title: 'Overtime Declined', body, data: { type: 'overtime', shiftId }, url: '/scheduling/overtime' },
+        'overtime'
+      ).catch(() => {});
     }
     const staffRes = await pool.query(
       'SELECT sp.first_name, sp.last_name, u.email FROM staff_profiles sp JOIN users u ON sp.user_id = u.id WHERE sp.id = $1',
