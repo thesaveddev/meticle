@@ -17,6 +17,50 @@ const SENDERS = {
 
 export type SenderCategory = keyof typeof SENDERS;
 
+/**
+ * Domain part of an address, lowercased, or '' when there is no '@'.
+ *
+ * Handles the display-name form — `"Meticle Care <security@meticlecare.com>"` —
+ * which nodemailer accepts for a sender and which an operator can legitimately
+ * set in `SMTP_FROM_*`. Taking the text after the last '@' of the raw string
+ * would return `meticlecare.com>`, and every sender would then be reported as
+ * misaligned at boot.
+ */
+export function domainOf(address: string): string {
+  const raw = String(address).trim();
+  const angled = raw.match(/<([^>]+)>/);
+  const bare = (angled ? angled[1] : raw).trim().toLowerCase();
+  const at = bare.lastIndexOf('@');
+  return at === -1 ? '' : bare.slice(at + 1);
+}
+
+/**
+ * The organisational domain the visible senders are expected to share.
+ *
+ * DMARC alignment compares the organisational domain of the visible `From:`
+ * against the envelope sender and the DKIM `d=`. If the senders sit on
+ * different domains, some categories pass and some fail for reasons that are
+ * invisible from the code — so the assumption is made explicit and checked at
+ * boot rather than left implicit.
+ */
+export function senderDomain(): string {
+  return domainOf(SENDERS.notifications);
+}
+
+/**
+ * Sender categories whose address is not on the organisational domain.
+ *
+ * Empty in the default configuration. A non-empty result means a
+ * `SMTP_FROM_*` override points somewhere else, and mail from those categories
+ * will fail DMARC alignment for reasons that are not obvious from DNS.
+ */
+export function misalignedSenders(): string[] {
+  const expected = senderDomain();
+  return Object.entries(SENDERS)
+    .filter(([, address]) => domainOf(address) !== expected)
+    .map(([category, address]) => `${category}=${address}`);
+}
+
 let transporter: nodemailer.Transporter | null = null;
 
 /**

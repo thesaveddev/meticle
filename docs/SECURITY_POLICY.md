@@ -310,12 +310,42 @@ the application sends a genuine message to a real receiving server:
 A hand-written message from the sender's own mailbox does not count: it travels
 the mailbox's path, not the application's.
 
-**Why DKIM matters more here than SPF.** The nodemailer transport sets no
-`envelope` or `sender`, so `MAIL FROM` is whatever `SMTP_USER` authenticates as
-and MXRocket may rewrite `Return-Path` to its own bounce domain. If that domain
-is not `meticlecare.com`, SPF alignment fails and DKIM is the only thing left
-carrying the policy. That is not a reason to skip the SPF alignment check — it
-is a reason not to treat step 2 as optional.
+**Why DKIM matters more here than SPF.** Until §7.8 the transport set no
+`envelope` or `sender`, so `MAIL FROM` was whatever `SMTP_USER` authenticated
+as and MXRocket could rewrite `Return-Path` to its own bounce domain. The
+envelope is now pinned in code, so SPF alignment no longer depends on a
+credential. A provider may still rewrite the return path in transit, and only
+the received `Return-Path` proves what went on the wire — which is why step 2
+remains a gate rather than a formality.
+
+### 7.8 The envelope sender is pinned, and a stale one was found
+
+**What changed.** `buildMailOptions` now sets `envelope: { from }` to the same
+address as the visible `From:`, and a queued row's sender always wins. Alignment
+is therefore structural rather than incidental: the two addresses share a domain
+by construction and no credential can quietly change it. Bounces return to the
+mailbox for that category, which is where the team that cares is already looking.
+
+**What was found while fixing it.** The `SMTP_FROM` fallback — used only when a
+queued row somehow has no sender — resolved to `caredesk@reydesk.com`, an
+unrelated vendor domain left over from a previous integration. Any message that
+took that path would have asserted a domain this organisation does not control:
+DMARC alignment fails, and every recipient learns which other company runs the
+system. `resolveSender` now honours `SMTP_FROM` only when it is on the
+organisational domain and refuses it loudly otherwise, falling back to an aligned
+default. The value is a free-form secret, so constraining it in code is the only
+place this can be enforced.
+
+**Boot check.** `index.ts` logs an error naming any `SMTP_FROM_*` category that
+does not share the organisational domain, and confirms the domain when all are
+aligned. A misconfiguration is then visible in the logs at deploy rather than in
+a spam folder later.
+
+| Required | Why | Status |
+| --- | --- | --- |
+| Confirm `DEPLOY_SMTP_FROM` in production is on the organisational domain | It is a free-form GitHub secret; the code now refuses an off-domain value, but the secret should still be correct | **Owner to confirm** |
+| Remove the stale `SMTP_FROM=caredesk@reydesk.com` from the local dev env | Leftover from a previous vendor; discloses an unrelated third party if used | **Owner to confirm** |
+| Confirm no queued rows exist with a null `from_email` | The fallback path should be unreachable in practice | **Owner to confirm** |
 
 ### 7.4 Outstanding
 
@@ -331,7 +361,7 @@ is a reason not to treat step 2 as optional.
 | `ruf=` pointing at a human-readable aggregate service | `rua` delivers compressed XML attachments that nobody reads unaided | Not set |
 | MTA-STS and TLS-RPT | Stops an active attacker downgrading the session to plaintext in transit | Not set |
 | Weekly review of DMARC reporting | A policy nobody reads is `p=none` with extra steps | Not started |
-| Aligned envelope sender (`MAIL FROM`) | DMARC SPF alignment fails if the envelope sender is not `@meticlecare.com`. The application sets no `envelope` or `sender` on the nodemailer transport, so `MAIL FROM` is whatever `SMTP_USER` authenticates as, and MXRocket may rewrite `Return-Path` to its bounce domain | **Verify in the MXRocket panel** — DKIM carries alignment either way, which is why step 2 is the gate |
+| Aligned envelope sender (`MAIL FROM`) | DMARC SPF alignment fails if the envelope sender is not `@meticlecare.com` | **Fixed** — pinned to the visible sender in code; see §7.8. `DEPLOY_SMTP_FROM` still to be checked in production |
 | A spoof test from a domain we do not own | Proves the policy is actually enforced rather than merely published | Not run |
 
 **Note on the change made on 26 September 2026.** The DMARC record was edited

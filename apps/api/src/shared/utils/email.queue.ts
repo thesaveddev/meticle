@@ -1,6 +1,6 @@
 import { query, transaction } from '../database';
 import { randomUUID } from 'crypto';
-import { getTransporter } from './email.service';
+import { getTransporter, domainOf, senderDomain } from './email.service';
 import logger from './logger';
 
 const BATCH_SIZE = 10;
@@ -19,6 +19,84 @@ export interface EmailQueueOptions {
   relatedEntityType?: 'homecare_invoice';
   relatedEntityId?: string;
   createdBy?: string;
+}
+
+export interface QueuedMail {
+  from_email?: string | null;
+  to_email: string;
+  subject: string;
+  html_body: string;
+  attachments?: { filename: string; content: string; contentType?: string }[] | null;
+  dsn_requested?: boolean | null;
+  dsn_id?: string | null;
+}
+
+/**
+ * The options handed to nodemailer for one queued message.
+ *
+ * `envelope.from` is the SMTP `MAIL FROM` — the return path, distinct from the
+ * visible `From:` header. It was previously unset, which left nodemailer to
+ * derive it from the authenticated SMTP credentials, so the envelope sender was
+ * whatever `SMTP_USER` happened to be. If that is not on the organisational
+ * domain, DMARC's SPF alignment fails and DKIM alone carries the policy; and
+ * because the value depended on a credential rather than on the code, nothing
+ * in the repository described what was actually being asserted.
+ *
+ * Setting it equal to the visible sender makes alignment structural rather
+ * than incidental: the two addresses share a domain by construction, and there
+ * is no credential that can quietly change it. Bounces return to the mailbox
+ * for that category — billing mail bounces to the billing address — which is
+ * where the team that cares about them is already looking.
+ *
+ * This is what the application asks for. A provider may still rewrite the
+ * return path in transit, and only the received `Return-Path` proves what went
+ * out on the wire.
+ */
+export function buildMailOptions(mail: QueuedMail) {
+  const from = resolveSender(mail.from_email);
+  const attachments = mail.attachments?.length
+    ? mail.attachments.map(a => ({ filename: a.filename, content: Buffer.from(a.content, 'base64'), contentType: a.contentType || 'application/pdf' }))
+    : [];
+  return {
+    from,
+    envelope: { from },
+    to: mail.to_email,
+    subject: mail.subject,
+    html: mail.html_body,
+    attachments,
+    ...(mail.dsn_requested && mail.dsn_id ? {
+      dsn: { id: mail.dsn_id, return: 'headers' as const, notify: ['success', 'failure', 'delay'] as const, recipient: mail.to_email },
+    } : {}),
+  };
+}
+
+const DEFAULT_SENDER = 'noreply@meticlecare.com';
+
+/**
+ * The address a message is sent from, and its envelope sender.
+ *
+ * A queued row always carries the category sender chosen at enqueue time, so
+ * the fallback below is close to dead code — which is exactly why it is worth
+ * making safe. `SMTP_FROM` is a free-form secret, and an earlier configuration
+ * of this application had it pointing at an unrelated domain left over from a
+ * previous vendor relationship. An off-domain value here means every message
+ * that took this path asserted a domain the organisation does not control:
+ * DMARC alignment fails, and the header discloses an unrelated third party to
+ * every recipient.
+ *
+ * So the value is honoured only when it is on the organisational domain, and
+ * an off-domain one is refused loudly rather than used quietly.
+ */
+export function resolveSender(rowSender?: string | null): string {
+  if (rowSender) return rowSender;
+  const configured = process.env.SMTP_FROM;
+  if (!configured) return DEFAULT_SENDER;
+  if (domainOf(configured) === senderDomain()) return configured;
+  logger.error(
+    { configured, expectedDomain: senderDomain() },
+    'Email: SMTP_FROM is not on the organisational domain — refusing it, using the aligned default. Mail sent via this fallback would fail DMARC alignment and disclose an unrelated domain.',
+  );
+  return DEFAULT_SENDER;
 }
 
 export class EmailQueue {
@@ -105,16 +183,7 @@ export class EmailQueue {
     );
     for (const email of batch.rows) {
       try {
-        const from = email.from_email || process.env.SMTP_FROM || 'noreply@meticlecare.com';
-        const attachments = email.attachments?.length > 0
-          ? email.attachments.map((a: any) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64'), contentType: a.contentType || 'application/pdf' }))
-          : [];
-        const info = await transporter.sendMail({
-          from, to: email.to_email, subject: email.subject, html: email.html_body, attachments,
-          ...(email.dsn_requested && email.dsn_id ? {
-            dsn: { id: email.dsn_id, return: 'headers', notify: ['success', 'failure', 'delay'], recipient: email.to_email },
-          } : {}),
-        });
+        const info = await transporter.sendMail(buildMailOptions(email));
         const acceptedRecipients = (info.accepted || []).map((recipient: string | { address?: string }) =>
           (typeof recipient === 'string' ? recipient : recipient.address || '').toLowerCase(),
         );

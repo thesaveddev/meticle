@@ -93,10 +93,20 @@ Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
       this address. If it did not exist they would bounce, you would get no
       reports, and the setup would look correct because the DNS record is right.
 
-- [ ] **6. Verify the MXRocket envelope / bounce domain is `@meticlecare.com`.**
-      DMARC SPF alignment fails if the `MAIL FROM` envelope sender is not on the
-      organisational domain — visible `From:` is not enough. Check in the MXRocket
-      panel, or read the `Return-Path` header from step 2's message.
+- [ ] **6. Verify the envelope sender is aligned.**
+      **Code side: done.** `buildMailOptions` pins `envelope: { from }` to the
+      visible sender, so `MAIL FROM` is on `meticlecare.com` by construction and
+      no longer depends on `SMTP_USER`. An off-domain `SMTP_FROM` is now refused
+      rather than used — the local dev env turned out to hold a leftover
+      `caredesk@reydesk.com`, which would have failed alignment and disclosed an
+      unrelated vendor to every recipient.
+
+      Still to confirm, and only these two:
+      1. `DEPLOY_SMTP_FROM` in production is on the organisational domain.
+      2. In the headers from step 2, `Return-Path` shows
+         `bounce@…meticlecare.com` or similar. MXRocket may rewrite the return
+         path in transit, and the received header is the only proof of what went
+         on the wire.
 
 - [ ] **7. ~~Decide the office mail provider.~~ ANSWERED 26 Sep 2026: neither.**
       All organisational mail is handled by MXRocket — the same provider that
