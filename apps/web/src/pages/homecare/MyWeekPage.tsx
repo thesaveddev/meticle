@@ -77,7 +77,6 @@ export default function MyWeekPage() {
     } finally {
       setLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekOffset])
 
   useEffect(() => { loadWeek() }, [loadWeek])

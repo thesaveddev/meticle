@@ -245,7 +245,7 @@ export default function MileagePage() {
   const TRAVEL_PAGE_SIZE = 15
 
   const filteredMileage = useMemo(() => {
-    let rows = selectedCarer ? mileageVisits.filter((v: any) => (v.assigned_staff_id || 'unassigned') === selectedCarer) : mileageVisits
+    const rows = selectedCarer ? mileageVisits.filter((v: any) => (v.assigned_staff_id || 'unassigned') === selectedCarer) : mileageVisits
     if (!travelSearch.trim()) return rows
     const q = travelSearch.toLowerCase()
     return rows.filter((v: any) =>
