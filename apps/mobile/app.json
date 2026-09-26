@@ -25,8 +25,8 @@
       "versionCode": 1,
       "allowBackup": false,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0E4D89",
+        "foregroundImage": "./assets/adaptive-icon-foreground.png",
+        "backgroundColor": "#0F4C81",
         "monochromeImage": "./assets/monochrome-icon.png"
       },
       "permissions": [
@@ -49,7 +49,7 @@
       [
         "expo-notifications",
         {
-          "color": "#0E4D89",
+          "color": "#0F4C81",
           "icon": "./assets/notification-icon.png",
           "sounds": []
         }

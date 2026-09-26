@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ActivityIndicator, Alert, BackHandler, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native'
+import { Alert, BackHandler, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter'
-import { ThemeProvider, useTheme, elevation, radii, spacing, FONT } from './src/theme'
+import { ThemeProvider, useTheme, spacing, FONT } from './src/theme'
 import { TabIcon } from './src/components/TabIcons'
+import MeticleSplashScreen from './src/components/MeticleSplashScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { hapticLight, hapticMedium } from './src/services/haptics'
 import type { AuthSession, HomecareVisit, MobileUser, OfflineVisitAction, VisitAction } from './src/types'
@@ -318,18 +319,17 @@ function AppInner() {
   }
 
   /* ─── Loading screens ────────────────────────────────────── */
+  // The branded splash takes over as soon as React Native mounts and continues
+  // the native launch screen: same centred logo, with the wave layers drifting
+  // underneath. It stands in for the old generic "M" boot card, so it shows
+  // exactly while fonts and the session bootstrap are pending and never again
+  // during navigation. It adds no minimum on-screen time.
   if (!fontsLoaded || booting) {
     return (
-      <SafeAreaView style={[s.boot, { backgroundColor: c.bg }]} edges={['top']}>
-        <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
-        <View style={s.bootCard}>
-          <View style={[s.bootLogo, { backgroundColor: c.primary }]}>
-            <Text style={[s.bootLogoText, { color: c.inverse }]}>M</Text>
-          </View>
-          <ActivityIndicator color={c.primary} style={{ marginTop: spacing.base }} />
-          {booting && <Text style={[s.bootText, { color: c.muted }]}>MeticleCare</Text>}
-        </View>
-      </SafeAreaView>
+      <View style={s.boot}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <MeticleSplashScreen />
+      </View>
     )
   }
 
@@ -492,10 +492,6 @@ const s = StyleSheet.create({
   tabLabel: { fontFamily: FONT, fontSize: 10, fontWeight: '600', letterSpacing: 0.2 },
   tabIndicator: { width: 20, height: 2, borderRadius: 1, marginTop: 3 },
   boot: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  bootCard: { alignItems: 'center', gap: spacing.sm },
-  bootLogo: { width: 64, height: 64, borderRadius: radii.xl, alignItems: 'center', justifyContent: 'center', ...elevation.md },
-  bootLogoText: { fontSize: 32, fontWeight: '800', fontFamily: FONT },
-  bootText: { fontFamily: FONT, fontSize: 16, fontWeight: '600', marginTop: spacing.sm },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
   notifBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center', position: 'relative', borderRadius: 20 },
   notifBadge: {
