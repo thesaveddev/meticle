@@ -18,9 +18,27 @@ export interface CaptureHandle {
   router: CaptureRouter
 }
 
+let activeRouter: CaptureRouter | null = null
+
+/**
+ * The endpoints the fixtures could not answer, so far.
+ *
+ * The router is created once, here, and the rest of the app only ever sees the
+ * `fetch` it produced. That makes the router easy to lose: it was returned from
+ * `installCaptureMode` and then dropped on the floor at the call site, which
+ * left nothing able to report a missing fixture — and a missing fixture shows up
+ * as a plausible-looking screenshot with an empty panel on it, not as an error.
+ * Keeping the handle here means the report does not depend on the caller doing
+ * the right thing with a return value.
+ */
+export function captureMisses(): string[] {
+  return activeRouter ? activeRouter.misses() : []
+}
+
 export async function installCaptureMode(now: Date = new Date()): Promise<CaptureHandle> {
   const fixtures = buildCaptureFixtures(now)
   const router = createCaptureRouter(fixtures.routes)
+  activeRouter = router
   global.fetch = createCaptureFetch(router)
   await writeSession(fixtures.session)
   return { session: fixtures.session, router }

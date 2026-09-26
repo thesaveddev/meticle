@@ -45,7 +45,7 @@ import { EmergencyButton, organisationSosContacts } from './src/components/Emerg
 // Store-screenshot capture. All of it is inert unless EXPO_PUBLIC_CAPTURE_MODE=1
 // is set in a dev build — see src/capture/mode.ts.
 import { isCaptureMode } from './src/capture/mode'
-import { installCaptureMode, captureQueueFor } from './src/capture/install'
+import { installCaptureMode, captureQueueFor, captureMisses } from './src/capture/install'
 import { useCaptureTour } from './src/capture/useCaptureTour'
 import { CAPTURE_INCIDENT_DRAFT } from './src/capture/fixtures'
 import type { CaptureScene, CaptureTarget } from './src/capture/shots'
@@ -289,6 +289,7 @@ function AppInner() {
     ready: !!session && visits.length > 0 && fontsLoaded,
     onScene: handleCaptureScene,
     onTarget: handleCaptureTarget,
+    misses: captureMisses,
   })
 
   /* ─── Notification taps ───────────────────────────────────── */

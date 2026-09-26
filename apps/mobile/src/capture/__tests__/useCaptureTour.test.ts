@@ -28,11 +28,12 @@ jest.mock('../signal', () => ({
 const { announceShot, announceDone, announceError } = require('../signal')
 
 const noSleep = async () => {}
+const noMisses = () => []
 
 function renderTour(ready = true) {
   const onScene = jest.fn()
   const onTarget = jest.fn()
-  const view = renderHook(() => useCaptureTour({ ready, onScene, onTarget, sleep: noSleep }))
+  const view = renderHook(() => useCaptureTour({ ready, onScene, onTarget, misses: noMisses, sleep: noSleep }))
   return { ...view, onScene, onTarget }
 }
 
@@ -51,7 +52,7 @@ describe('capture tour', () => {
     const sequence: string[] = []
     const onScene = jest.fn((scene: string) => { sequence.push(`scene:${scene}`) })
     const onTarget = jest.fn((target: { kind: string }) => { sequence.push(`target:${target.kind}`) })
-    renderHook(() => useCaptureTour({ ready: true, onScene, onTarget, sleep: noSleep }))
+    renderHook(() => useCaptureTour({ ready: true, onScene, onTarget, misses: noMisses, sleep: noSleep }))
     await waitFor(() => expect(announceDone).toHaveBeenCalled())
     expect(sequence).toEqual([
       'scene:default', 'target:tab',
@@ -84,7 +85,7 @@ describe('capture tour', () => {
 
   it('reports a failure rather than leaving the host script waiting for a timeout', async () => {
     const onTarget = jest.fn(() => { throw new Error('no such visit') })
-    renderHook(() => useCaptureTour({ ready: true, onScene: jest.fn(), onTarget, sleep: noSleep }))
+    renderHook(() => useCaptureTour({ ready: true, onScene: jest.fn(), onTarget, misses: noMisses, sleep: noSleep }))
     await waitFor(() => expect(announceError).toHaveBeenCalledWith('no such visit'))
     expect(announceDone).not.toHaveBeenCalled()
   })

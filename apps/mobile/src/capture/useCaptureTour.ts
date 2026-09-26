@@ -23,6 +23,20 @@ export interface CaptureTourOptions {
   ready: boolean
   onScene: (scene: CaptureScene) => void
   onTarget: (target: CaptureTarget) => void
+  /**
+   * The endpoints the fixtures could not answer, read at the end of the tour.
+   *
+   * This is the whole point of routing rather than stubbing: a screen whose
+   * fixture is missing still renders, just emptier, so the image looks plausible
+   * and gets published. Reporting the misses is the only warning that happens,
+   * which is why it is a required argument rather than an optional one that
+   * silently defaults to "nothing was missing".
+   *
+   * It is a function rather than an array because requests keep arriving while
+   * the tour runs — a screen can ask for something only once it is mounted — so
+   * the list has to be read after the last shot, not before the first.
+   */
+  misses: () => string[]
   /** Overridable so the tour can be driven in a test without real timers. */
   sleep?: (ms: number) => Promise<void>
 }
@@ -31,7 +45,7 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-export function useCaptureTour({ ready, onScene, onTarget, sleep = delay }: CaptureTourOptions): void {
+export function useCaptureTour({ ready, onScene, onTarget, misses, sleep = delay }: CaptureTourOptions): void {
   const started = useRef(false)
 
   useEffect(() => {
@@ -51,12 +65,12 @@ export function useCaptureTour({ ready, onScene, onTarget, sleep = delay }: Capt
           await announceShot(shot)
           await sleep(shot.dwellMs)
         }
-        if (!cancelled) await announceDone()
+        if (!cancelled) await announceDone(misses())
       } catch (error) {
         if (!cancelled) await announceError(error instanceof Error ? error.message : String(error))
       }
     })()
 
     return () => { cancelled = true }
-  }, [ready, onScene, onTarget, sleep])
+  }, [ready, onScene, onTarget, misses, sleep])
 }
