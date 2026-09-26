@@ -159,21 +159,215 @@ dependencies deliberately, one at a time, is the approach that works here.
 
 ## 6. Malware protection
 
-This control is organisational and cannot be satisfied from the repository.
+The preventive control is endpoint antivirus on staff devices and on the host.
+Neither can be evidenced from this repository, so the control is split below
+into what is genuinely in place, what the owner must answer, and what the
+organisation is relying on in the meantime.
 
-| Item | Answer required | Status |
+| Leg | Required answer | Status |
 | --- | --- | --- |
 | Staff device antivirus / MDM | Managed, definition updates automatic | **Owner to confirm** |
 | Server malware protection | Whether the host runs AV beyond OS patching | **Owner to confirm** |
 | Email filtering | Inbound filtering and attachment scanning | **Owner to confirm** |
 | Removable media policy | Whether the estate permits it | **Owner to confirm** |
 
-On the server side the compensating controls are: a minimal container image
-(`node:20-alpine`, `nginx:alpine`), no unnecessary packages, digest-pinned
-dependencies, and a web application that does not execute uploaded content —
-SVG is served as an attachment for exactly this reason.
+**Evidence an assessor will ask for.** A screenshot of the AV console showing
+the product, the last successful scan and the definition date; the MDM enrolment
+list showing every device that can reach production data; and a dated note
+confirming the host is or is not covered. A statement that antivirus is
+"enabled" without a definition date and a last-scan date is not evidence.
 
-## 7. Backups
+### 6.1 Compensating controls — server estate
+
+These reduce the likelihood of malware reaching the server and the damage it
+would do if it did. They do not detect malware, and they are accepted as
+compensating measures only for the server leg. They compensate for nothing on
+the staff-device leg: a compromised laptop holding a care record is not made
+acceptable by anything on this list, so the device antivirus row above is a
+genuine requirement, not a formality.
+
+| Control | As implemented |
+| --- | --- |
+| Digest-pinned images | Every image in `docker-compose.prod.yml` is a `sha256` digest, including PostgreSQL, Redis and Uptime Kuma. The application images are passed as `${WEB_IMAGE:?}` and `${API_IMAGE:?}` and the stack refuses to start without them, so a tag cannot silently become a different build |
+| Minimal base | `node:20-alpine` and `nginx:alpine`. The API runtime stage installs one package (`tini`) and nothing else |
+| Production dependency resolution | `npm ci --omit=dev` in the runtime stage, so the shipped tree is the reviewed lockfile and not a fresh resolution of semver ranges |
+| No execution of user content | The application never evaluates uploaded content. Documents are stored, never opened in-process, and SVG is served as `attachment` (§3) specifically to remove the stored-XSS path |
+| No inbound code path | The only thing the internet can hand the API is request data. There is no deserialisation of remote objects, no template evaluation, and no `eval` of request content |
+| Least privilege at the data layer | PostgreSQL row-level security with a non-superuser application role (§4) means a foothold in the application tier does not automatically become access to another tenant's records |
+| Continuous review | Dependabot and the CI gate (§5) mean the dependency set that carries the interpreter's instruction set is reviewed weekly |
+
+### 6.2 Limits of the compensating controls
+
+Stated plainly so this section is not read as more than it is:
+
+- **No detection.** None of the above will identify malware that is already
+  running. That is what an antivirus product is for, and on the server leg it
+  is currently unanswered.
+- **Node is an interpreter.** It executes code by design. The mitigation is that
+  untrusted input is never evaluated as code and that the third-party code it
+  does execute is lockfile-pinned and dependency-reviewed; it is not that the
+  interpreter is inert.
+- **Two known weaknesses in the chain.** `apps/web/Dockerfile` runs
+  `npm install` rather than `npm ci`, and the API runtime stage runs
+  `npm install pino-pretty` after `npm ci --omit=dev`. Both resolve fresh from
+  the registry instead of the reviewed lockfile. Tracked in §5 and to be closed.
+- **The host itself is unmeasured.** Container hardening constrains what runs
+  inside a container. It says nothing about the host kernel, its packages, or a
+  process started outside Compose.
+
+## 7. Email authentication and anti-spoofing
+
+Meticle Care sends care records, password resets and account-recovery mail from
+`@meticlecare.com`. Anyone able to send mail claiming that domain can phish a
+carer into handing over credentials or a resident's details, and there is no
+technical control that stops them unless the receiving server is told to check.
+This section is the record of those checks. The work list to close them out is
+`docs/EMAIL_SECURITY_RUNBOOK.md`.
+
+**Verified against public DNS on 26 September 2026** (authoritative nameservers
+`ziggy.ns.cloudflare.com`; transport is MXRocket, `MX 10 safari.mxrouting.net`):
+
+| Record | Value found | Verdict |
+| --- | --- | --- |
+| SPF | `v=spf1 include:mxroute.com -all` | Correct. Authorises the sending provider and nobody else; `-all` is a hard fail, not a soft fail |
+| DMARC | `v=DMARC1; p=none; rua=mailto:dmarc-reports@meticlecare.com` | **Monitoring only.** Reports are collected and nothing is enforced |
+| DKIM | `x._domainkey.meticlecare.com` — `v=DKIM1;k=rsa`, 2048-bit RSA public key | Present and resolving. Selector is `x` |
+| MTA-STS / TLS-RPT | Not checked | Unknown |
+| BIMI | Not checked | Unknown |
+
+**A published DKIM record is not a signed message.** The record is the public
+half; the signature is applied by the sending service at the moment it hands
+the message to the receiving server. The record can be perfect, the key can be
+in the panel, and outbound mail can still go out unsigned — if signing is not
+enabled for the sending account, or if mail leaves by a different route. Only
+`Authentication-Results` on a received message proves the signature is applied.
+That check is still outstanding and is the last thing standing between this
+domain and `p=quarantine`.
+
+### 7.1 Why `p=none` is the wrong resting state
+
+With `p=none` the policy is advisory. A receiving server that honours DMARC
+collects a report and delivers the message anyway, because the policy tells it
+to take no action. An attacker can therefore send as `@meticlecare.com` today
+and the message lands in the inbox, marked "not authenticated" at best.
+
+Moving to `p=quarantine` with `pct=100` is the correct next step, and it is
+strictly better than `p=reject` for a first enforcement step because a
+misconfigured legitimate sender lands in spam, where someone will notice and
+report it, rather than being silently discarded.
+
+### 7.2 DKIM is the prerequisite, not the follow-up
+
+**Do not move to `p=quarantine` until a received message is confirmed to carry
+`dkim=pass`.** The public key is published (§7, verified 26 September 2026),
+which is the necessary half. The half still unproven is that MXRocket actually
+signs with it. SPF alone is not sufficient, for two reasons:
+
+1. **Alignment.** DMARC passes when SPF *or* DKIM passes *and* is aligned with
+   the visible `From:` domain. A forwarding service or mailing list that sends
+   on the organisation's behalf passes SPF for *its own* domain, which does not
+   align with `meticlecare.com`. DKIM survives forwarding; SPF does not. Any
+   mail that passes through a forwarder — an NHS trust mail relay, a shared
+   inbox, a support tool — will fail SPF alignment and, under `p=quarantine`,
+   will start landing in spam for real staff.
+2. **Gmail and Yahoo.** Since February 2024 both require bulk senders to publish
+   a DMARC record of at least `p=quarantine` *and* have both SPF and DKIM
+   aligned, or they bulk-spam the sender. Publishing `p=quarantine` without DKIM
+   meets the letter of that rule and fails its purpose.
+
+The DKIM record resolves at selector `x`, so the alignment property is
+available. What is unproven is that it is used. Sending a message and reading
+`Authentication-Results` (§7.3) settles it in one step.
+
+### 7.3 Confirming DKIM from a real message
+
+This is the only reliable test, and it takes one email:
+
+1. Send a message from the application to an external mailbox (mail-tester.com
+   gives a scored breakdown and shows every header).
+2. Read the `Authentication-Results` header on receipt.
+3. `dkim=pass` with `d=meticlecare.com` is the answer we need. `dkim=none`,
+   `dkim=fail` or no DKIM line at all means it is not configured.
+4. The same header must also show `spf=pass` and `dmarc=pass`.
+
+The selector and public key to publish are shown in the MXRocket panel under
+DKIM for the domain.
+
+### 7.4 Outstanding
+
+| Required | Why | Status |
+| --- | --- | --- |
+| DKIM public key published | Prerequisite for any enforcement policy | **Done — `x._domainkey`, verified 26 Sep 2026** |
+| DKIM signing confirmed on real outbound mail | A published key that is never used protects nothing | **Blocked — one message to mail-tester.com** |
+| Staff replies signed for the organisational domain | See §7.6 — a reply from a personal mailbox fails DMARC and is indistinguishable from a spoof | Not started |
+| DMARC moved to `p=quarantine; pct=100` | Makes receivers act on failures | **Change made 26 Sep 2026; still resolving as `p=none`** |
+| Then `p=reject` after a clean reporting period | Refuses spoofed mail outright | Not started; requires a quarantine period first |
+| `dmarc-reports@meticlecare.com` mailbox exists | Reports are sent by the receiving server; without the mailbox they are discarded or bounce | **Owner to confirm** |
+| `v=spf1 -all` at `dmarc-reports.meticlecare.com` | Stops the report mailbox itself being spoofed, and stops report spam being treated as spam | Not set |
+| `ruf=` pointing at a human-readable aggregate service | `rua` delivers compressed XML attachments that nobody reads unaided | Not set |
+| MTA-STS and TLS-RPT | Stops an active attacker downgrading the session to plaintext in transit | Not set |
+| Weekly review of DMARC reporting | A policy nobody reads is `p=none` with extra steps | Not started |
+| Aligned envelope sender (`MAIL FROM`) | DMARC SPF alignment fails if the envelope sender is not `@meticlecare.com` | **Verify against the MXRocket bounce domain** |
+| A spoof test from a domain we do not own | Proves the policy is actually enforced rather than merely published | Not run |
+
+**Note on the change made on 26 September 2026.** The DMARC record was edited
+from `p=none` to `p=quarantine; pct=100` with the report address unchanged. At
+the time of writing the public record still resolves to `p=none`, which is
+expected within the 300-second TTL and the resolver caches, but it must be
+re-checked before it is treated as in force. More importantly, §7.2 applies:
+this change should not stand until DKIM is confirmed.
+
+### 7.5 Where the reports go, and how they are read
+
+Reports are delivered to `dmarc-reports@meticlecare.com` as gzipped XML
+attachments, one per receiving organisation per day, and are unreadable without
+a parser. They are not notifications; they do not arrive one per spoofed
+message, and an empty inbox means "nobody reported anything", which is not the
+same as "nothing was spoofed".
+
+Monitoring is done by a reporting service that parses the XML and presents
+sources, counts and alignment failures: Cloudflare Email Security (already on
+the same account as the DNS), Valimail, or dmarcian. The service address goes in
+a `ruf=` tag alongside `rua=`. The raw `rua` mailbox is then retained as the
+assessor's evidence that reporting is switched on and pointed somewhere real.
+
+**Review cadence.** Weekly during the quarantine period: any source reported
+against `meticlecare.com` that is not MXRocket is an active spoofing attempt
+and is treated as a security incident in its own right. After a clean quarter,
+move to `p=reject`.
+
+### 7.6 The gap DMARC exposes: staff mail sent from other providers
+
+Enforcing DMARC does not only stop attackers. It also fails mail sent *by the
+organisation* from anywhere other than the authorised relay — and the most
+likely place is a member of staff replying from a personal phone or a personal
+Outlook account configured to send as `@meticlecare.com`.
+
+That mail carries `From: security@meticlecare.com` and is signed by Microsoft
+(`d=outlook.com`) or not signed at all. DMARC sees an organisational domain that
+authorises neither, and under `p=quarantine` a colleague's legitimate reply
+lands in spam. Worse, from the receiving side it is **indistinguishable from an
+attacker's message**: the same alignment failure, from the same visible address.
+The difference is only in the reporting, and only once reporting is being read.
+
+This is the practical reason `p=none` had to give way to something enforced —
+but it has to be dealt with, not merely published:
+
+| Required | Why | Status |
+| --- | --- | --- |
+| Staff send from the `@meticlecare.com` mailbox, not a personal device | Keeps signing inside the authorised provider | **Policy to issue** |
+| Documented DKIM CNAME for the office provider (Microsoft 365, Google Workspace) | Lets that provider sign for the organisational domain | Not set — depends on the office setup |
+| Weekly report review for legitimate senders being failed | Distinguishes misconfiguration from attack | Not started |
+| Reply guidance in the security-awareness material | Staff cannot comply with a rule they have not been told | Not started |
+
+**Decision needed from the owner:** whether the office runs on Microsoft 365,
+Google Workspace, or neither. If it does, its DKIM CNAME goes in beside the
+MXRocket key and both sign. If staff genuinely have no organisational mailbox,
+then `p=quarantine` will quarantine their replies and the policy has to say
+that is accepted, with the workaround being that they send from a personal
+address and the recipient is told to expect it.
+
+## 8. Backups
 
 **As implemented.** A `backup` container runs `pg_dump` daily at 02:00 via
 crond. The script writes to a temporary file and renames on success, so a
@@ -200,21 +394,21 @@ one full restore verified per quarter, recorded here.
 **Last verified restore:** _never_
 **Next verification:** _not scheduled_
 
-## 8. The three principles
+## 9. The three principles
 
 **Understanding the business.** This document, the asset inventory below, and
 `docs/STORE_LAUNCH_CHECKLIST.md`. The organisation holds special category data
 — health information about identifiable people — so the consequence of failure
 is assessed accordingly.
 
-**Securing the business.** Backups (§7), the deploy pipeline, and the release
+**Securing the business.** Backups (§8), the deploy pipeline, and the release
 gate that refuses to deploy a commit which has not passed CI.
 
-**Staying secure.** Dependency review (§5), Dependabot, and annual review of this
-policy. Incident response and security awareness training are organisational and
-are owned outside the engineering team.
+**Staying secure.** Dependency review (§5), Dependabot, email authentication
+(§7), and annual review of this policy. Incident response and security awareness
+training are organisational and are owned outside the engineering team.
 
-## 9. Asset inventory
+## 10. Asset inventory
 
 | Asset | Type | Location | Data | Owner |
 | --- | --- | --- | --- | --- |
@@ -225,6 +419,9 @@ are owned outside the engineering team.
 | Backups | Volume | Cloud VPS | Special category — health data | Engineering |
 | Cloudflare | SaaS | Edge | Request metadata, TLS termination | Engineering |
 | Object storage | SaaS | Provider | Documents | Engineering |
+| Outbound email | SaaS (MXRocket) | SMTP relay, `safari.mxrouting.net` | Recipient addresses, care-record content in documents | Engineering |
+| Inbound email domain | DNS + SaaS | `meticlecare.com`, Cloudflare DNS | Reputation; spoofing exposure | Engineering |
+| DMARC report store | SaaS | `dmarc-reports@meticlecare.com` | Metadata about senders claiming our domain | Engineering |
 
 The hosting provider holds no ISO 27001 certification that could be cited, which
 is why no such claim is made anywhere in public copy. Provider certification
