@@ -33,6 +33,54 @@ jest.mock('@expo/vector-icons', () => {
   )
 })
 
+// Reanimated drives the launch splash waves, and its worklet runtime has no jest
+// equivalent. The library's own `react-native-reanimated/mock` is no longer usable
+// here: on v4 it loads the real worklets initialisers, which reach for a native
+// module that does not exist under jest and throw before any test runs. So stand
+// in a mock for exactly the surface this app uses — Animated.View, the shared
+// value and animation helpers, and Easing.
+//
+// The animation itself is not asserted, deliberately: these tests cover the
+// splash's composition and visibility, not its frames. Anything that needs to
+// verify motion belongs in a real-device or snapshot test, not here.
+jest.mock('react-native-reanimated', () => {
+  const RN = require('react-native')
+
+  // Easing is called as Easing.inOut(Easing.ease), so the inner function is the
+  // value the outer one receives and must hand straight back.
+  const identity = <T,>(fn: T): T => fn
+
+  return {
+    __esModule: true,
+    default: {
+      View: RN.View,
+      Text: RN.Text,
+      Image: RN.Image,
+      ScrollView: RN.ScrollView,
+      createAnimatedComponent: (component: unknown) => component,
+    },
+    Easing: {
+      ease: identity,
+      linear: identity,
+      inOut: identity,
+      out: identity,
+      in: identity,
+      bezier: () => identity,
+    },
+    useSharedValue: (initial: unknown) => ({ value: initial }),
+    useAnimatedStyle: <T,>(factory: () => T) => factory(),
+    useDerivedValue: <T,>(factory: () => T) => ({ value: factory() }),
+    useAnimatedRef: () => null,
+    withTiming: (value: unknown) => value,
+    withSpring: (value: unknown) => value,
+    withRepeat: (value: unknown) => value,
+    withDelay: (_delay: number, value: unknown) => value,
+    withSequence: (...values: unknown[]) => values[values.length - 1],
+    interpolate: (value: number) => value,
+    runOnJS: (fn: unknown) => fn,
+  }
+})
+
 // Haptics are cosmetic: the app-level behaviour is tested through the app's own
 // haptics service, and the native module simply has no implementation in jest.
 jest.mock('expo-haptics', () => ({
