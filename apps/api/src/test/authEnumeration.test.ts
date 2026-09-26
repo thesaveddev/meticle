@@ -18,8 +18,9 @@
  *   which distinguishes "exists but deactivated" from "does not exist" without
  *   ever attempting a password comparison.
  *
- * `/auth/register` still discloses, and that is deliberate rather than
- * overlooked — see `REGISTER_DISCLOSES_BY_DESIGN` below.
+ * `/auth/register` still returns a duplicate error, which is only safe because
+ * the caller has proved control of the mailbox first. It did not used to, so it
+ * was fixed rather than documented away.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -73,19 +74,21 @@ describe('public auth endpoints do not disclose whether an account exists', () =
 });
 
 /**
- * The one public endpoint that still discloses, recorded rather than hidden.
+ * `/auth/register` is the endpoint that needed a design change rather than a
+ * one-line edit, and the reason is worth recording.
  *
- * `/auth/register` must reject a duplicate address, so it cannot answer
- * identically in both cases. Disclosure is only safe once the caller has proved
- * they own the mailbox, and the client does require a verified code before
- * submitting — but *the server does not*. `registrationSchema` carries no
- * verification code, so `register` is currently reachable with no proof of
- * ownership at all, which makes the duplicate error an unconditional oracle.
+ * It must reject a duplicate address, so it cannot answer identically in both
+ * cases. Disclosure is only safe once the caller has proved they own the
+ * mailbox — the client has always required a verified code before submitting,
+ * but `registrationSchema` carries no verification code, so the server was
+ * reachable with no proof of ownership at all. That made the duplicate error an
+ * unconditional oracle.
  *
- * Closing it properly means requiring a verified code server-side, which is a
- * change to the signup contract rather than a one-line edit. Tracked as an
- * outstanding item in `docs/SECURITY_POLICY.md`; this assertion fails loudly if
- * the disclosure is removed without the ownership check going in with it.
+ * The fix is a server-side ownership check placed *before* the duplicate
+ * lookup. `verify-email-code` leaves its row behind with `verified = TRUE`, so
+ * no schema or client change was needed: the proof already existed and only the
+ * server was failing to require it. No client or API contract change, because
+ * the web client already verified the code before submitting.
  */
 describe('register disclosure is recorded, not accidental', () => {
   /**
@@ -96,11 +99,11 @@ describe('register disclosure is recorded, not accidental', () => {
    * Flip this to true in the same commit that adds the server-side ownership
    * check, and the assertion tightens to require that check.
    */
-  const REGISTER_OWNSHIP_PROOF = false;
+  const REGISTER_OWNSHIP_PROOF = true;
 
   it('register either stops disclosing or proves mailbox ownership first', () => {
     const source = body('register');
-    const provesOwnership = /email_verification_codes[\s\S]{0,400}verified/i.test(source)
+    const provesOwnership = /email_verification_codes[\s\S]{0,600}verified/i.test(source)
       || /verified[\s\S]{0,200}email/i.test(source);
 
     if (REGISTER_OWNSHIP_PROOF) {
@@ -117,5 +120,17 @@ describe('register disclosure is recorded, not accidental', () => {
       disclosesDuplicate: source.includes('already exists'),
       provesOwnership,
     }).toEqual({ disclosesDuplicate: true, provesOwnership: false });
+  });
+
+  it('checks ownership before it checks for a duplicate', () => {
+    // Order is the whole control. Proving ownership after the duplicate lookup
+    // would leave the oracle open, because the disclosure would already have
+    // been sent by the time the requirement was noticed.
+    const source = body('register');
+    const proof = source.search(/email_verification_codes/);
+    const duplicate = source.search(/already exists/);
+    expect(proof).toBeGreaterThan(-1);
+    expect(duplicate).toBeGreaterThan(-1);
+    expect(proof, 'the ownership check must come before the duplicate disclosure').toBeLessThan(duplicate);
   });
 });

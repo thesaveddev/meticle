@@ -141,6 +141,36 @@ export class AuthController {
 
     if (await isDisposableEmailByMx(email)) throw new AppError(400, 'Temporary email addresses are not allowed');
 
+    // Proof of mailbox ownership, required before anything is disclosed about
+    // this address.
+    //
+    // This has to come *before* the duplicate check below, not after. The
+    // duplicate error is only safe to return to someone who controls the
+    // mailbox; without this gate it is an unauthenticated staff-directory
+    // oracle, because `registrationSchema` carries no verification code and the
+    // endpoint was reachable with no proof of ownership at all. The client has
+    // always required a verified code before submitting — the server did not.
+    //
+    // `verify-email-code` leaves its row behind with `verified = TRUE`, so the
+    // proof already exists and no client or schema change is needed. The window
+    // is far wider than the code's own 10-minute expiry on purpose: the code
+    // governs entering the code, while this governs the fact that ownership was
+    // established, and a user who verified and then typed a password should not
+    // be told to start again.
+    const proof = await migrateQuery(
+      `SELECT 1 FROM email_verification_codes
+       WHERE email = $1 AND verified = TRUE
+         AND created_at > NOW() - INTERVAL '1 hour'
+       LIMIT 1`,
+      [email],
+    );
+    if (proof.rows.length === 0) {
+      throw new AppError(400, 'Verify your email address before creating an account. Request a verification code and enter it first.');
+    }
+
+    // Reachable only by a caller who has just proved they own this address, so
+    // naming the duplicate no longer tells an attacker anything useful: they
+    // would have had to receive a code at the mailbox in question.
     const existingUser = await UserRepository.findByEmail(email);
     if (existingUser) {
       throw new AppError(400, 'An account with this email already exists.');

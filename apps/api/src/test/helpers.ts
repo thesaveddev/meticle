@@ -1,4 +1,5 @@
 import express, { Express } from 'express'
+import request from 'supertest'
 import cors from 'cors'
 import pinoHttp from 'pino-http'
 import crypto from 'crypto'
@@ -138,4 +139,36 @@ export function createTestApp(): Express {
 
 export function getTestDbUrl(): string {
   return process.env.DATABASE_URL || 'postgres://meticle_app:meticle_app_dev@localhost:5432/meticle'
+}
+
+/**
+ * Complete the real email-verification flow for an address, leaving the
+ * `verified = TRUE` row that `POST /auth/register` now requires as proof of
+ * mailbox ownership.
+ *
+ * Goes through both public endpoints rather than writing the row directly, so a
+ * test that registers a user exercises the same path a person does. If
+ * verification itself stops working, every registration test fails loudly
+ * instead of quietly passing on a hand-inserted row.
+ */
+export async function verifyEmailForRegistration(app: Express, email: string): Promise<void> {
+  const sent = await request(app).post('/auth/send-email-code').send({ email })
+  if (sent.status !== 200) {
+    throw new Error(`send-email-code returned ${sent.status} for ${email}: ${JSON.stringify(sent.body)}`)
+  }
+
+  // The code is not returned by the API, so read it back the way a person reads
+  // it from their inbox.
+  const { query } = await import('../shared/database')
+  const code = await query(
+    `SELECT code FROM email_verification_codes WHERE email = $1 ORDER BY created_at DESC LIMIT 1`,
+    [email],
+  )
+  const value = code.rows[0]?.code
+  if (!value) throw new Error(`no verification code was stored for ${email}`)
+
+  const verified = await request(app).post('/auth/verify-email-code').send({ email, code: value })
+  if (verified.status !== 200) {
+    throw new Error(`verify-email-code returned ${verified.status} for ${email}: ${JSON.stringify(verified.body)}`)
+  }
 }

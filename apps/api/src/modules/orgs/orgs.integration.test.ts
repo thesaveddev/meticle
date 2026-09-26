@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest'
 import request from 'supertest'
 import { Express } from 'express'
-import { createTestApp } from '../../test/helpers'
+import { createTestApp, verifyEmailForRegistration } from '../../test/helpers'
 import { createOrg, createUser, generateToken } from '../../test/factories'
 
 vi.mock('../../shared/middleware/rateLimit.middleware', () => ({
@@ -16,6 +16,7 @@ beforeAll(async () => {
 
 async function registerOrgAdmin() {
   const email = `orgadmin-${Date.now()}-${Math.floor(Math.random() * 1000)}@test.com`
+  await verifyEmailForRegistration(app, email)
   const res = await request(app).post('/auth/register').send({ email, password: 'TestPass123!', role: 'ORG_ADMIN', name: `Org Admin ${Date.now()}` })
   expect(res.status).toBe(201)
   return { token: res.body.accessToken, orgId: res.body.user.organization_id }
