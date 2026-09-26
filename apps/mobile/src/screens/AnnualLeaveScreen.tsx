@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAppColors, spacing, radii, FONT, elevation } from '../theme'
 import type { AuthSession } from '../types'
 import { cancelLeaveRequest, createLeaveRequest, getLeaveBalances, getLeaveTypes, getMyLeaveRequests, getLeaveRequests, reviewLeaveRequest } from '../services/api'
@@ -99,7 +100,7 @@ export function AnnualLeaveScreen({ session, onBack }: { session: AuthSession; o
   if (loading) return <View style={[styles.center, { backgroundColor: c.bg }]}><ActivityIndicator color={c.primary} /></View>
 
   return (
-    <View style={[styles.screen, { backgroundColor: c.bg }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: c.surface, borderBottomColor: c.border }]}>
         <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={22} color={c.ink} /></Pressable>
         <Text style={[styles.title, { color: c.ink }]}>Annual leave</Text><View style={{ width: 40 }} />
@@ -186,7 +187,7 @@ export function AnnualLeaveScreen({ session, onBack }: { session: AuthSession; o
           </>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   )
 }
 
