@@ -24,3 +24,11 @@ packages/shared/src/*.js.map
 brag-output-*/
 outreach/
 Store assets/
+
+# Generated store output. `Store assets/` above is a different directory and
+# never matched the path the capture script and runbook actually use, so the
+# screenshots and any built APK were not being ignored and could be committed by
+# accident. Both spellings are listed deliberately.
+store-assets/
+*.apk
+*.aab
