@@ -33,11 +33,20 @@ describe('WeeklyCallPlanner', () => {
   })
 
   it('shows the assigned staff name returned by the visits endpoint', async () => {
+    // Date-relative on purpose. This hardcoded 2026-09-21, which sat inside the
+    // displayed week for a few days and then silently stopped being inside it —
+    // the planner renders the *current* week, so the test began failing the
+    // moment the week rolled over. It failed on 28 September with nothing in the
+    // diff to explain it. A test whose pass/fail depends on the calendar is a
+    // test that fails CI on the worst possible morning.
+    const monday = new Date()
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
+    const day = new Date(monday.getTime() + 24 * 3600 * 1000).toISOString().slice(0, 10)
     mockedApi.get.mockImplementation((url: string) => {
       if (url === '/homecare/visits') return Promise.resolve({ data: [{
         id: 'visit-1', label: 'Morning call', person_name: 'Alex Jones', assigned_staff_id: 'staff-1',
         assigned_staff_name: 'Jordan Smith', carer_name: null, status: 'scheduled',
-        scheduled_start: '2026-09-21T09:00:00.000Z', scheduled_end: '2026-09-21T09:30:00.000Z',
+        scheduled_start: `${day}T09:00:00.000Z`, scheduled_end: `${day}T09:30:00.000Z`,
       }] })
       return Promise.resolve({ data: [] })
     })

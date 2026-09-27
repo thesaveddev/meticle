@@ -158,7 +158,7 @@ export class AIController {
       leave: leave.rows.map((r: any) => ({ source_type: 'leave_request', source_id: r.id, ...r })),
       training: training.rows.map((r: any) => ({ source_type: 'training_record', source_id: r.id, ...r })),
     });
-    const { system, user } = renderPrompt('manager_briefing', { from, to, records });
+    const { system, user } = renderPrompt('manager_briefing', { from, to, records }, orgId);
     const start = Date.now();
     try {
       const result = await aiCall(orgId, config, [{ role: 'system', content: system }, { role: 'user', content: user }], { model: config.model, temperature: 0.2, maxTokens: 2500 });
@@ -191,7 +191,7 @@ export class AIController {
       overall_rate: String(overallRate || '0'),
       domain_scores: domainScores || 'No data',
       key_issues: keyIssues || 'No issues provided',
-    });
+    }, orgId);
 
     const start = Date.now();
     try {
@@ -263,7 +263,7 @@ export class AIController {
       date: date || new Date().toISOString().split('T')[0],
       location: location || 'Unknown',
       involved: involved || 'None specified',
-    });
+    }, orgId);
 
     const start = Date.now();
     try {
@@ -338,7 +338,7 @@ export class AIController {
       open_shifts: openShifts || 'No data',
       staff_compliance: staffCompliance || 'No data',
       overtime_hours: overtimeHours || 'No data',
-    });
+    }, orgId);
 
     const start = Date.now();
     try {
@@ -416,7 +416,7 @@ export class AIController {
       mandatory_start_times: mandatoryStartTimes || '07:00, 10:00, 14:00, 21:00',
       min_end_time: minEndTime || '22:00',
       all_same_end: allSameEnd || 'false',
-    });
+    }, orgId);
 
     const start = Date.now();
     try {
@@ -549,7 +549,7 @@ export class AIController {
       staff_input: staffInput,
       shift: shift || 'day',
       note_date: noteDate || new Date().toISOString().split('T')[0],
-    });
+    }, orgId);
 
     const start = Date.now();
     try {
@@ -713,7 +713,7 @@ export class AIController {
     }
 
     const provider = getProvider(config);
-    const { system, user: userTemplate } = renderPrompt('daily_note_generation', {});
+    const { system, user: userTemplate } = renderPrompt('daily_note_generation', {}, orgId);
     const staffInput = note.content;
 
     const start = Date.now();
@@ -864,7 +864,7 @@ export class AIController {
       meal_type: mealType || 'lunch',
       day_of_week: dayOfWeek || new Date().toLocaleDateString('en-US', { weekday: 'long' }),
       special_requirements: specialRequirements || 'None',
-    });
+    }, orgId);
 
     const start = Date.now();
     try {
@@ -968,7 +968,7 @@ export class AIController {
       eating_abilities: person.eating_abilities || 'Independent',
       fluid_target_ml: String(person.fluid_daily_target_ml || 2000),
       additional_notes: person.additional_notes || 'None',
-    });
+    }, orgId);
 
     const start = Date.now();
     try {
@@ -1044,7 +1044,7 @@ export class AIController {
       allergens: allergens || 'None noted',
       texture_modification: textureModification || 'None',
       weekly_plan_data: JSON.stringify(weeklyPlan, null, 2),
-    });
+    }, orgId);
 
     const start = Date.now();
     try {
@@ -1128,7 +1128,7 @@ export class AIController {
         FROM nutrition_records WHERE person_id = $1 AND date >= CURRENT_DATE - INTERVAL '7 days' ORDER BY date DESC`, [note.person_id]),
     ]);
 
-    const { system, user: userTemplate } = renderPrompt('visit_note_care_plan_gap', {});
+    const { system, user: userTemplate } = renderPrompt('visit_note_care_plan_gap', {}, orgId);
     const userPrompt = userTemplate
       .replace('{{care_plan}}', carePlans.rows.map((cp: any) => `${cp.title}: ${cp.goals || 'No goals recorded'}`).join('\n') || 'No active care plans')
       .replace('{{visit_note}}', note.content)
@@ -1186,7 +1186,7 @@ export class AIController {
       return res.status(400).json({ error: { message: 'AI not configured' } });
     }
 
-    const { system, user: userTemplate } = renderPrompt('competency_assessment_assistant', {});
+    const { system, user: userTemplate } = renderPrompt('competency_assessment_assistant', {}, orgId);
     const userPrompt = userTemplate
       .replace('{{cqc_statement}}', cqcStatement)
       .replace('{{role}}', role)
@@ -1349,7 +1349,7 @@ export class AIController {
       if (['domiciliary_operations_copilot', 'operational_anomaly_detection'].includes(capability)) {
         deterministicItems.push(...records.filter((r: any) => r.status === 'missed' || r.status === 'overdue' || r.source_type === 'incident_action' || r.source_type === 'medication_administration').slice(0, 50).map((r: any) => withSourceUrl({ title: 'Operational pattern may need attention', detail: r.source_type === 'medication_administration' ? `${r.medication_name || 'Medication'} administration is ${r.status}.` : (r.action || `Source record is marked ${r.status || 'noted'}.`), priority: ['missed', 'overdue', 'refused'].includes(r.status) ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
       }
-      const { system, user } = renderPrompt('unified_intelligence', { capability, from, to, question, audience: req.body.audience || 'internal manager', tone: req.body.tone || 'professional and cautious', records: JSON.stringify(records) });
+      const { system, user } = renderPrompt('unified_intelligence', { capability, from, to, question, audience: req.body.audience || 'internal manager', tone: req.body.tone || 'professional and cautious', records: JSON.stringify(records) }, orgId);
       const start = Date.now();
       const result = await aiCall(orgId, config, [{ role: 'system', content: system }, { role: 'user', content: user }], { model: config.model, temperature: 0.2, maxTokens: 2200 });
       const validated = (await import('./ai.schemas')).validateAIResponse((await import('./ai.schemas')).IntelligenceResponseSchema, result.content, 'Intelligence response');

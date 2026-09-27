@@ -1,3 +1,5 @@
+import { redactVariables } from './ai.redaction';
+
 export const PROMPTS: Record<string, { system: string; userTemplate: string }> = {
   unified_intelligence: {
     system: `You are a safety-first intelligence assistant for a UK care provider. Use only the authorised source records supplied. Never invent care events, diagnoses, medication administration, incidents, staff activity or compliance outcomes. Treat every output as a signal for human review, not a decision. Every item MUST cite one source_type and source_id from the supplied records. Use cautious language such as may, could, and the records show. Return JSON exactly: { "headline": string, "summary": string, "items": [{ "title": string, "detail": string, "priority": "high" | "medium" | "low", "source_type": string, "source_id": string }], "suggested_follow_up": string[], "limitations": string[] }`,
@@ -618,12 +620,32 @@ Generate a complete, safe, and varied 7-day meal plan that meets all dietary req
   },
 };
 
-export function renderPrompt(promptKey: string, variables: Record<string, string>): { system: string; user: string } {
+/**
+ * Renders a prompt, de-identifying the variables on the way through.
+ *
+ * `orgId` is required rather than optional on purpose. Redaction is the only
+ * thing standing between a service user's name and a third-party LLM, and an
+ * optional parameter is a control that can be skipped by forgetting an argument
+ * in one of thirteen call sites — with a green build and no failure anywhere.
+ * Making it required moves that from a review question to a type error.
+ *
+ * See ./ai.redaction.ts for what this does and, just as importantly, what it
+ * does not: the result is pseudonymised, not anonymous, and remains personal
+ * data under UK GDPR.
+ */
+export function renderPrompt(
+  promptKey: string,
+  variables: Record<string, string>,
+  orgId: string,
+  extraNameKeys: string[] = [],
+): { system: string; user: string } {
   const prompt = PROMPTS[promptKey];
   if (!prompt) throw new Error(`Unknown prompt key: ${promptKey}`);
 
+  const safeVariables = redactVariables(variables, orgId, extraNameKeys);
+
   let userContent = prompt.userTemplate;
-  for (const [key, value] of Object.entries(variables)) {
+  for (const [key, value] of Object.entries(safeVariables)) {
     userContent = userContent.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
   }
 

@@ -43,6 +43,14 @@ export default function PrivacyPolicyPage() {
         <p>Meticle Care processes special category data (health information, DBS checks) as a data processor on behalf of care providers. Our customers are the data controllers. We rely on UK GDPR Article 9(2)(h) — processing necessary for health or social care.</p>
       </Section>
 
+      <Section title="4a. Artificial Intelligence Features">
+        <p><strong>Off by default, and off for every customer unless they turn it on.</strong> Each organisation's AI configuration starts disabled, with no capability enabled. Nothing described below happens to any care provider who has not explicitly enabled it.</p>
+        <p><strong>When a care provider does enable AI</strong>, we send some of their records to a third-party model provider (OpenAI or Anthropic) to generate a briefing or draft. <strong>What is sent is pseudonymised, not raw.</strong> Before anything leaves our servers we replace people's names with a stable code, and remove email addresses, telephone numbers, postcodes, dates of birth and long reference numbers. "Margaret Whitfield" becomes "Client 4F2A" and stays "Client 4F2A" across the records in one request, so the output is still coherent.</p>
+        <p><strong>What this does not achieve, stated plainly:</strong> pseudonymised data is still personal data under the UK GDPR. The clinical substance of a record remains, and anyone who also has the care record can re-identify it. We do not describe this as anonymisation and it should not be read as making the data non-personal. The care provider remains the controller for this processing and is the party that has to satisfy themselves it is lawful for their service.</p>
+        <p><strong>Retention at the provider.</strong> We send <code>store: false</code> with every request, which opts out of the model provider's own abuse-monitoring retention of request and response payloads.</p>
+        <p><strong>Not sent at all:</strong> staff location or GPS coordinates, and any record containing them. The AI features do not read the check-in map.</p>
+      </Section>
+
       <Section title="5. Data Storage and Security">
         <ul><li>Hosted in the United Kingdom with a GDPR-compliant infrastructure provider, under a signed data processing agreement</li><li>Encrypted in transit (TLS 1.3) and at rest (AES-256)</li><li>Tenant isolation enforced in the database itself, so your data is never mixed with another organisation's</li><li>JWT authentication with multi-factor authentication</li><li>Every staff access to a record is logged and auditable</li></ul>
       </Section>

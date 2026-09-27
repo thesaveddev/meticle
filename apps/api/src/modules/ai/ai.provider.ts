@@ -29,6 +29,14 @@ export class OpenAIProvider implements AIProvider {
       model,
       messages: messages as any,
       temperature: options?.temperature ?? 0.3,
+      // Opt out of OpenAI's abuse-monitoring retention. Without this, the API
+      // defaults to storing request and response payloads for up to 30 days for
+      // their own safety review, which is a second copy of pseudonymous health
+      // data held by a US company for a purpose we never agreed with the care
+      // provider. It is set per request rather than at account level because
+      // account-level configuration is invisible from the repo, and a control
+      // nobody can see in the code is a control nobody can verify.
+      store: false,
     };
     if (usesMaxCompletionTokens(model)) {
       body.max_completion_tokens = maxTokens;

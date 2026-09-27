@@ -49,7 +49,12 @@ export const IncidentTriageConsumer: EventConsumer = {
       date: String(payload.incident_date || new Date().toISOString().split('T')[0]),
       location: String(payload.location || 'Unknown'),
       involved: String(payload.involved || 'None specified'),
-    });
+      // `involved` is a comma-separated list of people and no key pattern would
+      // recognise it as name-bearing. Declared explicitly so the substitution
+      // covers it; `description` is deliberately NOT declared, because treating
+      // free prose as a name would replace whole sentences and destroy the
+      // clinical meaning this call exists to read.
+    }, orgId, ['involved']);
 
     const start = Date.now();
     let completion: { content: string; promptTokens: number; completionTokens: number; totalTokens: number };

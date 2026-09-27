@@ -337,6 +337,22 @@ export const REQUIRED_DISCLAIMERS: {
     why: 'The domiciliary pages must carry the same qualification as the others, so a reader cannot meet a stronger promise on one page than we make on another.',
     requiredIn: ['src/pages/marketing/SolutionsPage.tsx'],
   },
+  {
+    label: 'AI data processing is disclosed',
+    // Not a forbidden claim but a required one. The privacy policy described
+    // what we collect and never mentioned that enabling AI sends records to a
+    // third-party model provider, which for a health-data processor is not a
+    // detail but the whole question a controller asks first.
+    phrase: /pseudonymis|not raw/i,
+    why: 'If AI features are enabled, care records go to a model provider. A controller signing up is entitled to know that, and to know the difference between pseudonymised and anonymised data. Removing this section would leave the policy describing a product that does less than it does.',
+    requiredIn: ['src/pages/legal/PrivacyPolicyPage.tsx'],
+  },
+  {
+    label: 'The "not anonymised" caveat survives',
+    phrase: /still personal data|does not achieve/i,
+    why: 'Pseudonymisation does not make data non-personal, and a policy that says only that data is "anonymised before sending" would be a false assurance to a health-data controller. The caveat is the part that has to stay.',
+    requiredIn: ['src/pages/legal/PrivacyPolicyPage.tsx'],
+  },
 ]
 
 /**
