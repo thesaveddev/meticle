@@ -4,7 +4,7 @@ import { TextField, Button, Box, Typography, Container, Stack, Link, Alert, Circ
 import { useForm } from 'react-hook-form'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { UserRole } from '@meticle/shared'
-import api from '../../services/api'
+import api, { withRateLimitRetry, rateLimitMessage } from '../../services/api'
 import { CheckCircle as CheckIcon, Security as SecurityIcon, Visibility, VisibilityOff, MarkEmailRead as VerifiedIcon } from '@mui/icons-material'
 
 const REGISTER_ILLUSTRATION = '/signup-page.jpg';
@@ -85,11 +85,19 @@ export default function RegisterPage() {
     setSendingCode(true)
     setError('')
     try {
-      await api.post('/auth/send-email-code', { email: email.trim() })
+      // Waits out a per-IP rate limit rather than failing. A care home is one
+      // office on one IP address, so a whole team pressing this button at once
+      // is the normal case during onboarding, not an edge case — and a few
+      // seconds' congestion should not look like a broken app to the person
+      // we are trying to onboard. Per-recipient limits still surface
+      // immediately, because no amount of waiting helps those.
+      await withRateLimitRetry(() => api.post('/auth/send-email-code', { email: email.trim() }))
       setCodeSent(true)
       setCodeCooldown(60)
     } catch (err: any) {
-      setError(apiErrorMsg(err, 'Failed to send verification code'))
+      setError(err?.response?.status === 429
+        ? rateLimitMessage(err, 'Too many verification codes requested. Please wait a few minutes and try again.')
+        : apiErrorMsg(err, 'Failed to send verification code'))
     } finally {
       setSendingCode(false)
     }
