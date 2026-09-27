@@ -35,10 +35,35 @@ Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
       This makes step 4 urgent rather than advisory — see there.
 
 - [ ] **2. Have the *application* send a test email to a real inbox you control.**
-      **PARTIALLY ANSWERED 26 Sep 2026 — the envelope half passed, the
-      authentication half is still open.**
+      **PARTIALLY ANSWERED — envelope passed 26 Sep, DKIM signing confirmed
+      27 Sep, but still over the mailbox path rather than the application's.**
 
-      A test to `opeyemi@meticlecare.com` produced:
+      A message sent by hand from `notifications@meticlecare.com` to a Gmail
+      account on 27 September 2026 returned, from Gmail's own verifier:
+
+      ```
+      Authentication-Results: mx.google.com;
+        dkim=pass header.i=@meticlecare.com header.s=x;
+        spf=pass ... smtp.mailfrom=notifications@meticlecare.com;
+        dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=meticlecare.com
+      DKIM-Signature: ... d=meticlecare.com; s=x;
+      Return-Path: <notifications@meticlecare.com>
+      ```
+
+      **DKIM signing is enabled** for the domain and uses the published
+      selector `x`, so step 3 can be struck. That is the useful half of this
+      result and it is not in doubt.
+
+      What it does **not** establish is that the *application* passes. The
+      header carries `X-Authenticated-Id: notifications@meticlecare.com` — the
+      message was submitted from a mailbox, by hand, over MXRocket's webmail
+      composer. The application authenticates with a different credential
+      (`SMTP_USER`, still a previous vendor's address), and DKIM signing is
+      applied per-domain by the sending MTA, which need not behave the same for
+      a different authenticated identity. This is precisely the case step 2
+      exists to catch, and the warning below applies.
+
+      A test to `opeyemi@meticlecare.com` also produced:
 
       ```
       Return-Path: <security@meticlecare.com>
@@ -110,9 +135,11 @@ Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
       your mailbox's path, which is already known to work. The point is the
       application's path, because that is the one an attacker impersonates.
 
-- [ ] **3. If step 2 shows no `dkim=pass` — enable DKIM signing in MXRocket.**
-      The public key is already published at selector `x`, so this is a panel
-      setting, not a DNS change. Re-run step 2 until it passes.
+- [x] **3. If step 2 shows no `dkim=pass` — enable DKIM signing in MXRocket.**
+      **NOT NEEDED 27 Sep 2026.** Gmail reported `dkim=pass` with
+      `header.s=x` for mail from this domain, matching the published key, so
+      signing is already enabled in the MXRocket panel. Recorded for the case
+      where a later message comes back `dkim=none` after a panel change.
 
 - [ ] **4. Until step 2 passes, keep DMARC at `p=none`.**
       **ACTION REQUIRED 26 Sep 2026 — this is now the wrong way round.**
