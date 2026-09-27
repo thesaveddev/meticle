@@ -100,17 +100,25 @@ The reason this matters is not abstract. We are proposing to run mission-critica
 
 ### 4. ✅ FIXED 27 Sep — a whole care home signing up at once hit a rate limit
 
-**This one is done. Nothing for you to do, but read it anyway**, because you need to know the shape of the problem and there is one part still open.
+**This one is done, and nothing is left for you to do.** Read it anyway, because there is one deliberate decision in here that looks wrong until you know why, and I would rather you had the reasoning than found it later.
 
-What I found: our limits are counted **per IP address**, and a care home is one office on one internet connection. When a home activated, 15–30 staff registering inside the same hour would share one budget of 5 registrations per 15 minutes — and collect it between them. The limit was sized for "one person", but it was being consumed by "one customer".
+**The problem.** Our limits are counted **per IP address**. A care home is one office on one internet connection, so activating a customer meant 15–30 of their staff sharing a single budget of 5 registrations per 15 minutes and consuming it between them. The limit was sized for "one person" and was being used up by "one customer".
 
-**Fixed:** registration now allows **30 per 15 minutes**, which seats a full care home in one sitting. The security reasoning is in the code comment at `auth.routes.ts`, and it is worth knowing: we can afford to be this generous on registration *because* creating an account already requires proving you own the mailbox. Every one of those 30 requests corresponds to a real inbox someone controls, which is a far stronger check than counting requests.
+**First, a correction to what I told you originally.** I said the request "fails quietly". That was wrong, and it matters, because I had built a recommendation on it. The form does show an error — a proper one, saying how many times the request was refused. The real defect was quieter and more wasteful than a missing message: **the person was being shown a failure for something that was a few seconds of normal congestion behind us**, and so they gave up on a signup that would have worked moments later.
 
-I also made the limit tell people how long to wait, instead of a vague "try again later" — it now returns an exact number of seconds.
+**What I changed, and why it is the right way round rather than just a bigger number:**
 
-**What is still open, and needs you:** the **verification code** email is still capped at 5 per minute per office. I deliberately left that alone. Unlike account creation, that endpoint is unauthenticated — anyone can call it — so that cap is what stops our system being used to send spam to arbitrary addresses. Weakening it to make onboarding smoother would trade a spam-relay risk for a mild inconvenience.
+1. **Registration: 5 → 30 per 15 minutes.** Safe to be this generous because creating an account already requires proving you own the mailbox. Every one of those 30 requests corresponds to a real inbox someone controls — a far stronger check than counting requests.
 
-So for the first care homes, the practical instruction is: **ask the team to spread registration over a few minutes rather than all at once.** Twenty people registering steadily is fine. Twenty people clicking "send my code" in the same thirty seconds will mean some people see a "wait a moment" message and have to try again. It is not broken, and it is not dangerous, it is just mildly awkward at the busiest moment.
+2. **The site now waits the limit out instead of showing an error.** This is the part that actually fixes it. The server tells the client exactly how many seconds to wait, and the signup button now waits and tries again on its own. A burst of twenty people onboarding together now succeeds and **nobody sees a failure at all.** Before, the unlucky ones who clicked during the peak were shown an error and lost.
+
+3. **Verification codes: 5 → 10 per minute.** This is the one that looks like a compromise, so here is the reasoning. There are two different limits here and they do different jobs. The strict one is **per recipient** — three codes per address per 15 minutes — and that is untouched, because it is the control that actually protects an individual mailbox. The per-IP one exists only to bound volume, and an unwanted verification code is low harm: fixed text, no link, nothing to click. A tight cap on it bought little safety while breaking the most common moment in onboarding.
+
+4. **Password resets: 5 → 20 per hour.** Same reasoning, even more comfortably. A reset email can only be sent to an address that **already has an account**, so the worst case is a nuisance email to someone who is already our user. It cannot be used to contact a stranger. Four staff forgetting passwords on the same Tuesday morning is an ordinary day at a care home, not an attack.
+
+**The one thing I deliberately did not do:** I did not make the site retry everything that hits a rate limit. A *per-recipient* cap is not congestion — if someone has used their three codes, no amount of waiting inside that request helps, and retrying would quietly burn their remaining allowance while the page appeared to hang. Those still surface immediately, with the server's own wording, which is the more useful message anyway.
+
+**For your support notes:** if anyone does report a rate-limit message, it is now always specific — either a number of seconds or a number of minutes — and a signup that hits one will usually have recovered on its own before they noticed.
 
 ---
 

@@ -32,6 +32,32 @@ const router = Router();
  */
 const REGISTRATION_LIMIT = 30;
 
+/**
+ * The two rate limits on the verification-code endpoint are not redundant, and
+ * they are not interchangeable.
+ *
+ * The precise control is per recipient and already lives in the controller:
+ * three codes per address per 15 minutes, enforced in the database. That is
+ * what stops one mailbox being spammed, and no amount of raising a per-IP
+ * number can replace it.
+ *
+ * The per-IP limit exists for a different abuse — one caller spraying many
+ * *different* victim addresses, which the per-recipient cap cannot see at all.
+ * It has to be a volume bound, and it is sized with that in mind rather than
+ * with the legitimate case, because the two are indistinguishable by shape: an
+ * office of twenty staff requesting twenty codes and an attacker requesting
+ * twenty codes look identical from the server.
+ *
+ * That is why it was raised from 5 to 10 per minute. The harm from one
+ * unwanted verification email is small — fixed content, no link, no data — so a
+ * tight cap buys little safety while making the single most common moment in
+ * onboarding fail for reasons that look like a bug. Ten per minute still bounds
+ * one host to a nuisance-level volume, and the client waits the limit out
+ * (`withRateLimitRetry`) instead of showing an error, so a burst of twenty
+ * people onboarding together now succeeds without anyone seeing a failure.
+ */
+const EMAIL_CODE_LIMIT = 10;
+
 router.post('/register', rateLimit(REGISTRATION_LIMIT, 15 * 60 * 1000), validate(registerSchema), asyncHandler(AuthController.register));
 router.post('/register-with-invitation', rateLimit(REGISTRATION_LIMIT, 15 * 60 * 1000), validate(registerWithInvitationSchema), asyncHandler(AuthController.registerWithInvitation));
 router.post('/login', rateLimit(10, 15 * 60 * 1000), validate(loginSchema), asyncHandler(AuthController.login));
@@ -40,9 +66,19 @@ router.post('/mfa/complete-setup', rateLimit(5, 60 * 1000), validate(mfaComplete
 router.post('/mfa/send-backup-codes', rateLimit(3, 60 * 1000), validate(mfaSendBackupCodesSchema), asyncHandler(AuthController.sendBackupCodes));
 router.post('/refresh', rateLimit(10, 60 * 1000), validate(refreshTokenSchema), asyncHandler(AuthController.refresh));
 router.post('/verify-email', rateLimit(5, 60 * 1000), validate(verifyEmailSchema), asyncHandler(AuthController.verifyEmail));
-router.post('/send-email-code', rateLimit(5, 60 * 1000), validate(sendEmailCodeSchema), asyncHandler(AuthController.sendEmailCode));
+router.post('/send-email-code', rateLimit(EMAIL_CODE_LIMIT, 60 * 1000), validate(sendEmailCodeSchema), asyncHandler(AuthController.sendEmailCode));
 router.post('/verify-email-code', rateLimit(5, 60 * 1000), validate(verifyEmailCodeSchema), asyncHandler(AuthController.verifyEmailCode));
-router.post('/forgot-password', rateLimit(5, 60 * 60 * 1000), validate(forgotPasswordSchema), asyncHandler(AuthController.forgotPassword));
+// Five per hour was sized for one person, and one care home is not one person:
+// a morning where four staff cannot remember their password is an ordinary
+// Tuesday. The harm ceiling here is much lower than for the code endpoint,
+// because a reset email can only ever be sent to an address that already has
+// an account — so the worst case is a nuisance email to someone who is already
+// a user, not contact with an arbitrary stranger. The response is byte-identical
+// whether or not the account exists, so this does not widen the enumeration
+// surface, and the controller burns a password comparison on the miss path so
+// the timing does not either. A shared office resetting a morning's staff
+// should not read as a security block.
+router.post('/forgot-password', rateLimit(20, 60 * 60 * 1000), validate(forgotPasswordSchema), asyncHandler(AuthController.forgotPassword));
 router.post('/reset-password', rateLimit(5, 60 * 1000), validate(resetPasswordSchema), asyncHandler(AuthController.resetPassword));
 router.get('/me', authenticate, asyncHandler(AuthController.getCurrentUser));
 router.post('/logout', authenticate, asyncHandler(AuthController.logout));
