@@ -225,9 +225,9 @@ const featureGroups = [
         id: 'compliance',
         category: 'Inspection Readiness Dashboard',
         brandIcon: <ShieldIcon size={32} />,
-        description: 'Stay prepared for regulatory inspections with live CQC readiness scoring across all 5 domains from real data.',
+        description: 'Stay prepared for regulatory inspections with CQC readiness scoring across all 5 domains, recomputed from your records each time you open it.',
         items: [
-          { title: 'Live Percentage Scoring', desc: 'Per Quality Statement score using training, competency, survey, and incident data. Not estimates — real records.' },
+          { title: 'Percentage Scoring', desc: 'Per Quality Statement score using training, competency, survey, and incident data. Not estimates — real records, recomputed when you look.' },
           { title: 'Gap Analysis', desc: 'Identifies what evidence to log next. Tells you exactly what to action to move from "Requires Improvement" to "Good".' },
           { title: 'Multi-Regulator Framework', desc: 'Native support for CQC, CIW/RISCA, Care Inspectorate, and RQIA. Framework-aware scoring for all four.' },
           { title: 'Escalation Thresholds', desc: 'When compliance drops below your configured minimum, all managers and ORG_ADMINs are notified automatically.' },
@@ -265,7 +265,7 @@ const featureGroups = [
         items: [
           { title: 'CQC-Mandated Training', desc: 'Tag any training module as CQC-mandated with role-specific enforcement. The matrix flags missing mandatory training per role.' },
           { title: 'Unlimited Module Tracking', desc: 'Track an unlimited number of training modules with expiry alerts, completion status, and digital records.' },
-          { title: 'Role-Based Compliance Profiles', desc: 'Each role gets a profile of linked requirements. Staff auto-assigned based on their role. Role changes reflect instantly.' },
+          { title: 'Role-Based Compliance Profiles', desc: 'Each role gets a profile of linked requirements. Staff auto-assigned based on their role. A role change takes effect the next time that person loads the app.' },
           { title: 'Scoring Integration', desc: 'Training completion rates feed the Effective domain score in your CQC readiness dashboard.' },
         ],
       },

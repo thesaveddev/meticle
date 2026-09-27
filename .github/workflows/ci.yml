@@ -57,6 +57,15 @@ jobs:
       - name: Type check web
         run: npx tsc --noEmit
         working-directory: apps/web
+      # The claim guard lives here, and until this step existed it had never
+      # once gated a build. It caught a real false claim on its first run, which
+      # is exactly the point of running it — but a test nobody runs is a comment.
+      #
+      # Placed before the API tests because it is the fastest step that can still
+      # fail: a sentence of copy does not need a database to evaluate.
+      - name: Run web tests
+        run: npm test
+        working-directory: apps/web
       - name: Type check mobile
         run: npx tsc --noEmit
         working-directory: apps/mobile

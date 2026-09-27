@@ -290,7 +290,7 @@ export default function ContactPage() {
                   For NHS, councils and Section 1(1) bodies.
                 </Typography>
                 <Typography sx={{ color: MIST, fontSize: '0.92rem', lineHeight: 1.65, mb: 2 }}>
-                  UK GDPR / DPA 2018 data-processing agreement, NHS DSPT-aligned controls, accessible procurement documentation. We hold a 15% off-list price for these organisations — get in touch for a tender submission.
+                  UK GDPR / DPA 2018 data-processing agreement and accessible procurement documentation. We have not submitted the NHS Data Security and Protection Toolkit and hold no NHS accreditation; if a tender requires a DSPT return, we will complete it as part of the process rather than claim it in advance. We have no published list price or discount schedule, so pricing is quoted per tender — get in touch.
                 </Typography>
                 <Typography sx={{ fontWeight: 800 }}>
                   <Box component="span" sx={{ color: MIST, fontSize: '0.78rem', mr: 1 }}>EMAIL</Box>

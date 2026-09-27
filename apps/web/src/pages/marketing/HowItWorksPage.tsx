@@ -58,7 +58,7 @@ const STEPS: Step[] = [
       { label: 'Locations', val: '1 (Essential) · N (Multi-Site)' },
       { label: 'Staff roles', val: 'ORG_ADMIN · MANAGER · CARE_WORKER' },
       { label: 'Evidence format', val: 'KLOE-organised PDF packs' },
-      { label: 'Scoring source', val: 'Live data — not estimates' },
+      { label: 'Scoring source', val: 'Your records — not estimates' },
     ],
   },
   {
@@ -99,7 +99,7 @@ const STEPS: Step[] = [
       'Staff engagement surveys feed Well-led',
       'Incident severity + escalation timing feed Responsive',
     ],
-    panelTitle: 'Live compliance scoring',
+    panelTitle: 'Compliance scoring on demand',
     panelItems: [
       { label: 'Safe', val: 'Incidents · risk · competency' },
       { label: 'Effective', val: 'Training · outcomes · reviews' },

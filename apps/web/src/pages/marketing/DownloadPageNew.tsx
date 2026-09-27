@@ -130,8 +130,8 @@ const features = [
   { icon: Medication, title: 'Medication reference', desc: 'Access medication records and MAR information where enabled — with clear permissions and audit trail.' },
   { icon: Warning, title: 'Incidents & safety', desc: 'Record incidents, report disruptions and access risk assessments while in the field.' },
   { icon: ChatBubbleOutline, title: 'Chat & communication', desc: 'Send messages, share images and stay connected with your team through secure in-app chat.' },
-  { icon: AccessTime, title: 'Check-in & timesheets', desc: 'Check in and out of visits, track your hours and see your earnings — all in real time.' },
-  { icon: MapOutlined, title: 'Live location', desc: 'Managers see where carers are in relation to their next visit. Travel time and route context.' },
+  { icon: AccessTime, title: 'Check-in & timesheets', desc: 'Check in and out of visits, track your hours and see your earnings, updated whenever you open the app or come back online.' },
+  { icon: MapOutlined, title: 'Visit check-in map', desc: 'Managers see the position each carer recorded when they checked in or out, against the visit. It is a check-in record, not live tracking of where someone is now.' },
   { icon: NotificationsActiveOutlined, title: 'Push notifications', desc: 'Instant alerts for schedule changes, new assignments, chat messages and urgent updates.' },
   { icon: DescriptionOutlined, title: 'Care notes in the field', desc: 'Record structured care notes at the point of care — not from memory at the end of the day.' },
 ]

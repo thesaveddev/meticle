@@ -216,7 +216,9 @@ A clear working record for the people you support — and a calmer day for the t
               { src: '/logos/ciw.png', alt: 'Care Inspectorate Wales' },
               { src: '/logos/cis.png', alt: 'Care Inspectorate Scotland' },
               { src: '/logos/rqia.png', alt: 'RQIA Northern Ireland' },
-              { src: '/logos/nhs.svg', alt: 'National Health Service' },
+              // The NHS wordmark is deliberately absent. NHS England restricts it
+              // to NHS bodies, and showing it beside four real regulators
+              // implied an accreditation we do not hold.
               { src: '/logos/ukgdpr.png', alt: 'UK GDPR and DPA 2018' },
             ].map((logo, i, arr) => (
               <Box

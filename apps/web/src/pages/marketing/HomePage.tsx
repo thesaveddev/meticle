@@ -399,7 +399,7 @@ export default function HomePage() {
             {[
               {
                 title: 'Domiciliary Care', tagline: 'From the office to the doorstep.',
-                points: ['Visit scheduling with real-time status', 'Mobile check-in, notes, travel and disruptions', 'Carer availability and open-call marketplace', 'Missed-call follow-up and escalation', 'Timesheet and payroll export'],
+                points: ['Visit scheduling with a call board that updates as carers check in', 'Mobile check-in, notes, travel and disruptions', 'Carer availability and open-call marketplace', 'Missed-call follow-up and escalation', 'Timesheet and payroll export'],
                 path: '/solutions/domiciliary-care',
               },
               {

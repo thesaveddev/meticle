@@ -20,6 +20,8 @@ import {
   FORBIDDEN_CLAIMS,
   REGISTERED_CLAIMS,
   REQUIRED_DISCLAIMERS,
+  unDeniedMatches,
+  allowanceFor,
 } from './marketingClaims'
 
 /**
@@ -147,16 +149,24 @@ const allStrings = files.flatMap(extractVisibleStrings)
  * match misses it. Joining the extracted strings reconstructs what the page
  * actually says, and still excludes comments.
  */
-const copyByFile: { file: string; webPath: string; copy: string }[] = files.map((file) => ({
-  // Reported to the developer relative to the repo root, so a path in a failure
-  // message can be pasted straight into an editor.
-  file: relative(REPO_ROOT, file).split(sep).join('/'),
-  // Matched against `exemptFiles` in the registry, which is expressed relative
-  // to apps/web — the same base PUBLIC_COPY_GLOBS uses. Keeping one base for the
-  // registry avoids a silent mismatch, which is exactly what happened first time.
-  webPath: relative(WEB_ROOT, file).split(sep).join('/'),
-  copy: extractVisibleStrings(file).map((s) => s.text).join(' ').replace(/\s+/g, ' ').trim(),
-}))
+const copyByFile: { file: string; webPath: string; copy: string; strings: { text: string }[] }[] = files.map((file) => {
+  const strings = extractVisibleStrings(file)
+  return {
+    // Reported to the developer relative to the repo root, so a path in a failure
+    // message can be pasted straight into an editor.
+    file: relative(REPO_ROOT, file).split(sep).join('/'),
+    // Matched against `exemptFiles` in the registry, which is expressed relative
+    // to apps/web — the same base PUBLIC_COPY_GLOBS uses. Keeping one base for the
+    // registry avoids a silent mismatch, which is exactly what happened first time.
+    webPath: relative(WEB_ROOT, file).split(sep).join('/'),
+    copy: strings.map((s) => s.text).join(' ').replace(/\s+/g, ' ').trim(),
+    // Kept separately as well. The joined blob is right for "does this page say
+    // X at all", and wrong for deciding whether a mention is a denial: a
+    // negation belongs to the sentence it is in, and joining every string in the
+    // file splices unrelated copy together around it.
+    strings,
+  }
+})
 
 /**
  * Best-effort location for a matched phrase, for a useful failure message.
@@ -203,7 +213,24 @@ describe('marketing claim guard — forbidden claims', () => {
   for (const claim of FORBIDDEN_CLAIMS) {
     it(`does not claim ${claim.label}`, () => {
       const exempt = new Set(claim.exemptFiles ?? [])
-      const hits = copyByFile.filter((d) => !exempt.has(d.webPath) && claim.pattern.test(d.copy))
+      // A claim inside a negation is a disclaimer, not a claim. Without this
+      // the only way to satisfy the guard is to delete the sentence that says
+      // "we have no NHS accreditation" — which is the sentence doing the work.
+      // Both guards apply the same rule; they must not disagree about the same
+      // copy, or the stricter one simply gets worked around.
+      const hits = copyByFile.filter((d) => {
+        if (exempt.has(d.webPath)) return false
+        // Judged per extracted string, so a denial in the same sentence counts
+        // and a denial in a different string on the same page does not.
+        const asserted = d.strings.some((s) => {
+          if (unDeniedMatches(s.text, claim.pattern).length === 0) return false
+          // Naming a body is not claiming from it. Exact strings only, so this
+          // cannot widen into covering an assertion.
+          return !(claim.allowedPhrases ?? []).some((p) => s.text.includes(p))
+        })
+        if (!asserted) return false
+        return !allowanceFor(d.file.replace(/\\/g, '/'), d.copy)
+      })
       const report = hits.map((d) => `  ${locate(claim.pattern, d.file)}`)
       const exemptionNote = exempt.size
         ? [``, `Exempt: ${[...exempt].join(', ')} — see ./marketingClaims.ts for why.`]

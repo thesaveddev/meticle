@@ -13,7 +13,12 @@ const HAIRLINE = '#E7E1D6'
 interface Badge {
   name: string
   acronym: string
-  logo: string
+  /**
+   * Optional, because not every body on this page may be used as a logo. The
+   * NHS wordmark is restricted to NHS bodies, so the NHS entry carries none and
+   * falls back to the acronym alone rather than to a broken image.
+   */
+  logo?: string
   color: string
   region: string
   description: string
@@ -127,17 +132,20 @@ const badges: Badge[] = [
   {
     name: 'NHS Digital / NHS England',
     acronym: 'NHS',
-    logo: '/logos/nhs.svg',
+    // No logo. NHS England's brand guidelines do not permit the NHS wordmark or
+    // logo to be used by organisations outside the NHS, and using it on a
+    // commercial page implies an endorsement or accreditation we do not hold.
+    // This is a trademark problem, not a copy problem, so no wording fixes it.
+    logo: undefined,
     color: '#005EB8',
     region: 'United Kingdom',
-    description: 'The National Health Service provides the framework for healthcare standards across the UK. Meticle Care integrates with NHS workflows and supports NHS-aligned care delivery.',
-    whatItDoes: 'NHS standards ensure care is delivered safely, effectively, and equitably. Meticle Care supports NHS-aligned medication management, health records, and clinical documentation.',
+    description: 'The National Health Service sets standards for healthcare in England. It is not the regulator of adult social care — that is CQC, CIW, Care Inspectorate or RQIA, listed above — and we hold no NHS accreditation. We have not submitted the NHS Data Security and Protection Toolkit, and we have no integration with NHS Digital or any NHS system.',
+    whatItDoes: 'NHS standards apply to NHS providers. Where a care provider also supports people with NHS-funded care, its own obligations come from the commissioner and the local authority, not from us — and those are matters for the provider, not for software.',
     howMeticleHelps: [
       'eMAR system aligned with NHS medication administration standards',
       'Clinical records following NHS documentation guidelines',
       'Health monitoring aligned with NHS health check frameworks',
-      'Integration-ready for NHS Digital APIs and interoperability standards',
-      'Support for NHS Continuing Healthcare assessments',
+      'No NHS integration, accreditation or DSPT submission — see the note above',
       'Fluid and nutrition monitoring meeting NHS best practice',
     ],
     keyRequirements: [
@@ -247,7 +255,11 @@ export default function ComplianceBadgesPage() {
                     sx={{ px: { xs: 3, md: 4 }, py: 3, bgcolor: badge.color + '06', borderBottom: `1px solid ${HAIRLINE}` }}
                   >
                     <Box sx={{ height: 56, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                      <img src={badge.logo} alt={badge.name} style={{ height: '100%', width: 'auto' }} />
+                      {badge.logo
+                        ? <img src={badge.logo} alt={badge.name} style={{ height: '100%', width: 'auto' }} />
+                        : <Box sx={{ height: 56, width: 56, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: badge.color }}>
+                            <Typography variant="h5" sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{badge.acronym}</Typography>
+                          </Box>}
                     </Box>
                     <Box sx={{ flex: 1 }}>
                       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>

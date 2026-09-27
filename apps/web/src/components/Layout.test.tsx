@@ -43,14 +43,40 @@ const ORG_ADMIN = {
   role: 'ORG_ADMIN',
 }
 
+// The sidebar is fail-closed: Layout filters an item out unless
+// `modulePermissions[item.module]` is present and not 'none'. An empty
+// permission map therefore renders an empty sidebar, which is the right
+// behaviour — an admin whose permissions fail to load should not be shown the
+// whole product — but it means a mock returning `{ permissions: [] }` produces
+// a page with no navigation at all and every assertion below fails for a reason
+// that has nothing to do with what is being tested.
+const GRANT_ALL_MODULES = [
+  'dashboard', 'people', 'care', 'staffing', 'homecare', 'call_scheduling',
+  'medication', 'compliance', 'reporting', 'incidents', 'training', 'finance',
+  'communication', 'my_space', 'settings',
+].map((module) => ({ module, permission_level: 'view' }))
+
 beforeEach(() => {
   window.localStorage.setItem('user', JSON.stringify(ORG_ADMIN))
   window.localStorage.setItem('accessToken', 'test-token')
+  window.localStorage.removeItem('sidebarCollapsedGroups')
   vi.mocked(api.get).mockImplementation((url: string) => {
     if (url.includes('/notifications/unread-count')) return Promise.resolve({ data: { count: 0 } })
-    if (url.includes('/permissions/')) return Promise.resolve({ data: { permissions: [] } })
+    if (url.includes('/permissions/')) return Promise.resolve({ data: { permissions: GRANT_ALL_MODULES } })
     if (url.includes('/auth/me')) {
       return Promise.resolve({ data: { user: ORG_ADMIN, organization: { name: 'Test Org' } } })
+    }
+    // The service-type list gates the nav too, and a nav with no service types
+    // hides every item carrying a serviceTypes restriction. Supported living
+    // rather than domiciliary: a domiciliary org relabels the nav to its own
+    // vocabulary ("People" becomes "Clients", "Staff Directory" becomes
+    // "Carers"), which is correct behaviour and irrelevant to what these four
+    // tests are about — focus handling and collapse persistence.
+    if (url.includes('/settings/org')) {
+      return Promise.resolve({ data: { service_types: ['supported_living'], primary_service_type: 'supported_living' } })
+    }
+    if (url.includes('/homecare/settings/location-tracking')) {
+      return Promise.resolve({ data: { location_tracking_enabled: true } })
     }
     return Promise.resolve({ data: {} })
   })
@@ -94,14 +120,14 @@ describe('Layout sidebar navigation', () => {
       expect(screen.getByTestId('page-dashboard')).toBeInTheDocument()
     })
 
-    const groupButton = screen.getByRole('button', { name: /Care/i })
+    const groupButton = screen.getByRole('button', { name: 'Care' })
     fireEvent.click(groupButton)
 
     await waitFor(() => {
       const stored = JSON.parse(window.localStorage.getItem('sidebarCollapsedGroups') || '[]')
       expect(stored).toContain('Care')
     })
-    expect(screen.getByRole('button', { name: /Care/i })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Care' })).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('hides supported-living navigation and keeps notifications in the top bar for domiciliary organisations', async () => {

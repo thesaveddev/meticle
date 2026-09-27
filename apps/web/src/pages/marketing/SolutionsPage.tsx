@@ -30,7 +30,7 @@ const domCare = {
 const domWhy = [
   {
     title: 'You cannot manage domiciliary care on spreadsheets.',
-    body: 'When visits span multiple areas, carers travel between clients, and call statuses change by the minute, a spreadsheet breaks down within hours. MeticleCare gives coordinators a live operational picture: who is where, which calls are covered, which are at risk, and what happened during each visit.',
+    body: 'When visits span multiple areas, carers travel between clients, and call statuses change by the minute, a spreadsheet breaks down within hours. MeticleCare gives coordinators an operational picture that updates as carers check in: which calls are covered, which are at risk, and what happened during each visit.',
   },
   {
     title: 'Every missed call has a person behind it.',

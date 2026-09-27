@@ -362,7 +362,7 @@ const features: Record<string, FeatureData> = {
     icon: Insights,
     capabilities: ['Operational reporting', 'Care and workforce oversight', 'Compliance reporting', 'Homecare call reporting', 'Exportable evidence workflows'],
     detailSections: [
-      { heading: 'Operational dashboards', body: 'See call completion rates, missed visits, training compliance and staffing levels in real time. Drill down from organisation-wide views to individual carers or people.' },
+      { heading: 'Operational dashboards', body: 'See call completion rates, missed visits, training compliance and staffing levels across the organisation. Drill down from organisation-wide views to individual carers or people. Figures refresh when you open the view; the call assignment board is the screen that updates by itself as carers check in.' },
       { heading: 'Care and workforce reporting', body: 'Reports connect care data with workforce information. Understand the relationship between staffing, care quality and outcomes.' },
       { heading: 'Evidence workflows', body: 'Export reports and evidence packs for inspections, governance reviews and board meetings. The data is already organised — you just need to present it.' },
     ],
