@@ -7,7 +7,7 @@ export default function NotFoundPage() {
   return (
     <>
       <PageMeta title="Page Not Found | Meticle Care" description="The page you are looking for does not exist." noindex />
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
         <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
           <Typography variant="h1" sx={{ fontWeight: 900, color: '#0F4C81', fontSize: '6rem', mb: 2 }}>404</Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Page Not Found</Typography>

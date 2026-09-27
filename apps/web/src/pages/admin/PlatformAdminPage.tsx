@@ -152,7 +152,7 @@ export default function PlatformAdminPage() {
           <Typography variant="h4" sx={{ fontWeight: 800 }}>Platform Admin</Typography>
         </Stack>
         <Tooltip title="Refresh">
-          <IconButton onClick={() => { loadData(); if (tab === 2) loadUsers(); if (tab === 3) loadFinance(); if (tab === 4) loadAuditLog(); if (tab === 5) loadHealth(); }} sx={{ bgcolor: 'grey.50' }}><RefreshIcon /></IconButton>
+          <IconButton onClick={() => { loadData(); if (tab === 2) loadUsers(); if (tab === 3) loadFinance(); if (tab === 4) loadAuditLog(); if (tab === 5) loadHealth(); }} sx={{ bgcolor: 'notice.subtle.bg' }}><RefreshIcon /></IconButton>
         </Tooltip>
       </Stack>
 
@@ -583,7 +583,7 @@ export default function PlatformAdminPage() {
                 <Grid container spacing={2}>
                   {health.tableCounts?.map((t: any) => (
                     <Grid item xs={6} sm={4} md={3} key={t.tbl}>
-                      <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1.5 }}>
+                      <Box sx={{ p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 1.5 }}>
                         <Typography variant="caption" color="#6B7280">{t.tbl}</Typography>
                         <Typography variant="h6" sx={{ fontWeight: 700 }}>{Number(t.cnt).toLocaleString()}</Typography>
                       </Box>

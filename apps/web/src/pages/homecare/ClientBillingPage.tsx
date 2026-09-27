@@ -62,10 +62,10 @@ function quarterRange() {
 }
 
 function statusTone(status: string) {
-  if (status === 'billable' || status === 'completed') return { bg: 'success.50', color: 'success.dark', label: status === 'billable' ? 'Ready' : 'Completed' }
-  if (status === 'review') return { bg: 'warning.50', color: 'warning.dark', label: 'Needs review' }
-  if (status === 'not_billable' || status === 'cancelled' || status === 'missed') return { bg: 'grey.100', color: 'text.secondary', label: status === 'not_billable' ? 'Excluded' : status.replace(/_/g, ' ') }
-  return { bg: 'grey.100', color: 'text.secondary', label: status.replace(/_/g, ' ') }
+  if (status === 'billable' || status === 'completed') return { bg: 'notice.success.bg', color: 'notice.success.fg', label: status === 'billable' ? 'Ready' : 'Completed' }
+  if (status === 'review') return { bg: 'notice.warning.bg', color: 'notice.warning.fg', label: 'Needs review' }
+  if (status === 'not_billable' || status === 'cancelled' || status === 'missed') return { bg: 'notice.muted.bg', color: 'text.secondary', label: status === 'not_billable' ? 'Excluded' : status.replace(/_/g, ' ') }
+  return { bg: 'notice.muted.bg', color: 'text.secondary', label: status.replace(/_/g, ' ') }
 }
 
 function StatusChip({ status }: { status: string }) {
@@ -136,7 +136,7 @@ function RunCard({ run, selected, onSelect, onApprove, onVoid, approving }: { ru
   return (
     <Paper elevation={0} sx={{ border: 1, borderColor: selected ? 'primary.main' : 'divider', borderRadius: 2, overflow: 'hidden' }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }} sx={{ p: 2 }}>
-        <Box sx={{ width: 38, height: 38, flexShrink: 0, borderRadius: 1.5, bgcolor: approved ? 'success.50' : voided ? 'error.50' : 'grey.100', color: approved ? 'success.main' : voided ? 'error.main' : 'text.secondary', display: 'grid', placeItems: 'center' }}>
+        <Box sx={{ width: 38, height: 38, flexShrink: 0, borderRadius: 1.5, bgcolor: approved ? 'notice.success.bg' : voided ? 'notice.error.bg' : 'notice.muted.bg', color: approved ? 'success.main' : voided ? 'error.main' : 'text.secondary', display: 'grid', placeItems: 'center' }}>
           {approved ? <CheckCircleIcon /> : <ReceiptLongIcon />}
         </Box>
         <Box sx={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={onSelect}>

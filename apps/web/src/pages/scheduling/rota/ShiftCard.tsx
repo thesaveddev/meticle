@@ -120,7 +120,7 @@ export const ShiftCard = memo(function ShiftCard({
             </Typography>
             {isOpen && (
               <Chip label="Open" size="small"
-                sx={{ height: 15, fontSize: '0.55rem', fontWeight: 800, bgcolor: 'warning.light', color: '#92400E', '& .MuiChip-label': { px: 0.6 } }} />
+                sx={{ height: 15, fontSize: '0.55rem', fontWeight: 800, bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', '& .MuiChip-label': { px: 0.6 } }} />
             )}
           </Stack>
 
@@ -149,15 +149,15 @@ export const ShiftCard = memo(function ShiftCard({
           {/* Agency */}
           {shift.agency_id && (
             <Stack direction="row" spacing={0.4} alignItems="center" onClick={(e) => e.stopPropagation()} sx={{ mt: 0.3 }}>
-              <Chip label="Agency" size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: 'info.light', color: '#1E40AF', fontWeight: 700 }} />
+              <Chip label="Agency" size="small" sx={{ height: 15, fontSize: '0.55rem', bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 700 }} />
               {canEdit && !isReadOnly && canEditShift ? (
                 <ToggleButtonGroup size="small" value={shift.agency_covered ? 'covered' : 'uncovered'} exclusive
                   onChange={() => onToggleCoverage(shift.id, shift.agency_covered)}
                   sx={{ height: 17, '& .MuiToggleButton-root': { px: 0.4, py: 0, fontSize: '0.52rem', lineHeight: 1, border: '1px solid #D1D5DB', textTransform: 'none', fontWeight: 700 } }}>
-                  <ToggleButton value="covered" sx={{ bgcolor: shift.agency_covered ? '#D1FAE5' : 'transparent', color: shift.agency_covered ? '#065F46' : '#9CA3AF', '&:hover': { bgcolor: 'success.light' } }}>
+                  <ToggleButton value="covered" sx={{ bgcolor: shift.agency_covered ? '#D1FAE5' : 'transparent', color: shift.agency_covered ? '#065F46' : '#9CA3AF', '&:hover': { bgcolor: 'notice.success.bg' } }}>
                     Yes
                   </ToggleButton>
-                  <ToggleButton value="uncovered" sx={{ bgcolor: !shift.agency_covered ? '#FEF3C7' : 'transparent', color: !shift.agency_covered ? '#92400E' : '#9CA3AF', '&:hover': { bgcolor: 'warning.light' } }}>
+                  <ToggleButton value="uncovered" sx={{ bgcolor: !shift.agency_covered ? '#FEF3C7' : 'transparent', color: !shift.agency_covered ? '#92400E' : '#9CA3AF', '&:hover': { bgcolor: 'notice.warning.bg' } }}>
                     No
                   </ToggleButton>
                 </ToggleButtonGroup>
@@ -200,7 +200,7 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
       height: compact ? 17 : 19, px: 0.5,
       borderRadius: '999px',
       border: '1px solid #E4E4DD',
-      bgcolor: 'grey.50',
+      bgcolor: 'notice.subtle.bg',
     }}>
       <Box sx={{
         width: 11, height: 11, borderRadius: '50%', flexShrink: 0,
@@ -219,7 +219,7 @@ function StaffPill({ a, compact, isCurrent, isPast, canDelete, onSwap, onDelete 
       {a.is_overtime && (
         <Box component="span" sx={{
           height: 11, lineHeight: '11px', px: 0.35, borderRadius: '4px',
-          bgcolor: 'warning.light', color: '#92400E', fontSize: '0.5rem', fontWeight: 800,
+          bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontSize: '0.5rem', fontWeight: 800,
         }}>
           OT
         </Box>

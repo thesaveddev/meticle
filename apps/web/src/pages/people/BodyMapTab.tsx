@@ -237,7 +237,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
           <Tab value="front" label="Front View" sx={{ textTransform: 'none', fontWeight: 700 }} />
           <Tab value="back" label="Back View" sx={{ textTransform: 'none', fontWeight: 700 }} />
         </Tabs>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: 'grey.50', py: 2, px: 1, position: 'relative' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: 'notice.subtle.bg', py: 2, px: 1, position: 'relative' }}>
           <Typography variant="caption" color="#6B7280" sx={{ mb: 0.5 }}>
             Click any body part to add a condition
           </Typography>
@@ -325,7 +325,7 @@ export default function BodyMapTab({ personId }: { personId: string }) {
         </Box>
 
         {/* Legend */}
-        <Box sx={{ p: 1.5, borderTop: '1px solid #E5E7EB', bgcolor: 'grey.50', display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center' }}>
+        <Box sx={{ p: 1.5, borderTop: '1px solid #E5E7EB', bgcolor: 'notice.subtle.bg', display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center' }}>
           {zones.map(z => {
             const has = zoneCounts[z.id]
             return <Chip key={z.id} label={`${z.label}${has ? ` (${has})` : ''}`}

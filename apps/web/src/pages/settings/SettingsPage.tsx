@@ -636,7 +636,7 @@ export default function SettingsPage() {
             <Alert severity="warning" sx={{ fontWeight: 600 }}>
               Store these codes in a safe place. Each code can be used <strong>once</strong> to log in if you lose access to your authenticator app.
             </Alert>
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg' }}>
               <Stack spacing={1}>
                 {mfaBackupCodes.map((code, i) => (
                   <Typography key={i} variant="body2" sx={{ fontFamily: 'monospace', fontSize: '1rem', letterSpacing: '0.1rem', fontWeight: 700 }}>
@@ -1448,7 +1448,7 @@ export default function SettingsPage() {
                 helperText="Set to 0 for unlimited. AI features stop when budget is reached."
               />
               {aiUsageStats && aiConfig?.monthlyBudgetCents > 0 && (
-                <Box sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid #E2E8F0' }}>
+                <Box sx={{ p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #E2E8F0' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="caption" color="text.secondary">Budget used this month</Typography>
                     <Typography variant="caption" sx={{ fontWeight: 600 }}>
@@ -1521,7 +1521,7 @@ export default function SettingsPage() {
               {aiAnalyzing ? 'Analyzing...' : 'Run Analysis'}
             </Button>
             {aiAnalysisResult && (
-              <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid #E2E8F0' }}>
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #E2E8F0' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Assessment</Typography>
                 <Typography variant="body2" sx={{ mb: 1.5 }}>{aiAnalysisResult.overall_assessment}</Typography>
                 {aiAnalysisResult.estimated_timeline && (
@@ -1991,7 +1991,7 @@ function LeaveTypesSettings({ staffCount }: { staffCount: number }) {
                 Requests for this type will be auto-approved when submitted.
               </Alert>
             )}
-            <Box sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+            <Box sx={{ p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1 }}>
               <Typography variant="body2" color="#4B5563">
                 Type allowances total <Typography component="span" fontWeight={700} color={mismatch ? 'error.main' : 'success.main'}>{fmt(projectedTotal)}h</Typography> of {fmt(base)}h allowed
                 <Typography component="span" color="#6B7280"> ({fmt(base - projectedTotal) >= 0 ? `${fmt(base - projectedTotal)}h remaining` : `${fmt(projectedTotal - base)}h over`})</Typography>

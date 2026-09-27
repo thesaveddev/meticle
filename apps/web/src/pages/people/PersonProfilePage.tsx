@@ -595,8 +595,8 @@ export default function PersonProfilePage() {
 
       {/* Flags / Alerts Banner (visible on every tab) */}
       {user.flags && user.flags.length > 0 && (
-        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: 'error.light', border: '1px solid #FECACA' }}>
-          <Typography variant="subtitle2" fontWeight={800} color="#DC2626" sx={{ mb: 1 }}>
+        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: 'notice.error.bg', border: '1px solid #FECACA' }}>
+          <Typography variant="subtitle2" fontWeight={800} color='notice.error.fg' sx={{ mb: 1 }}>
             ⚠ Clinical Alerts
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
@@ -610,12 +610,12 @@ export default function PersonProfilePage() {
 
       {/* DNACPR Banner */}
       {user.dnacpr_status === 'in_place' && (
-        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: 'warning.light', border: '1px solid #FED7AA' }}>
-          <Typography variant="subtitle2" fontWeight={800} color="#EA580C" sx={{ mb: 0.5 }}>
+        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: 'notice.warning.bg', border: '1px solid #FED7AA' }}>
+          <Typography variant="subtitle2" fontWeight={800} color='notice.warning.fg' sx={{ mb: 0.5 }}>
             DNACPR in place
           </Typography>
-          {user.dnacpr_date && <Typography variant="caption" color="#9A3412">Recorded: {new Date(user.dnacpr_date).toLocaleDateString('en-GB')}</Typography>}
-          {user.dnacpr_review_date && <Typography variant="caption" color="#9A3412" sx={{ ml: 2 }}>Next review: {new Date(user.dnacpr_review_date).toLocaleDateString('en-GB')}</Typography>}
+          {user.dnacpr_date && <Typography variant="caption" color='notice.warning.fg'>Recorded: {new Date(user.dnacpr_date).toLocaleDateString('en-GB')}</Typography>}
+          {user.dnacpr_review_date && <Typography variant="caption" color='notice.warning.fg' sx={{ ml: 2 }}>Next review: {new Date(user.dnacpr_review_date).toLocaleDateString('en-GB')}</Typography>}
         </Paper>
       )}
 
@@ -796,10 +796,10 @@ export default function PersonProfilePage() {
           {/* Allergies */}
           {user.allergies?.length > 0 && (
             <Grid item xs={12}>
-              <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #FECACA', bgcolor: 'error.light' }}>
+              <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #FECACA', bgcolor: 'notice.error.bg' }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
-                  <WarningIcon sx={{ fontSize: 18, color: '#DC2626' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#DC2626' }}>Allergies</Typography>
+                  <WarningIcon sx={{ fontSize: 18, color: 'notice.error.fg' }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'notice.error.fg' }}>Allergies</Typography>
                 </Stack>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {user.allergies.map((a: string, i: number) => <Chip key={i} label={a} size="small" color="error" variant="filled" sx={{ fontWeight: 700 }} />)}
@@ -828,7 +828,7 @@ export default function PersonProfilePage() {
               )}
               {user.advance_decision && (
                 <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E9D5FF', bgcolor: 'grey.50' }}>
+                  <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E9D5FF', bgcolor: 'notice.subtle.bg' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                       <NoteIcon sx={{ fontSize: 18, color: '#7C3AED' }} />
                       <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#7C3AED' }}>Advance Decision / Living Will</Typography>
@@ -844,7 +844,7 @@ export default function PersonProfilePage() {
           {/* Discharge Summary */}
           {user.discharge_date && (
             <Grid item xs={12}>
-              <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', bgcolor: 'grey.50' }}>
+              <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', bgcolor: 'notice.subtle.bg' }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
                   <NoteIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
                   <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.secondary' }}>Discharge Summary</Typography>
@@ -967,7 +967,7 @@ export default function PersonProfilePage() {
                       )}
                       {n.generated_by_ai && (
                         <Chip icon={<AiIcon sx={{ fontSize: 12 }} />} label="AI" size="small"
-                          sx={{ height: 20, fontSize: 10, bgcolor: 'grey.50', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
+                          sx={{ height: 20, fontSize: 10, bgcolor: 'notice.subtle.bg', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
                       )}
                       <Typography variant="caption" color="#6B7280">{n.note_date ? new Date(n.note_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</Typography>
                     </Stack>
@@ -1007,7 +1007,7 @@ export default function PersonProfilePage() {
             <TableContainer component={Paper} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ bgcolor: 'grey.50' }}>
+                  <TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
                     <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Risk Level</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Details</TableCell>
@@ -1017,7 +1017,7 @@ export default function PersonProfilePage() {
                 </TableHead>
                 <TableBody>
                   {user.risk_assessments.map((ra: any) => (
-                    <TableRow key={ra.id} onClick={() => setViewRisk(ra)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'grey.50' } }}>
+                    <TableRow key={ra.id} onClick={() => setViewRisk(ra)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
                       <TableCell sx={{ textTransform: 'capitalize', fontWeight: 600 }}>{ra.type?.replace(/_/g, ' ')}</TableCell>
                       <TableCell>
                         <Chip icon={<WarningIcon sx={{ fontSize: 14 }} />} label={ra.risk_level} size="small"
@@ -1589,14 +1589,14 @@ export default function PersonProfilePage() {
             <DialogContent dividers>
               <Stack spacing={2}>
                 {viewPlan.description && (
-                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', borderRadius: 2 }}>
                     <Typography variant="caption" color="#6B7280" fontWeight={700}>DESCRIPTION</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewPlan.description}</Typography>
                   </Paper>
                 )}
                 {viewPlan.risk_assessment && (
-                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'warning.light', borderColor: '#FED7AA', borderRadius: 2 }}>
-                    <Typography variant="caption" color="#C2410C" fontWeight={700}>RISK ASSESSMENT</Typography>
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.warning.bg', borderColor: '#FED7AA', borderRadius: 2 }}>
+                    <Typography variant="caption" color='notice.warning.fg' fontWeight={700}>RISK ASSESSMENT</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewPlan.risk_assessment}</Typography>
                   </Paper>
                 )}
@@ -1620,7 +1620,7 @@ export default function PersonProfilePage() {
                 </Grid>
 
                 {viewPlan.sections && (viewPlan.sections.contributors?.length > 0 || viewPlan.sections.what_tried || viewPlan.sections.what_learned || viewPlan.sections.what_pleased || viewPlan.sections.what_concerned || viewPlan.sections.next_steps) && (
-                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderColor: '#0F4C81', bgcolor: 'grey.50' }}>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderColor: '#0F4C81', bgcolor: 'notice.subtle.bg' }}>
                     <Typography variant="subtitle2" fontWeight={800} color="#0F4C81" sx={{ mb: 1.5 }}>PERSON-CENTRED PLAN</Typography>
                     <Stack spacing={2}>
                       {(viewPlan.sections.contributors || []).length > 0 && (
@@ -1735,7 +1735,7 @@ export default function PersonProfilePage() {
                 </TextField>
                 <Stack direction="row" spacing={1} alignItems="flex-start">
                   <TextField label="Notes" fullWidth multiline rows={4} required value={noteForm.content} onChange={e => setNoteForm({ ...noteForm, content: e.target.value })}
-                    sx={{ '& .MuiOutlinedInput-root': aiRecording ? { bgcolor: 'grey.50', borderColor: '#7C3AED' } : {} }} />
+                    sx={{ '& .MuiOutlinedInput-root': aiRecording ? { bgcolor: 'notice.subtle.bg', borderColor: '#7C3AED' } : {} }} />
                   <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
                     <Tooltip title={aiRecording ? 'Stop dictation' : 'Dictate note with voice'}>
                       <IconButton size="small" onClick={aiRecording ? stopAiRecording : startNoteDictation}
@@ -1767,7 +1767,7 @@ export default function PersonProfilePage() {
                   ))}
                 </TextField>
 
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', borderColor: '#C4B5FD' }}>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', borderColor: '#C4B5FD' }}>
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                     <MicIcon sx={{ color: '#7C3AED' }} />
                     <Typography variant="subtitle2" sx={{ color: '#7C3AED' }}>Voice Input</Typography>
@@ -1806,25 +1806,25 @@ export default function PersonProfilePage() {
                 </Alert>
 
                 {aiResult.safeguarding_flags?.length > 0 && (
-                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#EF4444', bgcolor: 'error.light' }}>
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#EF4444', bgcolor: 'notice.error.bg' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                      <FlagIcon sx={{ color: '#EF4444', fontSize: 20 }} />
-                      <Typography variant="subtitle2" sx={{ color: '#EF4444', fontWeight: 700 }}>Safeguarding Alerts ({aiResult.safeguarding_flags.length})</Typography>
+                      <FlagIcon sx={{ color: 'notice.error.fg', fontSize: 20 }} />
+                      <Typography variant="subtitle2" sx={{ color: 'notice.error.fg', fontWeight: 700 }}>Safeguarding Alerts ({aiResult.safeguarding_flags.length})</Typography>
                     </Stack>
                     {aiResult.safeguarding_flags.map((flag: any, i: number) => (
                       <Box key={i} sx={{ mb: 0.5 }}>
                         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
                           <Chip label={flag.severity} size="small" color={flag.severity === 'high' ? 'error' : 'warning'} sx={{ height: 18, fontSize: 10 }} />
-                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#EF4444' }}>{flag.concern_type}</Typography>
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: 'notice.error.fg' }}>{flag.concern_type}</Typography>
                         </Stack>
-                        <Typography variant="caption" display="block" color="#374151">{flag.description}</Typography>
-                        {flag.action_required && <Typography variant="caption" display="block" color="#6B7280">Action: {flag.action_required}</Typography>}
+                        <Typography variant="caption" display="block" color='notice.error.fg'>{flag.description}</Typography>
+                        {flag.action_required && <Typography variant="caption" display="block" color='notice.error.fg'>Action: {flag.action_required}</Typography>}
                       </Box>
                     ))}
                   </Paper>
                 )}
 
-                <TextField label="Generated Daily Note" fullWidth multiline rows={4} value={aiEditedContent} onChange={e => setAiEditedContent(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'success.light' } }} />
+                <TextField label="Generated Daily Note" fullWidth multiline rows={4} value={aiEditedContent} onChange={e => setAiEditedContent(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'notice.success.bg' } }} />
 
                 {aiResult.care_plan_updates?.length > 0 && (
                   <Paper variant="outlined" sx={{ p: 2, borderColor: '#0F4C81' }}>
@@ -1897,7 +1897,7 @@ export default function PersonProfilePage() {
                 )}
                 {viewNote.generated_by_ai && (
                   <Chip icon={<AiIcon sx={{ fontSize: 14 }} />} label="AI Generated" size="small"
-                    sx={{ bgcolor: 'grey.50', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
+                    sx={{ bgcolor: 'notice.subtle.bg', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
                 )}
                 <Typography variant="caption" color="#6B7280">{new Date(viewNote.note_date).toLocaleDateString('en-GB')}</Typography>
                 <Typography variant="caption" color="#9CA3AF">{viewNote.author_name ? `by ${viewNote.author_name}` : ''}</Typography>
@@ -1909,7 +1909,7 @@ export default function PersonProfilePage() {
               {viewNote.ai_risk_level && (
                 <>
                   <Divider />
-                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#C4B5FD', bgcolor: 'grey.50' }}>
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: '#C4B5FD', bgcolor: 'notice.subtle.bg' }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
                       <AiIcon sx={{ color: '#7C3AED', fontSize: 20 }} />
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#7C3AED' }}>AI Analysis</Typography>
@@ -1939,13 +1939,13 @@ export default function PersonProfilePage() {
                           <Typography variant="caption" sx={{ fontWeight: 700, color: '#EF4444' }}>Safeguarding ({viewNote.ai_safeguarding_flags.length})</Typography>
                         </Stack>
                         {viewNote.ai_safeguarding_flags.map((f: any, i: number) => (
-                          <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: '#FCA5A5', bgcolor: 'error.light' }}>
+                          <Paper key={i} variant="outlined" sx={{ p: 1, mb: 0.5, borderColor: '#FCA5A5', bgcolor: 'notice.error.bg' }}>
                             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
                               <Chip label={f.severity} size="small" color={f.severity === 'high' ? 'error' : 'warning'} sx={{ height: 16, fontSize: 9 }} />
                               <Typography variant="caption" fontWeight={700}>{f.concern_type}</Typography>
                             </Stack>
-                            <Typography variant="caption" display="block" color="#374151">{f.description}</Typography>
-                            {f.action_required && <Typography variant="caption" display="block" color="#6B7280" fontStyle="italic">Action: {f.action_required}</Typography>}
+                            <Typography variant="caption" display="block" color='notice.error.fg'>{f.description}</Typography>
+                            {f.action_required && <Typography variant="caption" display="block" color='notice.error.fg' fontStyle="italic">Action: {f.action_required}</Typography>}
                           </Paper>
                         ))}
                       </Box>
@@ -1996,7 +1996,7 @@ export default function PersonProfilePage() {
             <Button startIcon={aiAnalyzeNoteMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <AiIcon />}
               onClick={() => aiAnalyzeNoteMutation.mutate(viewNote.id)}
               disabled={aiAnalyzeNoteMutation.isPending}
-              sx={{ textTransform: 'none', color: '#7C3AED', borderColor: '#C4B5FD', '&:hover': { borderColor: '#7C3AED', bgcolor: 'grey.50' } }}
+              sx={{ textTransform: 'none', color: '#7C3AED', borderColor: '#C4B5FD', '&:hover': { borderColor: '#7C3AED', bgcolor: 'notice.subtle.bg' } }}
               variant="outlined">
               {aiAnalyzeNoteMutation.isPending ? 'Analyzing...' : 'Analyze with AI'}
             </Button>
@@ -2320,12 +2320,12 @@ function CareAssessmentsTabInline({ personId }: { personId: string }) {
                 <Box><Typography variant="caption" color="#6B7280">Status</Typography><Chip label={selected.status} size="small" sx={{ bgcolor: `${ASSESSMENT_STATUS_COLORS[selected.status] || '#6B7280'}20`, color: ASSESSMENT_STATUS_COLORS[selected.status] || '#6B7280', fontWeight: 700 }} /></Box>
                 <Box><Typography variant="caption" color="#6B7280">Next Review</Typography><Typography fontWeight={600}>{selected.next_review_date ? new Date(selected.next_review_date).toLocaleDateString('en-GB') : '—'}</Typography></Box>
               </Stack>
-              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Findings</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', whiteSpace: 'pre-wrap' }}>{selected.findings || 'No findings recorded'}</Paper></Box>
-              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Recommendations</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', whiteSpace: 'pre-wrap' }}>{selected.recommendations || 'No recommendations recorded'}</Paper></Box>
+              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Findings</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', whiteSpace: 'pre-wrap' }}>{selected.findings || 'No findings recorded'}</Paper></Box>
+              <Box><Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Recommendations</Typography><Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg', whiteSpace: 'pre-wrap' }}>{selected.recommendations || 'No recommendations recorded'}</Paper></Box>
               {selected.file_url && (
                 <Box>
                   <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Attachment</Typography>
-                  <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'grey.50', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'notice.subtle.bg', display: 'flex', alignItems: 'center', gap: 1 }}>
                     <FileIcon sx={{ color: '#0F4C81' }} />
                     <Typography noWrap sx={{ flex: 1 }}>{selected.file_name || selected.file_url.split('/').pop()}</Typography>
                     <Button size="small" variant="outlined" startIcon={<OpenInNewIcon />} onClick={() => openFileInNewTab(selected.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
@@ -2628,7 +2628,7 @@ function RoomChecksTab({ roomNumber }: { roomNumber: string | null }) {
                   <Box>
                     <Typography variant="caption" color="#9CA3AF" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>Photo</Typography>
                     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
-                      <Box component="img" src={rcPhotoBlob} alt="Room check" sx={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block', bgcolor: 'grey.100' }} />
+                      <Box component="img" src={rcPhotoBlob} alt="Room check" sx={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block', bgcolor: 'notice.muted.bg' }} />
                       <IconButton size="small" onClick={() => { const url = rcView.photo_url; const token = localStorage.getItem('accessToken'); fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.blob()).then(b => window.open(URL.createObjectURL(b), '_blank', 'noopener')).catch(() => {}) }}
                         sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.9)', '&:hover': { bgcolor: 'background.paper' } }}>
                         <OpenInNewIcon fontSize="small" />
@@ -3078,7 +3078,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
                     const sc = (e.score || 0) >= 8 ? '#16A34A' : (e.score || 0) >= 5 ? '#D97706' : '#DC2626'
                     return (
                       <Box key={e.id} onClick={() => setViewEntry(e)}
-                        sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'grey.50' } }}>
+                        sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
                         <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: `${sc}18`, color: sc, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Typography variant="subtitle2" fontWeight={800}>{e.score}</Typography>
                         </Box>
@@ -3105,7 +3105,7 @@ function WellbeingTabInline({ personId }: { personId: string }) {
         <DialogContent>
           <Stack spacing={2}>
             <Stack direction="row" spacing={1} flexWrap="wrap">
-              <Chip label={`${viewEntry?.score}/10`} size="small" sx={{ bgcolor: 'grey.100', color: '#0F4C81', fontWeight: 700 }} />
+              <Chip label={`${viewEntry?.score}/10`} size="small" sx={{ bgcolor: 'notice.muted.bg', color: '#0F4C81', fontWeight: 700 }} />
               {viewEntry?.recorded_date && <Chip label={new Date(viewEntry.recorded_date).toLocaleDateString('en-GB')} size="small" variant="outlined" />}
             </Stack>
             <Box>
@@ -3808,7 +3808,7 @@ function CarePathwaysTabInline({ personId }: { personId: string }) {
             {viewPathway?.file_url && (
               <Box>
                 <Typography variant="caption" color="#6B7280" fontWeight={700}>ATTACHMENT</Typography>
-                <Paper variant="outlined" sx={{ mt: 0.5, p: 1.5, bgcolor: 'grey.50', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Paper variant="outlined" sx={{ mt: 0.5, p: 1.5, bgcolor: 'notice.subtle.bg', display: 'flex', alignItems: 'center', gap: 1 }}>
                   <FileIcon sx={{ color: '#0F4C81' }} />
                   <Typography noWrap sx={{ flex: 1 }}>{viewPathway.file_name || viewPathway.file_url.split('/').pop()}</Typography>
                   <Button size="small" variant="outlined" startIcon={<OpenInNewIcon />} onClick={() => openFileInNewTab(viewPathway.file_url)} sx={{ textTransform: 'none' }}>Open</Button>
@@ -3968,7 +3968,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
                           <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700 }}>{category.replace(/_/g, ' ')}</Typography>
                           <Stack spacing={0.5}>
                             {catItems.map((item: any) => (
-                              <Stack key={item.id} direction="row" alignItems="center" spacing={1} sx={{ bgcolor: 'grey.50', borderRadius: 1, px: 1, py: 0.5 }}>
+                              <Stack key={item.id} direction="row" alignItems="center" spacing={1} sx={{ bgcolor: 'notice.subtle.bg', borderRadius: 1, px: 1, py: 0.5 }}>
                                 <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleMutation.mutate({ id: item.id, completed: !item.is_complete }) }} disabled={toggleMutation.isPending}>
                                   {item.is_complete ? <CheckCircleIcon sx={{ color: '#16A34A' }} /> : <UncheckedIcon sx={{ color: 'text.secondary' }} />}
                                 </IconButton>
@@ -3978,7 +3978,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
                                       {item.item}
                                     </Typography>
                                     {item.quantity != null && item.quantity !== '' && (
-                                      <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'info.light', color: '#0F4C81', fontWeight: 700 }} />
+                                      <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 700 }} />
                                     )}
                                   </Stack>
                                   {item.is_complete && item.completed_by_name && (
@@ -4097,7 +4097,7 @@ function TimeAwayTabInline({ personId }: { personId: string }) {
                             {item.item}
                           </Typography>
                           {item.quantity != null && item.quantity !== '' && (
-                            <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'info.light', color: '#0F4C81', fontWeight: 700 }} />
+                            <Chip size="small" label={`${item.quantity}${item.unit ? ' ' + item.unit : ''}`} sx={{ height: 18, fontSize: 11, bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 700 }} />
                           )}
                         </Stack>
                       ))}
@@ -4187,7 +4187,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
           <TableContainer>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: 'grey.50' }}>
+                <TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
                   <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Domain</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Score</TableCell>
@@ -4243,7 +4243,7 @@ function MoodChartTabInline({ personId }: { personId: string }) {
             <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
               <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap' }}>
                 {Object.entries(BAND_COLORS).map(([name, color]) => (
-                  <Box key={name} sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200', minWidth: 96 }}>
+                  <Box key={name} sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: 'notice.subtle.bg', border: '1px solid', borderColor: 'grey.200', minWidth: 96 }}>
                     <Typography sx={{ fontWeight: 800, color, fontSize: 20, lineHeight: 1.2 }}>{bandCounts[name]}</Typography>
                     <Typography variant="caption" color="#6B7280">{name}</Typography>
                   </Box>
@@ -4486,7 +4486,7 @@ function BillingRatesTabInline({ personId, personName }: { personId: string; per
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{pkg.name}</Typography>
                   <Stack direction="row" gap={1} sx={{ mt: 0.5 }}>
                     <Chip label={pkg.status} size="small" sx={{ bgcolor: pkg.status === 'active' ? '#E9F7F0' : '#F3F4F6', color: pkg.status === 'active' ? '#047857' : '#6B7280', fontWeight: 600 }} />
-                    <Chip label={pkg.funding_type || 'private'} size="small" sx={{ bgcolor: 'info.light', color: '#1E40AF', fontWeight: 600 }} />
+                    <Chip label={pkg.funding_type || 'private'} size="small" sx={{ bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontWeight: 600 }} />
                   </Stack>
                 </Box>
 

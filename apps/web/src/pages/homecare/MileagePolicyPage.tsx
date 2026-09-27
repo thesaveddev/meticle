@@ -181,10 +181,10 @@ export default function MileagePolicyPage() {
                 <TableRow key={p.id} hover sx={{ opacity: p.is_active ? 1 : 0.6 }}>
                   <TableCell><Typography sx={{ fontWeight: 600 }}>{p.tax_year}</Typography></TableCell>
                   <TableCell>
-                    <Chip label={VEHICLE_TYPES.find(v => v.value === p.vehicle_type)?.label || p.vehicle_type} size="small" sx={{ bgcolor: 'grey.100' }} />
+                    <Chip label={VEHICLE_TYPES.find(v => v.value === p.vehicle_type)?.label || p.vehicle_type} size="small" sx={{ bgcolor: 'notice.muted.bg' }} />
                   </TableCell>
                   <TableCell>
-                    <Chip label={FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} size="small" sx={{ bgcolor: 'grey.100' }} />
+                    <Chip label={FUEL_CATEGORIES.find(f => f.value === p.fuel_category)?.label || p.fuel_category} size="small" sx={{ bgcolor: 'notice.muted.bg' }} />
                   </TableCell>
                   <TableCell align="right"><Typography sx={{ fontWeight: 700, color: '#0F4C81' }}>{money(p.rate_pence)}</Typography></TableCell>
                   <TableCell>{p.effective_from ? new Date(p.effective_from).toLocaleDateString('en-GB') : '—'}</TableCell>

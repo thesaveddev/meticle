@@ -192,17 +192,17 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
                     <CardMedia component="img" height="200" image={thumbnails[urls[0]]} alt={e.title}
                       sx={{ objectFit: 'cover' }} />
                   ) : urls.length > 0 && loadingThumbs[urls[0]] ? (
-                    <Box sx={{ height: 200, bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Box sx={{ height: 200, bgcolor: 'notice.muted.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <CircularProgress size={24} sx={{ color: '#D1D5DB' }} />
                     </Box>
                   ) : urls.length > 0 ? (
-                    <Box sx={{ height: 200, bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Box sx={{ height: 200, bgcolor: 'notice.muted.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <ImageIcon sx={{ fontSize: 48, color: '#D1D5DB' }} />
                     </Box>
                   ) : (
-                    <Box sx={{ height: 200, bgcolor: 'warning.light', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-                      <ImageIcon sx={{ fontSize: 40, color: '#FDBA74', mb: 0.5 }} />
-                      <Typography variant="caption" color="#9A3412">No photo</Typography>
+                    <Box sx={{ height: 200, bgcolor: 'notice.warning.bg', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                      <ImageIcon sx={{ fontSize: 40, color: 'notice.warning.fg', mb: 0.5 }} />
+                      <Typography variant="caption" color='notice.warning.fg'>No photo</Typography>
                     </Box>
                   )}
                   <CardContent sx={{ pb: 1 }}>
@@ -260,7 +260,7 @@ export default function MemoryBookTab({ personId }: { personId: string }) {
                 return (
                   <Stack spacing={2}>
                     {urls.length > 0 && (
-                      <Box sx={{ position: 'relative', borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.50' }}>
+                      <Box sx={{ position: 'relative', borderRadius: 1, overflow: 'hidden', bgcolor: 'notice.subtle.bg' }}>
                         {thumbnails[urls[viewImageIdx]] ? (
                           <img src={thumbnails[urls[viewImageIdx]]} alt={viewEntry.title}
                             style={{ width: '100%', maxHeight: 400, objectFit: 'contain', display: 'block' }} />

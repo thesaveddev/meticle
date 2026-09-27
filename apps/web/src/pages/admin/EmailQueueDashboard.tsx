@@ -296,7 +296,7 @@ export default function EmailQueueDashboard() {
                       </TableHead>
                       <TableBody>
                         {stats.recentFailures.map((f) => (
-                          <TableRow key={f.id} hover sx={{ '&:hover': { bgcolor: 'error.50' } }}>
+                          <TableRow key={f.id} hover sx={{ '&:hover': { bgcolor: 'notice.error.bg' } }}>
                             <TableCell>
                               <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: 12 }}>
                                 {f.to_email}

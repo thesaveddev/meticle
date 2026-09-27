@@ -416,7 +416,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
 
         {/* Top Actions */}
         {actions.length > 0 && (
-          <Paper sx={{ p: 3, mb: 3, bgcolor: 'grey.50', border: '1px solid #E2E8F0' }}>
+          <Paper sx={{ p: 3, mb: 3, bgcolor: 'notice.subtle.bg', border: '1px solid #E2E8F0' }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
               <ActionIcon sx={{ color: '#0F4C81' }} />
               <Typography variant="h6">What To Action Next</Typography>
@@ -575,7 +575,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                       <Typography variant="caption" sx={{ minWidth: 80, fontWeight: 600, fontSize: 11 }}>
                         {domain.label}
                       </Typography>
-                      <Box sx={{ flex: 1, height: 14, bgcolor: 'grey.100', borderRadius: 7, overflow: 'hidden', position: 'relative' }}>
+                      <Box sx={{ flex: 1, height: 14, bgcolor: 'notice.muted.bg', borderRadius: 7, overflow: 'hidden', position: 'relative' }}>
                         <Box sx={{
                           width: `${Math.max(domain.score, 3)}%`, height: '100%',
                           bgcolor: dr.color, borderRadius: 7,
@@ -595,7 +595,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
               </Paper>
 
               {aiResult.overall_assessment && (
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg' }}>
                   <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Overall Assessment</Typography>
                   <Typography variant="body2" color="text.secondary">{aiResult.overall_assessment}</Typography>
                 </Paper>
@@ -628,7 +628,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                   <Typography variant="subtitle2" fontWeight={700}>Quick Wins</Typography>
                   <Stack spacing={1}>
                     {aiResult.quick_wins.map((item: string, i: number) => (
-                      <Box key={i} sx={{ p: 1.5, borderRadius: 1, bgcolor: 'success.light', border: '1px solid #BBF7D0' }}>
+                      <Box key={i} sx={{ p: 1.5, borderRadius: 1, bgcolor: 'notice.success.bg', border: '1px solid #BBF7D0' }}>
                         <Typography variant="body2">✓ {item}</Typography>
                       </Box>
                     ))}

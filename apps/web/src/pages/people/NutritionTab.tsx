@@ -112,10 +112,10 @@ function DietaryProfileSection({ personId }: { personId: string }) {
       />
 
       {!hasProfile ? (
-        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'grey.200', bgcolor: 'success.light' }}>
-          <MealIcon sx={{ fontSize: 48, color: '#16A34A', mb: 1 }} />
+        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2, border: '1px solid', borderColor: 'grey.200', bgcolor: 'notice.success.bg' }}>
+          <MealIcon sx={{ fontSize: 48, color: 'notice.success.fg', mb: 1 }} />
           <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>No dietary profile yet</Typography>
-          <Typography variant="body2" color="#6B7280" sx={{ mb: 2 }}>
+          <Typography variant="body2" color='notice.success.fg' sx={{ mb: 2 }}>
             Set up this person's dietary requirements, preferences, and allergies to ensure safe and person-centred nutrition care.
           </Typography>
           <Button variant="contained" startIcon={<AddIcon />} onClick={startEdit} sx={{ bgcolor: '#16A34A', textTransform: 'none' }}>
@@ -130,8 +130,8 @@ function DietaryProfileSection({ personId }: { personId: string }) {
               <Box>
                 <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: 'text.primary' }}>Dietary Requirements</Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {profile.dietary_type && <Chip label={profile.dietary_type} size="small" sx={{ bgcolor: 'success.light', color: '#065F46', fontWeight: 600 }} />}
-                  {profile.texture_modified && <Chip label={`Texture: ${profile.texture_modified}`} size="small" sx={{ bgcolor: 'warning.light', color: '#92400E', fontWeight: 600 }} />}
+                  {profile.dietary_type && <Chip label={profile.dietary_type} size="small" sx={{ bgcolor: 'notice.success.bg', color: 'notice.success.fg', fontWeight: 600 }} />}
+                  {profile.texture_modified && <Chip label={`Texture: ${profile.texture_modified}`} size="small" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 600 }} />}
                 </Stack>
               </Box>
             )}
@@ -156,7 +156,7 @@ function DietaryProfileSection({ personId }: { personId: string }) {
             {profile.other_allergies && (
               <Box>
                 <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5, color: '#991B1B' }}>Other Allergies / Intolerances</Typography>
-                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', bgcolor: 'error.light', p: 1.5, borderRadius: 1, border: '1px solid #FECACA' }}>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', bgcolor: 'notice.error.bg', p: 1.5, borderRadius: 1, border: '1px solid #FECACA' }}>
                   {profile.other_allergies}
                 </Typography>
               </Box>
@@ -201,7 +201,7 @@ function DietaryProfileSection({ personId }: { personId: string }) {
             {profile.additional_notes && (
               <Box>
                 <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Additional Notes</Typography>
-                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', bgcolor: 'grey.50', p: 1.5, borderRadius: 1 }}>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', bgcolor: 'notice.subtle.bg', p: 1.5, borderRadius: 1 }}>
                   {profile.additional_notes}
                 </Typography>
               </Box>
@@ -288,7 +288,7 @@ function DailySummaryCard({ personId, fluidTarget = 2000 }: { personId: string; 
   const consumedColor = getConsumedColor(avgConsumed)
 
   return (
-    <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', bgcolor: 'grey.50' }}>
+    <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'grey.200', bgcolor: 'notice.subtle.bg' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <CalendarIcon sx={{ fontSize: 18, color: '#0F4C81' }} />
@@ -514,7 +514,7 @@ function MealRecordsSection({ personId }: { personId: string }) {
                       />
                     )}
                     {meal.fluid_ml > 0 && (
-                      <Chip icon={<WaterIcon sx={{ fontSize: 12 }} />} label={`${meal.fluid_ml}ml`} size="small" sx={{ bgcolor: 'info.light', color: '#0284C7' }} />
+                      <Chip icon={<WaterIcon sx={{ fontSize: 12 }} />} label={`${meal.fluid_ml}ml`} size="small" sx={{ bgcolor: 'notice.info.bg', color: 'notice.info.fg' }} />
                     )}
                   </Stack>
                   <Stack direction="row" spacing={0} onClick={e => e.stopPropagation()}>
@@ -663,7 +663,7 @@ function MealRecordsSection({ personId }: { personId: string }) {
                   <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Food Items</Typography>
                   <Stack spacing={0.5}>
                     {mealDetail.items.map((item: any) => (
-                      <Paper key={item.id} variant="outlined" sx={{ p: 1.5, bgcolor: 'grey.50' }}>
+                      <Paper key={item.id} variant="outlined" sx={{ p: 1.5, bgcolor: 'notice.subtle.bg' }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
                           <Typography variant="body2" fontWeight={600}>{item.food_name}</Typography>
                           {item.portion_size && <Chip label={item.portion_size} size="small" variant="outlined" />}
@@ -686,7 +686,7 @@ function MealRecordsSection({ personId }: { personId: string }) {
               {mealDetail.staff_concerns && (
                 <Box>
                   <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Staff Notes / Concerns</Typography>
-                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', bgcolor: 'warning.light', p: 1.5, borderRadius: 1, border: '1px solid #FED7AA' }}>{mealDetail.staff_concerns}</Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', bgcolor: 'notice.warning.bg', p: 1.5, borderRadius: 1, border: '1px solid #FED7AA' }}>{mealDetail.staff_concerns}</Typography>
                 </Box>
               )}
 

@@ -112,7 +112,7 @@ export default function ReportTableComponent({ title, columns, rows, pageSize = 
               <TableHead>
                 <TableRow>
                   {columns.filter(c => c.label).map(col => (
-                    <TableCell key={col.key} sx={{ fontWeight: 700, bgcolor: 'grey.50', whiteSpace: 'nowrap' }}>
+                    <TableCell key={col.key} sx={{ fontWeight: 700, bgcolor: 'notice.subtle.bg', whiteSpace: 'nowrap' }}>
                       <TableSortLabel
                         active={orderBy === col.key}
                         direction={orderBy === col.key ? order : 'asc'}

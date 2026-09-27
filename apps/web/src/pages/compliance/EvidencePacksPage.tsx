@@ -518,7 +518,7 @@ export default function EvidencePacksPage() {
                       if (n.other_allergies) flags.push('ALLERGY')
                       const isConcern = (n.nutrition_concerns_7d || 0) > 0 || (n.refused_last_7d || 0) > 0 || (n.avg_consumed_7d && n.avg_consumed_7d < 50)
                       return (
-                        <TableRow key={n.id} hover sx={isConcern ? { bgcolor: 'error.light' } : {}}>
+                        <TableRow key={n.id} hover sx={isConcern ? { bgcolor: 'notice.error.bg' } : {}}>
                           <TableCell>{n.person_name}</TableCell>
                           <TableCell>{n.dietary_type}</TableCell>
                           <TableCell>{(n.texture_modified && n.texture_modified !== 'None') ? n.texture_modified : '—'}</TableCell>
@@ -542,8 +542,8 @@ export default function EvidencePacksPage() {
               </TableContainer>
             )}
             {data.summary?.people_with_nutrition_concerns > 0 && (
-              <Box sx={{ mt: 2, p: 2, bgcolor: 'error.light', borderRadius: 1, border: '1px solid #FECACA' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#DC2626', mb: 1 }}>
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'notice.error.bg', borderRadius: 1, border: '1px solid #FECACA' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'notice.error.fg', mb: 1 }}>
                   ⚠ {data.summary.people_with_nutrition_concerns} person(s) with nutrition concerns in the last 7 days
                 </Typography>
                 <Typography variant="caption" color="text.secondary">

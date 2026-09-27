@@ -48,7 +48,7 @@ export default function MfaChallengePage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
       <Container maxWidth="xs">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle Care</Typography>
@@ -85,7 +85,7 @@ export default function MfaChallengePage() {
                 Lost access to your authenticator?
               </Typography>
             ) : (
-              <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+              <Paper sx={{ p: 2, bgcolor: 'notice.subtle.bg' }}>
                 <Stack spacing={1.5}>
                   <Typography variant="body2" color="#6B7280" sx={{ textAlign: 'center' }}>
                     Contact your organization administrator to reset your MFA. They can reset it from the Staff Directory, allowing you to log in and set up a new authenticator.

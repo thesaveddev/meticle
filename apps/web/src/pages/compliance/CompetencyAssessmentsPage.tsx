@@ -211,7 +211,7 @@ function PendingView() {
               </Typography>
 
               {rubric && rubric.length > 0 && (
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'notice.subtle.bg' }}>
                   <Typography variant="subtitle2" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <RubricIcon fontSize="small" /> Observation Scoring Rubric
                   </Typography>
@@ -241,14 +241,14 @@ function PendingView() {
                       {i < rubric.length - 1 && <Divider sx={{ mt: 1 }} />}
                     </Box>
                   ))}
-                  <Box sx={{ mt: 1, p: 1.5, bgcolor: 'info.light', borderRadius: 1 }}>
+                  <Box sx={{ mt: 1, p: 1.5, bgcolor: 'notice.info.bg', borderRadius: 1 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Typography variant="body2" fontWeight={700}>Total Score</Typography>
                       <Typography variant="body1" fontWeight={800}>
                         {rubric.reduce((s: number, _: any, i: number) => s + (rubricScores[i] ?? 0), 0)} / {rubric.reduce((s: number, r: any) => s + (r.max_score || 5), 0)}
                       </Typography>
                     </Stack>
-                    <Typography variant="caption" color="text.secondary">Pass threshold: 60% — {form.passed ? <strong style={{ color: '#16A34A' }}>PASS</strong> : <strong style={{ color: '#DC2626' }}>FAIL</strong>}</Typography>
+                    <Typography variant="caption" color="text.secondary">Pass threshold: 60% — {form.passed ? <strong style={{ color: 'notice.info.fg' }}>PASS</strong> : <strong style={{ color: 'notice.info.fg' }}>FAIL</strong>}</Typography>
                   </Box>
                 </Paper>
               )}

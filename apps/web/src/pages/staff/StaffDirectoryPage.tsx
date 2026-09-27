@@ -505,7 +505,7 @@ export default function StaffDirectoryPage() {
       {/* ── Stats row ── */}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'notice.muted.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <GroupIcon sx={{ fontSize: 20, color: '#0F4C81' }} />
           </Box>
           <Box>
@@ -514,8 +514,8 @@ export default function StaffDirectoryPage() {
           </Box>
         </PremiumCard>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'success.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <PersonIcon sx={{ fontSize: 20, color: '#047857' }} />
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'notice.success.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <PersonIcon sx={{ fontSize: 20, color: 'notice.success.fg' }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{activeCount}</Typography>
@@ -523,8 +523,8 @@ export default function StaffDirectoryPage() {
           </Box>
         </PremiumCard>
         <PremiumCard noBorder sx={{ p: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'success.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <PeopleIcon sx={{ fontSize: 20, color: '#047857' }} />
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: 'notice.success.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <PeopleIcon sx={{ fontSize: 20, color: 'notice.success.fg' }} />
           </Box>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{careWorkerCount}</Typography>
@@ -822,7 +822,7 @@ export default function StaffDirectoryPage() {
                         <Chip
                           label={ROLE_BADGE[entry.role] || entry.role}
                           size="small"
-                          sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'grey.100', color: '#0F4C81', fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'notice.muted.bg', color: '#0F4C81', fontWeight: 700 }}
                         />
                         {entry.location_id && (() => {
                           const loc = locationList.find((l: any) => l.id === entry.location_id)

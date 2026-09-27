@@ -118,7 +118,7 @@ export default function OvertimeClaimsPage() {
   }
 
   const shiftTypeChip = (t: string) => {
-    if (t === 'sleep') return <Chip label="Sleep" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'grey.50', color: '#581C87' }} />
+    if (t === 'sleep') return <Chip label="Sleep" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'notice.subtle.bg', color: '#581C87' }} />
     if (t === 'wake_night') return <Chip label="Wake Night" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: '#1E1B4B', color: '#F8FAFC' }} />
     return <Chip label="Day" size="small" sx={{ height: 20, fontSize: '0.65rem' }} />
   }

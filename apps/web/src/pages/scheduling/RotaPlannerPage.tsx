@@ -55,7 +55,7 @@ function RotaSkeleton() {
           <Paper key={d} variant="outlined" sx={{ flex: '1 1 0', minWidth: 165, p: 1 }}>
             <Skeleton variant="text" width="45%" sx={{ mb: 1 }} />
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} variant="rounded" height={42} sx={{ mb: 1, bgcolor: 'grey.100' }} />
+              <Skeleton key={i} variant="rounded" height={42} sx={{ mb: 1, bgcolor: 'notice.muted.bg' }} />
             ))}
           </Paper>
         ))}
@@ -872,7 +872,7 @@ export default function RotaPlannerPage() {
           {!isReadOnly && (rawUser.role === 'ORG_ADMIN' || rawUser.role === 'SUPER_ADMIN' || managedLocationIds.length > 0) && <Button variant="outlined" startIcon={<AddIcon />} onClick={() => openShiftDialog()}>Add Shift</Button>}
           {isAdminOrManager && <Button variant="outlined" color="info" onClick={() => window.location.href = '/scheduling/overtime-claims'}>Overtime Claims</Button>}
           {!isReadOnly && canEdit && <Button variant="outlined" color="secondary" onClick={openStaffingDialog}>Staffing Rules</Button>}
-          <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={runAiAnalysis} sx={{ borderColor: '#A855F7', color: '#A855F7', '&:hover': { borderColor: '#9333EA', bgcolor: 'grey.50' } }}>
+          <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={runAiAnalysis} sx={{ borderColor: '#A855F7', color: '#A855F7', '&:hover': { borderColor: '#9333EA', bgcolor: 'notice.subtle.bg' } }}>
             {aiLoading ? <CircularProgress size={16} sx={{ color: '#A855F7', mr: 0.5 }} /> : null}
             AI Analyze
           </Button>
@@ -936,7 +936,7 @@ export default function RotaPlannerPage() {
       ) : (
         <>
           {refreshing && (
-            <LinearProgress sx={{ mb: 2, height: 3, borderRadius: 2, bgcolor: 'info.light', '& .MuiLinearProgress-bar': { bgcolor: '#0F4C81' } }} />
+            <LinearProgress sx={{ mb: 2, height: 3, borderRadius: 2, bgcolor: 'notice.info.bg', '& .MuiLinearProgress-bar': { bgcolor: '#0F4C81' } }} />
           )}
 
           {/* Staffing level summary row */}
@@ -961,8 +961,8 @@ export default function RotaPlannerPage() {
           )}
 
           {isAdminOrManager && pendingClaims.length > 0 && (
-            <Paper sx={{ mb: 2, p: 2, border: '1px solid #FDE68A', bgcolor: 'warning.light' }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: '#92400E' }}>
+            <Paper sx={{ mb: 2, p: 2, border: '1px solid #FDE68A', bgcolor: 'notice.warning.bg' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'notice.warning.fg' }}>
                 Pending Overtime Claims ({pendingClaims.length})
               </Typography>
               <Stack spacing={1}>
@@ -971,13 +971,13 @@ export default function RotaPlannerPage() {
                     sx={{ bgcolor: 'white', p: 1, borderRadius: 1, border: '1px solid #FDE68A' }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>{pc.first_name} {pc.last_name}</Typography>
-                      <Typography variant="caption" color="#6B7280">— {pc.location_name}</Typography>
-                      <Typography variant="caption" color="#6B7280">
+                      <Typography variant="caption" color='notice.warning.fg'>— {pc.location_name}</Typography>
+                      <Typography variant="caption" color='notice.warning.fg'>
                         {new Date(pc.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                         {' '}{new Date(pc.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                         {' — '}{new Date(pc.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                       </Typography>
-                      <Chip label="Pending" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'warning.light', color: '#92400E' }} />
+                      <Chip label="Pending" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg' }} />
                     </Stack>
                     <Stack direction="row" spacing={0.5}>
                       <Button size="small" variant="contained" color="success"
@@ -994,7 +994,7 @@ export default function RotaPlannerPage() {
                   </Stack>
                 ))}
               </Stack>
-              <Button size="small" variant="text" sx={{ mt: 1, fontSize: '0.75rem', color: '#0F4C81', textTransform: 'none' }}
+              <Button size="small" variant="text" sx={{ mt: 1, fontSize: '0.75rem', color: 'notice.warning.fg', textTransform: 'none' }}
                 onClick={() => window.location.href = '/scheduling/overtime-claims'}>
                 View All Claims →
               </Button>
@@ -1002,8 +1002,8 @@ export default function RotaPlannerPage() {
           )}
 
           {swapRequests.length > 0 && (
-            <Paper sx={{ mb: 2, p: 2, border: '1px solid #E0E7FF', bgcolor: 'info.light' }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: '#3730A3' }}>
+            <Paper sx={{ mb: 2, p: 2, border: '1px solid #E0E7FF', bgcolor: 'notice.info.bg' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'notice.info.fg' }}>
                 Pending Swap Requests ({swapRequests.length})
               </Typography>
               <Stack spacing={1}>
@@ -1012,13 +1012,13 @@ export default function RotaPlannerPage() {
                     sx={{ bgcolor: 'white', p: 1, borderRadius: 1, border: '1px solid #E0E7FF' }}>
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>{sr.from_first_name} {sr.from_last_name}</Typography>
-                      <Typography variant="caption" color="#6B7280">
+                      <Typography variant="caption" color='notice.info.fg'>
                         wants to swap {new Date(sr.start_time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                         {' '}{new Date(sr.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                         {' — '}{new Date(sr.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                       </Typography>
                       <Chip label={sr.location_name} size="small" sx={{ height: 18, fontSize: '0.6rem' }} />
-                      {sr.reason && <Typography variant="caption" color="#6B7280" sx={{ fontStyle: 'italic' }}>"{sr.reason}"</Typography>}
+                      {sr.reason && <Typography variant="caption" color='notice.info.fg' sx={{ fontStyle: 'italic' }}>"{sr.reason}"</Typography>}
                     </Stack>
                     <Stack direction="row" spacing={0.5}>
                       <Button size="small" variant="contained" color="success"
@@ -1359,18 +1359,18 @@ export default function RotaPlannerPage() {
                             </Stack>
                             {!isTransfer && dayShifts[0]?.shift_type && dayShifts[0].shift_type !== 'day' && (
                               <Chip label={dayShifts[0].shift_type === 'sleep' ? 'Sleep' : 'Wake Night'} size="small"
-                                sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'grey.50', color: '#581C87' }} />
+                                sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.subtle.bg', color: '#581C87' }} />
                             )}
                             {isTransfer && (
                               <Chip label="Transfer" size="small"
-                                sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'warning.light', color: '#92400E' }} />
+                                sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg' }} />
                             )}
                           </Stack>
                         </Paper>
                       )
                     })})()}
                     {(!swapShiftDate && weekDates.filter(d => d >= new Date(new Date().toDateString())).length === 0) && (
-                      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
+                      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'notice.subtle.bg' }}>
                         <Typography variant="body2" color="#6B7280">
                           No upcoming days this week
                         </Typography>
@@ -1414,7 +1414,7 @@ export default function RotaPlannerPage() {
             <Alert severity="error" sx={{ mt: 1 }}>{aiError}</Alert>
           ) : aiAnalysis ? (
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <Paper sx={{ p: 2, bgcolor: 'grey.50', border: '1px solid #E9D5FF', borderRadius: 2 }}>
+              <Paper sx={{ p: 2, bgcolor: 'notice.subtle.bg', border: '1px solid #E9D5FF', borderRadius: 2 }}>
                 <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>Overall Assessment</Typography>
                 <Typography variant="body2" color="text.secondary">{aiAnalysis.overall_assessment}</Typography>
               </Paper>
@@ -1490,19 +1490,19 @@ export default function RotaPlannerPage() {
               )}
 
               {aiAnalysis.optimization_tips?.length > 0 && (
-                <Paper sx={{ p: 2, bgcolor: 'success.light', border: '1px solid #86EFAC', borderRadius: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: '#166534' }}>Optimization Tips</Typography>
+                <Paper sx={{ p: 2, bgcolor: 'notice.success.bg', border: '1px solid #86EFAC', borderRadius: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'notice.success.fg' }}>Optimization Tips</Typography>
                   <ul style={{ margin: 0, paddingLeft: 16 }}>
                     {aiAnalysis.optimization_tips.map((t: string, i: number) => (
-                      <li key={i}><Typography variant="caption" color="#166534">{t}</Typography></li>
+                      <li key={i}><Typography variant="caption" color='notice.success.fg'>{t}</Typography></li>
                     ))}
                   </ul>
                 </Paper>
               )}
 
               {aiAnalysis.estimated_savings && (
-                <Paper sx={{ p: 2, bgcolor: 'info.light', border: '1px solid #BFDBFE', borderRadius: 2 }}>
-                  <Typography variant="body2" fontWeight={700} sx={{ color: '#1E40AF' }}>
+                <Paper sx={{ p: 2, bgcolor: 'notice.info.bg', border: '1px solid #BFDBFE', borderRadius: 2 }}>
+                  <Typography variant="body2" fontWeight={700} sx={{ color: 'notice.info.fg' }}>
                     Estimated Savings: {aiAnalysis.estimated_savings}
                   </Typography>
                 </Paper>
@@ -1547,7 +1547,7 @@ export default function RotaPlannerPage() {
 
               {selectedLocationId && (
                 <>
-                  <Box sx={{ p: 2, bgcolor: 'success.light', border: '1px solid #BBF7D0', borderRadius: 2 }}>
+                  <Box sx={{ p: 2, bgcolor: 'notice.success.bg', border: '1px solid #BBF7D0', borderRadius: 2 }}>
                     <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Shift Start & End Rules</Typography>
 
                     <FormControlLabel
@@ -1613,7 +1613,7 @@ export default function RotaPlannerPage() {
                     </Box>
                   </Box>
 
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50', border: '1px solid #E9D5FF', borderRadius: 2 }}>
+                  <Paper sx={{ p: 2, bgcolor: 'notice.subtle.bg', border: '1px solid #E9D5FF', borderRadius: 2 }}>
                     <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Generation Inputs</Typography>
                     <Typography variant="caption" display="block" color="text.secondary">
                       • Location: {locations.find(l => l.id === selectedLocationId)?.name || 'All locations'} ({selectedLocationId ? getMinStaffForLocation(selectedLocationId) : '-'} min/day | Day:{getShiftTypeMin(selectedLocationId||'','day')} Night:{getShiftTypeMin(selectedLocationId||'','wake_night')} Sleep:{getShiftTypeMin(selectedLocationId||'','sleep')})
@@ -1633,7 +1633,7 @@ export default function RotaPlannerPage() {
               )}
 
               {!selectedLocationId && (
-                <Paper sx={{ p: 2, bgcolor: 'grey.50', border: '1px solid #E9D5FF', borderRadius: 2 }}>
+                <Paper sx={{ p: 2, bgcolor: 'notice.subtle.bg', border: '1px solid #E9D5FF', borderRadius: 2 }}>
                   <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Generation Inputs</Typography>
                   <Typography variant="caption" display="block" color="text.secondary">
                     Select a location to configure shift start/end rules.
@@ -1681,7 +1681,7 @@ export default function RotaPlannerPage() {
               </Stack>
 
               {genResult.summary && (
-                <Paper sx={{ p: 2, bgcolor: 'grey.50', border: '1px solid #E9D5FF', borderRadius: 2 }}>
+                <Paper sx={{ p: 2, bgcolor: 'notice.subtle.bg', border: '1px solid #E9D5FF', borderRadius: 2 }}>
                   <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>Summary</Typography>
                   <Typography variant="body2" color="text.secondary">{genResult.summary}</Typography>
                 </Paper>
@@ -1738,7 +1738,7 @@ export default function RotaPlannerPage() {
                         {editableGenShifts.map((s: any, i: number) => {
                           const dateStr = s.date ? new Date(s.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''
                           return (
-                            <TableRow key={i} sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                            <TableRow key={i} sx={{ '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
                               <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>#{i + 1}</TableCell>
                               {genEditMode ? (
                                 <>

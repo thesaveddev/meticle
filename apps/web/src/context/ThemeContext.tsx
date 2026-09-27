@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState, useEffect, ReactNode } from 'react'
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material'
+import { noticeTokens } from '../theme/noticeTokens'
 
 type ThemeMode = 'light' | 'dark'
 
@@ -50,6 +51,7 @@ export function createMeticleTheme(mode: ThemeMode = 'light', colors: BrandingCo
       secondary: {
         main: secondary,
       },
+      notice: noticeTokens(mode),
       ...(mode === 'dark'
         ? {
             background: {

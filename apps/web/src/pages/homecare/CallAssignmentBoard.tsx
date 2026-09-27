@@ -343,12 +343,12 @@ export default function CallAssignmentBoard() {
         </Box>
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Board view">
-            <IconButton size="small" onClick={() => setViewMode('board')} sx={{ bgcolor: viewMode === 'board' ? '#0F4C81' : 'transparent', color: viewMode === 'board' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'board' ? '#0D3D6B' : 'grey.100' } }}>
+            <IconButton size="small" onClick={() => setViewMode('board')} sx={{ bgcolor: viewMode === 'board' ? '#0F4C81' : 'transparent', color: viewMode === 'board' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'board' ? '#0D3D6B' : 'notice.muted.bg' } }}>
               <BoardIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Timeline view">
-            <IconButton size="small" onClick={() => setViewMode('timeline')} sx={{ bgcolor: viewMode === 'timeline' ? '#0F4C81' : 'transparent', color: viewMode === 'timeline' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'timeline' ? '#0D3D6B' : 'grey.100' } }}>
+            <IconButton size="small" onClick={() => setViewMode('timeline')} sx={{ bgcolor: viewMode === 'timeline' ? '#0F4C81' : 'transparent', color: viewMode === 'timeline' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'timeline' ? '#0D3D6B' : 'notice.muted.bg' } }}>
               <TimelineIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -945,7 +945,9 @@ function CarerDropZone({
       onClick={isClickable ? onClick : undefined}
       sx={{
         p: 2, border: '2px solid',
-        borderColor: isDropTarget ? '#0F4C81' : visits.length > 0 ? 'grey.200' : 'grey.100',
+        // `grey.200` and `grey.100` were both near-white hairlines that only
+        // read as a border in light mode; `divider` is the mode-aware token.
+        borderColor: isDropTarget ? '#0F4C81' : 'divider',
         borderRadius: 2,
         transition: 'all 0.2s',
         bgcolor: isDropTarget ? '#EFF6FF' : visits.length === 0 ? '#FAFAFA' : 'white',
@@ -1017,8 +1019,8 @@ function CarerDropZone({
                   onDragEnd={onDragEnd}
                   direction="row" alignItems="center" spacing={1}
                   sx={{
-                    py: 0.75, px: 1, bgcolor: 'grey.50', borderRadius: 1, cursor: 'pointer',
-                    '&:hover': { bgcolor: 'grey.100' },
+                    py: 0.75, px: 1, bgcolor: 'notice.subtle.bg', borderRadius: 1, cursor: 'pointer',
+                    '&:hover': { bgcolor: 'notice.muted.bg' },
                   }}
                   onClick={() => onExpand(v.id === expandedVisit ? null : v.id)}
                 >

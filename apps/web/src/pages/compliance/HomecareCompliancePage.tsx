@@ -121,7 +121,7 @@ function KloeSection({ domain, expanded, onToggle }: { domain: any; expanded: bo
           <Grid container spacing={1.5}>
             {(domain.statements || []).map((s: any) => (
               <Grid item xs={12} sm={6} md={4} key={s.id}>
-                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'divider' }}>
+                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'notice.subtle.bg', border: '1px solid', borderColor: 'divider' }}>
                   <Typography variant="caption" sx={{ color: domain.color, fontWeight: 700 }}>{s.id}</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 500, mt: 0.25 }}>{s.label}</Typography>
                 </Box>
@@ -219,7 +219,7 @@ export default function HomecareCompliancePage() {
       </Stack>
 
       {/* Overall Score */}
-      <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'grey.50' }}>
+      <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'notice.subtle.bg' }}>
         <CardContent sx={{ p: 3 }}>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>

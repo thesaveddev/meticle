@@ -357,7 +357,7 @@ export default function MissionControlPage() {
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                           <Chip label={categoryLabel(alert.alert_type)} size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: `${c.border}18`, color: c.text, '& .MuiChip-label': { px: 1 } }} />
                           {alert.severity === 'critical' && <Chip label="Critical" size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: '#DC262610', color: '#DC2626' }} />}
-                          {alert.assigned_name && <Chip label={`Assigned: ${alert.assigned_name}`} size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: 'grey.100', color: '#475569' }} />}
+                          {alert.assigned_name && <Chip label={`Assigned: ${alert.assigned_name}`} size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: 'notice.muted.bg', color: '#475569' }} />}
                         </Stack>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>{alert.title}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{alert.message}</Typography>
@@ -374,11 +374,11 @@ export default function MissionControlPage() {
 
                     {/* Assign Dropdown */}
                     {assignDialog === alert.id && (
-                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid #E2E8F0' }} onClick={e => e.stopPropagation()}>
+                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1, border: '1px solid #E2E8F0' }} onClick={e => e.stopPropagation()}>
                         <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>Assign to staff member:</Typography>
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                           {staff.slice(0, 8).map((s: any) => (
-                            <Chip key={s.id} label={`${s.first_name || ''} ${s.last_name || ''}`} size="small" onClick={() => handleAssign(alert.id, s.user_id || s.id, `${s.first_name || ''} ${s.last_name || ''}`)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'info.light' } }} />
+                            <Chip key={s.id} label={`${s.first_name || ''} ${s.last_name || ''}`} size="small" onClick={() => handleAssign(alert.id, s.user_id || s.id, `${s.first_name || ''} ${s.last_name || ''}`)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'notice.info.bg' } }} />
                           ))}
                           <Chip label="Cancel" size="small" onClick={() => setAssignDialog(null)} sx={{ cursor: 'pointer' }} />
                         </Stack>
@@ -411,8 +411,8 @@ export default function MissionControlPage() {
                       <Box sx={{ mt: 0.25 }}><SeverityIcon severity={alert.severity} /></Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                          <Chip label={categoryLabel(alert.alert_type)} size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: 'grey.100', color: 'text.secondary', '& .MuiChip-label': { px: 1 } }} />
-                          <Chip label="Dismissed" size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: 'success.light', color: '#16A34A' }} />
+                          <Chip label={categoryLabel(alert.alert_type)} size="small" sx={{ fontSize: '0.65rem', fontWeight: 700, height: 20, bgcolor: 'notice.muted.bg', color: 'text.secondary', '& .MuiChip-label': { px: 1 } }} />
+                          <Chip label="Dismissed" size="small" sx={{ fontSize: '0.6rem', fontWeight: 600, height: 18, bgcolor: 'notice.success.bg', color: 'notice.success.fg' }} />
                         </Stack>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{alert.title}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{alert.message}</Typography>
@@ -486,7 +486,7 @@ export default function MissionControlPage() {
                           <Typography variant="caption" sx={{ width: 70, color: 'text.secondary', fontWeight: 600 }}>
                             {new Date(day.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}
                           </Typography>
-                          <Box sx={{ flex: 1, height: 20, bgcolor: 'grey.100', borderRadius: 1, overflow: 'hidden', display: 'flex' }}>
+                          <Box sx={{ flex: 1, height: 20, bgcolor: 'notice.muted.bg', borderRadius: 1, overflow: 'hidden', display: 'flex' }}>
                             {day.critical > 0 && <Box sx={{ width: `${(day.critical / maxVal) * 100}%`, bgcolor: '#DC2626' }} />}
                             {day.high > 0 && <Box sx={{ width: `${(day.high / maxVal) * 100}%`, bgcolor: '#D97706' }} />}
                             {day.medium > 0 && <Box sx={{ width: `${(day.medium / maxVal) * 100}%`, bgcolor: '#2563EB' }} />}

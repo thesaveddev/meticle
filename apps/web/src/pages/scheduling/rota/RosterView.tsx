@@ -59,7 +59,7 @@ export default function RosterView(props: RotaViewProps) {
         <TableHead>
           <TableRow>
             <TableCell sx={{
-              fontWeight: 700, bgcolor: 'grey.50', position: 'sticky', left: 0, top: 0, zIndex: 3, minWidth: 170, fontSize: '0.7rem',
+              fontWeight: 700, bgcolor: 'notice.subtle.bg', position: 'sticky', left: 0, top: 0, zIndex: 3, minWidth: 170, fontSize: '0.7rem',
             }}>
               Staff
             </TableCell>
@@ -109,7 +109,7 @@ export default function RosterView(props: RotaViewProps) {
             const role = roleColor(staff.role)
             const weeklyHours = weeklyHoursByStaff.get(staff.staff_id) || 0
             return (
-              <TableRow key={staff.staff_id} sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+              <TableRow key={staff.staff_id} sx={{ '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
                 <TableCell sx={{
                   position: 'sticky', left: 0, bgcolor: 'background.paper', zIndex: 1, minWidth: 170, borderRight: '1px solid #F3F4F6',
                 }}>

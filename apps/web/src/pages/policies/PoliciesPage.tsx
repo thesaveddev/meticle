@@ -206,7 +206,7 @@ export default function PoliciesPage() {
                   <Box sx={{ p: 2.5 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1} sx={{ mb: 2 }}>
                       <Chip label={policy.category} size="small" sx={{ color, bgcolor: `${color}14`, fontWeight: 800, fontSize: '0.68rem', maxWidth: '80%' }} />
-                      <Chip label={`v${policy.version}`} size="small" sx={{ color: MUTED, bgcolor: 'grey.100', fontWeight: 800, fontSize: '0.68rem' }} />
+                      <Chip label={`v${policy.version}`} size="small" sx={{ color: MUTED, bgcolor: 'notice.muted.bg', fontWeight: 800, fontSize: '0.68rem' }} />
                     </Stack>
                     <Typography sx={{ color: INK, fontWeight: 850, fontSize: '1.05rem', lineHeight: 1.3, minHeight: 54, mb: 1.25 }}>{policy.title}</Typography>
                     <Typography sx={{ color: MUTED, fontSize: '0.86rem', lineHeight: 1.6, minHeight: 66, mb: 2 }}>{policy.content.slice(0, 160)}{policy.content.length > 160 ? '…' : ''}</Typography>
@@ -230,7 +230,7 @@ export default function PoliciesPage() {
             const color = categoryColors[policy.category] || NAVY
             const due = isReviewDue(policy.review_due_at)
             return (
-              <Box key={policy.id} component="button" type="button" onClick={() => navigate(`/policies/${policy.id}`)} sx={{ width: '100%', border: 0, borderBottom: index < visiblePolicies.length - 1 ? `1px solid ${HAIRLINE}` : 0, bgcolor: 'background.paper', p: 2, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--card-gap)', '&:hover': { bgcolor: 'grey.50' } }}>
+              <Box key={policy.id} component="button" type="button" onClick={() => navigate(`/policies/${policy.id}`)} sx={{ width: '100%', border: 0, borderBottom: index < visiblePolicies.length - 1 ? `1px solid ${HAIRLINE}` : 0, bgcolor: 'background.paper', p: 2, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--card-gap)', '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
                 <Box sx={{ width: 8, alignSelf: 'stretch', minHeight: 42, borderRadius: 1, bgcolor: color, flexShrink: 0 }} />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ sm: 1 }} alignItems={{ sm: 'center' }}>

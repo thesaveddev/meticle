@@ -71,7 +71,7 @@ function StripeCardForm({ cardholderName, setCardholderName, onSuccess }: {
   return (
     <Box>
 
-      <Box sx={{ p: 2, mb: 2, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
+      <Box sx={{ p: 2, mb: 2, bgcolor: 'notice.subtle.bg', borderRadius: 2, border: '1px solid', borderColor: 'grey.200' }}>
         <CardElement options={{
           style: { base: { fontSize: '16px', color: 'text.primary', '::placeholder': { color: 'text.secondary' } } },
           hidePostalCode: true,
@@ -365,7 +365,7 @@ function BillingPageInner() {
           {message}
         </Alert>
       )}      {isRedirectedFromBlock && (
-        <Alert severity="warning" sx={{ mb: 4, borderRadius: 2, bgcolor: 'warning.light', border: '1px solid #FDE68A' }}>
+        <Alert severity="warning" sx={{ mb: 4, borderRadius: 2, bgcolor: 'notice.warning.bg', border: '1px solid #FDE68A' }}>
           <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Welcome back</Typography>
           <Typography variant="body2">
             {subMessage || 'Your subscription needs attention. Please update your billing information below to restore access.'}
@@ -374,19 +374,19 @@ function BillingPageInner() {
       )}
 
       {!isActive && !isDomiciliary && (
-        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '2px solid #FEE2E2', bgcolor: 'error.light' }}>
+        <Paper sx={{ p: 4, mb: 4, borderRadius: 2.5, border: '2px solid #FEE2E2', bgcolor: 'notice.error.bg' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'stretch', sm: 'center' }}>
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight={800} color="#991B1B" sx={{ mb: 0.5 }}>
+              <Typography variant="h6" fontWeight={800} color='notice.error.fg' sx={{ mb: 0.5 }}>
                 {subStatus === 'canceled' ? 'Your subscription has been canceled' : subStatus === 'trial' ? 'Your trial has ended' : 'Your subscription has ended'}
               </Typography>
-              <Typography variant="body2" color="#991B1B">
+              <Typography variant="body2" color='notice.error.fg'>
                 {subStatus === 'past_due' || subscription?.hasUnpaidInvoice
                   ? 'There is an unpaid invoice. Update your payment method and retry to restore access.'
                   : 'Add a payment card and switch your plan to restore full access to Meticle Care.'}
               </Typography>
               {subscription?.hasUnpaidInvoice && (
-                <Typography variant="caption" color="#B91C1C" sx={{ mt: 0.5, display: 'block' }}>
+                <Typography variant="caption" color='notice.error.fg' sx={{ mt: 0.5, display: 'block' }}>
                   Unpaid invoice: {invoices.find(i => i.status === 'open')?.description || 'subscription invoice'}
                 </Typography>
               )}
@@ -445,9 +445,9 @@ function BillingPageInner() {
       )}
 
       {isTrialActive && (
-        <Alert severity="info" sx={{ mb: 4, borderRadius: 2, bgcolor: 'info.light', border: '1px solid #BAE6FD' }}>
+        <Alert severity="info" sx={{ mb: 4, borderRadius: 2, bgcolor: 'notice.info.bg', border: '1px solid #BAE6FD' }}>
           <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Trial limitations</Typography>
-          <Typography variant="body2" color="#6B7280">
+          <Typography variant="body2" color='notice.info.fg'>
             Your trial is limited to <strong>10 staff members</strong>. You currently have access to all features including AI insights, compliance tracking, and the rota planner. Upgrade anytime to remove the limit and continue after your trial expires.
           </Typography>
         </Alert>

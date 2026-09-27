@@ -459,7 +459,7 @@ export default function LeaveManagerPage() {
       {fetchError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFetchError('')}>{fetchError}</Alert>}
 
       {isAdminOrManager && (
-        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #DBEAFE', bgcolor: 'grey.50' }}>
+        <Paper sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #DBEAFE', bgcolor: 'notice.subtle.bg' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F4C81', mb: 1 }}>
             Active Delegations
           </Typography>
@@ -727,7 +727,7 @@ export default function LeaveManagerPage() {
                     bgcolor: isToday ? '#E7EEF4' : 'transparent',
                     border: '1px solid #F3F4F6',
                     cursor: 'pointer',
-                    '&:hover': { bgcolor: 'grey.50' },
+                    '&:hover': { bgcolor: 'notice.subtle.bg' },
                   }}
                     onClick={async (e) => {
                       const dayStats = calendarStats.find(s => s.date === toYMD(day))

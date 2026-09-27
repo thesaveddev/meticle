@@ -240,7 +240,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
 
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
         <Table>
-          <TableHead><TableRow sx={{ bgcolor: 'grey.50' }}>
+          <TableHead><TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
             <TableCell sx={{ fontWeight: 800 }} width={40}></TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Title</TableCell>
             <TableCell sx={{ fontWeight: 800 }}>Frequency</TableCell>
@@ -274,13 +274,13 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                   </TableCell>
                   <TableCell sx={{ minWidth: 150 }}>
                     <Stack direction="row" alignItems="center" spacing={1}>
-                      <LinearProgress variant="determinate" value={g.progress} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'grey.100', '& .MuiLinearProgress-bar': { bgcolor: progressColor(g.progress) } }} />
+                      <LinearProgress variant="determinate" value={g.progress} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'notice.muted.bg', '& .MuiLinearProgress-bar': { bgcolor: progressColor(g.progress) } }} />
                       <Typography variant="caption" sx={{ fontWeight: 800, color: progressColor(g.progress), minWidth: 35 }}>{g.progress}%</Typography>
                     </Stack>
                   </TableCell>
                   <TableCell>{statusChip(g.status)}</TableCell>
                   <TableCell>{g.cqc_domain ? <Chip label={g.cqc_domain} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /> : '-'}</TableCell>
-                  <TableCell>{g.care_plan_title ? <Chip label={g.care_plan_title} size="small" sx={{ bgcolor: 'info.light', color: '#3730A3', fontSize: '0.7rem' }} /> : '-'}</TableCell>
+                  <TableCell>{g.care_plan_title ? <Chip label={g.care_plan_title} size="small" sx={{ bgcolor: 'notice.info.bg', color: 'notice.info.fg', fontSize: '0.7rem' }} /> : '-'}</TableCell>
                   <TableCell>{g.target_date ? new Date(g.target_date).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>
                     <IconButton size="small" onClick={() => { setProgressGoalId(g.id); setProgressValue(g.progress); setProgressDialogOpen(true) }}><CheckIcon fontSize="small" sx={{ color: '#0F4C81' }} /></IconButton>
@@ -291,7 +291,7 @@ export default function GoalsPage({ personId, personName, carePlans }: { personI
                 <TableRow key={`${g.id}-expand`}>
                   <TableCell style={{ padding: 0 }} colSpan={10}>
                     <Collapse in={expandedGoalId === g.id} timeout="auto" unmountOnExit>
-                      <Box sx={{ p: 3, bgcolor: 'grey.50' }}>
+                      <Box sx={{ p: 3, bgcolor: 'notice.subtle.bg' }}>
                         <Grid container spacing={3}>
                           <Grid item xs={12} md={6}>
                             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>

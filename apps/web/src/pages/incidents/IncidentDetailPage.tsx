@@ -294,7 +294,7 @@ export default function IncidentDetailPage() {
                   {totalActions > 0 && (
                     <Box>
                       <LinearProgress variant="determinate" value={actionProgress}
-                        sx={{ height: 6, borderRadius: 3, bgcolor: 'grey.100', '& .MuiLinearProgress-bar': { bgcolor: actionProgress === 100 ? '#16A34A' : NAVY } }} />
+                        sx={{ height: 6, borderRadius: 3, bgcolor: 'notice.muted.bg', '& .MuiLinearProgress-bar': { bgcolor: actionProgress === 100 ? '#16A34A' : NAVY } }} />
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
                         {actionProgress === 100 ? 'All actions completed' : `${Math.round(actionProgress)}% complete`}
                       </Typography>
@@ -305,12 +305,12 @@ export default function IncidentDetailPage() {
 
               {/* Overdue actions alert */}
               {overdueActions.length > 0 && (
-                <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #FEE2E2', bgcolor: 'error.light' }}>
+                <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid #FEE2E2', bgcolor: 'notice.error.bg' }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                    <OverdueIcon sx={{ fontSize: 18, color: '#DC2626' }} />
-                    <Typography variant="subtitle2" fontWeight={800} color="#B91C1C">Overdue Actions</Typography>
+                    <OverdueIcon sx={{ fontSize: 18, color: 'notice.error.fg' }} />
+                    <Typography variant="subtitle2" fontWeight={800} color='notice.error.fg'>Overdue Actions</Typography>
                   </Stack>
-                  <Typography variant="body2" color="#991B1B">{overdueActions.length} action{overdueActions.length > 1 ? 's' : ''} past due date</Typography>
+                  <Typography variant="body2" color='notice.error.fg'>{overdueActions.length} action{overdueActions.length > 1 ? 's' : ''} past due date</Typography>
                 </Paper>
               )}
 
@@ -430,7 +430,7 @@ export default function IncidentDetailPage() {
                                 Due: {new Date(a.due_date).toLocaleDateString('en-GB')}
                               </Typography>
                               {overdue && <Chip icon={<OverdueIcon sx={{ fontSize: 12 }} />} label="Overdue" size="small"
-                                sx={{ bgcolor: 'error.light', color: '#B91C1C', fontWeight: 700, fontSize: 10, height: 20 }} />}
+                                sx={{ bgcolor: 'notice.error.bg', color: 'notice.error.fg', fontWeight: 700, fontSize: 10, height: 20 }} />}
                             </Stack>
                           )}
                           <StatusBadge label={a.status?.replace(/_/g, ' ') || 'pending'} tone={ACTION_STATUS_TONE[a.status] || 'neutral'} />

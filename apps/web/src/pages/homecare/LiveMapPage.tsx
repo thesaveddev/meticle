@@ -326,9 +326,9 @@ export default function LiveMapPage() {
                   </Box>
                   <Stack direction="row" alignItems="center" gap={1}>
                     {v.latitude != null ? (
-                      <Chip icon={<LocationIcon sx={{ fontSize: 14 }} />} label="GPS captured" size="small" sx={{ bgcolor: 'success.light', color: '#047857', height: 20, fontSize: '0.65rem' }} />
+                      <Chip icon={<LocationIcon sx={{ fontSize: 14 }} />} label="GPS captured" size="small" sx={{ bgcolor: 'notice.success.bg', color: 'notice.success.fg', height: 20, fontSize: '0.65rem' }} />
                     ) : (
-                      <Chip label="No GPS" size="small" sx={{ bgcolor: 'warning.light', color: '#D97706', height: 20, fontSize: '0.65rem' }} />
+                      <Chip label="No GPS" size="small" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', height: 20, fontSize: '0.65rem' }} />
                     )}
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>{time(v.last_updated)}</Typography>
                   </Stack>
@@ -348,7 +348,7 @@ export default function LiveMapPage() {
               <Stack key={v.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1, borderBottom: '1px solid #F3F4F6' }}>
                 <Box>
                   <Stack direction="row" alignItems="center" gap={1}>
-                    <Chip label={time(v.scheduled_start)} size="small" sx={{ bgcolor: 'grey.100', color: 'text.secondary', fontWeight: 600, height: 20, fontSize: '0.65rem' }} />
+                    <Chip label={time(v.scheduled_start)} size="small" sx={{ bgcolor: 'notice.muted.bg', color: 'text.secondary', fontWeight: 600, height: 20, fontSize: '0.65rem' }} />
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{v.person_name}</Typography>
                   </Stack>
                   <Typography variant="caption" sx={{ color: 'text.secondary', ml: 7 }}>
@@ -356,7 +356,7 @@ export default function LiveMapPage() {
                   </Typography>
                 </Box>
                 {!v.carer_name && (
-                  <Chip label="Unassigned" size="small" sx={{ bgcolor: 'warning.light', color: '#D97706', height: 20, fontSize: '0.65rem' }} />
+                  <Chip label="Unassigned" size="small" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', height: 20, fontSize: '0.65rem' }} />
                 )}
               </Stack>
             ))}
