@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import { EmailService } from '../../shared/utils/email.service';
 import pool, { migrateQuery } from '../../shared/database';
 import { UserRepository } from './user.repository';
-import { hashPassword, comparePassword } from './password.util';
+import { hashPassword, comparePassword, burnPasswordCompare } from './password.util';
 import speakeasy from 'speakeasy';
 import { generateAccessToken, generateRefreshToken, generateMfaChallengeToken, verifyRefreshToken, verifyMfaChallengeToken } from './jwt.service';
 import { UserRole, Plan } from '@meticle/shared';
@@ -298,16 +298,31 @@ export class AuthController {
     }
 
     const user = await UserRepository.findByEmail(email);
-    if (!user) throw new AppError(401, 'Invalid email or password');
+    if (!user) {
+      // Identical response to every other failure below, and — as importantly
+      // — comparable work. Returning here without a password comparison is the
+      // last enumeration channel on this endpoint: bcrypt is deliberately
+      // slow, so an address with no account answers in a few milliseconds
+      // while a real one spends a full hash on the way to the same 401. Status
+      // and body are already indistinguishable; this closes the measurement.
+      await burnPasswordCompare(password);
+      throw new AppError(401, 'Invalid email or password');
+    }
 
-    // Deliberately identical to the unknown-user response above. A distinct
-    // message here tells an unauthenticated caller that this address belongs
-    // to a real account on the system, and which state it is in — turning
-    // /auth/login into a staff-directory oracle for a care platform. The
-    // trade is that a deactivated user is told their credentials are wrong
-    // rather than who to contact; the administrator already knows, and the
-    // account remains genuinely unusable either way.
-    if (user.status === 'deactivated') throw new AppError(401, 'Invalid email or password');
+    // Deliberately identical to the unknown-user response above, and it burns
+    // the same comparison. A distinct message here tells an unauthenticated
+    // caller that this address belongs to a real account on the system, and
+    // which state it is in — turning /auth/login into a staff-directory oracle
+    // for a care platform. Skipping the comparison would leak the same fact
+    // through response time, and would separate a deactivated account from
+    // both a real one and a non-existent one. The trade is that a deactivated
+    // user is told their credentials are wrong rather than who to contact; the
+    // administrator already knows, and the account remains genuinely unusable
+    // either way.
+    if (user.status === 'deactivated') {
+      await burnPasswordCompare(password);
+      throw new AppError(401, 'Invalid email or password');
+    }
 
     const isPasswordValid = await comparePassword(password, user.password_hash);
     if (!isPasswordValid) {

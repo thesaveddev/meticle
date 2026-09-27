@@ -52,16 +52,32 @@ describe('public auth endpoints do not disclose whether an account exists', () =
 
   it('login does not distinguish a deactivated account from an unknown one', () => {
     const source = body('login');
-    const unknown = /!user\s*\)?\s*throw new AppError\((\d+),\s*'([^']+)'/;
-    const deactivated = /status === 'deactivated'\)[\s\S]{0,120}?throw new AppError\((\d+),\s*'([^']+)'/;
+    // Both guards are block-bodied: each burns a password comparison before
+    // throwing, so the window between the condition and the throw is real code
+    // rather than a single-line early return.
+    const unknown = /!user\)[\s\S]{0,240}?throw new AppError\((\d+),\s*'([^']+)'/;
+    const deactivated = /status === 'deactivated'\)[\s\S]{0,240}?throw new AppError\((\d+),\s*'([^']+)'/;
     expect(source).toMatch(unknown);
     expect(source).toMatch(deactivated);
     const unknownMatch = unknown.exec(source)!;
     const deactivatedMatch = deactivated.exec(source)!;
-    // Same status and same body, or the pair distinguishes existence. Timing is
-    // the other half of this and is not asserted here; see the note below.
+    // Same status and same body, or the pair distinguishes existence.
     expect(deactivatedMatch[1]).toBe(unknownMatch[1]);
     expect(deactivatedMatch[2]).toBe(unknownMatch[2]);
+
+    // Status and body being equal is only half the guarantee. Without the
+    // comparison these two paths return in milliseconds while a real account
+    // spends a cost-10 bcrypt hash, which re-opens the oracle through response
+    // time. Both must burn one before they throw.
+    for (const [label, match] of [['unknown', unknownMatch], ['deactivated', deactivatedMatch]] as const) {
+      const block = source.slice(match.index, match.index + 400);
+      const beforeThrow = block.slice(0, block.indexOf('throw new AppError'));
+      expect(
+        beforeThrow,
+        `the ${label} path returns without spending a password comparison, ` +
+          'so it is measurably faster and discloses that the account does not exist',
+      ).toContain('burnPasswordCompare(password)');
+    }
   });
 
   it('forgot-password stays non-enumerable', () => {
