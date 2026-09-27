@@ -320,7 +320,15 @@ const featureGroups = [
           // replace one unsupported claim with another.
           { title: 'Automated Daily Backups', desc: 'Full database snapshots every 24 hours, retained for 30 days.' },
           { title: 'Role-Based Access', desc: 'Granular permissions per module (view/edit). ORG_ADMIN only can change roles. Full audit trail of access.' },
-          { title: 'UK GDPR & DPA 2018', desc: 'ICO registered. UK data sovereignty. No data leaves UK jurisdiction.' },
+          // Was: "ICO registered. UK data sovereignty. No data leaves UK jurisdiction."
+          //
+          // The residency absolute was unevidenced and, on inspection, not
+          // defensible: application data does sit on a UK server, but Cloudflare
+          // sits in front of the site and our transactional mail is sent by a
+          // US-based provider. "Hosted in the UK" is what we can actually
+          // stand behind. A claim guard now fails the build if the absolute
+          // wording returns — see apps/web/src/__tests__/marketingClaims.ts.
+          { title: 'UK GDPR & DPA 2018', desc: 'ICO registered. UK data sovereignty — application data hosted in the UK.' },
         ],
       },
       {
