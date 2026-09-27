@@ -17,6 +17,7 @@ import { enqueueVisitAction, flushQueue, getQueue } from './src/services/visitQu
 import { scheduleVisitReminder, registerForPushNotifications, addNotificationListeners, removeNotificationListeners, getLaunchNotification } from './src/services/notifications'
 import { LoginScreen } from './src/screens/LoginScreen'
 import { TodayScreen, dayRange } from './src/screens/TodayScreen'
+import { StaffNoticeGate } from './src/components/StaffNoticeGate'
 import { VisitScreen } from './src/screens/VisitScreen'
 import { SettingsScreen } from './src/screens/SettingsScreen'
 import { LearnScreen } from './src/screens/LearnScreen'
@@ -464,7 +465,14 @@ function AppInner() {
   // only thing that puts it on screen, so no screen can skip the safe-area
   // insets, and a new kind in the `Screen` union has to be handled here or the
   // build fails.
-  const frame = (element: ReactNode) => (
+  // The staff location notice sits at the root of everything a signed-in
+  // worker can reach, so it is shown before the first screen and cannot be
+  // navigated past. It is the same position on every render path, so React
+  // keeps it mounted across navigation and the check runs once per sign-in
+  // rather than on every push.
+  const gated = (element: ReactNode) => <StaffNoticeGate>{element}</StaffNoticeGate>
+
+  const frame = (element: ReactNode) => gated(
     <>
       <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
       <ScreenFrame backgroundColor={c.bg} contacts={sosContacts}>{element}</ScreenFrame>
@@ -524,7 +532,7 @@ function AppInner() {
   }
 
   /* ─── Main tab view ──────────────────────────────────────── */
-  return (
+  return gated(
     <>
       <StatusBar barStyle={barStyle} backgroundColor={c.bg} />
       <SafeAreaView style={[s.app, { backgroundColor: c.bg }]} edges={['top', 'left', 'right', 'bottom']}>

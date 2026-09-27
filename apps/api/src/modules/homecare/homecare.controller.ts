@@ -1114,6 +1114,69 @@ export class HomecareController {
     } catch (e: any) { /* notification failure should not block */ }
   }
 
+  /* ─── Staff privacy notices ──────────────────────────────────── */
+
+  /**
+   * Has this worker already been shown a given version of a given notice?
+   *
+   * Returns the acknowledgement rather than a boolean, because the app has to
+   * compare the version it holds against the version it is about to show. A
+   * plain `true` would let a worker who accepted a notice that has since been
+   * rewritten be treated as having accepted the new one.
+   */
+  static async getStaffNotice(req: Request, res: Response) {
+    const result = await query(
+      `SELECT notice_key, notice_version, notice_accepted_at, app_version
+         FROM staff_data_notices
+        WHERE user_id = $1 AND notice_key = $2
+        ORDER BY notice_accepted_at DESC
+        LIMIT 1`,
+      [userId(req), req.params.noticeKey],
+    );
+    const row = result.rows[0];
+    res.json({
+      notice_key: row?.notice_key ?? null,
+      notice_version: row?.notice_version ?? null,
+      notice_accepted_at: row?.notice_accepted_at ?? null,
+      app_version: row?.app_version ?? null,
+    });
+  }
+
+  /**
+   * Record that a worker was shown a notice and read it.
+   *
+   * Inserted with ON CONFLICT DO NOTHING so a retry — a carer tapping twice on
+   * a patchy connection, or the app re-sending after a timeout it never saw the
+   * response to — cannot create two records and make the evidence look like two
+   * separate acknowledgements.
+   *
+   * This records that a worker was *informed*. It is not consent, it is not
+   * taken to any legal basis, and the audit row says "read" rather than
+   * "consented" for that reason. The employer is the controller and the
+   * employer is who has to justify the collection; a processor cannot consent
+   * on a worker's behalf, and would not be entitled to if it tried.
+   */
+  static async acknowledgeStaffNotice(req: Request, res: Response) {
+    const { notice_key, notice_version, app_version } = req.body as {
+      notice_key: string; notice_version: string; app_version?: string;
+    };
+    const inserted = await migrateQuery(
+      `INSERT INTO staff_data_notices (user_id, notice_key, notice_version, app_version)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (user_id, notice_key, notice_version) DO UPDATE SET app_version = EXCLUDED.app_version
+       RETURNING id`,
+      [userId(req), notice_key, notice_version, app_version ?? null],
+    );
+    // The row id, not a "key@version" string. audit_logs.entity_id is a UUID, so
+    // a composite string here would be rejected by Postgres — and because audit()
+    // swallows its own errors, the row would simply never be written, leaving the
+    // employer with an acknowledgement and no record of it having been shown.
+    audit(req, 'read', 'staff_data_notice', inserted.rows[0].id, {
+      notice_key, notice_version, app_version: app_version ?? null,
+    });
+    res.status(201).json({ notice_key, notice_version, accepted: true });
+  }
+
   /* ─── Location tracking kill switch ─────────────────────────── */
 
   /**

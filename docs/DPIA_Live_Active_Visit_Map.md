@@ -1,7 +1,7 @@
 # Data Protection Impact Assessment (DPIA)
 ## Live Active-Visit Map — MeticleCare
 
-**Document version:** 1.3  
+**Document version:** 1.4  
 **Date:** 27 September 2026  
 **Author:** MeticleCare Engineering  
 **Review date:** 13 March 2027
@@ -14,6 +14,28 @@
 | 1.1 | 27 Sep 2026 | **Corrected against the implementation.** Version 1.0 described a capability we do not have. Every correction is listed below rather than quietly edited, because a data protection assessment that has been amended to match the product is only useful if the reader can see what changed. |
 | 1.2 | 27 Sep 2026 | **Continuous collection removed, and an incorrect assurance in 1.1 retracted.** §1.1 of version 1.1 stated "no background location collection, no periodic sampling, and no tracking between or outside visits". That was wrong: the mobile app subscribed to the device position at 5-second / 10-metre intervals for as long as a visit screen was open before check-in. The claim was checked against documentation rather than against the code, and the code did not support it. The subscription is deleted, and this document is corrected. |
 | 1.3 | 27 Sep 2026 | **The v1.1 retraction of the per-organisation kill switch is reversed, because the control now exists.** Version 1.0 claimed an organisation "can disable the live map feature per-location"; 1.1 retracted it as a control that did not exist. The control is now built — to 1.1's specification, not 1.0's wording — and §6 is restated as an implemented right, with a new §6.1 setting out exactly what "off" stops and the one thing it cannot preserve. Residual risk stays MEDIUM. |
+| 1.4 | 27 Sep 2026 | **§5.2 stops being an intention and becomes a control, and two claims in it are withdrawn.** Carers are now shown what is collected, in the app, at first launch, with the acknowledgement recorded server-side. In the course of writing the notice, §5.2 was found to contradict §2.2 of this same document on retention, in the direction that flattered us. Also: the kill switch shipped in 1.3 had a gap — the navigation sheet read position without honouring it. |
+
+**What changed in 1.4**
+
+1. **The kill switch had a hole, found while writing the notice.** `MapPickerModal` took a
+   position fix to estimate travel time without checking `location_tracking_enabled`, so a
+   carer in an organisation that had switched location off was still prompted by the
+   operating system and still had their position read. The read was device-only and stored
+   nothing, so no data commitment was broken — but §6.1 of version 1.3 claimed "no position
+   is taken" on mobile, and that was false. Fixed, and the fix is that absence of storage is
+   not absence of collection: an employer that has told its workforce it does not track them
+   cannot also have the app asking for a position on their behalf.
+
+2. **§5.2 is now implemented rather than aspirational.** See the section for the full list.
+
+3. **"Retained as part of the care record, not as a separate surveillance log" is withdrawn.**
+   It contradicted §2.2, which records that no retention period has been determined. The
+   in-app notice states no period and tells the worker to ask their employer.
+
+4. **"Documented in employment contracts, staff handbook, and onboarding materials" is
+   withdrawn as unevidenced.** Those are the care provider's documents. The in-app notice
+   replaces the claim rather than the documents.
 
 **What changed in 1.3**
 
@@ -276,7 +298,21 @@ That makes step 5 the one to take most seriously before enabling anything, and i
 strong argument for the kill switch being built before this feature is offered to any
 unionised provider.
 
-### 5.2 What carers should know
+### 5.2 What carers are told, and where
+
+**IMPLEMENTED in v1.3 — until then this section was an intention, not a control.** Versions 1.0
+to 1.2 of this document stated what carers "should know" without anything in the product
+telling them. A transparency statement that exists only in a data protection assessment
+reaches the regulator and not the person being tracked.
+
+The notice is shown in the mobile app at first launch, once per worker per version, and the
+acknowledgement is recorded server-side (`staff_data_notices`, migration `127`) so an employer
+asked to evidence that their staff were informed has something to show. Content lives in
+`apps/mobile/src/content/staffLocationNotice.ts`, where each capture point carries a reference
+to the code that proves it, and `staffLocationNotice.test.ts` asserts the claims against the
+implementation.
+
+What it tells them:
 
 - GPS is collected **only** when they press Check in or Check out on an assigned visit
 - The app also reads their position **when they ask it to** — tapping "Check my distance",
@@ -286,8 +322,25 @@ unionised provider.
   is **not** tracked continuously. There is no background collection, and nothing runs on
   a timer
 - Only managers (not other carers) can see their location on the map
-- Location data is retained as part of the care record, not as a separate surveillance log
-- They can request a copy of their location data under Subject Access Request rights
+- **Their employer can see the recorded position against their name**, along with the client's
+  name and address, the time, and the accuracy of the reading
+- Turning the phone's location permission off means they cannot check in, and the employer
+  sees that they have not
+- The position is never sent to an AI provider
+- How long it is kept is **the employer's decision**, and they are told to ask their employer
+
+**Two corrections to what earlier versions of this document said here:**
+
+1. **"Retained as part of the care record, not as a separate surveillance log" is withdrawn.**
+   Versions 1.0 to 1.2 of §5.2 said this while §2.2 of the same document recorded that the
+   retention period for carer location had **not been determined** and had been escalated to
+   the DPO. The two sections contradicted each other, and the more reassuring of the two was
+   the wrong one. The notice therefore states no period at all, and tells the worker who
+   decides.
+2. **"Documented in employment contracts, staff handbook, and onboarding materials" is
+   withdrawn as unevidenced.** Those documents belong to the care provider, not to
+   MeticleCare, and nothing in this repository supports the claim. The control that does
+   exist is the in-app notice described above.
 
 ---
 
@@ -295,7 +348,7 @@ unionised provider.
 
 | Right | Implementation |
 |---|---|
-| **Right to be informed** | Documented in employment contracts, staff handbook, and onboarding materials |
+| **Right to be informed** | **IMPLEMENTED in-app, v1.3.** The carer-facing location notice (`apps/mobile/src/content/staffLocationNotice.ts`) is shown at first launch, once per worker per version, and the acknowledgement is recorded in `staff_data_notices`. Earlier versions of this document claimed the information was "documented in employment contracts, staff handbook, and onboarding materials" — those belong to the care provider and nothing here evidenced them. That claim is withdrawn; see §5.2. |
 | **Right of access** | Subject Access Requests include GPS coordinates from visit records. Response within 30 days per UK GDPR. |
 | **Right to rectification** | GPS coordinates are immutable (captured at check-in/out). Correction is not technically possible; a note can be appended to the visit record. |
 | **Right to erasure** | GPS coordinates are part of the care record retained under legal obligation (care-records retention policy). Erasure requests are assessed on a case-by-case basis per the organisation's SAR policy. |

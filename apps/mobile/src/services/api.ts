@@ -144,6 +144,60 @@ export async function setLocationThreshold(token: string, meters: number): Promi
   await request('/homecare/settings/location-threshold', { method: 'PATCH', body: JSON.stringify({ location_threshold_meters: meters }) }, token)
 }
 
+/** What this worker has already been shown, if anything. */
+export type StaffNoticeAcknowledgement = {
+  notice_key: string | null
+  notice_version: string | null
+  notice_accepted_at?: string | null
+  app_version?: string | null
+}
+
+/**
+ * The result of asking whether this worker has read a notice.
+ *
+ * `reachable` is load-bearing and the reason this is not a nullable
+ * acknowledgement. "The server says you have not read it" and "I could not ask"
+ * are different facts with opposite consequences: the first means show the
+ * notice, the second means do not stand in front of a care worker at the start
+ * of a shift with a spinner or a privacy screen they cannot get past. A carer
+ * with no signal has to be able to check in.
+ */
+export type StaffNoticeStatus =
+  | { reachable: true; acknowledgement: StaffNoticeAcknowledgement | null }
+  | { reachable: false; acknowledgement: null }
+
+/**
+ * Which version of a staff notice this worker has already read.
+ *
+ * Never throws. A network failure is reported as `reachable: false` so the
+ * caller can tell it apart from "no record", which is the whole point.
+ */
+export async function getStaffNotice(token: string, noticeKey: string): Promise<StaffNoticeStatus> {
+  try {
+    const acknowledgement = await request<StaffNoticeAcknowledgement>(`/homecare/staff-notices/${noticeKey}`, {}, token)
+    return { reachable: true, acknowledgement }
+  } catch {
+    return { reachable: false, acknowledgement: null }
+  }
+}
+
+/**
+ * Record that a worker has been shown a notice.
+ *
+ * Throws on failure, unlike the read: the caller holds the notice open rather
+ * than letting the worker past it on a record that was never written. An
+ * unrecorded acknowledgement is worth less than a repeated tap.
+ */
+export async function acknowledgeStaffNotice(
+  token: string,
+  notice: { notice_key: string; notice_version: string; app_version?: string }
+): Promise<void> {
+  await request('/homecare/staff-notices', {
+    method: 'POST',
+    body: JSON.stringify(notice),
+  }, token)
+}
+
 export async function getRequirePhoto(token: string): Promise<boolean> {
   const res = await request<{ require_photo_on_checkout: boolean }>('/homecare/settings/require-photo', {}, token)
   return res.require_photo_on_checkout || false

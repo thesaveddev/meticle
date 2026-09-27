@@ -27,6 +27,7 @@ export default function PrivacyPolicyPage() {
       <Section title="1. Information We Collect">
         <p>We collect information you provide directly, including:</p>
         <ul><li>Account information (name, email, password)</li><li>Organisation information (company name, address, staff details)</li><li>Person information (names, care plans, medical details, daily notes)</li><li>Staff compliance data (training records, DBS checks, identity documents)</li><li>Payment information (processed securely through Stripe — we never store your full card details)</li><li>Usage data (pages visited, features used, error logs)</li></ul>
+        <p><strong>Staff location data.</strong> Where a care provider uses the visit check-in map, the app records the position of the worker at the moment they check in and check out of a call, together with the time and the accuracy of the reading. This is location data about an identifiable worker, collected on the care provider's instructions, and it is a category this policy previously failed to list at all. How long it is kept is set by the care provider, not by us, and each care provider can switch the collection off entirely in the product. Workers are shown what is collected and what their employer can see, in the app itself, before they use it. We do not use it for advertising or profiling, and it is never sent to an AI provider.</p>
       </Section>
 
       <Section title="2. How We Use Your Information">

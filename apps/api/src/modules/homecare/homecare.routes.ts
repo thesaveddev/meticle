@@ -262,6 +262,17 @@ const locationTrackingSchema = z.object({ enabled: z.boolean() });
 router.get('/settings/location-tracking', requireRole(...fieldRoles), asyncHandler(HomecareController.getLocationTracking));
 router.put('/settings/location-tracking', requireRole(UserRole.ORG_ADMIN), validate(locationTrackingSchema), asyncHandler(HomecareController.updateLocationTracking));
 
+// Staff privacy notices. Any authenticated user: this is the worker being told
+// something, not an org reading a report, so a manager role would exclude
+// exactly the carers the notice is for.
+const staffNoticeSchema = z.object({
+  notice_key: z.string().min(1).max(64),
+  notice_version: z.string().min(1).max(32),
+  app_version: z.string().max(32).optional(),
+});
+router.get('/staff-notices/:noticeKey', asyncHandler(HomecareController.getStaffNotice));
+router.post('/staff-notices', validate(staffNoticeSchema), asyncHandler(HomecareController.acknowledgeStaffNotice));
+
 // Photo requirement on check-out
 const photoReqSchema = z.object({ require_photo_on_checkout: z.boolean() });
 router.patch('/settings/require-photo', requireRole(...managerRoles), validate(photoReqSchema), asyncHandler(HomecareController.updateRequirePhoto));

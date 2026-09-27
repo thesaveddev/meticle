@@ -6,6 +6,8 @@ import { hapticLight } from '../services/haptics'
 import { Ionicons } from '@expo/vector-icons'
 import { getMapLogo } from './MapAppLogos'
 import { getVisitLocation, haversineDistance, formatDistance } from '../services/location'
+import { getLocationTrackingEnabled } from '../services/api'
+import { readSession } from '../services/storage'
 
 interface Props {
   visible: boolean
@@ -48,10 +50,24 @@ export function MapPickerModal({ visible, onClose, destination, latitude, longit
   // read, and the value stays on the device. This is the third and last point
   // where the app reads position, alongside Check in / Check out and the
   // explicit "Check my distance" tap. See docs/DPIA_Live_Active_Visit_Map.md.
+  //
+  // Gated on the organisation's location switch. This read is device-only, so it
+  // stores nothing and breaches no data commitment — but an organisation that
+  // has turned carer location off should not have the app asking the operating
+  // system for a position on their staff's behalf, and "we only keep it on the
+  // phone" is not an answer to a worker who was told their employer does not
+  // track their location. Absence of storage is not absence of collection.
   useEffect(() => {
     if (!visible || !latitude || !longitude) { setTravelInfo(null); return }
-    getVisitLocation()
+    let cancelled = false
+    readSession()
+      .then(session => (session ? getLocationTrackingEnabled(session.accessToken) : true))
+      .then(enabled => {
+        if (cancelled || !enabled) { if (!cancelled) setTravelInfo(null); return }
+        return getVisitLocation()
+      })
       .then(loc => {
+        if (cancelled || !loc) return
         const distMeters = haversineDistance(loc.latitude, loc.longitude, latitude, longitude)
         const dist = formatDistance(distMeters)
         // Rough ETA: 30 km/h average in urban areas + 2 min per km under 5km
@@ -61,7 +77,8 @@ export function MapPickerModal({ visible, onClose, destination, latitude, longit
         const eta = estMinutes < 60 ? `${estMinutes} min` : `${Math.floor(estMinutes / 60)}h ${estMinutes % 60}m`
         setTravelInfo({ distance: dist, eta })
       })
-      .catch(() => setTravelInfo(null))
+      .catch(() => { if (!cancelled) setTravelInfo(null) })
+    return () => { cancelled = true }
   }, [visible, latitude, longitude])
 
   const detectApps = async () => {
