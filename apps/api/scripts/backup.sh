@@ -76,17 +76,30 @@ find "$BACKUP_DIR" -maxdepth 1 -name "meticle_*.sql.gz" -mtime +"$RETENTION_DAYS
 # counts can look healthy while archiving is actually wedged, whereas
 # pg_stat_archiver reports the last time a segment was successfully archived
 # and how many attempts have failed.
+#
+# The first field is deliberately an EMPTY STRING, not a sentinel number, when
+# last_archived_time is NULL. Those are different states and conflating them
+# breaks the deploy that first enables archiving: a freshly started server with
+# archive_timeout=300 has legitimately archived nothing for the first few
+# minutes, and that is not a fault. QUERY_FAILED is a distinct token that the
+# database itself can never produce, so "could not read the archiver" and
+# "nothing archived yet" stop looking identical.
 ARCHIVER=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -At -F '|' -c \
-  "SELECT COALESCE(EXTRACT(EPOCH FROM (NOW() - last_archived_time))::int, -1),
+  "SELECT COALESCE(EXTRACT(EPOCH FROM (NOW() - last_archived_time))::int::text, ''),
           archived_count,
           failed_count,
           (SELECT setting FROM pg_settings WHERE name = 'archive_mode')
-   FROM pg_stat_archiver;" 2>/dev/null || echo "|-1|-|-")
+   FROM pg_stat_archiver;" 2>/dev/null || echo "QUERY_FAILED|-|-|-")
 
 STALE=$(echo "$ARCHIVER" | cut -d'|' -f1)
 ARCHIVED=$(echo "$ARCHIVER" | cut -d'|' -f2)
 FAILED=$(echo "$ARCHIVER" | cut -d'|' -f3)
 ARCHIVE_MODE=$(echo "$ARCHIVER" | cut -d'|' -f4)
+
+if [ "$STALE" = "QUERY_FAILED" ]; then
+  echo "[$(date)] ERROR: could not read pg_stat_archiver; cannot confirm PITR is working." >&2
+  exit 1
+fi
 
 if [ "$ARCHIVE_MODE" != "on" ]; then
   echo "[$(date)] ERROR: archive_mode is '${ARCHIVE_MODE:-unknown}', not 'on'." >&2
@@ -95,9 +108,26 @@ if [ "$ARCHIVE_MODE" != "on" ]; then
   exit 1
 fi
 
-if [ "$STALE" = "-1" ]; then
-  echo "[$(date)] ERROR: could not read pg_stat_archiver; cannot confirm PITR is working." >&2
-  exit 1
+if [ -z "$STALE" ]; then
+  # Archiving is enabled and has never completed a segment. That is expected on
+  # a database that has been up for less than archive_timeout with no write
+  # pressure. It is also roughly what a wedged archive looks like a few minutes
+  # in, so the two are separated by whether any attempt has actually failed
+  # rather than assumed to be fine.
+  #
+  # This branch is load-bearing for the deploy that first enables archiving:
+  # deploy.sh runs this script as its pre-migration step, seconds after the db
+  # container was recreated, so it lands here on a normal first deploy.
+  if [ "${FAILED:-0}" -gt 0 ] && [ "${ARCHIVED:-0}" -eq 0 ]; then
+    echo "[$(date)] ERROR: archiving is enabled but all ${FAILED} attempt(s) have failed." >&2
+    echo "[$(date)] Check that /backups/wal exists and is writable by the postgres user." >&2
+    exit 1
+  fi
+  echo "[$(date)] NOTE: archiving is enabled, no segment archived yet."
+  echo "[$(date)] Expected on a freshly started database. PITR becomes usable once the"
+  echo "[$(date)] first segment lands, within archive_timeout or sooner under write load."
+  echo "[$(date)] PITR check OK: enabled, 0 segment(s) archived so far."
+  exit 0
 fi
 
 if [ "$STALE" -gt "$ARCHIVE_STALE_SECONDS" ]; then
