@@ -137,20 +137,24 @@ export default function RegisterPage() {
     }
     const fullName = `${data.firstName} ${data.lastName}`.trim()
     try {
+      // Both branches sit behind the same per-IP registration limit, and an
+      // invited staff member is the *most* likely person to hit it: they are
+      // one of a dozen colleagues registering from the same office connection
+      // in the same few minutes. Waits the limit out rather than failing.
       let res;
 
       if (token && invitation) {
-        res = await api.post('/auth/register-with-invitation', {
+        res = await withRateLimitRetry(() => api.post('/auth/register-with-invitation', {
           token,
           name: fullName,
           password: data.password,
-        })
+        }))
       } else {
-        res = await api.post('/auth/register', {
+        res = await withRateLimitRetry(() => api.post('/auth/register', {
           ...data,
           name: fullName,
           role: data.role || UserRole.ORG_ADMIN,
-        })
+        }))
       }
 
       const storedUser = res.data.user
@@ -165,7 +169,9 @@ export default function RegisterPage() {
         navigate('/onboarding')
       }
     } catch (err: any) {
-      setError(apiErrorMsg(err, 'Something went wrong. Please try again later.'))
+      setError(err?.response?.status === 429
+        ? rateLimitMessage(err, 'Too many people are registering at once. Please try again shortly.')
+        : apiErrorMsg(err, 'Something went wrong. Please try again later.'))
     } finally {
       setLoading(false)
     }

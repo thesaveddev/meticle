@@ -64,6 +64,36 @@ services:
   db:
     image: postgres@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f
     restart: unless-stopped
+    # Point-in-time recovery.
+    #
+    # `archive_mode` and `archive_command` are set here rather than in a mounted
+    # conf file because the image is digest-pinned and pulled from a registry —
+    # there is no build context to COPY a config into. Setting them as command
+    # arguments keeps them visible in this file rather than hidden in an image.
+    #
+    # WARNING: archive_mode cannot be changed with a reload. Applying this
+    # restarts Postgres, which is a brief outage for every customer. Do it in a
+    # maintenance window, not on a Friday afternoon.
+    #
+    # `wal_level` must be replica or higher for archiving to work; the default
+    # already is, but it is stated explicitly because a silently lower value is
+    # exactly the kind of thing that turns PITR off without saying so.
+    #
+    # archive_timeout forces a segment switch every 5 minutes so replay can
+    # never be more than that behind. Without it a quiet database can leave
+    # hours of changes in an unswitched segment that has not been archived yet.
+    command:
+      - "postgres"
+      - "-c"
+      - "archive_mode=on"
+      - "-c"
+      - "wal_level=replica"
+      - "-c"
+      - "archive_command=test ! -f /backups/wal/%f && cp %p /backups/wal/%f"
+      - "-c"
+      - "archive_timeout=300"
+      - "-c"
+      - "max_wal_senders=0"
     environment:
       - POSTGRES_USER=meticle
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -71,6 +101,11 @@ services:
       - APP_ROLE_PASSWORD=${APP_ROLE_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Shared with the backup service. Deliberately a *different* volume from
+      # postgres_data: if both the database and its recovery points live on one
+      # volume, losing that volume loses the backups along with the data, which
+      # is the situation backups exist to prevent.
+      - backup_data:/backups
       - ./apps/api/scripts/create-app-role.sh:/docker-entrypoint-initdb.d/01-create-app-role.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U meticle"]
@@ -110,11 +145,17 @@ services:
     volumes:
       - backup_data:/backups
       - ./apps/api/scripts/backup.sh:/usr/local/bin/backup.sh:ro
+      - ./apps/api/scripts/restore.sh:/usr/local/bin/restore.sh:ro
     entrypoint: |
       sh -c '
         apk add --no-cache bash > /dev/null 2>&1
+        # The db container archives WAL here as the postgres user, which cannot
+        # create the directory itself in a root-owned volume. Creating it here
+        # and handing it over means archiving works from the first segment
+        # rather than failing silently until someone notices the gap.
+        mkdir -p /backups/wal && chown -R postgres:postgres /backups
         echo "0 2 * * * sh /usr/local/bin/backup.sh" > /etc/crontabs/root
-        echo "[$$] Backup service ready. Runs daily at 2am."
+        echo "[$$] Backup service ready. Runs daily at 2am. PITR archive at /backups/wal."
         crond -f -l 2
       '
     depends_on:
