@@ -5,6 +5,11 @@
 **Written:** 27 September 2026
 **Read time:** 10 minutes. The whole point of this is that you can work through it without opening a terminal.
 
+> **This document explains *why*. It is not the tracker.** The single tracked list, with a named
+> owner and evidence for every item, is `docs/GO_LIVE_READINESS.md` — items there are numbered
+> `T0-…`, `T1-…`, `T2-…`, so "item 2" below (the backup restore test) is `T0-2` there. If the two
+> ever disagree, the tracker wins, because it is the one with owners and dates on it.
+
 ---
 
 ## How to use this
@@ -187,21 +192,13 @@ The app itself is built. What is missing is entirely on your side of the wall, a
 
 ## Tier 2 — before you scale past the first few customers
 
-These do not block a first customer, but they become urgent fast. From `docs/MeticleCare_GoLive_Readiness.csv` (currently 33 items, all "Not Started", no owners — I suggest we rewrite it with names on it).
+**These now live in one place: `docs/GO_LIVE_READINESS.md`.**
 
-**You can start now, no cost:**
+That file is the single tracked list for taking us to our first paying customer. It replaced the old `MeticleCare_GoLive_Readiness.csv` spreadsheet, which sat at "Not Started, 0%" with nobody's name on any of its 33 rows and quietly went stale — it still listed email setup as undone after we had verified it end to end.
 
-| Item | Why | Effort |
-|---|---|---|
-| Independent penetration test | We have secured this ourselves, repeatedly, which is exactly why an outside pair of eyes matters before customer data arrives. Budget £3–5k. | 1–2 weeks |
-| Uptime monitoring + alerting | The tool is deployed; item 3 above is about proving it works and that it alerts a phone. Half an hour. | 30 min |
-| API key rotation policy | We hold live keys for OpenAI, Anthropic, Stripe. Put a recurring calendar reminder in place. | 2 hours |
-| Verify rate limits in production | Test that the limits genuinely return a clear error rather than failing quietly. Related to item 4. | 2 hours |
-| Customer support process | Decide how support tickets arrive and who answers. Write it down. | Half a day |
-| Incident response plan | What happens if we lose data, or the site goes down, or there's a safeguarding concern? Who decides, who tells the customer, what do we say? Write it *before* you need it. | 2–3 days |
-| CQC registration question | Find out whether we need to register, or whether we are purely software for registered providers. A phone call or an email. | Research |
+Every item below is in that list with a named owner and, where it is marked done, the evidence. It is deliberately **markdown in the repository** rather than a spreadsheet, for one practical reason: a spreadsheet is invisible to code review, so nobody notices when it rots. A tracked list in the repo is versioned, diffable, and can be updated in the same commit as the change that moves an item.
 
-**Needs budget or an adviser:** professional indemnity insurance (item 5), solicitor reviews, DPIA sign-off, backup restore testing (item 2), load testing, disaster recovery runbook, WCAG accessibility audit, data retention policy implementation, AI output labelling audit.
+**The short version of what is in it for you:** the independent penetration test (we have secured this ourselves, repeatedly, which is exactly why an outside pair of eyes matters before customer data arrives — budget £3–5k), insurance and legal sign-off, the org-wide DPIA, and the customer support and incident response processes. Items 5 and 6 above are the ones with the longest lead times, so start them first even though they finish last.
 
 ---
 
@@ -211,6 +208,7 @@ So you don't go looking for work that's finished:
 
 - ✅ **Email authentication is correct and verified.** SPF, DKIM and DMARC all pass on mail the application itself sends. Gmail confirms `dkim=pass`, signed with our published key. This was the big one — verification codes will arrive in Gmail without landing in spam, and nobody can send mail pretending to be from us. Full evidence in `docs/EMAIL_SECURITY_RUNBOOK.md`.
 - ✅ **The misleading ISO 27001 claim was removed.** It used to appear in our privacy policy and would have been a false certification claim. It is gone. Do not let anyone add it back.
+- ✅ **The misleading "point-in-time recovery" claim was removed** from the features page, 27 Sep. We take a nightly snapshot and keep it 30 days; we cannot rewind to an arbitrary moment, so we no longer say we can.
 - ✅ **Account deletion page exists** and is publicly linked, as Apple and Google both require.
 - ✅ **Tenant isolation is enforced in the database itself**, not just in application code, so a bug in our code cannot leak one care home's data into another's.
 - ✅ **Login and signup are hardened** against account enumeration and timing attacks.

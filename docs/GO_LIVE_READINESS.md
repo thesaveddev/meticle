@@ -1,0 +1,129 @@
+# Go-live readiness
+
+**This is the single tracked list for taking Meticle Care to its first paying customer.**
+It replaces `MeticleCare_GoLive_Readiness.csv` and `.xlsx`, which were a 33-item template that
+sat at "Not Started, 0%" with nobody's name on it and quietly went stale. A list nobody owns
+and nobody updates is worse than no list, because it looks like progress.
+
+**Owners:** **Adetoye** = Adetoye Adenuga (co-founder, commercial/legal/ops).
+**Opeyemi** = Opeyemi Olorunfemi (co-founder, engineering).
+**Appoint** = a person who does not exist yet. Adetoye hires or engages them; that act *is* the task.
+
+Old IDs are preserved so anything you saw in the spreadsheet still cross-references.
+
+---
+
+## How to read the state column
+
+| | Meaning |
+|---|---|
+| ✅ | **Verified done.** Checked against the repo or a live system, with the date. |
+| 🟡 | **Partially done.** The part that exists works; the rest is named. |
+| ⬜ | **Not started.** |
+| ⛔ | **Blocked** — and the blocker is named, because an unblocked-sounding blocker is the worst kind |
+
+**The rule that keeps this honest:** nothing gets ✅ without evidence in the "Basis" column.
+A claim with no citation is a guess wearing a tick. If you cannot cite it, it is 🟡 or ⬜.
+
+**Last full pass: 27 September 2026.**
+
+---
+
+## Tier 0 — blocks the first paying customer
+
+| ID | Item | State | Basis (verified how) | Owner | Next action |
+|---|---|---|---|---|---|
+| **T0-1** | ICO registration | ⬜ | No ICO number anywhere in `apps/web`; `FeaturesPage.tsx:305` claims "ICO registered" | **Adetoye** | Register at ico.org.uk (~£40–60, 1hr). **Decision taken 27 Sep: register, keep the claim.** Then add the number to `FeaturesPage.tsx` — the claim is not true until it is on the page. |
+| **T0-2** | Backup restore test | 🟡 | Backups **verified real**: `backup` service in `docker-compose.prod.yml`, nightly `pg_dump` 02:00, 30-day retention, atomic tmp→rename. **Restore never performed.** | **Opeyemi** + access decision from **Adetoye** | Restore last night's dump to a scratch DB, verify data integrity. Needs prod DB access — Opeyemi gets credentials, or Adetoye runs the commands and sends output, or screen share. Until then "we have backups" is an untested assumption. |
+| **T0-3** | Public backup claim accuracy | ✅ | `FeaturesPage.tsx:321` corrected 27 Sep. Was claiming "Point-in-time recovery"; we have a nightly dump and **no WAL archiving** (`archive_command`/pgbackrest/wal-g all absent), so the strongest true claim was being made. Now states daily snapshots / 30-day retention only. | **Opeyemi** | Revisit only if real WAL archiving is added. Do not re-add "point-in-time" or "restore-tested" until each is true. |
+| **T0-4** | Uptime monitoring actually works | 🟡 | Uptime Kuma **is deployed** (`docker-compose.prod.yml`, loopback-bound — good). Whether any monitor or alert contact exists is **invisible to the repo**; it lives in Kuma's own DB. | **Adetoye** | 30 min: log in, confirm a monitor on the site and API, confirm alerts go to a **phone**, then fire a test alert. A monitor that has never fired is untested. Also agree a break-glass phone number (not email). |
+| **T0-5** | Organisation-wide DPIA | 🟡 | `DPIA_Live_Active_Visit_Map.md` exists but assesses **one feature**, authored by engineering. No org-wide DPIA. Required under UK GDPR Art. 35 for health data at scale. | **Adetoye** to **Appoint** a DPO | Commission. The feature DPIA is a genuine head start. |
+| **T0-6** | Live Map DPIA contains a false statement | ⛔ | DPIA §6 claims the organisation "can disable the live map feature per-location". **No toggle exists** — no feature-flag system anywhere in `apps/api`. A customer signing this signs a claim about a capability we lack. | **Opeyemi** | Fix the document, and decide whether to build the kill switch or drop the claim. Highest-urgency item here that is not blocked on anyone. |
+| **T0-7** | PI insurance | ⬜ | Nothing in repo; organisational purchase | **Adetoye** | ~1 week to arrange. Ask about cyber liability too. |
+| **T0-8** | Terms + Privacy solicitor review | ⬜ | Both written by engineers | **Adetoye** to **Appoint** | Solicitor reviews enforceability/indemnity for health/social care software. Send edits to Opeyemi to implement. |
+| **T0-9** | Standalone DPA | ⬜ | Terms reference a DPA; no such document exists. A care home signing as data controller will ask for it. | **Adetoye** to **Appoint**; **Opeyemi** implements | Author it, then wire the in-product flow to it. |
+| **T0-10** | Signup works for a whole care home at once | ✅ | Registration 5→30 per 15 min (`auth.routes.ts`), verification codes 5→10/min, password resets 5→20/hr. Client now waits out a per-IP 429 via `Retry-After` instead of erroring (`withRateLimitRetry`). 18 tests, mutation-checked. | **Opeyemi** | Done 27 Sep. Per-recipient caps (3 codes/15min) deliberately untouched — see the code comment. |
+| **T0-11** | Email authentication (SPF/DKIM/DMARC) | ✅ | Gmail `Authentication-Results` on a message **the application sent**: `dkim=pass header.i=@meticlecare.com header.s=x`, `spf=pass`, `dmarc=pass`. Envelope aligned (`Return-Path: <security@meticlecare.com>`, Google's own `smtp.mailfrom`). Evidence in `EMAIL_SECURITY_RUNBOOK.md` steps 2 and 6. | **Opeyemi** | Leave `p=quarantine` alone — its precondition is now met. |
+| **T0-12** | `SMTP_USER` off the previous vendor's domain | ⬜ | Production value is `caredesk@reydesk.com`. Verified to be **only** the SMTP auth username — it reaches no header. | **Adetoye** | Create `app@meticlecare.com`, follow §7.8.1 of `SECURITY_POLICY.md` (AUTH/MAIL/RCPT pre-flight, record the old value first). Unblocked by T0-11. Hygiene, not a security fix. |
+| **T0-13** | Docker log rotation | 🟡 | 6 services have `restart: unless-stopped`, but **no `logging:` block and no `max-size` anywhere** in `docker-compose.prod.yml`. | **Opeyemi** | Add a `json-file` size/count cap per service. Unbounded logs fill the disk, and a full disk stops writes — an availability *and* a data-integrity failure on a database holding health records. |
+| **T0-14** | QA / UAT pass | 🟡 | `MeticleCare_QA_UAT_Test_Pack.xlsx` (381 cases) not executed. Onboarding wizard tests were dead and are now fixed; 4 known failures remain in `Layout.test.tsx` (stale selectors, not a product bug). | **shared** | Opeyemi fixes the 4 stale Layout selectors. Adetoye walks the pack manually — he is the one who will use the product without a developer sitting next to him. |
+
+---
+
+## Tier 1 — first week with real customers
+
+| ID | Item | State | Basis | Owner | Next action |
+|---|---|---|---|---|---|
+| **T1-1** | Store submission blockers | ⛔ | Blocked on accounts only Adetoye can create | **Adetoye** | Apple + Play accounts **in the company's name, not personal**. ⚠️ **The first Play upload permanently fixes the upload key** — commands in `STORE_RELEASE_RUNBOOK.md`, do not improvise. Privacy forms are pre-drafted in `STORE_PRIVACY_ANSWERS.md` and need his sign-off, not engineering. Store screenshots need a booted device — the only remaining hardware gap. |
+| **T1-2** | Customer support process | ⬜ | Undefined | **Adetoye** | How tickets arrive, who answers, response targets, escalation for urgent. Note: a rate-limit or "no GPS" message must not read as a fault — see T0-10. |
+| **T1-3** | Incident response plan | ⬜ | Undefined | **shared** | Data breach, outage, safeguarding concern. Who decides, who tells the customer, what we say. Write before needed. |
+| **T1-4** | API key rotation | ⬜ | Live keys for OpenAI, Anthropic, Stripe | **Opeyemi** | Policy + recurring calendar reminder. 2 hours. |
+| **T1-5** | Rate limits verified in production | 🟡 | Now unit-tested incl. `Retry-After` behaviour and the per-recipient/per-IP distinction | **Opeyemi** | Exercise the real thresholds against staging once (see T2-4) and confirm a 429 looks right end to end. |
+| **T1-6** | Data retention enforcement | 🟡 | The **position is published** on `/delete-account` (worker name kept; care-provider records retained) but no one has checked it is lawful, and enforcement is unverified | **Adetoye** to **Appoint**; **Opeyemi** enforces | Get the published position reviewed. If it is wrong we have published a commitment we do not meet. |
+| **T1-7** | Production env audit | 🟡 | Digest-pinned images ✅, loopback-only published ports ✅, DB/Redis unpublished ✅, healthchecks ✅, restart policies ✅. **Resource limits and log rotation absent** (T0-13). | **Opeyemi** | Add `mem_limit`/`cpus`; confirm the rest of the checklist in `SECURITY_POLICY.md`. |
+| **T1-8** | Connection pooling headroom | 🟡 | App pool verified: `max: 20`, statement/query timeouts, keepAlive (`shared/database/index.ts`). **No PgBouncer** — fine on one API instance, a real constraint at several. | **Opeyemi** | Not a day-one blocker. Check Postgres `max_connections` before scaling past ~4 instances. |
+| **T1-9** | Redis / Socket.IO at scale | ✅ | `@socket.io/redis-streams-adapter` wired (`shared/socket/index.ts`). The CSV called this "Not Started" — wrong. | **Opeyemi** | Note `onlyPlaintext: true`; acceptable on the internal Docker network, revisit if Redis is ever exposed. |
+| **T1-10** | Cookie policy accuracy | ⬜ | Written before later analytics changes | **Opeyemi** | Re-check against what actually sets cookies. |
+| **T1-11** | AI output labelling | ⬜ | Unverified that every AI surface is labelled in UI **and** persisted | **Opeyemi** | 1 day. |
+| **T1-12** | AI claims on public pages | ✅ | `PUBLIC_SITE_CAPABILITY_MATRIX.md` requires human review, no invented KPIs, no unevidenced certifications. ISO 27001 claim **removed** 26 Sep after the host was found to hold no such certificate. | **Opeyemi** | Do not reintroduce certification claims without a certificate to cite. |
+
+---
+
+## Tier 2 — before scaling past the first few customers
+
+| ID | Item | State | Owner |
+|---|---|---|---|
+| **T2-1** | Independent penetration test | ⛔ Budget ~£3–5k. Not a first-customer blocker; **is** an NHS/commissioning one. | **Adetoye** (budget) / **Opeyemi** (scope) |
+| **T2-2** | Org-wide DPIA sign-off | ⛔ Depends on T0-5 | **Appoint** |
+| **T2-3** | Load testing | ⬜ k6/Artillery at 50/100/200 users | **Opeyemi** |
+| **T2-4** | Env-configurable rate limits | ⬜ So staging can exercise real thresholds without weakening production | **Opeyemi** |
+| **T2-5** | WCAG 2.1 AA audit | ⬜ Contrast tokens are done and measured; full audit outstanding | **Opeyemi** |
+| **T2-6** | Disaster recovery runbook | ⬜ Extend with the T0-2 restore procedure once proven | **Opeyemi** |
+| **T2-7** | CQC registration question | ⬜ Research: software provider vs registered provider | **Adetoye** |
+| **T2-8** | CQC evidence pack test | ⬜ With real-shaped data, all five domains | **shared** |
+| **T2-9** | API documentation | ⬜ | **Opeyemi** |
+| **T2-10** | Landing page A/B plan | ⬜ | **Adetoye** |
+| **T2-11** | Testimonials / social proof | ⬜ Ongoing — start collecting at first customer | **Adetoye** |
+
+---
+
+## What is verified, and when
+
+Verification ages. Anything checked in **August 2026 or earlier** should be treated as
+unverified until re-checked, because production changes underneath it.
+
+**Verified 27 September 2026** (this pass):
+
+- Email authentication end to end, on a message the application sent — SPF, DKIM, DMARC, envelope alignment.
+- Backups exist, are scheduled, retain 30 days, and are written atomically.
+- Redis adapter present for Socket.IO.
+- Application DB pool configured with timeouts.
+- Registration and email-code rate limits raised; retry behaviour tested and mutation-checked.
+- Onboarding wizard tests restored (6 broken → 10 passing, incl. resume-after-abandon and load failure).
+- No secrets, keys or `.env` files tracked; only `.env.example` placeholders.
+- Tenant isolation enforced in the database, not only in application code.
+- Docker images digest-pinned; published ports loopback-only.
+- No feature-flag system exists — established while auditing the Live Map DPIA (T0-6).
+- No log rotation or resource limits in the production compose file (T0-13).
+
+**Not verified, and I could not verify from the repo:**
+
+- Anything inside Uptime Kuma's own database (T0-4).
+- Production `SMTP_*` values (T0-12).
+- SSL certificate auto-renewal — HTTPS confirmed serving; the renewal mechanism is not in this repo (T2 area).
+- Whether the full web test suite passes. `Layout.test.tsx` has 4 known failures from stale
+  selectors; a full `vitest run` across all web tests exceeds a 10-minute cap and **has not been
+  re-run end to end since the onboarding fix**. Treat the suite as unverified rather than green.
+
+---
+
+## Housekeeping
+
+- **The old spreadsheet is gone.** `MeticleCare_GoLive_Readiness.csv` and `.xlsx` were removed so
+  there is one list. Both are recoverable from git history if someone needs the old artefact.
+- **Nothing reads those files** — no build step or script consumed them — so removing them breaks
+  nothing. (Verified: no generator, no reference outside this directory.)
+- **Update rule:** when an item changes state, change it here in the same commit, with the basis.
+  A state change with no basis is not a state change.
+- **Review cadence:** re-verify Tier 0 monthly. Tier 1 when the first customer signs. Tier 2 when
+  the first three are live.
