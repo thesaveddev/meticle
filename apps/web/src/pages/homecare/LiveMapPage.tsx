@@ -223,8 +223,8 @@ export default function LiveMapPage() {
     return (
       <PageContainer>
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Live Map</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Loading live visit data…</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>Visit Check-In Map</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Loading today's check-in data…</Typography>
         </Box>
         <Skeleton variant="rounded" height={480} sx={{ borderRadius: 2 }} />
       </PageContainer>
@@ -236,8 +236,8 @@ export default function LiveMapPage() {
       <PageContainer>
         <Box sx={{ minHeight: '60vh', display: 'grid', placeItems: 'center', px: 2 }}>
           <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520, textAlign: 'center' }}>
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>Live map unavailable</Typography>
-            <Typography color="text.secondary">{loadTimedOut && !error ? 'The live visit service is taking too long to respond.' : (error as any)?.response?.data?.message || 'We could not load the live visit data.'}</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>Map unavailable</Typography>
+            <Typography color="text.secondary">{loadTimedOut && !error ? 'The visit map is taking too long to respond.' : (error as any)?.response?.data?.message || 'We could not load the check-in map.'}</Typography>
             <AppButton loading={isFetching && !loadTimedOut} onClick={() => refetch()}>Try again</AppButton>
           </Stack>
         </Box>
@@ -249,9 +249,9 @@ export default function LiveMapPage() {
     <PageContainer>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Live Visit Map</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>Visit Check-In Map</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            Real-time view of active carers and today's scheduled calls
+            Where each carer checked in for today's calls
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>

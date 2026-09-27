@@ -26,14 +26,19 @@ describe('LiveMapPage', () => {
 
   it('replaces the indefinite loading state after the timeout', async () => {
     renderPage()
-    expect(screen.getByText('Loading live visit data…')).toBeInTheDocument()
+    // Wording corrected 27 Sep 2026: the map plots check-in positions, so
+    // "live visit" / "real-time" overstated it. See
+    // docs/DPIA_Live_Active_Visit_Map.md. Asserted with a regex because the
+    // copy contains a straight apostrophe, which cannot sit inside a
+    // single-quoted string literal.
+    expect(screen.getByText(/Loading today's check-in data/)).toBeInTheDocument()
 
     await act(async () => {
       vi.advanceTimersByTime(12_000)
     })
 
-    expect(screen.getByText('Live map unavailable')).toBeInTheDocument()
-    expect(screen.getByText('The live visit service is taking too long to respond.')).toBeInTheDocument()
+    expect(screen.getByText('Map unavailable')).toBeInTheDocument()
+    expect(screen.getByText('The visit map is taking too long to respond.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
   })
 })

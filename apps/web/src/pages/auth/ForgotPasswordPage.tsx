@@ -6,6 +6,7 @@ import {
 } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { MarkEmailRead as MailIcon } from '@mui/icons-material'
+import api, { withRateLimitRetry, rateLimitMessage } from '../../services/api'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -19,18 +20,26 @@ export default function ForgotPasswordPage() {
     setError('')
     setLoading(true)
     try {
-      const res = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      if (res.ok) {
-        setSubmitted(true)
+      // Now uses the shared axios client rather than raw `fetch`, for one reason:
+      // a per-IP rate limit returns `Retry-After`, and raw fetch threw that away.
+      // A shared office where several staff forget their password on the same
+      // morning used to get "Something went wrong" for what is really a few
+      // seconds of congestion. It now waits the limit out, and if it cannot,
+      // says how long to wait.
+      // `silentError` because this page reports its own failures. The shared
+      // client raises a global toast on 4xx unless the path is skipped, and
+      // this path is not in that skip list — so without it a rejected request
+      // shows both a toast and the inline message below.
+      await withRateLimitRetry(() => api.post('/auth/forgot-password', { email }, { silentError: true }))
+      setSubmitted(true)
+    } catch (err: any) {
+      if (err?.response?.status === 429) {
+        setError(rateLimitMessage(err, 'Too many password reset requests. Please try again shortly.'))
+      } else if (err?.code === 'ERR_NETWORK') {
+        setError('Failed to connect to the server.')
       } else {
-        setError('Something went wrong. Please try again.')
+        setError(err?.response?.data?.message || 'Something went wrong. Please try again.')
       }
-    } catch {
-      setError('Failed to connect to the server.')
     } finally {
       setLoading(false)
     }
