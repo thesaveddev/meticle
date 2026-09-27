@@ -5,7 +5,7 @@ import logger from '../../shared/utils/logger';
 const DIGEST_EMAILS_ENABLED = process.env.HOMECARE_DIGEST_EMAILS_ENABLED !== 'false';
 export const DEFAULT_DIGEST_TIMEZONE = 'Europe/London';
 const DIGEST_WINDOW_GRACE_MINUTES = 10;
-export type DigestType = 'morning' | 'midday' | 'evening';
+export type DigestType = 'morning' | 'midday' | 'evening' | 'weekly';
 
 type ZonedParts = { year: string; month: string; day: string; hour: string; minute: string };
 
@@ -223,6 +223,182 @@ export function describeVisit(visit: DigestVisit, now: Date): VisitDigestState {
   return { state: 'Scheduled', tone: 'neutral', detail: bits.join(' · ') };
 }
 
+// ---------------------------------------------------------------------------
+// Weekly summary
+// ---------------------------------------------------------------------------
+
+/** Monday, to match `Date.prototype.getUTCDay`. */
+export const WEEKLY_DIGEST_WEEKDAY = 1;
+export const WEEKLY_DIGEST_DEFAULT_TIME = '07:30';
+
+/** Day of the week for an instant, in the recipient's timezone (0 = Sunday). */
+export function getLocalWeekday(now: Date, timezone = DEFAULT_DIGEST_TIMEZONE): number {
+  const local = getLocalParts(now, timezone);
+  // Date.UTC on the local calendar parts, read back in UTC, gives the weekday
+  // without any offset arithmetic. The alternative — building a Date in the
+  // target zone — silently shifts the day for anyone west of Greenwich.
+  return new Date(Date.UTC(Number(local.year), Number(local.month) - 1, Number(local.day))).getUTCDay();
+}
+
+/**
+ * The weekly summary is due on its configured time, on Mondays only.
+ *
+ * `isDigestDue` alone is not enough: it is day-agnostic by design, because the
+ * three daily windows fire every day. Left alone it would send a "week in
+ * review" email seven days a week, each one covering the same completed week.
+ */
+export function isWeeklyDigestDue(now: Date, time: string, timezone = DEFAULT_DIGEST_TIMEZONE): boolean {
+  if (getLocalWeekday(now, timezone) !== WEEKLY_DIGEST_WEEKDAY) return false;
+  return isDigestDue(now, time, timezone);
+}
+
+/** Add whole days to a `YYYY-MM-DD` key, using UTC so no DST shift can occur. */
+function shiftDateKey(key: string, days: number): string {
+  const [year, month, day] = key.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+}
+
+export type DigestWeek = {
+  /** `YYYY-MM-DD` of the Monday the reported week starts on. */
+  startDate: string;
+  /** Exclusive end: the following Monday. */
+  endDate: string;
+  /** Human label, e.g. "Mon 15 – Sun 21 Sep 2026". */
+  label: string;
+};
+
+/**
+ * The last *complete* Monday-to-Sunday week, in the recipient's timezone.
+ *
+ * A trailing seven days would have been easier and would have been dishonest:
+ * the denominator would be ragged and a figure reported at 07:30 on Monday
+ * would be measured against a Monday that has barely started. Anchoring to a
+ * finished week means every call in it was genuinely due, so the completion
+ * rate means what it says without needing a "due by now" caveat.
+ *
+ * `startDate` doubles as the delivery key, which is what makes the weekly
+ * idempotent per week through the existing deliveries unique constraint.
+ */
+export function previousCompleteWeek(now: Date, timezone = DEFAULT_DIGEST_TIMEZONE): DigestWeek {
+  const today = localDateKey(now, timezone);
+  const weekday = getLocalWeekday(now, timezone);
+  // Days elapsed since this week's Monday: Mon 0 … Sun 6.
+  const sinceMonday = (weekday + 6) % 7;
+  const thisMonday = shiftDateKey(today, -sinceMonday);
+  const startDate = shiftDateKey(thisMonday, -7);
+  return { startDate, endDate: thisMonday, label: formatWeekLabel(startDate, thisMonday) };
+}
+
+/**
+ * Format a Monday-to-Monday span for display, as "Mon, 14 Sept 2026 – Sun, 20 Sept 2026".
+ *
+ * Both ends are rendered from their calendar parts at UTC noon rather than by
+ * passing a string to `Date`, because `new Date('2026-09-15')` is UTC midnight
+ * and prints as the 14th anywhere west of Greenwich.
+ */
+export function formatWeekLabel(startDate: string, endDate: string, locale = 'en-GB'): string {
+  const parse = (key: string) => {
+    const [year, month, day] = key.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day, 12));
+  };
+  const fmt = new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  // The end is exclusive, so the last day in the range is the day before it.
+  return `${fmt.format(parse(startDate))} – ${fmt.format(parse(shiftDateKey(endDate, -1)))}`;
+}
+
+export type WeekDaySummary = {
+  /** `YYYY-MM-DD` in the recipient's timezone. */
+  date: string;
+  /** Three-letter weekday label, e.g. "Mon". */
+  label: string;
+  scheduled: number;
+  completed: number;
+  missed: number;
+  late: number;
+  completionRate: number;
+};
+
+export type DigestWeekTotals = DigestTotals & {
+  /** Calls actually delivered. The honest denominator for a lateness rate. */
+  delivered: number;
+  /** Lateness as a share of delivered calls, not of everything scheduled. */
+  lateRate: number;
+  /** Misses as a share of everything that was due — which, for a closed week, is everything. */
+  missedRate: number;
+  /** Per-day figures, so one bad day is not hidden inside a weekly total. */
+  days: WeekDaySummary[];
+  /** The worst day by completion rate, when there was at least one call due. */
+  worstDay: WeekDaySummary | null;
+};
+
+/** The local `YYYY-MM-DD` a visit was scheduled for, in the given timezone. */
+export function visitDayKey(visit: DigestVisit, timezone = DEFAULT_DIGEST_TIMEZONE): string {
+  return localDateKey(new Date(visit.scheduled_start), timezone);
+}
+
+/**
+ * Counts for a completed week.
+ *
+ * Two things are deliberately different from the daily figures.
+ *
+ * The lateness rate is taken against `delivered`, not `scheduled`. A cancelled
+ * call cannot be late — there is no arrival to be late to — so counting it in
+ * the denominator would quietly flatter the figure for any week with
+ * cancellations.
+ *
+ * A per-day breakdown is included because a single weekly total is the kind of
+ * number that gets quoted and never questioned. If Tuesday was 40% completion
+ * and the rest of the week was fine, the total looks like a trend and is
+ * actually one bad day.
+ */
+export function summariseWeek(visits: DigestVisit[], now: Date, timezone = DEFAULT_DIGEST_TIMEZONE): DigestWeekTotals {
+  const base = summariseVisits(visits, now);
+  const delivered = visits.filter((v) => v.status === 'completed').length;
+  const byDay = new Map<string, DigestVisit[]>();
+  for (const visit of visits) {
+    const key = visitDayKey(visit, timezone);
+    const bucket = byDay.get(key);
+    if (bucket) bucket.push(visit);
+    else byDay.set(key, [visit]);
+  }
+
+  const dayFormatter = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' });
+  const days: WeekDaySummary[] = [...byDay.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([date, rows]) => {
+      const [year, month, day] = date.split('-').map(Number);
+      const dayTotals = summariseVisits(rows, now);
+      return {
+        date,
+        label: dayFormatter.format(new Date(Date.UTC(year, month - 1, day, 12))),
+        scheduled: dayTotals.scheduled,
+        completed: dayTotals.completed,
+        missed: dayTotals.missed,
+        late: dayTotals.late,
+        // A day with nothing due is not 0% completion, it is not measured.
+        completionRate: dayTotals.dueSoFar === 0 ? 100 : Math.round((dayTotals.completed / dayTotals.dueSoFar) * 100),
+      };
+    });
+
+  // Only judge a day "worst" if it had calls due; an empty day would otherwise
+  // win on a 100% rate and be reported as the strongest day of the week.
+  const withCalls = days.filter((d) => d.scheduled > 0);
+  const worstDay = withCalls.length
+    ? withCalls.reduce((worst, d) => (d.completionRate < worst.completionRate ? d : worst))
+    : null;
+
+  return {
+    ...base,
+    delivered,
+    lateRate: delivered === 0 ? 0 : Math.round((base.late / delivered) * 100),
+    missedRate: base.dueSoFar === 0 ? 0 : Math.round((base.missed / base.dueSoFar) * 100),
+    days,
+    worstDay,
+  };
+}
+
 export type AnnotatedVisit = DigestVisit & { digestState: VisitDigestState };
 
 /**
@@ -243,6 +419,8 @@ export async function runHomecareDigestEmails(now = new Date()): Promise<{ sent:
            COALESCE(dp.morning_time, '08:00'::time) AS morning_time,
            COALESCE(dp.midday_time, '13:00'::time) AS midday_time,
            COALESCE(dp.evening_time, '19:00'::time) AS evening_time,
+           COALESCE(dp.weekly_enabled, TRUE) AS weekly_enabled,
+           COALESCE(dp.weekly_time, '07:30'::time) AS weekly_time,
            COALESCE(dp.timezone, 'Europe/London') AS timezone
     FROM users u
     LEFT JOIN staff_profiles sp ON sp.user_id = u.id
@@ -257,16 +435,32 @@ export async function runHomecareDigestEmails(now = new Date()): Promise<{ sent:
 
   for (const recipient of recipients.rows) {
     const timezone = recipient.timezone || DEFAULT_DIGEST_TIMEZONE;
+    const isManager = recipient.role === 'ORG_ADMIN' || recipient.role === 'MANAGER';
     const windows: Array<{ type: DigestType; enabled: boolean; time: string }> = [
       { type: 'morning', enabled: recipient.morning_enabled, time: recipient.morning_time },
       { type: 'midday', enabled: recipient.midday_enabled, time: recipient.midday_time },
       { type: 'evening', enabled: recipient.evening_enabled, time: recipient.evening_time },
+      // Manager-only. A weekly view of organisation-wide completion, lateness and
+      // missed calls is not meaningful to a single care worker, and the daily
+      // windows already cover what they need to know about their own calls.
+      { type: 'weekly', enabled: isManager && recipient.weekly_enabled, time: recipient.weekly_time },
     ];
 
     for (const window of windows) {
-      if (!window.enabled || !isDigestDue(now, window.time, timezone)) continue;
+      if (!window.enabled) continue;
+      // The weekly window additionally has to land on a Monday. The daily
+      // windows are day-agnostic, so isDigestDue on its own would send the same
+      // week's summary seven times.
+      const due = window.type === 'weekly'
+        ? isWeeklyDigestDue(now, window.time, timezone)
+        : isDigestDue(now, window.time, timezone);
+      if (!due) continue;
 
-      const date = localDateKey(now, timezone);
+      const week = previousCompleteWeek(now, timezone);
+      // Keyed on the Monday the reported week starts, which is what makes the
+      // weekly idempotent across restarts and retries via the deliveries unique
+      // constraint. The daily windows keep their single-day key.
+      const date = window.type === 'weekly' ? week.startDate : localDateKey(now, timezone);
       const delivery = await migrateQuery(`
         INSERT INTO homecare_digest_deliveries (user_id, organization_id, digest_date, digest_type, status, attempt_count)
         VALUES ($1, $2, $3, $4, 'pending', 0)
@@ -279,8 +473,13 @@ export async function runHomecareDigestEmails(now = new Date()): Promise<{ sent:
       if (!delivery.rows[0]) continue;
 
       try {
-        const summary = await buildDigestSummary(recipient, window.type, now, date, timezone);
-        await EmailService.sendHomecareDigestEmail(recipient.email, recipient.name, window.type, date, summary);
+        const summary = window.type === 'weekly'
+          ? await buildWeeklySummary(recipient, now, week, timezone)
+          : await buildDigestSummary(recipient, window.type, now, date, timezone);
+        // `date` is the de-duplication key (an ISO Monday for the weekly
+        // window); the summary carries the human range. Sending the key would
+        // print "2026-09-14" where the reader expects "Mon 14 – Sun 20 Sep".
+        await EmailService.sendHomecareDigestEmail(recipient.email, recipient.name, window.type, summary.date ?? date, summary);
         await migrateQuery(`
           UPDATE homecare_digest_deliveries
           SET status = 'sent', attempt_count = attempt_count + 1, sent_at = NOW(), updated_at = NOW()
@@ -302,7 +501,67 @@ export async function runHomecareDigestEmails(now = new Date()): Promise<{ sent:
   return { sent, failed };
 }
 
-async function buildDigestSummary(recipient: any, type: DigestType, now: Date, date: string, timezone: string) {
+/**
+ * Assembles the weekly summary for one manager.
+ *
+ * The window is a finished Monday-to-Sunday, so unlike the daily digests there
+ * is no "due by now" caveat to print: every call in the range was genuinely
+ * due. The digest column label is passed through as the period, because the
+ * deliveries table needs an ISO key for de-duplication and the email needs a
+ * readable range, and the two are not the same string.
+ */
+async function buildWeeklySummary(recipient: any, now: Date, week: DigestWeek, timezone: string) {
+  const visits = await migrateQuery(`
+    SELECT v.label, v.visit_type, v.status, v.scheduled_start, v.scheduled_end,
+           v.late_reason, v.assigned_staff_id,
+           v.check_in_at, v.check_out_at,
+           COALESCE(pe.first_name || ' ' || pe.last_name, 'Client') AS person_name,
+           COALESCE(sp.first_name || ' ' || sp.last_name, 'Unassigned') AS carer_name
+    FROM homecare_visits v
+    JOIN people pe ON pe.id = v.person_id
+    LEFT JOIN staff_profiles sp ON sp.id = v.assigned_staff_id
+    WHERE v.organization_id = $1
+      AND v.scheduled_start >= ($2::date AT TIME ZONE $3)
+      AND v.scheduled_start < (($2::date + INTERVAL '7 days') AT TIME ZONE $3)
+    ORDER BY v.scheduled_start
+  `, [recipient.organization_id, week.startDate, timezone]);
+
+  const rows: DigestVisit[] = visits.rows;
+  const weekTotals = summariseWeek(rows, now, timezone);
+  const annotate = (v: DigestVisit): AnnotatedVisit => ({ ...v, digestState: describeVisit(v, now) });
+
+  const incidents = await migrateQuery(`
+    SELECT i.title, i.severity, i.status
+    FROM incidents i
+    WHERE i.organization_id = $1 AND i.incident_date >= $2::date AND i.incident_date < $3::date
+    ORDER BY i.created_at DESC LIMIT 20
+  `, [recipient.organization_id, week.startDate, week.endDate]);
+
+  const FULL_LIST_CAP = 80;
+  const allAttention = visitsNeedingAttention(rows, now);
+
+  return {
+    type: 'weekly' as const,
+    date: week.label,
+    timezone,
+    totals: weekTotals,
+    week: weekTotals,
+    // Kept for anything still reading the old flat shape.
+    total: weekTotals.scheduled,
+    completed: weekTotals.completed,
+    missed: weekTotals.missed,
+    late: weekTotals.late,
+    completionRate: weekTotals.completionRate,
+    visits: rows.slice(0, FULL_LIST_CAP).map(annotate),
+    visitsTruncated: Math.max(0, rows.length - FULL_LIST_CAP),
+    attention: allAttention.slice(0, 25).map(annotate),
+    attentionTruncated: Math.max(0, allAttention.length - 25),
+    incidents: incidents.rows,
+    managerView: true,
+  };
+}
+
+async function buildDigestSummary(recipient: any, type: Exclude<DigestType, 'weekly'>, now: Date, date: string, timezone: string) {
   const isManager = recipient.role === 'ORG_ADMIN' || recipient.role === 'MANAGER';
   const filter = isManager
     ? `v.organization_id = $1`

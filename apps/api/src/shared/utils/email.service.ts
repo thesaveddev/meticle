@@ -127,10 +127,19 @@ const fmtDate = (date?: string | null) =>
     : 'your shift';
 
 
+/**
+ * Digest window type.
+ *
+ * Declared here rather than imported from the homecare module: that module
+ * imports this service to send, so importing back would be a cycle.
+ */
+export type DigestWindow = 'morning' | 'midday' | 'evening' | 'weekly';
+
 export const DIGEST_HEADINGS = {
   morning: 'Morning schedule',
   midday: 'Midday progress report',
   evening: 'End-of-day summary',
+  weekly: 'Weekly summary',
 } as const;
 
 /**
@@ -144,7 +153,7 @@ export const DIGEST_HEADINGS = {
  * and free-text late reasons are all user-supplied and this is HTML in an
  * email, so they are treated as untrusted.
  */
-export function buildDigestEmailContent(name: string, digestType: 'morning' | 'midday' | 'evening', date: string, summary: any): string {
+export function buildDigestEmailContent(name: string, digestType: DigestWindow, date: string, summary: any): string {
   const tz: string | undefined = summary.timezone;
   const t = (iso?: string | null) => fmtTime(iso, tz);
   const totals = summary.totals || {};
@@ -161,10 +170,17 @@ export function buildDigestEmailContent(name: string, digestType: 'morning' | 'm
   const cell = (label: string, value: number | string, highlight?: string) =>
     `<td style="padding:6px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:${highlight || '#263238'};">${e(value)}<span style="color:#9CA3AF;"> ${e(label)}</span></td>`;
 
+  // "scheduled today" and "due by now" are true of the daily windows and false
+  // of the weekly one, which covers a finished week where every call was due.
+  // Reusing the labels would have printed a self-contradicting pair of numbers.
+  const isWeekly = digestType === 'weekly';
+  const scheduledLabel = isWeekly ? 'calls in the week' : 'scheduled today';
+  const dueLabel = isWeekly ? 'calls due' : 'due by now';
+
   const figures = totals.scheduled === undefined ? '' : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px 0;border-collapse:collapse;">
     <tr>
-      ${cell('scheduled today', totals.scheduled)}
-      ${cell('due by now', totals.dueSoFar)}
+      ${cell(scheduledLabel, totals.scheduled)}
+      ${cell(dueLabel, totals.dueSoFar)}
       ${cell('completed', totals.completed, '#166534')}
     </tr>
     <tr>
@@ -228,10 +244,10 @@ export function buildDigestEmailContent(name: string, digestType: 'morning' | 'm
        <p style="margin:0;font-size:13px;color:#6B7280;">No missed, overdue, unassigned or late calls.</p>`;
 
   const fullBlock = visits.length
-    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#111827;">All calls today (${totals.scheduled}${summary.visitsTruncated ? `, showing first ${visits.length}` : ''})</p>
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#111827;">${isWeekly ? 'All calls in the week' : 'All calls today'} (${totals.scheduled}${summary.visitsTruncated ? `, showing first ${visits.length}` : ''})</p>
        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${header}${visits.map(line).join('')}</table>
        ${summary.visitsTruncated ? `<p style="margin:6px 0 0 0;font-size:12px;color:#6B7280;">${summary.visitsTruncated} further call${summary.visitsTruncated === 1 ? '' : 's'} not shown. Open the app for the full list.</p>` : ''}`
-    : `<p style="margin:20px 0 0 0;font-size:13px;color:#6B7280;">No calls are scheduled for today.</p>`;
+    : `<p style="margin:20px 0 0 0;font-size:13px;color:#6B7280;">${isWeekly ? 'No calls were scheduled in this week.' : 'No calls are scheduled for today.'}</p>`;
 
   const incidents = (summary.incidents || []).map((incident: any) =>
     `<li style="margin:0 0 6px 0;font-size:13px;">${e(incident.title)} · ${e(incident.severity)} · ${e(incident.status)}</li>`).join('');
@@ -245,14 +261,53 @@ export function buildDigestEmailContent(name: string, digestType: 'morning' | 'm
     ? `<p>Today's schedule. ${isManager ? `${totals.unassigned || 0} call${totals.unassigned === 1 ? '' : 's'} still ${totals.unassigned === 1 ? 'has' : 'have'} no carer assigned.` : 'Your calls for today.'}</p>`
     : digestType === 'midday'
       ? `<p>Where the day stands. ${missed || totals.overdue ? 'There are exceptions below that need a decision.' : 'No missed or overdue calls so far.'}</p>`
-      : `<p>The day in numbers. ${missed
-        ? `${missed} call${missed === 1 ? ' was' : 's were'} missed and ${lateCount} ran late.`
-        : 'No calls were missed.'}</p>`;
+      : digestType === 'weekly'
+        ? (() => {
+          const week = (summary.week || {}) as any;
+          const parts: string[] = [
+            `The week in numbers. ${week.delivered || 0} of ${totals.dueSoFar || 0} calls due were completed (${totals.completionRate ?? 0}%).`,
+          ];
+          if (missed) parts.push(`${missed} call${missed === 1 ? ' was' : 's were'} missed (${week.missedRate ?? 0}% of calls due).`);
+          else parts.push('No calls were missed.');
+          if (lateCount) parts.push(`${lateCount} started late (${week.lateRate ?? 0}% of the ${week.delivered || 0} delivered).`);
+          return `<p>${e(parts.join(' '))}</p>`;
+        })()
+        : `<p>The day in numbers. ${missed
+          ? `${missed} call${missed === 1 ? ' was' : 's were'} missed and ${lateCount} ran late.`
+          : 'No calls were missed.'}</p>`;
+
+  /**
+   * Per-day figures for the weekly send.
+   *
+   * A weekly total is the kind of number that gets quoted in a board meeting
+   * and never questioned, so the breakdown underneath it has to earn its place:
+   * one 40%-completion Tuesday should not read as a downward trend across the
+   * whole week, and the worst day is named so it can be explained.
+   */
+  const weekDays: any[] = summary.week?.days || [];
+  const weekBlock = weekDays.length
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#111827;">Day by day</p>
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+         <tr><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Day</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Due</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Completed</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Missed</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Late</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Completion</th></tr>
+         ${weekDays.map(d => `<tr>
+            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:#263238;">${e(d.label)} ${e(d.date)}</td>
+            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;">${e(d.scheduled)}</td>
+            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:#166534;">${e(d.completed)}</td>
+            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:${Number(d.missed) ? '#B91C1C' : '#263238'};">${e(d.missed)}</td>
+            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:${Number(d.late) ? '#B45309' : '#263238'};">${e(d.late)}</td>
+            <td style="padding:5px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:${Number(d.completionRate) < 100 ? '#B45309' : '#166534'};">${e(d.completionRate)}%</td>
+          </tr>`).join('')}
+       </table>
+       ${summary.week?.worstDay
+        ? `<p style="margin:6px 0 0 0;font-size:12px;color:#6B7280;">Weakest day: <strong>${e(summary.week.worstDay.label)} ${e(summary.week.worstDay.date)}</strong> at ${e(summary.week.worstDay.completionRate)}% completion (${e(summary.week.worstDay.completed)} of ${e(summary.week.worstDay.scheduled)}).</p>`
+        : ''}`
+    : '';
 
   const content = `<p>Hi ${e(name || 'there')},</p>
     <p style="color:#6B7280;font-size:13px;"><strong>${e(date)}</strong>${summary.generatedAtLabel ? ` · generated ${e(summary.generatedAtLabel)}` : ''}</p>
     ${leadIn}
     ${figures}
+    ${weekBlock}
     ${attentionBlock}
     ${fullBlock}
     ${incidentBlock}`;
@@ -478,7 +533,7 @@ export class EmailService {
    * read on phones. The digest reports that a call happened; the record of what
    * happened stays in the app.
    */
-  static async sendHomecareDigestEmail(email: string, name: string, digestType: 'morning' | 'midday' | 'evening', date: string, summary: any) {
+  static async sendHomecareDigestEmail(email: string, name: string, digestType: DigestWindow, date: string, summary: any) {
     const heading = DIGEST_HEADINGS[digestType];
     const content = buildDigestEmailContent(name, digestType, date, summary);
     await sendMail(email, `${heading} — ${date}`, buildEmailHtml('Homecare digest', heading, content, { label: 'Open Homecare', url: `${baseUrl()}/homecare` }), 'notifications');
