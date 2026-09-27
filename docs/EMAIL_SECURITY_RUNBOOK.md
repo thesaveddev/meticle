@@ -27,13 +27,45 @@ Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
 
 ## Blocking steps
 
-- [ ] **1. Re-check Cloudflare that the DMARC record actually saved.**
-      Public DNS still returns `p=none`. Either the edit did not save, or it has
-      not propagated past the 300-second TTL and resolver caches. Confirm in the
-      Cloudflare DNS panel, then re-check that it resolves as
+- [x] **1. Re-check Cloudflare that the DMARC record actually saved.**
+      **DONE 26 Sep 2026.** The record did save; an earlier check had simply
+      been served from resolver cache. Public DNS now returns
       `v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@meticlecare.com; pct=100`.
 
+      This makes step 4 urgent rather than advisory — see there.
+
 - [ ] **2. Have the *application* send a test email to a real inbox you control.**
+      **PARTIALLY ANSWERED 26 Sep 2026 — the envelope half passed, the
+      authentication half is still open.**
+
+      A test to `opeyemi@meticlecare.com` produced:
+
+      ```
+      Return-Path: <security@meticlecare.com>
+      Received: ... (envelope-from <security@meticlecare.com>)
+      From: security@meticlecare.com
+      Message-ID: <...@meticlecare.com>
+      ```
+
+      That settles the envelope-sender question: `MAIL FROM` is
+      `security@meticlecare.com` on the wire, MXRocket did not rewrite the
+      return path, and no third-party domain appears in any header. It also
+      answers the `SMTP_USER=***REMOVED***` question — that value is
+      only ever the SMTP auth username and reaches no header.
+
+      Two reasons this does **not** close the step:
+
+      - There is no `Authentication-Results` header in what was captured, so
+        SPF, DKIM and DMARC remain unverified.
+      - The message was delivered by `safari.mxrouting.net` over **LMTP** to
+        another mailbox on the *same* provider. Sender and recipient share a
+        path, so nothing about acceptance by Gmail or Outlook was exercised —
+        and the header block came from the provider's own spam scanner, not
+        from a third-party `Authentication-Results`.
+
+      To finish: send the same test to an external inbox (Gmail) and read
+      *Show original* there.
+
       **Do not use mail-tester.com, and do not use the password-reset form.**
       Both were tried on 26 September 2026 and neither works:
 
@@ -83,10 +115,23 @@ Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
       setting, not a DNS change. Re-run step 2 until it passes.
 
 - [ ] **4. Until step 2 passes, keep DMARC at `p=none`.**
-      If `p=quarantine` went live first, put it back. SPF alone is not enough:
-      it fails DMARC alignment the moment mail passes through a forwarder — an
-      NHS trust relay, a shared inbox, a support tool — and quarantine sends
-      that to spam. DKIM survives forwarding; SPF does not.
+      **ACTION REQUIRED 26 Sep 2026 — this is now the wrong way round.**
+      DMARC was observed live as
+      `v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@meticlecare.com; pct=100`
+      while step 2 is still unproven, which is the exact situation this step
+      exists to prevent. `pct=100` means there is no partial rollout to soften
+      it: every message that fails DMARC goes to recipients' spam folders.
+
+      The specific risk is forwarding. Meticle's mail goes to care homes and
+      NHS trusts, where a message is routinely relayed through a trust mail
+      gateway or a shared mailbox. SPF alignment breaks the moment that
+      happens, and under `p=quarantine` those messages land in spam — with the
+      worst possible content: a password reset or an invoice. DKIM survives
+      forwarding; SPF does not. That is why the order is DKIM first, then
+      quarantine.
+
+      Either confirm `dkim=pass` and `dmarc=pass` on an external inbox, or
+      revert the record to `p=none` until that is recorded in step 2.
 
 - [x] **5. Confirm `dmarc-reports@meticlecare.com` exists as a real mailbox.**
       **Confirmed 26 Sep 2026.** Reports are sent *by the receiving server* to
