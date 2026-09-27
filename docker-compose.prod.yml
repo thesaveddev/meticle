@@ -72,8 +72,7 @@ services:
     # arguments keeps them visible in this file rather than hidden in an image.
     #
     # WARNING: archive_mode cannot be changed with a reload. Applying this
-    # restarts Postgres, which is a brief outage for every customer. Do it in a
-    # maintenance window, not on a Friday afternoon.
+    # restarts Postgres, which is a brief outage for every customer.
     #
     # `wal_level` must be replica or higher for archiving to work; the default
     # already is, but it is stated explicitly because a silently lower value is
@@ -82,18 +81,31 @@ services:
     # archive_timeout forces a segment switch every 5 minutes so replay can
     # never be more than that behind. Without it a quiet database can leave
     # hours of changes in an unswitched segment that has not been archived yet.
+    #
+    # This is a shell wrapper, not a bare argument list, and the two lines above
+    # `exec` are load-bearing. `archive_command` runs as the postgres server
+    # process and writes into the `backup_data` volume mounted at /backups — a
+    # Docker named volume is root-owned by default, and the server runs as the
+    # postgres user. Without the mkdir and chown below, every archive attempt
+    # fails, Postgres logs a warning and carries on, and the segments it cannot
+    # archive are never recycled. They accumulate in pg_wal until the disk fills
+    # and the database stops accepting writes. It fails quietly, which is the
+    # worst possible time to find out, so the directory is created and handed
+    # over here — in the db container itself, before the server starts, rather
+    # than relying on the backup container having run first.
     command:
-      - "postgres"
-      - "-c"
-      - "archive_mode=on"
-      - "-c"
-      - "wal_level=replica"
-      - "-c"
-      - "archive_command=test ! -f /backups/wal/%f && cp %p /backups/wal/%f"
-      - "-c"
-      - "archive_timeout=300"
-      - "-c"
-      - "max_wal_senders=0"
+      - sh
+      - -c
+      - |
+        set -e
+        mkdir -p /backups/wal
+        chown -R postgres:postgres /backups
+        exec docker-entrypoint.sh postgres \
+          -c archive_mode=on \
+          -c wal_level=replica \
+          -c "archive_command=test ! -f /backups/wal/%f && cp %p /backups/wal/%f" \
+          -c archive_timeout=300 \
+          -c max_wal_senders=0
     environment:
       - POSTGRES_USER=meticle
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
