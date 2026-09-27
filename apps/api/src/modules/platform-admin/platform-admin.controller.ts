@@ -4,6 +4,7 @@ import { AppError } from '../../shared/middleware/error.middleware';
 import { EmailService } from '../../shared/utils/email.service';
 import { AuditRepository } from '../audit/audit.repository';
 import { isDomiciliaryServiceTypes } from '../../shared/billing/domiciliaryPricing';
+import { classifyFailure } from '../../shared/utils/emailFailureClass';
 
 function pageParams(page: unknown, limit: unknown) {
   const parsedPage = Number.parseInt(String(page ?? '1'), 10);
@@ -515,13 +516,19 @@ export class PlatformAdminController {
   }
 
   static async getEmailQueueStats(_req: Request, res: Response) {
-    const [counts, recentFailures, hourlyTrend, topRecipients] = await Promise.all([
+    // The breakdown classifies every failed row, not just the 50 listed below,
+    // so it is capped. The cap is reported rather than hidden: a truncated
+    // breakdown that looks complete is worse than no breakdown, because the
+    // numbers read as totals.
+    const BREAKDOWN_CAP = 2000;
+    const [counts, recentFailures, hourlyTrend, topRecipients, breakdownRows] = await Promise.all([
       pool.query(`
         SELECT status, COUNT(*)::int as count
         FROM email_queue GROUP BY status
       `),
       pool.query(`
-        SELECT id, to_email, subject, error_message, retry_count, max_retries, created_at, sent_at
+        SELECT id, to_email, subject, error_message, retry_count, max_retries, created_at, sent_at,
+               last_dsn_status
         FROM email_queue
         WHERE status = 'failed'
         ORDER BY created_at DESC
@@ -544,17 +551,59 @@ export class PlatformAdminController {
         ORDER BY total DESC
         LIMIT 20
       `),
+      pool.query(
+        `SELECT error_message, last_dsn_status
+         FROM email_queue
+         WHERE status = 'failed'
+         ORDER BY created_at DESC
+         LIMIT $1`,
+        [BREAKDOWN_CAP],
+      ),
     ]);
 
     const statusCounts: Record<string, number> = {};
     for (const row of counts.rows) statusCounts[row.status] = row.count;
+    const totalFailed = statusCounts.failed || 0;
+
+    // Classify in TypeScript rather than in SQL. The rules are ordered
+    // pattern matches on a message string, which is far easier to read, test
+    // and change here than as a chain of `CASE` expressions, and the whole set
+    // is bounded by the cap above.
+    const buckets = new Map<string, { cause: string; owner: string; label: string; retryable: boolean; count: number }>();
+    for (const row of breakdownRows.rows) {
+      const class_ = classifyFailure(row.error_message, { dsnBounced: row.last_dsn_status === 'bounced' });
+      const key = `${class_.cause}:${class_.owner}`;
+      const existing = buckets.get(key);
+      if (existing) existing.count++;
+      else buckets.set(key, { cause: class_.cause, owner: class_.owner, label: class_.label, retryable: class_.retryable, count: 1 });
+    }
+
+    const failureBreakdown = [...buckets.values()].sort((a, b) => b.count - a.count || a.cause.localeCompare(b.cause));
+    const analysed = breakdownRows.rows.length;
 
     res.json({
       counts: statusCounts,
       total: counts.rows.reduce((sum: number, r: any) => sum + r.count, 0),
-      recentFailures: recentFailures.rows,
+      recentFailures: recentFailures.rows.map((row: any) => ({
+        ...row,
+        ...classifyFailure(row.error_message, { dsnBounced: row.last_dsn_status === 'bounced' }),
+      })),
       hourlyTrend: hourlyTrend.rows,
       topRecipients: topRecipients.rows,
+      failureBreakdown,
+      failureSummary: {
+        // `counts.failed` is the truth; `analysed` is what this response could
+        // classify. They differ only when the cap bites, and saying so is the
+        // difference between a floor and a total.
+        total: totalFailed,
+        analysed,
+        truncated: analysed < totalFailed,
+        // Everything we can fix without ringing anybody: a defect in how we
+        // build the message, or credentials we control.
+        ours: failureBreakdown.filter(b => b.owner === 'code' || b.owner === 'configuration').reduce((sum, b) => sum + b.count, 0),
+        worthRetrying: failureBreakdown.filter(b => b.retryable).reduce((sum, b) => sum + b.count, 0),
+        needsReading: failureBreakdown.filter(b => b.owner === 'unattributed').reduce((sum, b) => sum + b.count, 0),
+      },
     });
   }
 

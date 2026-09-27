@@ -13,15 +13,40 @@ import {
 import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
 
+/** Who has to fix a failure. Set by the API's `classifyFailure`, not the UI. */
+type FailureOwner = 'code' | 'configuration' | 'recipient' | 'provider' | 'unattributed'
+
 interface EmailStats {
   counts: Record<string, number>
   total: number
   recentFailures: Array<{
     id: string; to_email: string; subject: string; error_message: string | null
     retry_count: number; max_retries: number; created_at: string; sent_at: string | null
+    /** Present from the failure-classification change; absent on an older API. */
+    cause?: string; owner?: FailureOwner; label?: string; retryable?: boolean
   }>
   hourlyTrend: Array<{ hour: string; status: string; count: number }>
   topRecipients: Array<{ to_email: string; total: number; failed: number; sent: number }>
+  failureBreakdown?: Array<{
+    cause: string; owner: FailureOwner; label: string; retryable: boolean; count: number
+  }>
+  failureSummary?: {
+    total: number; analysed: number; truncated: boolean
+    ours: number; worthRetrying: number; needsReading: number
+  }
+}
+
+/**
+ * Owner → surface. `code` is the only one styled as an outright error, because
+ * it is the only one nobody else can fix; the rest are the receiving end
+ * declining, which is a different kind of news.
+ */
+const OWNER_TONE: Record<FailureOwner, { bg: string; fg: string }> = {
+  code: { bg: 'notice.error.bg', fg: 'notice.error.fg' },
+  configuration: { bg: 'notice.warning.bg', fg: 'notice.warning.fg' },
+  recipient: { bg: 'notice.info.bg', fg: 'notice.info.fg' },
+  provider: { bg: 'notice.muted.bg', fg: 'text.secondary' },
+  unattributed: { bg: 'notice.muted.bg', fg: 'text.secondary' },
 }
 
 function StatCard({ title, value, icon, color, subtitle }: {
@@ -199,6 +224,69 @@ export default function EmailQueueDashboard() {
             </Paper>
           )}
 
+          {/* Why deliveries failed — placed before the trend because the trend
+              says how bad it is and this says whose fault, which is the part
+              an operator can act on. */}
+          {failed > 0 && stats.failureBreakdown && stats.failureBreakdown.length > 0 && (
+            <Paper sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+              <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
+                <ErrorIcon sx={{ color: 'error.main' }} />
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>Why deliveries failed</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', ml: 'auto' }}>
+                  Grouped by cause, not by raw error text
+                </Typography>
+              </Stack>
+
+              {stats.failureSummary && stats.failureSummary.ours > 0 && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {stats.failureSummary.ours} of these are ours to fix
+                  </Typography>
+                  <Typography variant="body2">
+                    Caused by how we build the message or by our own SMTP configuration.
+                    Nobody at the recipient&rsquo;s organisation can resolve these.
+                  </Typography>
+                </Alert>
+              )}
+
+              <Stack spacing={1}>
+                {stats.failureBreakdown.map((b) => {
+                  const tone = OWNER_TONE[b.owner] ?? OWNER_TONE.unattributed
+                  return (
+                    <Stack
+                      key={`${b.cause}:${b.owner}`}
+                      direction="row"
+                      alignItems="center"
+                      gap={1.5}
+                      sx={{ p: 1.5, borderRadius: 2, bgcolor: tone.bg, color: tone.fg }}
+                    >
+                      <Typography sx={{ fontWeight: 800, minWidth: 44, fontVariantNumeric: 'tabular-nums' }}>
+                        {b.count}
+                      </Typography>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{b.label}</Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                          {b.owner === 'code' ? 'our code'
+                            : b.owner === 'configuration' ? 'our configuration'
+                              : b.owner === 'recipient' ? 'the recipient'
+                                : b.owner === 'provider' ? 'the mail provider' : 'needs reading'}
+                          {b.retryable ? ' · worth retrying' : ' · retrying will not help'}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  )
+                })}
+              </Stack>
+
+              {stats.failureSummary?.truncated && (
+                <Typography variant="caption" sx={{ display: 'block', mt: 1.5, color: 'text.secondary' }}>
+                  Showing {stats.failureSummary.analysed} of {stats.failureSummary.total} failures.
+                  Older ones are not included, so these counts are a floor rather than a total.
+                </Typography>
+              )}
+            </Paper>
+          )}
+
           {/* Failure trend */}
           <Paper sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
@@ -290,6 +378,7 @@ export default function EmailQueueDashboard() {
                         <TableRow>
                           <TableCell sx={{ fontWeight: 700 }}>Recipient</TableCell>
                           <TableCell sx={{ fontWeight: 700 }}>Subject</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Cause</TableCell>
                           <TableCell sx={{ fontWeight: 700 }}>Error</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 700 }}>Time</TableCell>
                         </TableRow>
@@ -308,6 +397,25 @@ export default function EmailQueueDashboard() {
                                   {f.subject}
                                 </Typography>
                               </Tooltip>
+                            </TableCell>
+                            <TableCell>
+                              {f.owner ? (
+                                <Chip
+                                  label={f.owner === 'code' ? 'our code'
+                                    : f.owner === 'configuration' ? 'our config'
+                                      : f.owner === 'recipient' ? 'recipient'
+                                        : f.owner === 'provider' ? 'provider' : 'unclassified'}
+                                  size="small"
+                                  title={f.label}
+                                  sx={{
+                                    bgcolor: (OWNER_TONE[f.owner] ?? OWNER_TONE.unattributed).bg,
+                                    color: (OWNER_TONE[f.owner] ?? OWNER_TONE.unattributed).fg,
+                                    fontSize: 11, fontWeight: 700,
+                                  }}
+                                />
+                              ) : (
+                                <Chip label="—" size="small" sx={{ bgcolor: 'notice.muted.bg', color: 'text.secondary', fontSize: 11 }} />
+                              )}
                             </TableCell>
                             <TableCell>
                               {f.error_message ? (

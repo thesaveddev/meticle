@@ -33,12 +33,15 @@ beforeAll(async () => {
 const seeded: string[] = []
 
 async function seedFailure(email: string, subject: string, ageDays: number) {
+  return seedFailureWithMessage(email, subject, 'Message failed: 550 mailbox unavailable', ageDays)
+}
+
+async function seedFailureWithMessage(email: string, subject: string, errorMessage: string, ageDays = 0) {
   const inserted = await pool.query(
     `INSERT INTO email_queue (to_email, subject, html_body, status, error_message, retry_count, max_retries, created_at)
-     VALUES ($1, $2, '<p>x</p>', 'failed', 'Message failed: 550 mailbox unavailable', 3, 3,
-             NOW() - ($3 || ' days')::interval)
+     VALUES ($1, $2, '<p>x</p>', 'failed', $3, 3, 3, NOW() - ($4 || ' days')::interval)
      RETURNING id`,
-    [email, subject, ageDays],
+    [email, subject, errorMessage, ageDays],
   )
   seeded.push(inserted.rows[0].id)
   return inserted.rows[0].id as string
@@ -113,5 +116,61 @@ describe('GET /platform-admin/email-queue', () => {
     const created: string[] = res.body.recentFailures.map((f: { created_at: string }) => f.created_at)
     const sorted = [...created].sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
     expect(created).toEqual(sorted)
+  }, 60_000)
+})
+
+describe('the failure breakdown answers "whose problem is this?"', () => {
+  it('groups failures by cause and owner rather than returning raw strings', async () => {
+    const superAdmin = await createUser({ email: `sa-breakdown-${Date.now()}@test.com`, role: 'SUPER_ADMIN' })
+    const token = generateToken(superAdmin)
+
+    // Three causes belonging to three different parties: our own malformed
+    // envelope, a dead recipient, and a provider asking us to come back.
+    await seedFailureWithMessage('ours@example.com', 'ours', 'EENVELOPE: No recipients defined')
+    await seedFailureWithMessage('dead@example.com', 'dead', 'Message failed: 550 5.1.1 <dead@example.com>: Recipient address rejected: User unknown')
+    await seedFailureWithMessage('busy@example.com', 'busy', 'Message failed: 421 4.7.0 Too many connections - try again later')
+
+    const res = await request(app)
+      .get('/platform-admin/email-queue')
+      .set('Authorization', `Bearer ${token}`)
+    expect(res.status).toBe(200)
+
+    const breakdown = res.body.failureBreakdown as Array<{ cause: string; owner: string; count: number; label: string }>
+    expect(Array.isArray(breakdown)).toBe(true)
+
+    const ours = breakdown.find(b => b.cause === 'envelope')
+    expect(ours, 'a malformed envelope must be attributed to us').toBeDefined()
+    expect(ours!.owner).toBe('code')
+    expect(ours!.label.length).toBeGreaterThan(0)
+
+    expect(
+      breakdown.find(b => b.cause === 'address')?.owner,
+      'a dead recipient is the recipient’s problem',
+    ).toBe('recipient')
+    expect(
+      breakdown.find(b => b.cause === 'remote_temporary')?.owner,
+      'a 421 is the provider’s problem',
+    ).toBe('provider')
+
+    // The summary must agree with the breakdown rather than being a separate
+    // count that can drift from it, and a truncated breakdown must say so.
+    const summary = res.body.failureSummary
+    expect(summary.analysed).toBe(breakdown.reduce((sum, b) => sum + b.count, 0))
+    expect(summary.ours).toBeGreaterThanOrEqual(1)
+    expect(summary.total).toBeGreaterThanOrEqual(summary.analysed)
+    expect(summary.truncated).toBe(summary.analysed < summary.total)
+  }, 60_000)
+
+  it('annotates each recent failure so the UI need not re-implement the rules', async () => {
+    const superAdmin = await createUser({ email: `sa-rowclass-${Date.now()}@test.com`, role: 'SUPER_ADMIN' })
+    await seedFailureWithMessage('row@example.com', 'row', 'EAUTH: Invalid credentials')
+    const res = await request(app)
+      .get('/platform-admin/email-queue')
+      .set('Authorization', `Bearer ${generateToken(superAdmin)}`)
+    const row = (res.body.recentFailures as Array<{ to_email: string; cause?: string; owner?: string }>)
+      .find(f => f.to_email === 'row@example.com')
+    expect(row, 'the seeded failure should appear in recentFailures').toBeDefined()
+    expect(row!.cause).toBe('auth')
+    expect(row!.owner).toBe('configuration')
   }, 60_000)
 })
