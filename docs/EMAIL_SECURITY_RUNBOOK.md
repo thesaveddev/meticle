@@ -10,11 +10,12 @@ receiving server is told to check, a spoofed "your password expires today" mail
 from `security@meticlecare.com` lands in a carer's inbox and is indistinguishable
 from the real thing.
 
-**Do the steps in order.** Step 2 gates steps 3 onwards. Publishing an enforcing
+**Do the steps in order.** Step 2 gates steps 3 onwards: publishing an enforcing
 DMARC policy before signing is confirmed will send the organisation's own
-legitimate mail to spam.
+legitimate mail to spam. **Step 2 passed on 27 September 2026**, on mail the
+application itself sent, so the steps it gated are settled.
 
-## Where things stand — 26 September 2026
+## Where things stand — 27 September 2026
 
 Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
 `MX 10 safari.mxrouting.net`):
@@ -22,8 +23,8 @@ Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
 | Record | Found | State |
 | --- | --- | --- |
 | SPF | `v=spf1 include:mxroute.com -all` | **Done.** Authorises the sending provider and nobody else; `-all` is a hard fail |
-| DKIM | `x._domainkey.meticlecare.com` — `v=DKIM1;k=rsa`, 2048-bit RSA | **Key published.** Whether it is used is unproven — see step 2 |
-| DMARC | `v=DMARC1; p=none; rua=mailto:dmarc-reports@meticlecare.com` | **Monitoring only.** A `p=quarantine` edit was made on 26 Sep 2026 but is not resolving publicly |
+| DKIM | `x._domainkey.meticlecare.com` — `v=DKIM1;k=rsa`, 2048-bit RSA | **Done.** Confirmed in use on the application's own mail, 27 Sep — see step 2 |
+| DMARC | `v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@meticlecare.com; pct=100` | **Enforcing, and now safe.** `p=quarantine` resolved publicly on 26 Sep; step 2 passed 27 Sep, which was the precondition for leaving it there |
 
 ## Blocking steps
 
@@ -32,64 +33,74 @@ Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
       been served from resolver cache. Public DNS now returns
       `v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@meticlecare.com; pct=100`.
 
-      This makes step 4 urgent rather than advisory — see there.
+      This was urgent rather than advisory while step 2 was open, because an
+      enforcing policy with unproven signing is the one combination that
+      quarantines the organisation's own mail. Step 2 has since passed, so the
+      edit is now correct — see step 4.
 
-- [ ] **2. Have the *application* send a test email to a real inbox you control.**
-      **PARTIALLY ANSWERED — envelope passed 26 Sep, DKIM signing confirmed
-      27 Sep, but still over the mailbox path rather than the application's.**
+- [x] **2. Have the *application* send a test email to a real inbox you control.**
+      **DONE 27 Sep 2026 — the application's own mail passes all three checks
+      at Gmail, signed with the published key.**
 
-      A message sent by hand from `notifications@meticlecare.com` to a Gmail
-      account on 27 September 2026 returned, from Gmail's own verifier:
+      This is the evidence that counts, because it travelled the application's
+      path rather than the mailbox's: `POST /api/auth/send-email-code` for an
+      address with no account, enqueued by the app, submitted by the queue
+      worker over authenticated SMTP, delivered by MXRocket to Gmail. Gmail's
+      own verifier, from *Show original*:
 
       ```
       Authentication-Results: mx.google.com;
-        dkim=pass header.i=@meticlecare.com header.s=x;
-        spf=pass ... smtp.mailfrom=notifications@meticlecare.com;
+        dkim=pass header.i=@meticlecare.com header.s=x header.b=RWLJc9sL;
+        spf=pass (google.com: domain of security@meticlecare.com designates
+          136.175.108.148 as permitted sender) smtp.mailfrom=security@meticlecare.com;
         dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=meticlecare.com
-      DKIM-Signature: ... d=meticlecare.com; s=x;
-      Return-Path: <notifications@meticlecare.com>
-      ```
-
-      **DKIM signing is enabled** for the domain and uses the published
-      selector `x`, so step 3 can be struck. That is the useful half of this
-      result and it is not in doubt.
-
-      What it does **not** establish is that the *application* passes. The
-      header carries `X-Authenticated-Id: notifications@meticlecare.com` — the
-      message was submitted from a mailbox, by hand, over MXRocket's webmail
-      composer. The application authenticates with a different credential
-      (`SMTP_USER`, still a previous vendor's address), and DKIM signing is
-      applied per-domain by the sending MTA, which need not behave the same for
-      a different authenticated identity. This is precisely the case step 2
-      exists to catch, and the warning below applies.
-
-      A test to `opeyemi@meticlecare.com` also produced:
-
-      ```
+      DKIM-Signature: v=1; a=rsa-sha256; ... d=meticlecare.com; s=x; ...
       Return-Path: <security@meticlecare.com>
-      Received: ... (envelope-from <security@meticlecare.com>)
-      From: security@meticlecare.com
-      Message-ID: <...@meticlecare.com>
+      Received: from mail-108-mta148.mxroute.com ([136.175.108.148]) by mx.google.com
+        with ESMTPS ... for <itsopeyemi@gmail.com> (version=TLS1_3)
       ```
 
-      That settles the envelope-sender question: `MAIL FROM` is
-      `security@meticlecare.com` on the wire, MXRocket did not rewrite the
-      return path, and no third-party domain appears in any header. It also
-      answers the `SMTP_USER=caredesk@reydesk.com` question — that value is
-      only ever the SMTP auth username and reaches no header.
+      What each part establishes:
 
-      Two reasons this does **not** close the step:
+      - `dkim=pass`, `header.i=@meticlecare.com`, `header.s=x` — signed with the
+        key published at `x._domainkey.meticlecare.com`, and the signing domain
+        matches the visible `From:`. This is the whole point of the step: an
+        attacker cannot obtain a valid signature for this `From:` domain.
+      - `spf=pass` — MXRocket is the only authorised sender, and `-all` holds.
+      - `dmarc=pass` — and the parenthetical shows the *live* policy is
+        `p=QUARANTINE`, so the enforce-in-practice claim in step 1 is not just
+        in DNS.
+      - `Return-Path: <security@meticlecare.com>` — see step 6.
 
-      - There is no `Authentication-Results` header in what was captured, so
-        SPF, DKIM and DMARC remain unverified.
-      - The message was delivered by `safari.mxrouting.net` over **LMTP** to
-        another mailbox on the *same* provider. Sender and recipient share a
-        path, so nothing about acceptance by Gmail or Outlook was exercised —
-        and the header block came from the provider's own spam scanner, not
-        from a third-party `Authentication-Results`.
+      The message is unmistakably the application's: `From: security@meticlecare.com`
+      is an entry in the `SENDERS` map, the `Message-ID` is app-generated, and
+      the body is the app's own verification-code template.
 
-      To finish: send the same test to an external inbox (Gmail) and read
-      *Show original* there.
+      **Read `dkim=` specifically.** Do not accept `dmarc=pass` on its own. SPF
+      is aligned and passes via `include:mxroute.com`, so DMARC would report
+      `pass` on this domain *whether or not DKIM ever ran* — `dmarc=pass` with
+      `dkim=none` is a real combination and would have read as success here.
+
+      #### What the 26–27 Sep results did and did not prove
+
+      Two earlier results were recorded and neither was sufficient, for reasons
+      worth keeping:
+
+      - A message hand-composed in the `notifications@meticlecare.com` mailbox
+        also returned `dkim=pass header.s=x`, but carried
+        `X-Authenticated-Id: notifications@meticlecare.com`. It was submitted
+        from a mailbox, whereas the app authenticates with `SMTP_USER` — a
+        different credential on the same domain. DKIM signing is applied
+        per-domain by the sending MTA and need not behave identically for a
+        different authenticated identity, which is exactly what step 2 is for.
+      - A test to `opeyemi@meticlecare.com` proved the envelope question — see
+        step 6 — but was delivered by `safari.mxrouting.net` over **LMTP** to
+        another mailbox on the *same* provider. Sender and recipient shared a
+        path, so acceptance by Gmail or Outlook was never exercised, and the
+        header block came from the provider's own scanner rather than a
+        third-party verifier.
+
+      #### Re-running this check
 
       **Do not use mail-tester.com, and do not use the password-reset form.**
       Both were tried on 26 September 2026 and neither works:
@@ -135,49 +146,89 @@ Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
       your mailbox's path, which is already known to work. The point is the
       application's path, because that is the one an attacker impersonates.
 
+      #### One observation from the 27 Sep run: allow for the queue delay
+
+      Gmail reported `Delivered after 10 seconds`, and the timestamps agree —
+      `Date: 12:43:30`, accepted by MXRocket at `12:43:36`, received by Google
+      at `12:43:40`. Delivery once submitted is fast, and Gmail was not the
+      source of the delay.
+
+      The delay was between the request and the SMTP submission, and the
+      request returns long before that: `send-email-code` enqueues and
+      responds immediately, so a `200 {"message":"Verification code sent"}`
+      means *queued*, not *sent*. Do not diagnose a slow request by re-firing
+      it inside a minute — `rateLimit(5, 60_000)` on the route means retries
+      can exhaust the budget and then fail silently with no mail queued at all.
+      Wait a minute, or read the queue directly via
+      `GET /api/platform-admin/email-queue` as a SUPER_ADMIN, which is the only
+      view that distinguishes "never queued" from "queued and not yet sent".
+
 - [x] **3. If step 2 shows no `dkim=pass` — enable DKIM signing in MXRocket.**
       **NOT NEEDED 27 Sep 2026.** Gmail reported `dkim=pass` with
       `header.s=x` for mail from this domain, matching the published key, so
       signing is already enabled in the MXRocket panel. Recorded for the case
       where a later message comes back `dkim=none` after a panel change.
 
-- [ ] **4. Until step 2 passes, keep DMARC at `p=none`.**
-      **ACTION REQUIRED 26 Sep 2026 — this is now the wrong way round.**
-      DMARC was observed live as
-      `v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@meticlecare.com; pct=100`
-      while step 2 is still unproven, which is the exact situation this step
-      exists to prevent. `pct=100` means there is no partial rollout to soften
-      it: every message that fails DMARC goes to recipients' spam folders.
+- [x] **4. Until step 2 passes, keep DMARC at `p=none`.**
+      **SATISFIED 27 Sep 2026 — the precondition held.** Step 2 passed on the
+      application's own mail at Gmail, so `p=quarantine` is now in the right
+      order and should be **left as it is**:
 
-      The specific risk is forwarding. Meticle's mail goes to care homes and
-      NHS trusts, where a message is routinely relayed through a trust mail
-      gateway or a shared mailbox. SPF alignment breaks the moment that
-      happens, and under `p=quarantine` those messages land in spam — with the
-      worst possible content: a password reset or an invoice. DKIM survives
-      forwarding; SPF does not. That is why the order is DKIM first, then
-      quarantine.
+      ```
+      Authentication-Results: ... dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE)
+      ```
 
-      Either confirm `dkim=pass` and `dmarc=pass` on an external inbox, or
-      revert the record to `p=none` until that is recorded in step 2.
+      The forwarding risk this step guards against is the one that made
+      `p=quarantine` premature, and step 2 is precisely what retires it. SPF
+      alignment breaks when a care home or NHS trust relays mail through a
+      shared gateway; DKIM survives that, because the signature covers headers
+      rather than the sending IP. With `dkim=pass` confirmed on the sending
+      path, a forwarded message still authenticates and still aligns, so it
+      will not be quarantined for the wrong reason.
+
+      What `p=quarantine` *should* now catch is the intended target: anyone
+      sending as `meticlecare.com` without a valid signature. Left at
+      `p=quarantine` for now, because the reports go to
+      `dmarc-reports@meticlecare.com` and the decision to go to `p=reject`
+      should be made from the report volume rather than on the day it is
+      changed. Note the fail-open setting: `dis=NONE` means the policy is
+      enforced with no relaxed treatment for subdomains.
 
 - [x] **5. Confirm `dmarc-reports@meticlecare.com` exists as a real mailbox.**
       **Confirmed 26 Sep 2026.** Reports are sent *by the receiving server* to
       this address. If it did not exist they would bounce, you would get no
-      reports, and the setup would look correct because the DNS record is right.
+      reports, and the setup would look correct because the DNS record is right.- [x] **6. Verify the envelope sender is aligned.**
+      **DONE 27 Sep 2026 — confirmed on the wire by a third-party verifier.**
 
-- [ ] **6. Verify the envelope sender is aligned.**
-      **Code side: done.** `buildMailOptions` pins `envelope: { from }` to the
-      visible sender, so `MAIL FROM` is on `meticlecare.com` by construction and
-      no longer depends on `SMTP_USER`. An off-domain `SMTP_FROM` is now refused
-      rather than used — the local dev env turned out to hold a leftover
-      `caredesk@reydesk.com`, which would have failed alignment and disclosed an
-      unrelated vendor to every recipient.
+      `buildMailOptions` pins `envelope: { from }` to the visible sender, so
+      `MAIL FROM` is on `meticlecare.com` by construction and does not depend on
+      `SMTP_USER`. An off-domain `SMTP_FROM` is refused rather than used — the
+      local dev env turned out to hold a leftover `caredesk@reydesk.com`, which
+      would have failed alignment and disclosed an unrelated vendor to every
+      recipient.
 
-      Still to confirm, and only this one:
-      1. In the headers from step 2, `Return-Path` shows
-         `bounce@…meticlecare.com` or similar. MXRocket may rewrite the return
-         path in transit, and the received header is the only proof of what went
-         on the wire.
+      The wire proof, from the same Gmail message as step 2 — note these are
+      Google's, not MXRocket's, so nothing here can be self-reported:
+
+      ```
+      Return-Path: <security@meticlecare.com>
+      Received: from mail-108-mta148.mxroute.com ([136.175.108.148])
+        by mx.google.com with ESMTPS ... for <itsopeyemi@gmail.com>
+      Received-SPF: pass (google.com: domain of security@meticlecare.com
+        designates 136.175.108.148 as permitted sender) client-ip=136.175.108.148;
+      ```
+
+      `Return-Path` is the envelope sender and it is
+      `security@meticlecare.com` — the same address as `From:`, and therefore
+      aligned. MXRocket did **not** rewrite the return path in transit, and
+      `smtp.mailfrom=security@meticlecare.com` in Google's
+      `Authentication-Results` independently agrees. No third-party domain
+      appears in any header. This also settles the
+      `SMTP_USER=caredesk@reydesk.com` question: that value is only ever the
+      SMTP auth username and reaches no header. (`X-Authenticated-Id:
+      notifications@meticlecare.com` is MXRocket's own account identifier for
+      the submitting credential; it is not a sender and recipients do not see
+      it.)
 
       > **Not** `DEPLOY_SMTP_FROM`. That secret is the `From:` of GitHub
       > Actions' own deploy-failure alert, read by `.github/scripts/notify-deploy.py`
@@ -267,7 +318,9 @@ alternative is several providers each needing their own key and alignment, which
 is materially more work for a small organisation.
 
 It is also why step 2 is the most important step on this list. The check is not
-just "does our mail sign" — it is "does our only mail path still work".
+just "does our mail sign" — it is "does our only mail path still work". That
+check was done properly on 27 Sep 2026, on the application's own path rather
+than the mailbox path, and it passed.
 
 ### Reducing it
 
