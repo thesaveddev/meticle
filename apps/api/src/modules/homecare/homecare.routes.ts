@@ -108,8 +108,16 @@ const visitPatchSchema = z.object({
   visit_notes: z.string().max(5000).nullish(),
 });
 const executionSchema = z.object({
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
+  // Optional at the edge, required in the repository.
+  //
+  // An organisation with location tracking switched off has no coordinates to
+  // send, so these cannot stay mandatory here. Making them optional at the only
+  // other place they are checked would have deleted the guarantee that every
+  // check-in is verified, so `resolveLocation` in the repository now refuses a
+  // coordinate-less check-in when tracking is on. The check moved; it did not
+  // disappear.
+  latitude: z.number().min(-90).max(90).nullish(),
+  longitude: z.number().min(-180).max(180).nullish(),
   accuracy_meters: z.number().min(0).max(10000).optional(),
   actual_travel_minutes: z.number().int().min(0).optional(),
   actual_mileage_miles: z.number().min(0).optional(),
@@ -245,6 +253,14 @@ export { publicInvoiceRouter, publicEmailDsnRouter };
 const thresholdSchema = z.object({ location_threshold_meters: z.number().min(50).max(5000) });
 router.patch('/settings/location-threshold', requireRole(...managerRoles), validate(thresholdSchema), asyncHandler(HomecareController.updateLocationThreshold));
 router.get('/settings/location-threshold', requireRole(...fieldRoles), asyncHandler(HomecareController.getLocationThreshold));
+
+// The switch that lets a provider stop collecting carer location entirely.
+// ORG_ADMIN rather than MANAGER: this is a data-protection decision about the
+// organisation, not a rostering preference, and it changes what is written to
+// every care record from that moment on.
+const locationTrackingSchema = z.object({ enabled: z.boolean() });
+router.get('/settings/location-tracking', requireRole(...fieldRoles), asyncHandler(HomecareController.getLocationTracking));
+router.put('/settings/location-tracking', requireRole(UserRole.ORG_ADMIN), validate(locationTrackingSchema), asyncHandler(HomecareController.updateLocationTracking));
 
 // Photo requirement on check-out
 const photoReqSchema = z.object({ require_photo_on_checkout: z.boolean() });

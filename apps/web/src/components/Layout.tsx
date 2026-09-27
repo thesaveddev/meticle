@@ -85,6 +85,11 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   interface NavGroup { label: string; items: NavItem[] }  const [orgServiceTypes, setOrgServiceTypes] = useState<string[]>([])
   const [primaryServiceType, setPrimaryServiceType] = useState<string | null>(null)
   const [serviceTypesLoaded, setServiceTypesLoaded] = useState(false)
+  // An organisation can switch carer location off entirely. The API refuses the
+  // map endpoint when it is, so hiding the link is a courtesy rather than the
+  // control — but a nav item that leads to a 403 reads as a broken product.
+  // Defaults to true so the link is visible until we know otherwise.
+  const [locationTrackingEnabled, setLocationTrackingEnabled] = useState(true)
 
   useEffect(() => {
     if (!rawUser.id) return
@@ -94,6 +99,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       if (Array.isArray(types)) setOrgServiceTypes(types)
       setPrimaryServiceType(typeof res.data?.primary_service_type === 'string' ? res.data.primary_service_type : null)
     }).catch(() => setOrgServiceTypes([])).finally(() => setServiceTypesLoaded(true))
+    api.get('/homecare/settings/location-tracking')
+      .then(res => setLocationTrackingEnabled(res.data?.location_tracking_enabled !== false))
+      .catch(() => setLocationTrackingEnabled(true))
   }, [rawUser.id])
 
   // Rename nav labels based on org service type for familiar terminology
@@ -182,7 +190,12 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     {
       label: 'Homecare',
       items: [
-        { text: 'Live Map', icon: <LocationOnIcon />, path: '/live-map', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
+        // Was labelled "Live Map" while the page it linked to had been renamed.
+        // The map plots check-in positions and is not real-time, so the sidebar
+        // has to say the same thing the page does.
+        ...(locationTrackingEnabled
+          ? [{ text: 'Visit Check-In Map', icon: <LocationOnIcon />, path: '/live-map', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER] as UserRole[], serviceTypes: ['domiciliary', 'live_in'] }]
+          : []),
         { text: 'Call Assignment', icon: <ScheduleIcon />, path: '/call-assignment', module: 'call_scheduling', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Availability', icon: <ScheduleIcon />, path: '/availability', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },
         { text: 'Visits & Packages', icon: <HomecareIcon />, path: '/homecare', module: 'homecare', roles: [UserRole.ORG_ADMIN, UserRole.MANAGER, UserRole.CARE_WORKER], serviceTypes: ['domiciliary', 'live_in'] },

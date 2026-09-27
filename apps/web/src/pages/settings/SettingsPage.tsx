@@ -11,6 +11,7 @@ import {
   PhotoCamera as CameraIcon, Add as AddIcon, Edit as EditIcon,
   Delete as DeleteIcon, Check as CheckIcon, Close as CloseIcon,
   PersonAdd as DelegateIcon, Calculate as CalculateIcon,
+  LocationOn as LocationOnIcon,
   Settings as SettingsIcon,
   AccountCircle as ProfileIcon, Assignment as ComplianceIcon,
   BeachAccess as LeaveIcon, Group as GroupIcon,
@@ -68,6 +69,10 @@ export default function SettingsPage() {
 
   // Org settings
   const [orgSettings, setOrgSettings] = useState<any>({})
+  // Carer location kill switch. `pending` is the position of the switch, `enabled`
+  // the saved one; a difference between the two is what reveals the confirm panel,
+  // so the two are kept apart rather than flipping the value on click.
+  const [locationTracking, setLocationTracking] = useState({ enabled: true, pending: true, saving: false })
   const [staffList, setStaffList] = useState<any[]>([])
   const [complianceConfigs, setComplianceConfigs] = useState<any[]>([])
   const [complianceProfiles, setComplianceProfiles] = useState<any[]>([])
@@ -144,6 +149,12 @@ export default function SettingsPage() {
         if (compRes.status === 'fulfilled') setComplianceConfigs(compRes.value.data)
         if (delRes.status === 'fulfilled') setDelegations(delRes.value.data)
         if (compProfileRes.status === 'fulfilled') setComplianceProfiles(compProfileRes.value.data)
+        api.get('/homecare/settings/location-tracking')
+          .then(res => {
+            const on = res.data?.location_tracking_enabled !== false
+            setLocationTracking({ enabled: on, pending: on, saving: false })
+          })
+          .catch(() => setLocationTracking({ enabled: true, pending: true, saving: false }))
         if (orgDetRes.status === 'fulfilled') {
           setOrgDetails(orgDetRes.value.data)
           setBrandingColors({
@@ -713,8 +724,77 @@ export default function SettingsPage() {
     </Stack>
   )
 
+  const saveLocationTracking = async () => {
+    setLocationTracking(lt => ({ ...lt, saving: true }))
+    try {
+      const res = await api.put('/homecare/settings/location-tracking', { enabled: locationTracking.pending })
+      const saved = res.data?.location_tracking_enabled !== false
+      setLocationTracking({ enabled: saved, pending: saved, saving: false })
+      showSnackbar(
+        saved
+          ? 'Carer location is being recorded and shown again.'
+          : 'Carer location recording is off. New check-ins will not record a position, and the check-in map is no longer available.',
+        saved ? 'success' : 'info',
+      )
+    } catch (e: any) {
+      setLocationTracking(lt => ({ ...lt, pending: lt.enabled, saving: false }))
+      showSnackbar(e?.response?.data?.message || 'Could not change the location setting.', 'error')
+    }
+  }
+
   const renderOrgSettingsTab = () => (
     <Stack spacing={4}>
+      {/*
+        The switch that turns carer location off entirely.
+
+        The consequence is stated here rather than discovered afterwards: without
+        a position there is no way to verify a carer was at the client's address,
+        so visit verification stops working. Someone who did not know that would
+        reasonably feel misled, and this is the one setting on this page that
+        changes what is written to every care record from that moment on.
+      */}
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}><LocationOnIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Carer location</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Where a carer's position is recorded when they check in and out of a call, and whether
+          managers can see it on the visit check-in map.
+        </Typography>
+
+        <FormControlLabel
+          control={<Switch checked={locationTracking.enabled} disabled={!isOrgAdmin || locationTracking.saving}
+            onChange={(e) => setLocationTracking({ ...locationTracking, pending: e.target.checked })}
+          />}
+          label="Collect and show carer location"
+        />
+
+        {locationTracking.pending !== locationTracking.enabled && (
+          <Stack spacing={2} sx={{ mt: 2, p: 2, bgcolor: locationTracking.pending ? 'warning.light' : 'action.hover', borderRadius: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {locationTracking.pending
+                ? 'Switching this off stops location being recorded or shown. Visits will still be recorded normally, but there will be no GPS check that a carer is at the client’s address.'
+                : 'Switching this back on will record location at the next check-in. Visits recorded while it was off will stay without a position.'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              This does not delete positions already recorded on past visits. How long those are
+              kept is a separate question your data protection adviser should settle.
+            </Typography>
+            <Stack direction="row" spacing={2}>
+              <Button variant="contained" disabled={locationTracking.saving} onClick={saveLocationTracking}>
+                {locationTracking.pending ? 'Switch location off' : 'Switch location back on'}
+              </Button>
+              <Button disabled={locationTracking.saving} onClick={() => setLocationTracking({ ...locationTracking, pending: locationTracking.enabled })}>
+                Cancel
+              </Button>
+            </Stack>
+          </Stack>
+        )}
+        {!isOrgAdmin && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+            Only an organisation administrator can change this.
+          </Typography>
+        )}
+      </Paper>
+
       {/* Organization Details */}
       {orgDetails && (
         <Paper sx={{ p: 4 }}>

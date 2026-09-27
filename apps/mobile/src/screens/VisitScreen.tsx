@@ -7,7 +7,7 @@ import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { getVisitLocation, haversineDistance, measureVisitDistance, formatDistance } from '../services/location'
-import { getLocationThreshold, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask, uploadFile } from '../services/api'
+import { getLocationThreshold, getLocationTrackingEnabled, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask, uploadFile } from '../services/api'
 import { Ionicons } from '@expo/vector-icons'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconNavigate, IconTwoPerson, IconTransfer } from '../components/Icons'
 import { MapPickerModal } from '../components/MapPickerModal'
@@ -141,6 +141,13 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const [nextCallModal, setNextCallModal] = useState(false)
   const [mapPickerOpen, setMapPickerOpen] = useState(false)
   const [locationThreshold, setLocationThreshold] = useState(500)
+  // Mirrors the organisation's switch. When it is off the app takes no position
+  // at all: no permission prompt, no distance check, no coordinates sent. The
+  // server is the authority on this — it refuses the map and ignores any
+  // coordinates that do arrive — but a client that kept prompting for a
+  // permission its employer has switched off would be asking the carer to
+  // participate in a decision that is not theirs to make.
+  const [locationTrackingEnabled, setLocationTrackingEnabled] = useState(true)
   const [requirePhoto, setRequirePhoto] = useState(false)
   const [measuredDistance, setMeasuredDistance] = useState<number | null>(null)
   const [measuredAccuracy, setMeasuredAccuracy] = useState<number | null>(null)
@@ -190,6 +197,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   useEffect(() => {
     if (session?.accessToken) {
       getLocationThreshold(session.accessToken).then(setLocationThreshold).catch(() => {})
+      getLocationTrackingEnabled(session.accessToken).then(setLocationTrackingEnabled).catch(() => {})
       getRequirePhoto(session.accessToken).then(setRequirePhoto).catch(() => {})
     }
   }, [session?.accessToken])
@@ -218,6 +226,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   // buttons. It is now a single fix behind a tap: see
   // docs/DPIA_Live_Active_Visit_Map.md. Nothing here runs on a timer.
   async function measureDistance() {
+    if (!locationTrackingEnabled) return
     if (!visit.person_latitude || !visit.person_longitude) return
     setMeasuring(true); setError('')
     try {
@@ -341,10 +350,12 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
     setBusy(true)
     try {
-      const location = await getVisitLocation()
+      const location = locationTrackingEnabled ? await getVisitLocation() : null
 
-      // Verify location on check-in AND check-out
-      if (visit.person_latitude && visit.person_longitude && location.latitude && location.longitude) {
+      // Verify location on check-in AND check-out, when the organisation
+      // collects location at all. With tracking off there is no fix to check
+      // against, and the visit is still recorded.
+      if (locationTrackingEnabled && visit.person_latitude && visit.person_longitude && location && location.latitude && location.longitude) {
         const distance = haversineDistance(
           location.latitude, location.longitude,
           visit.person_latitude, visit.person_longitude
@@ -362,7 +373,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
       }
 
       const result = await onAction(action, {
-        ...location,
+        ...(location || {}),
         actual_travel_minutes: travelMinutes ? Number(travelMinutes) : undefined,
         actual_mileage_miles: mileage ? Number(mileage) : undefined,
         note: note.trim() || undefined,
@@ -371,7 +382,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
       } as any)
       if (action === 'check-in') {
         setCheckedInAt(dateStamp())
-        setCheckedInLocation(location.latitude ? { latitude: location.latitude, longitude: location.longitude } : null)
+        setCheckedInLocation(location?.latitude ? { latitude: location.latitude, longitude: location.longitude } : null)
         setSuccess(result.synced ? `Checked in at ${dateStamp()}. Location recorded.` : 'Checked in offline. Will sync when you reconnect.')
       } else {
         setSuccess(result.synced ? `Call completed at ${dateStamp()}. Saved.` : 'Saved offline. Will sync when you reconnect.')
@@ -570,7 +581,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
           ) : null}
 
           {/* ── Distance to client, measured on tap only ── */}
-          {!checkedIn && isOpen && measuredDistance != null && (
+          {!checkedIn && isOpen && locationTrackingEnabled && measuredDistance != null && (
             <View style={[styles.card, { backgroundColor: measuredDistance <= locationThreshold ? c.successSurface : c.dangerSurface, borderColor: measuredDistance <= locationThreshold ? c.success + '30' : c.danger + '30' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
@@ -596,7 +607,7 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
 
           {/* ── Measure-distance affordance. The app reads position here and
               nowhere else until check-in / check-out. ── */}
-          {!checkedIn && isOpen && measuredDistance == null && !!visit.person_latitude && !!visit.person_longitude && (
+          {!checkedIn && isOpen && locationTrackingEnabled && measuredDistance == null && !!visit.person_latitude && !!visit.person_longitude && (
             <View style={[styles.card, { backgroundColor: c.surface }]}>
               <Text style={[styles.cardTitle, { color: c.ink }]}>Are you close enough to check in?</Text>
               <Text style={{ fontFamily: FONT, fontSize: 12, color: c.muted, marginBottom: spacing.sm }}>

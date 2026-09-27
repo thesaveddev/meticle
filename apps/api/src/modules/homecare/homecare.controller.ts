@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { AppError } from '../../shared/middleware/error.middleware';
-import pool, { query } from '../../shared/database';
+import pool, { query, migrateQuery } from '../../shared/database';
 import { AuditRepository } from '../audit/audit.repository';
 import { sendPushToUser } from '../notifications/push.service';
 import { safeIo } from '../../shared/socket';
@@ -1112,6 +1112,62 @@ export class HomecareController {
         }
       } catch { /* family feedback is non-critical */ }
     } catch (e: any) { /* notification failure should not block */ }
+  }
+
+  /* ─── Location tracking kill switch ─────────────────────────── */
+
+  /**
+   * Read whether this organisation collects carer location.
+   *
+   * Exposed to field roles as well as managers so the mobile app can find out
+   * before it asks for a permission prompt it should never ask for.
+   */
+  static async getLocationTracking(req: Request, res: Response) {
+    const oid = orgId(req);
+    const result = await query(
+      'SELECT location_tracking_enabled, location_tracking_disabled_at FROM organizations WHERE id = $1',
+      [oid],
+    );
+    res.json({
+      location_tracking_enabled: result.rows[0]?.location_tracking_enabled !== false,
+      location_tracking_disabled_at: result.rows[0]?.location_tracking_disabled_at || null,
+    });
+  }
+
+  /**
+   * Switch carer location collection on or off.
+   *
+   * ORG_ADMIN only, and the change is audited with the coordinates left out of
+   * the payload — the audit records that the switch moved, not what it exposed.
+   *
+   * Two things this deliberately does not do, because both would be worse than
+   * not offering the control at all:
+   *
+   *   - It does not delete positions already collected. Turning collection off
+   *     stops the next one; what was already captured is on visit records the
+   *     organisation has always had, and how long to keep it is the retention
+   *     question the DPIA has escalated to the DPO rather than answered here.
+   *   - It does not affect the live map retrospectively. Same reason.
+   */
+  static async updateLocationTracking(req: Request, res: Response) {
+    const oid = orgId(req);
+    const { enabled } = req.body as { enabled: boolean };
+    const next = enabled === true;
+    await migrateQuery(`
+      UPDATE organizations
+      SET location_tracking_enabled = $1,
+          location_tracking_disabled_at = CASE WHEN $1 THEN NULL ELSE NOW() END,
+          location_tracking_disabled_by = CASE WHEN $1 THEN NULL ELSE $3::uuid END,
+          updated_at = NOW()
+      WHERE id = $2
+    `, [next, oid, userId(req)]);
+    audit(req, next ? 'enable' : 'disable', 'organization_location_tracking', oid, { location_tracking_enabled: next });
+    res.json({
+      location_tracking_enabled: next,
+      // Said plainly rather than left for the manager to discover: without a
+      // fix there is no way to verify a carer is at the client's address.
+      visit_verification_available: next,
+    });
   }
 
   /* ─── Location threshold settings ──────────────────────────── */

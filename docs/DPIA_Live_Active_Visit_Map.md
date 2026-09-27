@@ -1,7 +1,7 @@
 # Data Protection Impact Assessment (DPIA)
 ## Live Active-Visit Map — MeticleCare
 
-**Document version:** 1.2  
+**Document version:** 1.3  
 **Date:** 27 September 2026  
 **Author:** MeticleCare Engineering  
 **Review date:** 13 March 2027
@@ -13,6 +13,26 @@
 | 1.0 | 13 Sep 2026 | Initial draft. |
 | 1.1 | 27 Sep 2026 | **Corrected against the implementation.** Version 1.0 described a capability we do not have. Every correction is listed below rather than quietly edited, because a data protection assessment that has been amended to match the product is only useful if the reader can see what changed. |
 | 1.2 | 27 Sep 2026 | **Continuous collection removed, and an incorrect assurance in 1.1 retracted.** §1.1 of version 1.1 stated "no background location collection, no periodic sampling, and no tracking between or outside visits". That was wrong: the mobile app subscribed to the device position at 5-second / 10-metre intervals for as long as a visit screen was open before check-in. The claim was checked against documentation rather than against the code, and the code did not support it. The subscription is deleted, and this document is corrected. |
+| 1.3 | 27 Sep 2026 | **The v1.1 retraction of the per-organisation kill switch is reversed, because the control now exists.** Version 1.0 claimed an organisation "can disable the live map feature per-location"; 1.1 retracted it as a control that did not exist. The control is now built — to 1.1's specification, not 1.0's wording — and §6 is restated as an implemented right, with a new §6.1 setting out exactly what "off" stops and the one thing it cannot preserve. Residual risk stays MEDIUM. |
+
+**What changed in 1.3**
+
+1. **§6 "Right to restrict processing" is no longer a failure.** It now describes the
+   implemented control and reverses the 1.1 retraction explicitly, rather than editing
+   the sentence away. The retraction stays in the revision history because the reason it
+   existed — an assurance that had never been verified — is the reason this control is
+   built to a written specification.
+
+2. **New §6.1 states what the switch does, per layer,** because "you can turn it off" is
+   easy to say and easy to make misleadingly. The single most important thing to disclose
+   is that switching off also switches off GPS visit verification, which is a genuine
+   loss of assurance and is now stated in the product's own settings copy before the
+   change is saved.
+
+3. **The switch is not retroactive, is per organisation rather than per location, and
+   does not revoke an operating-system permission the worker already granted.** Each of
+   these is a limit a reader could otherwise assume away, and the mobile release that
+   implements the app-side behaviour has not been cut yet.
 
 **What changed in 1.2**
 
@@ -279,8 +299,35 @@ unionised provider.
 | **Right of access** | Subject Access Requests include GPS coordinates from visit records. Response within 30 days per UK GDPR. |
 | **Right to rectification** | GPS coordinates are immutable (captured at check-in/out). Correction is not technically possible; a note can be appended to the visit record. |
 | **Right to erasure** | GPS coordinates are part of the care record retained under legal obligation (care-records retention policy). Erasure requests are assessed on a case-by-case basis per the organisation's SAR policy. |
-| **Right to restrict processing** | **NOT IMPLEMENTED — corrected in 1.1.** Version 1.0 claimed the organisation "can disable the live map feature per-location". **No such control exists**, and there is no feature-flag mechanism in the product. An organisation that wants to switch this off currently has no in-product way to do so. Until a kill switch is built, a customer who does not want staff location data at all must be told plainly that this capability is not switched off per organisation, and must rely on the contract and access controls instead. **Building the switch is tracked as item T0-6 in `docs/GO_LIVE_READINESS.md`.** |
+| **Right to restrict processing** | **IMPLEMENTED — v1.2, and the v1.1 retraction is hereby reversed.** v1.0 claimed a per-location disable control that did not exist; v1.1 retracted it. The control now exists, built to the v1.1 retraction's own specification rather than to the v1.0 wording. `PUT /homecare/settings/location-tracking` (`{ enabled: false }`), restricted to `ORG_ADMIN`, writes `organizations.location_tracking_enabled` together with `location_tracking_disabled_at` and `location_tracking_disabled_by`. Aware of the position a worker is in is a data-minimisation decision, and it is the organisation's to make, not MeticleCare's. |
 | **Right to object** | Staff can raise an objection to their employer. The organisation must demonstrate compelling legitimate grounds that override the objection, or cease processing for that individual. |
+
+### 6.1 What the kill switch actually does — and its one casualty
+
+Stated precisely because "you can turn it off" is a claim that is easy to make and easy to make misleadingly. When an organisation sets the switch off:
+
+| Layer | Behaviour when off |
+|---|---|
+| API — check-in / check-out | No position is read. Coordinates are **not collected**. The visit is recorded normally and sets `location_capture_skipped = true`. |
+| API — GPS proximity check | Skipped. There is no fix to check against, so the 500 m threshold cannot apply. |
+| API — `GET /dashboard/live-map` | Returns **403**. Not an empty result — an explicit refusal, so a stale client cannot quietly keep plotting pins. |
+| Web — navigation | The map link is not rendered. |
+| Web — map page | Reachable by direct URL, and explains that the organisation has switched location off rather than showing a retry button. |
+| Mobile | No permission is requested, no position is taken, no distance check is offered. |
+
+**The casualty is GPS visit verification.** Turning this off also turns off the "you are within 500 m of the client" check at check-in, because that check is a comparison against a position we would then not have. This is a real loss of assurance and the settings copy states it before the change is saved. It is the trade the organisation is choosing: verification of *where* the carer was, or collection of *where the carer is*. It cannot be scoped down to "off for the map, on for verification" without keeping the collection, which is the thing some organisations are switching off in the first place.
+
+**What the switch deliberately does not do**, and this is a decision rather than a gap:
+
+- **It is per organisation, not per location or per worker.** Several claiming organisations share one tenant in this product, so a per-location control could not be enforced in the data model without a claim-level model that does not exist. "Off" is genuinely all-or-nothing per provider.
+- **It is not retroactive.** Coordinates already captured stay in the record and remain subject to the retention question escalated to the DPO. Switching collection off is a forward-looking control.
+- **It does not self-apply to a worker's device.** A carer who previously granted the OS location permission keeps it at OS level; the app simply stops reading it. The mobile release that implements this has not been cut yet.
+
+**Audit position.** The change is auditable, and that is the point of `location_tracking_disabled_at` / `_by`: "when did this provider stop collecting, and who authorised it" is the first question of any workforce-monitoring review, and it cannot be answered from a settings page once the setting has been changed more than once. Viewing the map is separately logged as a `view` audit row (user, timestamp, IP — and deliberately **not** coordinates, which would create a second copy of staff location with its own retention question).
+
+### 6.2 Residual risk, restated
+
+Unchanged from v1.1 at **MEDIUM**, and the switch does not lower it. It removes the customer's ability to *object* to collection in practice for the subset of providers who use it; it does not change the lawful basis, the retention position (still escalated to the DPO), or the fact that a minority of providers will leave it on. An organisation that leaves the switch on has still agreed to workforce monitoring, and that agreement should be evidenced at contract rather than at signup.
 
 ---
 

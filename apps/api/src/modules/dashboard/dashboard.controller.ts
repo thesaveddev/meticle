@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { DashboardRepository } from './dashboard.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { AuditRepository } from '../audit/audit.repository';
+import { query } from '../../shared/database';
 
 export class DashboardController {
   static async getStats(req: Request, res: Response) {
@@ -52,6 +53,22 @@ export class DashboardController {
   static async getLiveMap(req: Request, res: Response) {
     const orgId = req.user?.organizationId;
     if (!orgId) throw new AppError(403, 'Organization required');
+
+    // An organisation can switch carer location off. That has to be refused
+    // here, in the API, rather than hidden in the web UI: a manager with a
+    // direct client could otherwise keep reading positions the organisation has
+    // said it does not hold. Refusing loudly also beats an empty map, which a
+    // manager would read as "nobody is working" rather than "this is switched
+    // off".
+    //
+    // Read through the RLS-scoped `query`, not the pool. Every other read in
+    // this module is scoped, and a control about location privacy is a poor
+    // place to be the one that opts out of tenant isolation.
+    const setting = await query('SELECT location_tracking_enabled FROM organizations WHERE id = $1', [orgId]);
+    if (setting.rows[0]?.location_tracking_enabled === false) {
+      throw new AppError(403, 'The visit check-in map is switched off for your organisation. Carer location is not being collected.');
+    }
+
     const { getLiveMapData } = await import('./dashboard.live-map');
     const data = await getLiveMapData(orgId);
     // Viewing staff locations is an access event, not a read. The DPIA claimed

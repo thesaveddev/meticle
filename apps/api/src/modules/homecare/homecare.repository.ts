@@ -765,6 +765,48 @@ export async function updateVisit(orgId: string, visitId: string, input: Homecar
   return (await query(`${VISIT_SELECT} WHERE v.id = $1 AND v.organization_id = $2`, [visitId, orgId])).rows[0];
 }
 
+/**
+ * Whether this organisation has switched carer location collection off.
+ *
+ * Read inside the repository rather than trusted from the request, because the
+ * repository is the only layer an API caller cannot skip. A flag honoured only
+ * in the client is a UI preference; honoured here it is a control.
+ */
+export async function isLocationTrackingEnabled(orgId: string): Promise<boolean> {
+  const result = await query('SELECT location_tracking_enabled FROM organizations WHERE id = $1', [orgId]);
+  return result.rows[0]?.location_tracking_enabled !== false;
+}
+
+/**
+ * Works out what to do with the coordinates on a check-in or check-out.
+ *
+ * Three cases, and the difference between the last two is the whole point of
+ * the switch:
+ *
+ *   - tracking on, coordinates present  -> store them
+ *   - tracking on, coordinates missing  -> refuse. The route schema has to let
+ *     them be optional so an organisation with tracking off can omit them, which
+ *     means this is the only place left that can insist they are there. Without
+ *     it, making the fields optional would quietly delete the existing
+ *     guarantee that every check-in was verified.
+ *   - tracking off                     -> store nothing, and say so on the visit
+ */
+function resolveLocation(
+  trackingEnabled: boolean,
+  input: VisitExecutionInput
+): { lat: number | null; lon: number | null; accuracy: number | null; skipped: boolean } {
+  if (!trackingEnabled) return { lat: null, lon: null, accuracy: null, skipped: true };
+  if (input.latitude == null || input.longitude == null) {
+    throw new AppError(400, 'This visit needs a location. Ask the carer to allow location access, or contact support if the device is blocking it.');
+  }
+  return {
+    lat: input.latitude,
+    lon: input.longitude,
+    accuracy: input.accuracy_meters ?? null,
+    skipped: false,
+  };
+}
+
 export async function checkIn(orgId: string, staffUserId: string, visitId: string, input: VisitExecutionInput) {
   const visit = await assertVisit(visitId, orgId);
   const staff = await query('SELECT id FROM staff_profiles WHERE user_id = $1', [staffUserId]);
@@ -796,8 +838,9 @@ export async function checkIn(orgId: string, staffUserId: string, visitId: strin
       throw new AppError(400, `This call ended at ${scheduledEnd.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}. It is ${minutesOver} minutes past the scheduled end time. Please contact your manager.`);
     }
   }
-  const result = await query(`UPDATE homecare_visits SET status = 'checked_in', check_in_at = COALESCE(check_in_at, NOW()), check_in_latitude = $1, check_in_longitude = $2, check_in_accuracy_meters = $3, actual_travel_minutes = COALESCE($4, actual_travel_minutes), actual_mileage_miles = COALESCE($5, actual_mileage_miles), updated_at = NOW()
-    WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.latitude, input.longitude, input.accuracy_meters ?? null, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId]);
+  const location = resolveLocation(await isLocationTrackingEnabled(orgId), input);
+  const result = await query(`UPDATE homecare_visits SET status = 'checked_in', check_in_at = COALESCE(check_in_at, NOW()), check_in_latitude = $1, check_in_longitude = $2, check_in_accuracy_meters = $3, location_capture_skipped = $4, actual_travel_minutes = COALESCE($5, actual_travel_minutes), actual_mileage_miles = COALESCE($6, actual_mileage_miles), updated_at = NOW()
+    WHERE id = $7 AND organization_id = $8 RETURNING *`, [location.lat, location.lon, location.accuracy, location.skipped, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId]);
   return result.rows[0];
 }
 
@@ -812,7 +855,8 @@ export async function checkOut(orgId: string, staffUserId: string, visitId: stri
   const { total, done } = taskCount.rows[0];
   if (total > 0 && done < total) throw new AppError(409, `Complete all tasks before checking out (${done}/${total} done)`);
   return transaction(async (client) => {
-    const updated = await client.query(`UPDATE homecare_visits SET status = 'completed', check_out_at = NOW(), check_out_latitude = $1, check_out_longitude = $2, check_out_accuracy_meters = $9, visit_notes = COALESCE($3, visit_notes), actual_travel_minutes = COALESCE($4, actual_travel_minutes), actual_mileage_miles = COALESCE($5, actual_mileage_miles), care_plan_id = COALESCE($8, care_plan_id), mileage_status = CASE WHEN COALESCE($5, actual_mileage_miles) > 0 THEN 'submitted' ELSE mileage_status END, updated_at = NOW() WHERE id = $6 AND organization_id = $7 RETURNING *`, [input.latitude, input.longitude, input.note || null, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId, input.care_plan_id || null, input.accuracy_meters ?? null]);
+    const location = resolveLocation(await isLocationTrackingEnabled(orgId), input);
+    const updated = await client.query(`UPDATE homecare_visits SET status = 'completed', check_out_at = NOW(), check_out_latitude = $1, check_out_longitude = $2, check_out_accuracy_meters = $9, location_capture_skipped = $10, visit_notes = COALESCE($3, visit_notes), actual_travel_minutes = COALESCE($4, actual_travel_minutes), actual_mileage_miles = COALESCE($5, actual_mileage_miles), care_plan_id = COALESCE($8, care_plan_id), mileage_status = CASE WHEN COALESCE($5, actual_mileage_miles) > 0 THEN 'submitted' ELSE mileage_status END, updated_at = NOW() WHERE id = $6 AND organization_id = $7 RETURNING *`, [location.lat, location.lon, input.note || null, input.actual_travel_minutes ?? null, input.actual_mileage_miles ?? null, visitId, orgId, input.care_plan_id || null, location.accuracy, location.skipped]);
     if (!updated.rows[0]) throw new AppError(404, 'Visit not found');
     const v = updated.rows[0];
     const workMinutes = Math.max(0, Math.round((new Date(v.check_out_at).getTime() - new Date(v.check_in_at).getTime()) / 60000));

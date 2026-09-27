@@ -231,6 +231,31 @@ export default function LiveMapPage() {
     )
   }
 
+  // The organisation has switched carer location off. This is not a failure to
+  // retry — retrying cannot help, and a "Try again" button under a permanent 403
+  // tells the manager the software is broken rather than that a decision was
+  // made. The wording also says what still works, because a manager who has just
+  // turned this off is still owed the rest of the product.
+  if ((error as any)?.response?.status === 403) {
+    return (
+      <PageContainer>
+        <Box sx={{ minHeight: '60vh', display: 'grid', placeItems: 'center', px: 2 }}>
+          <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520, textAlign: 'center' }}>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>Check-in map switched off</Typography>
+            <Typography color="text.secondary">
+              Your organisation has turned off carer location, so positions are not recorded at
+              check-in and this map is not available. Visits, care records, timesheets and payroll
+              are unaffected.
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              An organisation administrator can turn it back on in Settings.
+            </Typography>
+          </Stack>
+        </Box>
+      </PageContainer>
+    )
+  }
+
   if (isError || !data || loadTimedOut) {
     return (
       <PageContainer>

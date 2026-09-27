@@ -1,12 +1,15 @@
 import React from 'react'
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native'
 import { VisitScreen } from '../VisitScreen'
-import type { AuthSession, HomecareVisit } from '../../types'
+import type { AuthSession, HomecareVisit, VisitAction } from '../../types'
 import * as api from '../../services/api'
 
 jest.mock('../../services/api', () => ({
   getVisitTasks: jest.fn(async () => []),
   getLocationThreshold: jest.fn(async () => 500),
+  // Defaults true so the existing tests exercise the location-on path. The
+  // switch-off path has its own tests below.
+  getLocationTrackingEnabled: jest.fn(async () => true),
   getRequirePhoto: jest.fn(async () => false),
   toggleVisitTask: jest.fn(async () => ({})),
   addVisitTask: jest.fn(async () => ({ id: 'created', label: 'created', done: false, sort_order: 99 })),
@@ -227,5 +230,74 @@ describe('VisitScreen location capture', () => {
 
     await settle()
     expect(queryByText('Check my distance')).toBeNull()
+  })
+})
+
+/**
+ * An organisation can switch carer location off. When it has, the app must take
+ * no position at all — no permission prompt, no distance check, no coordinates
+ * sent — and the visit must still be recorded normally.
+ *
+ * The failure this guards against is a carer being shown a location permission
+ * dialog for a feature their employer has said it does not use. The app cannot
+ * simply fail open: asking and discarding leaves the carer to answer a
+ * permission question with no consequence either way, which is worse than
+ * either outcome.
+ */
+describe('VisitScreen when the organisation has switched location off', () => {
+  const mockTracking = api.getLocationTrackingEnabled as jest.MockedFunction<typeof api.getLocationTrackingEnabled>
+  const mockGetVisitLocation = jest.requireMock('../../services/location').getVisitLocation as jest.Mock
+
+  beforeEach(() => {
+    mockTracking.mockResolvedValue(false)
+    mockGetVisitLocation.mockClear()
+  })
+
+  afterEach(() => {
+    mockTracking.mockResolvedValue(true)
+  })
+
+  it('never asks for a position', async () => {
+    const { getByText } = renderVisit({ visit: makeVisit({ person_latitude: 51.5, person_longitude: -0.1 }) })
+    await settle()
+
+    expect(getByText('Check in')).toBeTruthy()
+    expect(mockGetVisitLocation).not.toHaveBeenCalled()
+  })
+
+  it('offers no distance check at all', async () => {
+    const { queryByText } = renderVisit({ visit: makeVisit({ person_latitude: 51.5, person_longitude: -0.1 }) })
+    await settle()
+
+    expect(queryByText('Check my distance')).toBeNull()
+    expect(mockMeasureVisitDistance).not.toHaveBeenCalled()
+  })
+
+  it('still records the visit on check-in', async () => {
+    // Typed with the real two-argument signature so the payload assertion below
+    // is checked rather than reaching into an arity-zero mock.
+    const onAction = jest.fn(async (_action: VisitAction, _payload: Record<string, unknown>) => ({ synced: true }))
+    // The screen refuses a check-in outside the call's own time window, so this
+    // visit has to be live now. It matters that it is a real window and not a
+    // relaxed guard: with tracking off, the window is still enforced, so this
+    // also shows the two are independent.
+    const now = Date.now()
+    const { getByText } = renderVisit({
+      visit: makeVisit({
+        person_latitude: 51.5,
+        person_longitude: -0.1,
+        scheduled_start: new Date(now - 5 * 60_000).toISOString(),
+        scheduled_end: new Date(now + 55 * 60_000).toISOString(),
+      }),
+      onAction,
+    })
+    await settle()
+
+    fireEvent.press(getByText('Check in'))
+
+    await waitFor(() => expect(onAction).toHaveBeenCalledTimes(1))
+    // No coordinates in the payload — and crucially, no failure either.
+    expect(onAction.mock.calls[0][1]).not.toHaveProperty('latitude')
+    expect(mockGetVisitLocation).not.toHaveBeenCalled()
   })
 })

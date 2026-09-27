@@ -119,6 +119,27 @@ export async function getLocationThreshold(token: string): Promise<number> {
   return res.location_threshold_meters || 500
 }
 
+/**
+ * Whether this organisation collects carer location.
+ *
+ * Read before asking for a location permission. If an organisation has switched
+ * location off, prompting for it and then discarding the fix is the worst of
+ * both worlds: the carer sees a permission dialog for a feature their employer
+ * has said it does not use, and has to decide what to answer.
+ *
+ * Defaults to true on error, because the server refuses a check-in with no
+ * coordinates while tracking is on — guessing "off" here would leave a carer
+ * unable to check in at all.
+ */
+export async function getLocationTrackingEnabled(token: string): Promise<boolean> {
+  try {
+    const res = await request<{ location_tracking_enabled: boolean }>('/homecare/settings/location-tracking', {}, token)
+    return res.location_tracking_enabled !== false
+  } catch {
+    return true
+  }
+}
+
 export async function setLocationThreshold(token: string, meters: number): Promise<void> {
   await request('/homecare/settings/location-threshold', { method: 'PATCH', body: JSON.stringify({ location_threshold_meters: meters }) }, token)
 }
