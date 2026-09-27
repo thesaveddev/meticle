@@ -400,12 +400,49 @@ a spam folder later.
 | Required | Why | Status |
 | --- | --- | --- |
 | Confirm no queued rows exist with a null `from_email` | The fallback path should be unreachable in practice | **Owner to confirm** |
-| Confirm the production `SMTP_USER` is a mailbox that still exists on the MXRocket account | The login is a previous vendor's address, but it is only ever an SMTP `auth` username — never a header — so it is hygiene, not a deliverability risk | **Owner to confirm** |
+| Move the production `SMTP_USER` off the previous vendor's domain | The login is a previous vendor's address, but it is only ever an SMTP `auth` username — never a header — so it is hygiene, not a deliverability risk. Decision taken 27 Sep 2026 to move it to a dedicated `app@meticlecare.com` mailbox, **after** the DKIM gate is verified. Procedure below | **Owner action** — see §7.8.1 |
 
 > `DEPLOY_SMTP_FROM` is **not** one of these. It is the `From:` of GitHub Actions'
 > own deploy-failure alert (`notify-deploy.py` → `DEPLOY_ALERT_TO`) and has no
 > connection to the application's mail. An earlier draft of this table listed it
 > as the application's sender, which was wrong.
+
+### 7.8.1 Moving `SMTP_USER` to a dedicated mailbox
+
+Agreed 27 September 2026, deliberately sequenced *after* the DKIM gate. The
+gate is read-only and cannot break anything; this swap can, and a wrong mailbox
+or password stops every send — password resets, invitations and invoices at
+once. There is also no benefit to doing it first: DKIM signing is configured
+per-domain in the MXRocket panel and is unaffected by which mailbox
+authenticates, so the swap cannot inform or improve the gate's result.
+
+The risk being retired is narrow and real: `caredesk@reydesk.com` is an
+identity on another company's domain. Nothing breaks while that domain is held,
+but if it is ever lapsed or reassigned, a string in this configuration starts
+describing someone else.
+
+```
+1. Create mailbox app@meticlecare.com on the MXRocket account; set its password.
+2. Prove it authenticates BEFORE switching anything:
+     openssl s_client -starttls smtp -connect safari.mxrouting.net:587 -quiet
+     AUTH PLAIN <base64(\0<user>\0<password)>
+     MAIL FROM:<security@meticlecare.com>
+     RCPT TO:<your own inbox>
+   A 235 then a 250 means the credentials work. Do not skip this.
+3. Record the current SMTP_USER value. Rollback is this one line, plus a restart.
+4. Change SMTP_USER on the production server and restart the API.
+   It is not injected by the deploy workflow — only DEPLOY_SMTP_* is, and that
+   belongs to the alert script — so this is a change to the server's own
+   environment, not to the repository.
+5. Trigger POST /api/auth/send-email-code to a real inbox and confirm delivery.
+6. Confirm the header still asserts meticlecare.com and nothing else. The
+   From, the envelope and the Message-ID are all pinned to the sender, so the
+   login identity cannot appear in any of them; this is a confirmation, not a fix.
+```
+
+The application does not need to be redeployed for this, and no sender needs
+to change: `SMTP_USER` is read only by `getTransporter`'s `auth` block and two
+boot-time log lines.
 
 ### 7.4 Outstanding
 
