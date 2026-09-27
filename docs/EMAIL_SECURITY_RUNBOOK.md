@@ -101,12 +101,19 @@ Checked against public DNS (`ziggy.ns.cloudflare.com`; transport MXRocket,
       `***REMOVED***`, which would have failed alignment and disclosed an
       unrelated vendor to every recipient.
 
-      Still to confirm, and only these two:
-      1. `DEPLOY_SMTP_FROM` in production is on the organisational domain.
-      2. In the headers from step 2, `Return-Path` shows
+      Still to confirm, and only this one:
+      1. In the headers from step 2, `Return-Path` shows
          `bounce@…meticlecare.com` or similar. MXRocket may rewrite the return
          path in transit, and the received header is the only proof of what went
          on the wire.
+
+      > **Not** `DEPLOY_SMTP_FROM`. That secret is the `From:` of GitHub
+      > Actions' own deploy-failure alert, read by `.github/scripts/notify-deploy.py`
+      > and sent to `DEPLOY_ALERT_TO`. It has no connection to the application's
+      > mail, and an earlier draft of this runbook wrongly sent the owner
+      > looking for it. The application's sender is `SENDERS` in
+      > `apps/api/src/shared/utils/email.service.ts` — all `@meticlecare.com` —
+      > written into `email_queue.from_email` at enqueue time.
 
 - [ ] **7. ~~Decide the office mail provider.~~ ANSWERED 26 Sep 2026: neither.**
       All organisational mail is handled by MXRocket — the same provider that
