@@ -60,6 +60,38 @@ require_immutable_image() {
   fi
 }
 
+# Block until the database accepts connections.
+#
+# `compose up -d db` returns as soon as the container is created, not when
+# Postgres is serving. Until the WAL-archiving change, the db service's compose
+# config did not change, so `up -d` was a no-op and the next command could rely
+# on an already-running database. Now that the db service carries a `command:`
+# block, its config changes and Compose recreates the container on the deploy
+# that first enables archiving — and the very next line of this script is
+# `compose exec db psql`. Without this wait, that psql races a starting
+# database and the deploy fails at a random point in the future, on a deploy
+# that looks identical to every other one.
+#
+# `pg_isready` succeeds during recovery too, so this is deliberately a bounded
+# poll rather than a single check. It does not verify the server finished crash
+# recovery; `assert_schema` after the migrations is what confirms the database
+# is actually usable.
+wait_for_database() {
+  local attempt=0 max_attempts=60
+  echo "Waiting for the database to accept connections"
+  while [ "$attempt" -lt "$max_attempts" ]; do
+    if compose exec -T db pg_isready -U meticle -d meticle >/dev/null 2>&1; then
+      echo "Database is accepting connections after ${attempt}s"
+      return 0
+    fi
+    attempt=$((attempt + 1))
+    sleep 1
+  done
+  echo "ERROR: the database did not become ready within ${max_attempts}s" >&2
+  compose logs --tail 50 db >&2 || true
+  return 1
+}
+
 verify_public_health() {
   curl -fsS --max-time 20 "$PUBLIC_SITE_URL" >/dev/null
   curl -fsS --max-time 20 "$PUBLIC_API_HEALTH_URL" | grep -q '"status":"ok"'
@@ -383,6 +415,12 @@ done
 DEPLOY_STAGE="infrastructure startup"
 compose config --quiet
 compose up -d db redis uptime backup
+
+# The db container is recreated whenever its compose config changes, which is
+# now true for the WAL-archiving settings. Everything below this line talks to
+# the database, so it must not start until the server is actually up.
+DEPLOY_STAGE="database readiness"
+wait_for_database || exit 1
 
 # Keep the least-privilege application role aligned with the production secret.
 # Read only this value from the local env file; do not source the whole file.
