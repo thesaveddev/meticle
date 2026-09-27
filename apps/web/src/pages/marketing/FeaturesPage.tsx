@@ -300,7 +300,25 @@ const featureGroups = [
         description: 'Secure, GDPR-compliant data protection, hosted in the UK with database-level tenant isolation.',
         items: [
           { title: 'AES-256 Encryption', desc: 'Encrypted at rest and in transit (TLS 1.3). Hosted in the UK, with isolation between organisations enforced in the database.' },
-          { title: 'Automated Daily Backups', desc: 'Point-in-time recovery available. Full database snapshots every 24 hours with 30-day retention.' },
+          // Was: "Point-in-time recovery available. Full database snapshots every
+          // 24 hours with 30-day retention."
+          //
+          // The point-in-time claim was not true. Our backup job is a nightly
+          // `pg_dump` (docker-compose.prod.yml, `backup` service, 2am) and
+          // nothing archives the Postgres write-ahead log, so there is no way to
+          // rewind to an arbitrary moment — the most recent recoverable state is
+          // last night's snapshot. Point-in-time recovery needs WAL archiving
+          // (pgBackRest, wal-g or `archive_command`), and we have none.
+          //
+          // "Full database snapshots every 24 hours with 30-day retention" is
+          // accurate and is what we actually do, so it stays. If true PITR is
+          // added, this sentence can be extended to claim it — and only then.
+          //
+          // Do NOT add "restore-tested" here until a restore has actually been
+          // performed end to end. It has not been yet (see
+          // docs/ONBOARDING_READINESS.md item 2), and writing it early would
+          // replace one unsupported claim with another.
+          { title: 'Automated Daily Backups', desc: 'Full database snapshots every 24 hours, retained for 30 days.' },
           { title: 'Role-Based Access', desc: 'Granular permissions per module (view/edit). ORG_ADMIN only can change roles. Full audit trail of access.' },
           { title: 'UK GDPR & DPA 2018', desc: 'ICO registered. UK data sovereignty. No data leaves UK jurisdiction.' },
         ],

@@ -400,7 +400,7 @@ a spam folder later.
 | Required | Why | Status |
 | --- | --- | --- |
 | Confirm no queued rows exist with a null `from_email` | The fallback path should be unreachable in practice | **Owner to confirm** |
-| Move the production `SMTP_USER` off the previous vendor's domain | The login is a previous vendor's address, but it is only ever an SMTP `auth` username — never a header — so it is hygiene, not a deliverability risk. Decision taken 27 Sep 2026 to move it to a dedicated `app@meticlecare.com` mailbox, **after** the DKIM gate is verified. Procedure below | **Owner action** — see §7.8.1 |
+| Move the production `SMTP_USER` off the previous vendor's domain | The login is a previous vendor's address, but it is only ever an SMTP `auth` username — never a header — so it is hygiene, not a deliverability risk. Decision taken 27 Sep 2026 to move it to a dedicated `app@meticlecare.com` mailbox, **after** the DKIM gate is verified. Gate passed 27 Sep 2026 (`dkim=pass` with `SMTP_USER` still on the old domain, confirming signing is per-domain). Procedure below | **Owner action — now unblocked** — see §7.8.1 |
 
 > `DEPLOY_SMTP_FROM` is **not** one of these. It is the `From:` of GitHub Actions'
 > own deploy-failure alert (`notify-deploy.py` → `DEPLOY_ALERT_TO`) and has no
@@ -412,9 +412,17 @@ a spam folder later.
 Agreed 27 September 2026, deliberately sequenced *after* the DKIM gate. The
 gate is read-only and cannot break anything; this swap can, and a wrong mailbox
 or password stops every send — password resets, invitations and invoices at
-once. There is also no benefit to doing it first: DKIM signing is configured
+once. There was also no benefit to doing it first: DKIM signing is configured
 per-domain in the MXRocket panel and is unaffected by which mailbox
-authenticates, so the swap cannot inform or improve the gate's result.
+authenticates, so the swap could not inform or improve the gate's result.
+
+**The gate closed 27 Sep 2026, so this is now unblocked and can be done.** The
+sequencing reasoning held up exactly as argued: the app authenticated with
+`SMTP_USER=***REMOVED***` — a previous vendor's domain — and Gmail
+still returned `dkim=pass header.i=@meticlecare.com header.s=x` on the
+resulting message. Signing is a property of the sending domain, not of the
+authenticating identity, which confirms the credential is not a deliverability
+or authentication risk and that this move is hygiene only.
 
 The risk being retired is narrow and real: `***REMOVED***` is an
 identity on another company's domain. Nothing breaks while that domain is held,

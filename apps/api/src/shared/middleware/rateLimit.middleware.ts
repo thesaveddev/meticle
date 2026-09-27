@@ -33,12 +33,33 @@ export const rateLimit = (maxRequests: number, windowMs: number) => {
     const key = `rl:${req.ip}:${req.path}`;
     const now = Date.now();
 
+    // Seconds until this window resets, for `Retry-After`. Rounded up and
+    // floored at 1 so a client is never told to retry after zero seconds.
+    const retryAfter = (resetAt: number) => Math.max(1, Math.ceil((resetAt - now) / 1000));
+
+    const tooManyRequests = (resetAt: number) => res.status(429)
+      .set('Retry-After', String(retryAfter(resetAt)))
+      .json({
+        statusCode: 429,
+        message: 'Too many requests. Please wait a moment and try again.',
+        retryAfterSeconds: retryAfter(resetAt),
+      });
+
     const redisResult = await redisCheck(windowMs, key, maxRequests);
     if (redisResult === 'ok') return next();
     if (redisResult === 'reject') {
-      return res.status(429).json({
-        statusCode: 429, message: 'Too many requests, please try again later',
-      });
+      // Redis holds the authoritative window, so read it back for a truthful
+      // `Retry-After` rather than guessing at a fresh window's length.
+      let resetAt = now + windowMs;
+      try {
+        const client = await getRedisClient();
+        const ttl = client ? await client.pTTL(key) : -1;
+        if (ttl > 0) resetAt = now + ttl;
+      } catch {
+        // Fall back to the window length above; an approximate hint is better
+        // than none.
+      }
+      return tooManyRequests(resetAt);
     }
 
     const record = inMemoryStore.get(key);
@@ -47,9 +68,7 @@ export const rateLimit = (maxRequests: number, windowMs: number) => {
       return next();
     }
     if (record.count >= maxRequests) {
-      return res.status(429).json({
-        statusCode: 429, message: 'Too many requests, please try again later',
-      });
+      return tooManyRequests(record.resetAt);
     }
     record.count++;
     next();

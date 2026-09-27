@@ -8,8 +8,32 @@ import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema,
 
 const router = Router();
 
-router.post('/register', rateLimit(5, 15 * 60 * 1000), validate(registerSchema), asyncHandler(AuthController.register));
-router.post('/register-with-invitation', rateLimit(5, 15 * 60 * 1000), validate(registerWithInvitationSchema), asyncHandler(AuthController.registerWithInvitation));
+/**
+ * Registration is limited per IP, which is the wrong unit for a single customer.
+ *
+ * A care home is the normal onboarding unit: one organisation, one office, one
+ * NAT egress address. When that home activates, 15-30 staff register inside the
+ * same hour and every one of them shares `req.ip`, so a per-IP budget sized for
+ * "one person guessing passwords" becomes a per-organisation budget that the
+ * customer's own staff collectively exhaust. The limit then reads as our
+ * software being broken at the exact moment we are trying to win the account.
+ *
+ * 30 per 15 minutes is sized to seat a full care home in one sitting, and it
+ * is safe to raise this far specifically because registration is gated on
+ * proven mailbox ownership: `AuthController.register` rejects any caller who
+ * has not already completed `verify-email-code` for that address within the
+ * hour, so every one of these 30 requests corresponds to a real inbox someone
+ * genuinely controls. That proof gate is the actual abuse control here; this
+ * counter is only backstop against scripted volume, which 30 still bounds.
+ *
+ * Password guessing is unaffected — that is `/login`, deliberately left at 10
+ * per 15 minutes, and additionally locked per-account by
+ * `LOGIN_MAX_ATTEMPTS`.
+ */
+const REGISTRATION_LIMIT = 30;
+
+router.post('/register', rateLimit(REGISTRATION_LIMIT, 15 * 60 * 1000), validate(registerSchema), asyncHandler(AuthController.register));
+router.post('/register-with-invitation', rateLimit(REGISTRATION_LIMIT, 15 * 60 * 1000), validate(registerWithInvitationSchema), asyncHandler(AuthController.registerWithInvitation));
 router.post('/login', rateLimit(10, 15 * 60 * 1000), validate(loginSchema), asyncHandler(AuthController.login));
 router.post('/mfa/verify-login', rateLimit(10, 60 * 1000), validate(mfaVerifyLoginSchema), asyncHandler(AuthController.verifyMfaLogin));
 router.post('/mfa/complete-setup', rateLimit(5, 60 * 1000), validate(mfaCompleteSetupSchema), asyncHandler(AuthController.completeMfaSetup));

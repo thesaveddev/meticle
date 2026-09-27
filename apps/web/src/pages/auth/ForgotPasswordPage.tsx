@@ -87,6 +87,30 @@ export default function ForgotPasswordPage() {
                 <Typography variant="caption" sx={{ display: 'block' }}>
                   If an account exists for {email}, you'll receive a reset link shortly.
                 </Typography>
+                {/* The wording above is deliberately conditional and must stay
+                    that way: telling someone "we sent you an email" when no
+                    account exists tells an attacker which addresses are
+                    registered, which is why the API returns one identical
+                    response either way.
+
+                    The likeliest reason someone reaches this page and receives
+                    nothing is simply that they have never signed up. Showing
+                    that link to everyone, unconditionally, is safe — it
+                    distinguishes nothing, because it appears whether or not
+                    the address is registered. Without it the only available
+                    action is to resubmit the form, which sends nothing. */}
+                <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                  Never had an account?{' '}
+                  <Link
+                    component="button"
+                    type="button"
+                    onClick={() => navigate('/register')}
+                    underline="hover"
+                    sx={{ color: 'primary.main', fontWeight: 600, fontSize: 'inherit' }}
+                  >
+                    Create one
+                  </Link>
+                </Typography>
               </Alert>
               <Button
                 fullWidth
