@@ -43,7 +43,11 @@ export function MapPickerModal({ visible, onClose, destination, latitude, longit
   const [loading, setLoading] = useState(false)
   const [travelInfo, setTravelInfo] = useState<{ distance: string; eta: string } | null>(null)
 
-  // Calculate travel estimate when modal opens
+  // One position fix, taken when the carer opens this modal, to estimate travel
+  // time. Deliberately not a subscription: nothing follows the carer after this
+  // read, and the value stays on the device. This is the third and last point
+  // where the app reads position, alongside Check in / Check out and the
+  // explicit "Check my distance" tap. See docs/DPIA_Live_Active_Visit_Map.md.
   useEffect(() => {
     if (!visible || !latitude || !longitude) { setTravelInfo(null); return }
     getVisitLocation()

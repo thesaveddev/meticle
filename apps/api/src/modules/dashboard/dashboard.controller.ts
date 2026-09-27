@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { DashboardRepository } from './dashboard.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
+import { AuditRepository } from '../audit/audit.repository';
 
 export class DashboardController {
   static async getStats(req: Request, res: Response) {
@@ -53,6 +54,25 @@ export class DashboardController {
     if (!orgId) throw new AppError(403, 'Organization required');
     const { getLiveMapData } = await import('./dashboard.live-map');
     const data = await getLiveMapData(orgId);
+    // Viewing staff locations is an access event, not a read. The DPIA claimed
+    // this endpoint was audited and it was not, so the record has now been
+    // added: the question "which manager looked at the carers' positions, and
+    // when" should be answerable without guessing.
+    //
+    // Deliberately no coordinates in new_data. The audit row records that the map
+    // was opened; the positions themselves are already recorded against each
+    // visit at check-in, and duplicating them here would create a second copy
+    // with its own retention question.
+    AuditRepository.log({
+      user_id: req.user?.userId,
+      action: 'view',
+      entity_type: 'homecare_visit_map',
+      new_data: {
+        organization_id: orgId,
+        checked_in_visits_returned: data?.active_visits?.length ?? 0,
+      },
+      ip_address: req.ip,
+    }).catch(() => {});
     res.json(data);
   }
 }

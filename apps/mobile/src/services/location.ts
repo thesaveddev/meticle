@@ -10,6 +10,13 @@ const CAPTURE_POSITION = { latitude: 53.4351, longitude: -2.2758, accuracy_meter
 /** A believable "you have arrived" distance: inside the 150 m check-in threshold. */
 const CAPTURE_DISTANCE_METERS = 42
 
+/**
+ * A single position fix.
+ *
+ * Callers must only reach for this at a moment the carer asked for it. It is
+ * the function that took a permission prompt and a GPS read; wrapping it in a
+ * subscription is what turned a location check into tracking.
+ */
 export async function getVisitLocation() {
   if (isCaptureMode()) return { ...CAPTURE_POSITION }
   const permission = await Location.requestForegroundPermissionsAsync()
@@ -44,30 +51,37 @@ export function formatDistance(meters: number): string {
   return `${(meters / 1000).toFixed(1)}km`
 }
 
-/** Watch position and call callback with distance to target */
-export function watchDistance(
+/**
+ * Distance from the device to a target, measured once, on demand.
+ *
+ * This is deliberately a single fix rather than a subscription. It used to be
+ * `watchPositionAsync` at 5 s / 10 m for as long as the visit screen was open,
+ * which meant the app read the device's position continuously between arriving
+ * and checking in. That was removed 27 Sep 2026: continuous collection between
+ * the two buttons is tracking, not a location check, and the feature does not
+ * need it.
+ *
+ * The only moments the app reads position are now:
+ *   1. the carer pressing Check in or Check out,
+ *   2. the carer tapping "Check my distance" on this function, and
+ *   3. the carer opening the navigation modal (see MapPickerModal).
+ *
+ * Every one of those is a deliberate act by the person being located, and
+ * nothing runs between them. See docs/DPIA_Live_Active_Visit_Map.md.
+ */
+export async function measureVisitDistance(
   targetLat: number,
-  targetLon: number,
-  onDistance: (distance: number, accuracy: number | null) => void
-): { stop: () => void } {
+  targetLon: number
+): Promise<{ distance: number; accuracy: number | null }> {
   // Capture mode must not raise a location permission dialog over a screenshot,
-  // and a simulator has no meaningful position to watch anyway.
+  // and a simulator has no meaningful position to read anyway.
   if (isCaptureMode()) {
-    onDistance(CAPTURE_DISTANCE_METERS, CAPTURE_POSITION.accuracy_meters)
-    return { stop: () => {} }
+    return { distance: CAPTURE_DISTANCE_METERS, accuracy: CAPTURE_POSITION.accuracy_meters }
   }
 
-  let subscription: Location.LocationSubscription | null = null
-
-  Location.watchPositionAsync(
-    { accuracy: Location.Accuracy.Balanced, distanceInterval: 10, timeInterval: 5000 },
-    (pos) => {
-      const dist = haversineDistance(pos.coords.latitude, pos.coords.longitude, targetLat, targetLon)
-      onDistance(dist, pos.coords.accuracy)
-    }
-  ).then(sub => { subscription = sub })
-
+  const here = await getVisitLocation()
   return {
-    stop: () => { subscription?.remove(); subscription = null },
+    distance: haversineDistance(here.latitude, here.longitude, targetLat, targetLon),
+    accuracy: here.accuracy_meters ?? null,
   }
 }

@@ -1,7 +1,7 @@
 # Data Protection Impact Assessment (DPIA)
 ## Live Active-Visit Map — MeticleCare
 
-**Document version:** 1.1  
+**Document version:** 1.2  
 **Date:** 27 September 2026  
 **Author:** MeticleCare Engineering  
 **Review date:** 13 March 2027
@@ -12,6 +12,36 @@
 |---|---|---|
 | 1.0 | 13 Sep 2026 | Initial draft. |
 | 1.1 | 27 Sep 2026 | **Corrected against the implementation.** Version 1.0 described a capability we do not have. Every correction is listed below rather than quietly edited, because a data protection assessment that has been amended to match the product is only useful if the reader can see what changed. |
+| 1.2 | 27 Sep 2026 | **Continuous collection removed, and an incorrect assurance in 1.1 retracted.** §1.1 of version 1.1 stated "no background location collection, no periodic sampling, and no tracking between or outside visits". That was wrong: the mobile app subscribed to the device position at 5-second / 10-metre intervals for as long as a visit screen was open before check-in. The claim was checked against documentation rather than against the code, and the code did not support it. The subscription is deleted, and this document is corrected. |
+
+**What changed in 1.2**
+
+1. **§1.1 of version 1.1 contained a false assurance, and it is retracted.** It said there
+   was "no periodic sampling". There was. `VisitScreen` called
+   `Location.watchPositionAsync` with `timeInterval: 5000` and `distanceInterval: 10`,
+   running for as long as the screen was mounted and the visit was not yet checked in.
+   The values were never sent to the server — the subscription existed to drive a
+   "42 m away" readout — but the device was being sampled continuously regardless, and
+   that is what the sentence denied. Correcting a DPIA by asserting a property that was
+   never verified is worse than leaving the original error in place, because it destroys
+   the reader's ability to trust the rest of the document.
+
+2. **The subscription is removed.** `watchDistance` is deleted from
+   `apps/mobile/src/services/location.ts` and replaced by `measureVisitDistance`, a single
+   fix taken when the carer taps **"Check my distance"**. No subscription, no interval, no
+   timer.
+
+3. **The three capture points are now enumerated exhaustively**, in §1.1. Every one of them
+   is initiated by the carer. Nothing in the app reads position on a schedule, on screen
+   mount, or in the background.
+
+4. **§5.2 no longer tells carers something untrue.** Version 1.1 told them location is
+   collected "only when they check in". From this version there are three on-demand points,
+   and carers are told all three.
+
+5. **Check-out GPS accuracy is now recorded** (`check_out_accuracy_meters`,
+   migration `124`). The app has always sent it and the database was discarding it, so §2.1
+   claimed a data quality indicator that was not in fact stored for check-out.
 
 **What changed in 1.1, and why**
 
@@ -47,10 +77,30 @@ The map is visible only to users with ORG_ADMIN or MANAGER roles. Carers do **no
 access to this feature.
 
 **What is not collected.** There is no background location collection, no periodic
-sampling, and no tracking between or outside visits. The mobile app requests
-*foreground* location permission only, and the one coordinate it captures is taken at the
-moment of check-in. A carer with the app closed is not tracked, and a carer who has not
-checked in has no position on the map at all.
+sampling, and no tracking between or outside visits. A carer with the app closed is not
+tracked, and a carer who has not checked in has no position on the map at all.
+
+**The three — and only three — moments the app reads position.** All three are initiated
+by the carer. None runs on a timer, on screen mount, or while the app is closed.
+
+| # | Trigger | What is read | Where it goes |
+|---|---|---|---|
+| 1 | Carer presses **Check in** | One fix, with accuracy | Sent to the server, stored as `check_in_*` on the visit |
+| 2 | Carer presses **Check out** | One fix, with accuracy | Sent to the server, stored as `check_out_*` on the visit |
+| 3 | Carer opens the **navigation** modal, or taps **"Check my distance"** | One fix, with accuracy | **Stays on the device.** Used to show a distance and a travel estimate. Never transmitted |
+
+Points 1 and 2 are what the map shows. Point 3 exists so a carer can see whether they are
+close enough to check in before they commit to the press; the authoritative threshold
+check happens at point 1, on a fresh fix, and the press is refused if they are too far
+away. The device requests *foreground* location permission only.
+
+**This was not always true, and the change is recorded rather than quietly made.**
+Until 27 Sep 2026 the app subscribed to position at 5-second / 10-metre intervals
+whileever a visit screen was open before check-in, in order to update that distance
+readout continuously. The values were never transmitted and never left the device, but
+the sampling was continuous and is not "collecting only at check-in and check-out" by any
+reasonable reading. It was removed. The previous version of this document asserted that
+no such sampling existed, which was an unverified claim; see the revision history.
 
 **The honest limitation, stated plainly.** A pin on this map is a *historical* position: where
 the carer was when they arrived. It does not move. A manager therefore cannot use it to
@@ -102,8 +152,8 @@ Given the purposes above, no continuous tracking is necessary, and none occurs.
 
 | Data element | Source | Retention | Purpose |
 |---|---|---|---|
-| Carer GPS coordinates (latitude, longitude) | Mobile device, **at check-in and check-out only** | Held on the visit record. **No period is specified by MeticleCare.** See §2.2 | Evidence of arrival; dispatch |
-| GPS accuracy (meters) | Mobile device | With the visit record | Data quality indicator |
+| Carer GPS coordinates (latitude, longitude) | Mobile device, **at check-in and check-out only** — the two points that are stored. A third on-demand read drives a distance display and never leaves the device. See §1.1 | Held on the visit record. **No period is specified by MeticleCare.** See §2.2 | Evidence of arrival; dispatch |
+| GPS accuracy (meters) | Mobile device, at both stored points | With the visit record. `check_in_accuracy_meters` and `check_out_accuracy_meters`; the latter added 27 Sep 2026, because the app was already sending it and the database was discarding it | Data quality indicator |
 | Carer name and staff ID | Staff profile | With the visit record | Identification on map |
 | Visit status | System | With the visit record | Operational visibility |
 | Client name and address | Person profile | With the visit record | Map display and navigation |
@@ -208,8 +258,13 @@ unionised provider.
 
 ### 5.2 What carers should know
 
-- GPS is collected **only** when they check in to an assigned visit
-- GPS is **not** collected during travel between visits, during breaks, or off-duty
+- GPS is collected **only** when they press Check in or Check out on an assigned visit
+- The app also reads their position **when they ask it to** — tapping "Check my distance",
+  or opening the navigation modal to see travel time. That reading stays on the phone and
+  is never sent to MeticleCare
+- GPS is **not** collected during travel between visits, during breaks, or off-duty, and it
+  is **not** tracked continuously. There is no background collection, and nothing runs on
+  a timer
 - Only managers (not other carers) can see their location on the map
 - Location data is retained as part of the care record, not as a separate surveillance log
 - They can request a copy of their location data under Subject Access Request rights
@@ -236,12 +291,13 @@ unionised provider.
 | **Access control** | RBAC: only ORG_ADMIN, MANAGER roles. Module-level permission: `homecare`. |
 | **Organisation scoping** | All queries scoped to user's organisation_id. RLS policies on all homecare tables. |
 | **Encryption in transit** | TLS 1.2+ on all API communication |
-| **Encryption at rest** | PostgreSQL with standard encryption. GPS coordinates stored as DECIMAL(9,6). |
-| **Audit logging** | All API access to live-map endpoint is logged in audit_logs with user_id, timestamp, and IP. |
+| **Storage precision** | GPS coordinates stored as `NUMERIC(10,7)` on `homecare_visits`. That is roughly 1 cm, far finer than any consumer GPS, and the accuracy figure is what makes a reading interpretable. |
+| **Audit logging — capture** | Check-in and check-out both write an `audit_logs` row carrying the coordinates, the accuracy, and the requester's user_id and IP. The check-out row was **added 27 Sep 2026**: the position was being stored on the visit but not in the audit trail, so "where was this carer when they completed the call" was not answerable from the audit record alone. |
+| **Audit logging — access** | **Added 27 Sep 2026, and it corrects a false claim in version 1.0 and 1.1.** Both stated that all access to the live-map endpoint is logged in `audit_logs`. It was not: `getLiveMap` performed no audit call, so there was no record of who opened the map. The endpoint now writes a `view` row with user_id, timestamp and IP. It records that the map was opened and how many positions were returned, and deliberately does **not** copy the coordinates into the audit row — that would create a second copy of staff locations with its own retention question. |
 | **Rate limiting** | General API limiting applies. The map endpoint itself is behind authentication and role checks; the specific figure is not material to the risk here. |
 | **Encryption at rest** | Sensitive PII columns are encrypted at application level with AES-256-GCM under a per-tenant derived key (`apps/api/src/shared/utils/encryption.ts`), on top of the host's disk encryption. **Caveat:** if `FIELD_ENCRYPTION_KEY` is unset the encryption degrades to plaintext with only a log warning. Whether it is set in the customer's own deployment is something the organisation must verify — see readiness item T0-15. |
-| **Data minimisation** | Only coordinates, accuracy, and visit metadata returned. No route history, speed, or trajectory. |
-| **No real-time streaming** | Map data is fetched on demand (pull), not pushed in real-time. Carers are not continuously tracked. |
+| **Data minimisation** | Only coordinates, accuracy, and visit metadata are stored. No route history, speed, heading, or trajectory — the schema has nowhere to put them, so they cannot be collected even by accident. |
+| **No continuous collection** | Map data is fetched on demand (pull), not pushed. Carers are not continuously tracked, and the app holds no position subscription at all. Enforced by tests in `apps/mobile/src/screens/__tests__/VisitScreen.test.tsx` ("reads no position until the carer asks for it", "takes exactly one fix per tap, and no more") and by the absence of any `watchPositionAsync` call in `apps/mobile/src`. Reintroducing a subscription fails those tests. |
 
 ---
 

@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { colors, elevation, radii, spacing, FONT, useAppColors } from '../theme'
 import type { HomecareVisit, OfflineVisitAction, VisitAction, AuthSession } from '../types'
 import { PrimaryButton } from '../components/PrimaryButton'
-import { getVisitLocation, haversineDistance, watchDistance, formatDistance } from '../services/location'
+import { getVisitLocation, haversineDistance, measureVisitDistance, formatDistance } from '../services/location'
 import { getLocationThreshold, getRequirePhoto, getVisitTasks, toggleVisitTask, addVisitTask, uploadFile } from '../services/api'
 import { Ionicons } from '@expo/vector-icons'
 import { IconBack, IconCheck, IconClock, IconCamera, IconGallery, IconWarning, IconNavigate, IconTwoPerson, IconTransfer } from '../components/Icons'
@@ -142,8 +142,9 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const [mapPickerOpen, setMapPickerOpen] = useState(false)
   const [locationThreshold, setLocationThreshold] = useState(500)
   const [requirePhoto, setRequirePhoto] = useState(false)
-  const [liveDistance, setLiveDistance] = useState<number | null>(null)
-  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null)
+  const [measuredDistance, setMeasuredDistance] = useState<number | null>(null)
+  const [measuredAccuracy, setMeasuredAccuracy] = useState<number | null>(null)
+  const [measuring, setMeasuring] = useState(false)
   const [navDestination, setNavDestination] = useState<{ destination?: string; latitude?: number; longitude?: number; label?: string }>({})
 
   // Task list for this call — loaded from API
@@ -210,18 +211,25 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
   const requiresTwo = !!visit.requires_two_staff
   const [secondCarerCheckedIn, setSecondCarerCheckedIn] = useState(false)
 
-  // Real-time distance tracking before check-in
-  useEffect(() => {
-    if (!isOpen || checkedIn || !visit.person_latitude || !visit.person_longitude) return
-    const watcher = watchDistance(
-      visit.person_latitude, visit.person_longitude,
-      (distance, accuracy) => {
-        setLiveDistance(distance)
-        setLocationAccuracy(accuracy)
-      }
-    )
-    return () => watcher.stop()
-  }, [isOpen, checkedIn, visit.person_latitude, visit.person_longitude])
+  // Distance to the client, measured only when the carer asks for it.
+  //
+  // This was a live subscription running every 5 seconds / 10 metres for as
+  // long as this screen was open, which tracked the device between the two
+  // buttons. It is now a single fix behind a tap: see
+  // docs/DPIA_Live_Active_Visit_Map.md. Nothing here runs on a timer.
+  async function measureDistance() {
+    if (!visit.person_latitude || !visit.person_longitude) return
+    setMeasuring(true); setError('')
+    try {
+      const { distance, accuracy } = await measureVisitDistance(visit.person_latitude, visit.person_longitude)
+      setMeasuredDistance(distance)
+      setMeasuredAccuracy(accuracy)
+    } catch (e: any) {
+      setError(e.message || 'Could not get your location.')
+    } finally {
+      setMeasuring(false)
+    }
+  }
 
   const pickVisitPhoto = async () => {
     hapticLight()
@@ -271,17 +279,17 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
     setSuccess('Care notes saved. Tap "Check out and complete" when you leave.')
   }
 
-  /* ─── Auto-calculate travel time & mileage from live GPS ─── */
+  /* ─── Auto-calculate travel time & mileage from the measured fix ─── */
   useEffect(() => {
-    if (liveDistance != null && liveDistance > 0) {
+    if (measuredDistance != null && measuredDistance > 0) {
       // Assume ~30mph average speed in town, convert meters to minutes
-      const estimatedMinutes = Math.round((liveDistance / 1000) / 30 * 60)
+      const estimatedMinutes = Math.round((measuredDistance / 1000) / 30 * 60)
       setTravelMinutes(String(Math.max(1, estimatedMinutes)))
       // Convert meters to miles
-      const estimatedMiles = Math.round((liveDistance / 1609.34) * 10) / 10
+      const estimatedMiles = Math.round((measuredDistance / 1609.34) * 10) / 10
       setMileage(String(Math.max(0.1, estimatedMiles)))
     }
-  }, [liveDistance])
+  }, [measuredDistance])
 
   /* ─── Execute check-in / check-out ─────────────────────────── */
   async function execute(action: VisitAction) {
@@ -561,28 +569,47 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
             </View>
           ) : null}
 
-          {/* ── Live distance indicator ── */}
-          {!checkedIn && isOpen && liveDistance != null && (
-            <View style={[styles.card, { backgroundColor: liveDistance <= locationThreshold ? c.successSurface : c.dangerSurface, borderColor: liveDistance <= locationThreshold ? c.success + '30' : c.danger + '30' }]}>
+          {/* ── Distance to client, measured on tap only ── */}
+          {!checkedIn && isOpen && measuredDistance != null && (
+            <View style={[styles.card, { backgroundColor: measuredDistance <= locationThreshold ? c.successSurface : c.dangerSurface, borderColor: measuredDistance <= locationThreshold ? c.success + '30' : c.danger + '30' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: liveDistance <= locationThreshold ? c.success : c.danger }} />
-                  <Text style={{ fontFamily: FONT, fontSize: 14, fontWeight: '600', color: liveDistance <= locationThreshold ? c.success : c.danger }}>
-                    {liveDistance <= locationThreshold ? 'At location' : 'Approaching client'}
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: measuredDistance <= locationThreshold ? c.success : c.danger }} />
+                  <Text style={{ fontFamily: FONT, fontSize: 14, fontWeight: '600', color: measuredDistance <= locationThreshold ? c.success : c.danger }}>
+                    {measuredDistance <= locationThreshold ? 'At location' : 'Approaching client'}
                   </Text>
                 </View>
-                <Text style={{ fontFamily: FONT, fontSize: 22, fontWeight: '800', color: liveDistance <= locationThreshold ? c.success : c.danger, letterSpacing: -0.5 }}>
-                  {formatDistance(liveDistance)}
+                <Text style={{ fontFamily: FONT, fontSize: 22, fontWeight: '800', color: measuredDistance <= locationThreshold ? c.success : c.danger, letterSpacing: -0.5 }}>
+                  {formatDistance(measuredDistance)}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm }}>
                 <Text style={{ fontFamily: FONT, fontSize: 11, color: c.muted }}>
-                  {liveDistance <= locationThreshold ? 'Within ' + locationThreshold + 'm threshold' : locationThreshold + 'm threshold needed'}
+                  {measuredDistance <= locationThreshold ? 'Within ' + locationThreshold + 'm threshold' : locationThreshold + 'm threshold needed'}
                 </Text>
-                {locationAccuracy != null && (
-                  <Text style={{ fontFamily: FONT, fontSize: 10, color: c.subtle }}>±{Math.round(locationAccuracy)}m accuracy</Text>
+                {measuredAccuracy != null && (
+                  <Text style={{ fontFamily: FONT, fontSize: 10, color: c.subtle }}>±{Math.round(measuredAccuracy)}m accuracy</Text>
                 )}
               </View>
+            </View>
+          )}
+
+          {/* ── Measure-distance affordance. The app reads position here and
+              nowhere else until check-in / check-out. ── */}
+          {!checkedIn && isOpen && measuredDistance == null && !!visit.person_latitude && !!visit.person_longitude && (
+            <View style={[styles.card, { backgroundColor: c.surface }]}>
+              <Text style={[styles.cardTitle, { color: c.ink }]}>Are you close enough to check in?</Text>
+              <Text style={{ fontFamily: FONT, fontSize: 12, color: c.muted, marginBottom: spacing.sm }}>
+                We only check your position when you ask, and again when you press Check in. Nothing is
+                tracked in between.
+              </Text>
+              <PrimaryButton
+                label={measuring ? 'Checking your location…' : 'Check my distance'}
+                onPress={measureDistance}
+                loading={measuring}
+                disabled={measuring}
+                tone="primary"
+              />
             </View>
           )}
 
@@ -613,9 +640,9 @@ export function VisitScreen({ visit, session, onBack, onAction, onDisruption, qu
                 </View>
               </View>
 
-              {liveDistance != null && (
+              {measuredDistance != null && (
                 <Text style={{ fontFamily: FONT, fontSize: 11, color: c.subtle, marginTop: -spacing.sm, marginBottom: spacing.sm }}>
-                  Calculated from your current location · {formatDistance(liveDistance)} away
+                  From the position you asked us to read · {formatDistance(measuredDistance)} away
                 </Text>
               )}
 

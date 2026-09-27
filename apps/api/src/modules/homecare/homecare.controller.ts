@@ -202,7 +202,11 @@ export class HomecareController {
 
   static async checkOut(req: Request, res: Response) {
     const result = await repo.checkOut(orgId(req), userId(req), req.params.id, req.body);
-    audit(req, 'check_out', 'homecare_visit', req.params.id, { actual_travel_minutes: req.body.actual_travel_minutes, actual_mileage_miles: req.body.actual_mileage_miles });
+    // The location fields are recorded here because this is the only place a
+    // check-out position exists. Keeping them in the audit trail is what makes
+    // "where was this carer when they completed this call" answerable after the
+    // visit record is edited.
+    audit(req, 'check_out', 'homecare_visit', req.params.id, { latitude: req.body.latitude, longitude: req.body.longitude, accuracy_meters: req.body.accuracy_meters, actual_travel_minutes: req.body.actual_travel_minutes, actual_mileage_miles: req.body.actual_mileage_miles });
     res.json(result);
   }
 
