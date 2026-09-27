@@ -103,14 +103,161 @@ const baseUrl = () =>
   process.env.FRONTEND_URL ||
   (process.env.NODE_ENV === 'production' ? 'https://meticlecare.com' : 'http://localhost:3000');
 
-const fmtTime = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
+/**
+ * Formats a time for a human reading an email.
+ *
+ * The timezone argument is not optional in spirit. The homecare digests select
+ * each day's calls in the *recipient's* timezone, so printing those times in
+ * the server's timezone shows a different hour from the one the recipient
+ * scheduled them in — and on a UTC server that is an hour out for every UK
+ * user through summer. Callers that know the recipient's zone must pass it.
+ */
+const fmtTime = (iso?: string | null, timeZone?: string) =>
+  iso
+    ? new Date(iso).toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        ...(timeZone ? { timeZone } : {}),
+      })
+    : '—';
 
 const fmtDate = (date?: string | null) =>
   date
     ? new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
     : 'your shift';
 
+
+export const DIGEST_HEADINGS = {
+  morning: 'Morning schedule',
+  midday: 'Midday progress report',
+  evening: 'End-of-day summary',
+} as const;
+
+/**
+ * Renders the body of a homecare digest.
+ *
+ * Split out from the send so it can be tested and read on its own: this is
+ * the part a manager actually reads, and it is the part that was quietly
+ * uninformative.
+ *
+ * Every interpolated value is escaped. Client names, call labels, carer names
+ * and free-text late reasons are all user-supplied and this is HTML in an
+ * email, so they are treated as untrusted.
+ */
+export function buildDigestEmailContent(name: string, digestType: 'morning' | 'midday' | 'evening', date: string, summary: any): string {
+  const tz: string | undefined = summary.timezone;
+  const t = (iso?: string | null) => fmtTime(iso, tz);
+  const totals = summary.totals || {};
+  const visits: any[] = summary.visits || [];
+  const attention: any[] = summary.attention || [];
+  const isManager = summary.managerView === true;
+
+  const esc = (value: unknown) =>
+    String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Client names, carer names, call labels and late reasons are user-supplied
+  // and land in an HTML email. Everything interpolated below goes through this.
+  const e = esc;
+
+  const cell = (label: string, value: number | string, highlight?: string) =>
+    `<td style="padding:6px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:${highlight || '#263238'};">${e(value)}<span style="color:#9CA3AF;"> ${e(label)}</span></td>`;
+
+  const figures = totals.scheduled === undefined ? '' : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px 0;border-collapse:collapse;">
+    <tr>
+      ${cell('scheduled today', totals.scheduled)}
+      ${cell('due by now', totals.dueSoFar)}
+      ${cell('completed', totals.completed, '#166534')}
+    </tr>
+    <tr>
+      ${cell('in progress', totals.inProgress)}
+      ${cell('not started', totals.notStarted)}
+      ${cell('late', totals.late, totals.late ? '#B45309' : undefined)}
+    </tr>
+    <tr>
+      ${cell('missed', totals.missed, totals.missed ? '#B91C1C' : undefined)}
+      ${cell('overdue', totals.overdue, totals.overdue ? '#B91C1C' : undefined)}
+      ${cell('no carer assigned', totals.unassigned, totals.unassigned ? '#B45309' : undefined)}
+    </tr>
+    <tr>
+      ${cell('cancelled', totals.cancelled)}
+      ${cell('completed, no check-in', totals.completedWithoutCheckIn, totals.completedWithoutCheckIn ? '#B45309' : undefined)}
+      ${cell('completion of calls due', `${totals.completionRate}%`)}
+    </tr>
+  </table>`;
+
+  /** Colours are keyed off the tone the digest layer assigned, not re-derived here. */
+  const TONE: Record<string, string> = {
+    ok: '#166534',
+    warn: '#B45309',
+    bad: '#B91C1C',
+    neutral: '#263238',
+  };
+
+  /**
+   * One call, as a table row.
+   *
+   * The state wording comes from `describeVisit` in the digest layer, so this
+   * function renders and does not decide. Actual arrival and departure times
+   * are formatted here, in the recipient's timezone, because the scheduled
+   * column beside them has to agree.
+   */
+  const line = (visit: any) => {
+    const state = visit.digestState || { state: String(visit.status || '').replace(/_/g, ' '), tone: 'neutral', detail: '' };
+    const colour = TONE[state.tone] || TONE.neutral;
+    const bits: string[] = [];
+    if (visit.check_in_at) bits.push(`in ${t(visit.check_in_at)}`);
+    if (visit.check_out_at) bits.push(`out ${t(visit.check_out_at)}`);
+    if (state.detail) bits.push(state.detail);
+    const extra = bits.join(' · ');
+    return `<tr>
+      <td style="padding:6px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:#263238;white-space:nowrap;">${e(t(visit.scheduled_start))}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:#111827;"><strong>${e(visit.person_name)}</strong><br><span style="color:#6B7280;">${e(visit.label)}</span></td>
+      ${isManager ? `<td style="padding:6px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:#263238;">${e(visit.carer_name)}</td>` : ''}
+      <td style="padding:6px 10px;border-bottom:1px solid #F3F4F6;font-size:13px;color:${colour};"><strong>${e(state.state)}</strong>${extra ? `<br><span style="color:#6B7280;">${e(extra)}</span>` : ''}</td>
+    </tr>`;
+  };
+
+  const header = isManager
+    ? `<tr><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Time</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Client &amp; call</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Carer</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">State</th></tr>`
+    : `<tr><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Time</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">Client &amp; call</th><th align="left" style="padding:4px 10px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.4px;">State</th></tr>`;
+
+  const attentionBlock = attention.length
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#111827;">Needs attention (${attention.length}${summary.attentionTruncated ? '+' : ''})</p>
+       <p style="margin:0 0 8px 0;font-size:12px;color:#6B7280;">${summary.attentionTruncated ? `Showing the ${attention.length} most pressing of ${attention.length + summary.attentionTruncated}. ` : ''}Missed calls first, then overdue, unassigned and late.</p>
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${header}${attention.map(line).join('')}</table>`
+    : `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#166534;">Nothing needs attention</p>
+       <p style="margin:0;font-size:13px;color:#6B7280;">No missed, overdue, unassigned or late calls.</p>`;
+
+  const fullBlock = visits.length
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#111827;">All calls today (${totals.scheduled}${summary.visitsTruncated ? `, showing first ${visits.length}` : ''})</p>
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${header}${visits.map(line).join('')}</table>
+       ${summary.visitsTruncated ? `<p style="margin:6px 0 0 0;font-size:12px;color:#6B7280;">${summary.visitsTruncated} further call${summary.visitsTruncated === 1 ? '' : 's'} not shown. Open the app for the full list.</p>` : ''}`
+    : `<p style="margin:20px 0 0 0;font-size:13px;color:#6B7280;">No calls are scheduled for today.</p>`;
+
+  const incidents = (summary.incidents || []).map((incident: any) =>
+    `<li style="margin:0 0 6px 0;font-size:13px;">${e(incident.title)} · ${e(incident.severity)} · ${e(incident.status)}</li>`).join('');
+  const incidentBlock = incidents
+    ? `<p style="margin:20px 0 6px 0;font-size:14px;font-weight:700;color:#111827;">Incidents recorded today (${summary.incidents.length})</p><ul style="margin:0;padding-left:18px;">${incidents}</ul>`
+    : '';
+
+  const missed = Number(totals.missed || 0);
+  const lateCount = Number(totals.late || 0);
+  const leadIn = digestType === 'morning'
+    ? `<p>Today's schedule. ${isManager ? `${totals.unassigned || 0} call${totals.unassigned === 1 ? '' : 's'} still ${totals.unassigned === 1 ? 'has' : 'have'} no carer assigned.` : 'Your calls for today.'}</p>`
+    : digestType === 'midday'
+      ? `<p>Where the day stands. ${missed || totals.overdue ? 'There are exceptions below that need a decision.' : 'No missed or overdue calls so far.'}</p>`
+      : `<p>The day in numbers. ${missed
+        ? `${missed} call${missed === 1 ? ' was' : 's were'} missed and ${lateCount} ran late.`
+        : 'No calls were missed.'}</p>`;
+
+  const content = `<p>Hi ${e(name || 'there')},</p>
+    <p style="color:#6B7280;font-size:13px;"><strong>${e(date)}</strong>${summary.generatedAtLabel ? ` · generated ${e(summary.generatedAtLabel)}` : ''}</p>
+    ${leadIn}
+    ${figures}
+    ${attentionBlock}
+    ${fullBlock}
+    ${incidentBlock}`;
+  return content;
+}
 export class EmailService {
   static async sendVerificationEmail(email: string, token: string) {
     const url = `${baseUrl()}/verify-email?token=${token}`;
@@ -316,16 +463,24 @@ export class EmailService {
         { label: 'View my earnings', url: `${baseUrl()}/homecare/earnings` }), 'billing', attachments);
   }
 
+  /**
+   * The three-times-daily operational digest.
+   *
+   * Written to be a snapshot a manager can act on from their inbox without
+   * opening the app: the day's numbers first, then the calls that need a
+   * decision, then the full list. The previous version was a flat list in
+   * schedule order with a one-line count, so a missed 09:00 call ranked below
+   * a carer still on site at 14:00 purely because of the clock, and "how many
+   * were late" was answered by whether anyone had remembered to type a reason.
+   *
+   * Deliberately excluded: `visit_notes`. They are free-text clinical
+   * content, and this email goes to inboxes that are forwarded, backed up and
+   * read on phones. The digest reports that a call happened; the record of what
+   * happened stays in the app.
+   */
   static async sendHomecareDigestEmail(email: string, name: string, digestType: 'morning' | 'midday' | 'evening', date: string, summary: any) {
-    const labels = { morning: 'Morning schedule', midday: 'Midday progress report', evening: 'End-of-day shift summary' };
-    const heading = labels[digestType];
-    const rows = (summary.visits || []).map((visit: any) => {
-      const status = String(visit.status || '').replace('_', ' ');
-      return `<li style="margin:0 0 8px 0"><strong>${visit.person_name}</strong> — ${visit.label} at ${fmtTime(visit.scheduled_start)} · ${status}${summary.managerView ? ` · ${visit.carer_name}` : ''}${visit.late_reason ? ` · late: ${visit.late_reason}` : ''}</li>`;
-    }).join('');
-    const incidents = (summary.incidents || []).map((incident: any) => `<li>${incident.title} · ${incident.severity} · ${incident.status}</li>`).join('');
-    const progress = `<p><strong>${summary.completed}</strong> completed of <strong>${summary.total}</strong> calls (${summary.completionRate}% completion). ${summary.covered} covered, ${summary.missed} missed, ${summary.overdue} overdue, ${summary.late} late.</p>`;
-    const content = `<p>Hi ${name || 'there'},</p><p style="color:#6B7280;font-size:13px"><strong>Date sent:</strong> ${date}</p>${digestType === 'morning' ? '<p>Here is the schedule for today.</p>' : progress}${digestType !== 'morning' ? '<p>Review the details below and follow up on any exceptions.</p>' : ''}${rows ? `<p><strong>Calls</strong></p><ul>${rows}</ul>` : '<p>No calls are scheduled for this period.</p>'}${incidents ? `<p><strong>Incidents</strong></p><ul>${incidents}</ul>` : ''}`;
+    const heading = DIGEST_HEADINGS[digestType];
+    const content = buildDigestEmailContent(name, digestType, date, summary);
     await sendMail(email, `${heading} — ${date}`, buildEmailHtml('Homecare digest', heading, content, { label: 'Open Homecare', url: `${baseUrl()}/homecare` }), 'notifications');
   }
 
