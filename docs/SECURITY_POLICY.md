@@ -124,9 +124,28 @@ contract change was needed.
 the ownership check comes before the disclosure and that `forgot-password` does
 not drift.
 
+**Login timing.** Identical status and body are only half the guarantee. bcrypt
+is deliberately slow, so the paths that never reached a comparison answered in
+milliseconds while a real account spent a full cost-10 hash first — the oracle
+moved from the response to the clock, which is harder to notice because
+`if (!user) throw` reads as correct, fast code rather than as a disclosure.
+Fixed on 27 September 2026: both early returns now spend a real comparison
+against a dummy hash before throwing.
+
+`burnPasswordCompare` (`password.util.ts`) compares against a hash generated at
+module load with the *same* cost constant as `hashPassword`, so the two cannot
+drift. A hardcoded dummy string would quietly become half the work if the cost
+were ever raised, re-opening the channel. It is generated eagerly rather than
+lazily because a lazily built one would make the first probe slow and every
+later one normal, which is its own observable difference.
+
+Measured end to end: an unknown address went from 40.4ms against 175.8ms for a
+real account (ratio 0.23) to 171.7ms against 159.9ms (ratio 1.07).
+
 | Required | Why | Status |
 | --- | --- | --- |
-| Timing equalisation on `/auth/login` | An unknown address returns before any password hash comparison, so response time distinguishes it from a known one even with identical bodies | Not done |
+| Timing equalisation on `/auth/login` | An unknown address returns before any password hash comparison, so response time distinguishes it from a known one even with identical bodies | **Done** 27 Sep 2026 — `burnPasswordCompare` on both early returns; asserted by spy in `authLoginTiming.test.ts` and by median response ratio in `authLoginTimingRatio.test.ts` |
+| Lockout state on `/auth/login` must not disclose existence | `loginLockoutMap` entries are only created once a user is found, so in principle a real address can be driven to `429` while an unknown address keeps returning `401` | **Not currently exploitable, and left alone deliberately.** Measured 27 Sep 2026: from a single source both a real and an unknown address return `401 x5` then `429`, identically — the per-IP `rateLimit(10, 15 * 60 * 1000)` on `/auth/login` trips first and treats both the same. It would become an oracle for a *distributed* attacker, who can spend five attempts per address across source addresses without tripping a per-IP limit. Closing it properly means deciding whether to lock out addresses that do not exist, which would let anyone lock out any real user on purpose, so it is a judgement call rather than a mechanical fix |
 
 **Least privilege and tenant isolation.** PostgreSQL row-level security enforces
 organisation boundaries in the database itself. The application connects as
