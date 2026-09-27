@@ -29,9 +29,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
-import { join, sep } from 'node:path'
-import { createMeticleTheme } from '../context/ThemeContext'
-import type { ThemeMode } from '../context/ThemeContext'
+import { join } from 'node:path'
+import { createMeticleTheme, type ThemeMode } from '../context/ThemeContext'
 
 /** WCAG 2.1 AA for normal-size text. */
 const AA_TEXT = 4.5
