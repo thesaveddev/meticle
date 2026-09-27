@@ -914,7 +914,7 @@ export default function LocationDetailPage() {
             </IconButton>
           </Stack>
         </DialogTitle>
-        <DialogContent dividers sx={{ bgcolor: 'grey.50', p: 0, height: '70vh' }}>
+        <DialogContent dividers sx={{ bgcolor: 'notice.subtle.bg', p: 0, height: '70vh' }}>
           {filePreview?.type === 'application/pdf' ? (
             <iframe src={filePreview.url} title={filePreview.name} width="100%" height="100%" style={{ border: 'none' }} />
           ) : filePreview?.type.startsWith('image/') ? (

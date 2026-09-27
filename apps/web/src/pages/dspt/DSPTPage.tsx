@@ -146,14 +146,14 @@ export default function DSPTPage() {
         </Card>
       </Box>
 
-      <Paper sx={{ p: 2.5, mb: 3, bgcolor: 'info.light', border: '1px solid #B3D4FC', borderRadius: 2 }}>
+      <Paper sx={{ p: 2.5, mb: 3, bgcolor: 'notice.info.bg', border: '1px solid #B3D4FC', borderRadius: 2 }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <ExternalIcon sx={{ color: '#005EB8' }} />
+          <ExternalIcon sx={{ color: 'notice.info.fg' }} />
           <Typography variant="body2" sx={{ flex: 1 }}>
             Track your organisation's progress against the 10 Data Security Standards here. When ready, complete your official submission on the NHS DSPT portal.
           </Typography>
           <Button variant="outlined" size="small" endIcon={<ExternalIcon />} href="https://www.dsptoolkit.nhs.uk/" target="_blank"
-            sx={{ borderColor: '#005EB8', color: '#005EB8', whiteSpace: 'nowrap' }}>
+            sx={{ borderColor: '#005EB8', color: 'notice.info.fg', whiteSpace: 'nowrap' }}>
             Open DSPT Portal
           </Button>
         </Stack>
@@ -189,7 +189,7 @@ export default function DSPTPage() {
                         <Paper key={std.standard_key} variant="outlined" sx={{
                           p: 1.75, mb: 0.75, cursor: 'pointer', transition: 'all 0.1s',
                           borderLeft: `3px solid ${theme.color}`,
-                          '&:hover': { bgcolor: 'grey.50', borderColor: '#B3D4FC' }
+                          '&:hover': { bgcolor: 'notice.subtle.bg', borderColor: '#B3D4FC' }
                         }} onClick={() => setEditing({
                           key: std.standard_key,
                           label: `${std.standard_key}: ${std.label}`,
@@ -216,7 +216,7 @@ export default function DSPTPage() {
                   </Box>
                 )
               })}
-              <Box sx={{ mt: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Box sx={{ mt: 2, p: 1.5, bgcolor: 'notice.subtle.bg', borderRadius: 1 }}>
                 <Typography variant="caption" color="text.secondary">
                   Click any standard to update its status and add evidence notes. Once submitted on the official DSPT portal, mark this assessment as "Submitted".
                 </Typography>
@@ -227,7 +227,7 @@ export default function DSPTPage() {
       )}
 
       {!active && (
-        <Paper sx={{ p: 6, textAlign: 'center', bgcolor: 'grey.50', border: '2px dashed #D1D5DB' }}>
+        <Paper sx={{ p: 6, textAlign: 'center', bgcolor: 'notice.subtle.bg', border: '2px dashed #D1D5DB' }}>
           <ShieldIcon sx={{ fontSize: 48, color: '#D1D5DB', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>No Active Assessment</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -241,9 +241,9 @@ export default function DSPTPage() {
       )}
 
       {active && active.status === 'submitted' && (
-        <Paper sx={{ p: 3, mt: 3, bgcolor: 'success.light', border: '1px solid #86EFAC', borderRadius: 2 }}>
+        <Paper sx={{ p: 3, mt: 3, bgcolor: 'notice.success.bg', border: '1px solid #86EFAC', borderRadius: 2 }}>
           <Stack direction="row" spacing={1.5} alignItems="center">
-            <CheckCircle sx={{ color: '#16A34A' }} />
+            <CheckCircle sx={{ color: 'notice.success.fg' }} />
             <Box>
               <Typography variant="subtitle2" fontWeight={700}>Assessment Submitted</Typography>
               <Typography variant="body2" color="text.secondary">

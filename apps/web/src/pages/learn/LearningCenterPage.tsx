@@ -110,7 +110,7 @@ export default function LearningCenterPage() {
                       px: 2, py: 0.5,
                       borderLeft: isSelected ? '3px solid #0F4C81' : '3px solid transparent',
                       bgcolor: isSelected ? '#EEF2FF' : 'transparent',
-                      '&:hover': { bgcolor: 'grey.100' },
+                      '&:hover': { bgcolor: 'notice.muted.bg' },
                     }}
                   >
                     <ListItemIcon sx={{ minWidth: 28, fontSize: 18 }}>{section.icon}</ListItemIcon>
@@ -131,7 +131,7 @@ export default function LearningCenterPage() {
                             pl: 5, py: 0.25,
                             borderLeft: subSelected ? '3px solid #0F4C81' : '3px solid transparent',
                             bgcolor: subSelected ? '#EEF2FF' : 'transparent',
-                            '&:hover': { bgcolor: 'grey.100' },
+                            '&:hover': { bgcolor: 'notice.muted.bg' },
                           }}
                         >
                           <ListItemText
@@ -159,7 +159,7 @@ export default function LearningCenterPage() {
   return (
     <>
       <PageMeta title="Learning Center | Meticle Care" description="Learn how to use Meticle Care for care planning, staff management, medication records, compliance and daily operations. Guides and resources for care providers." canonicalPath="/learn" />
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'grey.50' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'notice.subtle.bg' }}>
       {/* Mobile app bar */}
       {isMobile && (
         <AppBar position="fixed" sx={{ bgcolor: '#0F4C81', zIndex: 1201 }}>
@@ -221,7 +221,7 @@ export default function LearningCenterPage() {
                   '& ul, & ol': { pl: 2.5, mb: 2 },
                   '& li': { mb: 0.5, lineHeight: 1.7, color: 'text.primary', fontSize: '0.95rem' },
                   '& ul li strong': { color: '#0F4C81' },
-                  '& code': { bgcolor: 'grey.100', px: 0.75, py: 0.25, borderRadius: 0.5, fontSize: '0.85rem', fontFamily: 'monospace' },
+                  '& code': { bgcolor: 'notice.muted.bg', px: 0.75, py: 0.25, borderRadius: 0.5, fontSize: '0.85rem', fontFamily: 'monospace' },
                   '& em': { fontStyle: 'italic', color: 'text.secondary' },
                 }}
               />

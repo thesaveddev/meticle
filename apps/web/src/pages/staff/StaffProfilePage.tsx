@@ -392,7 +392,7 @@ export default function StaffProfilePage() {
               <LinearProgress
                 variant="determinate"
                 value={c.compliance_rate}
-                sx={{ height: 6, borderRadius: 3, bgcolor: 'grey.100', '& .MuiLinearProgress-bar': { bgcolor: complianceColor } }}
+                sx={{ height: 6, borderRadius: 3, bgcolor: 'notice.muted.bg', '& .MuiLinearProgress-bar': { bgcolor: complianceColor } }}
               />
             </Box>
           </Box>
@@ -571,7 +571,7 @@ export default function StaffProfilePage() {
               <TableContainer>
                 <Table>
                   <TableHead>
-                    <TableRow sx={{ '& th': { bgcolor: 'grey.50', fontWeight: 700, color: 'text.secondary', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' } }}>
+                    <TableRow sx={{ '& th': { bgcolor: 'notice.subtle.bg', fontWeight: 700, color: 'text.secondary', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' } }}>
                       <TableCell>Assessment</TableCell>
                       <TableCell>Assessor</TableCell>
                       <TableCell>Date</TableCell>
@@ -580,7 +580,7 @@ export default function StaffProfilePage() {
                   </TableHead>
                   <TableBody>
                     {competencyRecords.slice(compPage * compRowsPerPage, compPage * compRowsPerPage + compRowsPerPage).map((a: any) => (
-                      <TableRow key={a.id} sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                      <TableRow key={a.id} sx={{ '&:hover': { bgcolor: 'notice.subtle.bg' } }}>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>{a.template_name}</Typography>
                           {a.template_category && <Typography variant="caption" color="text.secondary">{a.template_category}</Typography>}

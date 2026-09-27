@@ -426,12 +426,12 @@ export default function ShiftMarketplacePage() {
 
   const openStatusChip = (s: any) => {
     if (s.status === 'pending') {
-      return <Chip label="Pending approval" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'warning.light', color: '#92400E', fontWeight: 700 }} />
+      return <Chip label="Pending approval" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 700 }} />
     }
     if (new Date(s.start_time) < new Date()) {
-      return <Chip label="Unclaimed" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'error.light', color: '#991B1B', fontWeight: 700 }} />
+      return <Chip label="Unclaimed" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.error.bg', color: 'notice.error.fg', fontWeight: 700 }} />
     }
-    return <Chip label="Open" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'success.light', color: '#065F46', fontWeight: 700 }} />
+    return <Chip label="Open" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.success.bg', color: 'notice.success.fg', fontWeight: 700 }} />
   }
 
   return (
@@ -581,7 +581,7 @@ export default function ShiftMarketplacePage() {
                                 startIcon={<SendIcon />}
                                 onClick={(e) => { e.stopPropagation(); openAgencyDialog(s) }}
                                 disabled={new Date(s.start_time) < new Date()}
-                                sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#0F4C81', borderColor: '#93C5FD', '&:hover': { borderColor: '#0F4C81', bgcolor: 'info.light' } }}>
+                                sx={{ textTransform: 'none', fontSize: '0.75rem', color: 'notice.info.fg', borderColor: '#93C5FD', '&:hover': { borderColor: '#0F4C81', bgcolor: 'notice.info.bg' } }}>
                                 Send to Agency
                               </Button>
                             )}
@@ -616,7 +616,7 @@ export default function ShiftMarketplacePage() {
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ bgcolor: 'grey.50' }}>
+                  <TableRow sx={{ bgcolor: 'notice.subtle.bg' }}>
                     {isAdminOrManager && <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>}
                     <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Time</TableCell>
@@ -840,7 +840,7 @@ export default function ShiftMarketplacePage() {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'grey.50' }}>
+            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'notice.subtle.bg' }}>
               <Stack direction="row" justifyContent="space-between" flexWrap="wrap" useFlexGap>
                 <Typography variant="body2" color="#6B7280">Shift</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -900,7 +900,7 @@ export default function ShiftMarketplacePage() {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'grey.50' }}>
+            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'notice.subtle.bg' }}>
               <Stack direction="row" justifyContent="space-between" flexWrap="wrap" useFlexGap>
                 <Typography variant="body2" color="#6B7280">Currently claimed by</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>{reassignDialog.staffName}</Typography>

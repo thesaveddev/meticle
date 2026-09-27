@@ -490,11 +490,11 @@ export default function InsightsPage() {
                           {outcomes.goal_completion_by_domain.map(d => (
                             <TableRow key={d.cqc_domain}>
                               <TableCell><Chip label={d.cqc_domain} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /></TableCell>
-                              <TableCell align="right"><Chip label={d.completed} size="small" sx={{ bgcolor: 'success.light', color: '#16A34A', fontWeight: 700 }} /></TableCell>
+                              <TableCell align="right"><Chip label={d.completed} size="small" sx={{ bgcolor: 'notice.success.bg', color: 'notice.success.fg', fontWeight: 700 }} /></TableCell>
                               <TableCell align="right">{d.total}</TableCell>
                               <TableCell align="right">
                                 <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
-                                  <LinearProgress variant="determinate" value={d.avg_progress || 0} sx={{ width: 60, height: 5, borderRadius: 3, bgcolor: 'grey.100', '& .MuiLinearProgress-bar': { bgcolor: d.avg_progress >= 60 ? '#16A34A' : '#D97706' } }} />
+                                  <LinearProgress variant="determinate" value={d.avg_progress || 0} sx={{ width: 60, height: 5, borderRadius: 3, bgcolor: 'notice.muted.bg', '& .MuiLinearProgress-bar': { bgcolor: d.avg_progress >= 60 ? '#16A34A' : '#D97706' } }} />
                                   <Typography variant="caption" sx={{ fontWeight: 700, minWidth: 30 }}>{d.avg_progress || 0}%</Typography>
                                 </Stack>
                               </TableCell>
@@ -507,9 +507,9 @@ export default function InsightsPage() {
                   </>
                 )}
                 {outcomes.overdue_reviews > 0 && (
-                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2, p: 1.5, bgcolor: 'warning.light', borderRadius: 1.5 }}>
-                    <WarningAmberIcon sx={{ color: '#DC2626', fontSize: 18 }} />
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#DC2626' }}>{outcomes.overdue_reviews} overdue goal reviews</Typography>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2, p: 1.5, bgcolor: 'notice.warning.bg', borderRadius: 1.5 }}>
+                    <WarningAmberIcon sx={{ color: 'notice.warning.fg', fontSize: 18 }} />
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'notice.warning.fg' }}>{outcomes.overdue_reviews} overdue goal reviews</Typography>
                   </Stack>
                 )}
                 {outcomes.wellbeing_by_domain.length > 0 && (
@@ -519,7 +519,7 @@ export default function InsightsPage() {
                       {outcomes.wellbeing_by_domain.map(w => (
                         <Stack key={w.domain} direction="row" alignItems="center" spacing={1}>
                           <Typography variant="body2" sx={{ minWidth: 80, textTransform: 'capitalize', fontSize: '0.8rem' }}>{w.domain}</Typography>
-                          <LinearProgress variant="determinate" value={(w.avg_score || 0) * 10} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'grey.100', '& .MuiLinearProgress-bar': { bgcolor: (w.avg_score || 0) >= 8 ? '#16A34A' : (w.avg_score || 0) >= 5 ? '#D97706' : '#DC2626' } }} />
+                          <LinearProgress variant="determinate" value={(w.avg_score || 0) * 10} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'notice.muted.bg', '& .MuiLinearProgress-bar': { bgcolor: (w.avg_score || 0) >= 8 ? '#16A34A' : (w.avg_score || 0) >= 5 ? '#D97706' : '#DC2626' } }} />
                           <Typography variant="caption" sx={{ fontWeight: 700, minWidth: 35 }}>{w.avg_score}/10</Typography>
                         </Stack>
                       ))}

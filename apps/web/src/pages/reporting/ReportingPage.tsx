@@ -147,7 +147,7 @@ export default function ReportingPage() {
         fullWidth size="small" placeholder="Search reports..."
         value={search} onChange={e => setSearch(e.target.value)}
         InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> }}
-        sx={{ mb: 4, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'grey.50' } }}
+        sx={{ mb: 4, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'notice.subtle.bg' } }}
       />
 
       {categories.map(cat => {

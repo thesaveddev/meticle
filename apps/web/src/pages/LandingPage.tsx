@@ -548,7 +548,7 @@ Managers need oversight. Care workers need speed. Families need a clear, respect
             <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
               <Grid item xs={12} md={7}>
               <Box sx={{ borderRadius: 3, overflow: 'hidden', border: `1px solid #E0D9CA`, bgcolor: 'background.paper', boxShadow: '0 32px 64px -28px rgba(20, 32, 45, 0.35)' }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid #F0EBE1`, bgcolor: 'grey.50' }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid #F0EBE1`, bgcolor: 'notice.subtle.bg' }}>
                   <Typography sx={{ fontWeight: 800, color: INK, fontSize: '0.85rem' }}>Meticle Care · Today's care</Typography>
                 </Stack>
                 <img src={SHOWCASE_IMAGE} alt="Mobile view of a care note being recorded in Meticle Care with family and manager receiving the update" width="1280" height="800" loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
@@ -599,7 +599,7 @@ When records are complete and current, compliance work becomes easier to evidenc
                   variant="contained"
                   size="large"
                   onClick={() => navigate('/features#compliance')}
-                  sx={{ bgcolor: 'background.paper', color: NAVY, '&:hover': { bgcolor: 'grey.50' }, fontWeight: 800, px: 4, transition: 'background-color 0.15s ease' }}
+                  sx={{ bgcolor: 'background.paper', color: NAVY, '&:hover': { bgcolor: 'notice.subtle.bg' }, fontWeight: 800, px: 4, transition: 'background-color 0.15s ease' }}
                 >
                   See the compliance module
                 </Button>

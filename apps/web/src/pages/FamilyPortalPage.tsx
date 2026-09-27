@@ -104,7 +104,7 @@ export default function FamilyPortalPage() {
     const isRevoked = msg.includes('revoked')
     const isExpired = msg.includes('expired') || expired
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'grey.50', p: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'notice.subtle.bg', p: 2 }}>
         <Paper sx={{ p: 5, textAlign: 'center', maxWidth: 440, borderRadius: 3, border: '1px solid', borderColor: 'grey.200' }}>
           <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: isRevoked ? '#FEF2F2' : '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
             <WarningIcon sx={{ fontSize: 36, color: isRevoked ? '#DC2626' : '#D97706' }} />
@@ -130,7 +130,7 @@ export default function FamilyPortalPage() {
   const su = info.person
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'notice.subtle.bg' }}>
       {/* Header */}
       <Box sx={{ bgcolor: '#0F4C81', color: 'white', p: 4, pb: 6 }}>
         <PageContainer>
@@ -305,11 +305,11 @@ export default function FamilyPortalPage() {
               medications.length === 0 ? <Typography color="#9CA3AF" sx={{ textAlign: 'center', py: 4 }}>No active medications</Typography> :
               <Stack spacing={2}>
                 {allergies.length > 0 && (
-                  <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid #FCA5A5', bgcolor: 'error.light' }}>
-                    <Typography fontWeight={700} color="#DC2626" sx={{ mb: 0.5 }}>Allergies</Typography>
+                  <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid #FCA5A5', bgcolor: 'notice.error.bg' }}>
+                    <Typography fontWeight={700} color='notice.error.fg' sx={{ mb: 0.5 }}>Allergies</Typography>
                     <Stack direction="row" spacing={1} flexWrap="wrap" gap={0.5}>
                       {allergies.map((a: string, i: number) => (
-                        <Chip key={i} label={a} size="small" sx={{ bgcolor: 'error.light', color: '#991B1B' }} />
+                        <Chip key={i} label={a} size="small" sx={{ bgcolor: 'notice.error.bg', color: 'notice.error.fg' }} />
                       ))}
                     </Stack>
                   </Paper>

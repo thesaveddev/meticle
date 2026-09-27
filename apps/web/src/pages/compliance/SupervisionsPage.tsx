@@ -145,7 +145,7 @@ export default function SupervisionsPage() {
         </AppButton>
       </Stack>
 
-      <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'grey.50' }}>
+      <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'notice.subtle.bg' }}>
         <CardContent sx={{ p: 3 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ sm: 'center' }}>
             <Box sx={{ textAlign: 'center', minWidth: 160 }}>

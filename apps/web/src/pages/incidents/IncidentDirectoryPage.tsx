@@ -131,7 +131,7 @@ export default function IncidentDirectoryPage() {
             </Stack>
             {stats.overdue_actions > 0 && (
               <Chip label={`${stats.overdue_actions} overdue`} size="small"
-                sx={{ mt: 1, bgcolor: 'error.light', color: '#B91C1C', fontWeight: 700, fontSize: 11, height: 22 }} />
+                sx={{ mt: 1, bgcolor: 'notice.error.bg', color: 'notice.error.fg', fontWeight: 700, fontSize: 11, height: 22 }} />
             )}
           </Paper>
 
@@ -142,7 +142,7 @@ export default function IncidentDirectoryPage() {
             </Stack>
             {stats.pending_cqc > 0 && (
               <Chip label={`${stats.pending_cqc} pending CQC`} size="small"
-                sx={{ mt: 1, bgcolor: 'grey.100', color: NAVY, fontWeight: 700, fontSize: 11, height: 22 }} />
+                sx={{ mt: 1, bgcolor: 'notice.muted.bg', color: NAVY, fontWeight: 700, fontSize: 11, height: 22 }} />
             )}
           </Paper>
         </Stack>
@@ -231,8 +231,8 @@ export default function IncidentDirectoryPage() {
                     <Typography variant="body2" fontWeight={600}>{i.title}</Typography>
                     <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
                       {i.category_name && <Typography variant="caption" color="text.secondary">{i.category_name}</Typography>}
-                      {i.is_near_miss && <Chip label="Near Miss" size="small" sx={{ bgcolor: 'grey.50', color: '#7C3AED', fontWeight: 700, fontSize: 10, height: 20 }} />}
-                      {i.is_confidential && <Chip icon={<LockIcon sx={{ fontSize: 12 }} />} label="Confidential" size="small" sx={{ bgcolor: 'grey.100', color: 'text.primary', fontWeight: 700, fontSize: 10, height: 20 }} />}
+                      {i.is_near_miss && <Chip label="Near Miss" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#7C3AED', fontWeight: 700, fontSize: 10, height: 20 }} />}
+                      {i.is_confidential && <Chip icon={<LockIcon sx={{ fontSize: 12 }} />} label="Confidential" size="small" sx={{ bgcolor: 'notice.muted.bg', color: 'text.primary', fontWeight: 700, fontSize: 10, height: 20 }} />}
                     </Stack>
                   </TableCell>
                   <TableCell>
@@ -250,7 +250,7 @@ export default function IncidentDirectoryPage() {
                   <TableCell align="right">
                     {(i.open_actions || 0) > 0 ? (
                       <Chip icon={<TaskIcon sx={{ fontSize: 14 }} />} label={i.open_actions} size="small"
-                        sx={{ bgcolor: 'warning.light', color: '#92400E', fontWeight: 700, fontSize: 11, height: 22 }} />
+                        sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 700, fontSize: 11, height: 22 }} />
                     ) : (
                       <Typography variant="caption" color="text.secondary">—</Typography>
                     )}

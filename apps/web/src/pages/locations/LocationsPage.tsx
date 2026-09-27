@@ -251,7 +251,7 @@ export default function LocationsPage() {
                     </>}
                     <TableCell>
                       {loc.manager_first_name ? `${loc.manager_first_name} ${loc.manager_last_name}` : (
-                        <Chip label={isDomiciliary ? 'No area manager' : 'No manager'} size="small" sx={{ bgcolor: 'warning.light', color: '#B45309', fontWeight: 700, fontSize: 12, height: 22 }} />
+                        <Chip label={isDomiciliary ? 'No area manager' : 'No manager'} size="small" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 700, fontSize: 12, height: 22 }} />
                       )}
                     </TableCell>
                     {isOrgAdmin && (

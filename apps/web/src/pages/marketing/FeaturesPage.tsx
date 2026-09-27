@@ -448,7 +448,7 @@ export default function FeaturesPage() {
                           {section.tag && (
                             <Box
                               sx={{
-                                bgcolor: 'warning.light', color: '#92400E',
+                                bgcolor: 'notice.warning.bg', color: 'notice.warning.fg',
                                 px: 1.25, py: 0.25, borderRadius: 1,
                                 fontSize: '0.65rem', fontWeight: 800,
                                 textTransform: 'uppercase', letterSpacing: '0.06em',

@@ -257,9 +257,9 @@ export default function IncidentsPage() {
                         <TableCell>
                           <Stack direction="row" alignItems="center" gap={1}>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{inc.title}</Typography>
-                            {inc.is_confidential && <Chip label="Confidential" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'warning.light', color: '#92400E' }} />}
+                            {inc.is_confidential && <Chip label="Confidential" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg' }} />}
                             {inc.is_near_miss && <Chip label="Near miss" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: '#EDE9FE', color: '#6D28D9' }} />}
-                            {inc.is_cqc_reportable && <Chip label="CQC" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'error.light', color: '#DC2626' }} />}
+                            {inc.is_cqc_reportable && <Chip label="CQC" size="small" sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'notice.error.bg', color: 'notice.error.fg' }} />}
                           </Stack>
                           {inc.description && (
                             <Typography variant="caption" sx={{ color: theme.palette.text.secondary, maxWidth: 300 }} display="block" noWrap>
@@ -285,7 +285,7 @@ export default function IncidentsPage() {
                         </TableCell>
                         <TableCell>
                           {inc.open_actions > 0 ? (
-                            <Chip label={`${inc.open_actions} open`} size="small" sx={{ bgcolor: 'warning.light', color: '#92400E', fontWeight: 600, borderRadius: '8px' }} />
+                            <Chip label={`${inc.open_actions} open`} size="small" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', fontWeight: 600, borderRadius: '8px' }} />
                           ) : (
                             <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>None</Typography>
                           )}
@@ -339,8 +339,8 @@ export default function IncidentsPage() {
                     <Chip label={statusConfig[selectedIncident.status]?.label || selectedIncident.status}
                       sx={{ bgcolor: statusConfig[selectedIncident.status]?.bg, color: statusConfig[selectedIncident.status]?.color, fontWeight: 600 }} />
                     {selectedIncident.is_near_miss && <Chip label="Near miss" sx={{ bgcolor: '#EDE9FE', color: '#6D28D9' }} />}
-                    {selectedIncident.is_cqc_reportable && <Chip label="CQC reportable" sx={{ bgcolor: 'error.light', color: '#DC2626' }} />}
-                    {selectedIncident.is_confidential && <Chip label="Confidential" sx={{ bgcolor: 'warning.light', color: '#92400E' }} />}
+                    {selectedIncident.is_cqc_reportable && <Chip label="CQC reportable" sx={{ bgcolor: 'notice.error.bg', color: 'notice.error.fg' }} />}
+                    {selectedIncident.is_confidential && <Chip label="Confidential" sx={{ bgcolor: 'notice.warning.bg', color: 'notice.warning.fg' }} />}
                   </Stack>
 
                   {/* Info */}

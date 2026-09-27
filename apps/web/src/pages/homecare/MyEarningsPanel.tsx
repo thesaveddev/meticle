@@ -47,7 +47,7 @@ function StatCard({ icon, label, value, color, sub }: {
       elevation={0}
       sx={{
         p: 2, flex: '1 1 150px', minWidth: 140,
-        border: '1px solid', borderColor: 'grey.100',
+        border: '1px solid', borderColor: 'divider',
         borderRadius: 2.5, display: 'flex', alignItems: 'center', gap: 1.5,
         transition: 'border-color 0.15s',
         '&:hover': { borderColor: color + '40' },
@@ -78,7 +78,7 @@ function BreakdownCard({ label, detail, amount, color, icon }: {
       elevation={0}
       sx={{
         p: 2, flex: '1 1 180px', minWidth: 170,
-        border: '1px solid', borderColor: 'grey.100',
+        border: '1px solid', borderColor: 'divider',
         borderRadius: 2.5, position: 'relative', overflow: 'hidden',
         transition: 'border-color 0.15s, transform 0.15s',
         '&:hover': { borderColor: color + '50', transform: 'translateY(-1px)' },
@@ -245,7 +245,7 @@ export default function MyEarningsPanel() {
           </Stack>
 
           {!hasData && (
-            <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid', borderColor: 'grey.100', borderRadius: 2.5 }}>
+            <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
               <ReceiptIcon sx={{ fontSize: 40, color: '#D1D5DB', mb: 1 }} />
               <Typography sx={{ color: 'text.secondary' }}>
                 No completed calls in this period. Pay appears here as soon as you clock in and out of a call.
@@ -291,7 +291,7 @@ export default function MyEarningsPanel() {
 
           {/* Rates */}
           {hasData && (
-            <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'grey.100', borderRadius: 2.5 }}>
+            <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
               <Stack direction="row" gap={3} flexWrap="wrap" alignItems="center">
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.65rem' }}>
                   Your rates
@@ -314,7 +314,7 @@ export default function MyEarningsPanel() {
 
           {/* Year to date */}
           {data?.ytd && (
-            <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'grey.100', borderRadius: 2.5 }}>
+            <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
               <Stack direction="row" alignItems="center" gap={1} mb={2}>
                 <CalendarIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.65rem' }}>
@@ -340,7 +340,7 @@ export default function MyEarningsPanel() {
                 </Box>
               </Stack>
               {(data.ytd.months || []).map((m: any) => (
-                <Box key={m.month} display="flex" justifyContent="space-between" alignItems="center" sx={{ py: 0.75, borderTop: '1px solid', borderColor: 'grey.100' }}>
+                <Box key={m.month} display="flex" justifyContent="space-between" alignItems="center" sx={{ py: 0.75, borderTop: '1px solid', borderColor: 'divider' }}>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
                     {new Date(`${m.month}-01T00:00:00`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
                   </Typography>
@@ -364,7 +364,7 @@ export default function MyEarningsPanel() {
                 </Typography>
               </Box>
               {paidCalls.length === 0 ? (
-                <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid', borderColor: 'grey.100', borderRadius: 2.5 }}>
+                <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
                   <Typography sx={{ color: 'text.secondary' }}>No completed calls in this period</Typography>
                 </Paper>
               ) : (
@@ -375,7 +375,7 @@ export default function MyEarningsPanel() {
                       elevation={0}
                       sx={{
                         p: 2, display: 'flex', alignItems: 'center', gap: 2,
-                        border: '1px solid', borderColor: 'grey.100', borderRadius: 2,
+                        border: '1px solid', borderColor: 'divider', borderRadius: 2,
                         transition: 'border-color 0.15s',
                         '&:hover': { borderColor: '#0F4C8130' },
                       }}

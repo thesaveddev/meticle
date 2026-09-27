@@ -139,7 +139,7 @@ export default function ChatComposer({
               disabled={!activeChannel}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: 2, bgcolor: 'grey.50', fontSize: 14, lineHeight: 1.5,
+                  borderRadius: 2, bgcolor: 'notice.subtle.bg', fontSize: 14, lineHeight: 1.5,
                   '& fieldset': { borderColor: OUTLINE },
                   '&:hover fieldset': { borderColor: NAVY },
                   '&.Mui-focused fieldset': { borderColor: NAVY, borderWidth: 1.5 },

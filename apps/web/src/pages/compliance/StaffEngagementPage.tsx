@@ -121,9 +121,9 @@ export default function StaffEngagementPage() {
           {aggregate && aggregate.total > 0 && (
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'success.light', border: '1px solid #BBF7D0' }}>
+                <Card sx={{ bgcolor: 'notice.success.bg', border: '1px solid #BBF7D0' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                    <GroupIcon sx={{ fontSize: 32, color: '#16A34A', mb: 1 }} />
+                    <GroupIcon sx={{ fontSize: 32, color: 'notice.success.fg', mb: 1 }} />
                     <Typography variant="h4" fontWeight={800}>{aggregate.total}</Typography>
                     <Typography variant="body2" color="text.secondary">Responses</Typography>
                     <Typography variant="caption" color="text.secondary">{aggregate.anonymous_count} anon · {aggregate.named_count} named</Typography>
@@ -131,15 +131,15 @@ export default function StaffEngagementPage() {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'info.light', border: '1px solid #BAE6FD' }}>
+                <Card sx={{ bgcolor: 'notice.info.bg', border: '1px solid #BAE6FD' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                    <Typography variant="h4" fontWeight={800} color="#0284C7">{avgAll > 0 ? avgAll.toFixed(1) : '—'}</Typography>
+                    <Typography variant="h4" fontWeight={800} color='notice.info.fg'>{avgAll > 0 ? avgAll.toFixed(1) : '—'}</Typography>
                     <Typography variant="body2" color="text.secondary">Avg Score / 5</Typography>
                   </CardContent>
                 </Card>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ bgcolor: 'grey.50', border: '1px solid #E2E8F0' }}>
+                <Card sx={{ bgcolor: 'notice.subtle.bg', border: '1px solid #E2E8F0' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
                     <Typography variant="h4" fontWeight={800} color="#0F4C81">
                       {aggregate.total > 0 ? Math.round((avgAll / 5) * 100) : '—'}%

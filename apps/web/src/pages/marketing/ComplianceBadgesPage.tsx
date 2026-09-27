@@ -336,7 +336,7 @@ export default function ComplianceBadgesPage() {
       </Box>
 
       {/* CTA */}
-      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: 'grey.50' }}>
+      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: 'notice.subtle.bg' }}>
         <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
           <Typography variant="h2" sx={{ fontSize: { xs: '1.8rem', md: '2.4rem' }, fontWeight: 800, color: INK, mb: 2 }}>
             Ready to simplify compliance?

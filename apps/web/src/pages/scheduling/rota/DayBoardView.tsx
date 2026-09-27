@@ -53,12 +53,12 @@ export default function DayBoardView(props: RotaViewProps) {
                 {shortLocs.length > 0 && (
                   <Tooltip title={shortLocs.map(x => `${x.loc.name}: ${x.cnt}/${x.need}`).join(', ')}>
                     <Chip icon={<WarningIcon sx={{ fontSize: 11 }} />} label={`${shortLocs.length} short`} size="small"
-                      sx={{ height: 18, fontSize: '0.55rem', bgcolor: 'warning.light', color: '#92400E', '& .MuiChip-icon': { color: '#D97706' } }} />
+                      sx={{ height: 18, fontSize: '0.55rem', bgcolor: 'notice.warning.bg', color: 'notice.warning.fg', '& .MuiChip-icon': { color: 'notice.warning.fg' } }} />
                   </Tooltip>
                 )}
                 {shortLocs.length === 0 && stats.length > 0 && (
                   <Chip icon={<CheckIcon sx={{ fontSize: 11 }} />} label="Covered" size="small"
-                    sx={{ height: 18, fontSize: '0.55rem', bgcolor: 'success.light', color: '#065F46', '& .MuiChip-icon': { color: '#10B981' } }} />
+                    sx={{ height: 18, fontSize: '0.55rem', bgcolor: 'notice.success.bg', color: 'notice.success.fg', '& .MuiChip-icon': { color: 'notice.success.fg' } }} />
                 )}
                 {canEdit && !isReadOnly && !past && (
                   <IconButton size="small" onClick={() => props.onOpenShiftDialog(d)}

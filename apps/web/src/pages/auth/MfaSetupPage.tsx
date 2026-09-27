@@ -57,7 +57,7 @@ export default function MfaSetupPage() {
 
   if (backupCodes) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
         <Container maxWidth="sm">
           <Paper sx={{ p: 4, borderRadius: 2 }}>
             <Typography variant="h5" sx={{ fontWeight: 800, mb: 2, color: '#0F4C81' }}>MFA Enabled Successfully</Typography>
@@ -66,7 +66,7 @@ export default function MfaSetupPage() {
             </Alert>
             <Stack spacing={1} sx={{ mb: 3 }}>
               {backupCodes.map((code, i) => (
-                <Paper key={i} variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: 'grey.50' }}>
+                <Paper key={i} variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: 'notice.subtle.bg' }}>
                   <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1.1rem', letterSpacing: 2 }}>{code}</Typography>
                 </Paper>
               ))}
@@ -103,7 +103,7 @@ export default function MfaSetupPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'notice.subtle.bg' }}>
       <Container maxWidth="sm">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 900, color: '#0F4C81', mb: 1 }}>Meticle Care</Typography>

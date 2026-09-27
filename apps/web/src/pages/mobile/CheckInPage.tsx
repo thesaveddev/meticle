@@ -62,11 +62,11 @@ export default function CheckInPage() {
       )}
 
       {status === 'success' && (
-        <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3, bgcolor: 'success.light', border: '1px solid #BBF7D0' }}>
-          <CheckIcon sx={{ fontSize: 64, color: '#16A34A', mb: 1 }} />
-          <Typography variant="h6" fontWeight={800} color="#16A34A">Checked In!</Typography>
+        <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3, bgcolor: 'notice.success.bg', border: '1px solid #BBF7D0' }}>
+          <CheckIcon sx={{ fontSize: 64, color: 'notice.success.fg', mb: 1 }} />
+          <Typography variant="h6" fontWeight={800} color='notice.success.fg'>Checked In!</Typography>
           {coords && (
-            <Typography variant="caption" color="#6B7280" sx={{ mt: 1, display: 'block' }}>
+            <Typography variant="caption" color='notice.success.fg' sx={{ mt: 1, display: 'block' }}>
               GPS: {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
             </Typography>
           )}

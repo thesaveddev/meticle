@@ -415,8 +415,8 @@ export default function DomiciliaryDashboard() {
           {data.exceptions.length > 0 && (
             <PremiumCard noBorder sx={{ p: 4, bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFBFB', cursor: 'pointer', '&:hover': { boxShadow: 2 }, transition: 'box-shadow 0.15s' }} onClick={() => navigate('/homecare?status=missed')}>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
-                <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: 'error.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <MissedIcon sx={{ color: '#DC2626', fontSize: 18 }} />
+                <Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: 'notice.error.bg', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <MissedIcon sx={{ color: 'notice.error.fg', fontSize: 18 }} />
                 </Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#DC2626' }}>Exceptions</Typography>
               </Stack>
