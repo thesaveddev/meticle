@@ -26,7 +26,7 @@ interface VisitDetail {
   id: string; label: string; visit_type: string; scheduled_start: string; scheduled_end: string
   status: string; check_in_at: string | null; check_out_at: string | null
   check_in_latitude: number | null; check_in_longitude: number | null; check_in_accuracy_meters: number | null
-  check_out_latitude: number | null; check_out_longitude: number | null
+  check_out_latitude: number | null; check_out_longitude: number | null; check_out_accuracy_meters: number | null
   actual_travel_minutes: number | null; actual_mileage_miles: number | null
   visit_notes: string | null; progress_notes: string | null; care_plan_notes: string | null
   client_mood: string | null; wellbeing_notes: string | null; personal_care: string | null

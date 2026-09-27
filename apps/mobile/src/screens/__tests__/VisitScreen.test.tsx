@@ -15,7 +15,10 @@ jest.mock('../../services/api', () => ({
 jest.mock('../../services/location', () => ({
   getVisitLocation: jest.fn(async () => ({ latitude: 51.5, longitude: -0.1 })),
   haversineDistance: jest.fn(() => 12),
-  watchDistance: jest.fn(() => ({ stop: jest.fn() })),
+  // Deliberately a one-shot, mirroring the real module. A `watchPositionAsync`
+  // subscription here would silently re-introduce the continuous tracking this
+  // screen used to do, and every test would still pass.
+  measureVisitDistance: jest.fn(async () => ({ distance: 12, accuracy: 8 })),
   formatDistance: jest.fn((meters: number) => `${meters}m`),
 }))
 
@@ -28,6 +31,7 @@ jest.mock('expo-image-picker', () => ({
 }))
 
 const mockGetVisitTasks = api.getVisitTasks as jest.MockedFunction<typeof api.getVisitTasks>
+const mockMeasureVisitDistance = jest.requireMock('../../services/location').measureVisitDistance as jest.Mock
 const mockGetRequirePhoto = api.getRequirePhoto as jest.MockedFunction<typeof api.getRequirePhoto>
 const mockToggleVisitTask = api.toggleVisitTask as jest.MockedFunction<typeof api.toggleVisitTask>
 const mockAddVisitTask = api.addVisitTask as jest.MockedFunction<typeof api.addVisitTask>
@@ -169,5 +173,59 @@ describe('VisitScreen task list', () => {
     fireEvent.press(manager.getByText('Add'))
 
     await waitFor(() => expect(mockAddVisitTask).toHaveBeenCalledWith('token-1', 'visit-1', 'Blood pressure'))
+  })
+})
+
+/**
+ * The screen used to subscribe to the device position and re-read it every
+ * 5 seconds / 10 metres for as long as it was open, before check-in. That is
+ * continuous tracking of a care worker between two button presses, and the
+ * product does not need it: the same threshold is enforced authoritatively when
+ * they press Check in, which takes its own fix.
+ *
+ * These tests pin the replacement, because the failure mode is silent. Put a
+ * watcher back and the app still works, still shows a sensible distance, and
+ * every other test in this file keeps passing.
+ */
+describe('VisitScreen location capture', () => {
+  beforeEach(() => {
+    mockMeasureVisitDistance.mockClear()
+  })
+
+  it('reads no position until the carer asks for it', async () => {
+    const { getByText } = renderVisit({
+      visit: makeVisit({ person_latitude: 51.5, person_longitude: -0.1 }),
+    })
+
+    await settle()
+    expect(getByText('Check my distance')).toBeTruthy()
+    expect(mockMeasureVisitDistance).not.toHaveBeenCalled()
+  })
+
+  it('takes exactly one fix per tap, and no more', async () => {
+    const { getByText } = renderVisit({
+      visit: makeVisit({ person_latitude: 51.5, person_longitude: -0.1 }),
+    })
+    await settle()
+
+    fireEvent.press(getByText('Check my distance'))
+
+    await waitFor(() => expect(getByText('At location')).toBeTruthy())
+    expect(mockMeasureVisitDistance).toHaveBeenCalledTimes(1)
+    expect(mockMeasureVisitDistance).toHaveBeenCalledWith(51.5, -0.1)
+
+    // The reading must not keep updating itself once the carer has looked.
+    // A subscription would show up here as a second call with no tap.
+    await act(async () => { await new Promise(r => setTimeout(r, 50)) })
+    expect(mockMeasureVisitDistance).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers no distance check on a call that is already closed', async () => {
+    const { queryByText } = renderVisit({
+      visit: makeVisit({ status: 'completed', person_latitude: 51.5, person_longitude: -0.1 }),
+    })
+
+    await settle()
+    expect(queryByText('Check my distance')).toBeNull()
   })
 })

@@ -91,14 +91,20 @@ describe('Homecare E2E critical workflows', () => {
       .send({ latitude: 51.5074, longitude: -0.1278, accuracy_meters: 10 })
     expect(checkInRes.status).toBe(200)
     expect(checkInRes.body.status).toBe('checked_in')
+    expect(Number(checkInRes.body.check_in_latitude)).toBeCloseTo(51.5074, 4)
+    expect(Number(checkInRes.body.check_in_accuracy_meters)).toBe(10)
 
-    // Check out
+    // Check out. The accuracy figure matters as much as the position: a 500 m
+    // threshold applied to a +/-80 m fix is a different check from one applied
+    // to a +/-8 m fix, and this used to be discarded on the way in.
     const checkOutRes = await request(app)
       .post(`/homecare/visits/${visitId}/check-out`)
       .set('Authorization', `Bearer ${carerToken}`)
-      .send({ latitude: 51.5075, longitude: -0.1279, note: 'Visit completed', actual_travel_minutes: 15, actual_mileage_miles: 3.2 })
+      .send({ latitude: 51.5075, longitude: -0.1279, accuracy_meters: 8, note: 'Visit completed', actual_travel_minutes: 15, actual_mileage_miles: 3.2 })
     expect(checkOutRes.status).toBe(200)
     expect(checkOutRes.body.status).toBe('completed')
+    expect(Number(checkOutRes.body.check_out_latitude)).toBeCloseTo(51.5075, 4)
+    expect(Number(checkOutRes.body.check_out_accuracy_meters)).toBe(8)
   })
 
   it('manager can approve a timesheet and export payroll CSV', async () => {
