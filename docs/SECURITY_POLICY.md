@@ -380,9 +380,13 @@ a spam folder later.
 
 | Required | Why | Status |
 | --- | --- | --- |
-| Confirm `DEPLOY_SMTP_FROM` in production is on the organisational domain | It is a free-form GitHub secret; the code now refuses an off-domain value, but the secret should still be correct | **Owner to confirm** |
-| Remove the stale `SMTP_FROM=caredesk@reydesk.com` from the local dev env | Leftover from a previous vendor; discloses an unrelated third party if used | **Owner to confirm** |
 | Confirm no queued rows exist with a null `from_email` | The fallback path should be unreachable in practice | **Owner to confirm** |
+| Confirm the production `SMTP_USER` is a mailbox that still exists on the MXRocket account | The login is a previous vendor's address, but it is only ever an SMTP `auth` username — never a header — so it is hygiene, not a deliverability risk | **Owner to confirm** |
+
+> `DEPLOY_SMTP_FROM` is **not** one of these. It is the `From:` of GitHub Actions'
+> own deploy-failure alert (`notify-deploy.py` → `DEPLOY_ALERT_TO`) and has no
+> connection to the application's mail. An earlier draft of this table listed it
+> as the application's sender, which was wrong.
 
 ### 7.4 Outstanding
 
@@ -398,7 +402,7 @@ a spam folder later.
 | `ruf=` pointing at a human-readable aggregate service | `rua` delivers compressed XML attachments that nobody reads unaided | Not set |
 | MTA-STS and TLS-RPT | Stops an active attacker downgrading the session to plaintext in transit | Not set |
 | Weekly review of DMARC reporting | A policy nobody reads is `p=none` with extra steps | Not started |
-| Aligned envelope sender (`MAIL FROM`) | DMARC SPF alignment fails if the envelope sender is not `@meticlecare.com` | **Fixed** — pinned to the visible sender in code; see §7.8. `DEPLOY_SMTP_FROM` still to be checked in production |
+| Aligned envelope sender (`MAIL FROM`) | DMARC SPF alignment fails if the envelope sender is not `@meticlecare.com` | **Fixed** — pinned to the visible sender in code; see §7.8 |
 | A spoof test from a domain we do not own | Proves the policy is actually enforced rather than merely published | Not run |
 
 **Note on the change made on 26 September 2026.** The DMARC record was edited

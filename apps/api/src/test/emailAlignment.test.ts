@@ -104,6 +104,36 @@ describe('outbound envelope sender', () => {
     }
   });
 
+  it('never lets the SMTP login identity become a header', () => {
+    // `SMTP_USER` is the credential presented in `auth: { user, pass }` and is
+    // the one address in the configuration that is *not* under our control: on
+    // this deployment it is a mailbox on the provider account from an earlier
+    // vendor relationship. It is a username, not a sender, and it appears in no
+    // header — but nothing stopped a future refactor from writing
+    // `from: process.env.SMTP_USER`, which would disclose that vendor to every
+    // recipient and fail DMARC alignment, and no other assertion here would
+    // notice. This pins the separation.
+    const ORIGINAL_USER = process.env.SMTP_USER;
+    const ORIGINAL_FROM = process.env.SMTP_FROM;
+    process.env.SMTP_USER = 'caredesk@reydesk.com';
+    delete process.env.SMTP_FROM;
+    try {
+      for (const from_email of [MAIL.from_email, null]) {
+        const options = buildMailOptions({ ...MAIL, from_email });
+        for (const [label, value] of [['from', options.from], ['envelope.from', options.envelope.from]] as const) {
+          expect(domainOf(value), `${label} leaked the SMTP login domain`).toBe('meticlecare.com');
+          expect(value).not.toContain('reydesk.com');
+        }
+      }
+      expect(resolveSender(null)).not.toContain('reydesk.com');
+    } finally {
+      if (ORIGINAL_USER === undefined) delete process.env.SMTP_USER;
+      else process.env.SMTP_USER = ORIGINAL_USER;
+      if (ORIGINAL_FROM === undefined) delete process.env.SMTP_FROM;
+      else process.env.SMTP_FROM = ORIGINAL_FROM;
+    }
+  });
+
   it('still carries DSN requests without disturbing the envelope', () => {
     const options = buildMailOptions({ ...MAIL, dsn_requested: true, dsn_id: 'abc-123' });
     expect(options.dsn).toMatchObject({ id: 'abc-123', recipient: MAIL.to_email });
