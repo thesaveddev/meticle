@@ -1,20 +1,23 @@
 // Minimal production seed — 4 named users only
 // Run in container: node apps/api/dist/scripts/seed-team.js
-// All users login with: ***REMOVED***
-//
-// Every seeded user gets the same published password, so this is only
-// appropriate for a real deployment where those four accounts are known to the
-// people who own them and their credentials are changed before the deployment
-// carries real care data. Set SEED_TEAM_PASSWORD to override it, and see
-// scripts/seed-dreakcare.js for the workflow-driven alternative, which is the
-// one to use for demo data.
+// Creates four loginable accounts; the password is supplied by the operator
+// at run time and must not exist in source.
+if (!process.env.SEED_TEAM_PASSWORD || process.env.SEED_TEAM_PASSWORD.length < 12) {
+  console.error('Refusing to run without SEED_TEAM_PASSWORD (min 12 chars).');
+  process.exit(1);
+}
+// Every seeded user gets the same password, so this is only appropriate for a
+// real deployment where those four accounts are known to the people who own
+// them and their credentials are changed before the deployment carries real
+// care data. See scripts/seed-dreakcare.js for the workflow-driven
+// alternative, which is the one to use for demo data.
 
 import pool from '../shared/database'
 import { v4 as uuid } from 'uuid'
 import bcrypt from 'bcryptjs'
 
 // Cost 12, not 10 — see seed-orbis.ts.
-const PWH = bcrypt.hashSync(process.env.SEED_TEAM_PASSWORD || '***REMOVED***', 12)
+const PWH = bcrypt.hashSync(process.env.SEED_TEAM_PASSWORD, 12)
 
 async function seed() {
   console.log('\n=== Seeding Meticle Team (4 users) ===\n')
@@ -63,7 +66,7 @@ async function seed() {
     console.log(`  ✓ ${u.role.padEnd(12)} ${u.email}`)
   }
 
-  console.log('\n=== Seed complete. Password for all: ***REMOVED*** ===\n')
+  console.log('\n=== Seed complete. Password for all: the SEED_TEAM_PASSWORD you supplied ===\n')
   await pool.end()
 }
 
