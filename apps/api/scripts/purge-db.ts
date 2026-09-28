@@ -72,16 +72,25 @@ async function purgeAndRecreate() {
 
     console.log('Creating SUPER_ADMIN user...');
     const bcrypt = await import('bcryptjs');
-    const hash = await bcrypt.hash('***REMOVED***', 12);
+    // The admin identity and password are supplied by the operator. A purge
+    // script that recreates a known admin with a known password is a backdoor
+    // with extra steps — anyone who reads the repo can log in after it runs.
+    const ADMIN_EMAIL = process.env.PURGE_ADMIN_EMAIL || '';
+    const ADMIN_PASSWORD = process.env.PURGE_ADMIN_PASSWORD || '';
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD || ADMIN_PASSWORD.length < 12) {
+      console.error('PURGE_ADMIN_EMAIL and PURGE_ADMIN_PASSWORD (min 12 chars) are required — no default admin is created.');
+      process.exit(1);
+    }
+    const hash = await bcrypt.hash(ADMIN_PASSWORD, 12);
     const result = await pool.query(
       `INSERT INTO users (email, password_hash, role, status, email_verified)
        VALUES ($1, $2, 'SUPER_ADMIN', 'active', true)
        ON CONFLICT (email) DO UPDATE SET role = 'SUPER_ADMIN', status = 'active'
        RETURNING id, email, role`,
-      ['***REMOVED***', hash]
+      [ADMIN_EMAIL, hash]
     );
     console.log(`SUPER_ADMIN: ${result.rows[0].email} (id: ${result.rows[0].id})`);
-    console.log('Password: ***REMOVED***');
+    console.log('Password: the PURGE_ADMIN_PASSWORD you supplied');
 
     console.log('\nDatabase purged and recreated successfully.');
   } catch (err: any) {

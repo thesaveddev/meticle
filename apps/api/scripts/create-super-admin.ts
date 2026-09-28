@@ -8,8 +8,13 @@ const pool = require('../src/shared/database').default;
 
 async function createSuperAdmin() {
   const bcrypt = await import('bcryptjs');
-  const email = process.argv[2] || '***REMOVED***';
-  const password = process.argv[3] || '***REMOVED***';
+  const email = process.argv[2] || '';
+  if (!email) { console.error('Usage: create-super-admin <email> <password> — no default admin address.'); process.exit(1); }
+  const password = process.argv[3] || '';
+  if (!password || password.length < 12) {
+    console.error('Password required (min 12 chars) — a super-admin password must never have a default.');
+    process.exit(1);
+  }
 
   try {
     const existing = await pool.query('SELECT id, role FROM users WHERE email = $1', [email]);
