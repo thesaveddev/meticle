@@ -322,7 +322,7 @@ const modules = [
   {
     icon: Insights, title: 'AI Intelligence', color: 'M.tealDeep',
     desc: 'AI assistance designed to reduce administration and surface patterns — with human judgement, permissions and auditability at the centre.',
-    features: ['AI-assisted care summaries', 'Change detection across records', 'Risk signals with source traceability', 'Compliance copilot and anomaly detection', 'Natural-language data assistant'],
+    features: ['AI-assisted care summaries', 'Record change summaries', 'Risk signals with source traceability', 'Compliance copilot and operational activity review', 'Natural-language data assistant'],
     tone: 'light' as const,
     link: '/features/ai',
   },

@@ -1,7 +1,11 @@
 import { Request, Response } from 'express';
 import { AIRepository } from './ai.repository';
 import { getProvider } from './ai.provider';
-import { renderPrompt } from './ai.prompts';
+import { renderOrgPrompt } from './ai.render';
+import { resolveAiMinimisation } from './ai.minimisation';
+import { AuditRepository } from '../audit/audit.repository';
+import { CAPABILITY_BY_PATH, getCapability, AI_CAPABILITIES, AI_METHOD_DISCLOSURE } from './ai.capabilities';
+import { migrateQuery } from '../../shared/database';
 import { AIConfig, AIProvider } from './ai.types';
 import logger from '../../shared/utils/logger';
 
@@ -74,6 +78,59 @@ async function aiCall(
 }
 
 export class AIController {
+  /**
+   * How much clinical narrative is allowed to cross the LLM boundary.
+   *
+   * Returns the disclosure alongside the setting rather than just the setting.
+   * A manager reading a single value has no way to know that switching to
+   * `minimal` degrades family communication drafts and care summaries, and the
+   * first they would hear of that is worse output weeks later. The consequence
+   * list travels with the control.
+   */
+  static async getDataMinimisation(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
+    const mode = await resolveAiMinimisation(orgId);
+    res.json({
+      mode,
+      method: AI_METHOD_DISCLOSURE,
+      description:
+        'Names are always replaced with stable pseudonyms before anything is sent. ' +
+        'In "minimal" mode the clinical narrative inside visit notes, incident descriptions and medication names ' +
+        'is withheld as well, while the coded facts around it — status, category, severity and dates — are kept, ' +
+        'so summaries still have something to work from.',
+      degraded_capabilities: Object.values(AI_CAPABILITIES)
+        .filter((c) => c.requiresNarrative)
+        .map((c) => ({ id: c.id, label: c.label, entry_point: c.entryPoint })),
+    });
+  }
+
+  static async updateDataMinimisation(req: Request, res: Response) {
+    const orgId = req.user?.organizationId;
+    const userId = req.user?.userId;
+    if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
+    const mode = req.body?.mode;
+    if (mode !== 'full' && mode !== 'minimal') {
+      return res.status(400).json({ error: { message: 'mode must be "full" or "minimal"' } });
+    }
+    const previous = await resolveAiMinimisation(orgId);
+    await migrateQuery('UPDATE organizations SET ai_data_minimisation = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [mode, orgId]);
+    // Audited old -> new through the same audit channel as the vetting scheme
+    // and regulator registrations, so every privacy-relevant organisation
+    // setting has one audit shape. A privacy control whose history is invisible
+    // is not a control anyone can evidence to a customer's security review.
+    await AuditRepository.log({
+      user_id: userId,
+      action: 'update',
+      entity_type: 'organization_ai_data_minimisation',
+      entity_id: orgId,
+      old_data: { mode: previous },
+      new_data: { mode },
+      ip_address: req.ip,
+    }).catch(() => {});
+    res.json({ mode, previous, method: AI_METHOD_DISCLOSURE });
+  }
+
   static async getConfig(req: Request, res: Response) {
     const orgId = req.user?.organizationId;
     if (!orgId) return res.status(400).json({ error: { message: 'Organization ID required' } });
@@ -158,7 +215,7 @@ export class AIController {
       leave: leave.rows.map((r: any) => ({ source_type: 'leave_request', source_id: r.id, ...r })),
       training: training.rows.map((r: any) => ({ source_type: 'training_record', source_id: r.id, ...r })),
     });
-    const { system, user } = renderPrompt('manager_briefing', { from, to, records }, orgId);
+    const { system, user } = await renderOrgPrompt('manager_briefing', { from, to, records }, orgId);
     const start = Date.now();
     try {
       const result = await aiCall(orgId, config, [{ role: 'system', content: system }, { role: 'user', content: user }], { model: config.model, temperature: 0.2, maxTokens: 2500 });
@@ -185,7 +242,7 @@ export class AIController {
     }
 
     const { orgName, regulator, overallRate, domainScores, keyIssues } = req.body;
-    const { system, user } = renderPrompt('compliance_gap_analysis', {
+    const { system, user } = await renderOrgPrompt('compliance_gap_analysis', {
       org_name: orgName || 'Unknown',
       regulator: regulator || 'CQC',
       overall_rate: String(overallRate || '0'),
@@ -256,7 +313,7 @@ export class AIController {
     }
 
     const { title, description, category, date, location, involved } = req.body;
-    const { system, user } = renderPrompt('incident_severity_triage', {
+    const { system, user } = await renderOrgPrompt('incident_severity_triage', {
       title: title || 'Untitled',
       description: description || '',
       category: category || 'Uncategorized',
@@ -326,7 +383,7 @@ export class AIController {
     }
 
     const { weekRange, locationName, minStaffPerDay, minDayStaff, minNightStaff, minSleepStaff, staffRoster, shifts, openShifts, staffCompliance, overtimeHours } = req.body;
-    const { system, user } = renderPrompt('rota_optimization', {
+    const { system, user } = await renderOrgPrompt('rota_optimization', {
       week_range: weekRange || 'This week',
       location_name: locationName || 'Unknown',
       min_staff_per_day: String(minStaffPerDay ?? 1),
@@ -400,7 +457,7 @@ export class AIController {
     }
 
     const { generatePeriod, locationName, minStaffPerDay, minDayStaff, minNightStaff, minSleepStaff, staffRoster, existingShifts, staffOnLeave, people, staffingNeeds, contractedHours, mandatoryStartTimes, minEndTime, allSameEnd } = req.body;
-    const { system, user } = renderPrompt('rota_generation', {
+    const { system, user } = await renderOrgPrompt('rota_generation', {
       generate_period: generatePeriod || 'This week',
       location_name: locationName || 'Unknown',
       min_staff_per_day: minStaffPerDay || '1',
@@ -535,7 +592,7 @@ export class AIController {
       `[${r.note_date}] (${r.category}): ${r.content.slice(0, 150)}...`
     ).join('\n') || 'No recent notes';
 
-    const { system, user } = renderPrompt('daily_note_generation', {
+    const { system, user } = await renderOrgPrompt('daily_note_generation', {
       person_name: `${su.first_name} ${su.last_name}`,
       date_of_birth: su.date_of_birth || 'Unknown',
       room_number: su.room_number || 'N/A',
@@ -713,7 +770,7 @@ export class AIController {
     }
 
     const provider = getProvider(config);
-    const { system, user: userTemplate } = renderPrompt('daily_note_generation', {}, orgId);
+    const { system, user: userTemplate } = await renderOrgPrompt('daily_note_generation', {}, orgId);
     const staffInput = note.content;
 
     const start = Date.now();
@@ -842,7 +899,7 @@ export class AIController {
     }
 
     const person = personResult.rows[0];
-    const { system, user } = renderPrompt('meal_plan_generation', {
+    const { system, user } = await renderOrgPrompt('meal_plan_generation', {
       person_name: `${person.first_name} ${person.last_name}`,
       date_of_birth: person.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString('en-GB') : 'Unknown',
       dietary_type: person.dietary_type || 'Standard',
@@ -949,7 +1006,7 @@ export class AIController {
     }
 
     const person = personResult.rows[0];
-    const { system, user } = renderPrompt('weekly_meal_plan', {
+    const { system, user } = await renderOrgPrompt('weekly_meal_plan', {
       person_name: `${person.first_name} ${person.last_name}`,
       date_of_birth: person.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString('en-GB') : 'Unknown',
       dietary_type: person.dietary_type || 'Standard',
@@ -1038,7 +1095,7 @@ export class AIController {
       return res.status(400).json({ error: { message: 'Weekly plan data required' } });
     }
 
-    const { system, user } = renderPrompt('shopping_list_generation', {
+    const { system, user } = await renderOrgPrompt('shopping_list_generation', {
       person_name: personName || 'Unknown',
       dietary_summary: dietarySummary || 'Standard',
       allergens: allergens || 'None noted',
@@ -1128,7 +1185,7 @@ export class AIController {
         FROM nutrition_records WHERE person_id = $1 AND date >= CURRENT_DATE - INTERVAL '7 days' ORDER BY date DESC`, [note.person_id]),
     ]);
 
-    const { system, user: userTemplate } = renderPrompt('visit_note_care_plan_gap', {}, orgId);
+    const { system, user: userTemplate } = await renderOrgPrompt('visit_note_care_plan_gap', {}, orgId);
     const userPrompt = userTemplate
       .replace('{{care_plan}}', carePlans.rows.map((cp: any) => `${cp.title}: ${cp.goals || 'No goals recorded'}`).join('\n') || 'No active care plans')
       .replace('{{visit_note}}', note.content)
@@ -1186,7 +1243,7 @@ export class AIController {
       return res.status(400).json({ error: { message: 'AI not configured' } });
     }
 
-    const { system, user: userTemplate } = renderPrompt('competency_assessment_assistant', {}, orgId);
+    const { system, user: userTemplate } = await renderOrgPrompt('competency_assessment_assistant', {}, orgId);
     const userPrompt = userTemplate
       .replace('{{cqc_statement}}', cqcStatement)
       .replace('{{role}}', role)
@@ -1225,26 +1282,25 @@ export class AIController {
     }
   }
 
-  /** Shared, source-linked intelligence surface. Each route selects one capability while the data boundary remains identical. */
+  /**
+   * Shared, source-linked intelligence surface. Each route selects one capability
+   * while the data boundary and the mechanism remain identical — see
+   * `ai.capabilities.ts` for why the routes are named for the entry point rather
+   * than the eleven distinct features the naming used to imply.
+   */
   static async intelligence(req: Request, res: Response) {
     const orgId = req.user?.organizationId;
     const userId = req.user?.userId;
     if (!orgId || !userId) return res.status(400).json({ error: { message: 'Organization and user required' } });
 
-    const capabilityByPath: Record<string, string> = {
-      '/care-summary': 'care_summary',
-      '/change-detection': 'change_detection',
-      '/risk-signals': 'risk_signals',
-      '/compliance-copilot': 'compliance_copilot',
-      '/assistant': 'natural_language_assistant',
-      '/end-of-day': 'end_of_day_intelligence',
-      '/operations-copilot': 'domiciliary_operations_copilot',
-      '/anomaly-detection': 'operational_anomaly_detection',
-      '/rota-alternatives': 'rota_alternatives',
-      '/competency-coaching': 'competency_coaching',
-      '/family-communication-draft': 'family_communication_draft',
-    };
-    const capability = capabilityByPath[req.path] || 'manager_briefing';
+    const capability = CAPABILITY_BY_PATH[req.path] || 'manager_briefing';
+    const capabilityMeta = getCapability(capability);
+    // Resolved once here and passed down as an override, because the response
+    // has to report what actually crossed the boundary. Letting renderOrgPrompt
+    // resolve it independently would mean the reported value and the applied
+    // value came from two reads, which can disagree if a manager saves the
+    // setting mid-request — and the report would then be the one that is wrong.
+    const minimisation = await resolveAiMinimisation(orgId);
     const config = await AIRepository.getConfig(orgId);
     if (!config || !config.enabled || !config.apiKey) return res.status(400).json({ error: { message: 'AI not configured. Configure AI provider in Settings first.' } });
     if (!config.enabledFeatures?.includes(capability)) return res.status(403).json({ error: { message: `${capability} is not enabled for your organization.` } });
@@ -1349,18 +1405,44 @@ export class AIController {
       if (['domiciliary_operations_copilot', 'operational_anomaly_detection'].includes(capability)) {
         deterministicItems.push(...records.filter((r: any) => r.status === 'missed' || r.status === 'overdue' || r.source_type === 'incident_action' || r.source_type === 'medication_administration').slice(0, 50).map((r: any) => withSourceUrl({ title: 'Operational pattern may need attention', detail: r.source_type === 'medication_administration' ? `${r.medication_name || 'Medication'} administration is ${r.status}.` : (r.action || `Source record is marked ${r.status || 'noted'}.`), priority: ['missed', 'overdue', 'refused'].includes(r.status) ? 'high' : 'medium', source_type: r.source_type, source_id: r.source_id })));
       }
-      const { system, user } = renderPrompt('unified_intelligence', { capability, from, to, question, audience: req.body.audience || 'internal manager', tone: req.body.tone || 'professional and cautious', records: JSON.stringify(records) }, orgId);
+      const { system, user } = await renderOrgPrompt('unified_intelligence', { capability, from, to, question, audience: req.body.audience || 'internal manager', tone: req.body.tone || 'professional and cautious', records: JSON.stringify(records) }, orgId, [], minimisation);
       const start = Date.now();
       const result = await aiCall(orgId, config, [{ role: 'system', content: system }, { role: 'user', content: user }], { model: config.model, temperature: 0.2, maxTokens: 2200 });
       const validated = (await import('./ai.schemas')).validateAIResponse((await import('./ai.schemas')).IntelligenceResponseSchema, result.content, 'Intelligence response');
-      const parsed = validated.data || { headline: capability.replace(/_/g, ' '), summary: 'The AI response could not be validated. Review the source records directly.', items: [], suggested_follow_up: [], limitations: [validated.error || 'Validation failed'] };
+      const parsed = validated.data || { headline: capabilityMeta.label, summary: 'The AI response could not be validated. Review the source records directly.', items: [], suggested_follow_up: [], limitations: [validated.error || 'Validation failed'] };
       const items = [...deterministicItems, ...parsed.items.map((item: any) => ({ ...item, source_url: sourceUrlByKey.get(`${item.source_type}:${item.source_id}`) }))].filter((item, index, all) => all.findIndex(other => other.source_type === item.source_type && other.source_id === item.source_id) === index).slice(0, 50);
       await AIRepository.logAudit({ organizationId: orgId, feature: capability, promptKey: 'unified_intelligence', promptTokens: result.promptTokens, completionTokens: result.completionTokens, totalTokens: result.totalTokens, model: config.model, provider: result.provider, durationMs: Date.now() - start, createdBy: userId, requestData: { from, to, windowDays, personId, question, sourceIds }, responseSummary: parsed.headline });
-      res.json({ capability, result: { ...parsed, items, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString() }, sources: sourceIds, period: { from, to }, counts: { visits: visits.rowCount, notes: notes.rowCount, incidents: incidents.rowCount, training: training.rowCount } });
+      res.json({
+        capability,
+        // The honest name and a plain statement of the mechanism, returned on
+        // every response. A customer's own security review should be able to
+        // read the same claim out of this JSON that the interface makes, rather
+        // than inferring eleven separate features from eleven route names.
+        capability_meta: {
+          label: capabilityMeta.label,
+          summary: capabilityMeta.summary,
+          entry_point: capabilityMeta.entryPoint,
+        },
+        method: AI_METHOD_DISCLOSURE,
+        data_boundary: {
+          direct_identifiers_removed: true,
+          clinical_narrative: minimisation === 'minimal' ? 'withheld' : 'included',
+          ai_data_minimisation: minimisation,
+          // True when this capability is materially degraded by minimisation.
+          // Surfaced so a manager who turned the setting on learns which of
+          // their features it quietly weakened, instead of finding out from
+          // output quality weeks later.
+          narrative_dependent: capabilityMeta.requiresNarrative,
+        },
+        result: { ...parsed, items, generated_by_ai: true, ai_model: config.model, ai_generated_at: new Date().toISOString() },
+        sources: sourceIds,
+        period: { from, to },
+        counts: { visits: visits.rowCount, notes: notes.rowCount, incidents: incidents.rowCount, training: training.rowCount },
+      });
     } catch (err: any) {
       await AIRepository.logAudit({ organizationId: orgId, feature: capability, promptKey: 'unified_intelligence', success: false, errorMessage: err.message, createdBy: userId, requestData: { from, to, personId, question } }).catch(() => {});
       logger.error(err, `AI ${capability} failed`);
-      res.status(500).json({ error: { message: `${capability.replace(/_/g, ' ')} failed` } });
+      res.status(500).json({ error: { message: `${capabilityMeta.label} failed` } });
     }
   }
 }

@@ -82,7 +82,7 @@ const evidenceFlow = [
 
 const aiCapabilities = [
   { title: 'Care summaries', desc: '7, 14 or 30-day person summaries linked to source records.' },
-  { title: 'Change detection', desc: 'Surfaces changes across notes, incidents, missed calls and medication.' },
+  { title: 'Record change summaries', desc: 'Compares the two halves of a period you choose, across notes, incidents, missed calls and medication.' },
   { title: 'Risk signals', desc: 'Deterministic signals with AI explanations — not diagnoses.' },
   { title: 'Compliance copilot', desc: 'Training gaps, overdue reviews and evidence that may need attention.' },
   { title: 'Manager briefing', desc: 'End-of-day intelligence covering people, workforce and operations.' },

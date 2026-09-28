@@ -2,7 +2,7 @@ import { query } from '../../../shared/database';
 import logger from '../../../shared/utils/logger';
 import { AIRepository } from '../../ai/ai.repository';
 import { getProvider } from '../../ai/ai.provider';
-import { renderPrompt } from '../../ai/ai.prompts';
+import { renderOrgPrompt } from '../../ai/ai.render';
 import { DomainEvent, EventConsumer } from '../events.consumers';
 
 const FEATURE = 'incident_severity_triage';
@@ -42,7 +42,18 @@ export const IncidentTriageConsumer: EventConsumer = {
     // (ai_audit_logs.created_by is an FK to users).
     const reportedBy = (payload.reported_by as string | undefined) || undefined;
 
-    const { system, user } = renderPrompt(FEATURE, {
+    // Routed through renderOrgPrompt, not renderPrompt, so the organisation's
+    // minimisation setting applies here as it does on the request path. A
+    // background consumer is the single easiest place for a per-tenant policy to
+    // go missing, because there is no request carrying the org context to remind
+    // anyone it exists.
+    //
+    // The consequence is real and intended: an organisation that has set
+    // `minimal` gets severity triage with the narrative withheld, which is a
+    // materially worse triage. That is the trade-off the setting exists to let
+    // them make, and it is better than the alternative — a background job
+    // quietly ignoring a policy the manager believed was in force.
+    const { system, user } = await renderOrgPrompt(FEATURE, {
       title: String(payload.title || 'Untitled'),
       description: String(payload.description || ''),
       category: category || 'Uncategorized',

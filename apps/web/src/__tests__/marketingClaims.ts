@@ -99,6 +99,20 @@ export const FORBIDDEN_CLAIMS: {
   allowedPhrases?: string[]
 }[] = [
   {
+    label: 'Anomaly or change detection presented as a model',
+    pattern: /\banomaly detection\b|\bchange detection\b/i,
+    why: 'Neither exists as a model. All twelve intelligence entry points run the same thing: date and status filters over records, then a language model writes prose about what came back. "Anomaly detection" and "change detection" both name a technique — a baseline, a deviation from expected, a learned threshold — that is not implemented, and an assessor can establish that with one query because there is nothing underneath the name. Renamed to "operational activity review" and "record change summary" on 28 Sep 2026.',
+    whatWouldPermitIt: 'A genuine detection model: a stored per-service baseline, a comparison against it, and a documented threshold with the false-positive rate someone is willing to accept in a care record.',
+    // The capability ids are frozen feature-flag keys in every existing
+    // customer\'s enabledFeatures array and in the AI audit log. Renaming one
+    // would silently disable a feature a customer had switched on, so the
+    // internal key survives the rename while the customer-facing name does not.
+    allowedPhrases: [
+      'operational_anomaly_detection',
+      'change_detection',
+    ],
+  },
+  {
     label: 'ISO 27001',
     pattern: /ISO[\s/]*(?:IEC[\s]*)?27001/i,
     why: 'Neither we nor the hosting provider hold ISO 27001. A previous version of the privacy policy claimed it; it was removed on 26 Sep 2026 because there is no certificate to cite.',

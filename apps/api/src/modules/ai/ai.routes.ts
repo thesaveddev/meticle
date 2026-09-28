@@ -12,6 +12,8 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get('/data-minimisation', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.getDataMinimisation));
+router.put('/data-minimisation', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.updateDataMinimisation));
 router.get('/config', requireRole(UserRole.ORG_ADMIN), asyncHandler(AIController.getConfig));
 router.put('/config', requireRole(UserRole.ORG_ADMIN), validate(updateAIConfigSchema), asyncHandler(AIController.updateConfig));
 router.post('/analyze/compliance', requireRole(UserRole.ORG_ADMIN), validate(aiAnalysisRequestSchema), asyncHandler(AIController.analyzeComplianceGap));

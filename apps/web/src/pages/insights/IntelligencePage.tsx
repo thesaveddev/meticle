@@ -5,22 +5,48 @@ import { AutoAwesome, OpenInNew, WarningAmber } from '@mui/icons-material'
 import PageContainer from '../../components/design/PageContainer'
 import api from '../../services/api'
 
+/**
+ * Labels describe the action, not a model.
+ *
+ * Two of the previous names were the problem. "Change Detection" and "Anomaly
+ * Detection" both describe a model — a baseline, a deviation from expected, a
+ * learned threshold — and neither exists. All twelve of these run the same
+ * thing: date and status filters over records, then a language model writes
+ * prose about what came back. The names now say that, and the honest disclosure
+ * below the heading says it once for all of them.
+ *
+ * `key` is the route path and is unchanged. Renaming it would break any saved
+ * view, any deep link a customer has circulated, and the feature-flag keys in
+ * their AI configuration.
+ */
 const capabilities = [
   { key: 'manager-briefing', label: 'Manager Briefing', description: 'A source-linked view of what happened and what may need attention.' },
   { key: 'care-summary', label: 'Person Care Summary', description: 'Summarise one person\'s selected-period records with source references.' },
-  { key: 'change-detection', label: 'Change Detection', description: 'Compare the selected period for meaningful operational changes.' },
+  { key: 'change-detection', label: 'Record Change Summary', description: 'Compare the selected period. It shows what the filters returned, not changes a system inferred.' },
   { key: 'risk-signals', label: 'Risk Signals', description: 'Surface incidents, missed visits and overdue records for human review.' },
   { key: 'compliance-copilot', label: 'Compliance Copilot', description: 'Highlight evidence and training records that may need attention.' },
   { key: 'assistant', label: 'Data Assistant', description: 'Ask an authorised operational question in plain language.' },
-  { key: 'end-of-day', label: 'End-of-day Intelligence', description: 'Review the day with transparent sources and follow-up prompts.' },
+  { key: 'end-of-day', label: 'End-of-day Summary', description: 'Review the day with transparent sources and follow-up prompts.' },
   { key: 'operations-copilot', label: 'Domiciliary Copilot', description: 'Review missed calls, conflicts and unresolved operational follow-ups.' },
-  { key: 'anomaly-detection', label: 'Anomaly Detection', description: 'Use rules-first signals to identify unusual operational patterns.' },
+  { key: 'anomaly-detection', label: 'Operational Activity Review', description: 'Review operational records for the period. No statistical detection is applied, so this reports records that met the filters rather than outliers that were detected.' },
   { key: 'rota-alternatives', label: 'Rota Alternatives', description: 'Review explainable alternatives without publishing changes automatically.' },
   { key: 'competency-coaching', label: 'Competency Coaching', description: 'Identify supervised coaching opportunities from training and assessments.' },
   { key: 'family-communication-draft', label: 'Family Draft', description: 'Draft a manager-reviewed family update without sending it automatically.' },
 ] as const
 
+/**
+ * Stated once, on the page, rather than implied by twelve names.
+ *
+ * Kept here as plain copy rather than fetched from the API because it has to be
+ * visible before a manager chooses anything — the API returns the same object
+ * in `method` with every response, and that is what a security review reads.
+ */
+const METHOD_DISCLOSURE = 'These tools select records with date and status filters and summarise them in writing. There is no statistical model, no learned baseline and no time-series comparison: every item shown is a record that met the same filters you could apply by hand. Every output is a prompt for human review, not a decision.'
+
 type Result = { headline: string; summary: string; items?: Array<{ title: string; detail: string; priority: string; source_type: string; source_id: string; source_url?: string }>; suggested_follow_up?: string[]; limitations?: string[]; generated_by_ai?: boolean }
+
+/** What actually crossed the LLM boundary on the last request. */
+type DataBoundary = { direct_identifiers_removed: boolean; clinical_narrative: 'withheld' | 'included'; ai_data_minimisation: 'full' | 'minimal'; narrative_dependent: boolean }
 
 export default function IntelligencePage() {
   const navigate = useNavigate()
@@ -35,13 +61,14 @@ export default function IntelligencePage() {
   const [tone, setTone] = useState('plain and reassuring')
   const [result, setResult] = useState<Result | null>(null)
   const [counts, setCounts] = useState<Record<string, number> | null>(null)
+  const [boundary, setBoundary] = useState<DataBoundary | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const selectedCapability = useMemo(() => capabilities.find(item => item.key === selected)!, [selected])
 
   const run = async () => {
-    setLoading(true); setError(''); setResult(null)
+    setLoading(true); setError(''); setResult(null); setBoundary(null)
     try {
       const payload: Record<string, string> = { from, to, window: windowDays }
       if (question.trim()) payload.question = question.trim()
@@ -50,6 +77,7 @@ export default function IntelligencePage() {
       const response = await api.post(`/ai/${selected}`, payload)
       setResult(response.data.result)
       setCounts(response.data.counts || null)
+      setBoundary(response.data.data_boundary || null)
     } catch (err: any) {
       setError(err.response?.data?.error?.message || 'The intelligence request could not be completed.')
     } finally { setLoading(false) }
@@ -60,6 +88,15 @@ export default function IntelligencePage() {
       <Box>
         <Stack direction="row" spacing={1} alignItems="center"><AutoAwesome sx={{ color: '#7C3AED' }} /><Typography variant="h5" sx={{ fontWeight: 800 }}>MeticleCare Intelligence</Typography></Stack>
         <Typography color="text.secondary" sx={{ mt: .75, maxWidth: 760 }}>Use authorised operational records to see what may need attention. AI suggestions are evidence-linked and never replace professional judgement.</Typography>
+        <Alert severity="info" icon={false} sx={{ mt: 1.5, maxWidth: 900 }}>{METHOD_DISCLOSURE}</Alert>
+        {boundary?.clinical_narrative === 'withheld' && (
+          <Alert severity="warning" sx={{ mt: 1.5, maxWidth: 900 }}>
+            Your organisation has withheld clinical narrative from AI requests. Names are still replaced with
+            pseudonyms and the coded facts around each record are still sent, but the wording inside notes,
+            incident descriptions and medication names is not. Summaries will be noticeably less detailed, and
+            {boundary.narrative_dependent ? ' this capability depends on that text to work properly.' : ' this capability is not much affected.'}
+          </Alert>
+        )}
       </Box>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} useFlexGap flexWrap="wrap">
         {capabilities.map(item => <Button key={item.key} variant={item.key === selected ? 'contained' : 'outlined'} onClick={() => { setSelected(item.key); setResult(null) }} sx={{ textTransform: 'none', justifyContent: 'flex-start', bgcolor: item.key === selected ? '#0F4C81' : undefined }}>{item.label}</Button>)}

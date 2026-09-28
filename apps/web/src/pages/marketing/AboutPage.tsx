@@ -24,7 +24,7 @@ const timeline = [
   { year: 'Foundation', title: 'Care operations are broken.', desc: 'Care providers were drowning in disconnected systems — spreadsheets for rotas, paper notes for care records, messaging apps for team communication. Nothing connected. Nothing was searchable. Inspections meant weeks of scrambling.' },
   { year: 'Vision', title: 'One connected platform.', desc: 'MeticleCare was built to bring every part of care operations together — care delivery, scheduling, medication, risk, compliance, workforce and families — in one platform that works on both web and mobile.' },
   { year: 'Growth', title: 'Built for the UK.', desc: 'Designed for domiciliary and supported living providers across all four UK nations. Supporting CQC, Care Inspectorate, CIW and RQIA contexts with proper regulatory awareness — not generic healthcare templates.' },
-  { year: 'Intelligence', title: 'AI that works with records.', desc: 'Adding intelligence that analyses the data teams already create — care summaries, change detection, compliance copilot, risk signals and manager briefings — with source traceability and human review at the centre.' },
+  { year: 'Intelligence', title: 'AI that works with records.', desc: 'Adding intelligence that analyses the data teams already create — care summaries, record change summaries, compliance copilot, risk signals and manager briefings — with source traceability and human review at the centre.' },
 ]
 
 export default function AboutPage() {

@@ -94,6 +94,28 @@ export default function SettingsPage() {
   // AI state
   const [aiConfig, setAIConfig] = useState<any>(null)
   const [aiSaving, setAISaving] = useState(false)
+  // How much clinical narrative may cross the LLM boundary. Kept separate from
+  // aiConfig because it is stored on the organisation, not in the provider
+  // config blob — it governs what is SENT, not which provider is used.
+  const [minimisationMode, setMinimisationMode] = useState<'full' | 'minimal'>('full')
+  const [minimisationInfo, setMinimisationInfo] = useState<any>(null)
+  const [minimisationSaving, setMinimisationSaving] = useState(false)
+
+  const saveMinimisation = async (mode: 'full' | 'minimal') => {
+    const previous = minimisationMode
+    setMinimisationMode(mode) // optimistic; reverted on failure
+    setMinimisationSaving(true)
+    try {
+      const res = await api.put('/ai/data-minimisation', { mode })
+      setMinimisationMode(res.data.mode)
+      showSnackbar(mode === 'minimal' ? 'Clinical narrative will be withheld from AI requests.' : 'Full records will be sent to the AI provider (names always pseudonymised).', 'success')
+    } catch (e: any) {
+      setMinimisationMode(previous)
+      setError(e.response?.data?.error?.message || 'Failed to save the AI data minimisation setting')
+    } finally {
+      setMinimisationSaving(false)
+    }
+  }
   const [aiUsageStats, setAIUsageStats] = useState<any>(null)
   const [aiAnalysisResult, setAIAnalysisResult] = useState<any>(null)
   const [aiAnalyzing, setAIAnalyzing] = useState(false)
@@ -169,6 +191,14 @@ export default function SettingsPage() {
           const aiRes = await api.get('/ai/config')
           setAIConfig(aiRes.data.config)
         } catch { /* ai not yet configured */ }
+        // Load the minimisation setting separately: it exists even when no AI
+        // provider is configured yet, and a manager should be able to decide
+        // the policy before they switch the feature on, not only after.
+        try {
+          const dmRes = await api.get('/ai/data-minimisation')
+          setMinimisationMode(dmRes.data.mode)
+          setMinimisationInfo(dmRes.data)
+        } catch { /* endpoint unavailable; the switch defaults to full */ }
       }
       // Check MFA status
       try {
@@ -1489,6 +1519,33 @@ export default function SettingsPage() {
       <Grid container spacing={3}>
         {/* Left: Configuration */}
         <Grid item xs={12} md={7}>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>What is sent to the AI provider</Typography>
+            <Stack spacing={2}>
+              <Typography variant="body2" color="text.secondary">
+                {minimisationInfo?.description || 'Names are always replaced with stable pseudonyms before anything is sent.'}
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={minimisationMode === 'minimal'}
+                    disabled={minimisationSaving}
+                    onChange={e => saveMinimisation(e.target.checked ? 'minimal' : 'full')}
+                  />
+                }
+                label="Withhold clinical narrative from AI requests (recommended for a security review)"
+              />
+              <Typography variant="caption" color="text.secondary">
+                When on, the wording inside visit notes, incident descriptions and medication names is withheld;
+                coded facts — status, category, severity, dates — are still sent, so summaries keep something to
+                work from. Summaries will be noticeably less detailed while this is on.
+                {minimisationInfo?.degraded_capabilities?.length
+                  ? ` Most affected: ${minimisationInfo.degraded_capabilities.map((c: any) => c.label).slice(0, 3).join(', ')}.`
+                  : ''}
+              </Typography>
+            </Stack>
+          </Paper>
+
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Provider Configuration</Typography>
             <Stack spacing={2.5}>
