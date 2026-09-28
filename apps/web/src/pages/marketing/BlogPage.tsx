@@ -37,8 +37,8 @@ const blogPosts = [
     tags: ['CQC', 'Evidence', 'Scoring'],
   },
   {
-    title: 'Multi-Regulator Compliance: Operating Across CQC, CIW, Care Inspectorate, and RQIA',
-    excerpt: 'If your organisation operates across UK nations, you need a platform that speaks all four regulatory languages. Here\'s how multi-regulator support works in practice.',
+    title: 'Multi-Regulator Compliance: The Four UK Frameworks, and What Each One Asks For',
+    excerpt: 'CQC, CIW, the Care Inspectorate and RQIA score different things. Here\'s what each framework looks at, and how the background-check scheme follows the nation you are regulated in.',
     category: 'Multi-Regulator',
     author: 'Meticle Care Team',
     date: 'June 2026',

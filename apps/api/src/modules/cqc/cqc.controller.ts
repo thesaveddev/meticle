@@ -4,6 +4,10 @@ import { CqcRepository } from './cqc.repository';
 import { CqcActionRepository } from './cqc.repository';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { getFrameworkList } from './frameworks';
+import { vettingDocumentTypeSql } from '../compliance/compliance.vetting';
+
+// Nation-aware, for the same reason as the readiness metric this screen shows.
+const VETTING_DOC_TYPES_SQL = vettingDocumentTypeSql('COALESCE(sp.vetting_scheme, o.vetting_scheme)');
 
 export class CqcController {
   static async getReadiness(req: Request, res: Response) {
@@ -56,7 +60,8 @@ export class CqcController {
         COUNT(*) FILTER (WHERE d.expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30) as expiring_soon
        FROM staff_profiles sp
        JOIN users u ON sp.user_id = u.id
-       LEFT JOIN documents d ON d.staff_id = sp.id AND d.type IN ('DBS','PASSPORT','VISA','RIGHT_TO_WORK')
+       JOIN organizations o ON o.id = u.organization_id
+       LEFT JOIN documents d ON d.staff_id = sp.id AND d.type = ANY(${VETTING_DOC_TYPES_SQL})
        WHERE u.organization_id = $1 AND u.status = 'active'`, [orgId]
     );
 

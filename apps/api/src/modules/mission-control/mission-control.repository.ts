@@ -1,4 +1,10 @@
 import { query } from '../../shared/database';
+import { vettingDocumentTypeSql } from '../compliance/compliance.vetting';
+
+// Nation-aware identity documents. ENHANCED_DBS is a legacy type that nothing
+// writes today, kept only in this alert's type list so historical rows do not
+// silently stop producing an expiry warning; it is not a requirement anywhere.
+const VETTING_DOC_TYPES_SQL = vettingDocumentTypeSql('COALESCE(sp.vetting_scheme, o.vetting_scheme)');
 
 export class MissionControlRepository {
   /** Get all active (undismissed) alerts for an org, with optional filters. */
@@ -244,15 +250,17 @@ export class MissionControlRepository {
       [orgId]
     );
 
-    // Expired DBS checks
+    // Expiring background checks. Counted by each person's own nation's scheme,
+    // so a Scottish PVG certificate counts here the way a DBS does in England.
     const expiringDbs = await query(
       `SELECT COUNT(*)::int AS count
        FROM documents d
        JOIN staff_profiles sp ON d.staff_id = sp.id
        JOIN users u ON sp.user_id = u.id
+       JOIN organizations o ON o.id = u.organization_id
        WHERE u.organization_id = $1
          AND u.status = 'active'
-         AND d.type IN ('DBS', 'ENHANCED_DBS')
+         AND (d.type = ANY(${VETTING_DOC_TYPES_SQL}) OR d.type = 'ENHANCED_DBS')
          AND d.status NOT IN ('expired', 'rejected')
          AND d.expiry_date IS NOT NULL
          AND d.expiry_date <= CURRENT_DATE + interval '30 days'`,
@@ -397,11 +405,12 @@ export class MissionControlRepository {
        FROM documents d
        JOIN staff_profiles sp ON d.staff_id = sp.id
        JOIN users u ON sp.user_id = u.id
+       JOIN organizations o ON o.id = u.organization_id
        WHERE u.organization_id = $1 AND u.status = 'active'
          AND d.status NOT IN ('expired', 'rejected')
          AND d.expiry_date IS NOT NULL
          AND d.expiry_date <= CURRENT_DATE + interval '30 days'
-         AND d.type IN ('DBS', 'ENHANCED_DBS', 'PASSPORT', 'VISA', 'RIGHT_TO_WORK')`, [orgId]
+         AND (d.type = ANY(${VETTING_DOC_TYPES_SQL}) OR d.type = 'ENHANCED_DBS')`, [orgId]
     );
 
     // Open incidents needing follow-up

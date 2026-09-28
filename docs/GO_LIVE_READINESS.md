@@ -97,6 +97,9 @@ A claim with no citation is a guess wearing a tick. If you cannot cite it, it is
 | **T2-9** | API documentation | ⬜ | **Opeyemi** |
 | **T2-10** | Landing page A/B plan | ⬜ | **Adetoye** |
 | **T2-11** | Testimonials / social proof | ⬜ Ongoing — start collecting at first customer | **Adetoye** |
+| **T2-12** | PVG / AccessNI scheme names and tiers confirmed | ⬜ The registry in `compliance.vetting.ts` carries basic/standard/advanced/advanced+barring for Scotland and basic/standard/enhanced/enhanced+barred for NI. These are the public tier names, but a wrong tier makes a real check look missing, so a regulated party should confirm them against current regulator guidance before a customer relies on them. | **Adetoye** |
+| **T2-13** | Readiness denominator decision | ⬜ `document_compliance_rate` is the share of *held* identity documents that are valid, so it reads 100% when nobody has been checked. `background_check_coverage_rate` was added to cover that, but changing the denominator itself would move existing customer scores, which is a product decision rather than a bug fix. | **Adetoye** / **Opeyemi** |
+| **T2-14** | Nation-specific rules beyond vetting | ⬜ Vetting now follows the nation. The rest of the operational layer does not: Scottish best-practice statements, the All Wales Standards, and Welsh / Scottish medication practice (MCA scope) are not modelled. Four-regulator readiness is a framework plus a background check; it is not yet four nations' worth of operational rules. | **shared** |
 
 ---
 
@@ -106,6 +109,9 @@ Verification ages. Anything checked in **August 2026 or earlier** should be trea
 unverified until re-checked, because production changes underneath it.
 
 **Verified 27 September 2026** (this pass):
+
+- The four-nations gap is closed at the operational data layer, not just the scoring layer. The scoring layer has carried CQC, CIW, Care Inspectorate and RQIA for a while, but every query behind it counted one hardcoded list — DBS / PASSPORT / VISA / RIGHT_TO_WORK — for all four. A Scottish provider was shown as non-compliant for not holding a DBS, a document Scotland does not use, while a valid PVG certificate counted for nothing. Identity documents are now resolved per person from their own scheme (organisation default, per-person override), and both the dashboard and the readiness metric use it. Mutation-checked five ways; reverting the scoring query alone breaks 10 of the new tests.
+- Because `document_compliance_rate` is a share of documents *held*, it would still read 100% for a Scottish provider holding only passports. `background_check_coverage_rate` was added so an absence counts, with a gap message that names the check the provider actually needs. The denominator change itself is T2-13.
 
 - Email authentication end to end, on a message the application sent — SPF, DKIM, DMARC, envelope alignment.
 - Backups exist, are scheduled, retain 30 days, and are written atomically.

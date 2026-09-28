@@ -1,5 +1,17 @@
 import { query } from '../../shared/database';
 import { getFramework, type DomainDef, type FrameworkDef } from './frameworks';
+import { vettingDocumentTypeSql, getVettingScheme } from '../compliance/compliance.vetting';
+
+// Which identity documents count towards the documentation metric.
+//
+// This is the query that made the four-numbers claim checkable. The frameworks
+// were CQC, CIW, Care Inspectorate and RQIA, but this metric counted only
+// DBS / PASSPORT / VISA / RIGHT_TO_WORK for all of them, so a Scottish
+// provider's score was framework-aware and its evidence was not. Now it is
+// derived from each person's own nation.
+const RESOLVED_VETTING_SCHEME_SQL = 'COALESCE(sp.vetting_scheme, o.vetting_scheme)';
+const VETTING_DOC_TYPES_SQL = vettingDocumentTypeSql(RESOLVED_VETTING_SCHEME_SQL);
+const VETTING_CHECK_TYPES_SQL = vettingDocumentTypeSql(RESOLVED_VETTING_SCHEME_SQL, 'check');
 
 // ── Scoring constants ───────────────────────────────────────────────────────
 // These thresholds reflect CQC Single Assessment Framework expectations.
@@ -55,11 +67,48 @@ export class CqcRepository {
        FROM documents d
        JOIN staff_profiles sp ON d.staff_id = sp.id
        JOIN users u ON sp.user_id = u.id
-       WHERE u.organization_id = $1 AND d.type IN ('DBS', 'PASSPORT', 'VISA', 'RIGHT_TO_WORK')`,
+       JOIN organizations o ON o.id = u.organization_id
+       WHERE u.organization_id = $1 AND d.type = ANY(${VETTING_DOC_TYPES_SQL})`,
       [orgId]
     );
     const docRate = docResult.rows[0]?.total > 0
       ? (parseInt(docResult.rows[0].valid) / parseInt(docResult.rows[0].total)) * 100
+      : 0;
+
+    // How many active staff actually hold their nation's background check.
+    //
+    // This is a separate metric from docRate on purpose, and it exists because
+    // docRate cannot answer the question. docRate is the share of the identity
+    // documents a provider *holds* that are valid, so its denominator is the
+    // evidence already present: a Scottish provider with a full set of passports
+    // and visas and not one PVG certificate scored 100% on documents, because
+    // there was no DBS in the pile to be missing. Ranking an inspection-readiness
+    // score on that alone would let the largest gap in a Scottish provider's
+    // file raise no gap message at all.
+    //
+    // The denominator is active staff, so an absence counts.
+    const checkResult = await query(
+      `SELECT COUNT(*) FILTER (WHERE valid_checks > 0) as covered,
+              COUNT(*) as total,
+              MIN(org_scheme) as org_scheme
+       FROM (
+         SELECT sp.id, o.vetting_scheme as org_scheme,
+                COUNT(*) FILTER (
+                  WHERE d.type = ANY(${VETTING_CHECK_TYPES_SQL})
+                    AND d.status = 'approved'
+                    AND (d.expiry_date IS NULL OR d.expiry_date >= CURRENT_DATE)
+                ) as valid_checks
+         FROM staff_profiles sp
+         JOIN users u ON sp.user_id = u.id
+         JOIN organizations o ON o.id = u.organization_id
+         LEFT JOIN documents d ON d.staff_id = sp.id
+         WHERE u.organization_id = $1 AND u.status = 'active'
+         GROUP BY sp.id, o.vetting_scheme
+       ) per_staff`,
+      [orgId]
+    );
+    const backgroundCheckCoverage = checkResult.rows[0]?.total > 0
+      ? (parseInt(checkResult.rows[0].covered) / parseInt(checkResult.rows[0].total)) * 100
       : 0;
 
     const compResult = await query(
@@ -238,7 +287,9 @@ export class CqcRepository {
     const gaps = buildGapMessages(framework, {
       trainingRate, docRate, compRate, cqcMandatedRate, expiringCount,
       satTotal, engTotal, severeOpen, totalStaff,
-      staffingAdequacyRate, totalUncoveredShifts: totalShifts - adequatelyStaffed
+      staffingAdequacyRate, totalUncoveredShifts: totalShifts - adequatelyStaffed,
+      backgroundCheckCoverage,
+      vettingCheckName: getVettingScheme(checkResult.rows[0]?.org_scheme).checkName
     });
 
     const overallLabel = overallRatingLabel(framework, overall);
@@ -252,6 +303,9 @@ export class CqcRepository {
       metrics: {
         training_completion_rate: Math.round(trainingRate),
         document_compliance_rate: Math.round(docRate),
+        // Read this one, not document_compliance_rate, to know whether the
+        // workforce is actually vetted. See the query above for why.
+        background_check_coverage_rate: Math.round(backgroundCheckCoverage),
         competency_pass_rate: Math.round(compRate),
         total_staff: totalStaff,
         expiring_training: expiringCount,
@@ -428,10 +482,19 @@ function buildGapMessages(
     trainingRate: number; docRate: number; compRate: number; cqcMandatedRate: number;
     expiringCount: number; satTotal: number; engTotal: number; severeOpen: number; totalStaff: number;
     staffingAdequacyRate: number; totalUncoveredShifts: number;
+    backgroundCheckCoverage: number; vettingCheckName: string;
   }
 ): string[] {
-  const { trainingRate, docRate, compRate, cqcMandatedRate, expiringCount, satTotal, engTotal, severeOpen, totalStaff, staffingAdequacyRate, totalUncoveredShifts } = ctx;
+  const { trainingRate, docRate, compRate, cqcMandatedRate, expiringCount, satTotal, engTotal, severeOpen, totalStaff, staffingAdequacyRate, totalUncoveredShifts, backgroundCheckCoverage, vettingCheckName } = ctx;
   const gaps: string[] = [];
+
+  // Phrased by the check's real name, so a Scottish provider is not told to go
+  // and get DBS certificates.
+  if (totalStaff > 0 && backgroundCheckCoverage < TARGET_RATE) {
+    gaps.push(
+      `${Math.round(backgroundCheckCoverage)}% of active staff hold a valid ${vettingCheckName} — target ${TARGET_RATE}%+`,
+    );
+  }
 
   if (trainingRate < TARGET_RATE) gaps.push(`Training completion is ${Math.round(trainingRate)}% — target ${TARGET_RATE}%+`);
   if (docRate < TARGET_RATE) gaps.push(`Identity document compliance is ${Math.round(docRate)}% — target ${TARGET_RATE}%+`);

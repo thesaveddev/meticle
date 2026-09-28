@@ -3,6 +3,7 @@ import { NotificationsController } from '../notifications/notifications.controll
 import { EmailService } from '../../shared/utils/email.service';
 import logger, { logWarn } from '../../shared/utils/logger';
 import { ComplianceRepository } from './compliance.repository';
+import { isIdentityType } from './compliance.vetting';
 
 const DEFAULT_EXPIRING_SOON_DAYS = 14;
 
@@ -238,10 +239,12 @@ export class ComplianceNotificationService {
     let sql =
       `SELECT d.id, d.type, d.expiry_date, d.status, d.renewal_status,
                sp.id as staff_id, sp.first_name, sp.last_name, sp.user_id,
-              u.email, u.organization_id
+              u.email, u.organization_id,
+              COALESCE(sp.vetting_scheme, o.vetting_scheme) as vetting_scheme
        FROM documents d
        JOIN staff_profiles sp ON d.staff_id = sp.id
        JOIN users u ON sp.user_id = u.id
+       JOIN organizations o ON o.id = u.organization_id
        WHERE u.status = 'active'
          AND d.status NOT IN ('expired', 'rejected')
          AND (
@@ -268,9 +271,12 @@ export class ComplianceNotificationService {
           'compliance'
         ).catch(logWarn('documentExpiringNotification'));
 
-        // Auto-set renewal to requested for identity-type documents (DBS, Passport, Visa, RTW)
-        const identityTypes = ['DBS', 'PASSPORT', 'VISA', 'RIGHT_TO_WORK'];
-        if (identityTypes.includes(doc.type) && doc.renewal_status !== 'requested' && doc.renewal_status !== 'renewed') {
+        // Auto-set renewal to requested for this person's identity documents.
+        // Nation-aware: a PVG certificate in Scotland and an AccessNI check in
+        // Northern Ireland get the same automatic renewal prompt a DBS does in
+        // England, which they previously did not — so an expiring Scottish check
+        // silently went unrenewed while the dashboard called it compliant.
+        if (isIdentityType(doc.type, doc.vetting_scheme) && doc.renewal_status !== 'requested' && doc.renewal_status !== 'renewed') {
           await query('UPDATE documents SET renewal_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', ['requested', doc.id]);
           const autoRenewalTitle = `${doc.type} Renewal Auto-Requested`;
           const autoRenewalMsg = `Your ${doc.type} has expired. A renewal has been automatically requested. Please upload your renewed ${doc.type} as soon as possible.`;

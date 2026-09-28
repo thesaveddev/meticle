@@ -1,4 +1,9 @@
 import { query } from '../../shared/database';
+import { vettingDocumentTypeSql } from '../compliance/compliance.vetting';
+
+// Counts of expiring identity documents, by each person's own nation's scheme
+// rather than one England-and-Wales list.
+const VETTING_DOC_TYPES_SQL = vettingDocumentTypeSql('COALESCE(sp.vetting_scheme, o.vetting_scheme)');
 
 export class DashboardRepository {
   static async getStats(orgId: string) {
@@ -44,7 +49,8 @@ export class DashboardRepository {
         SELECT COUNT(DISTINCT d.staff_id)::int as count FROM documents d
         JOIN staff_profiles sp ON d.staff_id = sp.id
         JOIN users u ON u.id = sp.user_id
-        WHERE u.organization_id = $1 AND d.type IN ('DBS','PASSPORT','VISA','RIGHT_TO_WORK') AND d.status = 'approved'
+        JOIN organizations o ON o.id = u.organization_id
+        WHERE u.organization_id = $1 AND d.type = ANY(${VETTING_DOC_TYPES_SQL}) AND d.status = 'approved'
         AND d.expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'
       `, [orgId]),
       query(`

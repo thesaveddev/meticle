@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Stack, IconButton, Tooltip, Card, CardContent, TablePagination, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Autocomplete, Alert, CircularProgress } from '@mui/material'
 import PageContainer from '../../components/design/PageContainer'
 import { Refresh as RefreshIcon, NotificationsActive as RemindIcon, Download as DownloadIcon, Upload as UploadIcon, Autorenew as RenewIcon, CheckCircle as RenewDoneIcon } from '@mui/icons-material'
@@ -6,14 +6,28 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import api from '../../services/api'
 import { EmptyState } from '../../components/design/EmptyState'
+import { identityTypeLabel, nationLabel, IDENTITY_DOCUMENT_TYPES } from '../../data/identityDocuments'
 
-const IDENTITY_TYPES = ['DBS', 'PASSPORT', 'VISA', 'RIGHT_TO_WORK']
-
-const typeLabels: Record<string, string> = {
-  DBS: 'DBS Check',
-  PASSPORT: 'Passport',
-  VISA: 'Visa',
-  RIGHT_TO_WORK: 'Right to Work'
+/**
+ * The columns to show, derived from what the API says each person needs.
+ *
+ * Hardcoding DBS/Passport/Visa/Right to Work made this table wrong for every
+ * provider outside England and Wales: a Scottish worker's PVG was invisible,
+ * and a Northern Irish worker's AccessNI check was invisible. The API now
+ * reports each person's own scheme, so the columns follow it — a single-nation
+ * organisation looks exactly as it did, and a mixed one shows both.
+ */
+function useIdentityColumns(staff: any[] | undefined): string[] {
+  return useMemo(() => {
+    const keys = new Set<string>()
+    for (const person of staff || []) {
+      for (const key of Object.keys(person?.statuses || {})) keys.add(key)
+    }
+    if (keys.size === 0) return ['DBS', 'PASSPORT', 'VISA', 'RIGHT_TO_WORK']
+    // The background check first, then right to work — the order a manager
+    // reads the row in.
+    return [...keys].sort((a, b) => (a === 'PASSPORT' || a === 'VISA' || a === 'RIGHT_TO_WORK' ? 1 : 0) - (b === 'PASSPORT' || b === 'VISA' || b === 'RIGHT_TO_WORK' ? 1 : 0))
+  }, [staff])
 }
 
 export default function IdentityMonitoringPage() {
@@ -156,6 +170,16 @@ export default function IdentityMonitoringPage() {
 
   const counts = data?.counts || { compliant: 0, incomplete: 0, expiring: 0, expired: 0 }
 
+  // Only shown when the organisation is genuinely mixed. On a single-nation
+  // provider it would be the same label repeated down every row.
+  const nations = useMemo(
+    () => new Set((data?.staff || []).map((s: any) => s.vetting_nation).filter(Boolean)),
+    [data]
+  )
+  const columns = useIdentityColumns(data?.staff)
+  const showNations = nations.size > 1
+  const columnSpan = 3 + columns.length + (showNations ? 1 : 0)
+
   return (
     <PageContainer>
 
@@ -222,8 +246,9 @@ export default function IdentityMonitoringPage() {
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Staff</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
-              {IDENTITY_TYPES.map(t => (
-                <TableCell key={t} sx={{ fontWeight: 700, textAlign: 'center' }}>{typeLabels[t]}</TableCell>
+              {showNations && <TableCell sx={{ fontWeight: 700 }}>Nation</TableCell>}
+              {columns.map(t => (
+                <TableCell key={t} sx={{ fontWeight: 700, textAlign: 'center' }}>{identityTypeLabel(t)}</TableCell>
               ))}
               <TableCell sx={{ fontWeight: 700 }}>Overall</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
@@ -232,16 +257,26 @@ export default function IdentityMonitoringPage() {
           {downloadError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setDownloadError(null)}>{downloadError}</Alert>}
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={8}><CircularProgress size={24} sx={{ display: 'block', mx: 'auto', my: 2 }} /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={columnSpan}><CircularProgress size={24} sx={{ display: 'block', mx: 'auto', my: 2 }} /></TableCell></TableRow>
             ) : !data?.staff?.length ? (
-              <TableRow><TableCell colSpan={8} sx={{ borderBottom: 'none' }}><EmptyState title="No identity records" description="Upload documents to get started" variant="default" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={columnSpan} sx={{ borderBottom: 'none' }}><EmptyState title="No identity records" description="Upload documents to get started" variant="default" /></TableCell></TableRow>
             ) : data?.staff?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((s: any) => (
               <TableRow key={s.id} hover>
                 <TableCell sx={{ fontWeight: 600 }}>{s.first_name} {s.last_name}</TableCell>
                 <TableCell>{s.email}</TableCell>
-                {IDENTITY_TYPES.map(t => {
+                {showNations && (
+                  <TableCell>
+                    <Tooltip title={s.vetting_check_name ? `Requires a valid ${s.vetting_check_name}` : ''}>
+                      <Chip label={nationLabel(s.vetting_nation)} size="small" variant="outlined" />
+                    </Tooltip>
+                  </TableCell>
+                )}
+                {columns.map(t => {
                   const info = s.statuses?.[t]
-                  const doc = s.documents?.find((d: any) => d.type === t)
+                  // The API points the check column at the document that
+                  // actually satisfied it, which for Scotland may be a
+                  // Disclosure Scotland record rather than a PVG certificate.
+                  const doc = s.documents?.find((d: any) => d.type === t) || info?.doc
                   const renewalLabel = doc?.renewal_status === 'renewed' ? 'Renewed' : doc?.renewal_status === 'requested' ? 'Renewal Req' : doc?.renewal_status === 'submitted' ? 'Pending Review' : ''
                   return (
                     <TableCell key={t} sx={{ textAlign: 'center' }}>
@@ -276,19 +311,19 @@ export default function IdentityMonitoringPage() {
                 </TableCell>
                 <TableCell>
                   <Stack direction="row" spacing={0.5}>
-                    {IDENTITY_TYPES.map(t => {
-                      const doc = s.documents?.find((d: any) => d.type === t)
+                    {columns.map(t => {
+                      const doc = s.documents?.find((d: any) => d.type === t) || s.statuses?.[t]?.doc
                       if (!doc) return null
                       return (
-                        <Tooltip key={t} title={`${typeLabels[t]} - ${doc.status}`}>
-                          <IconButton size="small" onClick={() => handleDownload(doc)} aria-label={`Download ${typeLabels[t]}`}>
+                        <Tooltip key={t} title={`${identityTypeLabel(t)} - ${doc.status}`}>
+                          <IconButton size="small" onClick={() => handleDownload(doc)} aria-label={`Download ${identityTypeLabel(t)}`}>
                             <DownloadIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       )
                     })}
-                    {IDENTITY_TYPES.map(t => {
-                      const doc = s.documents?.find((d: any) => d.type === t)
+                    {columns.map(t => {
+                      const doc = s.documents?.find((d: any) => d.type === t) || s.statuses?.[t]?.doc
                       if (!doc || !needsRenewal(s.statuses?.[t]?.status) || isRenewed(doc)) return null
                       if (isRenewing(doc)) {
                         return (
@@ -343,10 +378,9 @@ export default function IdentityMonitoringPage() {
           </Alert>
           <Stack spacing={3} sx={{ mt: 2 }}>
             <TextField select label="Document Type" fullWidth {...register('type', { required: true })}>
-              <MenuItem value="DBS">DBS Check</MenuItem>
-              <MenuItem value="PASSPORT">Passport</MenuItem>
-              <MenuItem value="VISA">Visa</MenuItem>
-              <MenuItem value="RIGHT_TO_WORK">Right to Work</MenuItem>
+              {IDENTITY_DOCUMENT_TYPES.map(t => (
+                <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
+              ))}
             </TextField>
             <Autocomplete
               options={members?.filter((m: any) => m.status === 'active') || []}
@@ -368,7 +402,7 @@ export default function IdentityMonitoringPage() {
       </Dialog>
 
       <Dialog open={!!renewalOpen} onClose={() => { setRenewalOpen(null); setRenewalFile(null); setRenewalExpiryDate('') }} maxWidth="sm" fullWidth>
-        <DialogTitle>Submit Renewal — {typeLabels[renewalOpen?.doc?.type || ''] || renewalOpen?.doc?.type}</DialogTitle>
+        <DialogTitle>Submit Renewal — {identityTypeLabel(renewalOpen?.doc?.type || '') || renewalOpen?.doc?.type}</DialogTitle>
         <DialogContent>
           {submitRenewalMutation.isError && (
             <Alert severity="error" sx={{ mb: 2 }}>

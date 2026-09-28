@@ -11,6 +11,7 @@ import { uploadDir } from '../../shared/middleware/upload.middleware';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { AuditRepository } from '../audit/audit.repository';
 import { generatePdf, buildEvidencePackHtml } from './compliance.pdf';
+import { VETTING_SCHEMES, listVettingSchemes } from './compliance.vetting';
 
 async function streamDocumentToResponse(user: any, docUrl: string, res: Response) {
   const filename = docUrl.replace('/files/private/', '').replace('/files/', '');
@@ -192,6 +193,49 @@ export class ComplianceController {
     const user = req.user!;
     const dashboard = await ComplianceRepository.getIdentityDashboard(user.organizationId!);
     res.json(dashboard);
+  }
+
+  /** Every scheme we can assess against, for the settings dropdown. */
+  static async listVettingSchemes(_req: Request, res: Response) {
+    res.json({ schemes: listVettingSchemes() });
+  }
+
+  /** The organisation's declared nation, and the documents it implies. */
+  static async getVettingScheme(req: Request, res: Response) {
+    const user = req.user!;
+    const scheme = await ComplianceRepository.getOrgVettingScheme(user.organizationId!);
+    const overrides = await ComplianceRepository.getVettingOverrideCount(user.organizationId!);
+    res.json({ ...scheme, staff_with_own_scheme: overrides });
+  }
+
+  /**
+   * Declare which nation the organisation is regulated in.
+   *
+   * ORG_ADMIN only, and audited. This is not a display preference: it decides
+   * which background check the identity dashboard requires of every member of
+   * staff, so changing it changes what counts as evidence for the whole
+   * organisation at once. The audit entry records both the old and new scheme so
+   * a regulator asking "which scheme were you measuring this worker against in
+   * March" has an answer.
+   */
+  static async updateVettingScheme(req: Request, res: Response) {
+    const user = req.user!;
+    const { vetting_scheme } = req.body as { vetting_scheme: string };
+    if (!VETTING_SCHEMES[vetting_scheme]) {
+      throw new AppError(400, 'Unknown vetting scheme');
+    }
+    const before = await ComplianceRepository.getOrgVettingScheme(user.organizationId!);
+    const scheme = await ComplianceRepository.updateOrgVettingScheme(user.organizationId!, vetting_scheme);
+    AuditRepository.log({
+      user_id: user.userId,
+      action: 'update',
+      entity_type: 'organization_vetting_scheme',
+      entity_id: user.organizationId!,
+      new_data: { vetting_scheme },
+      old_data: { vetting_scheme: before.vetting_scheme },
+      ip_address: req.ip,
+    }).catch(() => {});
+    res.json(scheme);
   }
 
   static async updateDocumentStatus(req: Request, res: Response) {

@@ -10,6 +10,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import api from '../../services/api'
 import { PremiumCard, StatCard, StatusBadge as DesignStatusBadge } from '../../components/design/PremiumCard'
 import { EmptyState } from '../../components/design/EmptyState'
+import { IDENTITY_DOCUMENT_TYPES } from '../../data/identityDocuments'
 import { PortalAccessManager } from '../compliance-portal/CompliancePortalPage'
 
 const QUALITY_RATINGS = [
@@ -681,10 +682,9 @@ function DocumentsSectionWithCollapse({ expanded, onToggle }: { expanded: boolea
               <Stack spacing={3} sx={{ mt: 1 }}>
                 <TextField select label="Document Type" fullWidth {...register('type', { required: true })}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
-                  <MenuItem value="DBS">DBS Check</MenuItem>
-                  <MenuItem value="PASSPORT">Passport</MenuItem>
-                  <MenuItem value="VISA">Visa</MenuItem>
-                  <MenuItem value="RIGHT_TO_WORK">Right to Work</MenuItem>
+                  {IDENTITY_DOCUMENT_TYPES.map(t => (
+                    <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
+                  ))}
                 </TextField>
                 <Autocomplete
                   options={members?.filter((m: any) => m.status === 'active') || []}

@@ -5,6 +5,7 @@ import { publishIncidentActionOverdueEvent } from '../incidents/incidents.events
 import { publishShiftUnfilledEvent, publishShiftUnderstaffedEvent } from '../scheduling/scheduling.events';
 import { publishTrainingExpiringEvent } from '../training/training.events';
 import { publishDbsExpiringEvent } from '../compliance/compliance.events';
+import { vettingDocumentTypeSql } from '../compliance/compliance.vetting';
 import { publishPolicyReviewDueEvent } from '../policies/policies.events';
 import { publishCarePlanReviewDueEvent } from '../people/care-plan.events';
 import { publishFluidIntakeBelowTargetEvent } from '../health/health.events';
@@ -291,6 +292,13 @@ async function checkExpiringTraining(orgId: string): Promise<number> {
 }
 
 async function checkExpiringDbs(orgId: string): Promise<number> {
+  // Nation-aware, and the event name is not. The publisher used to scan for
+  // DBS only, so a PVG certificate expiring in Scotland produced no alert at
+  // all — the scan, not the naming, is the defect. The event type and its
+  // dbsType field are left alone: they are on the wire, and renaming them
+  // would break every consumer and replay that already references them.
+  // ENHANCED_DBS is a legacy type nothing writes today, kept so historical
+  // rows do not stop alerting.
   const result = await query(
     `SELECT d.id AS document_id, d.type AS dbs_type, d.expiry_date,
             sp.id AS staff_id,
@@ -299,9 +307,10 @@ async function checkExpiringDbs(orgId: string): Promise<number> {
      FROM documents d
      JOIN staff_profiles sp ON d.staff_id = sp.id
      JOIN users u ON sp.user_id = u.id
+     JOIN organizations o ON o.id = u.organization_id
      WHERE u.organization_id = $1
        AND u.status = 'active'
-       AND d.type IN ('DBS', 'ENHANCED_DBS')
+       AND (d.type = ANY(${vettingDocumentTypeSql('COALESCE(sp.vetting_scheme, o.vetting_scheme)')}) OR d.type = 'ENHANCED_DBS')
        AND d.status NOT IN ('expired', 'rejected')
        AND d.expiry_date IS NOT NULL
        AND d.expiry_date <= CURRENT_DATE + interval '30 days'

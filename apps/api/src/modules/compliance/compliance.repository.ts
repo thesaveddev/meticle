@@ -1,6 +1,11 @@
-import { query } from '../../shared/database';
+import { query, migrateQuery } from '../../shared/database';
+import { getVettingScheme, identityTypesForAllSchemes } from './compliance.vetting';
 
-const IDENTITY_TYPES = ['DBS', 'PASSPORT', 'VISA', 'RIGHT_TO_WORK'];
+// The union of every scheme's identity documents, used to narrow the fetch. A
+// person's required types are then resolved per person below, from that person's
+// own nation, rather than from this list — the list only says which rows are
+// worth reading.
+const IDENTITY_TYPES = identityTypesForAllSchemes();
 
 export class ComplianceRepository {
   static async createDocument(data: any) {
@@ -41,11 +46,21 @@ export class ComplianceRepository {
   }
 
   static async getIdentityDashboard(orgId: string) {
-    // All active staff with their identity documents, grouped by staff
+    // All active staff with their identity documents, grouped by staff.
+    //
+    // The vetting_scheme carried on each row is the resolved effective scheme —
+    // the person's override if they have one, otherwise the organisation's. It
+    // is selected here rather than assumed, because assuming meant a Scottish
+    // worker was measured against DBS: marked non-compliant for not holding a
+    // document Scotland does not use, while a valid PVG certificate counted for
+    // nothing. The per-person override is the same idea one level down, for
+    // providers who send staff across a border.
     const staff = await query(
-      `SELECT sp.id, sp.first_name, sp.last_name, u.email
+      `SELECT sp.id, sp.first_name, sp.last_name, u.email,
+              COALESCE(sp.vetting_scheme, o.vetting_scheme) AS vetting_scheme
        FROM staff_profiles sp
        JOIN users u ON sp.user_id = u.id
+       JOIN organizations o ON o.id = u.organization_id
        WHERE u.organization_id = $1 AND u.status = 'active'
        ORDER BY sp.first_name`,
       [orgId]
@@ -63,28 +78,69 @@ export class ComplianceRepository {
 
     // Build staff status overview
     const dashboard = staff.rows.map((s: any) => {
-      const staffDocs = docs.rows.filter((d: any) => d.staff_id === s.id);
+      const scheme = getVettingScheme(s.vetting_scheme);
+      // Only documents this person's own scheme accepts. A DBS held by a
+      // Scottish worker is not counted towards their status, and is not shown
+      // as one of their compliance documents — showing it would invite a manager
+      // to read a document the wrong regulator will not accept as evidence.
+      const staffDocs = docs.rows.filter(
+        (d: any) => d.staff_id === s.id && scheme.documentTypes.includes(d.type)
+      );
       const statuses: Record<string, any> = {};
       let hasExpiring = false, hasExpired = false, hasMissing = false;
 
-      for (const type of IDENTITY_TYPES) {
+      /** Grade one document: absent, past its date, nearly due, or good. */
+      const grade = (doc: any) => {
+        if (!doc) return 'missing';
+        if (doc.expiry_date && new Date(doc.expiry_date) < new Date()) return 'expired';
+        if (doc.expiry_date && new Date(doc.expiry_date) <= new Date(Date.now() + 30 * 86400000)) return 'expiring';
+        return 'valid';
+      };
+      const absorb = (status: string) => {
+        if (status === 'expired') hasExpired = true;
+        else if (status === 'expiring') hasExpiring = true;
+        else if (status === 'missing') hasMissing = true;
+      };
+
+      // The background check, keyed on the check's own name — which is what an
+      // England row has always shown, so the existing screen is unchanged there.
+      //
+      // Any one of the check documents satisfies it, and the least urgent of
+      // them wins: a worker holding both a current PVG certificate and an
+      // expired Disclosure Scotland record is checked, not flagged, because the
+      // expired one is a record they no longer need to renew.
+      const checkDocs = scheme.checkDocumentTypes
+        .map((type) => staffDocs.find((d: any) => d.type === type))
+        .filter(Boolean);
+      const checkStatus = checkDocs.length
+        ? ['valid', 'expiring', 'expired'].find((s) => checkDocs.some((d: any) => grade(d) === s))!
+        : 'missing';
+      statuses[scheme.checkName] = {
+        status: checkStatus,
+        documentTypes: scheme.checkDocumentTypes,
+        issuer: scheme.issuer,
+        // Which document it was actually satisfied by, so the row points at the
+        // file rather than at the check.
+        doc: checkDocs.find((d: any) => grade(d) === checkStatus) ?? null,
+      };
+      absorb(checkStatus);
+
+      // The rest: every one required, individually.
+      for (const type of scheme.requiredDocumentTypes) {
         const doc = staffDocs.find((d: any) => d.type === type);
-        if (!doc) {
-          statuses[type] = { status: 'missing' };
-          hasMissing = true;
-        } else if (doc.expiry_date && new Date(doc.expiry_date) < new Date()) {
-          statuses[type] = { status: 'expired', doc };
-          hasExpired = true;
-        } else if (doc.expiry_date && new Date(doc.expiry_date) <= new Date(Date.now() + 30 * 86400000)) {
-          statuses[type] = { status: 'expiring', doc };
-          hasExpiring = true;
-        } else {
-          statuses[type] = { status: 'valid', doc };
-        }
+        const status = grade(doc);
+        statuses[type] = { status, doc: doc ?? null };
+        absorb(status);
       }
 
       return {
         ...s,
+        // Surfaced so a manager reading the row can see which nation's scheme it
+        // was measured against, rather than having to know why this person's
+        // required documents differ from someone else's in the same table.
+        vetting_scheme: scheme.id,
+        vetting_nation: scheme.nation,
+        vetting_check_name: scheme.checkName,
         documents: staffDocs,
         statuses,
         overall: hasExpired ? 'expired' : hasExpiring ? 'expiring' : hasMissing ? 'incomplete' : 'compliant'
@@ -357,5 +413,68 @@ export class ComplianceRepository {
       }
     }
     return count;
+  }
+
+  /**
+   * The organisation's declared nation, and the documents that implies.
+   *
+   * Defaults to the England and Wales scheme when the column is absent, which
+   * is the state of every database that has not run migration 128 — a deploy
+   * that reaches the API before the migration must not start rejecting people
+   * for missing documents, so the fallback is the historical behaviour.
+   */
+  static async getOrgVettingScheme(orgId: string) {
+    let schemeId: string | null = null;
+    try {
+      const result = await query(
+        'SELECT vetting_scheme FROM organizations WHERE id = $1',
+        [orgId]
+      );
+      schemeId = result.rows[0]?.vetting_scheme ?? null;
+    } catch {
+      schemeId = null;
+    }
+    const scheme = getVettingScheme(schemeId);
+    return {
+      vetting_scheme: scheme.id,
+      nation: scheme.nation,
+      regulator: scheme.regulator,
+      check_name: scheme.checkName,
+      issuer: scheme.issuer,
+      tiers: scheme.tiers,
+      document_types: scheme.documentTypes,
+      note: scheme.note,
+    };
+  }
+
+  /**
+   * Record which nation the organisation is regulated in.
+   *
+   * `migrateQuery`, not `query`: this is a write to a table the app role's RLS
+   * policy does not cover for UPDATE, and it is a deliberate administrative
+   * change by a named ORG_ADMIN rather than a tenant-scoped row edit.
+   */
+  static async updateOrgVettingScheme(orgId: string, schemeId: string) {
+    await migrateQuery(
+      'UPDATE organizations SET vetting_scheme = $1, updated_at = NOW() WHERE id = $2',
+      [schemeId, orgId]
+    );
+    return this.getOrgVettingScheme(orgId);
+  }
+
+  /** How many staff records carry their own override of the org's scheme. */
+  static async getVettingOverrideCount(orgId: string): Promise<number> {
+    try {
+      const result = await query(
+        `SELECT COUNT(*)::int as count
+         FROM staff_profiles sp
+         JOIN users u ON sp.user_id = u.id
+         WHERE u.organization_id = $1 AND sp.vetting_scheme IS NOT NULL`,
+        [orgId]
+      );
+      return result.rows[0]?.count ?? 0;
+    } catch {
+      return 0;
+    }
   }
 }

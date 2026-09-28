@@ -7,8 +7,13 @@ import { asyncHandler } from '../../shared/middleware/asyncHandler';
 import { uploadDocumentSchema, updateDocumentStatusSchema } from '../../shared/validation/schemas';
 import { uploadWithScan } from '../../shared/middleware/upload.middleware';
 import { UserRole } from '@meticle/shared';
+import { z } from 'zod';
 
 const router = Router();
+
+// Validated against the registry in the controller, not by enumerating scheme
+// ids here, so adding a nation does not mean editing a validation schema.
+const vettingSchemeSchema = z.object({ vetting_scheme: z.string().min(1).max(64) });
 
 router.use(authenticate);
 
@@ -18,6 +23,13 @@ router.get('/alerts-summary', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER),
 router.get('/evidence-pack', asyncHandler(ComplianceController.getEvidencePack));
 router.get('/evidence-pack/pdf', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ComplianceController.generateEvidencePackPdf));
 router.get('/identity-dashboard', asyncHandler(ComplianceController.getIdentityDashboard));
+// Declared before '/:staffId' below, which would otherwise swallow these.
+router.get('/vetting-schemes', asyncHandler(ComplianceController.listVettingSchemes));
+router.get('/vetting-scheme', asyncHandler(ComplianceController.getVettingScheme));
+// ORG_ADMIN: this changes which background check every member of staff is
+// measured against, so it is a compliance decision about the organisation
+// rather than a rostering preference.
+router.put('/vetting-scheme', requireRole(UserRole.ORG_ADMIN), validate(vettingSchemeSchema), asyncHandler(ComplianceController.updateVettingScheme));
 router.post('/upload', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), ...uploadWithScan('document'), validate(uploadDocumentSchema), asyncHandler(ComplianceController.uploadDocument));
 router.patch('/documents/:id/status', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), validate(updateDocumentStatusSchema), asyncHandler(ComplianceController.updateDocumentStatus));
 router.patch('/records/:id', requireRole(UserRole.ORG_ADMIN, UserRole.MANAGER), asyncHandler(ComplianceController.updateRecord));
