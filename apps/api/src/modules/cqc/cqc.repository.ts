@@ -1,5 +1,5 @@
 import { query } from '../../shared/database';
-import { getFramework, type DomainDef, type FrameworkDef } from './frameworks';
+import { getFramework, domainsForServiceTypes, type DomainDef, type FrameworkDef } from './frameworks';
 import { vettingDocumentTypeSql, getVettingScheme } from '../compliance/compliance.vetting';
 
 // Which identity documents count towards the documentation metric.
@@ -234,7 +234,22 @@ export class CqcRepository {
 
     const framework = getFramework(regulator);
 
-    const domains = framework.domains.map((domain: DomainDef) => {
+    // CIW carves Environment out for domiciliary services — "Domiciliary
+    // support services do not receive a rating for ‘Environment’" — so a
+    // domiciliary provider is not shown a theme CIW never scores it on. Read
+    // from the org rather than the regulator, because it is the service the org
+    // delivers that decides which themes apply.
+    const orgTypeResult = await query(
+      'SELECT service_types FROM organizations WHERE id = $1',
+      [orgId]
+    );
+    const serviceTypes: string[] = orgTypeResult.rows[0]?.service_types || [];
+    const applicableDomains = domainsForServiceTypes(framework, serviceTypes);
+    const notApplicableDomains = framework.domains
+      .filter(d => !applicableDomains.includes(d))
+      .map(d => d.label);
+
+    const domains = applicableDomains.map((domain: DomainDef) => {
       let score = 0;
       const details: Record<string, number> = {};
 
@@ -242,12 +257,19 @@ export class CqcRepository {
         let statementScore = 0;
         const evidence: string[] = [];
 
-        if (framework.id === 'cqc' || framework.id === 'ciw') {
-          // CIW aligns with CQC's 5 Key Questions, so reuse CQC statement scoring.
+        if (framework.id === 'cqc') {
           statementScore = this.scoreCqcStatement(statement.id, {
             trainingRate, docRate, compRate, cqcMandatedRate, compStatementMap,
             satRate, satTotal, satAvgRating, engAvgScore, engTotal, incRate,
             totalStaff, staffingAdequacyRate
+          }, evidence);
+        } else if (framework.id === 'ciw') {
+          // Wales has its own statements, and its own scoring. It used to fall
+          // through to the CQC scorer, which was correct only while the Welsh
+          // statements were CQC's.
+          statementScore = this.scoreCiwStatement(statement.id, {
+            trainingRate, docRate, compRate, satRate, satTotal, engAvgScore, engTotal,
+            incRate, totalStaff
           }, evidence);
         } else if (framework.id === 'care-inspectorate') {
           statementScore = this.scoreCareInspectorateStatement(statement.id, {
@@ -282,7 +304,9 @@ export class CqcRepository {
       };
     });
 
-    const overall = Math.round(domains.reduce((sum, d) => sum + d.score, 0) / domains.length);
+    const overall = domains.length
+      ? Math.round(domains.reduce((sum, d) => sum + d.score, 0) / domains.length)
+      : 0;
 
     const gaps = buildGapMessages(framework, {
       trainingRate, docRate, compRate, cqcMandatedRate, expiringCount,
@@ -292,13 +316,37 @@ export class CqcRepository {
       vettingCheckName: getVettingScheme(checkResult.rows[0]?.org_scheme).checkName
     });
 
-    const overallLabel = overallRatingLabel(framework, overall);
+    // No band unless the regulator publishes one.
+    //
+    // CIW: "We award a rating for each inspection theme. We do not award one
+    // overall rating for the service as a whole." RQIA publishes narrative
+    // inspection reports and no numeric scale at all. Labelling an average of
+    // our own theme scores "Good" under either regulator's name would be
+    // inventing a rating on their behalf. `overall` stays as an internal
+    // summary; only the word is withheld.
+    const publishesOverall = framework.publishesOverallRating !== false && !!framework.ratings?.length;
+    const overallLabel = publishesOverall ? overallRatingLabel(framework, overall) : null;
 
     return {
       overall,
       overallLabel,
-      framework: { id: framework.id, name: framework.name, country: framework.country, ratings: framework.ratings },
+      // Explicit rather than inferred from a null label, so a client does not
+      // have to guess whether a missing band is a bug or the regulator's position.
+      publishesOverallRating: publishesOverall,
+      framework: {
+        id: framework.id,
+        name: framework.name,
+        country: framework.country,
+        ratings: framework.ratings,
+        ratingsNote: framework.ratingsNote,
+        source: framework.source,
+        description: framework.description,
+        publishesOverallRating: framework.publishesOverallRating !== false,
+      },
       domains,
+      // Themes the regulator does not rate for this kind of service. Said
+      // out loud rather than silently absent, so nobody wonders where it went.
+      notApplicableDomains,
       gaps,
       metrics: {
         training_completion_rate: Math.round(trainingRate),
@@ -321,6 +369,55 @@ export class CqcRepository {
       },
       generated_at: new Date().toISOString()
     };
+  }
+
+  /**
+   * Wales: CIW's twelve lines of enquiry, scored on their own terms.
+   *
+   * CIW describes what it looks at in terms of outcomes for people and the
+   * quality of the service delivered, so the weighting here leans on outcomes
+   * and on what staff are evidenced to do, rather than on the CQC statement
+   * numbering it used to be handed.
+   *
+   * `LOE-9` (Environment) is only ever scored for service types CIW rates
+   * Environment for; a domiciliary provider's domains are filtered before
+   * scoring, so it never reaches here.
+   */
+  private static scoreCiwStatement(
+    statementId: string,
+    ctx: {
+      trainingRate: number; docRate: number; compRate: number; satRate: number;
+      satTotal: number; engAvgScore: number; engTotal: number; incRate: number; totalStaff: number;
+    },
+    evidence: string[]
+  ): number {
+    const { trainingRate, docRate, compRate, satRate, satTotal, engAvgScore, incRate, totalStaff } = ctx;
+    const anyStaff = totalStaff > 0;
+    // CIW's focus is explicitly on people's experiences and outcomes, so where
+    // we have outcome data it leads, and training or competency stands in for
+    // it only when we do not.
+    const outcomes = satRate > 0 ? satRate : (trainingRate > 0 ? BASELINE_RATE : 0);
+    const competent = safeAvg(trainingRate, compRate);
+
+    switch (statementId) {
+      // Well-being — whether people are achieving positive outcomes in their lives
+      case 'LOE-1': evidence.push('satisfaction surveys'); return outcomes;
+      case 'LOE-2': evidence.push('satisfaction surveys'); return satRate > 0 ? clampRate(satRate + WEIGHT_MINOR_BONUS) : (anyStaff ? BASELINE_RATE : NO_DATA_RATE);
+      case 'LOE-3': evidence.push('incidents'); return incRate;
+      case 'LOE-4': return satRate > 0 ? satRate : (anyStaff ? BASELINE_RATE : NO_DATA_RATE);
+      // Care and support — quality delivered by knowledgeable, skilled staff
+      case 'LOE-5': evidence.push('competency assessments'); return compRate;
+      case 'LOE-6': evidence.push('training records'); return competent;
+      case 'LOE-7': return compRate > 0 ? compRate : (trainingRate > 0 ? BASELINE_RATE : NO_DATA_RATE);
+      case 'LOE-8': evidence.push('identity documents', 'training records'); return safeAvg(docRate, competent);
+      // Environment — premises-based services only
+      case 'LOE-9': return docRate;
+      // Leadership and management
+      case 'LOE-10': evidence.push('staff engagement'); return engAvgScore > 0 ? engAvgScore : (anyStaff ? BASELINE_RATE : NO_DATA_RATE);
+      case 'LOE-11': evidence.push('training records'); return trainingRate;
+      case 'LOE-12': evidence.push('competency assessments', 'staff engagement'); return safeAvg(compRate, engAvgScore > 0 ? engAvgScore : BASELINE_RATE);
+      default: return this.scoreGenericStatement('well-being', ctx);
+    }
   }
 
   private static scoreCqcStatement(
@@ -412,31 +509,37 @@ export class CqcRepository {
     }
   }
 
+  /**
+   * Northern Ireland: RQIA's four domains, scored on their own terms.
+   *
+   * The identifiers below are MeticleCare's, and deliberately do not look like
+   * RQIA's. RQIA publishes no numbered quality statements, so there is nothing
+   * real for a `NI-S1` to point at — the previous set of fourteen invented
+   * identifiers is gone rather than renamed.
+   */
   private static scoreRqiaStatement(
     statementId: string,
     ctx: { trainingRate: number; docRate: number; compRate: number; satRate: number; incRate: number; engAvgScore: number; totalStaff: number }
   ): number {
     const { trainingRate, docRate, compRate, satRate, incRate, engAvgScore, totalStaff } = ctx;
+    const anyStaff = totalStaff > 0;
     switch (statementId) {
-      // Safe
-      case 'NI-S1': return docRate;
-      case 'NI-S2': return safeAvg(trainingRate, compRate);
-      case 'NI-S3': return clampRate(trainingRate);
-      case 'NI-S4': return docRate;
-      // Effective
-      case 'NI-E1': return satRate > 0 ? satRate : (trainingRate > 0 ? BASELINE_RATE : NO_DATA_RATE);
-      case 'NI-E2': return safeAvg(trainingRate, compRate);
-      case 'NI-E3': return satRate > 0 ? satRate : (totalStaff > 0 ? BASELINE_RATE : NO_DATA_RATE);
-      // Caring
-      case 'NI-C1': return satRate > 0 ? satRate : (totalStaff > 0 ? BASELINE_RATE : NO_DATA_RATE);
-      case 'NI-C2': return satRate > 0 ? clampRate(satRate + WEIGHT_MINOR_BONUS) : (totalStaff > 0 ? BASELINE_RATE : NO_DATA_RATE);
-      // Responsive
-      case 'NI-R1': return incRate > 0 ? incRate : (satRate > 0 ? BASELINE_RATE : NO_DATA_RATE);
-      case 'NI-R2': return satRate > 0 ? satRate : (engAvgScore > 0 ? BASELINE_RATE : NO_DATA_RATE);
-      // Well-led
-      case 'NI-W1': return docRate > 0 ? docRate : (engAvgScore > 0 ? BASELINE_RATE : NO_DATA_RATE);
-      case 'NI-W2': return engAvgScore > 0 ? engAvgScore : (totalStaff > 0 ? BASELINE_RATE : NO_DATA_RATE);
-      case 'NI-W3': return compRate > 0 ? 70 : NO_DATA_RATE;
+      // Is care safe?
+      case 'safe-1': return incRate;
+      case 'safe-2': return safeAvg(docRate, trainingRate);
+      case 'safe-3': return trainingRate;
+      case 'safe-4': return docRate;
+      // Is care effective?
+      case 'effective-1': return compRate;
+      case 'effective-2': return safeAvg(trainingRate, compRate);
+      case 'effective-3': return satRate > 0 ? satRate : (anyStaff ? BASELINE_RATE : NO_DATA_RATE);
+      // Is care compassionate?
+      case 'compassionate-1': return satRate > 0 ? satRate : (anyStaff ? BASELINE_RATE : NO_DATA_RATE);
+      case 'compassionate-2': return satRate > 0 ? clampRate(satRate + WEIGHT_MINOR_BONUS) : (anyStaff ? BASELINE_RATE : NO_DATA_RATE);
+      // Is the service well led?
+      case 'well-led-1': return engAvgScore > 0 ? engAvgScore : (docRate > 0 ? docRate : (anyStaff ? BASELINE_RATE : NO_DATA_RATE));
+      case 'well-led-2': return engAvgScore > 0 ? engAvgScore : (anyStaff ? BASELINE_RATE : NO_DATA_RATE);
+      case 'well-led-3': return compRate > 0 ? 70 : NO_DATA_RATE;
       default: return this.scoreGenericStatement('safe', ctx);
     }
   }
@@ -449,16 +552,21 @@ export class CqcRepository {
     switch (domainKey) {
       case 'safe':
       case 'quality-care-support':
+      case 'well-being':
         return safeAvg(trainingRate, docRate);
       case 'effective':
       case 'quality-environment':
+      case 'environment':
         return weightedScore(compRate, 0.8, 20);
       case 'caring':
+      case 'compassionate':
       case 'quality-staffing':
         return satRate > 0 ? satRate : (totalStaff > 0 ? clampRate(trainingRate) : 50);
       case 'responsive':
       case 'quality-management':
+      case 'care-and-support':
         return incRate > 0 ? incRate : (docRate > 0 ? weightedScore(docRate, 1, WEIGHT_MINOR_BONUS) : 50);
+      case 'leadership-and-management':
       case 'well-led':
       default:
         return engAvgScore > 0 ? engAvgScore : (totalStaff > 0 ? BASELINE_RATE : 30);
@@ -510,10 +618,15 @@ function buildGapMessages(
     gaps.push(`Mandatory training completion is ${Math.round(cqcMandatedRate)}% — target ${TARGET_RATE}%+`);
   }
 
-  // Framework-specific domain wording for survey/incident gaps
-  const caringLabel = framework.id === 'care-inspectorate' ? 'Quality of Care and Support' : 'Caring';
-  const wellLedLabel = framework.id === 'care-inspectorate' ? 'Quality of Management and Leadership' : 'Well-led';
-  const responsiveLabel = framework.id === 'care-inspectorate' ? 'Quality of Care and Support' : 'Responsive';
+  // Framework-specific domain wording for survey/incident gaps. Resolved from
+  // the framework's own domain keys, so a Welsh gap names Well-being and a
+  // Northern Irish one names "Is care compassionate?" — not CQC's "Caring".
+  const domainLabel = (key: string, fallback: string) =>
+    framework.domains.find(d => d.key === key)?.label ?? fallback;
+  const ev = framework.evidenceDomains;
+  const caringLabel = domainLabel(ev?.experience ?? 'caring', 'Caring');
+  const wellLedLabel = domainLabel(ev?.leadership ?? 'well-led', 'Well-led');
+  const responsiveLabel = domainLabel(ev?.incidents ?? 'responsive', 'Responsive');
 
   if (satTotal === 0) gaps.push(`No satisfaction surveys recorded — add feedback to improve the ${caringLabel} domain`);
   if (engTotal === 0) gaps.push(`No staff engagement surveys recorded — measure workforce wellbeing for the ${wellLedLabel} domain`);

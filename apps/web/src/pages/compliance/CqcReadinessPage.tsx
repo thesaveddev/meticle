@@ -14,14 +14,31 @@ async function loadHtml2Pdf(): Promise<Html2Pdf> {
   return html2pdfLoader
 }
 
-function getRating(score: number, ratings?: any[]) {
-  if (ratings && ratings.length > 0) {
-    const sorted = [...ratings].sort((a, b) => b.min - a.min)
-    return sorted.find(r => score >= r.min) || sorted[sorted.length - 1]
-  }
-  return score >= 81 ? { label: 'Good', color: '#16A34A', description: '' }
-    : score >= 61 ? { label: 'Requires Improvement', color: '#F59E0B', description: '' }
-    : { label: 'Inadequate', color: '#DC2626', description: '' }
+/**
+ * The regulator's published rating for a score, or null when it publishes none.
+ *
+ * The old version of this returned a fallback of "Good / Requires Improvement
+ * / Inadequate" — CQC's words — whenever a framework had no ratings of its own.
+ * That is how a Northern Irish provider ended up being told it was "Inadequate"
+ * on a scale RQIA has never published. A missing rating is now a missing rating.
+ */
+function getRating(score: number, ratings?: any[] | null) {
+  if (!ratings || ratings.length === 0) return null
+  const sorted = [...ratings].sort((a, b) => b.min - a.min)
+  return sorted.find(r => score >= r.min) || sorted[sorted.length - 1]
+}
+
+/**
+ * A bar colour for a score.
+ *
+ * Deliberately separate from getRating: colouring a bar by score is a display
+ * choice, whereas printing "Excellent" next to it is a claim about what a
+ * regulator would say. When there is no published scale we keep the colour and
+ * drop the word.
+ */
+function scoreColor(score: number, rating?: { color: string } | null): string {
+  if (rating?.color) return rating.color
+  return score >= 81 ? '#16A34A' : score >= 61 ? '#F59E0B' : '#DC2626'
 }
 
 function buildActions(gaps: string[]): { priority: 'high' | 'medium' | 'low'; action: string; detail: string }[] {
@@ -111,7 +128,8 @@ export default function CqcReadinessPage() {
     if (!aiResult || !data) return ''
     const chartRows = data.domains.map((d: any) => {
       const r = getRating(d.score, data?.framework?.ratings)
-      return `<tr><td style="padding:4px 8px;font-size:13px;font-weight:600">${d.label}</td><td style="padding:4px 8px"><div style="width:100%;background:#E2E8F0;height:10px;border-radius:5px"><div style="width:${d.score}%;height:10px;background:${r.color};border-radius:5px"></div></div></td><td style="padding:4px 8px;text-align:right;font-size:13px;font-weight:700;color:${r.color}">${d.score}%</td></tr>`
+      const c = scoreColor(d.score, r)
+      return `<tr><td style="padding:4px 8px;font-size:13px;font-weight:600">${d.label}</td><td style="padding:4px 8px"><div style="width:100%;background:#E2E8F0;height:10px;border-radius:5px"><div style="width:${d.score}%;height:10px;background:${c};border-radius:5px"></div></div></td><td style="padding:4px 8px;text-align:right;font-size:13px;font-weight:700;color:${c}">${d.score}%</td></tr>`
     }).join('')
     const gapsRows = (aiResult.critical_gaps || []).map((g: any) => {
       const priColor = g.priority === 'critical' || g.priority === 'high' ? '#DC2626' : g.priority === 'medium' ? '#F59E0B' : '#6B7280'
@@ -341,6 +359,8 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
   }
 
   const rating = getRating(data.overall, data.framework?.ratings)
+  const overallColor = scoreColor(data.overall, rating)
+  const canShowOverallRating = data.publishesOverallRating !== false && rating != null
   const fs = getFrameworkStyle(data.framework?.name)
   const actions = buildActions(data.gaps || [])
 
@@ -366,8 +386,12 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
       </Stack>
 
       <Box ref={printRef}>
-        {/* Overall score */}
-        <Paper sx={{ p: 4, mb: 3, textAlign: 'center', border: `4px solid ${rating.color}`, borderRadius: 3 }}>
+        {/* Overall score. The rating word only appears when the regulator
+            actually publishes one for a whole service. CIW states it does not
+            award an overall rating, and RQIA publishes no scale at all, so for
+            both the number is shown as our own summary and no word is printed
+            next to it. */}
+        <Paper sx={{ p: 4, mb: 3, textAlign: 'center', border: `4px solid ${overallColor}`, borderRadius: 3 }}>
           <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 2 }}>
             {data.framework?.name || 'CQC Single Assessment Framework'}
           </Typography>
@@ -385,25 +409,40 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                 value={data.overall}
                 size={160}
                 thickness={4}
-                sx={{ color: rating.color }}
+                sx={{ color: overallColor }}
               />
               <Box sx={{ position: 'absolute', top: 0, left: 0, bottom: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography variant="h3" fontWeight={700} sx={{ color: rating.color }}>
+                <Typography variant="h3" fontWeight={700} sx={{ color: overallColor }}>
                   {data.overall}%
                 </Typography>
               </Box>
             </Box>
-            <Typography variant="body1" fontWeight={700} sx={{ color: rating.color, mt: 2, fontSize: '1.1rem' }}>
-              {rating.label}
-            </Typography>
+            {canShowOverallRating ? (
+              <Typography variant="body1" fontWeight={700} sx={{ color: overallColor, mt: 2, fontSize: '1.1rem' }}>
+                {rating!.label}
+              </Typography>
+            ) : (
+              <Stack spacing={0.5} sx={{ mt: 2, alignItems: 'center', maxWidth: 620 }}>
+                <Typography variant="body2" fontWeight={700}>
+                  {data.framework?.ratings
+                    ? 'Rated per theme, not overall'
+                    : 'This regulator publishes no numeric rating'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {data.framework?.ratings
+                    ? 'Below is our own summary of your evidence across the themes. Each theme is rated separately in the breakdown below, in the words the regulator uses.'
+                    : `${data.framework?.name} publishes narrative inspection reports rather than a score. The number above is a MeticleCare summary of your own evidence, and no rating has been assigned on their behalf.`}
+                </Typography>
+              </Stack>
+            )}
             {data.framework?.ratings && (
               <Stack direction="row" spacing={0.5} sx={{ mt: 1.5, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {[...data.framework.ratings].sort((a: any, b: any) => b.min - a.min).map((r: any, i: number) => (
-                  <Chip key={i} icon={<StarIcon />} label={`${r.label}`} size="small" variant={r.label === rating.label ? 'filled' : 'outlined'} sx={{
-                    bgcolor: r.label === rating.label ? r.color : 'transparent',
-                    color: r.label === rating.label ? '#fff' : r.color,
+                  <Chip key={i} icon={<StarIcon />} label={`${r.label}`} size="small" variant={canShowOverallRating && r.label === rating!.label ? 'filled' : 'outlined'} sx={{
+                    bgcolor: canShowOverallRating && r.label === rating!.label ? r.color : 'transparent',
+                    color: r.color,
                     borderColor: r.color,
-                    fontWeight: r.label === rating.label ? 700 : 400,
+                    fontWeight: canShowOverallRating && r.label === rating!.label ? 700 : 400,
                   }} />
                 ))}
               </Stack>
@@ -570,6 +609,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                 <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>Domain Score Breakdown</Typography>
                 {data.domains.map((domain: any) => {
                   const dr = getRating(domain.score, data?.framework?.ratings)
+                  const drColor = scoreColor(domain.score, dr)
                   return (
                     <Stack key={domain.key} direction="row" alignItems="center" spacing={1} sx={{ mb: 0.75 }}>
                       <Typography variant="caption" sx={{ minWidth: 80, fontWeight: 600, fontSize: 11 }}>
@@ -578,11 +618,11 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                       <Box sx={{ flex: 1, height: 14, bgcolor: 'notice.muted.bg', borderRadius: 7, overflow: 'hidden', position: 'relative' }}>
                         <Box sx={{
                           width: `${Math.max(domain.score, 3)}%`, height: '100%',
-                          bgcolor: dr.color, borderRadius: 7,
+                          bgcolor: drColor, borderRadius: 7,
                           transition: 'width 1s ease-out'
                         }} />
                       </Box>
-                      <Typography variant="caption" fontWeight={700} sx={{ minWidth: 36, textAlign: 'right', fontSize: 12, color: dr.color }}>
+                      <Typography variant="caption" fontWeight={700} sx={{ minWidth: 36, textAlign: 'right', fontSize: 12, color: drColor }}>
                         {Math.round(domain.score)}%
                       </Typography>
                     </Stack>
@@ -726,11 +766,32 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
           </Grid>
         </Grid>
 
-        {/* Domain breakdown */}
-        <Typography variant="h6" sx={{ mb: 2 }}>Key Questions — Domain Scores</Typography>
+        {/* Domain breakdown. "Key Questions" is CQC's term for its five domains;
+            Wales calls them themes and RQIA calls them something else again, so
+            the heading names this regulator's own. */}
+        <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 2 }}>
+          <Typography variant="h6">
+            {data.framework?.id === 'cqc' ? 'Key Questions' : data.framework?.id === 'ciw' ? 'Themes' : 'Domains'} — Scores
+          </Typography>
+          {data.framework?.ratings && (
+            <Typography variant="caption" color="text.secondary">
+              rated in {data.framework.ratings.map((r: any) => r.label).join(', ')}
+            </Typography>
+          )}
+        </Stack>
+        {data.framework?.ratingsNote && (
+          <Alert severity="info" sx={{ mb: 2 }}>{data.framework.ratingsNote}</Alert>
+        )}
+        {data.notApplicableDomains?.length > 0 && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Not rated for your service type: {data.notApplicableDomains.join(', ')}. Your regulator does not
+            rate your service on {data.notApplicableDomains.length === 1 ? 'this theme' : 'these themes'}.
+          </Alert>
+        )}
         {data.domains.map((domain: any) => {
           const isExpanded = expandedDomain === domain.key
           const domainRating = getRating(domain.score, data?.framework?.ratings)
+          const domainColor = scoreColor(domain.score, domainRating)
           return (
             <Paper key={domain.key} sx={{ mb: 1.5, overflow: 'hidden' }}>
               <Stack
@@ -742,12 +803,15 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                 <Box sx={{ flex: 1 }}>
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <Typography fontWeight={700}>{domain.label}</Typography>
-                    <Chip label={domain.score + '%'} size="small" sx={{ bgcolor: domainRating.color, color: '#fff', fontWeight: 600 }} />
+                    <Chip label={domain.score + '%'} size="small" sx={{ bgcolor: domainColor, color: '#fff', fontWeight: 600 }} />
+                    {domainRating && (
+                      <Chip label={domainRating.label} size="small" variant="outlined" sx={{ borderColor: domainColor, color: domainColor, fontWeight: 600 }} />
+                    )}
                   </Stack>
                   <LinearProgress
                     variant="determinate"
                     value={domain.score}
-                    sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: 'grey.200', '& .MuiLinearProgress-bar': { bgcolor: domainRating.color } }}
+                    sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: 'grey.200', '& .MuiLinearProgress-bar': { bgcolor: domainColor } }}
                   />
                 </Box>
                 <IconButton sx={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: '0.2s' }} aria-label={isExpanded ? 'Collapse domain' : 'Expand domain'}>
@@ -759,6 +823,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                   <Grid container spacing={1}>
                     {domain.statements.map((stmt: any) => {
                       const stmtRating = getRating(stmt.score, data?.framework?.ratings)
+                      const stmtColor = scoreColor(stmt.score, stmtRating)
                       return (
                         <Grid item xs={12} sm={6} md={4} key={stmt.id}>
                           <Tooltip title={`${stmt.label}: ${stmt.score}%`}>
@@ -768,7 +833,7 @@ ${aiResult.estimated_timeline ? `<div style="margin-top:16px;padding:8px 12px;ba
                                  stmt.score >= 61 ? <Warning sx={{ fontSize: 16, color: '#F59E0B' }} /> :
                                  <ErrorIcon sx={{ fontSize: 16, color: '#DC2626' }} />}
                                 <Typography variant="body2" sx={{ flex: 1 }} noWrap>{stmt.id}: {stmt.label}</Typography>
-                                <Chip label={stmt.score + '%'} size="small" sx={{ bgcolor: stmtRating.color, color: '#fff', fontWeight: 600, fontSize: 11, minWidth: 40 }} />
+                                <Chip label={stmt.score + '%'} size="small" sx={{ bgcolor: stmtColor, color: '#fff', fontWeight: 600, fontSize: 11, minWidth: 40 }} />
                               </Stack>
                             </Paper>
                           </Tooltip>
