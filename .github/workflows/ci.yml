@@ -44,6 +44,19 @@ jobs:
       - name: Lint web
         run: npm run lint
         working-directory: apps/web
+      # The claim guard lives here, and until 27 Sep 2026 it had never once
+      # gated a build. It caught a real false claim on its first run, which is
+      # exactly the point of running it — but a test nobody runs is a comment.
+      #
+      # Web checks run before the API suite on purpose: they need no database,
+      # so they are the fastest steps that can still fail, and a copy change
+      # should not wait behind a full API run to be told it is unevidenced.
+      - name: Type check web
+        run: npx tsc --noEmit
+        working-directory: apps/web
+      - name: Run web tests
+        run: npm test
+        working-directory: apps/web
       - name: Create app role for RLS-enforced tests
         run: psql -h localhost -U postgres -d meticle_test -c "CREATE ROLE meticle_app WITH LOGIN PASSWORD 'ci_test_password';"
         env:
@@ -54,18 +67,6 @@ jobs:
       - name: Run API tests
         run: npm test
         working-directory: apps/api
-      - name: Type check web
-        run: npx tsc --noEmit
-        working-directory: apps/web
-      # The claim guard lives here, and until this step existed it had never
-      # once gated a build. It caught a real false claim on its first run, which
-      # is exactly the point of running it — but a test nobody runs is a comment.
-      #
-      # Placed before the API tests because it is the fastest step that can still
-      # fail: a sentence of copy does not need a database to evaluate.
-      - name: Run web tests
-        run: npm test
-        working-directory: apps/web
       - name: Type check mobile
         run: npx tsc --noEmit
         working-directory: apps/mobile
