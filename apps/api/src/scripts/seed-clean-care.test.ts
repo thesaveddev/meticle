@@ -17,8 +17,8 @@ vi.mock('pg', () => ({
   },
 }))
 
+const TEST_SEED_PASSWORD = 'test-seed-password-123!'
 const SMOKE_EMAIL = 'contact.techville@gmail.com'
-const DEFAULT_PASSWORD = '***REMOVED***'
 const PIPELINE_PASSWORD = 'fresh-env-smoke-secret-9x!'
 
 const originalDatabaseUrl = process.env.DATABASE_URL
@@ -26,6 +26,8 @@ const originalDatabaseUrl = process.env.DATABASE_URL
 async function runSeed(env: Record<string, string | undefined>) {
   recorded.length = 0
   process.env.DATABASE_URL = 'postgres://seed:seed@localhost:5432/seed'
+  // The seed refuses to load without an operator password now; tests supply one.
+  if (process.env.SEED_PASSWORD === undefined && env.SEED_PASSWORD === undefined) process.env.SEED_PASSWORD = TEST_SEED_PASSWORD
   for (const [key, value] of Object.entries(env)) {
     if (value === undefined) delete process.env[key]
     else process.env[key] = value
@@ -61,32 +63,32 @@ describe('seed-clean-care smoke credentials', () => {
 
     const hash = seededPasswordHash(SMOKE_EMAIL)
     expect(bcrypt.compareSync(PIPELINE_PASSWORD, hash)).toBe(true)
-    expect(bcrypt.compareSync(DEFAULT_PASSWORD, hash)).toBe(false)
+    expect(bcrypt.compareSync(TEST_SEED_PASSWORD, hash)).toBe(false)
   })
 
-  it('leaves the other seeded accounts on the documented default', async () => {
+  it('leaves the other seeded accounts on SEED_PASSWORD — the only password the operator supplied', async () => {
     await runSeed({ DEPLOY_SMOKE_PASSWORD: PIPELINE_PASSWORD })
 
     for (const email of ['itsopeyemi@gmail.com', 'opeyemi@gmail.com', 'faithhopey@gmail.com']) {
       const hash = seededPasswordHash(email)
-      expect(bcrypt.compareSync(DEFAULT_PASSWORD, hash)).toBe(true)
+      expect(bcrypt.compareSync(TEST_SEED_PASSWORD, hash)).toBe(true)
       expect(bcrypt.compareSync(PIPELINE_PASSWORD, hash)).toBe(false)
     }
   })
 
-  it('falls back to the documented default when DEPLOY_SMOKE_PASSWORD is unset or blank', async () => {
+  it('puts the smoke account on SEED_PASSWORD too when DEPLOY_SMOKE_PASSWORD is unset or blank', async () => {
     await runSeed({ DEPLOY_SMOKE_PASSWORD: undefined })
-    expect(bcrypt.compareSync(DEFAULT_PASSWORD, seededPasswordHash(SMOKE_EMAIL))).toBe(true)
+    expect(bcrypt.compareSync(TEST_SEED_PASSWORD, seededPasswordHash(SMOKE_EMAIL))).toBe(true)
 
     await runSeed({ DEPLOY_SMOKE_PASSWORD: '   ' })
-    expect(bcrypt.compareSync(DEFAULT_PASSWORD, seededPasswordHash(SMOKE_EMAIL))).toBe(true)
+    expect(bcrypt.compareSync(TEST_SEED_PASSWORD, seededPasswordHash(SMOKE_EMAIL))).toBe(true)
   })
 
   it('honours DEPLOY_SMOKE_EMAIL, case-insensitively, so the account the pipeline logs in as is the one that gets the password', async () => {
     await runSeed({ DEPLOY_SMOKE_EMAIL: ' NIROCARTS@Gmail.com ', DEPLOY_SMOKE_PASSWORD: PIPELINE_PASSWORD })
 
     expect(bcrypt.compareSync(PIPELINE_PASSWORD, seededPasswordHash('nirocarts@gmail.com'))).toBe(true)
-    expect(bcrypt.compareSync(DEFAULT_PASSWORD, seededPasswordHash(SMOKE_EMAIL))).toBe(true)
+    expect(bcrypt.compareSync(TEST_SEED_PASSWORD, seededPasswordHash(SMOKE_EMAIL))).toBe(true)
   })
 
   it('refuses to seed an account the pipeline could not log in as, before it purges anything', async () => {
