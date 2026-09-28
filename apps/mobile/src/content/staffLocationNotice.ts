@@ -18,7 +18,7 @@
  */
 
 /** Bump when the text changes materially. Triggers re-acknowledgement. */
-export const STAFF_LOCATION_NOTICE_VERSION = '1.1'
+export const STAFF_LOCATION_NOTICE_VERSION = '1.2'
 
 /** Stable key, so a future notice is a new key rather than a confused version. */
 export const STAFF_LOCATION_NOTICE_KEY = 'staff_location'
@@ -146,18 +146,33 @@ export const STAFF_LOCATION_NOTICE: NoticeSection[] = [
       'The position recorded when you checked in, and the time you did.',
       'The position recorded when you checked out, and the time you did.',
       'How accurate each of those readings was.',
-      'If you tried to check in from too far away. The app tells you when you are further from ' +
-        'the address than your employer allows, and the attempt is visible to them.',
+      // Corrected in 1.2. This used to say the attempt was "visible to them",
+      // and that was not true. VisitScreen stops a too-far check-in on the
+      // device and returns before it makes any request, so nothing reaches the
+      // server and there is no attempt for the employer to see. The claim
+      // looked reassuring to the worker and was reassuring in the wrong
+      // direction: it told them they were being watched trying.
+      'If you try to check in from too far away. The app stops the check-in and tells you ' +
+        'how far off you are, and why. That attempt does not leave your phone — your employer ' +
+        'is not told that you tried, and there is no record of it for them to look at.',
       'Who has opened the visit check-in map, and when. Opening the map is recorded.',
     ],
   },
   {
     heading: 'Your phone\'s location permission',
     body: [
-      'If your employer has location recording switched on, the app needs your phone\'s ' +
-        'location permission in order to check in. Turning that permission off means you will ' +
-        'not be able to check in, and your employer will see that you have not.',
-      'You can change this at any time in your phone\'s settings for the Meticle Care app.',
+      // Corrected in 1.2. This keyed the permission requirement on the
+      // employer's switch alone, which stopped being the whole of it when the
+      // per-worker decision landed. A worker who has said no is not asked for
+      // permission at all, and a notice that says otherwise makes them believe
+      // they are being prompted for something they have already refused.
+      'The app needs your phone\'s location permission to check in — but only if your ' +
+        'employer has location recording switched on and you have agreed to it. If you ' +
+        'have said no, the app never asks for the permission in the first place.',
+      'If you have agreed, turning that permission off means you will not be able to check ' +
+        'in, and the visit stays unchecked, which your employer can see.',
+      'You can change the permission at any time in your phone\'s settings for the ' +
+        'Meticle Care app, without telling anyone.',
     ],
   },
   {

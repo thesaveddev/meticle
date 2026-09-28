@@ -27,7 +27,7 @@ describe('the carer location notice version', () => {
   it('is not the old version, which is the mistake a stale copy makes silently', () => {
     // Spelled out rather than left implicit: a failure here should say which
     // version is wrong, not just show a diff of two identical-shaped strings.
-    expect(STAFF_LOCATION_NOTICE_VERSION).toBe('1.1')
+    expect(STAFF_LOCATION_NOTICE_VERSION).toBe('1.2')
   })
 })
 

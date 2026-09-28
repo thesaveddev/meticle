@@ -83,6 +83,38 @@ describe('the staff location notice', () => {
     })
   })
 
+  describe('what the employer can be told they can see', () => {
+    /**
+     * v1.2. The notice told workers that an attempt to check in from too far
+     * away was "visible to them". It is not: VisitScreen stops that check-in on
+     * the device and returns before making any request, so nothing reaches the
+     * server. The claim is the kind that reads as reassurance and is the
+     * opposite of it — it told a worker they were watched trying.
+     *
+     * The list of what an employer can see had no per-item evidence checking
+     * (unlike CAPTURE_POINTS, where every entry carries a code reference), and
+     * that gap is what let it through.
+     */
+    it('does not claim a refused too-far check-in reaches the employer', () => {
+      expect(allText).not.toMatch(/attempt is visible to them/)
+      expect(allText).not.toMatch(/your employer (can )?see (that )?you tried/i)
+    })
+
+    it('says the honest version: the attempt stays on the phone', () => {
+      expect(allText).toMatch(/does not leave your phone/)
+      expect(allText).toMatch(/no record of it for them to look at/)
+    })
+
+    it('keys the location permission on the worker\'s own answer, not just the switch', () => {
+      // Also v1.2. With a per-worker decision, a worker who has declined is
+      // never prompted for the permission — so keying the requirement on the
+      // employer's switch alone told them something untrue about their own
+      // phone.
+      expect(allText).toMatch(/only if your employer has location recording switched on and you have agreed/i)
+      expect(allText).toMatch(/if you have said no, the app never asks for the permission/i)
+    })
+  })
+
   describe('what it must tell the worker', () => {
     it('names the employer as the party that decides', () => {
       expect(allText).toMatch(/your employer is the care provider/)

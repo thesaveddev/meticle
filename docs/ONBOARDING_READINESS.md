@@ -149,6 +149,10 @@ One specific point that needs a legal opinion rather than an engineer's: **we pu
 
 **What to do:** commission a DPO or data-protection solicitor to review the existing feature DPIA and write the organisation-level one. The live-map DPIA gives them a genuine head start.
 
+**You now have something to hand a customer.** `docs/LOCATION_RECORDING_GUIDE.md` is the customer-facing document for carer location recording: what the setting does, exactly what it costs them in visit verification, what it does *not* affect (pay, timesheets, mileage, care records), and how to explain the decision to a care workforce — including what not to say, and the consultation step if staff are union-represented. Written to be handed over as-is. If a provider asks us this in a sales call and we improvise the answer, the improvised version is what they will rely on.
+
+One thing in it will not be comfortable, and should not be softened: switching location recording off means a carer can check in from anywhere, because the arrival check is the collection. A provider needs to hear that from us in those terms, not discover it afterwards.
+
 ---
 
 ## Tier 1 — first week of real customers

@@ -16,6 +16,7 @@ import { Express } from 'express'
 import { createTestApp } from '../../test/helpers'
 import { migrateQuery } from '../../shared/database'
 import { createOrg, createUser, createPerson, createStaffProfile, generateToken } from '../../test/factories'
+import { STAFF_LOCATION_NOTICE_KEY, STAFF_LOCATION_NOTICE_VERSION } from './staffLocationNotice'
 
 let app: Express
 beforeAll(() => { app = createTestApp() })
@@ -29,7 +30,7 @@ const nearDate = (minsFromNow: number, durationMins = 60) => {
 const NOTICE = { notice_key: 'staff_location', notice_version: '1.1' }
 
 type Fixture = {
-  orgId: string; adminId: string
+  orgId: string; adminId: string; carerId: string
   adminToken: string; managerToken: string; carerToken: string; otherCarerToken: string
   visitId: string
 }
@@ -60,7 +61,7 @@ async function fixture(suffix: string): Promise<Fixture> {
   expect(visit.status).toBe(201)
 
   return {
-    orgId: org.id, adminId: admin.id,
+    orgId: org.id, adminId: admin.id, carerId: carer.id,
     adminToken: generateToken(admin), managerToken,
     carerToken: generateToken(carer), otherCarerToken: generateToken(other),
     visitId: visit.body.id,
@@ -303,9 +304,36 @@ describe('the evidence a provider can show', () => {
     const declined = res.body.workers.find((w: any) => w.decision === 'declined')
     expect(declined).toBeDefined()
     expect(declined.name).toBeTruthy()
-    expect(declined.notice_version).toBe('1.1')
+    expect(declined.notice_version).toBe(NOTICE.notice_version)
     // A decision, and nothing about anyone's position.
     expect(Object.keys(declined)).not.toContain('latitude')
+  })
+
+  /**
+   * The notice text ships with the app, so the browser cannot read a version
+   * out of it and stamps whatever the server calls current. That only works if
+   * the server is actually right, and the source-reading test only proves the
+   * constant matches the mobile file — not that the endpoint hands it out. This
+   * closes the loop: a client that GETs the version and POSTs it back has its
+   * own answer stored, not a blank.
+   */
+  it('advertises the current notice version, and stores what it hands out', async () => {
+    const f = await fixture('version-round-trip')
+    const before = await request(app).get('/homecare/location-decision').set('Authorization', `Bearer ${f.carerToken}`)
+    expect(before.status).toBe(200)
+    expect(before.body.current_notice_key).toBe(STAFF_LOCATION_NOTICE_KEY)
+    expect(before.body.current_notice_version).toBe(STAFF_LOCATION_NOTICE_VERSION)
+
+    const saved = await request(app).post('/homecare/location-decision')
+      .set('Authorization', `Bearer ${f.carerToken}`)
+      .send({ decision: 'declined', notice_key: before.body.current_notice_key, notice_version: before.body.current_notice_version })
+    expect(saved.status).toBe(201)
+
+    const row = await migrateQuery(
+      'SELECT notice_key, notice_version FROM staff_location_decisions WHERE user_id = $1',
+      [f.carerId],
+    )
+    expect(row.rows[0]).toEqual({ notice_key: STAFF_LOCATION_NOTICE_KEY, notice_version: STAFF_LOCATION_NOTICE_VERSION })
   })
 
   it('does not let a care worker read the whole provider\'s answers', async () => {
