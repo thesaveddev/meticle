@@ -235,6 +235,10 @@ export default function MealPlanPage() {
                       <CardContent sx={{ pb: 1 }}>
                         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{tpl.name}</Typography>
+                          {tpl.generated_by_ai && (
+                            <Chip icon={<AIIcon sx={{ fontSize: 12 }} />} label="AI-generated" size="small"
+                              sx={{ height: 20, fontSize: 10, bgcolor: 'notice.subtle.bg', color: '#7C3AED', fontWeight: 700, '& .MuiChip-icon': { color: '#7C3AED' } }} />
+                          )}
                           {!tpl.is_active && <Chip label="Inactive" size="small" />}
                         </Stack>
                         {tpl.description && (
@@ -394,7 +398,14 @@ export default function MealPlanPage() {
           {aiResult && (
             <Box>
               <Divider sx={{ mb: 2 }} />
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>{aiResult.plan_name}</Typography>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                <AIIcon sx={{ color: '#7C3AED', fontSize: 20 }} />
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>{aiResult.plan_name}</Typography>
+                <Chip label="AI-generated draft" size="small" sx={{ bgcolor: 'notice.subtle.bg', color: '#7C3AED', fontWeight: 700 }} />
+              </Stack>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                A dietitian or manager must review allergen, texture and portion decisions before use.
+              </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{aiResult.description}</Typography>
               {aiResult.person_context && (
                 <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'notice.subtle.bg' }}>
@@ -496,6 +507,11 @@ export default function MealPlanPage() {
                       meal_type: aiForm.mealType,
                       day_of_week: aiForm.dayOfWeek || undefined,
                       items: allItems,
+                      // Provenance travels with the plan. Without this the saved
+                      // template is indistinguishable from a dietitian's work —
+                      // the flag exists in the database precisely so that the
+                      // plan an inspector asks about stays labelled (T1-11).
+                      generated_by_ai: true,
                     });
                   }}
                   disabled={mkTmplFromAI.isPending}

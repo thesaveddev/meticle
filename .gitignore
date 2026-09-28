@@ -25,6 +25,16 @@ brag-output-*/
 outreach/
 Store assets/
 
+# Local databases. The marketing CRM (leads, contact details, email logs) is
+# personal data by design; a committed SQLite file is a breach waiting for its
+# first INSERT. Data files are created at runtime and stay on the machine that
+# created them (T0-17).
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
 # Generated store output. `Store assets/` above is a different directory and
 # never matched the path the capture script and runbook actually use, so the
 # screenshots and any built APK were not being ignored and could be committed by

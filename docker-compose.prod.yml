@@ -2,6 +2,16 @@ services:
   web:
     image: ${WEB_IMAGE:?WEB_IMAGE must be a digest-pinned image reference}
     restart: unless-stopped
+    logging:
+      driver: json-file
+      # Docker defaults to unbounded json-file logs. Under a busy day this
+      # fills the host disk, and the first casualty of a full disk is the
+      # Postgres volume the whole product depends on. 10 MB x 3 files per
+      # service caps each at 30 MB (T0-13).
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 512m
     ports:
       - "127.0.0.1:3000:80"
     depends_on:
@@ -18,6 +28,20 @@ services:
   api:
     image: ${API_IMAGE:?API_IMAGE must be a digest-pinned image reference}
     restart: unless-stopped
+    logging:
+      driver: json-file
+      # Docker defaults to unbounded json-file logs. Under a busy day this
+      # fills the host disk, and the first casualty of a full disk is the
+      # Postgres volume the whole product depends on. 10 MB x 3 files per
+      # service caps each at 30 MB (T0-13).
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Resource limits (T1-7). A service that leaks or spikes must not be able to
+    # starve the database on the same host. The API gets the most headroom; the
+    # DB is protected by the kernel OOM scorer ranking "critical" via shm.
+    mem_limit: 2g
+    cpus: 1.5
     expose:
       - 3002
     ports:
@@ -64,6 +88,19 @@ services:
   db:
     image: postgres@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f
     restart: unless-stopped
+    logging:
+      driver: json-file
+      # Docker defaults to unbounded json-file logs. Under a busy day this
+      # fills the host disk, and the first casualty of a full disk is the
+      # Postgres volume the whole product depends on. 10 MB x 3 files per
+      # service caps each at 30 MB (T0-13).
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # The database is the one service that must never be OOM-killed. Postgres
+    # shared memory is sized separately so the limit is predictable (T1-7).
+    mem_limit: 4g
+    shm_size: 256mb
     # Point-in-time recovery.
     #
     # `archive_mode` and `archive_command` are set here rather than in a mounted
@@ -130,6 +167,18 @@ services:
   redis:
     image: redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     restart: unless-stopped
+    logging:
+      driver: json-file
+      # Docker defaults to unbounded json-file logs. Under a busy day this
+      # fills the host disk, and the first casualty of a full disk is the
+      # Postgres volume the whole product depends on. 10 MB x 3 files per
+      # service caps each at 30 MB (T0-13).
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Redis is a cache and queue here; losing it is an annoyance, not data loss.
+    # 512 MB keeps it from competing with the database for memory (T1-7).
+    mem_limit: 512m
     volumes:
       - redis_data:/data
     healthcheck:
@@ -148,6 +197,15 @@ services:
   backup:
     image: postgres@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f
     restart: unless-stopped
+    logging:
+      driver: json-file
+      # Docker defaults to unbounded json-file logs. Under a busy day this
+      # fills the host disk, and the first casualty of a full disk is the
+      # Postgres volume the whole product depends on. 10 MB x 3 files per
+      # service caps each at 30 MB (T0-13).
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       - DB_HOST=db
       - DB_PORT=5432
@@ -179,6 +237,15 @@ services:
   uptime:
     image: louislam/uptime-kuma@sha256:0f6c88f1e5f98146dcc2ca8408d2982e2d25db968be14ff718e10a59c9a84938
     restart: unless-stopped
+    logging:
+      driver: json-file
+      # Docker defaults to unbounded json-file logs. Under a busy day this
+      # fills the host disk, and the first casualty of a full disk is the
+      # Postgres volume the whole product depends on. 10 MB x 3 files per
+      # service caps each at 30 MB (T0-13).
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "127.0.0.1:3099:3001"
     volumes:
