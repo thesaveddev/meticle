@@ -253,10 +253,10 @@ export const REGISTERED_CLAIMS: {
     label: 'ICO registered',
     pattern: /ICO registered/i,
     status: 'pending',
-    evidence: 'No ICO registration number exists yet. The public pages state the claim but cite nothing. Decision taken 27 Sep 2026: register and keep the claim, then print the number on the page.',
+    evidence: 'Application submitted to the ICO on 28 Sep 2026 and awaiting approval; no registration number exists yet. The public pages state the claim but cite nothing. Decision taken 27 Sep 2026: register and keep the claim, then print the number on the page.',
     owner: 'Adetoye',
     closesOn: 'T0-1',
-    notes: 'The claim is not true until the number is on the page, so this stays registered-and-pending rather than being deleted.',
+    notes: 'Progressed from not-submitted to submitted-and-waiting on 28 Sep 2026. The claim is not true until the number is on the page, so this stays registered-and-pending rather than being deleted. When the number arrives it goes on FeaturesPage and into the privacy policy, and this entry flips to verified.',
   },
   {
     label: 'AES-256 / encryption at rest',
